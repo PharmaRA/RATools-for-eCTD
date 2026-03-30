@@ -1,0 +1,18 @@
+<ectd:ectd xmlns:ectd="http://example.org/ectd/backbone" xmlns:xlink="http://www.w3.org/1999/xlink" applicationNumber="IND-0001" sequenceNumber="0000" submissionType="original-application" region="US">
+  <ectd:applicant>Demo Sponsor</ectd:applicant>
+  <ectd:sequenceDescription>Initial submission</ectd:sequenceDescription>
+  <ectd:section id="m5">
+    <ectd:section id="3">
+      <ectd:section id="5">
+        <ectd:section id="1">
+          <ectd:leaf id="fa17264a-386c-4b85-83ba-f2424c5241c2" operation="new" xlink:href="documents/study-report.pdf">
+            <ectd:title>Clinical Study Report</ectd:title>
+            <ectd:fileName>study-report.pdf</ectd:fileName>
+            <ectd:mimeType>application/pdf</ectd:mimeType>
+            <ectd:checksum>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</ectd:checksum>
+          </ectd:leaf>
+        </ectd:section>
+      </ectd:section>
+    </ectd:section>
+  </ectd:section>
+</ectd:ectd>

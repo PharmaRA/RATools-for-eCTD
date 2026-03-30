@@ -42,3 +42,95 @@ Content-Type: application/json
   "submissionType": "",
   "description": ""
 }
+
+### Create document
+# @name createDocument
+POST {{host}}/api/documents
+Content-Type: application/json
+
+{
+  "fileName": "study-report.pdf",
+  "mediaType": "application/pdf",
+  "fileSize": 102400,
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "storagePath": "files/study-report.pdf"
+}
+
+### List documents
+GET {{host}}/api/documents
+
+### Get document by id
+GET {{host}}/api/documents/{{createDocument.response.body.$.id}}
+
+### Upload document file
+POST {{host}}/api/documents/upload
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="File"; filename="sample.txt"
+Content-Type: text/plain
+
+sample upload content
+--boundary--
+
+### Create document placement
+POST {{host}}/api/document-placements
+Content-Type: application/json
+
+{
+  "documentId": "{{createDocument.response.body.$.id}}",
+  "applicationId": "{{createApplication.response.body.$.id}}",
+  "sequenceNumber": "0000",
+  "ctdSection": "m5.3.5.1",
+  "operation": "new",
+  "title": "Clinical Study Report"
+}
+
+### List document placements
+GET {{host}}/api/document-placements
+
+### List document placements by application
+GET {{host}}/api/document-placements?applicationId={{createApplication.response.body.$.id}}
+
+### Generate minimal index.xml backbone
+POST {{host}}/api/backbone/generate
+Content-Type: application/json
+
+{
+  "applicationId": "{{createApplication.response.body.$.id}}",
+  "sequenceNumber": "0000"
+}
+
+### Expected backbone output path
+# Files are written under src/RATools.Api/App_Data/publish/{applicationId-no-dashes}/{sequenceNumber}/index.xml
+
+### Create publish job
+# @name createPublishJob
+POST {{host}}/api/publish-jobs
+Content-Type: application/json
+
+{
+  "applicationId": "{{createApplication.response.body.$.id}}",
+  "sequenceNumber": "0000"
+}
+
+### List publish jobs
+GET {{host}}/api/publish-jobs
+
+### Get publish job by id
+GET {{host}}/api/publish-jobs/{{createPublishJob.response.body.$.id}}
+
+### Create audit log
+POST {{host}}/api/audit-logs
+Content-Type: application/json
+
+{
+  "entityType": "Application",
+  "entityId": "{{createApplication.response.body.$.id}}",
+  "action": "Created",
+  "actor": "local-user",
+  "details": "Initial application bootstrap"
+}
+
+### List audit logs
+GET {{host}}/api/audit-logs

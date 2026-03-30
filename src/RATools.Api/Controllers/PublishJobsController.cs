@@ -1,0 +1,35 @@
+using Microsoft.AspNetCore.Mvc;
+using RATools.Api.Contracts;
+using RATools.Application.Publishing;
+using RATools.Application.Publishing.Requests;
+
+namespace RATools.Api.Controllers;
+
+[ApiController]
+[Route("api/publish-jobs")]
+public sealed class PublishJobsController(IPublishJobService publishJobService) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    {
+        var items = await publishJobService.ListAsync(cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var item = await publishJobService.GetAsync(id, cancellationToken);
+        return item is null ? NotFound() : Ok(item);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
+    {
+        var created = await publishJobService.CreateAsync(
+            new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+            cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+}

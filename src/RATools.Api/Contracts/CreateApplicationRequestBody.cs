@@ -2,15 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RATools.Api.Contracts;
 
-public sealed record CreateApplicationRequestBody(
-    [property: Required]
-    [property: StringLength(32, MinimumLength = 3)]
-    string ApplicationNumber,
+public sealed class CreateApplicationRequestBody
+{
+    [Required]
+    [StringLength(32, MinimumLength = 3)]
+    public string ApplicationNumber { get; init; } = string.Empty;
 
-    [property: Required]
-    [property: StringLength(32, MinimumLength = 2)]
-    string Region,
+    [Required]
+    [StringLength(32, MinimumLength = 2)]
+    public string Region { get; init; } = string.Empty;
 
-    [property: Required]
-    [property: StringLength(128, MinimumLength = 2)]
-    string SponsorName);
+    [Required]
+    [StringLength(128, MinimumLength = 2)]
+    public string SponsorName { get; init; } = string.Empty;
+}

@@ -8,6 +8,14 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
     public DbSet<SequenceRecord> Sequences => Set<SequenceRecord>();
 
+    public DbSet<DocumentRecord> Documents => Set<DocumentRecord>();
+
+    public DbSet<DocumentPlacementRecord> DocumentPlacements => Set<DocumentPlacementRecord>();
+
+    public DbSet<PublishJobRecord> PublishJobs => Set<PublishJobRecord>();
+
+    public DbSet<AuditLogRecord> AuditLogs => Set<AuditLogRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ApplicationRecord>(entity =>
@@ -31,6 +39,55 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
             entity.Property(x => x.SubmissionType).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(512).IsRequired();
+            entity.Property(x => x.CreatedUtc).IsRequired();
+        });
+
+        modelBuilder.Entity<DocumentRecord>(entity =>
+        {
+            entity.ToTable("documents");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.FileName).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.MediaType).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.FileSize).IsRequired();
+            entity.Property(x => x.Sha256).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.StoragePath).HasMaxLength(512).IsRequired();
+            entity.Property(x => x.CreatedUtc).IsRequired();
+        });
+
+        modelBuilder.Entity<DocumentPlacementRecord>(entity =>
+        {
+            entity.ToTable("document_placements");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.DocumentId).IsRequired();
+            entity.Property(x => x.ApplicationId).IsRequired();
+            entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.CtdSection).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Operation).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(512);
+            entity.Property(x => x.CreatedUtc).IsRequired();
+        });
+
+        modelBuilder.Entity<PublishJobRecord>(entity =>
+        {
+            entity.ToTable("publish_jobs");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ApplicationId).IsRequired();
+            entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.OutputPath).HasMaxLength(512);
+            entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.Property(x => x.FailureReason).HasMaxLength(1024);
+        });
+
+        modelBuilder.Entity<AuditLogRecord>(entity =>
+        {
+            entity.ToTable("audit_logs");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EntityType).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.EntityId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Action).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Actor).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Details).HasMaxLength(2048);
             entity.Property(x => x.CreatedUtc).IsRequired();
         });
     }

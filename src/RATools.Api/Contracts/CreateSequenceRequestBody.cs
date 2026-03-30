@@ -2,15 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RATools.Api.Contracts;
 
-public sealed record CreateSequenceRequestBody(
-    [property: Required]
-    [property: RegularExpression("^\\d{4}$")]
-    string SequenceNumber,
+public sealed class CreateSequenceRequestBody
+{
+    [Required]
+    [RegularExpression("^\\d{4}$")]
+    public string SequenceNumber { get; init; } = string.Empty;
 
-    [property: Required]
-    [property: StringLength(64, MinimumLength = 2)]
-    string SubmissionType,
+    [Required]
+    [StringLength(64, MinimumLength = 2)]
+    public string SubmissionType { get; init; } = string.Empty;
 
-    [property: Required]
-    [property: StringLength(512, MinimumLength = 2)]
-    string Description);
+    [Required]
+    [StringLength(512, MinimumLength = 2)]
+    public string Description { get; init; } = string.Empty;
+}
