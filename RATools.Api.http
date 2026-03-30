@@ -1,0 +1,44 @@
+@host = http://localhost:5000
+
+### Health
+GET {{host}}/health
+
+### Version
+GET {{host}}/version
+
+### List applications
+GET {{host}}/api/applications
+
+### Create application
+# @name createApplication
+POST {{host}}/api/applications
+Content-Type: application/json
+
+{
+  "applicationNumber": "IND-0001",
+  "region": "US",
+  "sponsorName": "Demo Sponsor"
+}
+
+### Get application by id
+GET {{host}}/api/applications/{{createApplication.response.body.$.id}}
+
+### Create sequence
+POST {{host}}/api/applications/{{createApplication.response.body.$.id}}/sequences
+Content-Type: application/json
+
+{
+  "sequenceNumber": "0000",
+  "submissionType": "original-application",
+  "description": "Initial submission"
+}
+
+### Invalid sequence validation example
+POST {{host}}/api/applications/{{createApplication.response.body.$.id}}/sequences
+Content-Type: application/json
+
+{
+  "sequenceNumber": "1",
+  "submissionType": "",
+  "description": ""
+}

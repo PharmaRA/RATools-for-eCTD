@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RATools.Domain</AssemblyName>
+    <RootNamespace>RATools.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>
