@@ -12,6 +12,23 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.PublishJobs.SingleOrDefaultAsync(x => x.Id == job.Id, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        existing.Status = job.Status.ToString();
+        existing.OutputPath = job.OutputPath;
+        existing.PackagePath = job.PackagePath;
+        existing.CompletedUtc = job.CompletedUtc;
+        existing.FailureReason = job.FailureReason;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var record = await dbContext.PublishJobs
@@ -43,6 +60,7 @@ internal static class PublishJobRecordMapping
             SequenceNumber = job.SequenceNumber,
             Status = job.Status.ToString(),
             OutputPath = job.OutputPath,
+            PackagePath = job.PackagePath,
             CreatedUtc = job.CreatedUtc,
             CompletedUtc = job.CompletedUtc,
             FailureReason = job.FailureReason
@@ -58,6 +76,7 @@ internal static class PublishJobRecordMapping
             record.SequenceNumber,
             status,
             record.OutputPath,
+            record.PackagePath,
             record.CreatedUtc,
             record.CompletedUtc,
             record.FailureReason);

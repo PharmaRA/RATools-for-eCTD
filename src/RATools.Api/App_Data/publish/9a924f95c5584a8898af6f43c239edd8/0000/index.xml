@@ -1,0 +1,18 @@
+<ectd:ectd xmlns:ectd="http://example.org/ectd/backbone" xmlns:xlink="http://www.w3.org/1999/xlink" applicationNumber="IND-20260401223956" sequenceNumber="0000" submissionType="original-application" region="US">
+  <ectd:applicant>Smoke Test Sponsor</ectd:applicant>
+  <ectd:sequenceDescription>Smoke test submission</ectd:sequenceDescription>
+  <ectd:section id="m5">
+    <ectd:section id="3">
+      <ectd:section id="5">
+        <ectd:section id="1">
+          <ectd:leaf id="4bd80f9a-0d55-4c92-9ec5-ce24383ab441" operation="new" xlink:href="documents/ratools-smoke-sample.txt">
+            <ectd:title>Smoke Test Study Report</ectd:title>
+            <ectd:fileName>ratools-smoke-sample.txt</ectd:fileName>
+            <ectd:mimeType>text/plain</ectd:mimeType>
+            <ectd:checksum>2b7d57b8b8e66fae8fe2afbf78c8aee074765602fc09d47ffeaefa4801bdc01c</ectd:checksum>
+          </ectd:leaf>
+        </ectd:section>
+      </ectd:section>
+    </ectd:section>
+  </ectd:section>
+</ectd:ectd>

@@ -20,7 +20,7 @@ if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RAToolsDbContext>();
-    dbContext.Database.EnsureCreated();
+    dbContext.Database.Migrate();
 }
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);

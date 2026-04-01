@@ -3,6 +3,7 @@ using RATools.Application.Auditing;
 using RATools.Application.Applications;
 using RATools.Application.Documents;
 using RATools.Application.Publishing;
+using RATools.Application.Validation;
 
 namespace RATools.Application;
 
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();
         services.AddScoped<IBackboneService, BackboneService>();
         services.AddScoped<IPublishJobService, PublishJobService>();
+        services.AddScoped<ISequenceValidationService, SequenceValidationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         return services;
     }

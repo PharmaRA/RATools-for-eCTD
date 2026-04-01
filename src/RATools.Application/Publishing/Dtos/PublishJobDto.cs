@@ -6,6 +6,7 @@ public sealed record PublishJobDto(
     string SequenceNumber,
     string Status,
     string? OutputPath,
+    string? PackagePath,
     DateTime CreatedUtc,
     DateTime? CompletedUtc,
     string? FailureReason);

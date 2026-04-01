@@ -75,6 +75,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
             entity.Property(x => x.Status).HasMaxLength(32).IsRequired();
             entity.Property(x => x.OutputPath).HasMaxLength(512);
+            entity.Property(x => x.PackagePath).HasMaxLength(512);
             entity.Property(x => x.CreatedUtc).IsRequired();
             entity.Property(x => x.FailureReason).HasMaxLength(1024);
         });

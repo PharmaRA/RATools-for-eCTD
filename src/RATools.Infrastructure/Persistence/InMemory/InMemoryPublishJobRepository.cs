@@ -14,6 +14,12 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         return Task.CompletedTask;
     }
 
+    public Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default)
+    {
+        _items[job.Id] = job;
+        return Task.CompletedTask;
+    }
+
     public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _items.TryGetValue(id, out var job);

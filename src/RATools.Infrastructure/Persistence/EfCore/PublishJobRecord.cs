@@ -12,6 +12,8 @@ public sealed class PublishJobRecord
 
     public string? OutputPath { get; set; }
 
+    public string? PackagePath { get; set; }
+
     public DateTime CreatedUtc { get; set; }
 
     public DateTime? CompletedUtc { get; set; }

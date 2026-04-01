@@ -92,6 +92,15 @@ GET {{host}}/api/document-placements
 ### List document placements by application
 GET {{host}}/api/document-placements?applicationId={{createApplication.response.body.$.id}}
 
+### Validate sequence before publish
+POST {{host}}/api/validation/sequence
+Content-Type: application/json
+
+{
+  "applicationId": "{{createApplication.response.body.$.id}}",
+  "sequenceNumber": "0000"
+}
+
 ### Generate minimal index.xml backbone
 POST {{host}}/api/backbone/generate
 Content-Type: application/json
@@ -114,11 +123,15 @@ Content-Type: application/json
   "sequenceNumber": "0000"
 }
 
+### Publish job now fails early when validation report contains blocking errors
+
 ### List publish jobs
 GET {{host}}/api/publish-jobs
 
 ### Get publish job by id
 GET {{host}}/api/publish-jobs/{{createPublishJob.response.body.$.id}}
+
+### Publish job should return completed status with outputPath and packagePath when generation succeeds
 
 ### Create audit log
 POST {{host}}/api/audit-logs
@@ -134,3 +147,5 @@ Content-Type: application/json
 
 ### List audit logs
 GET {{host}}/api/audit-logs
+
+### Audit logs now include validation and publish job lifecycle events
