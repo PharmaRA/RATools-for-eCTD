@@ -2,7 +2,8 @@ param(
     [string]$BaseUrl = "http://localhost:5000",
     [switch]$KeepSampleFile,
     [switch]$SkipAuditCheck,
-    [switch]$CleanPublishOutput
+    [switch]$CleanPublishOutput,
+    [switch]$InjectWarnings
 )
 
 $ErrorActionPreference = "Stop"
@@ -107,13 +108,29 @@ try {
     $document = Invoke-FileUpload -Url "$BaseUrl/api/documents/upload" -FilePath $sampleFilePath
 
     Write-Step "Creating document placement"
-    $placement = Invoke-JsonPost -Url "$BaseUrl/api/document-placements" -Body @{
+    $placementPayload = @{
         documentId = $document.id
         applicationId = $application.id
         sequenceNumber = "0000"
-        ctdSection = "m5.3.5.1"
+        ctdSection = if ($InjectWarnings) { "module5" } else { "m5.3.5.1" }
         operation = "new"
-        title = "Smoke Test Study Report"
+    }
+
+    if (-not $InjectWarnings) {
+        $placementPayload.title = "Smoke Test Study Report"
+    }
+
+    $placement = Invoke-JsonPost -Url "$BaseUrl/api/document-placements" -Body $placementPayload
+
+    if ($InjectWarnings) {
+        Write-Step "Injecting duplicate placement warning scenario"
+        Invoke-JsonPost -Url "$BaseUrl/api/document-placements" -Body @{
+            documentId = $document.id
+            applicationId = $application.id
+            sequenceNumber = "0000"
+            ctdSection = "module5"
+            operation = "new"
+        } | Out-Null
     }
 
     Write-Step "Running validation"
@@ -122,11 +139,13 @@ try {
         sequenceNumber = "0000"
     }
 
-    Write-Step "Creating publish job"
-    $publishJob = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs" -Body @{
+    Write-Step "Executing publish job"
+    $publishReport = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs/execute" -Body @{
         applicationId = $application.id
         sequenceNumber = "0000"
     }
+
+    $publishJob = $publishReport.publishJob
 
     if ($publishJob.status -ne "Completed") {
         throw "Publish job did not complete successfully. Failure: $($publishJob.failureReason)"
@@ -148,26 +167,71 @@ try {
             $_.entityType -eq "PublishJob" -and $_.entityId -eq $publishJob.id
         }
 
+        $validationAudit = $auditLogs | Where-Object {
+            $_.entityType -eq "SequenceValidation" -and $_.entityId -eq "$($application.id):0000"
+        }
+
         if (-not $publishJobAudit -or $publishJobAudit.Count -eq 0) {
             throw "Audit linkage check failed: no PublishJob audit logs found for job $($publishJob.id)."
         }
+
+        if (-not $validationAudit -or $validationAudit.Count -eq 0) {
+            throw "Audit linkage check failed: no SequenceValidation audit logs found for application $($application.id), sequence 0000."
+        }
+
+        Write-Host ""
+        Write-Host "Audit details (PublishJob):" -ForegroundColor DarkCyan
+        $publishJobAudit |
+            Sort-Object createdUtc |
+            ForEach-Object {
+                Write-Host "- $($_.createdUtc) [$($_.action)] $($_.details)"
+            }
+
+        Write-Host ""
+        Write-Host "Audit details (SequenceValidation):" -ForegroundColor DarkCyan
+        $validationAudit |
+            Sort-Object createdUtc |
+            ForEach-Object {
+                Write-Host "- $($_.createdUtc) [$($_.action)] $($_.details)"
+            }
     }
 
     Write-Host ""
     Write-Host "Smoke test completed." -ForegroundColor Green
+    Write-Host "Report Ver.    : $($publishReport.reportVersion)"
     Write-Host "Application ID : $($application.id)"
     Write-Host "Document ID    : $($document.id)"
     Write-Host "Placement ID   : $($placement.id)"
     Write-Host "Valid          : $($validation.isValid)"
+    Write-Host "Publish Valid  : $($publishReport.validationReport.isValid)"
+    Write-Host "Val Profile    : $($publishReport.validationProfile)"
+    Write-Host "Succeeded      : $($publishReport.succeeded)"
+    Write-Host "Message        : $($publishReport.message)"
+    Write-Host "Duration (ms)  : $($publishReport.durationMs)"
+    Write-Host "Error Count    : $($publishReport.errorCount)"
+    Write-Host "Warning Count  : $($publishReport.warningCount)"
+    Write-Host "Warn Summary   : $($publishReport.warningSummary)"
     Write-Host "Publish Job ID : $($publishJob.id)"
     Write-Host "Status         : $($publishJob.status)"
     Write-Host "Index Path     : $($publishJob.outputPath)"
     Write-Host "Package Path   : $($publishJob.packagePath)"
 
-    if (-not $validation.isValid) {
+    if ($publishReport.artifactSummary) {
+        Write-Host "Artifact Files : $($publishReport.artifactSummary.fileCount)"
+        Write-Host "Artifact Bytes : $($publishReport.artifactSummary.totalSizeBytes)"
+        Write-Host "Package Bytes  : $($publishReport.artifactSummary.packageSizeBytes)"
+    }
+
+    if ($publishReport.auditSummary) {
+        Write-Host "Audit(Publish) : $($publishReport.auditSummary.publishJobEventCount)"
+        Write-Host "Audit(Valid)   : $($publishReport.auditSummary.validationEventCount)"
+        Write-Host "Audit Last Act : $($publishReport.auditSummary.latestPublishJobAction)"
+    }
+
+    if (-not $publishReport.validationReport.isValid) {
         Write-Host ""
         Write-Host "Validation issues:" -ForegroundColor Yellow
-        $validation.issues | ForEach-Object {
+        $publishReport.validationReport.issues | ForEach-Object {
             Write-Host "- [$($_.severity)] $($_.code): $($_.message)"
         }
     }

@@ -1,3 +1,0 @@
-﻿RATools smoke test file
-Generated: 2026-04-01T22:39:56.6642722+08:00
-This file is used to verify upload, placement, validation, and publish flow.

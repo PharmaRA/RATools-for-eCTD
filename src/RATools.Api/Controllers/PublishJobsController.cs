@@ -32,4 +32,14 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpPost("execute")]
+    public async Task<IActionResult> Execute([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
+    {
+        var report = await publishJobService.ExecuteAsync(
+            new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+            cancellationToken);
+
+        return Ok(report);
+    }
 }

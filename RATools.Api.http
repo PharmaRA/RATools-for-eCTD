@@ -123,6 +123,16 @@ Content-Type: application/json
   "sequenceNumber": "0000"
 }
 
+### Execute publish and return unified report
+# @name executePublishJob
+POST {{host}}/api/publish-jobs/execute
+Content-Type: application/json
+
+{
+  "applicationId": "{{createApplication.response.body.$.id}}",
+  "sequenceNumber": "0000"
+}
+
 ### Publish job now fails early when validation report contains blocking errors
 
 ### List publish jobs

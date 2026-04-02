@@ -4,10 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Abstractions.Storage;
+using RATools.Application.Validation;
 using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Storage;
+using RATools.Infrastructure.Validation;
 
 namespace RATools.Infrastructure;
 
@@ -17,8 +19,10 @@ public static class DependencyInjection
     {
         services.Configure<BackboneOutputOptions>(configuration.GetSection(BackboneOutputOptions.SectionName));
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
+        services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddSingleton<IValidationProfileProvider, ConfigurationValidationProfileProvider>();
 
         var provider = configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))

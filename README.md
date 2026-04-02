@@ -43,3 +43,6 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Optional: keep the temporary sample file: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -KeepSampleFile`
 - Optional: skip audit linkage check: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -SkipAuditCheck`
 - Optional: clean publish output before run: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CleanPublishOutput`
+- Optional: inject warning scenarios to verify warningCount/warningSummary: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -InjectWarnings`
+- The smoke test now uses `POST /api/publish-jobs/execute` and prints the unified publish report summary.
+- When audit checks are enabled (default), the script prints filtered PublishJob and SequenceValidation audit details for the current run.
