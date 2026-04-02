@@ -59,6 +59,8 @@ public sealed class BackboneService(
             request.SequenceNumber,
             "index.xml",
             xmlContent,
+            request.ReportFileName,
+            "{}",
             referencedDocuments,
             cancellationToken);
 
@@ -67,6 +69,7 @@ public sealed class BackboneService(
             request.SequenceNumber,
             "index.xml",
             output.FilePath,
+            output.ReportPath,
             output.PackagePath,
             xmlContent);
     }

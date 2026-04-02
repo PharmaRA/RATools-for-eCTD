@@ -141,6 +141,12 @@ GET {{host}}/api/publish-jobs
 ### Get publish job by id
 GET {{host}}/api/publish-jobs/{{createPublishJob.response.body.$.id}}
 
+### Get persisted publish report by job id
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/report
+
+### List artifacts by job id
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/artifacts
+
 ### Publish job should return completed status with outputPath and packagePath when generation succeeds
 
 ### Create audit log

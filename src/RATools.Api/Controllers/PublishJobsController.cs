@@ -23,6 +23,31 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         return item is null ? NotFound() : Ok(item);
     }
 
+    [HttpGet("{id:guid}/report")]
+    public async Task<IActionResult> GetExecutionReport(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var report = await publishJobService.GetExecutionReportAsync(id, cancellationToken);
+            return report is null ? NotFound() : Ok(report);
+        }
+        catch (PublishJobNotReadyException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (PublishJobReportUnavailableException exception)
+        {
+            return StatusCode(StatusCodes.Status410Gone, new { message = exception.Message });
+        }
+    }
+
+    [HttpGet("{id:guid}/artifacts")]
+    public async Task<IActionResult> GetArtifacts(Guid id, CancellationToken cancellationToken)
+    {
+        var artifacts = await publishJobService.GetArtifactsAsync(id, cancellationToken);
+        return artifacts is null ? NotFound() : Ok(artifacts);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {

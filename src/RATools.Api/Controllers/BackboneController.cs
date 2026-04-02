@@ -15,7 +15,7 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
         try
         {
             var generated = await backboneService.GenerateAsync(
-                new GenerateBackboneRequest(request.ApplicationId, request.SequenceNumber),
+                new GenerateBackboneRequest(request.ApplicationId, request.SequenceNumber, "publish-report.json"),
                 cancellationToken);
 
             return Ok(generated);

@@ -147,13 +147,43 @@ try {
 
     $publishJob = $publishReport.publishJob
 
+    Write-Step "Reading persisted publish report"
+    $persistedReport = Invoke-JsonGet -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/report"
+
+    Write-Step "Reading publish artifacts"
+    $artifacts = Invoke-JsonGet -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/artifacts"
+
     if ($publishJob.status -ne "Completed") {
         throw "Publish job did not complete successfully. Failure: $($publishJob.failureReason)"
+    }
+
+    if ($persistedReport.reportVersion -ne $publishReport.reportVersion) {
+        throw "Persisted report version '$($persistedReport.reportVersion)' does not match execute response '$($publishReport.reportVersion)'."
+    }
+
+    if ($persistedReport.reportPath -ne $publishReport.reportPath) {
+        throw "Persisted report path '$($persistedReport.reportPath)' does not match execute response '$($publishReport.reportPath)'."
+    }
+
+    $requiredArtifacts = @("BackboneXml", "PublishReport", "PackageZip")
+    foreach ($artifactName in $requiredArtifacts) {
+        $artifact = $artifacts.artifacts | Where-Object { $_.name -eq $artifactName } | Select-Object -First 1
+        if (-not $artifact) {
+            throw "Artifacts endpoint did not return required artifact '$artifactName'."
+        }
+
+        if (-not $artifact.exists) {
+            throw "Artifact '$artifactName' exists flag is false."
+        }
     }
 
     Write-Step "Verifying generated artifacts"
     if ([string]::IsNullOrWhiteSpace($publishJob.outputPath) -or -not (Test-Path $publishJob.outputPath)) {
         throw "Output index.xml path does not exist: $($publishJob.outputPath)"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($publishReport.reportPath) -or -not (Test-Path $publishReport.reportPath)) {
+        throw "Publish report path does not exist: $($publishReport.reportPath)"
     }
 
     if ([string]::IsNullOrWhiteSpace($publishJob.packagePath) -or -not (Test-Path $publishJob.packagePath)) {
@@ -213,6 +243,7 @@ try {
     Write-Host "Warn Summary   : $($publishReport.warningSummary)"
     Write-Host "Publish Job ID : $($publishJob.id)"
     Write-Host "Status         : $($publishJob.status)"
+    Write-Host "Report Path    : $($publishReport.reportPath)"
     Write-Host "Index Path     : $($publishJob.outputPath)"
     Write-Host "Package Path   : $($publishJob.packagePath)"
 
@@ -227,6 +258,8 @@ try {
         Write-Host "Audit(Valid)   : $($publishReport.auditSummary.validationEventCount)"
         Write-Host "Audit Last Act : $($publishReport.auditSummary.latestPublishJobAction)"
     }
+
+    Write-Host "Artifacts OK   : $($artifacts.artifacts.Count) item(s)"
 
     if (-not $publishReport.validationReport.isValid) {
         Write-Host ""

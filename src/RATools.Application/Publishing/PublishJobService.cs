@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Text.Json;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
 using RATools.Application.Validation;
@@ -32,27 +34,103 @@ public sealed class PublishJobService(
         stopwatch.Stop();
 
         var jobDto = result.Job.ToDto();
-        var artifactSummary = BuildArtifactSummary(jobDto);
         var errorCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
         var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var warningSummary = BuildWarningSummary(result.ValidationReport);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
 
-        return new PublishExecutionReportDto(
+        var report = new PublishExecutionReportDto(
             PublishExecutionReportVersion,
             request.ApplicationId,
             request.SequenceNumber,
             result.ValidationReport.ValidationProfile,
+            result.ReportPath,
             result.ValidationReport,
             jobDto,
             stopwatch.ElapsedMilliseconds,
-            artifactSummary,
+            null,
             auditSummary,
             errorCount,
             warningCount,
             warningSummary,
             result.Job.Status == PublishJobStatus.Completed,
             result.Message);
+
+        report = report with { ArtifactSummary = BuildArtifactSummary(jobDto) };
+
+        if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
+        {
+            await WriteFinalReportAsync(report, jobDto.PackagePath, cancellationToken);
+        }
+
+        return report;
+    }
+
+    public async Task<PublishExecutionReportDto?> GetExecutionReportAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var job = await repository.GetAsync(id, cancellationToken);
+        if (job is null)
+        {
+            return null;
+        }
+
+        if (job.Status != PublishJobStatus.Completed)
+        {
+            throw new PublishJobNotReadyException($"Publish job {id} is in status '{job.Status}' and does not have a final report yet.");
+        }
+
+        if (string.IsNullOrWhiteSpace(job.OutputPath))
+        {
+            throw new PublishJobReportUnavailableException($"Publish job {id} completed without an output path.");
+        }
+
+        var outputDirectory = Path.GetDirectoryName(job.OutputPath);
+        if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
+        {
+            throw new PublishJobReportUnavailableException($"Publish output directory for job {id} no longer exists.");
+        }
+
+        var expectedReportPath = Path.Combine(outputDirectory, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+        if (!File.Exists(expectedReportPath))
+        {
+            throw new PublishJobReportUnavailableException($"Publish report for job {id} was not found at '{expectedReportPath}'.");
+        }
+
+        var json = await File.ReadAllTextAsync(expectedReportPath, cancellationToken);
+        return JsonSerializer.Deserialize<PublishExecutionReportDto>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+    }
+
+    public async Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var job = await repository.GetAsync(id, cancellationToken);
+        if (job is null)
+        {
+            return null;
+        }
+
+        var outputPath = job.OutputPath;
+        var reportPath = outputPath is null
+            ? null
+            : Path.Combine(Path.GetDirectoryName(outputPath) ?? string.Empty, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+
+        var artifacts = new List<PublishArtifactDto>
+        {
+            BuildArtifact("BackboneXml", "file", outputPath),
+            BuildArtifact("PublishReport", "file", reportPath),
+            BuildArtifact("PackageZip", "file", job.PackagePath)
+        };
+
+        return new PublishArtifactsDto(job.Id, job.ApplicationId, job.SequenceNumber, artifacts);
+    }
+
+    private static PublishArtifactDto BuildArtifact(string name, string type, string? path)
+    {
+        var exists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+        var sizeBytes = exists ? new FileInfo(path!).Length : 0;
+        return new PublishArtifactDto(name, type, path, exists, sizeBytes);
     }
 
     private static string? BuildWarningSummary(ValidationReportDto validationReport)
@@ -135,11 +213,12 @@ public sealed class PublishJobService(
         }
     }
 
-    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, string? Message)> ExecuteInternalAsync(
+    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, string? Message, string? ReportPath)> ExecuteInternalAsync(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
         ValidationReportDto? validationReport = null;
+        string? reportPath = null;
         var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
         await repository.AddAsync(job, cancellationToken);
         await TryWriteAuditAsync(
@@ -166,7 +245,7 @@ public sealed class PublishJobService(
                     action: "ValidationFailed",
                     details: $"Profile={validationReport.ValidationProfile}; {failureMessage}",
                     cancellationToken);
-                return (job, validationReport, "Publish stopped because validation failed.");
+                return (job, validationReport, "Publish stopped because validation failed.", reportPath);
             }
 
             job.MarkRunning();
@@ -179,8 +258,12 @@ public sealed class PublishJobService(
                 cancellationToken);
 
             var generated = await backboneService.GenerateAsync(
-                new GenerateBackboneRequest(request.ApplicationId, request.SequenceNumber),
+                new GenerateBackboneRequest(
+                    request.ApplicationId,
+                    request.SequenceNumber,
+                    $"publish-report-{request.SequenceNumber}-{job.Id:N}.json"),
                 cancellationToken);
+            reportPath = generated.ReportPath;
 
             job.MarkCompleted(generated.FilePath, generated.PackagePath);
             await TryWriteAuditAsync(
@@ -191,7 +274,7 @@ public sealed class PublishJobService(
                 cancellationToken);
 
             await repository.UpdateAsync(job, cancellationToken);
-            return (job, validationReport, "Publish completed successfully.");
+            return (job, validationReport, "Publish completed successfully.", reportPath);
         }
         catch (Exception exception)
         {
@@ -210,8 +293,35 @@ public sealed class PublishJobService(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
-            return (job, validationReport, "Publish failed during execution.");
+            return (job, validationReport, "Publish failed during execution.", reportPath);
         }
+    }
+
+    private static async Task WriteFinalReportAsync(
+        PublishExecutionReportDto report,
+        string packagePath,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(report.ReportPath))
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(report.ReportPath, json, cancellationToken);
+
+        var outputDirectory = Path.GetDirectoryName(report.ReportPath);
+        if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
+        {
+            return;
+        }
+
+        if (File.Exists(packagePath))
+        {
+            File.Delete(packagePath);
+        }
+
+        ZipFile.CreateFromDirectory(outputDirectory, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
     }
 
     private async Task TryWriteAuditAsync(

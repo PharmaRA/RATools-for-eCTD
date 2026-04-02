@@ -5,5 +5,6 @@ public sealed record GeneratedBackboneDto(
     string SequenceNumber,
     string FileName,
     string FilePath,
+    string ReportPath,
     string PackagePath,
     string XmlContent);

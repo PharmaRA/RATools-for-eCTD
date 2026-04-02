@@ -7,6 +7,7 @@ public sealed record PublishExecutionReportDto(
     Guid ApplicationId,
     string SequenceNumber,
     string ValidationProfile,
+    string? ReportPath,
     ValidationReportDto ValidationReport,
     PublishJobDto PublishJob,
     long DurationMs,

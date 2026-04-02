@@ -9,6 +9,10 @@ public interface IPublishJobService
 
     Task<PublishExecutionReportDto> ExecuteAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default);
 
+    Task<PublishExecutionReportDto?> GetExecutionReportAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<PublishJobDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PublishJobDto>> ListAsync(CancellationToken cancellationToken = default);
