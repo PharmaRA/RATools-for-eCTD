@@ -11,4 +11,6 @@ public interface IPublishJobRepository
     Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default);
+
+    Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default);
 }

@@ -58,3 +58,4 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - The smoke test also verifies the packaged zip path is job-specific so repeated publishes do not overwrite history.
 - The smoke test also verifies `index.xml` uses a job-safe unique document `href` based on the uploaded document id.
 - The smoke test now uploads two documents with the same file name and verifies their published `href` values remain unique.
+- The smoke test also verifies the generated backbone includes `dtd-version="3.2.2"`, `xlink:type="simple"`, and `checksum-type="sha256"`.

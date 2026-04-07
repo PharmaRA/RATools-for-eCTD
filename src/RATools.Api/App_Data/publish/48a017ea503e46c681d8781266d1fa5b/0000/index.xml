@@ -1,0 +1,24 @@
+<ectd:ectd xmlns:ectd="http://example.org/ectd/backbone" xmlns:xlink="http://www.w3.org/1999/xlink" applicationNumber="IND-20260407223807" sequenceNumber="0000" submissionType="original-application" region="US">
+  <ectd:applicant>Smoke Test Sponsor</ectd:applicant>
+  <ectd:sequenceDescription>Smoke test submission</ectd:sequenceDescription>
+  <ectd:section id="m5">
+    <ectd:section id="3">
+      <ectd:section id="5">
+        <ectd:section id="1">
+          <ectd:leaf id="b17d06b9-7e8a-4ae3-8583-5814178b0f1d" operation="new" xlink:href="documents/edc83e1d9bd64b30bbba44187f0b0d06_ratools-smoke-sample.txt">
+            <ectd:title>Smoke Test Study Report</ectd:title>
+            <ectd:fileName>ratools-smoke-sample.txt</ectd:fileName>
+            <ectd:mimeType>text/plain</ectd:mimeType>
+            <ectd:checksum>93d273de036bddcdcc958833b96bc37a4b4610f8b6697c28dc8ee167a1e26561</ectd:checksum>
+          </ectd:leaf>
+          <ectd:leaf id="c461a350-aa66-4bad-9295-5f3792760ad6" operation="new" xlink:href="documents/7acbb78472a84162a370e8061906a245_ratools-smoke-sample.txt">
+            <ectd:title>Smoke Test Study Report Duplicate</ectd:title>
+            <ectd:fileName>ratools-smoke-sample.txt</ectd:fileName>
+            <ectd:mimeType>text/plain</ectd:mimeType>
+            <ectd:checksum>ffa417ce1278b17ae85840fbf4abc3bb5ef3212f1e7c4354eac1837357e8a174</ectd:checksum>
+          </ectd:leaf>
+        </ectd:section>
+      </ectd:section>
+    </ectd:section>
+  </ectd:section>
+</ectd:ectd>

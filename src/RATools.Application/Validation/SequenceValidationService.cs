@@ -89,6 +89,13 @@ public sealed class SequenceValidationService(
                     "SECTION_MISSING",
                     $"Document {document.FileName} is missing a CTD section."));
             }
+            else if (IsInvalidSectionPath(placement.CtdSection))
+            {
+                issues.Add(new ValidationIssueDto(
+                    "Error",
+                    "INVALID_SECTION_PATH",
+                    $"Section '{placement.CtdSection}' is not a valid CTD section path."));
+            }
             else
             {
                 var firstSegment = placement.CtdSection
@@ -188,6 +195,29 @@ public sealed class SequenceValidationService(
                || sectionSegment.Equals("m3", StringComparison.OrdinalIgnoreCase)
                || sectionSegment.Equals("m4", StringComparison.OrdinalIgnoreCase)
                || sectionSegment.Equals("m5", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsInvalidSectionPath(string ctdSection)
+    {
+        if (ctdSection.Contains("..", StringComparison.Ordinal) ||
+            ctdSection.StartsWith(".", StringComparison.Ordinal) ||
+            ctdSection.EndsWith(".", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var parts = ctdSection.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return true;
+        }
+
+        if (!IsValidModulePrefix(parts[0]))
+        {
+            return true;
+        }
+
+        return parts.Skip(1).Any(part => !int.TryParse(part, out _));
     }
 
     private static string? GuessMediaTypeByFileName(string fileName)

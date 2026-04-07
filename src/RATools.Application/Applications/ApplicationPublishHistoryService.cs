@@ -23,27 +23,27 @@ public sealed class ApplicationPublishHistoryService(
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
 
-        var jobs = await publishJobRepository.ListAsync(cancellationToken);
         var entries = new List<ApplicationPublishHistoryEntryDto>();
 
-        var filteredJobs = jobs
-            .Where(x => x.ApplicationId == applicationId)
-            .Where(x => string.IsNullOrWhiteSpace(query.SequenceNumber) || x.SequenceNumber == query.SequenceNumber)
-            .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Status.ToString().Equals(query.Status, StringComparison.OrdinalIgnoreCase))
-            .Where(x => !query.CreatedFromUtc.HasValue || x.CreatedUtc >= query.CreatedFromUtc.Value)
-            .Where(x => !query.CreatedToUtc.HasValue || x.CreatedUtc <= query.CreatedToUtc.Value)
-            .OrderByDescending(x => x.CreatedUtc)
-            .ToArray();
+        var result = await publishJobRepository.QueryHistoryAsync(
+            new PublishJobHistoryQuery(
+                applicationId,
+                query.SequenceNumber,
+                query.Status,
+                query.CreatedFromUtc,
+                query.CreatedToUtc,
+                page,
+                pageSize),
+            cancellationToken);
 
-        var totalCount = filteredJobs.Length;
+        var filteredJobs = result.Items;
+        var totalCount = result.TotalCount;
         var statusSummary = new ApplicationPublishHistoryStatusSummaryDto(
-            filteredJobs.Count(x => x.Status == Domain.Publishing.PublishJobStatus.Completed),
-            filteredJobs.Count(x => x.Status == Domain.Publishing.PublishJobStatus.Failed),
-            filteredJobs.Count(x => x.Status == Domain.Publishing.PublishJobStatus.Running));
+            result.CompletedCount,
+            result.FailedCount,
+            result.RunningCount);
 
-        foreach (var job in filteredJobs
-                     .Skip((page - 1) * pageSize)
-                     .Take(pageSize))
+        foreach (var job in filteredJobs)
         {
             var reportState = await TryReadReportAsync(job, cancellationToken);
             entries.Add(new ApplicationPublishHistoryEntryDto(

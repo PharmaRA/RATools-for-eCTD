@@ -224,6 +224,40 @@ public sealed class ApplicationPublishHistoryServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task GetAsync_UsesRepositoryLevelHistoryQuery()
+    {
+        var application = SubmissionApplication.Rehydrate(
+            Guid.Parse("50000000-0000-0000-0000-000000000001"),
+            "IND-0006",
+            "US",
+            "Demo Sponsor",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0000", "original-application", "Initial", DateTime.UtcNow)]);
+
+        var expectedJob = PublishJob.Rehydrate(
+            Guid.Parse("50000000-0000-0000-0000-000000000002"),
+            application.Id,
+            "0000",
+            PublishJobStatus.Completed,
+            null,
+            null,
+            DateTime.UtcNow,
+            DateTime.UtcNow,
+            null);
+
+        var queryAwareRepository = new QueryOnlyPublishJobRepository(expectedJob);
+        var service = new ApplicationPublishHistoryService(
+            new StubApplicationRepository(application),
+            queryAwareRepository);
+
+        var result = await service.GetAsync(application.Id, new ApplicationPublishHistoryQuery("0000", 1, 20));
+
+        Assert.NotNull(result);
+        Assert.Single(result!.Entries);
+        Assert.Equal(expectedJob.Id, result.Entries.First().PublishJobId);
+    }
 }
 
 file sealed class StubApplicationRepository(SubmissionApplication application) : IApplicationRepository
@@ -250,4 +284,34 @@ file sealed class StubPublishJobRepository(params PublishJob[] jobs) : IPublishJ
 
     public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
         => Task.FromResult((IReadOnlyCollection<PublishJob>)jobs);
+
+    public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
+    {
+        var filtered = jobs
+            .Where(x => x.ApplicationId == query.ApplicationId)
+            .Where(x => string.IsNullOrWhiteSpace(query.SequenceNumber) || x.SequenceNumber == query.SequenceNumber)
+            .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Status.ToString().Equals(query.Status, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !query.CreatedFromUtc.HasValue || x.CreatedUtc >= query.CreatedFromUtc.Value)
+            .Where(x => !query.CreatedToUtc.HasValue || x.CreatedUtc <= query.CreatedToUtc.Value)
+            .OrderByDescending(x => x.CreatedUtc)
+            .ToArray();
+
+        var pageItems = filtered.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToArray();
+        return Task.FromResult(new PublishJobHistoryQueryResult(
+            pageItems,
+            filtered.Length,
+            filtered.Count(x => x.Status == PublishJobStatus.Completed),
+            filtered.Count(x => x.Status == PublishJobStatus.Failed),
+            filtered.Count(x => x.Status == PublishJobStatus.Running)));
+    }
+}
+
+file sealed class QueryOnlyPublishJobRepository(PublishJob expectedJob) : IPublishJobRepository
+{
+    public Task AddAsync(PublishJob job, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(id == expectedJob.Id ? expectedJob : null);
+    public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default) => throw new InvalidOperationException("ListAsync should not be used for publish history anymore.");
+    public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
+        => Task.FromResult(new PublishJobHistoryQueryResult([expectedJob], 1, 1, 0, 0));
 }

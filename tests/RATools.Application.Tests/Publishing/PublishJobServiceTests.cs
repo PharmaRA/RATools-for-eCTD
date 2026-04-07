@@ -339,6 +339,26 @@ file sealed class StubPublishJobRepository : IPublishJobRepository
     {
         return Task.FromResult((IReadOnlyCollection<PublishJob>)_jobs.Values.ToArray());
     }
+
+    public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
+    {
+        var filtered = _jobs.Values
+            .Where(x => x.ApplicationId == query.ApplicationId)
+            .Where(x => string.IsNullOrWhiteSpace(query.SequenceNumber) || x.SequenceNumber == query.SequenceNumber)
+            .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Status.ToString().Equals(query.Status, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !query.CreatedFromUtc.HasValue || x.CreatedUtc >= query.CreatedFromUtc.Value)
+            .Where(x => !query.CreatedToUtc.HasValue || x.CreatedUtc <= query.CreatedToUtc.Value)
+            .OrderByDescending(x => x.CreatedUtc)
+            .ToArray();
+
+        var pageItems = filtered.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToArray();
+        return Task.FromResult(new PublishJobHistoryQueryResult(
+            pageItems,
+            filtered.Length,
+            filtered.Count(x => x.Status == PublishJobStatus.Completed),
+            filtered.Count(x => x.Status == PublishJobStatus.Failed),
+            filtered.Count(x => x.Status == PublishJobStatus.Running)));
+    }
 }
 
 file sealed class StubBackboneService(string outputPath, string reportPath, string packagePath) : IBackboneService

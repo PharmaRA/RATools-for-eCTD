@@ -380,6 +380,18 @@ try {
         throw "Generated index.xml does not contain the expected unique duplicate document href '$expectedDuplicateDocumentHref'."
     }
 
+    if ($indexXmlContent -notmatch 'dtd-version="3\.2\.2"') {
+        throw "Generated index.xml does not declare the expected dtd-version=3.2.2 metadata."
+    }
+
+    if ($indexXmlContent -notmatch 'xlink:type="simple"') {
+        throw "Generated index.xml does not contain xlink:type=\"simple\" on leaf nodes."
+    }
+
+    if ($indexXmlContent -notmatch 'checksum-type="sha256"') {
+        throw "Generated index.xml does not contain checksum-type=\"sha256\" on leaf nodes."
+    }
+
     if ([string]::IsNullOrWhiteSpace($publishReport.reportPath) -or -not (Test-Path $publishReport.reportPath)) {
         throw "Publish report path does not exist: $($publishReport.reportPath)"
     }
