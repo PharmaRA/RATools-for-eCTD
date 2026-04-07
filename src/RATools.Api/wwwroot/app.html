@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Publish History</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <a class="link-back" href="/">Back to Applications</a>
+      <h1 id="application-title">Publish History</h1>
+      <p id="application-meta" class="subtitle"></p>
+    </div>
+    <div id="api-status" class="status-pill">Checking API...</div>
+  </header>
+
+  <main class="page-shell history-layout">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Filters</h2>
+      </div>
+      <form id="history-filters" class="filters-grid">
+        <label>
+          <span>Sequence</span>
+          <input id="filter-sequence" type="text" placeholder="0000">
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="filter-status">
+            <option value="">All</option>
+            <option value="Completed">Completed</option>
+            <option value="Failed">Failed</option>
+            <option value="Running">Running</option>
+          </select>
+        </label>
+        <label>
+          <span>Created From (UTC)</span>
+          <input id="filter-created-from" type="datetime-local">
+        </label>
+        <label>
+          <span>Created To (UTC)</span>
+          <input id="filter-created-to" type="datetime-local">
+        </label>
+        <div class="filters-actions">
+          <button type="submit" class="button">Search</button>
+          <button id="reset-filters" type="button" class="button secondary">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-label">Completed</span>
+        <strong id="summary-completed">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Failed</span>
+        <strong id="summary-failed">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Running</span>
+        <strong id="summary-running">0</strong>
+      </article>
+    </section>
+
+    <section class="panel history-main">
+      <div class="panel-header">
+        <h2>Publish History</h2>
+        <div id="history-meta" class="panel-meta"></div>
+      </div>
+      <div id="history-error" class="message error hidden"></div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Sequence</th>
+            <th>Status</th>
+            <th>Validation Profile</th>
+            <th>Errors</th>
+            <th>Warnings</th>
+            <th>Report</th>
+            <th>Package</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+      <div class="pagination-bar">
+        <button id="prev-page" class="button secondary">Prev</button>
+        <span id="page-indicator">Page 1</span>
+        <button id="next-page" class="button secondary">Next</button>
+      </div>
+    </section>
+
+    <section class="panel side-panel">
+      <div class="panel-header">
+        <h2 id="detail-title">Details</h2>
+      </div>
+      <div id="detail-empty" class="message">Select a publish row to inspect report or artifacts.</div>
+      <div id="detail-error" class="message error hidden"></div>
+      <div id="report-detail" class="hidden"></div>
+      <div id="artifacts-detail" class="hidden"></div>
+    </section>
+  </main>
+
+  <script src="/assets/app.js"></script>
+  <script src="/assets/history-page.js"></script>
+</body>
+</html>

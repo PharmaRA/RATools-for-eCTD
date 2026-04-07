@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RATools eCTD Admin</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>RATools eCTD Admin</h1>
+      <p class="subtitle">Application list and publish history access</p>
+    </div>
+    <div id="api-status" class="status-pill">Checking API...</div>
+  </header>
+
+  <main class="page-shell">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Applications</h2>
+        <button id="refresh-applications" class="button">Refresh</button>
+      </div>
+      <div id="applications-error" class="message error hidden"></div>
+      <div id="applications-empty" class="message hidden">No applications found.</div>
+      <table class="data-table" id="applications-table">
+        <thead>
+          <tr>
+            <th>Application Number</th>
+            <th>Region</th>
+            <th>Sponsor</th>
+            <th>Created</th>
+            <th>Sequences</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="applications-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/assets/app.js"></script>
+  <script src="/assets/index-page.js"></script>
+</body>
+</html>
