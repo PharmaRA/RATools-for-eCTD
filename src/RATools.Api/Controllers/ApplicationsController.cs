@@ -7,7 +7,9 @@ namespace RATools.Api.Controllers;
 
 [ApiController]
 [Route("api/applications")]
-public sealed class ApplicationsController(IApplicationService applicationService) : ControllerBase
+public sealed class ApplicationsController(
+    IApplicationService applicationService,
+    IApplicationPublishHistoryService publishHistoryService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
@@ -21,6 +23,24 @@ public sealed class ApplicationsController(IApplicationService applicationServic
     {
         var item = await applicationService.GetAsync(id, cancellationToken);
         return item is null ? NotFound() : Ok(item);
+    }
+
+    [HttpGet("{id:guid}/publish-history")]
+    public async Task<IActionResult> GetPublishHistory(
+        Guid id,
+        [FromQuery] string? sequenceNumber,
+        [FromQuery] string? status,
+        [FromQuery] DateTime? createdFromUtc,
+        [FromQuery] DateTime? createdToUtc,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var history = await publishHistoryService.GetAsync(
+            id,
+            new ApplicationPublishHistoryQuery(sequenceNumber, page, pageSize, status, createdFromUtc, createdToUtc),
+            cancellationToken);
+        return history is null ? NotFound() : Ok(history);
     }
 
     [HttpPost]

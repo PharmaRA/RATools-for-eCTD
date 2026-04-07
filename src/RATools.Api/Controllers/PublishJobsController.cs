@@ -39,6 +39,10 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         {
             return StatusCode(StatusCodes.Status410Gone, new { message = exception.Message });
         }
+        catch (PublishJobReportCorruptedException exception)
+        {
+            return StatusCode(StatusCodes.Status422UnprocessableEntity, new { message = exception.Message });
+        }
     }
 
     [HttpGet("{id:guid}/artifacts")]
@@ -46,6 +50,33 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     {
         var artifacts = await publishJobService.GetArtifactsAsync(id, cancellationToken);
         return artifacts is null ? NotFound() : Ok(artifacts);
+    }
+
+    [HttpGet("{id:guid}/artifacts/{name}/download")]
+    public async Task<IActionResult> DownloadArtifact(Guid id, string name, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var artifact = await publishJobService.GetArtifactDownloadAsync(id, name, cancellationToken);
+            if (artifact is null)
+            {
+                return NotFound();
+            }
+
+            return PhysicalFile(artifact.Path, artifact.ContentType, artifact.FileName);
+        }
+        catch (PublishJobNotReadyException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (PublishJobReportUnavailableException exception)
+        {
+            return StatusCode(StatusCodes.Status410Gone, new { message = exception.Message });
+        }
+        catch (PublishArtifactNotSupportedException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost]

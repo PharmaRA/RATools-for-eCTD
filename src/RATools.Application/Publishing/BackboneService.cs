@@ -60,6 +60,7 @@ public sealed class BackboneService(
             "index.xml",
             xmlContent,
             request.ReportFileName,
+            request.PackageFileName,
             "{}",
             referencedDocuments,
             cancellationToken);
@@ -142,7 +143,7 @@ public sealed class BackboneService(
 
     private static string BuildLeafHref(SubmissionDocument document)
     {
-        return $"documents/{document.FileName}";
+        return PublishOutputNaming.BuildPublishedDocumentRelativePath(document);
     }
 
     private static string[] SplitSectionPath(string ctdSection)

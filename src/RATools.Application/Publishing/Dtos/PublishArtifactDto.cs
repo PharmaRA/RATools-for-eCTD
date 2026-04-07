@@ -5,4 +5,5 @@ public sealed record PublishArtifactDto(
     string Type,
     string? Path,
     bool Exists,
-    long SizeBytes);
+    long SizeBytes,
+    string ContentType);

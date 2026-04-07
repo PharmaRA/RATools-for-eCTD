@@ -12,6 +12,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IApplicationService, ApplicationService>();
+        services.AddScoped<IApplicationPublishHistoryService, ApplicationPublishHistoryService>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();
         services.AddScoped<IBackboneService, BackboneService>();

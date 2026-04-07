@@ -44,8 +44,17 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Optional: skip audit linkage check: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -SkipAuditCheck`
 - Optional: clean publish output before run: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CleanPublishOutput`
 - Optional: inject warning scenarios to verify warningCount/warningSummary: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -InjectWarnings`
+- Optional: corrupt the persisted publish report to verify tolerant report/history handling: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CorruptReportAfterPublish`
 - The smoke test now uses `POST /api/publish-jobs/execute` and prints the unified publish report summary.
 - The smoke test also round-trips `GET /api/publish-jobs/{id}/report` to verify persisted report retrieval.
 - The smoke test also checks `GET /api/publish-jobs/{id}/artifacts` and verifies the expected publish outputs are present.
-- When audit checks are enabled (default), the script prints filtered PublishJob and SequenceValidation audit details for the current run.
+- The smoke test also checks `GET /api/applications/{id}/publish-history` and verifies the current publish job appears in application history.
+- The smoke test also verifies `publish-history` filtering and pagination using `sequenceNumber`, `page`, and `pageSize`.
+- The smoke test also verifies `publish-history` status and `createdUtc` range filters.
+- The smoke test also verifies `publish-history.statusSummary` values for the current filtered history views.
+- The smoke test also downloads `PublishReport` and `PackageZip` through the artifact download endpoint and verifies the responses match artifact metadata.
+- When audit checks are enabled (default), the script prints filtered PublishJob, SequenceValidation, and PublishJobArtifact audit details for the current run.
 - The smoke test also verifies that `publish-report.json`, `index.xml`, and the packaged zip are all created.
+- The smoke test also verifies the packaged zip path is job-specific so repeated publishes do not overwrite history.
+- The smoke test also verifies `index.xml` uses a job-safe unique document `href` based on the uploaded document id.
+- The smoke test now uploads two documents with the same file name and verifies their published `href` values remain unique.

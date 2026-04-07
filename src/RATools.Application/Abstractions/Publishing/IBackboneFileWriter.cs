@@ -10,6 +10,7 @@ public interface IBackboneFileWriter
         string fileName,
         string content,
         string reportFileName,
+        string packageFileName,
         string reportContent,
         IReadOnlyCollection<SubmissionDocument> documents,
         CancellationToken cancellationToken = default);

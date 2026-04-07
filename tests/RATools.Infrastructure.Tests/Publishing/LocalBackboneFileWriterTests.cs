@@ -41,6 +41,7 @@ public sealed class LocalBackboneFileWriterTests : IDisposable
             "index.xml",
             "<ectd />",
             "publish-report-0000-job123.json",
+            "0000-job123.zip",
             reportContent,
             [document],
             CancellationToken.None);
@@ -48,12 +49,45 @@ public sealed class LocalBackboneFileWriterTests : IDisposable
         Assert.True(File.Exists(result.FilePath));
         Assert.True(File.Exists(result.ReportPath));
         Assert.True(File.Exists(result.PackagePath));
+        Assert.EndsWith("0000-job123.zip", result.PackagePath, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(reportContent, await File.ReadAllTextAsync(result.ReportPath));
 
         using var archive = ZipFile.OpenRead(result.PackagePath);
         Assert.Contains(archive.Entries, x => x.FullName == "index.xml");
         Assert.Contains(archive.Entries, x => x.FullName == "publish-report-0000-job123.json");
-        Assert.Contains(archive.Entries, x => x.FullName == "documents/source.txt");
+        Assert.Contains(archive.Entries, x => x.FullName == $"documents/{document.Id:N}_source.txt");
+    }
+
+    [Fact]
+    public async Task SaveAsync_RenamesDocumentsWhenSourceFileNamesCollide()
+    {
+        Directory.CreateDirectory(_tempRoot);
+        var sourceFile1 = Path.Combine(_tempRoot, "source-1.txt");
+        var sourceFile2 = Path.Combine(_tempRoot, "source-2.txt");
+        await File.WriteAllTextAsync(sourceFile1, "one");
+        await File.WriteAllTextAsync(sourceFile2, "two");
+
+        var options = Options.Create(new BackboneOutputOptions { RootPath = Path.Combine(_tempRoot, "publish") });
+        var writer = new LocalBackboneFileWriter(options);
+        var applicationId = Guid.NewGuid();
+
+        var document1 = SubmissionDocument.Rehydrate(Guid.Parse("00000000-0000-0000-0000-000000000011"), "same.txt", "text/plain", 3, "hash1", sourceFile1, DateTime.UtcNow);
+        var document2 = SubmissionDocument.Rehydrate(Guid.Parse("00000000-0000-0000-0000-000000000022"), "same.txt", "text/plain", 3, "hash2", sourceFile2, DateTime.UtcNow);
+
+        var result = await writer.SaveAsync(
+            applicationId,
+            "0000",
+            "index.xml",
+            "<ectd />",
+            "publish-report.json",
+            "0000.zip",
+            "{}",
+            [document1, document2],
+            CancellationToken.None);
+
+        using var archive = ZipFile.OpenRead(result.PackagePath);
+        Assert.Contains(archive.Entries, x => x.FullName == "documents/00000000000000000000000000000011_same.txt");
+        Assert.Contains(archive.Entries, x => x.FullName == "documents/00000000000000000000000000000022_same.txt");
     }
 
     public void Dispose()

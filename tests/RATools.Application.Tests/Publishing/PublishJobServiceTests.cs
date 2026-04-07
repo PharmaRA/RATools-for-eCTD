@@ -168,6 +168,48 @@ public sealed class PublishJobServiceTests
     }
 
     [Fact]
+    public async Task GetExecutionReportAsync_ThrowsWhenReportFileIsCorrupted()
+    {
+        var repository = new StubPublishJobRepository();
+        var tempRoot = Path.Combine(Path.GetTempPath(), "ratools-app-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            var reportPath = Path.Combine(tempRoot, "publish-report-0000-00000000000000000000000000000002.json");
+            await File.WriteAllTextAsync(reportPath, "{not-json}");
+
+            var job = PublishJob.Rehydrate(
+                Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Guid.NewGuid(),
+                "0000",
+                PublishJobStatus.Completed,
+                Path.Combine(tempRoot, "index.xml"),
+                Path.Combine(tempRoot, "0000.zip"),
+                DateTime.UtcNow,
+                DateTime.UtcNow,
+                null);
+
+            await repository.AddAsync(job);
+
+            var service = new PublishJobService(
+                repository,
+                new StubBackboneService(Path.Combine(tempRoot, "index.xml"), reportPath, Path.Combine(tempRoot, "0000.zip")),
+                new StubValidationService(),
+                new StubAuditLogService());
+
+            await Assert.ThrowsAsync<PublishJobReportCorruptedException>(() => service.GetExecutionReportAsync(job.Id));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task GetArtifactsAsync_ReturnsKnownArtifactPathsAndExistence()
     {
         var repository = new StubPublishJobRepository();
@@ -208,6 +250,58 @@ public sealed class PublishJobServiceTests
             Assert.Equal(3, result!.Artifacts.Count);
             Assert.All(result.Artifacts, x => Assert.True(x.Exists));
             Assert.All(result.Artifacts, x => Assert.True(x.SizeBytes > 0));
+            Assert.Contains(result.Artifacts, x => x.Name == "PublishReport" && x.ContentType == "application/json");
+            Assert.Contains(result.Artifacts, x => x.Name == "PackageZip" && x.ContentType == "application/zip");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetArtifactDownloadAsync_ReturnsDownloadInfoForSupportedArtifact()
+    {
+        var repository = new StubPublishJobRepository();
+        var tempRoot = Path.Combine(Path.GetTempPath(), "ratools-app-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            var outputPath = Path.Combine(tempRoot, "index.xml");
+            var packagePath = Path.Combine(tempRoot, "0000.zip");
+            var reportPath = Path.Combine(tempRoot, "publish-report-0000-00000000000000000000000000000002.json");
+            await File.WriteAllTextAsync(outputPath, "<ectd />");
+            await File.WriteAllTextAsync(packagePath, "zip");
+            await File.WriteAllTextAsync(reportPath, "{}");
+
+            var job = PublishJob.Rehydrate(
+                Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Guid.NewGuid(),
+                "0000",
+                PublishJobStatus.Completed,
+                outputPath,
+                packagePath,
+                DateTime.UtcNow,
+                DateTime.UtcNow,
+                null);
+
+            await repository.AddAsync(job);
+
+            var service = new PublishJobService(
+                repository,
+                new StubBackboneService(outputPath, reportPath, packagePath),
+                new StubValidationService(),
+                new StubAuditLogService());
+
+            var result = await service.GetArtifactDownloadAsync(job.Id, "PublishReport");
+
+            Assert.NotNull(result);
+            Assert.Equal("publish-report-0000-00000000000000000000000000000002.json", result!.FileName);
+            Assert.Equal("application/json", result.ContentType);
         }
         finally
         {
@@ -253,7 +347,9 @@ file sealed class StubBackboneService(string outputPath, string reportPath, stri
     {
         var finalReportPath = Path.Combine(Path.GetDirectoryName(reportPath)!, request.ReportFileName);
         File.Copy(reportPath, finalReportPath, overwrite: true);
-        return Task.FromResult(new GeneratedBackboneDto(request.ApplicationId, request.SequenceNumber, "index.xml", outputPath, finalReportPath, packagePath, "<ectd />"));
+        var finalPackagePath = Path.Combine(Path.GetDirectoryName(packagePath)!, request.PackageFileName);
+        File.Copy(packagePath, finalPackagePath, overwrite: true);
+        return Task.FromResult(new GeneratedBackboneDto(request.ApplicationId, request.SequenceNumber, "index.xml", outputPath, finalReportPath, finalPackagePath, "<ectd />"));
     }
 }
 

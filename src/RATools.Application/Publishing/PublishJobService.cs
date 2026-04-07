@@ -96,11 +96,20 @@ public sealed class PublishJobService(
             throw new PublishJobReportUnavailableException($"Publish report for job {id} was not found at '{expectedReportPath}'.");
         }
 
-        var json = await File.ReadAllTextAsync(expectedReportPath, cancellationToken);
-        return JsonSerializer.Deserialize<PublishExecutionReportDto>(json, new JsonSerializerOptions
+        try
         {
-            PropertyNameCaseInsensitive = true
-        });
+            var json = await File.ReadAllTextAsync(expectedReportPath, cancellationToken);
+            var report = JsonSerializer.Deserialize<PublishExecutionReportDto>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return report ?? throw new PublishJobReportCorruptedException($"Publish report for job {id} could not be deserialized.");
+        }
+        catch (JsonException exception)
+        {
+            throw new PublishJobReportCorruptedException($"Publish report for job {id} is corrupted: {exception.Message}");
+        }
     }
 
     public async Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -126,11 +135,94 @@ public sealed class PublishJobService(
         return new PublishArtifactsDto(job.Id, job.ApplicationId, job.SequenceNumber, artifacts);
     }
 
+    public async Task<PublishArtifactDownloadDto?> GetArtifactDownloadAsync(Guid id, string artifactName, CancellationToken cancellationToken = default)
+    {
+        var job = await repository.GetAsync(id, cancellationToken);
+        if (job is null)
+        {
+            return null;
+        }
+
+        if (job.Status != PublishJobStatus.Completed)
+        {
+            throw new PublishJobNotReadyException($"Publish job {id} is in status '{job.Status}' and artifacts are not available yet.");
+        }
+
+        var artifact = ResolveArtifact(job, artifactName);
+        if (artifact is null)
+        {
+            throw new PublishArtifactNotSupportedException($"Artifact '{artifactName}' is not supported.");
+        }
+
+        if (!artifact.Exists)
+        {
+            throw new PublishJobReportUnavailableException($"Artifact '{artifactName}' for job {id} was not found.");
+        }
+
+        await TryWriteAuditAsync(
+            entityType: "PublishJobArtifact",
+            entityId: $"{id}:{artifact.Name}",
+            action: "Downloaded",
+            details: $"Path={artifact.Path}; ContentType={artifact.ContentType}",
+            cancellationToken);
+
+        return new PublishArtifactDownloadDto(
+            artifact.Name,
+            Path.GetFileName(artifact.Path!),
+            artifact.Path!,
+            artifact.ContentType);
+    }
+
     private static PublishArtifactDto BuildArtifact(string name, string type, string? path)
     {
         var exists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
         var sizeBytes = exists ? new FileInfo(path!).Length : 0;
-        return new PublishArtifactDto(name, type, path, exists, sizeBytes);
+        return new PublishArtifactDto(name, type, path, exists, sizeBytes, GetContentType(name, path));
+    }
+
+    private static PublishArtifactDto? ResolveArtifact(PublishJob job, string artifactName)
+    {
+        var outputPath = job.OutputPath;
+        var reportPath = outputPath is null
+            ? null
+            : Path.Combine(Path.GetDirectoryName(outputPath) ?? string.Empty, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+
+        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildArtifact("BackboneXml", "file", outputPath);
+        }
+
+        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildArtifact("PublishReport", "file", reportPath);
+        }
+
+        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildArtifact("PackageZip", "file", job.PackagePath);
+        }
+
+        return null;
+    }
+
+    private static string GetContentType(string artifactName, string? path)
+    {
+        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
+        {
+            return "application/xml";
+        }
+
+        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
+        {
+            return "application/json";
+        }
+
+        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
+        {
+            return "application/zip";
+        }
+
+        return "application/octet-stream";
     }
 
     private static string? BuildWarningSummary(ValidationReportDto validationReport)
@@ -261,7 +353,8 @@ public sealed class PublishJobService(
                 new GenerateBackboneRequest(
                     request.ApplicationId,
                     request.SequenceNumber,
-                    $"publish-report-{request.SequenceNumber}-{job.Id:N}.json"),
+                    $"publish-report-{request.SequenceNumber}-{job.Id:N}.json",
+                    $"{request.SequenceNumber}-{job.Id:N}.zip"),
                 cancellationToken);
             reportPath = generated.ReportPath;
 

@@ -13,6 +13,8 @@ public interface IPublishJobService
 
     Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<PublishArtifactDownloadDto?> GetArtifactDownloadAsync(Guid id, string artifactName, CancellationToken cancellationToken = default);
+
     Task<PublishJobDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PublishJobDto>> ListAsync(CancellationToken cancellationToken = default);

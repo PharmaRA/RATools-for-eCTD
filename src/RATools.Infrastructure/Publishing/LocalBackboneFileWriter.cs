@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
+using RATools.Application.Publishing;
 using RATools.Domain.Documents;
 
 namespace RATools.Infrastructure.Publishing;
@@ -13,6 +14,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         string fileName,
         string content,
         string reportFileName,
+        string packageFileName,
         string reportContent,
         IReadOnlyCollection<SubmissionDocument> documents,
         CancellationToken cancellationToken = default)
@@ -20,6 +22,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(reportFileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packageFileName);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(reportContent);
         ArgumentNullException.ThrowIfNull(documents);
@@ -44,7 +47,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
                 continue;
             }
 
-            var destinationPath = Path.Combine(documentsDirectory, document.FileName);
+            var destinationPath = Path.Combine(documentsDirectory, PublishOutputNaming.BuildPublishedDocumentFileName(document));
             await using var sourceStream = File.OpenRead(document.StoragePath);
             await using var destinationStream = File.Create(destinationPath);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
@@ -56,7 +59,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         var reportPath = Path.Combine(outputDirectory, reportFileName);
         await File.WriteAllTextAsync(reportPath, reportContent, cancellationToken);
 
-        var packagePath = Path.Combine(fullRootPath, applicationId.ToString("N"), $"{sequenceNumber}.zip");
+        var packagePath = Path.Combine(fullRootPath, applicationId.ToString("N"), packageFileName);
         if (File.Exists(packagePath))
         {
             File.Delete(packagePath);

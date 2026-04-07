@@ -23,6 +23,15 @@ Content-Type: application/json
 ### Get application by id
 GET {{host}}/api/applications/{{createApplication.response.body.$.id}}
 
+### Get publish history by application
+GET {{host}}/api/applications/{{createApplication.response.body.$.id}}/publish-history
+
+### Get publish history by application filtered and paged
+GET {{host}}/api/applications/{{createApplication.response.body.$.id}}/publish-history?sequenceNumber=0000&page=1&pageSize=20
+
+### Get publish history by application with status and time range
+GET {{host}}/api/applications/{{createApplication.response.body.$.id}}/publish-history?status=Completed&createdFromUtc=2026-04-01T00:00:00Z&createdToUtc=2026-04-30T23:59:59Z&page=1&pageSize=20
+
 ### Create sequence
 POST {{host}}/api/applications/{{createApplication.response.body.$.id}}/sequences
 Content-Type: application/json
@@ -146,6 +155,9 @@ GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}
 
 ### List artifacts by job id
 GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/artifacts
+
+### Download persisted publish report
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/artifacts/PublishReport/download
 
 ### Publish job should return completed status with outputPath and packagePath when generation succeeds
 
