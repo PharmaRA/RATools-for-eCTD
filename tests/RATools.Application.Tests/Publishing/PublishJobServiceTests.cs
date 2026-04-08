@@ -311,6 +311,33 @@ public sealed class PublishJobServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task ExecuteAsync_ThrowsWhenAnotherPublishForSameSequenceIsInProgress()
+    {
+        var repository = new StubPublishJobRepository();
+        var existingJob = PublishJob.Rehydrate(
+            Guid.NewGuid(),
+            Guid.Parse("70000000-0000-0000-0000-000000000001"),
+            "0000",
+            PublishJobStatus.Running,
+            null,
+            null,
+            DateTime.UtcNow,
+            null,
+            null);
+
+        await repository.AddAsync(existingJob);
+
+        var service = new PublishJobService(
+            repository,
+            new StubBackboneService(Path.Combine(Path.GetTempPath(), "index.xml"), Path.Combine(Path.GetTempPath(), "publish-report.json"), Path.Combine(Path.GetTempPath(), "0000.zip")),
+            new StubValidationService(),
+            new StubAuditLogService());
+
+        await Assert.ThrowsAsync<PublishJobAlreadyInProgressException>(() =>
+            service.ExecuteAsync(new CreatePublishJobRequest(existingJob.ApplicationId, existingJob.SequenceNumber)));
+    }
 }
 
 file sealed class StubPublishJobRepository : IPublishJobRepository

@@ -82,20 +82,34 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {
-        var created = await publishJobService.CreateAsync(
-            new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
-            cancellationToken);
+        try
+        {
+            var created = await publishJobService.CreateAsync(
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+                cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (PublishJobAlreadyInProgressException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     [HttpPost("execute")]
     public async Task<IActionResult> Execute([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {
-        var report = await publishJobService.ExecuteAsync(
-            new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
-            cancellationToken);
+        try
+        {
+            var report = await publishJobService.ExecuteAsync(
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+                cancellationToken);
 
-        return Ok(report);
+            return Ok(report);
+        }
+        catch (PublishJobAlreadyInProgressException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 }

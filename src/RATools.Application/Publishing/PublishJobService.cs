@@ -309,6 +309,8 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
+        await EnsureNoActivePublishAsync(request, cancellationToken);
+
         ValidationReportDto? validationReport = null;
         string? reportPath = null;
         var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
@@ -387,6 +389,29 @@ public sealed class PublishJobService(
                 cancellationToken);
 
             return (job, validationReport, "Publish failed during execution.", reportPath);
+        }
+    }
+
+    private async Task EnsureNoActivePublishAsync(CreatePublishJobRequest request, CancellationToken cancellationToken)
+    {
+        var pending = await repository.QueryHistoryAsync(
+            new PublishJobHistoryQuery(request.ApplicationId, request.SequenceNumber, PublishJobStatus.Pending.ToString(), null, null, 1, 1),
+            cancellationToken);
+
+        if (pending.TotalCount > 0)
+        {
+            throw new PublishJobAlreadyInProgressException(
+                $"A publish job is already pending for application {request.ApplicationId}, sequence {request.SequenceNumber}.");
+        }
+
+        var running = await repository.QueryHistoryAsync(
+            new PublishJobHistoryQuery(request.ApplicationId, request.SequenceNumber, PublishJobStatus.Running.ToString(), null, null, 1, 1),
+            cancellationToken);
+
+        if (running.TotalCount > 0)
+        {
+            throw new PublishJobAlreadyInProgressException(
+                $"A publish job is already running for application {request.ApplicationId}, sequence {request.SequenceNumber}.");
         }
     }
 

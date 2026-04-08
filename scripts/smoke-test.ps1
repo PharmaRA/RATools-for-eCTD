@@ -388,8 +388,8 @@ try {
         throw "Generated index.xml does not contain xlink:type=\"simple\" on leaf nodes."
     }
 
-    if ($indexXmlContent -notmatch 'checksum-type="sha256"') {
-        throw "Generated index.xml does not contain checksum-type=\"sha256\" on leaf nodes."
+    if ($indexXmlContent -notmatch 'checksum-type="md5"') {
+        throw "Generated index.xml does not contain checksum-type=\"md5\" on leaf nodes."
     }
 
     if ([string]::IsNullOrWhiteSpace($publishReport.reportPath) -or -not (Test-Path $publishReport.reportPath)) {

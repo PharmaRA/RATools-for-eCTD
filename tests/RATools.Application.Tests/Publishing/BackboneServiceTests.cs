@@ -65,7 +65,36 @@ public sealed class BackboneServiceTests
 
         Assert.Contains("dtd-version=\"3.2.2\"", writer.XmlContent);
         Assert.Contains("xlink:type=\"simple\"", writer.XmlContent);
-        Assert.Contains("checksum-type=\"sha256\"", writer.XmlContent);
+        Assert.Contains("checksum-type=\"md5\"", writer.XmlContent);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_UsesCumulativeSectionIdsForNestedSections()
+    {
+        var application = SubmissionApplication.Rehydrate(
+            Guid.Parse("32000000-0000-0000-0000-000000000001"),
+            "IND-0004",
+            "US",
+            "Demo Sponsor",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0000", "original-application", "Initial", DateTime.UtcNow)]);
+
+        var document = SubmissionDocument.Rehydrate(Guid.Parse("32000000-0000-0000-0000-000000000011"), "report.pdf", "application/pdf", 3, "hash1", "c:\\tmp\\one.pdf", DateTime.UtcNow);
+        var placement = new DocumentPlacement(document.Id, application.Id, "0000", "m5.3.5.1", DocumentPlacementOperation.New, "Report");
+
+        var writer = new CapturingBackboneFileWriter();
+        var service = new BackboneService(
+            new BackboneStubApplicationRepository(application),
+            new BackboneStubPlacementRepository([placement]),
+            new BackboneStubDocumentRepository([document]),
+            writer);
+
+        await service.GenerateAsync(new GenerateBackboneRequest(application.Id, "0000", "publish-report.json", "0000.zip"));
+
+        Assert.Contains("<ectd:section id=\"m5\"", writer.XmlContent);
+        Assert.Contains("<ectd:section id=\"m5.3\"", writer.XmlContent);
+        Assert.Contains("<ectd:section id=\"m5.3.5\"", writer.XmlContent);
+        Assert.Contains("<ectd:section id=\"m5.3.5.1\"", writer.XmlContent);
     }
 }
 

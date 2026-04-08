@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Security.Cryptography;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing.Dtos;
@@ -95,9 +96,10 @@ public sealed class BackboneService(
 
             foreach (var part in sectionPath)
             {
+                var nextPath = currentNode is null ? part : $"{currentNode.Path}.{part}";
                 if (!currentLevel.TryGetValue(part, out currentNode))
                 {
-                    currentNode = new SectionNode(part);
+                    currentNode = new SectionNode(part, nextPath);
                     currentLevel[part] = currentNode;
                 }
 
@@ -115,7 +117,7 @@ public sealed class BackboneService(
 
     private static XElement BuildSectionElement(SectionNode node, IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
     {
-        var element = new XElement(EctdNamespace + "section", new XAttribute("id", node.Id));
+        var element = new XElement(EctdNamespace + "section", new XAttribute("id", node.Path));
 
         foreach (var child in node.Children.Values)
         {
@@ -134,11 +136,11 @@ public sealed class BackboneService(
                 new XAttribute("operation", placement.Operation.ToString().ToLowerInvariant()),
                 new XAttribute(XlinkNamespace + "href", BuildLeafHref(document)),
                 new XAttribute(XlinkNamespace + "type", "simple"),
-                new XAttribute("checksum-type", "sha256"),
+                new XAttribute("checksum-type", "md5"),
                 new XElement(EctdNamespace + "title", placement.Title ?? document.FileName),
                 new XElement(EctdNamespace + "fileName", document.FileName),
                 new XElement(EctdNamespace + "mimeType", document.MediaType),
-                new XElement(EctdNamespace + "checksum", document.Sha256)));
+                new XElement(EctdNamespace + "checksum", BuildLeafChecksum(document))));
         }
 
         return element;
@@ -149,15 +151,30 @@ public sealed class BackboneService(
         return PublishOutputNaming.BuildPublishedDocumentRelativePath(document);
     }
 
+    private static string BuildLeafChecksum(SubmissionDocument document)
+    {
+        if (File.Exists(document.StoragePath))
+        {
+            using var stream = File.OpenRead(document.StoragePath);
+            using var md5 = MD5.Create();
+            var hash = md5.ComputeHash(stream);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        return document.Sha256;
+    }
+
     private static string[] SplitSectionPath(string ctdSection)
     {
         return ctdSection
             .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
-    private sealed class SectionNode(string id)
+    private sealed class SectionNode(string id, string path)
     {
         public string Id { get; } = id;
+
+        public string Path { get; } = path;
 
         public SortedDictionary<string, SectionNode> Children { get; } = new(StringComparer.OrdinalIgnoreCase);
 

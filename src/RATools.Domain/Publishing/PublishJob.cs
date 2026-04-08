@@ -51,6 +51,11 @@ public sealed class PublishJob : Entity
 
     public void MarkRunning()
     {
+        if (Status != PublishJobStatus.Pending)
+        {
+            throw new InvalidOperationException($"Publish job can only move to Running from Pending. Current status: {Status}.");
+        }
+
         Status = PublishJobStatus.Running;
         FailureReason = null;
     }
@@ -59,6 +64,11 @@ public sealed class PublishJob : Entity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
+
+        if (Status != PublishJobStatus.Running)
+        {
+            throw new InvalidOperationException($"Publish job can only move to Completed from Running. Current status: {Status}.");
+        }
 
         Status = PublishJobStatus.Completed;
         OutputPath = outputPath.Trim();
@@ -70,6 +80,11 @@ public sealed class PublishJob : Entity
     public void MarkFailed(string failureReason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+
+        if (Status is PublishJobStatus.Completed or PublishJobStatus.Failed)
+        {
+            throw new InvalidOperationException($"Publish job in status {Status} cannot be marked as Failed.");
+        }
 
         Status = PublishJobStatus.Failed;
         FailureReason = failureReason.Trim();

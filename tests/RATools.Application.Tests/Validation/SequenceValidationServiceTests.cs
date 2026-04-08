@@ -45,6 +45,72 @@ public sealed class SequenceValidationServiceTests
         Assert.False(report.IsValid);
         Assert.Contains(report.Issues, x => x.Code == "INVALID_SECTION_PATH" && x.Severity == "Error");
     }
+
+    [Fact]
+    public async Task ValidateAsync_ReturnsWarningWhenTitleFallsBackToFileName()
+    {
+        var application = SubmissionApplication.Rehydrate(
+            Guid.Parse("62000000-0000-0000-0000-000000000001"),
+            "IND-0007",
+            "US",
+            "Demo Sponsor",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0000", "original-application", "Initial", DateTime.UtcNow)]);
+
+        var document = SubmissionDocument.Rehydrate(
+            Guid.Parse("62000000-0000-0000-0000-000000000011"),
+            "report.pdf",
+            "application/pdf",
+            3,
+            "hash1",
+            ValidationTestFiles.CreateTempFile("report.pdf"),
+            DateTime.UtcNow);
+
+        var placement = new DocumentPlacement(document.Id, application.Id, "0000", "m5.3.5.1", DocumentPlacementOperation.New, null);
+        var service = new SequenceValidationService(
+            new ValidationStubApplicationRepository(application),
+            new ValidationStubPlacementRepository([placement]),
+            new ValidationStubDocumentRepository([document]),
+            new ValidationStubAuditLogService(),
+            new ValidationStubProfileProvider());
+
+        var report = await service.ValidateAsync(new ValidateSequenceRequest(application.Id, "0000"));
+
+        Assert.Contains(report.Issues, x => x.Code == "TITLE_FALLBACK_USED" && x.Severity == "Warning");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_AllowsIchLetterSegmentsInSectionPath()
+    {
+        var application = SubmissionApplication.Rehydrate(
+            Guid.Parse("63000000-0000-0000-0000-000000000001"),
+            "IND-0007",
+            "US",
+            "Demo Sponsor",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0000", "original-application", "Initial", DateTime.UtcNow)]);
+
+        var document = SubmissionDocument.Rehydrate(
+            Guid.Parse("63000000-0000-0000-0000-000000000011"),
+            "report.pdf",
+            "application/pdf",
+            3,
+            "hash1",
+            ValidationTestFiles.CreateTempFile("report.pdf"),
+            DateTime.UtcNow);
+
+        var placement = new DocumentPlacement(document.Id, application.Id, "0000", "m3.2.p.3", DocumentPlacementOperation.New, "Report");
+        var service = new SequenceValidationService(
+            new ValidationStubApplicationRepository(application),
+            new ValidationStubPlacementRepository([placement]),
+            new ValidationStubDocumentRepository([document]),
+            new ValidationStubAuditLogService(),
+            new ValidationStubProfileProvider());
+
+        var report = await service.ValidateAsync(new ValidateSequenceRequest(application.Id, "0000"));
+
+        Assert.DoesNotContain(report.Issues, x => x.Code == "INVALID_SECTION_PATH");
+    }
 }
 
 file static class ValidationTestFiles

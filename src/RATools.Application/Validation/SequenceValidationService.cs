@@ -135,8 +135,8 @@ public sealed class SequenceValidationService(
             {
                 issues.Add(new ValidationIssueDto(
                     "Warning",
-                    "TITLE_MISSING",
-                    $"Placement for document {document.FileName} has no explicit title."));
+                    "TITLE_FALLBACK_USED",
+                    $"Placement for document {document.FileName} has no explicit title, so the file name will be used in the backbone."));
             }
 
             var expectedMediaType = GuessMediaTypeByFileName(document.FileName);
@@ -217,7 +217,20 @@ public sealed class SequenceValidationService(
             return true;
         }
 
-        return parts.Skip(1).Any(part => !int.TryParse(part, out _));
+        return parts.Skip(1).Any(part => !IsValidSectionSegment(part));
+    }
+
+    private static bool IsValidSectionSegment(string part)
+    {
+        if (int.TryParse(part, out _))
+        {
+            return true;
+        }
+
+        return part.Equals("p", StringComparison.OrdinalIgnoreCase)
+               || part.Equals("s", StringComparison.OrdinalIgnoreCase)
+               || part.Equals("r", StringComparison.OrdinalIgnoreCase)
+               || part.Equals("a", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GuessMediaTypeByFileName(string fileName)

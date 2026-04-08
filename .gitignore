@@ -4,3 +4,6 @@ obj/
 .vscode/
 *.user
 *.suo
+/.artifacts/api-build
+/.artifacts/api-build
+/.artifacts/api-build
