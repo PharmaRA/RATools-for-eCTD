@@ -198,6 +198,10 @@ try {
         throw "Validation report did not include sectionMatches for the current placement path."
     }
 
+    if ($validation.lifecycleMatches.Count -ne 0) {
+        throw "Default smoke test scenario should not produce lifecycle matches, but $($validation.lifecycleMatches.Count) were returned."
+    }
+
     if (-not $InjectWarnings -and $matchedSection.matchedPrefix -ne "m5.3.5") {
         throw "Validation report matchedPrefix '$($matchedSection.matchedPrefix)' did not match expected 'm5.3.5'."
     }
@@ -331,6 +335,19 @@ try {
         throw "Publish history did not return statusSummary."
     }
 
+    if (-not $publishHistory.lifecycleSummary) {
+        throw "Publish history did not return lifecycleSummary."
+    }
+
+    if ($publishHistory.lifecycleSummary.matchedCount -ne 0 -or
+        $publishHistory.lifecycleSummary.replaceTargetNotFoundCount -ne 0 -or
+        $publishHistory.lifecycleSummary.deleteTargetNotFoundCount -ne 0 -or
+        $publishHistory.lifecycleSummary.appendTargetNotFoundCount -ne 0 -or
+        $publishHistory.lifecycleSummary.ambiguousCount -ne 0 -or
+        $publishHistory.lifecycleSummary.currentSequenceCount -ne 0) {
+        throw "Default smoke test scenario should not produce lifecycle summary counts in publish history."
+    }
+
     if ($publishHistory.statusSummary.completedCount -lt 1) {
         throw "Publish history statusSummary completedCount should be at least 1."
     }
@@ -394,11 +411,11 @@ try {
     }
 
     if ($indexXmlContent -notmatch 'xlink:type="simple"') {
-        throw "Generated index.xml does not contain xlink:type=\"simple\" on leaf nodes."
+        throw 'Generated index.xml does not contain xlink:type="simple" on leaf nodes.'
     }
 
     if ($indexXmlContent -notmatch 'checksum-type="md5"') {
-        throw "Generated index.xml does not contain checksum-type=\"md5\" on leaf nodes."
+        throw 'Generated index.xml does not contain checksum-type="md5" on leaf nodes.'
     }
 
     if ([string]::IsNullOrWhiteSpace($publishReport.reportPath) -or -not (Test-Path $publishReport.reportPath)) {
@@ -459,6 +476,10 @@ try {
         $validationAuditEntry = $validationAudit | Sort-Object createdUtc | Select-Object -Last 1
         if ($validationAuditEntry.details -notmatch 'MatchedPrefixes=') {
             throw "SequenceValidation audit details do not include MatchedPrefixes summary."
+        }
+
+        if ($validationAuditEntry.details -notmatch 'LifecycleResults=none') {
+            throw "SequenceValidation audit details do not include the expected LifecycleResults=none summary for the smoke test scenario."
         }
 
         Write-Host ""

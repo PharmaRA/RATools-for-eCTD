@@ -7,3 +7,4 @@ obj/
 /.artifacts/api-build
 /docs/superpowers
 /tests
+/src/RATools.Api/App_Data

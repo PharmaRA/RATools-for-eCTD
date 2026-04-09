@@ -11,12 +11,21 @@ public sealed record ApplicationPublishHistoryDto(
     int PageSize,
     int TotalCount,
     ApplicationPublishHistoryStatusSummaryDto StatusSummary,
+    ApplicationPublishHistoryLifecycleSummaryDto LifecycleSummary,
     IReadOnlyCollection<ApplicationPublishHistoryEntryDto> Entries);
 
 public sealed record ApplicationPublishHistoryStatusSummaryDto(
     int CompletedCount,
     int FailedCount,
     int RunningCount);
+
+public sealed record ApplicationPublishHistoryLifecycleSummaryDto(
+    int MatchedCount,
+    int ReplaceTargetNotFoundCount,
+    int DeleteTargetNotFoundCount,
+    int AppendTargetNotFoundCount,
+    int AmbiguousCount,
+    int CurrentSequenceCount);
 
 public sealed record ApplicationPublishHistoryEntryDto(
     Guid PublishJobId,

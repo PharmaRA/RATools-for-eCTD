@@ -6,4 +6,5 @@ public sealed record ValidationReportDto(
     string ValidationProfile,
     bool IsValid,
     IReadOnlyCollection<ValidationIssueDto> Issues,
-    IReadOnlyCollection<ValidationSectionMatchDto> SectionMatches);
+    IReadOnlyCollection<ValidationSectionMatchDto> SectionMatches,
+    IReadOnlyCollection<ValidationLifecycleMatchDto> LifecycleMatches);

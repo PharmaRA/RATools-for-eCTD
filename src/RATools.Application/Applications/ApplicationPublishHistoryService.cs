@@ -2,6 +2,7 @@ using System.Text.Json;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Publishing.Dtos;
+using RATools.Application.Validation.Dtos;
 
 namespace RATools.Application.Applications;
 
@@ -42,10 +43,15 @@ public sealed class ApplicationPublishHistoryService(
             result.CompletedCount,
             result.FailedCount,
             result.RunningCount);
+        var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
 
         foreach (var job in filteredJobs)
         {
             var reportState = await TryReadReportAsync(job, cancellationToken);
+            if (reportState.Report?.ValidationReport?.LifecycleMatches is not null)
+            {
+                lifecycleMatches.AddRange(reportState.Report.ValidationReport.LifecycleMatches);
+            }
             entries.Add(new ApplicationPublishHistoryEntryDto(
                 job.Id,
                 job.SequenceNumber,
@@ -64,6 +70,14 @@ public sealed class ApplicationPublishHistoryService(
                 job.PackagePath));
         }
 
+        var lifecycleSummary = new ApplicationPublishHistoryLifecycleSummaryDto(
+            lifecycleMatches.Count(x => x.ResultCode == "MATCHED"),
+            lifecycleMatches.Count(x => x.ResultCode == "REPLACE_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "DELETE_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "APPEND_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_AMBIGUOUS"),
+            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"));
+
         return new ApplicationPublishHistoryDto(
             application.Id,
             application.ApplicationNumber,
@@ -73,6 +87,7 @@ public sealed class ApplicationPublishHistoryService(
             pageSize,
             totalCount,
             statusSummary,
+            lifecycleSummary,
             entries);
     }
 
