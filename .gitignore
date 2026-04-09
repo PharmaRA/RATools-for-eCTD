@@ -5,5 +5,5 @@ obj/
 *.user
 *.suo
 /.artifacts/api-build
-/.artifacts/api-build
-/.artifacts/api-build
+/docs/superpowers
+/tests

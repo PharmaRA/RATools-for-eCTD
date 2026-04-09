@@ -131,9 +131,11 @@ public sealed class BackboneService(
                 continue;
             }
 
+            var operation = MapOperation(placement.Operation);
+
             element.Add(new XElement(EctdNamespace + "leaf",
                 new XAttribute("id", placement.Id),
-                new XAttribute("operation", placement.Operation.ToString().ToLowerInvariant()),
+                new XAttribute("operation", operation),
                 new XAttribute(XlinkNamespace + "href", BuildLeafHref(document)),
                 new XAttribute(XlinkNamespace + "type", "simple"),
                 new XAttribute("checksum-type", "md5"),
@@ -162,6 +164,18 @@ public sealed class BackboneService(
         }
 
         return document.Sha256;
+    }
+
+    private static string MapOperation(DocumentPlacementOperation operation)
+    {
+        return operation switch
+        {
+            DocumentPlacementOperation.New => "new",
+            DocumentPlacementOperation.Replace => "replace",
+            DocumentPlacementOperation.Delete => "delete",
+            DocumentPlacementOperation.Append => "append",
+            _ => throw new InvalidOperationException($"Unsupported operation value '{operation}'.")
+        };
     }
 
     private static string[] SplitSectionPath(string ctdSection)

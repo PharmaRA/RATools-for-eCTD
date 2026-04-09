@@ -53,6 +53,8 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - The smoke test also verifies `publish-history` status and `createdUtc` range filters.
 - The smoke test also verifies `publish-history.statusSummary` values for the current filtered history views.
 - The smoke test also downloads `PublishReport` and `PackageZip` through the artifact download endpoint and verifies the responses match artifact metadata.
+- With `-InjectWarnings`, the smoke test also verifies `NON_STANDARD_SECTION_PATTERN` is returned in the validation report.
+- The smoke test also verifies validation `sectionMatches` and `MatchedPrefixes` audit details.
 - When audit checks are enabled (default), the script prints filtered PublishJob, SequenceValidation, and PublishJobArtifact audit details for the current run.
 - The smoke test also verifies that `publish-report.json`, `index.xml`, and the packaged zip are all created.
 - The smoke test also verifies the packaged zip path is job-specific so repeated publishes do not overwrite history.

@@ -1,8 +1,10 @@
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
+using RATools.Application.Publishing;
 using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
+using RATools.Domain.Documents;
 
 namespace RATools.Application.Validation;
 
@@ -13,9 +15,12 @@ public sealed class SequenceValidationService(
     IAuditLogService auditLogService,
     IValidationProfileProvider validationProfileProvider) : ISequenceValidationService
 {
+    private static readonly SectionDictionary SectionDictionary = new();
+
     public async Task<ValidationReportDto> ValidateAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
         var issues = new List<ValidationIssueDto>();
+        var sectionMatches = new List<ValidationSectionMatchDto>();
         var profileName = validationProfileProvider.ProfileName;
         var validationMode = validationProfileProvider.Mode;
 
@@ -23,14 +28,14 @@ public sealed class SequenceValidationService(
         if (application is null)
         {
             issues.Add(new ValidationIssueDto("Error", "APP_NOT_FOUND", $"Application {request.ApplicationId} was not found."));
-            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, false, issues);
+            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, false, issues, sectionMatches);
         }
 
         var sequence = application.Sequences.SingleOrDefault(x => x.SequenceNumber == request.SequenceNumber);
         if (sequence is null)
         {
             issues.Add(new ValidationIssueDto("Error", "SEQ_NOT_FOUND", $"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}."));
-            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, false, issues);
+            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, false, issues, sectionMatches);
         }
 
         var latestSequenceNumber = application.Sequences
@@ -47,6 +52,7 @@ public sealed class SequenceValidationService(
         }
 
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
+        var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
         if (placements.Count == 0)
         {
             issues.Add(new ValidationIssueDto("Error", "NO_PLACEMENTS", "The sequence has no document placements."));
@@ -69,16 +75,92 @@ public sealed class SequenceValidationService(
         }
 
         var documents = await documentRepository.ListAsync(cancellationToken);
-        var documentById = documents.ToDictionary(x => x.Id, x => x);
+        var referencedDocumentIds = placements.Select(x => x.DocumentId).ToHashSet();
+        var referencedDocuments = documents.Where(x => referencedDocumentIds.Contains(x.Id)).ToArray();
+
+        var duplicatePublishedPaths = referencedDocuments
+            .GroupBy(PublishOutputNaming.BuildPublishedDocumentRelativePath, StringComparer.OrdinalIgnoreCase)
+            .Where(x => x.Count() > 1)
+            .ToArray();
+
+        foreach (var duplicatePublishedPath in duplicatePublishedPaths)
+        {
+            issues.Add(new ValidationIssueDto(
+                "Error",
+                "DUPLICATE_PUBLISHED_DOCUMENT_PATH",
+                $"Multiple documents resolve to the same published path '{duplicatePublishedPath.Key}'."));
+        }
+
+        var documentById = documents
+            .GroupBy(x => x.Id)
+            .ToDictionary(x => x.Key, x => x.First());
 
         foreach (var placement in placements)
         {
+            if (placement.Operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete)
+            {
+                var currentSequenceMatches = placements
+                    .Where(x => x.Id != placement.Id)
+                    .Where(x => x.CtdSection == placement.CtdSection && x.DocumentId == placement.DocumentId)
+                    .ToArray();
+
+                if (currentSequenceMatches.Length > 0)
+                {
+                    issues.Add(new ValidationIssueDto(
+                        "Error",
+                        "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE",
+                        $"A lifecycle target for {placement.Operation} exists only in the current sequence for section {placement.CtdSection} and document {placement.DocumentId}."));
+                    continue;
+                }
+
+                var historicalMatches = applicationPlacements
+                    .Where(x => x.SequenceNumber != request.SequenceNumber)
+                    .Where(x => CompareSequenceNumbers(x.SequenceNumber, request.SequenceNumber) < 0)
+                    .Where(x => x.CtdSection == placement.CtdSection && x.DocumentId == placement.DocumentId)
+                    .ToArray();
+
+                if (historicalMatches.Length == 0)
+                {
+                    issues.Add(new ValidationIssueDto(
+                        "Error",
+                        placement.Operation == DocumentPlacementOperation.Replace ? "REPLACE_TARGET_NOT_FOUND" : "DELETE_TARGET_NOT_FOUND",
+                        $"No historical target was found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."));
+                }
+                else if (historicalMatches.Length > 1)
+                {
+                    issues.Add(new ValidationIssueDto(
+                        "Error",
+                        "LIFECYCLE_TARGET_AMBIGUOUS",
+                        $"Multiple historical targets were found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."));
+                }
+            }
+
+            if (!IsSupportedOperation(placement.Operation))
+            {
+                issues.Add(new ValidationIssueDto(
+                    "Error",
+                    "UNSUPPORTED_OPERATION_VALUE",
+                    $"Operation '{placement.Operation}' is not supported for backbone generation."));
+                continue;
+            }
+
             if (!documentById.TryGetValue(placement.DocumentId, out var document))
             {
                 issues.Add(new ValidationIssueDto(
                     "Error",
                     "DOCUMENT_NOT_FOUND",
                     $"Referenced document {placement.DocumentId} was not found for section {placement.CtdSection}."));
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(document.FileName)
+                || string.IsNullOrWhiteSpace(document.MediaType)
+                || string.IsNullOrWhiteSpace(document.Sha256))
+            {
+                issues.Add(new ValidationIssueDto(
+                    "Error",
+                    "MISSING_LEAF_CORE_METADATA",
+                    $"Document {document.Id} is missing required backbone metadata (file name, media type, or checksum)."));
                 continue;
             }
 
@@ -89,45 +171,44 @@ public sealed class SequenceValidationService(
                     "SECTION_MISSING",
                     $"Document {document.FileName} is missing a CTD section."));
             }
-            else if (IsInvalidSectionPath(placement.CtdSection))
-            {
-                issues.Add(new ValidationIssueDto(
-                    "Error",
-                    "INVALID_SECTION_PATH",
-                    $"Section '{placement.CtdSection}' is not a valid CTD section path."));
-            }
             else
             {
-                var firstSegment = placement.CtdSection
-                    .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .FirstOrDefault();
-
-                if (validationMode == ValidationMode.Strict &&
-                    !string.IsNullOrWhiteSpace(firstSegment) &&
-                    !IsValidModulePrefix(firstSegment))
+                var sectionMatch = SectionDictionary.Classify(placement.CtdSection);
+                if (sectionMatches.All(x => x.SectionPath != placement.CtdSection))
                 {
-                    issues.Add(new ValidationIssueDto(
-                        "Warning",
-                        "SECTION_MODULE",
-                        $"Section '{placement.CtdSection}' does not use a supported CTD module prefix (m1-m5)."));
+                    sectionMatches.Add(new ValidationSectionMatchDto(
+                        placement.CtdSection,
+                        sectionMatch.IsValid,
+                        sectionMatch.IsStandard,
+                        sectionMatch.MatchedPrefix,
+                        sectionMatch.Reason));
                 }
 
-                if (validationMode == ValidationMode.Strict &&
-                    !placement.CtdSection.StartsWith("m", StringComparison.OrdinalIgnoreCase))
+                if (!sectionMatch.IsValid)
                 {
                     issues.Add(new ValidationIssueDto(
-                        "Warning",
-                        "SECTION_FORMAT",
-                        $"Section '{placement.CtdSection}' does not start with a module prefix (e.g., m1, m5)."));
+                        "Error",
+                        "INVALID_SECTION_PATH",
+                        $"Section '{placement.CtdSection}' is not a valid CTD section path."));
                 }
-
-                var sectionDepth = placement.CtdSection.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
-                if (validationMode == ValidationMode.Strict && sectionDepth < 2)
+                else
                 {
-                    issues.Add(new ValidationIssueDto(
-                        "Warning",
-                        "SECTION_GRANULARITY",
-                        $"Section '{placement.CtdSection}' may be too coarse; consider a deeper CTD node."));
+                    var sectionDepth = placement.CtdSection.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
+                    if (validationMode == ValidationMode.Strict && sectionDepth < 2)
+                    {
+                        issues.Add(new ValidationIssueDto(
+                            "Warning",
+                            "SECTION_DEPTH_SHALLOW",
+                            $"Section '{placement.CtdSection}' may be too coarse; consider a deeper CTD node."));
+                    }
+
+                    if (validationMode == ValidationMode.Strict && !sectionMatch.IsStandard)
+                    {
+                        issues.Add(new ValidationIssueDto(
+                            "Warning",
+                            "NON_STANDARD_SECTION_PATTERN",
+                            $"Section '{placement.CtdSection}' is valid but uses a non-standard FDA/ICH segment pattern."));
+                    }
                 }
             }
 
@@ -160,7 +241,7 @@ public sealed class SequenceValidationService(
         }
 
         var isValid = issues.All(x => !string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
-        var report = new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, isValid, issues);
+        var report = new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, isValid, issues, sectionMatches);
 
         await TryWriteAuditAsync(report, cancellationToken);
         return report;
@@ -171,7 +252,14 @@ public sealed class SequenceValidationService(
         try
         {
             var action = report.IsValid ? "ValidationPassed" : "ValidationFailed";
-            var details = $"Profile={report.ValidationProfile}; Issue count: {report.Issues.Count}";
+            var matchedPrefixes = report.SectionMatches
+                .Where(x => !string.IsNullOrWhiteSpace(x.MatchedPrefix))
+                .Select(x => x.MatchedPrefix!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            var details = $"Profile={report.ValidationProfile}; Issue count: {report.Issues.Count}; MatchedPrefixes={(matchedPrefixes.Length == 0 ? "none" : string.Join(",", matchedPrefixes))}";
 
             await auditLogService.CreateAsync(
                 new CreateAuditLogRequest(
@@ -188,49 +276,22 @@ public sealed class SequenceValidationService(
         }
     }
 
-    private static bool IsValidModulePrefix(string sectionSegment)
+    private static bool IsSupportedOperation(DocumentPlacementOperation operation)
     {
-        return sectionSegment.Equals("m1", StringComparison.OrdinalIgnoreCase)
-               || sectionSegment.Equals("m2", StringComparison.OrdinalIgnoreCase)
-               || sectionSegment.Equals("m3", StringComparison.OrdinalIgnoreCase)
-               || sectionSegment.Equals("m4", StringComparison.OrdinalIgnoreCase)
-               || sectionSegment.Equals("m5", StringComparison.OrdinalIgnoreCase);
+        return operation is DocumentPlacementOperation.New
+            or DocumentPlacementOperation.Replace
+            or DocumentPlacementOperation.Delete
+            or DocumentPlacementOperation.Append;
     }
 
-    private static bool IsInvalidSectionPath(string ctdSection)
+    private static int CompareSequenceNumbers(string left, string right)
     {
-        if (ctdSection.Contains("..", StringComparison.Ordinal) ||
-            ctdSection.StartsWith(".", StringComparison.Ordinal) ||
-            ctdSection.EndsWith(".", StringComparison.Ordinal))
+        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
         {
-            return true;
+            return leftNumber.CompareTo(rightNumber);
         }
 
-        var parts = ctdSection.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
-        {
-            return true;
-        }
-
-        if (!IsValidModulePrefix(parts[0]))
-        {
-            return true;
-        }
-
-        return parts.Skip(1).Any(part => !IsValidSectionSegment(part));
-    }
-
-    private static bool IsValidSectionSegment(string part)
-    {
-        if (int.TryParse(part, out _))
-        {
-            return true;
-        }
-
-        return part.Equals("p", StringComparison.OrdinalIgnoreCase)
-               || part.Equals("s", StringComparison.OrdinalIgnoreCase)
-               || part.Equals("r", StringComparison.OrdinalIgnoreCase)
-               || part.Equals("a", StringComparison.OrdinalIgnoreCase);
+        return string.Compare(left, right, StringComparison.Ordinal);
     }
 
     private static string? GuessMediaTypeByFileName(string fileName)
