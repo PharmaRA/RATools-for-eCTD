@@ -292,6 +292,14 @@ try {
         throw "Publish history entry status '$($historyEntry.status)' did not match publish job status '$($publishJob.status)'."
     }
 
+    if ($null -eq $historyEntry.lifecycleMatches) {
+        throw "Publish history entry did not include lifecycleMatches."
+    }
+
+    if ($historyEntry.lifecycleMatches.Count -ne 0) {
+        throw "Default smoke test scenario should not produce lifecycleMatches on the publish history entry."
+    }
+
     if ($CorruptReportAfterPublish) {
         if (-not $historyEntry.reportAvailable -or $historyEntry.reportReadable) {
             throw "Corrupted report should remain available but unreadable in publish history."

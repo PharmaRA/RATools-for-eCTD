@@ -67,6 +67,7 @@ public sealed class ApplicationPublishHistoryService(
                 reportState.Report?.WarningCount,
                 reportState.Report?.WarningSummary,
                 BuildLifecycleSummary(entryLifecycleMatches),
+                entryLifecycleMatches,
                 reportState.Report?.ArtifactSummary,
                 reportState.Report?.ReportPath,
                 job.PackagePath));

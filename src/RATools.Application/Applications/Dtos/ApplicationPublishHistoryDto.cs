@@ -1,4 +1,5 @@
 using RATools.Application.Publishing.Dtos;
+using RATools.Application.Validation.Dtos;
 
 namespace RATools.Application.Applications.Dtos;
 
@@ -41,6 +42,7 @@ public sealed record ApplicationPublishHistoryEntryDto(
     int? WarningCount,
     string? WarningSummary,
     ApplicationPublishHistoryLifecycleSummaryDto LifecycleSummary,
+    IReadOnlyCollection<ValidationLifecycleMatchDto> LifecycleMatches,
     PublishArtifactSummaryDto? ArtifactSummary,
     string? ReportPath,
     string? PackagePath);

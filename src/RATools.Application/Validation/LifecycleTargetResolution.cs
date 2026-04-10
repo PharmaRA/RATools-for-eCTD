@@ -1,10 +1,6 @@
-namespace RATools.Application.Validation.Dtos;
+namespace RATools.Application.Validation;
 
-public sealed record ValidationLifecycleMatchDto(
-    string Operation,
-    string SequenceNumber,
-    string CtdSection,
-    Guid DocumentId,
+public sealed record LifecycleTargetResolution(
     string ResultCode,
     string MatchStrategy,
     IReadOnlyCollection<string> AttemptedStrategies,

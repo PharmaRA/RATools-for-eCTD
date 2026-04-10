@@ -118,104 +118,39 @@ public sealed class SequenceValidationService(
 
             if (placement.Operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append)
             {
-                var currentEffectiveTitle = GetEffectiveTitle(placement, document);
-
-                var currentSequenceMatches = placements
-                    .Where(x => x.Id != placement.Id)
-                    .Where(x => x.CtdSection == placement.CtdSection)
-                    .Where(x => x.DocumentId == placement.DocumentId ||
-                                (documentById.TryGetValue(x.DocumentId, out var currentMatchDocument) &&
-                                 GetEffectiveTitle(x, currentMatchDocument) == currentEffectiveTitle))
-                    .ToArray();
-
-                if (currentSequenceMatches.Length > 0)
-                {
-                    lifecycleMatches.Add(new ValidationLifecycleMatchDto(
-                        placement.Operation.ToString(),
-                        request.SequenceNumber,
-                        placement.CtdSection,
-                        placement.DocumentId,
-                        "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE",
-                        "CurrentSequence",
-                        currentSequenceMatches.Length,
-                        currentSequenceMatches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray()));
-                    issues.Add(new ValidationIssueDto(
-                        "Error",
-                        "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE",
-                        $"A lifecycle target for {placement.Operation} exists only in the current sequence for section {placement.CtdSection} and document {placement.DocumentId}."));
-                    continue;
-                }
-
                 var historicalPlacements = applicationPlacements
                     .Where(x => x.SequenceNumber != request.SequenceNumber)
                     .Where(x => CompareSequenceNumbers(x.SequenceNumber, request.SequenceNumber) < 0)
                     .Where(x => x.CtdSection == placement.CtdSection)
                     .ToArray();
 
-                var documentIdMatches = historicalPlacements
-                    .Where(x => x.DocumentId == placement.DocumentId)
-                    .ToArray();
+                var resolution = LifecycleTargetResolver.Resolve(
+                    placement,
+                    document,
+                    placements,
+                    historicalPlacements,
+                    documentById);
 
-                var effectiveTitleMatches = historicalPlacements.Length > 0 && documentIdMatches.Length == 0
-                    ? historicalPlacements
-                        .Where(x => documentById.TryGetValue(x.DocumentId, out var historicalDocument)
-                                    && GetEffectiveTitle(x, historicalDocument) == currentEffectiveTitle)
-                        .ToArray()
-                    : Array.Empty<DocumentPlacement>();
+                lifecycleMatches.Add(new ValidationLifecycleMatchDto(
+                    placement.Operation.ToString(),
+                    request.SequenceNumber,
+                    placement.CtdSection,
+                    placement.DocumentId,
+                    resolution.ResultCode,
+                    resolution.MatchStrategy,
+                    resolution.AttemptedStrategies,
+                    resolution.HistoricalMatchCount,
+                    resolution.HistoricalSequenceNumbers,
+                    resolution.HistoricalPlacementIds,
+                    resolution.HistoricalFinalState));
 
-                var chosenMatches = documentIdMatches.Length > 0 ? documentIdMatches : effectiveTitleMatches;
-                var matchStrategy = documentIdMatches.Length > 0 || historicalPlacements.Length == 0 ? "DocumentId" : "EffectiveTitle";
-
-                if (chosenMatches.Length == 0)
+                if (resolution.ResultCode != "MATCHED")
                 {
-                    var resultCode = placement.Operation switch
-                    {
-                        DocumentPlacementOperation.Replace => "REPLACE_TARGET_NOT_FOUND",
-                        DocumentPlacementOperation.Delete => "DELETE_TARGET_NOT_FOUND",
-                        DocumentPlacementOperation.Append => "APPEND_TARGET_NOT_FOUND",
-                        _ => throw new InvalidOperationException($"Unsupported lifecycle operation '{placement.Operation}'.")
-                    };
-                    lifecycleMatches.Add(new ValidationLifecycleMatchDto(
-                        placement.Operation.ToString(),
-                        request.SequenceNumber,
-                        placement.CtdSection,
-                        placement.DocumentId,
-                        resultCode,
-                        matchStrategy,
-                        0,
-                        Array.Empty<string>()));
                     issues.Add(new ValidationIssueDto(
                         "Error",
-                        resultCode,
-                        $"No historical target was found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."));
-                }
-                else if (chosenMatches.Length > 1)
-                {
-                    lifecycleMatches.Add(new ValidationLifecycleMatchDto(
-                        placement.Operation.ToString(),
-                        request.SequenceNumber,
-                        placement.CtdSection,
-                        placement.DocumentId,
-                        "LIFECYCLE_TARGET_AMBIGUOUS",
-                        matchStrategy,
-                        chosenMatches.Length,
-                        chosenMatches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray()));
-                    issues.Add(new ValidationIssueDto(
-                        "Error",
-                        "LIFECYCLE_TARGET_AMBIGUOUS",
-                        $"Multiple historical targets were found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."));
-                }
-                else
-                {
-                    lifecycleMatches.Add(new ValidationLifecycleMatchDto(
-                        placement.Operation.ToString(),
-                        request.SequenceNumber,
-                        placement.CtdSection,
-                        placement.DocumentId,
-                        "MATCHED",
-                        matchStrategy,
-                        chosenMatches.Length,
-                        chosenMatches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray()));
+                        resolution.ResultCode,
+                        BuildLifecycleErrorMessage(placement, resolution)));
+                    continue;
                 }
             }
 
@@ -380,8 +315,13 @@ public sealed class SequenceValidationService(
         };
     }
 
-    private static string GetEffectiveTitle(DocumentPlacement placement, SubmissionDocument document)
+    private static string BuildLifecycleErrorMessage(DocumentPlacement placement, LifecycleTargetResolution resolution)
     {
-        return string.IsNullOrWhiteSpace(placement.Title) ? document.FileName : placement.Title.Trim();
+        return resolution.ResultCode switch
+        {
+            "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE" => $"A lifecycle target for {placement.Operation} exists only in the current sequence for section {placement.CtdSection} and document {placement.DocumentId}.",
+            "LIFECYCLE_TARGET_AMBIGUOUS" => $"Multiple historical targets were found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}.",
+            _ => $"No historical target was found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."
+        };
     }
 }
