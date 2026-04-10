@@ -40,6 +40,7 @@ public sealed record ApplicationPublishHistoryEntryDto(
     int? ErrorCount,
     int? WarningCount,
     string? WarningSummary,
+    ApplicationPublishHistoryLifecycleSummaryDto LifecycleSummary,
     PublishArtifactSummaryDto? ArtifactSummary,
     string? ReportPath,
     string? PackagePath);

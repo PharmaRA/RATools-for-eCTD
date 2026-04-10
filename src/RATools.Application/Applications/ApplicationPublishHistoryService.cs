@@ -48,9 +48,10 @@ public sealed class ApplicationPublishHistoryService(
         foreach (var job in filteredJobs)
         {
             var reportState = await TryReadReportAsync(job, cancellationToken);
-            if (reportState.Report?.ValidationReport?.LifecycleMatches is not null)
+            var entryLifecycleMatches = reportState.Report?.ValidationReport?.LifecycleMatches?.ToArray() ?? Array.Empty<ValidationLifecycleMatchDto>();
+            if (entryLifecycleMatches.Length > 0)
             {
-                lifecycleMatches.AddRange(reportState.Report.ValidationReport.LifecycleMatches);
+                lifecycleMatches.AddRange(entryLifecycleMatches);
             }
             entries.Add(new ApplicationPublishHistoryEntryDto(
                 job.Id,
@@ -65,18 +66,13 @@ public sealed class ApplicationPublishHistoryService(
                 reportState.Report?.ErrorCount,
                 reportState.Report?.WarningCount,
                 reportState.Report?.WarningSummary,
+                BuildLifecycleSummary(entryLifecycleMatches),
                 reportState.Report?.ArtifactSummary,
                 reportState.Report?.ReportPath,
                 job.PackagePath));
         }
 
-        var lifecycleSummary = new ApplicationPublishHistoryLifecycleSummaryDto(
-            lifecycleMatches.Count(x => x.ResultCode == "MATCHED"),
-            lifecycleMatches.Count(x => x.ResultCode == "REPLACE_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "DELETE_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "APPEND_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_AMBIGUOUS"),
-            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"));
+        var lifecycleSummary = BuildLifecycleSummary(lifecycleMatches);
 
         return new ApplicationPublishHistoryDto(
             application.Id,
@@ -128,5 +124,16 @@ public sealed class ApplicationPublishHistoryService(
         {
             return (null, true, false, exception.Message);
         }
+    }
+
+    private static ApplicationPublishHistoryLifecycleSummaryDto BuildLifecycleSummary(IReadOnlyCollection<ValidationLifecycleMatchDto> lifecycleMatches)
+    {
+        return new ApplicationPublishHistoryLifecycleSummaryDto(
+            lifecycleMatches.Count(x => x.ResultCode == "MATCHED"),
+            lifecycleMatches.Count(x => x.ResultCode == "REPLACE_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "DELETE_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "APPEND_TARGET_NOT_FOUND"),
+            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_AMBIGUOUS"),
+            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"));
     }
 }
