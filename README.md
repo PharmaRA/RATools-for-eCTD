@@ -53,6 +53,7 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - The smoke test also verifies `publish-history` status and `createdUtc` range filters.
 - The smoke test also verifies `publish-history.statusSummary` values for the current filtered history views.
 - The smoke test also verifies `publish-history.lifecycleSummary` values for the default non-lifecycle scenario.
+- The smoke test also verifies `publishReport.integritySummary.isConsistent` after publish execution.
 - The smoke test also downloads `PublishReport` and `PackageZip` through the artifact download endpoint and verifies the responses match artifact metadata.
 - With `-InjectWarnings`, the smoke test also verifies `NON_STANDARD_SECTION_PATTERN` is returned in the validation report.
 - The smoke test also verifies validation `sectionMatches` and `MatchedPrefixes` audit details.

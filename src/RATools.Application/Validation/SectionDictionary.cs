@@ -8,7 +8,9 @@ public sealed class SectionDictionary
         "m2.3",
         "m2.5",
         "m2",
+        "m3.2.a",
         "m3.2.p",
+        "m3.2.r",
         "m3.2.s",
         "m3.2",
         "m4.2",
@@ -21,6 +23,10 @@ public sealed class SectionDictionary
         "m5.3.3",
         "m5.3.4",
         "m5.3.5",
+        "m5.3.5.1",
+        "m5.3.5.2",
+        "m5.3.5.3",
+        "m5.3.5.4",
         "m5.3"
     ];
 

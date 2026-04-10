@@ -17,7 +17,8 @@ public sealed class PublishJobService(
     IPublishJobRepository repository,
     IBackboneService backboneService,
     ISequenceValidationService validationService,
-    IAuditLogService auditLogService) : IPublishJobService
+    IAuditLogService auditLogService,
+    PublishOutputVerifier publishOutputVerifier) : IPublishJobService
 {
     private const string PublishExecutionReportVersion = "1.1";
 
@@ -38,6 +39,7 @@ public sealed class PublishJobService(
         var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var warningSummary = BuildWarningSummary(result.ValidationReport);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
+        var integritySummary = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
 
         var report = new PublishExecutionReportDto(
             PublishExecutionReportVersion,
@@ -48,6 +50,7 @@ public sealed class PublishJobService(
             result.ValidationReport,
             jobDto,
             stopwatch.ElapsedMilliseconds,
+            integritySummary,
             null,
             auditSummary,
             errorCount,

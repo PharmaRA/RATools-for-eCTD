@@ -202,8 +202,8 @@ try {
         throw "Default smoke test scenario should not produce lifecycle matches, but $($validation.lifecycleMatches.Count) were returned."
     }
 
-    if (-not $InjectWarnings -and $matchedSection.matchedPrefix -ne "m5.3.5") {
-        throw "Validation report matchedPrefix '$($matchedSection.matchedPrefix)' did not match expected 'm5.3.5'."
+    if (-not $InjectWarnings -and $matchedSection.matchedPrefix -ne "m5.3.5.1") {
+        throw "Validation report matchedPrefix '$($matchedSection.matchedPrefix)' did not match expected 'm5.3.5.1'."
     }
 
     Write-Step "Executing publish job"
@@ -249,6 +249,14 @@ try {
 
     if ($publishJob.status -ne "Completed") {
         throw "Publish job did not complete successfully. Failure: $($publishJob.failureReason)"
+    }
+
+    if (-not $publishReport.integritySummary) {
+        throw "Publish execution report did not include integritySummary."
+    }
+
+    if (-not $publishReport.integritySummary.isConsistent) {
+        throw "Publish execution report integritySummary reported inconsistent artifacts."
     }
 
     if (-not $CorruptReportAfterPublish) {
@@ -513,6 +521,7 @@ try {
     Write-Host "Succeeded      : $($publishReport.succeeded)"
     Write-Host "Message        : $($publishReport.message)"
     Write-Host "Duration (ms)  : $($publishReport.durationMs)"
+    Write-Host "Integrity OK   : $($publishReport.integritySummary.isConsistent)"
     Write-Host "Error Count    : $($publishReport.errorCount)"
     Write-Host "Warning Count  : $($publishReport.warningCount)"
     Write-Host "Warn Summary   : $($publishReport.warningSummary)"
