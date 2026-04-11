@@ -9,6 +9,7 @@ namespace RATools.Api.Controllers;
 [Route("api/applications")]
 public sealed class ApplicationsController(
     IApplicationService applicationService,
+    IApplicationImportService applicationImportService,
     IApplicationPublishHistoryService publishHistoryService) : ControllerBase
 {
     [HttpGet]
@@ -51,6 +52,27 @@ public sealed class ApplicationsController(
             cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPost("import")]
+    public async Task<IActionResult> Import([FromBody] ImportApplicationRequestBody request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await applicationImportService.ImportAsync(
+                new ImportApplicationRequest(request.WorkingDirectoryPath, request.Region, request.SponsorName),
+                cancellationToken);
+
+            return Ok(result);
+        }
+        catch (ApplicationImportConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost("{id:guid}/sequences")]

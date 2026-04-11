@@ -27,6 +27,8 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - The backend creates and stores `{workingDirectoryParentPath}/{applicationNumber}` as the application working directory.
 - Creating a sequence automatically creates `{applicationWorkingDirectoryPath}/{sequenceNumber}`.
 - The recommended upload path is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload`, which writes source files into the sequence working directory.
+- Importing an existing workspace is available through `POST /api/applications/import`, which scans sequence subdirectories and reads each sequence `index.xml`.
+- The import endpoint expects `workingDirectoryPath`, `region`, and `sponsorName`; `applicationNumber` is inferred from the imported directory name.
 
 ## Database migrations
 

@@ -21,6 +21,16 @@ Content-Type: application/json
   "workingDirectoryParentPath": "D:\\eCTD-work"
 }
 
+### Import existing application workspace
+POST {{host}}/api/applications/import
+Content-Type: application/json
+
+{
+  "workingDirectoryPath": "D:\\eCTD-work\\IND-0001",
+  "region": "US",
+  "sponsorName": "Demo Sponsor"
+}
+
 ### Get application by id
 GET {{host}}/api/applications/{{createApplication.response.body.$.id}}
 
