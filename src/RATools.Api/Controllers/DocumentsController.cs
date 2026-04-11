@@ -56,4 +56,18 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await documentService.DeleteAsync(id, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (DocumentDeleteConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
 }

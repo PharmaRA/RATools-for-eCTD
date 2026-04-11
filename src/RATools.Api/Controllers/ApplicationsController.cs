@@ -70,4 +70,32 @@ public sealed class ApplicationsController(
             return Conflict(new { message = exception.Message });
         }
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await applicationService.DeleteAsync(id, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (ApplicationDeleteConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpDelete("{id:guid}/sequences/{sequenceNumber}")]
+    public async Task<IActionResult> DeleteSequence(Guid id, string sequenceNumber, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await applicationService.DeleteSequenceAsync(id, sequenceNumber, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (SequenceDeleteConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
 }

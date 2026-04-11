@@ -6,7 +6,10 @@ using RATools.Domain.Documents;
 
 namespace RATools.Application.Documents;
 
-public sealed class DocumentService(IDocumentRepository repository, IFileStorage fileStorage) : IDocumentService
+public sealed class DocumentService(
+    IDocumentRepository repository,
+    IFileStorage fileStorage,
+    IDocumentPlacementRepository placementRepository) : IDocumentService
 {
     public async Task<DocumentDto> CreateAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -53,6 +56,33 @@ public sealed class DocumentService(IDocumentRepository repository, IFileStorage
     {
         var documents = await repository.ListAsync(cancellationToken);
         return documents.Select(x => x.ToDto()).ToArray();
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var document = await repository.GetAsync(id, cancellationToken);
+        if (document is null)
+        {
+            return false;
+        }
+
+        var placements = await placementRepository.ListAsync(cancellationToken);
+        if (placements.Any(x => x.DocumentId == id))
+        {
+            throw new DocumentDeleteConflictException($"Document {id} cannot be deleted because document placements exist.");
+        }
+
+        var allDocuments = await repository.ListAsync(cancellationToken);
+        var sharedPathCount = allDocuments.Count(x => x.Id != id && string.Equals(x.StoragePath, document.StoragePath, StringComparison.OrdinalIgnoreCase));
+
+        await repository.DeleteAsync(id, cancellationToken);
+
+        if (sharedPathCount == 0 && File.Exists(document.StoragePath))
+        {
+            File.Delete(document.StoragePath);
+        }
+
+        return true;
     }
 }
 

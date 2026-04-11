@@ -12,6 +12,18 @@ public sealed class EfCoreDocumentRepository(RAToolsDbContext dbContext) : IDocu
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.Documents.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        dbContext.Documents.Remove(existing);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var record = await dbContext.Documents

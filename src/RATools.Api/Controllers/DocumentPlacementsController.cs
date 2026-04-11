@@ -44,4 +44,18 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
             return Conflict(new { message = exception.Message });
         }
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await placementService.DeleteAsync(id, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (DocumentPlacementDeleteConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
 }

@@ -14,6 +14,18 @@ public sealed class InMemoryDocumentPlacementRepository : IDocumentPlacementRepo
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _items.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
+    public Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _items.TryGetValue(id, out var placement);
+        return Task.FromResult(placement);
+    }
+
     public Task<IReadOnlyCollection<DocumentPlacement>> ListAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<DocumentPlacement> items = _items.Values

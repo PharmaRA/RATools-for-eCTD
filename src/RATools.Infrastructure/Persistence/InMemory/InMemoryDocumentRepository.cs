@@ -14,6 +14,12 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _items.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
     public Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _items.TryGetValue(id, out var document);

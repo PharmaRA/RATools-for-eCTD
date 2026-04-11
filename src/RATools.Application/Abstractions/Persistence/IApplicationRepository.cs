@@ -8,6 +8,8 @@ public interface IApplicationRepository
 
     Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default);
 
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<SubmissionApplication>> ListAsync(CancellationToken cancellationToken = default);

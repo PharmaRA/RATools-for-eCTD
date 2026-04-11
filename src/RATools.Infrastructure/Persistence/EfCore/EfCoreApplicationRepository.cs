@@ -53,6 +53,18 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.Applications.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        dbContext.Applications.Remove(existing);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var record = await dbContext.Applications

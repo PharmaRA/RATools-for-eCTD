@@ -12,6 +12,27 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.DocumentPlacements.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        dbContext.DocumentPlacements.Remove(existing);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var record = await dbContext.DocumentPlacements
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        return record?.ToDomain();
+    }
+
     public async Task<IReadOnlyCollection<DocumentPlacement>> ListAsync(CancellationToken cancellationToken = default)
     {
         var records = await dbContext.DocumentPlacements

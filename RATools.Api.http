@@ -71,6 +71,9 @@ GET {{host}}/api/documents
 ### Get document by id
 GET {{host}}/api/documents/{{createDocument.response.body.$.id}}
 
+### Delete document by id
+DELETE {{host}}/api/documents/{{createDocument.response.body.$.id}}
+
 ### Upload document file
 POST {{host}}/api/documents/upload
 Content-Type: multipart/form-data; boundary=boundary

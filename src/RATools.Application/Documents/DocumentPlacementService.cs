@@ -8,7 +8,8 @@ namespace RATools.Application.Documents;
 public sealed class DocumentPlacementService(
     IDocumentPlacementRepository placementRepository,
     IDocumentRepository documentRepository,
-    IApplicationRepository applicationRepository) : IDocumentPlacementService
+    IApplicationRepository applicationRepository,
+    IPublishJobRepository publishJobRepository) : IDocumentPlacementService
 {
     public async Task<DocumentPlacementDto> CreateAsync(CreateDocumentPlacementRequest request, CancellationToken cancellationToken = default)
     {
@@ -56,6 +57,27 @@ public sealed class DocumentPlacementService(
     {
         var items = await placementRepository.ListByApplicationAsync(applicationId, cancellationToken);
         return items.Select(x => x.ToDto()).ToArray();
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var placement = await placementRepository.GetAsync(id, cancellationToken);
+        if (placement is null)
+        {
+            return false;
+        }
+
+        var publishJobs = await publishJobRepository.QueryHistoryAsync(
+            new PublishJobHistoryQuery(placement.ApplicationId, null, null, null, null, 1, 1),
+            cancellationToken);
+
+        if (publishJobs.TotalCount > 0)
+        {
+            throw new DocumentPlacementDeleteConflictException($"Document placement {id} cannot be deleted because publish jobs exist for application {placement.ApplicationId}.");
+        }
+
+        await placementRepository.DeleteAsync(id, cancellationToken);
+        return true;
     }
 }
 

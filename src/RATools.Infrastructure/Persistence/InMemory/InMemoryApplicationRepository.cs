@@ -20,6 +20,12 @@ public sealed class InMemoryApplicationRepository : IApplicationRepository
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _items.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
     public Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _items.TryGetValue(id, out var application);

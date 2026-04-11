@@ -54,6 +54,18 @@ public sealed class SubmissionApplication : Entity
         return sequence;
     }
 
+    public bool RemoveSequence(string sequenceNumber)
+    {
+        var sequence = _sequences.SingleOrDefault(x => x.SequenceNumber == sequenceNumber);
+        if (sequence is null)
+        {
+            return false;
+        }
+
+        _sequences.Remove(sequence);
+        return true;
+    }
+
     public static SubmissionApplication Rehydrate(
         Guid id,
         string applicationNumber,

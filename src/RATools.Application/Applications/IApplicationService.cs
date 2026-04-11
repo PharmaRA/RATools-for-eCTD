@@ -12,4 +12,8 @@ public interface IApplicationService
     Task<ApplicationDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ApplicationDto?> CreateSequenceAsync(Guid applicationId, CreateSequenceRequest request, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(Guid applicationId, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteSequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default);
 }
