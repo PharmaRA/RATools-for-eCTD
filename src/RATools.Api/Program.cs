@@ -31,9 +31,7 @@ if (swaggerEnabled)
     app.UseSwaggerUI();
 }
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
+app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/version", () =>
 {
