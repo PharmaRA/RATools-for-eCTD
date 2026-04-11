@@ -98,6 +98,7 @@ function Invoke-FileUpload {
 $sampleFilePath = Join-Path $env:TEMP "ratools-smoke-sample.txt"
 $duplicateSampleDirectory = Join-Path $env:TEMP ("ratools-smoke-" + [guid]::NewGuid().ToString("N"))
 $duplicateSampleFilePath = Join-Path $duplicateSampleDirectory "ratools-smoke-sample.txt"
+$applicationWorkspaceParentPath = Join-Path $env:TEMP ("ratools-workspace-" + [guid]::NewGuid().ToString("N"))
 $downloadedZipPath = $null
 $sampleContent = @(
     "RATools smoke test file"
@@ -108,6 +109,7 @@ $sampleContent = @(
 Set-Content -Path $sampleFilePath -Value $sampleContent -Encoding UTF8
 New-Item -ItemType Directory -Path $duplicateSampleDirectory -Force | Out-Null
 Set-Content -Path $duplicateSampleFilePath -Value ($sampleContent + [Environment]::NewLine + "duplicate") -Encoding UTF8
+New-Item -ItemType Directory -Path $applicationWorkspaceParentPath -Force | Out-Null
 
 try {
     $suffix = Get-Date -Format "yyyyMMddHHmmss"
@@ -131,6 +133,18 @@ try {
         applicationNumber = "IND-$suffix"
         region = "US"
         sponsorName = "Smoke Test Sponsor"
+        workingDirectoryParentPath = $applicationWorkspaceParentPath
+    }
+
+    $expectedApplicationWorkspacePath = Join-Path $applicationWorkspaceParentPath $application.applicationNumber
+    if (-not (Test-Path $application.workingDirectoryPath)) {
+        throw "Application working directory was not created: $($application.workingDirectoryPath)"
+    }
+
+    $applicationWorkspaceResolvedPath = (Get-Item $application.workingDirectoryPath).FullName
+    $expectedApplicationWorkspaceResolvedPath = (Get-Item $expectedApplicationWorkspacePath).FullName
+    if ($applicationWorkspaceResolvedPath -ne $expectedApplicationWorkspaceResolvedPath) {
+        throw "Application workingDirectoryPath '$applicationWorkspaceResolvedPath' did not match expected '$expectedApplicationWorkspaceResolvedPath'."
     }
 
     Write-Step "Creating sequence 0000"
@@ -140,11 +154,37 @@ try {
         description = "Smoke test submission"
     }
 
+    $createdSequence = $sequence.sequences | Where-Object { $_.sequenceNumber -eq "0000" } | Select-Object -First 1
+    $expectedSequenceWorkspacePath = Join-Path $application.workingDirectoryPath "0000"
+    if (-not $createdSequence) {
+        throw "Created sequence 0000 was not returned in application payload."
+    }
+
+    if (-not (Test-Path $createdSequence.workingDirectoryPath)) {
+        throw "Sequence working directory was not created: $($createdSequence.workingDirectoryPath)"
+    }
+
+    $sequenceWorkspaceResolvedPath = (Get-Item $createdSequence.workingDirectoryPath).FullName
+    $expectedSequenceWorkspaceResolvedPath = (Get-Item $expectedSequenceWorkspacePath).FullName
+    if ($sequenceWorkspaceResolvedPath -ne $expectedSequenceWorkspaceResolvedPath) {
+        throw "Sequence workingDirectoryPath '$sequenceWorkspaceResolvedPath' did not match expected '$expectedSequenceWorkspaceResolvedPath'."
+    }
+
     Write-Step "Uploading sample document"
-    $document = Invoke-FileUpload -Url "$BaseUrl/api/documents/upload" -FilePath $sampleFilePath
+    $document = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $sampleFilePath
 
     Write-Step "Uploading duplicate-name document"
-    $duplicateDocument = Invoke-FileUpload -Url "$BaseUrl/api/documents/upload" -FilePath $duplicateSampleFilePath
+    $duplicateDocument = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $duplicateSampleFilePath
+
+    $documentStorageParent = (Get-Item (Split-Path $document.storagePath -Parent)).FullName
+    if ($documentStorageParent -ne $sequenceWorkspaceResolvedPath) {
+        throw "Uploaded document storagePath '$($document.storagePath)' is not inside the expected sequence workspace '$sequenceWorkspaceResolvedPath'."
+    }
+
+    $duplicateDocumentStorageParent = (Get-Item (Split-Path $duplicateDocument.storagePath -Parent)).FullName
+    if ($duplicateDocumentStorageParent -ne $sequenceWorkspaceResolvedPath) {
+        throw "Uploaded duplicate document storagePath '$($duplicateDocument.storagePath)' is not inside the expected sequence workspace '$sequenceWorkspaceResolvedPath'."
+    }
 
     Write-Step "Creating document placement"
     $placementPayload = @{
@@ -577,7 +617,11 @@ finally {
         Remove-Item $duplicateSampleDirectory -Recurse -Force
     }
 
-    if (Test-Path $downloadedZipPath) {
+    if (Test-Path $applicationWorkspaceParentPath) {
+        Remove-Item $applicationWorkspaceParentPath -Recurse -Force
+    }
+
+    if ($downloadedZipPath -and (Test-Path $downloadedZipPath)) {
         Remove-Item $downloadedZipPath -Force
     }
 }

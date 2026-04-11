@@ -17,7 +17,8 @@ Content-Type: application/json
 {
   "applicationNumber": "IND-0001",
   "region": "US",
-  "sponsorName": "Demo Sponsor"
+  "sponsorName": "Demo Sponsor",
+  "workingDirectoryParentPath": "D:\\eCTD-work"
 }
 
 ### Get application by id
@@ -76,6 +77,18 @@ DELETE {{host}}/api/documents/{{createDocument.response.body.$.id}}
 
 ### Upload document file
 POST {{host}}/api/documents/upload
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="File"; filename="sample.txt"
+Content-Type: text/plain
+
+sample upload content
+--boundary--
+
+### Upload document directly into a sequence working directory
+# Recommended upload path for the new working-directory workflow
+POST {{host}}/api/applications/{{createApplication.response.body.$.id}}/sequences/0000/documents/upload
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary

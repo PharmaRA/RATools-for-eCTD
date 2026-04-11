@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Abstractions.Storage;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.Requests;
 using RATools.Domain.Applications;
@@ -8,11 +9,19 @@ namespace RATools.Application.Applications;
 public sealed class ApplicationService(
     IApplicationRepository repository,
     IDocumentPlacementRepository placementRepository,
-    IPublishJobRepository publishJobRepository) : IApplicationService
+    IPublishJobRepository publishJobRepository,
+    IApplicationWorkspaceService? workspaceService = null) : IApplicationService
 {
+    private readonly IApplicationWorkspaceService _workspaceService = workspaceService ?? new DefaultApplicationWorkspaceService();
+
     public async Task<ApplicationDto> CreateAsync(CreateApplicationRequest request, CancellationToken cancellationToken = default)
     {
-        var application = new SubmissionApplication(request.ApplicationNumber, request.Region, request.SponsorName);
+        var workingDirectoryPath = await _workspaceService.EnsureApplicationWorkingDirectoryAsync(
+            request.WorkingDirectoryParentPath,
+            request.ApplicationNumber,
+            cancellationToken);
+
+        var application = new SubmissionApplication(request.ApplicationNumber, request.Region, request.SponsorName, workingDirectoryPath);
         await repository.AddAsync(application, cancellationToken);
         return application.ToDto();
     }
@@ -38,6 +47,7 @@ public sealed class ApplicationService(
         }
 
         application.CreateSequence(request.SequenceNumber, request.SubmissionType, request.Description);
+        await _workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, request.SequenceNumber, cancellationToken);
         await repository.UpdateAsync(application, cancellationToken);
         return application.ToDto();
     }
@@ -103,6 +113,23 @@ public sealed class ApplicationService(
     }
 }
 
+internal sealed class DefaultApplicationWorkspaceService : IApplicationWorkspaceService
+{
+    public Task<string> EnsureApplicationWorkingDirectoryAsync(string parentPath, string applicationNumber, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(parentPath, applicationNumber);
+        Directory.CreateDirectory(path);
+        return Task.FromResult(path);
+    }
+
+    public Task<string> EnsureSequenceWorkingDirectoryAsync(string applicationWorkingDirectoryPath, string sequenceNumber, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(applicationWorkingDirectoryPath, sequenceNumber);
+        Directory.CreateDirectory(path);
+        return Task.FromResult(path);
+    }
+}
+
 internal static class ApplicationMapping
 {
     public static ApplicationDto ToDto(this SubmissionApplication application)
@@ -112,9 +139,15 @@ internal static class ApplicationMapping
             application.ApplicationNumber,
             application.Region,
             application.SponsorName,
+            application.WorkingDirectoryPath,
             application.CreatedUtc,
             application.Sequences
-                .Select(x => new SequenceDto(x.SequenceNumber, x.SubmissionType, x.Description, x.CreatedUtc))
+                .Select(x => new SequenceDto(
+                    x.SequenceNumber,
+                    x.SubmissionType,
+                    x.Description,
+                    Path.Combine(application.WorkingDirectoryPath, x.SequenceNumber),
+                    x.CreatedUtc))
                 .ToArray());
     }
 }

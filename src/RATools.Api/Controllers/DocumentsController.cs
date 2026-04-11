@@ -57,6 +57,39 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [HttpPost("/api/applications/{applicationId:guid}/sequences/{sequenceNumber}/documents/upload")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadToSequence(Guid applicationId, string sequenceNumber, [FromForm] UploadDocumentRequestBody request, CancellationToken cancellationToken)
+    {
+        if (request.File is null)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            await using var stream = request.File.OpenReadStream();
+            var created = await documentService.UploadToSequenceAsync(
+                applicationId,
+                sequenceNumber,
+                new UploadDocumentRequest
+                {
+                    FileName = request.File.FileName,
+                    MediaType = string.IsNullOrWhiteSpace(request.File.ContentType)
+                        ? "application/octet-stream"
+                        : request.File.ContentType,
+                    Content = stream
+                },
+                cancellationToken);
+
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

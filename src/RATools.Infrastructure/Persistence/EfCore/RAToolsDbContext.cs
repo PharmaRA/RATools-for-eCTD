@@ -25,6 +25,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.ApplicationNumber).HasMaxLength(128).IsRequired();
             entity.Property(x => x.Region).HasMaxLength(32).IsRequired();
             entity.Property(x => x.SponsorName).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.WorkingDirectoryPath).HasMaxLength(1024).IsRequired();
             entity.Property(x => x.CreatedUtc).IsRequired();
             entity.HasMany(x => x.Sequences)
                 .WithOne()

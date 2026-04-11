@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
+        services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddSingleton<IValidationProfileProvider, ConfigurationValidationProfileProvider>();
 

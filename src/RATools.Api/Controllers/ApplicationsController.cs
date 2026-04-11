@@ -47,7 +47,7 @@ public sealed class ApplicationsController(
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequestBody request, CancellationToken cancellationToken)
     {
         var created = await applicationService.CreateAsync(
-            new CreateApplicationRequest(request.ApplicationNumber, request.Region, request.SponsorName),
+            new CreateApplicationRequest(request.ApplicationNumber, request.Region, request.SponsorName, request.WorkingDirectoryParentPath),
             cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);

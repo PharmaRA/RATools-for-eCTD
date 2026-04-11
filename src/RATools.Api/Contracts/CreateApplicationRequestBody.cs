@@ -15,4 +15,8 @@ public sealed class CreateApplicationRequestBody
     [Required]
     [StringLength(128, MinimumLength = 2)]
     public string SponsorName { get; init; } = string.Empty;
+
+    [Required]
+    [StringLength(512, MinimumLength = 1)]
+    public string WorkingDirectoryParentPath { get; init; } = string.Empty;
 }

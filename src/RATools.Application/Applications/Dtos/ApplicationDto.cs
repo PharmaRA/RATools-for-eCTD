@@ -5,5 +5,6 @@ public sealed record ApplicationDto(
     string ApplicationNumber,
     string Region,
     string SponsorName,
+    string WorkingDirectoryPath,
     DateTime CreatedUtc,
     IReadOnlyCollection<SequenceDto> Sequences);

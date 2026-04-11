@@ -6,5 +6,7 @@ public sealed class FileUploadRequest
 
     public required string MediaType { get; init; }
 
+    public string? DestinationDirectoryPath { get; init; }
+
     public required Stream Content { get; init; }
 }

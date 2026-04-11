@@ -9,7 +9,9 @@ namespace RATools.Application.Documents;
 public sealed class DocumentService(
     IDocumentRepository repository,
     IFileStorage fileStorage,
-    IDocumentPlacementRepository placementRepository) : IDocumentService
+    IDocumentPlacementRepository placementRepository,
+    IApplicationRepository applicationRepository,
+    IApplicationWorkspaceService workspaceService) : IDocumentService
 {
     public async Task<DocumentDto> CreateAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -31,6 +33,39 @@ public sealed class DocumentService(
             {
                 FileName = request.FileName,
                 MediaType = request.MediaType,
+                Content = request.Content
+            },
+            cancellationToken);
+
+        var document = new SubmissionDocument(
+            storedFile.FileName,
+            storedFile.MediaType,
+            storedFile.FileSize,
+            storedFile.Sha256,
+            storedFile.StoragePath);
+
+        await repository.AddAsync(document, cancellationToken);
+        return document.ToDto();
+    }
+
+    public async Task<DocumentDto> UploadToSequenceAsync(Guid applicationId, string sequenceNumber, UploadDocumentRequest request, CancellationToken cancellationToken = default)
+    {
+        var application = await applicationRepository.GetAsync(applicationId, cancellationToken)
+            ?? throw new InvalidOperationException($"Application {applicationId} was not found.");
+
+        if (application.Sequences.All(x => x.SequenceNumber != sequenceNumber))
+        {
+            throw new InvalidOperationException($"Sequence {sequenceNumber} does not exist on application {applicationId}.");
+        }
+
+        var sequenceDirectory = await workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, sequenceNumber, cancellationToken);
+
+        var storedFile = await fileStorage.SaveAsync(
+            new FileUploadRequest
+            {
+                FileName = request.FileName,
+                MediaType = request.MediaType,
+                DestinationDirectoryPath = sequenceDirectory,
                 Content = request.Content
             },
             cancellationToken);

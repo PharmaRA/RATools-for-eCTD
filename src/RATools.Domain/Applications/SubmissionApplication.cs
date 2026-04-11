@@ -6,8 +6,8 @@ public sealed class SubmissionApplication : Entity
 {
     private readonly List<SubmissionSequence> _sequences = [];
 
-    public SubmissionApplication(string applicationNumber, string region, string sponsorName)
-        : this(Guid.NewGuid(), applicationNumber, region, sponsorName, DateTime.UtcNow, [])
+    public SubmissionApplication(string applicationNumber, string region, string sponsorName, string workingDirectoryPath)
+        : this(Guid.NewGuid(), applicationNumber, region, sponsorName, DateTime.UtcNow, [], workingDirectoryPath)
     {
     }
 
@@ -17,16 +17,19 @@ public sealed class SubmissionApplication : Entity
         string region,
         string sponsorName,
         DateTime createdUtc,
-        IEnumerable<SubmissionSequence> sequences)
+        IEnumerable<SubmissionSequence> sequences,
+        string workingDirectoryPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(region);
         ArgumentException.ThrowIfNullOrWhiteSpace(sponsorName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectoryPath);
 
         Id = id;
         ApplicationNumber = applicationNumber.Trim();
         Region = region.Trim();
         SponsorName = sponsorName.Trim();
+        WorkingDirectoryPath = workingDirectoryPath.Trim();
         CreatedUtc = createdUtc;
         _sequences.AddRange(sequences);
     }
@@ -36,6 +39,8 @@ public sealed class SubmissionApplication : Entity
     public string Region { get; private set; }
 
     public string SponsorName { get; private set; }
+
+    public string WorkingDirectoryPath { get; private set; }
 
     public DateTime CreatedUtc { get; private set; }
 
@@ -72,8 +77,20 @@ public sealed class SubmissionApplication : Entity
         string region,
         string sponsorName,
         DateTime createdUtc,
+        IEnumerable<SubmissionSequence> sequences,
+        string workingDirectoryPath)
+    {
+        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, workingDirectoryPath);
+    }
+
+    public static SubmissionApplication Rehydrate(
+        Guid id,
+        string applicationNumber,
+        string region,
+        string sponsorName,
+        DateTime createdUtc,
         IEnumerable<SubmissionSequence> sequences)
     {
-        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences);
+        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, $"workspace-{applicationNumber}");
     }
 }

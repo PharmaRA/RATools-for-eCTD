@@ -4,4 +4,5 @@ public sealed record SequenceDto(
     string SequenceNumber,
     string SubmissionType,
     string Description,
+    string WorkingDirectoryPath,
     DateTime CreatedUtc);

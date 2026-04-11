@@ -21,6 +21,13 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Default connection string is in `src/RATools.Api/appsettings.json`.
 - Run: `dotnet run --project src/RATools.Api/RATools.Api.csproj`.
 
+## Working directories
+
+- Creating an application now requires a `workingDirectoryParentPath`.
+- The backend creates and stores `{workingDirectoryParentPath}/{applicationNumber}` as the application working directory.
+- Creating a sequence automatically creates `{applicationWorkingDirectoryPath}/{sequenceNumber}`.
+- The recommended upload path is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload`, which writes source files into the sequence working directory.
+
 ## Database migrations
 
 - Create migration:

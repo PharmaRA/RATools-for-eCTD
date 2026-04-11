@@ -12,7 +12,9 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
         ArgumentException.ThrowIfNullOrWhiteSpace(request.MediaType);
         ArgumentNullException.ThrowIfNull(request.Content);
 
-        var rootPath = options.Value.RootPath;
+        var rootPath = string.IsNullOrWhiteSpace(request.DestinationDirectoryPath)
+            ? options.Value.RootPath
+            : request.DestinationDirectoryPath;
         if (string.IsNullOrWhiteSpace(rootPath))
         {
             throw new InvalidOperationException("File storage root path is not configured.");

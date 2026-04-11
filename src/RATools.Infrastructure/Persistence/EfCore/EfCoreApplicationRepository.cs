@@ -97,6 +97,7 @@ internal static class ApplicationRecordMapping
             ApplicationNumber = application.ApplicationNumber,
             Region = application.Region,
             SponsorName = application.SponsorName,
+            WorkingDirectoryPath = application.WorkingDirectoryPath,
             CreatedUtc = application.CreatedUtc,
             Sequences = application.Sequences.Select(x => new SequenceRecord
             {
@@ -122,6 +123,7 @@ internal static class ApplicationRecordMapping
             record.Region,
             record.SponsorName,
             record.CreatedUtc,
-            sequences);
+            sequences,
+            record.WorkingDirectoryPath);
     }
 }
