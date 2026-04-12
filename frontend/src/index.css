@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ectd-tree .ant-tree-treenode {
+  min-height: 30px;
+  align-items: center;
+}
+
+.ectd-tree .ant-tree-node-content-wrapper {
+  width: 100%;
+  padding: 0 !important;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.ectd-tree .ant-tree-switcher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 30px;
+  line-height: 30px;
+  margin: 0;
+}
+
+.ectd-tree .ant-tree-indent-unit {
+  width: 20px;
+  height: 30px;
+}
+
+.ectd-tree-node {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 30px;
+  padding: 0 0.35rem;
+  border-radius: 6px;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.ectd-tree-node__main {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.ectd-tree-node__icon {
+  display: inline-flex;
+  color: #475569;
+  flex: none;
+}
+
+.ectd-tree-node__text {
+  min-width: 0;
+}
+
+.ectd-tree-node__labelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ectd-tree-node__prefix {
+  flex: none;
+  min-width: 3rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.ectd-tree-node__label {
+  color: #1f2937;
+  line-height: 1.35;
+}
+
+.ectd-tree-node--section .ectd-tree-node__label {
+  font-weight: 600;
+}
+
+.ectd-tree-node--document {
+  margin-left: 0.2rem;
+  padding-left: 0.5rem;
+  background: #f8fafc;
+}
+
+.ectd-tree-node--document .ectd-tree-node__icon {
+  color: #2563eb;
+}
+
+.ectd-tree-node--document .ectd-tree-node__label {
+  font-weight: 500;
+}
+
+.ectd-tree-node--document .ectd-tree-node__prefix {
+  min-width: auto;
+  color: #64748b;
+}
+
+.ectd-tree-node--droppable {
+  border: 1px dashed transparent;
+}
+
+.ectd-tree-node--hover {
+  background: #f8fafc;
+}
+
+.ectd-tree-node--document.ectd-tree-node--hover {
+  background: #eff6ff;
+}
+
+.ectd-tree-node--section.ectd-tree-node--hover.ectd-tree-node--droppable {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.ectd-tree-node--selected {
+  background: #e0ecff;
+}
+
+.ectd-tree-node--selected .ectd-tree-node__label,
+.ectd-tree-node--selected .ectd-tree-node__prefix,
+.ectd-tree-node--selected .ectd-tree-node__icon {
+  color: #1d4ed8;
+}
+
+.ectd-tree-node__status {
+  color: #16a34a;
+  flex: none;
+  align-self: center;
+}
+
+.ectd-tree-node__tag {
+  margin-inline-start: 0.1rem;
+}
