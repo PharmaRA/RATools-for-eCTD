@@ -58,4 +58,18 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
             return Conflict(new { message = exception.Message });
         }
     }
+
+    [HttpPut("{id:guid}/section")]
+    public async Task<IActionResult> UpdateSection(Guid id, [FromBody] UpdateDocumentPlacementSectionRequestBody request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await placementService.UpdateSectionAsync(id, new UpdateDocumentPlacementSectionRequest(request.CtdSection), cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
 }

@@ -6,6 +6,8 @@ public interface IDocumentPlacementRepository
 {
     Task AddAsync(DocumentPlacement placement, CancellationToken cancellationToken = default);
 
+    Task<bool> UpdateAsync(DocumentPlacement placement, CancellationToken cancellationToken = default);
+
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default);

@@ -93,25 +93,30 @@ POST {{host}}/api/documents/upload
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="File"; filename="sample.txt"
-Content-Type: text/plain
+Content-Disposition: form-data; name="File"; filename="sample.pdf"
+Content-Type: application/pdf
 
 sample upload content
 --boundary--
 
 ### Upload document directly into a sequence working directory
-# Recommended upload path for the new working-directory workflow
+# Recommended upload path for the canonical section-folder workflow
 POST {{host}}/api/applications/{{createApplication.response.body.$.id}}/sequences/0000/documents/upload
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="File"; filename="sample.txt"
-Content-Type: text/plain
+Content-Disposition: form-data; name="File"; filename="sample.pdf"
+Content-Type: application/pdf
 
 sample upload content
+--boundary
+Content-Disposition: form-data; name="CtdSection"
+
+m1.1
 --boundary--
 
 ### Create document placement
+# @name createPlacement
 POST {{host}}/api/document-placements
 Content-Type: application/json
 
@@ -122,6 +127,14 @@ Content-Type: application/json
   "ctdSection": "m5.3.5.1",
   "operation": "new",
   "title": "Clinical Study Report"
+}
+
+### Reassign a document placement section and move the file to the new canonical folder
+PUT {{host}}/api/document-placements/{{createPlacement.response.body.$.id}}/section
+Content-Type: application/json
+
+{
+  "ctdSection": "m5.3.5.1"
 }
 
 ### List document placements

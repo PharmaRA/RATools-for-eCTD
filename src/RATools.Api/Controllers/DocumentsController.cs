@@ -59,7 +59,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
 
     [HttpPost("/api/applications/{applicationId:guid}/sequences/{sequenceNumber}/documents/upload")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadToSequence(Guid applicationId, string sequenceNumber, [FromForm] UploadDocumentRequestBody request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UploadToSequence(Guid applicationId, string sequenceNumber, [FromForm] UploadSequenceDocumentRequestBody request, CancellationToken cancellationToken)
     {
         if (request.File is null)
         {
@@ -72,19 +72,24 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             var created = await documentService.UploadToSequenceAsync(
                 applicationId,
                 sequenceNumber,
-                new UploadDocumentRequest
+                new UploadSequenceDocumentRequest
                 {
                     FileName = request.File.FileName,
                     MediaType = string.IsNullOrWhiteSpace(request.File.ContentType)
                         ? "application/octet-stream"
                         : request.File.ContentType,
+                    CtdSection = request.CtdSection,
                     Content = stream
                 },
                 cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
-        catch (InvalidOperationException exception)
+        catch (DocumentSequenceUploadTargetNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (DocumentSequenceUploadConfigurationException exception)
         {
             return Conflict(new { message = exception.Message });
         }

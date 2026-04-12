@@ -12,6 +12,21 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> UpdateAsync(DocumentPlacement placement, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.DocumentPlacements.SingleOrDefaultAsync(x => x.Id == placement.Id, cancellationToken);
+        if (existing is null)
+        {
+            return false;
+        }
+
+        existing.CtdSection = placement.CtdSection;
+        existing.Operation = placement.Operation.ToString();
+        existing.Title = placement.Title;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var existing = await dbContext.DocumentPlacements.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);

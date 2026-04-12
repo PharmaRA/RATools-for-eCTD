@@ -376,7 +376,9 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
     setSelectedSectionPath(targetNodeKey);
     
     try {
-      const formData = new FormData(); formData.append('file', file);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('ctdSection', targetNodeKey);
       const docRes = await apiFetch(`/api/applications/${appId}/sequences/${seqNumber}/documents/upload`, { method: 'POST', body: formData });
 
       await apiFetch('/api/document-placements', {

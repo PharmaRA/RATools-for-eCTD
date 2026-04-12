@@ -9,7 +9,7 @@ public interface IDocumentService
 
     Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default);
 
-    Task<DocumentDto> UploadToSequenceAsync(Guid applicationId, string sequenceNumber, UploadDocumentRequest request, CancellationToken cancellationToken = default);
+    Task<DocumentDto> UploadToSequenceAsync(Guid applicationId, string sequenceNumber, UploadSequenceDocumentRequest request, CancellationToken cancellationToken = default);
 
     Task<DocumentDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 

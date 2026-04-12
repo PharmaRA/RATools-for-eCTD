@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();
         services.AddScoped<IBackboneService, BackboneService>();
+        services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
         services.AddSingleton<PublishOutputVerifier>();
         services.AddScoped<IPublishJobService, PublishJobService>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();

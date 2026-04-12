@@ -68,7 +68,8 @@ function Download-File {
 function Invoke-FileUpload {
     param(
         [string]$Url,
-        [string]$FilePath
+        [string]$FilePath,
+        [string]$CtdSection
     )
 
     $httpClient = New-Object System.Net.Http.HttpClient
@@ -78,8 +79,11 @@ function Invoke-FileUpload {
         $fileName = [System.IO.Path]::GetFileName($FilePath)
 
         $fileContent = New-Object System.Net.Http.ByteArrayContent -ArgumentList (, $fileBytes)
-        $fileContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue("text/plain")
+        $fileContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf")
         $multipart.Add($fileContent, "File", $fileName)
+
+        $sectionContent = New-Object System.Net.Http.StringContent($CtdSection)
+        $multipart.Add($sectionContent, "CtdSection")
 
         $response = $httpClient.PostAsync($Url, $multipart).GetAwaiter().GetResult()
         $responseBody = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
@@ -95,9 +99,9 @@ function Invoke-FileUpload {
     }
 }
 
-$sampleFilePath = Join-Path $env:TEMP "ratools-smoke-sample.txt"
+$sampleFilePath = Join-Path $env:TEMP "ratools-smoke-sample.pdf"
 $duplicateSampleDirectory = Join-Path $env:TEMP ("ratools-smoke-" + [guid]::NewGuid().ToString("N"))
-$duplicateSampleFilePath = Join-Path $duplicateSampleDirectory "ratools-smoke-sample.txt"
+$duplicateSampleFilePath = Join-Path $duplicateSampleDirectory "ratools-smoke-sample.pdf"
 $applicationWorkspaceParentPath = Join-Path $env:TEMP ("ratools-workspace-" + [guid]::NewGuid().ToString("N"))
 $downloadedZipPath = $null
 $sampleContent = @(
@@ -170,20 +174,23 @@ try {
         throw "Sequence workingDirectoryPath '$sequenceWorkspaceResolvedPath' did not match expected '$expectedSequenceWorkspaceResolvedPath'."
     }
 
+    $uploadSection = "m1.1"
+    $expectedUploadDirectory = Join-Path $sequenceWorkspaceResolvedPath (Join-Path "m1" (Join-Path "us" "11-forms"))
+
     Write-Step "Uploading sample document"
-    $document = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $sampleFilePath
+    $document = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $sampleFilePath -CtdSection $uploadSection
 
     Write-Step "Uploading duplicate-name document"
-    $duplicateDocument = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $duplicateSampleFilePath
+    $duplicateDocument = Invoke-FileUpload -Url "$BaseUrl/api/applications/$($application.id)/sequences/0000/documents/upload" -FilePath $duplicateSampleFilePath -CtdSection $uploadSection
 
     $documentStorageParent = (Get-Item (Split-Path $document.storagePath -Parent)).FullName
-    if ($documentStorageParent -ne $sequenceWorkspaceResolvedPath) {
-        throw "Uploaded document storagePath '$($document.storagePath)' is not inside the expected sequence workspace '$sequenceWorkspaceResolvedPath'."
+    if ($documentStorageParent -ne $expectedUploadDirectory) {
+        throw "Uploaded document storagePath '$($document.storagePath)' is not inside the expected canonical folder '$expectedUploadDirectory'."
     }
 
     $duplicateDocumentStorageParent = (Get-Item (Split-Path $duplicateDocument.storagePath -Parent)).FullName
-    if ($duplicateDocumentStorageParent -ne $sequenceWorkspaceResolvedPath) {
-        throw "Uploaded duplicate document storagePath '$($duplicateDocument.storagePath)' is not inside the expected sequence workspace '$sequenceWorkspaceResolvedPath'."
+    if ($duplicateDocumentStorageParent -ne $expectedUploadDirectory) {
+        throw "Uploaded duplicate document storagePath '$($duplicateDocument.storagePath)' is not inside the expected canonical folder '$expectedUploadDirectory'."
     }
 
     Write-Step "Creating document placement"
@@ -191,7 +198,7 @@ try {
         documentId = $document.id
         applicationId = $application.id
         sequenceNumber = "0000"
-        ctdSection = if ($InjectWarnings) { "m3.p.s.1" } else { "m5.3.5.1" }
+        ctdSection = if ($InjectWarnings) { "m3.p.s.1" } else { $uploadSection }
         operation = "new"
     }
 
@@ -206,7 +213,7 @@ try {
         documentId = $duplicateDocument.id
         applicationId = $application.id
         sequenceNumber = "0000"
-        ctdSection = if ($InjectWarnings) { "m3.p.s.1" } else { "m5.3.5.1" }
+        ctdSection = if ($InjectWarnings) { "m3.p.s.1" } else { $uploadSection }
         operation = "new"
     }
 
@@ -215,6 +222,33 @@ try {
     }
 
     $duplicatePlacement = Invoke-JsonPost -Url "$BaseUrl/api/document-placements" -Body $duplicatePlacementPayload
+
+    if (-not $InjectWarnings) {
+        $originalDocumentPath = $document.storagePath
+        $reassignedSection = "m5.3.5.1"
+        $expectedReassignedDirectory = Join-Path $sequenceWorkspaceResolvedPath (Join-Path "m5" (Join-Path "53-clinical-study-reports" (Join-Path "535-reports-of-efficacy-and-safety-studies" "5351-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication")))
+
+        Write-Step "Reassigning document placement to canonical clinical section"
+        $placement = Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/document-placements/$($placement.id)/section" -ContentType "application/json" -Body (@{ ctdSection = $reassignedSection } | ConvertTo-Json)
+        $document = Invoke-JsonGet -Url "$BaseUrl/api/documents/$($document.id)"
+
+        if ($placement.ctdSection -ne $reassignedSection) {
+            throw "Updated placement section '$($placement.ctdSection)' did not match expected '$reassignedSection'."
+        }
+
+        $reassignedDocumentStorageParent = (Get-Item (Split-Path $document.storagePath -Parent)).FullName
+        if ($reassignedDocumentStorageParent -ne $expectedReassignedDirectory) {
+            throw "Reassigned document storagePath '$($document.storagePath)' is not inside the expected canonical folder '$expectedReassignedDirectory'."
+        }
+
+        if (Test-Path $originalDocumentPath) {
+            throw "Reassigned document should no longer exist at original path '$originalDocumentPath'."
+        }
+
+        if (-not (Test-Path $document.storagePath)) {
+            throw "Reassigned document file was not found at '$($document.storagePath)'."
+        }
+    }
 
     if ($InjectWarnings) {
         Write-Step "Injecting duplicate placement warning scenario"

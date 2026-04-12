@@ -26,7 +26,8 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Creating an application now requires a `workingDirectoryParentPath`.
 - The backend creates and stores `{workingDirectoryParentPath}/{applicationNumber}` as the application working directory.
 - Creating a sequence automatically creates `{applicationWorkingDirectoryPath}/{sequenceNumber}`.
-- The recommended upload path is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload`, which writes source files into the sequence working directory.
+- The recommended upload path is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload`, which requires multipart fields `File` and `CtdSection` and writes source files into the canonical section folder under the sequence workspace, for example `m1\us\11-forms`.
+- Reassigning a placement through `PUT /api/document-placements/{id}/section` also moves the physical file into the new canonical section folder and updates the stored document path.
 - Importing an existing workspace is available through `POST /api/applications/import`, which scans sequence subdirectories and reads each sequence `index.xml`.
 - The import endpoint expects `workingDirectoryPath`, `region`, and `sponsorName`; `applicationNumber` is inferred from the imported directory name.
 
@@ -55,6 +56,7 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Optional: inject warning scenarios to verify warningCount/warningSummary: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -InjectWarnings`
 - Optional: corrupt the persisted publish report to verify tolerant report/history handling: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CorruptReportAfterPublish`
 - The smoke test now uses `POST /api/publish-jobs/execute` and prints the unified publish report summary.
+- The smoke test uploads documents with `CtdSection=m1.1`, verifies storage under `m1\us\11-forms`, then reassigns a placement and verifies the file is physically moved into the new canonical folder.
 - The smoke test also round-trips `GET /api/publish-jobs/{id}/report` to verify persisted report retrieval.
 - The smoke test also checks `GET /api/publish-jobs/{id}/artifacts` and verifies the expected publish outputs are present.
 - The smoke test also checks `GET /api/applications/{id}/publish-history` and verifies the current publish job appears in application history.

@@ -64,4 +64,10 @@ public sealed class DocumentPlacement : Entity
     {
         return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, createdUtc);
     }
+
+    public void ReassignSection(string ctdSection)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ctdSection);
+        CtdSection = ctdSection.Trim();
+    }
 }

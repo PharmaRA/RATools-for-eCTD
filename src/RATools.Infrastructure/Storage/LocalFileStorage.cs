@@ -51,4 +51,34 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
             hash,
             fullPath);
     }
+
+    public Task<string> MoveAsync(string sourcePath, string destinationDirectoryPath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectoryPath);
+
+        var fullSourcePath = Path.GetFullPath(sourcePath);
+        if (!File.Exists(fullSourcePath))
+        {
+            throw new FileNotFoundException($"Source file '{fullSourcePath}' was not found.", fullSourcePath);
+        }
+
+        var fullDestinationDirectoryPath = Path.GetFullPath(destinationDirectoryPath);
+        Directory.CreateDirectory(fullDestinationDirectoryPath);
+
+        var targetPath = Path.Combine(fullDestinationDirectoryPath, Path.GetFileName(fullSourcePath));
+        if (string.Equals(fullSourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(targetPath);
+        }
+
+        if (File.Exists(targetPath))
+        {
+            throw new IOException($"Destination file '{targetPath}' already exists.");
+        }
+
+        File.Move(fullSourcePath, targetPath);
+        return Task.FromResult(targetPath);
+    }
 }

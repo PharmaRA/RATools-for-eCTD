@@ -60,4 +60,10 @@ public sealed class SubmissionDocument : Entity
     {
         return new SubmissionDocument(id, fileName, mediaType, fileSize, sha256, storagePath, createdUtc);
     }
+
+    public void Relocate(string storagePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storagePath);
+        StoragePath = storagePath.Trim();
+    }
 }
