@@ -5,4 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)reference\dtd')">
+    <Content Include="$(MSBuildThisFileDirectory)reference\dtd\*.dtd"
+             Link="reference\dtd\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

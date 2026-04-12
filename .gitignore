@@ -9,3 +9,7 @@ obj/
 /tests
 /src/RATools.Api/App_Data
 /.artifacts
+/reference
+/tools
+/frontend/node_modules
+/frontend/.vite/deps

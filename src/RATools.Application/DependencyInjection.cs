@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RATools.Application.Auditing;
 using RATools.Application.Applications;
 using RATools.Application.Documents;
+using RATools.Application.EctdStructure;
 using RATools.Application.Publishing;
 using RATools.Application.Validation;
 
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<IApplicationImportService, ApplicationImportService>();
         services.AddScoped<IApplicationPublishHistoryService, ApplicationPublishHistoryService>();
+        services.AddSingleton<IEctdStructureService, EctdStructureService>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();
         services.AddScoped<IBackboneService, BackboneService>();

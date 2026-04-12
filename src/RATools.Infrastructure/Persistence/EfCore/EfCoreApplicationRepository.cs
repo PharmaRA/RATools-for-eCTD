@@ -124,6 +124,8 @@ internal static class ApplicationRecordMapping
             record.SponsorName,
             record.CreatedUtc,
             sequences,
-            record.WorkingDirectoryPath);
+            string.IsNullOrWhiteSpace(record.WorkingDirectoryPath)
+                ? Path.Combine("workspace", record.ApplicationNumber)
+                : record.WorkingDirectoryPath);
     }
 }

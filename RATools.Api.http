@@ -6,6 +6,9 @@ GET {{host}}/health
 ### Version
 GET {{host}}/version
 
+### ECTD structure tree for US region
+GET {{host}}/api/ectd-structure?region=US
+
 ### List applications
 GET {{host}}/api/applications
 
