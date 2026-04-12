@@ -199,3 +199,20 @@ export const findWorkspaceTreeNode = (
 
   return undefined
 }
+
+export const resolveUploadSection = (
+  targetSectionPath: string | null | undefined,
+  selectedSectionPath: string | null | undefined,
+) => {
+  const normalizedTarget = targetSectionPath?.trim() || ''
+  if (normalizedTarget.length >= 2) {
+    return normalizedTarget
+  }
+
+  const normalizedSelected = selectedSectionPath?.trim() || ''
+  if (normalizedSelected.length >= 2) {
+    return normalizedSelected
+  }
+
+  throw new Error('No valid eCTD section selected for upload. Refresh the page and try again.')
+}

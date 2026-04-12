@@ -12,11 +12,14 @@ import {
   attachDocumentNodes,
   findWorkspaceTreeNode,
   mapSectionTreeData,
+  resolveUploadSection,
   type DocumentPlacementRecord,
   type DocumentRecord,
   type EctdStructureNode,
   type WorkspaceTreeNode,
 } from './workspaceTree';
+import { apiFetch } from './apiClient';
+import { performDelete } from './deleteActions';
 
 // ==========================================
 // Types & Interfaces
@@ -45,7 +48,7 @@ interface EctdStructureResponse {
 }
 
 // ==========================================
-// Helpers & API Client
+// Helpers
 // ==========================================
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-';
@@ -68,29 +71,6 @@ const getStatusColor = (status: string) => {
     case 'pending': return 'default';
     default: return 'default';
   }
-};
-
-const apiFetch = async (url: string, options?: RequestInit) => {
-  const res = await fetch(url, options);
-  if (!res.ok) {
-    let errorMsg = `HTTP Error ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data.message) {
-        errorMsg = data.message;
-      } else if (data.title) {
-        errorMsg = data.title;
-        if (data.errors) {
-          const details = Object.entries(data.errors)
-            .map(([key, vals]) => `${key}: ${(vals as string[]).join(', ')}`)
-            .join(' | ');
-          errorMsg += ` - ${details}`;
-        }
-      }
-    } catch (e) { }
-    throw new Error(errorMsg);
-  }
-  return res.json();
 };
 
 const getSectionAncestorKeys = (sectionPath: string) => {
@@ -371,14 +351,16 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   const handleDirectDrop = async (file: File, targetNodeKey: string) => {
     setLoading(true);
     message.loading({ content: `Processing ${file.name}...`, key: 'uploading' });
-    setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(targetNodeKey)])));
-    setSelectedTreeKey(targetNodeKey);
-    setSelectedSectionPath(targetNodeKey);
     
     try {
+      const targetSection = resolveUploadSection(targetNodeKey, selectedSectionPath);
+      setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(targetSection)])));
+      setSelectedTreeKey(targetSection);
+      setSelectedSectionPath(targetSection);
+
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('ctdSection', targetNodeKey);
+      formData.append('CtdSection', targetSection);
       const docRes = await apiFetch(`/api/applications/${appId}/sequences/${seqNumber}/documents/upload`, { method: 'POST', body: formData });
 
       await apiFetch('/api/document-placements', {
@@ -388,12 +370,12 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
           applicationId: appId,
           sequenceNumber: seqNumber,
           documentId: docRes.id,
-          ctdSection: targetNodeKey,
+          ctdSection: targetSection,
           operation: 'New'
         })
       });
 
-      message.success({ content: `${file.name} mapped to ${targetNodeKey} and saved!`, key: 'uploading' });
+      message.success({ content: `${file.name} mapped to ${targetSection} and saved!`, key: 'uploading' });
       await Promise.all([fetchPlacements(), fetchDocuments()]);
     } catch (err: any) {
       message.error({ content: `Failed: ${err.message}`, key: 'uploading' });
@@ -584,6 +566,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
 const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { appId: string, appTitle: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
   const [appData, setAppData] = useState<Application | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingSequenceNumbers, setDeletingSequenceNumbers] = useState<Set<string>>(new Set());
   const [seqModalVisible, setSeqModalVisible] = useState(false);
   const [form] = Form.useForm();
 
@@ -613,12 +596,28 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
     } catch (e: any) { message.error('Failed to create sequence: ' + e.message); }
   };
 
-  const handleDeleteSequence = (seqNumber: string) => {
-    setAppData(prev => {
-      if (!prev) return prev;
-      return { ...prev, sequences: prev.sequences.filter((s: any) => s.sequenceNumber !== seqNumber) };
-    });
-    message.warning('模拟删除：当前后端未提供 DELETE Sequence 接口。', 5);
+  const handleDeleteSequence = async (seqNumber: string) => {
+    setDeletingSequenceNumbers((current) => new Set(current).add(seqNumber));
+
+    try {
+      const outcome = await performDelete('sequence', `/api/applications/${appId}/sequences/${seqNumber}`);
+
+      if (outcome.kind === 'success') {
+        message.success(outcome.message);
+      } else {
+        message.error(outcome.message);
+      }
+
+      if (outcome.shouldRefresh) {
+        await fetchApp();
+      }
+    } finally {
+      setDeletingSequenceNumbers((current) => {
+        const next = new Set(current);
+        next.delete(seqNumber);
+        return next;
+      });
+    }
   };
 
   return (
@@ -667,7 +666,7 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
                       Enter Workspace
                     </Button>
                     <Popconfirm title="Delete Sequence" description={`Delete Sequence ${r.sequenceNumber}?`} onConfirm={() => handleDeleteSequence(r.sequenceNumber)} okText="Yes" cancelText="No" placement="left">
-                      <Button danger type="text" size="small" icon={<Trash2 size={14} />} title="Delete Sequence" />
+                      <Button danger type="text" size="small" icon={<Trash2 size={14} />} title="Delete Sequence" loading={deletingSequenceNumbers.has(r.sequenceNumber)} disabled={deletingSequenceNumbers.has(r.sequenceNumber)} />
                     </Popconfirm>
                   </Space>
                 )}
@@ -705,16 +704,21 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
 // ==========================================
 const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title: string) => void }) => {
   const [loading, setLoading] = useState(false);
+  const [deletingAppIds, setDeletingAppIds] = useState<Set<string>>(new Set());
   const [apps, setApps] = useState<Application[]>([]);
   const [appModalVisible, setAppModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const fetchApps = () => {
+  const fetchApps = async () => {
     setLoading(true);
-    apiFetch('/api/applications')
-      .then(data => setApps(data))
-      .catch(err => message.error('Failed to load apps: ' + err.message))
-      .finally(() => setLoading(false));
+    try {
+      const data = await apiFetch('/api/applications');
+      setApps(data);
+    } catch (err: any) {
+      message.error('Failed to load apps: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchApps(); }, []);
@@ -739,9 +743,28 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     } catch (e: any) { message.error('Failed to create application: ' + e.message); }
   };
 
-  const handleDeleteApp = (id: string) => {
-    setApps(prevApps => prevApps.filter(app => app.id !== id));
-    message.warning('模拟删除：当前后端未提供 DELETE /api/applications 接口。', 5);
+  const handleDeleteApp = async (id: string) => {
+    setDeletingAppIds((current) => new Set(current).add(id));
+
+    try {
+      const outcome = await performDelete('application', `/api/applications/${id}`);
+
+      if (outcome.kind === 'success') {
+        message.success(outcome.message);
+      } else {
+        message.error(outcome.message);
+      }
+
+      if (outcome.shouldRefresh) {
+        await fetchApps();
+      }
+    } finally {
+      setDeletingAppIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const columns = [
@@ -756,7 +779,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             Manage App
           </Button>
           <Popconfirm title="Delete Application" description="Delete this application?" onConfirm={() => handleDeleteApp(r.id)} okText="Yes" cancelText="No" placement="left">
-            <Button danger size="small" icon={<Trash2 size={14} />} title="Delete App" />
+            <Button danger size="small" icon={<Trash2 size={14} />} title="Delete App" loading={deletingAppIds.has(r.id)} disabled={deletingAppIds.has(r.id)} />
           </Popconfirm>
         </Space>
       )

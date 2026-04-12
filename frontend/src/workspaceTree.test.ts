@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { attachDocumentNodes, findWorkspaceTreeNode, mapSectionTreeData } from './workspaceTree'
+import { attachDocumentNodes, findWorkspaceTreeNode, mapSectionTreeData, resolveUploadSection } from './workspaceTree'
 
 describe('workspaceTree', () => {
   it('keeps the top-level module title without duplicating the module number', () => {
@@ -331,5 +331,17 @@ describe('workspaceTree', () => {
     ])
 
     expect(findWorkspaceTreeNode(sectionTree, 'missing-node')).toBeUndefined()
+  })
+
+  it('prefers the dropped section path when resolving the upload section', () => {
+    expect(resolveUploadSection(' m1.1 ', null)).toBe('m1.1')
+  })
+
+  it('falls back to the selected section path when the drop target is blank', () => {
+    expect(resolveUploadSection('   ', ' m5.3.5.1 ')).toBe('m5.3.5.1')
+  })
+
+  it('throws when no valid upload section is available', () => {
+    expect(() => resolveUploadSection('', ' ')).toThrow('No valid eCTD section selected for upload')
   })
 })
