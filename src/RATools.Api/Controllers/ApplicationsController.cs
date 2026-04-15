@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Applications;
@@ -94,30 +95,55 @@ public sealed class ApplicationsController(
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(
+        Guid id,
+        [FromQuery] ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default)
     {
+        if (!Enum.IsDefined(typeof(ApplicationDeleteMode), deleteMode))
+        {
+            return BadRequest(new { message = $"Unsupported deleteMode '{deleteMode}'." });
+        }
+
         try
         {
-            var deleted = await applicationService.DeleteAsync(id, cancellationToken);
+            var deleted = await applicationService.DeleteAsync(id, deleteMode, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }
         catch (ApplicationDeleteConflictException exception)
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (WorkspacePurgeFailedException exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = exception.Message });
+        }
     }
 
     [HttpDelete("{id:guid}/sequences/{sequenceNumber}")]
-    public async Task<IActionResult> DeleteSequence(Guid id, string sequenceNumber, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteSequence(
+        Guid id,
+        string sequenceNumber,
+        [FromQuery] ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default)
     {
+        if (!Enum.IsDefined(typeof(ApplicationDeleteMode), deleteMode))
+        {
+            return BadRequest(new { message = $"Unsupported deleteMode '{deleteMode}'." });
+        }
+
         try
         {
-            var deleted = await applicationService.DeleteSequenceAsync(id, sequenceNumber, cancellationToken);
+            var deleted = await applicationService.DeleteSequenceAsync(id, sequenceNumber, deleteMode, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }
         catch (SequenceDeleteConflictException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+        catch (WorkspacePurgeFailedException exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = exception.Message });
         }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Abstractions.Storage;
+using RATools.Application.Applications;
 using RATools.Application.Validation;
 using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Persistence.EfCore;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
+        services.AddSingleton<IWorkspaceDeletionService, WorkspaceDeletionService>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddSingleton<IValidationProfileProvider, ConfigurationValidationProfileProvider>();
 

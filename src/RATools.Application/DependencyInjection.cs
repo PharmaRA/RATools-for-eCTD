@@ -12,6 +12,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<IApplicationDeletionTransaction, PassthroughApplicationDeletionTransaction>();
+        services.AddScoped<IApplicationDeletionCoordinator, ApplicationDeletionCoordinator>();
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<IApplicationImportService, ApplicationImportService>();
         services.AddScoped<IApplicationPublishHistoryService, ApplicationPublishHistoryService>();

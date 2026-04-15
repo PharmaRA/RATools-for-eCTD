@@ -57,4 +57,34 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
             filtered.Count(x => x.Status == PublishJobStatus.Failed),
             filtered.Count(x => x.Status == PublishJobStatus.Running)));
     }
+
+    public Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var keys = _items.Values
+            .Where(x => x.ApplicationId == applicationId)
+            .Select(x => x.Id)
+            .ToArray();
+
+        foreach (var key in keys)
+        {
+            _items.TryRemove(key, out _);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
+    {
+        var keys = _items.Values
+            .Where(x => x.ApplicationId == applicationId && x.SequenceNumber == sequenceNumber)
+            .Select(x => x.Id)
+            .ToArray();
+
+        foreach (var key in keys)
+        {
+            _items.TryRemove(key, out _);
+        }
+
+        return Task.CompletedTask;
+    }
 }

@@ -94,6 +94,36 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             failedCount,
             runningCount);
     }
+
+    public async Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var records = await dbContext.PublishJobs
+            .Where(x => x.ApplicationId == applicationId)
+            .ToArrayAsync(cancellationToken);
+
+        if (records.Length == 0)
+        {
+            return;
+        }
+
+        dbContext.PublishJobs.RemoveRange(records);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
+    {
+        var records = await dbContext.PublishJobs
+            .Where(x => x.ApplicationId == applicationId && x.SequenceNumber == sequenceNumber)
+            .ToArrayAsync(cancellationToken);
+
+        if (records.Length == 0)
+        {
+            return;
+        }
+
+        dbContext.PublishJobs.RemoveRange(records);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }
 
 internal static class PublishJobRecordMapping

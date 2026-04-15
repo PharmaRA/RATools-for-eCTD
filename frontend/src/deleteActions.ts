@@ -1,6 +1,7 @@
 import { apiFetch, ApiRequestError } from './apiClient';
 
 export type DeleteEntity = 'application' | 'sequence';
+export type DeleteMode = 'databaseOnly' | 'purgeWorkspace';
 
 export type DeleteOutcome = {
   kind: 'success' | 'error';
@@ -25,10 +26,12 @@ const getNotFoundMessage = (entity: DeleteEntity, message: string) => {
 export const performDelete = async (
   entity: DeleteEntity,
   url: string,
+  deleteMode: DeleteMode = 'databaseOnly',
   request: typeof apiFetch = apiFetch,
 ): Promise<DeleteOutcome> => {
   try {
-    await request(url, { method: 'DELETE' });
+    const requestUrl = `${url}${url.includes('?') ? '&' : '?'}deleteMode=${encodeURIComponent(deleteMode)}`;
+    await request(requestUrl, { method: 'DELETE' });
 
     return {
       kind: 'success',

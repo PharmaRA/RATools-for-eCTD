@@ -8,8 +8,7 @@ namespace RATools.Application.Applications;
 
 public sealed class ApplicationService(
     IApplicationRepository repository,
-    IDocumentPlacementRepository placementRepository,
-    IPublishJobRepository publishJobRepository,
+    IApplicationDeletionCoordinator deletionCoordinator,
     IApplicationWorkspaceService? workspaceService = null) : IApplicationService
 {
     private readonly IApplicationWorkspaceService _workspaceService = workspaceService ?? new DefaultApplicationWorkspaceService();
@@ -52,7 +51,10 @@ public sealed class ApplicationService(
         return application.ToDto();
     }
 
-    public async Task<bool> DeleteAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(
+        Guid applicationId,
+        ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default)
     {
         var application = await repository.GetAsync(applicationId, cancellationToken);
         if (application is null)
@@ -60,26 +62,15 @@ public sealed class ApplicationService(
             return false;
         }
 
-        var placements = await placementRepository.ListByApplicationAsync(applicationId, cancellationToken);
-        if (placements.Count > 0)
-        {
-            throw new ApplicationDeleteConflictException($"Application {applicationId} cannot be deleted because document placements exist.");
-        }
-
-        var publishJobs = await publishJobRepository.QueryHistoryAsync(
-            new PublishJobHistoryQuery(applicationId, null, null, null, null, 1, 1),
-            cancellationToken);
-
-        if (publishJobs.TotalCount > 0)
-        {
-            throw new ApplicationDeleteConflictException($"Application {applicationId} cannot be deleted because publish jobs exist.");
-        }
-
-        await repository.DeleteAsync(applicationId, cancellationToken);
+        await deletionCoordinator.DeleteApplicationAsync(application, deleteMode, cancellationToken);
         return true;
     }
 
-    public async Task<bool> DeleteSequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteSequenceAsync(
+        Guid applicationId,
+        string sequenceNumber,
+        ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default)
     {
         var application = await repository.GetAsync(applicationId, cancellationToken);
         if (application is null)
@@ -87,29 +78,7 @@ public sealed class ApplicationService(
             return false;
         }
 
-        var placements = await placementRepository.ListBySequenceAsync(applicationId, sequenceNumber, cancellationToken);
-        if (placements.Count > 0)
-        {
-            throw new SequenceDeleteConflictException($"Sequence {sequenceNumber} cannot be deleted because document placements exist.");
-        }
-
-        var publishJobs = await publishJobRepository.QueryHistoryAsync(
-            new PublishJobHistoryQuery(applicationId, sequenceNumber, null, null, null, 1, 1),
-            cancellationToken);
-
-        if (publishJobs.TotalCount > 0)
-        {
-            throw new SequenceDeleteConflictException($"Sequence {sequenceNumber} cannot be deleted because publish jobs exist.");
-        }
-
-        var removed = application.RemoveSequence(sequenceNumber);
-        if (!removed)
-        {
-            return false;
-        }
-
-        await repository.UpdateAsync(application, cancellationToken);
-        return true;
+        return await deletionCoordinator.DeleteSequenceAsync(application, sequenceNumber, deleteMode, cancellationToken);
     }
 }
 

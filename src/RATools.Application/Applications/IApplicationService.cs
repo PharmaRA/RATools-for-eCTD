@@ -13,7 +13,14 @@ public interface IApplicationService
 
     Task<ApplicationDto?> CreateSequenceAsync(Guid applicationId, CreateSequenceRequest request, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(Guid applicationId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(
+        Guid applicationId,
+        ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteSequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default);
+    Task<bool> DeleteSequenceAsync(
+        Guid applicationId,
+        string sequenceNumber,
+        ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
+        CancellationToken cancellationToken = default);
 }

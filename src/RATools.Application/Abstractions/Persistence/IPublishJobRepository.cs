@@ -13,4 +13,10 @@ public interface IPublishJobRepository
     Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default);
 
     Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default);
+
+    Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
+        => Task.FromException(new NotSupportedException("DeleteByApplicationAsync is not implemented by this repository."));
+
+    Task DeleteBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
+        => Task.FromException(new NotSupportedException("DeleteBySequenceAsync is not implemented by this repository."));
 }

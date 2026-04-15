@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   Table, Button, Tag, Space, Drawer, Descriptions, 
   Tabs, Form, Input, Select, Card, 
-  Statistic, Row, Col, Alert, Spin, message, Badge, Tree, Modal, Popconfirm, Tooltip
+  Statistic, Row, Col, Alert, Spin, message, Badge, Tree, Modal, Tooltip, Radio
 } from 'antd';
-import { 
+import {
   Download, Activity, ArrowLeft, 
   CheckCircle, XCircle, FolderOpen, FileText, Plus, PlayCircle, Save, Trash2, HardDrive
 } from 'lucide-react';
@@ -19,7 +19,7 @@ import {
   type WorkspaceTreeNode,
 } from './workspaceTree';
 import { apiFetch } from './apiClient';
-import { performDelete } from './deleteActions';
+import { performDelete, type DeleteMode } from './deleteActions';
 
 // ==========================================
 // Types & Interfaces
@@ -568,6 +568,11 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
   const [loading, setLoading] = useState(false);
   const [deletingSequenceNumbers, setDeletingSequenceNumbers] = useState<Set<string>>(new Set());
   const [seqModalVisible, setSeqModalVisible] = useState(false);
+  const [sequenceDeleteDialog, setSequenceDeleteDialog] = useState<{ open: boolean; sequenceNumber: string | null; mode: DeleteMode }>({
+    open: false,
+    sequenceNumber: null,
+    mode: 'databaseOnly',
+  });
   const [form] = Form.useForm();
 
   const fetchApp = async () => {
@@ -596,11 +601,11 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
     } catch (e: any) { message.error('Failed to create sequence: ' + e.message); }
   };
 
-  const handleDeleteSequence = async (seqNumber: string) => {
+  const handleDeleteSequence = async (seqNumber: string, mode: DeleteMode) => {
     setDeletingSequenceNumbers((current) => new Set(current).add(seqNumber));
 
     try {
-      const outcome = await performDelete('sequence', `/api/applications/${appId}/sequences/${seqNumber}`);
+      const outcome = await performDelete('sequence', `/api/applications/${appId}/sequences/${seqNumber}`, mode);
 
       if (outcome.kind === 'success') {
         message.success(outcome.message);
@@ -618,6 +623,25 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
         return next;
       });
     }
+  };
+
+  const openDeleteSequenceDialog = (sequenceNumber: string) => {
+    setSequenceDeleteDialog({
+      open: true,
+      sequenceNumber,
+      mode: 'databaseOnly',
+    });
+  };
+
+  const confirmDeleteSequence = async () => {
+    const sequenceNumber = sequenceDeleteDialog.sequenceNumber;
+    if (!sequenceNumber) {
+      return;
+    }
+
+    const mode = sequenceDeleteDialog.mode;
+    setSequenceDeleteDialog((current) => ({ ...current, open: false }));
+    await handleDeleteSequence(sequenceNumber, mode);
   };
 
   return (
@@ -665,9 +689,16 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
                     <Button type="link" size="small" onClick={() => onOpenWorkspace(r.sequenceNumber)}>
                       Enter Workspace
                     </Button>
-                    <Popconfirm title="Delete Sequence" description={`Delete Sequence ${r.sequenceNumber}?`} onConfirm={() => handleDeleteSequence(r.sequenceNumber)} okText="Yes" cancelText="No" placement="left">
-                      <Button danger type="text" size="small" icon={<Trash2 size={14} />} title="Delete Sequence" loading={deletingSequenceNumbers.has(r.sequenceNumber)} disabled={deletingSequenceNumbers.has(r.sequenceNumber)} />
-                    </Popconfirm>
+                    <Button
+                      danger
+                      type="text"
+                      size="small"
+                      icon={<Trash2 size={14} />}
+                      title="Delete Sequence"
+                      loading={deletingSequenceNumbers.has(r.sequenceNumber)}
+                      disabled={deletingSequenceNumbers.has(r.sequenceNumber)}
+                      onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
+                    />
                   </Space>
                 )}
               ]}
@@ -695,6 +726,44 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal
+        title="删除 Sequence"
+        open={sequenceDeleteDialog.open}
+        okText="确认删除"
+        cancelText="取消"
+        onOk={confirmDeleteSequence}
+        onCancel={() => setSequenceDeleteDialog({ open: false, sequenceNumber: null, mode: 'databaseOnly' })}
+        confirmLoading={
+          sequenceDeleteDialog.sequenceNumber !== null
+          && deletingSequenceNumbers.has(sequenceDeleteDialog.sequenceNumber)
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <div>
+            即将删除 Sequence: <Tag>{sequenceDeleteDialog.sequenceNumber ?? '-'}</Tag>
+          </div>
+          <Radio.Group
+            value={sequenceDeleteDialog.mode}
+            onChange={(event) => setSequenceDeleteDialog((current) => ({
+              ...current,
+              mode: event.target.value as DeleteMode,
+            }))}
+          >
+            <Space direction="vertical">
+              <Radio value="databaseOnly">只删数据库记录</Radio>
+              <Radio value="purgeWorkspace">删除数据库记录并递归删除对应工作目录/发布产物</Radio>
+            </Space>
+          </Radio.Group>
+          {sequenceDeleteDialog.mode === 'purgeWorkspace' && (
+            <Alert
+              type="warning"
+              showIcon
+              message="purgeWorkspace 是破坏性操作，无法撤销。"
+            />
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
@@ -707,6 +776,11 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   const [deletingAppIds, setDeletingAppIds] = useState<Set<string>>(new Set());
   const [apps, setApps] = useState<Application[]>([]);
   const [appModalVisible, setAppModalVisible] = useState(false);
+  const [appDeleteDialog, setAppDeleteDialog] = useState<{ open: boolean; appId: string | null; mode: DeleteMode }>({
+    open: false,
+    appId: null,
+    mode: 'databaseOnly',
+  });
   const [form] = Form.useForm();
 
   const fetchApps = async () => {
@@ -743,11 +817,11 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     } catch (e: any) { message.error('Failed to create application: ' + e.message); }
   };
 
-  const handleDeleteApp = async (id: string) => {
+  const handleDeleteApp = async (id: string, mode: DeleteMode) => {
     setDeletingAppIds((current) => new Set(current).add(id));
 
     try {
-      const outcome = await performDelete('application', `/api/applications/${id}`);
+      const outcome = await performDelete('application', `/api/applications/${id}`, mode);
 
       if (outcome.kind === 'success') {
         message.success(outcome.message);
@@ -767,6 +841,25 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     }
   };
 
+  const openDeleteAppDialog = (id: string) => {
+    setAppDeleteDialog({
+      open: true,
+      appId: id,
+      mode: 'databaseOnly',
+    });
+  };
+
+  const confirmDeleteApp = async () => {
+    const appId = appDeleteDialog.appId;
+    if (!appId) {
+      return;
+    }
+
+    const mode = appDeleteDialog.mode;
+    setAppDeleteDialog((current) => ({ ...current, open: false }));
+    await handleDeleteApp(appId, mode);
+  };
+
   const columns = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
     { title: 'Region', dataIndex: 'region', render: (t: string) => <Tag>{t}</Tag> },
@@ -778,9 +871,15 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
           <Button type="primary" size="small" onClick={() => onSelectApp(r.id, `${r.applicationNumber} (${r.sponsorName})`)}>
             Manage App
           </Button>
-          <Popconfirm title="Delete Application" description="Delete this application?" onConfirm={() => handleDeleteApp(r.id)} okText="Yes" cancelText="No" placement="left">
-            <Button danger size="small" icon={<Trash2 size={14} />} title="Delete App" loading={deletingAppIds.has(r.id)} disabled={deletingAppIds.has(r.id)} />
-          </Popconfirm>
+          <Button
+            danger
+            size="small"
+            icon={<Trash2 size={14} />}
+            title="Delete App"
+            loading={deletingAppIds.has(r.id)}
+            disabled={deletingAppIds.has(r.id)}
+            onClick={() => openDeleteAppDialog(r.id)}
+          />
         </Space>
       )
     },
@@ -829,6 +928,41 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             <Input prefix={<FolderOpen size={16} className="text-gray-400" />} placeholder="e.g. C:\eCTD_Submissions" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="删除 Application"
+        open={appDeleteDialog.open}
+        okText="确认删除"
+        cancelText="取消"
+        onOk={confirmDeleteApp}
+        onCancel={() => setAppDeleteDialog({ open: false, appId: null, mode: 'databaseOnly' })}
+        confirmLoading={appDeleteDialog.appId !== null && deletingAppIds.has(appDeleteDialog.appId)}
+      >
+        <div className="flex flex-col gap-3">
+          <div>
+            即将删除 Application: <Tag>{appDeleteDialog.appId ?? '-'}</Tag>
+          </div>
+          <Radio.Group
+            value={appDeleteDialog.mode}
+            onChange={(event) => setAppDeleteDialog((current) => ({
+              ...current,
+              mode: event.target.value as DeleteMode,
+            }))}
+          >
+            <Space direction="vertical">
+              <Radio value="databaseOnly">只删数据库记录</Radio>
+              <Radio value="purgeWorkspace">删除数据库记录并递归删除对应工作目录/发布产物</Radio>
+            </Space>
+          </Radio.Group>
+          {appDeleteDialog.mode === 'purgeWorkspace' && (
+            <Alert
+              type="warning"
+              showIcon
+              message="purgeWorkspace 是破坏性操作，无法撤销。"
+            />
+          )}
+        </div>
       </Modal>
     </div>
   );
