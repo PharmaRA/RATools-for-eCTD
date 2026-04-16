@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiRequestError } from './apiClient';
-import { performDelete } from './deleteActions';
+import { performBatchDelete, performDelete } from './deleteActions';
 
 describe('deleteActions', () => {
   afterEach(() => {
@@ -97,5 +97,140 @@ describe('deleteActions', () => {
     await performDelete('sequence', '/api/applications/app-1/sequences/0000', 'purgeWorkspace', request);
 
     expect(request).toHaveBeenCalledWith('/api/applications/app-1/sequences/0000?deleteMode=purgeWorkspace', { method: 'DELETE' });
+  });
+
+  it('returns an all-success batch summary', async () => {
+    const request = vi.fn().mockResolvedValue(undefined);
+    const onProgress = vi.fn();
+
+    const result = await performBatchDelete(
+      'sequence',
+      'databaseOnly',
+      [
+        { key: 's-1', label: '0001', url: '/api/applications/app-1/sequences/0001' },
+        { key: 's-2', label: '0002', url: '/api/applications/app-1/sequences/0002' },
+      ],
+      request,
+      onProgress,
+    );
+
+    expect(result).toEqual({
+      entity: 'sequence',
+      mode: 'databaseOnly',
+      total: 2,
+      successCount: 2,
+      failureCount: 0,
+      results: [
+        {
+          key: 's-1',
+          label: '0001',
+          outcome: {
+            kind: 'success',
+            reason: 'success',
+            message: 'Sequence deleted successfully.',
+            shouldRefresh: true,
+          },
+        },
+        {
+          key: 's-2',
+          label: '0002',
+          outcome: {
+            kind: 'success',
+            reason: 'success',
+            message: 'Sequence deleted successfully.',
+            shouldRefresh: true,
+          },
+        },
+      ],
+    });
+
+    expect(onProgress).toHaveBeenNthCalledWith(1, {
+      key: 's-1',
+      label: '0001',
+      outcome: {
+        kind: 'success',
+        reason: 'success',
+        message: 'Sequence deleted successfully.',
+        shouldRefresh: true,
+      },
+    });
+    expect(onProgress).toHaveBeenNthCalledWith(2, {
+      key: 's-2',
+      label: '0002',
+      outcome: {
+        kind: 'success',
+        reason: 'success',
+        message: 'Sequence deleted successfully.',
+        shouldRefresh: true,
+      },
+    });
+  });
+
+  it('continues batch deletion when one item fails with conflict', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new ApiRequestError(409, 'Sequence 0002 is locked.'))
+      .mockResolvedValueOnce(undefined);
+
+    const result = await performBatchDelete('sequence', 'databaseOnly', [
+      { key: 's-1', label: '0001', url: '/api/applications/app-1/sequences/0001' },
+      { key: 's-2', label: '0002', url: '/api/applications/app-1/sequences/0002' },
+      { key: 's-3', label: '0003', url: '/api/applications/app-1/sequences/0003' },
+    ], request);
+
+    expect(result).toEqual({
+      entity: 'sequence',
+      mode: 'databaseOnly',
+      total: 3,
+      successCount: 2,
+      failureCount: 1,
+      results: [
+        {
+          key: 's-1',
+          label: '0001',
+          outcome: {
+            kind: 'success',
+            reason: 'success',
+            message: 'Sequence deleted successfully.',
+            shouldRefresh: true,
+          },
+        },
+        {
+          key: 's-2',
+          label: '0002',
+          outcome: {
+            kind: 'error',
+            reason: 'conflict',
+            message: 'Sequence 0002 is locked.',
+            shouldRefresh: true,
+          },
+        },
+        {
+          key: 's-3',
+          label: '0003',
+          outcome: {
+            kind: 'success',
+            reason: 'success',
+            message: 'Sequence deleted successfully.',
+            shouldRefresh: true,
+          },
+        },
+      ],
+    });
+
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
+  it('propagates deleteMode into each batch delete request URL', async () => {
+    const request = vi.fn().mockResolvedValue(undefined);
+
+    await performBatchDelete('application', 'purgeWorkspace', [
+      { key: 'a-1', label: 'Alpha', url: '/api/applications/app-1' },
+      { key: 'a-2', label: 'Beta', url: '/api/applications/app-2?force=true' },
+    ], request);
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/applications/app-1?deleteMode=purgeWorkspace', { method: 'DELETE' });
+    expect(request).toHaveBeenNthCalledWith(2, '/api/applications/app-2?force=true&deleteMode=purgeWorkspace', { method: 'DELETE' });
   });
 });

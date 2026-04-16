@@ -10,6 +10,27 @@ export type DeleteOutcome = {
   shouldRefresh: boolean;
 };
 
+export type BatchDeleteItem = {
+  key: string;
+  label: string;
+  url: string;
+};
+
+export type BatchDeleteItemResult = {
+  key: string;
+  label: string;
+  outcome: DeleteOutcome;
+};
+
+export type BatchDeleteSummary = {
+  entity: DeleteEntity;
+  mode: DeleteMode;
+  total: number;
+  successCount: number;
+  failureCount: number;
+  results: BatchDeleteItemResult[];
+};
+
 const labels: Record<DeleteEntity, string> = {
   application: 'Application',
   sequence: 'Sequence',
@@ -59,4 +80,37 @@ export const performDelete = async (
       shouldRefresh: false,
     };
   }
+};
+
+export const performBatchDelete = async (
+  entity: DeleteEntity,
+  deleteMode: DeleteMode,
+  items: BatchDeleteItem[],
+  request: typeof apiFetch = apiFetch,
+  onProgress?: (result: BatchDeleteItemResult) => void,
+): Promise<BatchDeleteSummary> => {
+  const results: BatchDeleteItemResult[] = [];
+
+  for (const item of items) {
+    const outcome = await performDelete(entity, item.url, deleteMode, request);
+    const result: BatchDeleteItemResult = {
+      key: item.key,
+      label: item.label,
+      outcome,
+    };
+
+    results.push(result);
+    onProgress?.(result);
+  }
+
+  const successCount = results.filter((result) => result.outcome.kind === 'success').length;
+
+  return {
+    entity,
+    mode: deleteMode,
+    total: items.length,
+    successCount,
+    failureCount: items.length - successCount,
+    results,
+  };
 };

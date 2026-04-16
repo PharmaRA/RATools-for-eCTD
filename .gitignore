@@ -13,3 +13,5 @@ obj/
 /tools
 /frontend/node_modules
 /frontend/.vite/deps
+/.worktrees
+/worktrees

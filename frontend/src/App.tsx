@@ -19,7 +19,12 @@ import {
   type WorkspaceTreeNode,
 } from './workspaceTree';
 import { apiFetch } from './apiClient';
-import { performDelete, type DeleteMode } from './deleteActions';
+import {
+  performDelete,
+  performBatchDelete,
+  type BatchDeleteSummary,
+  type DeleteMode,
+} from './deleteActions';
 
 // ==========================================
 // Types & Interfaces
@@ -573,6 +578,14 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
     sequenceNumber: null,
     mode: 'databaseOnly',
   });
+  const [selectedSequenceKeys, setSelectedSequenceKeys] = useState<string[]>([]);
+  const [sequenceBatchDeleteDialog, setSequenceBatchDeleteDialog] = useState<{ open: boolean; mode: DeleteMode; running: boolean }>({
+    open: false,
+    mode: 'databaseOnly',
+    running: false,
+  });
+  const [sequenceBatchSummary, setSequenceBatchSummary] = useState<BatchDeleteSummary | null>(null);
+  const [sequenceBatchSummaryOpen, setSequenceBatchSummaryOpen] = useState(false);
   const [form] = Form.useForm();
 
   const fetchApp = async () => {
@@ -586,6 +599,18 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
   };
 
   useEffect(() => { fetchApp(); }, [appId]);
+
+  useEffect(() => {
+    setSelectedSequenceKeys([]);
+  }, [appId]);
+
+  useEffect(() => {
+    const validSequenceKeys = new Set((appData?.sequences || []).map((sequence: any) => String(sequence.sequenceNumber)));
+    setSelectedSequenceKeys((current) => {
+      const next = current.filter((key) => validSequenceKeys.has(key));
+      return next.length === current.length ? current : next;
+    });
+  }, [appData?.sequences]);
 
   const handleCreateSequence = async () => {
     try {
@@ -644,10 +669,49 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
     await handleDeleteSequence(sequenceNumber, mode);
   };
 
+  const confirmBatchDeleteSequences = async () => {
+    if (selectedSequenceKeys.length === 0 || deletingSequenceNumbers.size > 0) {
+      if (deletingSequenceNumbers.size > 0) {
+        message.warning('存在进行中的单条删除，请稍后再试批量删除。');
+      }
+      return;
+    }
+
+    setSequenceBatchDeleteDialog((current) => ({ ...current, running: true }));
+
+    try {
+      const mode = sequenceBatchDeleteDialog.mode;
+      const items = selectedSequenceKeys.map((sequenceNumber) => ({
+        key: sequenceNumber,
+        label: sequenceNumber,
+        url: `/api/applications/${appId}/sequences/${sequenceNumber}`,
+      }));
+      const summary = await performBatchDelete('sequence', mode, items);
+
+      setSequenceBatchSummary(summary);
+      setSequenceBatchSummaryOpen(true);
+      setSequenceBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false });
+    } catch (error: any) {
+      message.error('批量删除失败: ' + (error?.message || '未知错误'));
+      setSequenceBatchDeleteDialog((current) => ({ ...current, running: false }));
+    }
+  };
+
+  const closeSequenceBatchSummary = async () => {
+    setSequenceBatchSummaryOpen(false);
+    setSequenceBatchSummary(null);
+    setSelectedSequenceKeys([]);
+    await fetchApp();
+  };
+
+  const failedSequenceBatchResults = (sequenceBatchSummary?.results || []).filter((result) => result.outcome.kind === 'error');
+  const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0;
+  const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-        <Button icon={<ArrowLeft size={16} />} onClick={onBack}>Back to Applications</Button>
+        <Button icon={<ArrowLeft size={16} />} onClick={onBack} disabled={sequenceBatchDeleteDialog.running}>Back to Applications</Button>
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <h2 className="m-0 text-xl font-bold">{appTitle}</h2>
@@ -671,22 +735,48 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
         <Tabs defaultActiveKey="sequences">
           <Tabs.TabPane tab="Sequences" key="sequences">
             <div className="mb-4 flex justify-end">
+              <Space>
+                <Button
+                  danger
+                  icon={<Trash2 size={14} className="mr-1" />}
+                  disabled={!canStartBatchDelete}
+                  loading={sequenceBatchDeleteDialog.running}
+                  onClick={() => {
+                    if (hasSingleSequenceDeleteRunning) {
+                      return;
+                    }
+                    setSequenceBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false });
+                  }}
+                >
+                  批量删除
+                </Button>
               <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setSeqModalVisible(true)}>
                 New Sequence
               </Button>
+              </Space>
             </div>
             <Table 
               loading={loading}
               dataSource={appData?.sequences || []} 
               rowKey="sequenceNumber" 
               size="middle"
+              rowSelection={{
+                selectedRowKeys: selectedSequenceKeys,
+                onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(nextSelectedRowKeys.map((key) => String(key))),
+                getCheckboxProps: (record: any) => ({
+                  disabled: sequenceBatchDeleteDialog.running || deletingSequenceNumbers.has(String(record.sequenceNumber)),
+                }),
+              }}
+              pagination={{
+                onChange: () => setSelectedSequenceKeys([]),
+              }}
               columns={[
                 { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
                 { title: 'Submission Type', dataIndex: 'submissionType' },
                 { title: 'Description', dataIndex: 'description' },
                 { title: 'Actions', key: 'actions', render: (_: any, r: any) => (
                   <Space>
-                    <Button type="link" size="small" onClick={() => onOpenWorkspace(r.sequenceNumber)}>
+                    <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
                       Enter Workspace
                     </Button>
                     <Button
@@ -696,7 +786,7 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
                       icon={<Trash2 size={14} />}
                       title="Delete Sequence"
                       loading={deletingSequenceNumbers.has(r.sequenceNumber)}
-                      disabled={deletingSequenceNumbers.has(r.sequenceNumber)}
+                      disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
                       onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
                     />
                   </Space>
@@ -764,6 +854,69 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
           )}
         </div>
       </Modal>
+
+      <Modal
+        title="批量删除 Sequence"
+        open={sequenceBatchDeleteDialog.open}
+        okText="确认批量删除"
+        cancelText="取消"
+        onOk={confirmBatchDeleteSequences}
+        onCancel={() => setSequenceBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false })}
+        confirmLoading={sequenceBatchDeleteDialog.running}
+        okButtonProps={{ disabled: !canStartBatchDelete }}
+        cancelButtonProps={{ disabled: sequenceBatchDeleteDialog.running }}
+      >
+        <div className="flex flex-col gap-3">
+          <div>
+            已选择 <Tag>{selectedSequenceKeys.length}</Tag> 个 Sequence。
+          </div>
+          <Radio.Group
+            value={sequenceBatchDeleteDialog.mode}
+            onChange={(event) => setSequenceBatchDeleteDialog((current) => ({
+              ...current,
+              mode: event.target.value as DeleteMode,
+            }))}
+          >
+            <Space direction="vertical">
+              <Radio value="databaseOnly">只删数据库记录</Radio>
+              <Radio value="purgeWorkspace">删除数据库记录并递归删除对应工作目录/发布产物</Radio>
+            </Space>
+          </Radio.Group>
+          {sequenceBatchDeleteDialog.mode === 'purgeWorkspace' && (
+            <Alert
+              type="warning"
+              showIcon
+              message="purgeWorkspace 是破坏性操作，无法撤销。"
+            />
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        title="批量删除结果"
+        open={sequenceBatchSummaryOpen}
+        okText="关闭"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        onOk={() => { void closeSequenceBatchSummary(); }}
+        onCancel={() => { void closeSequenceBatchSummary(); }}
+      >
+        <div className="flex flex-col gap-3">
+          <div>成功: <Tag color="green">{sequenceBatchSummary?.successCount ?? 0}</Tag></div>
+          <div>失败: <Tag color="red">{sequenceBatchSummary?.failureCount ?? 0}</Tag></div>
+          {failedSequenceBatchResults.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {failedSequenceBatchResults.map((result) => (
+                <Alert
+                  key={result.key}
+                  type="error"
+                  showIcon
+                  message={`${result.label}: ${result.outcome.message}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
@@ -781,6 +934,14 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     appId: null,
     mode: 'databaseOnly',
   });
+  const [selectedAppKeys, setSelectedAppKeys] = useState<string[]>([]);
+  const [appBatchDeleteDialog, setAppBatchDeleteDialog] = useState<{ open: boolean; mode: DeleteMode; running: boolean }>({
+    open: false,
+    mode: 'databaseOnly',
+    running: false,
+  });
+  const [appBatchSummary, setAppBatchSummary] = useState<BatchDeleteSummary | null>(null);
+  const [appBatchSummaryOpen, setAppBatchSummaryOpen] = useState(false);
   const [form] = Form.useForm();
 
   const fetchApps = async () => {
@@ -796,6 +957,14 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   };
 
   useEffect(() => { fetchApps(); }, []);
+
+  useEffect(() => {
+    const validAppIds = new Set(apps.map((app) => app.id));
+    setSelectedAppKeys((current) => {
+      const next = current.filter((key) => validAppIds.has(key));
+      return next.length === current.length ? current : next;
+    });
+  }, [apps]);
 
   const handleCreateApp = async () => {
     try {
@@ -860,6 +1029,45 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     await handleDeleteApp(appId, mode);
   };
 
+  const confirmBatchDeleteApps = async () => {
+    if (selectedAppKeys.length === 0 || deletingAppIds.size > 0) {
+      if (deletingAppIds.size > 0) {
+        message.warning('存在进行中的单条删除，请稍后再试批量删除。');
+      }
+      return;
+    }
+
+    setAppBatchDeleteDialog((current) => ({ ...current, running: true }));
+
+    try {
+      const mode = appBatchDeleteDialog.mode;
+      const items = selectedAppKeys.map((appId) => ({
+        key: appId,
+        label: appId,
+        url: `/api/applications/${appId}`,
+      }));
+      const summary = await performBatchDelete('application', mode, items);
+
+      setAppBatchSummary(summary);
+      setAppBatchSummaryOpen(true);
+      setAppBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false });
+    } catch (error: any) {
+      message.error('批量删除失败: ' + (error?.message || '未知错误'));
+      setAppBatchDeleteDialog((current) => ({ ...current, running: false }));
+    }
+  };
+
+  const closeAppBatchSummary = async () => {
+    setAppBatchSummaryOpen(false);
+    setAppBatchSummary(null);
+    setSelectedAppKeys([]);
+    await fetchApps();
+  };
+
+  const failedAppBatchResults = (appBatchSummary?.results || []).filter((result) => result.outcome.kind === 'error');
+  const hasSingleAppDeleteRunning = deletingAppIds.size > 0;
+  const canStartAppBatchDelete = selectedAppKeys.length > 0 && !appBatchDeleteDialog.running && !hasSingleAppDeleteRunning;
+
   const columns = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
     { title: 'Region', dataIndex: 'region', render: (t: string) => <Tag>{t}</Tag> },
@@ -868,7 +1076,12 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     { title: 'Sequences', key: 'sequences', render: (_: any, r: Application) => r.sequences?.length || 0 },
     { title: 'Action', key: 'action', render: (_: any, r: Application) => (
         <Space>
-          <Button type="primary" size="small" onClick={() => onSelectApp(r.id, `${r.applicationNumber} (${r.sponsorName})`)}>
+          <Button
+            type="primary"
+            size="small"
+            disabled={appBatchDeleteDialog.running}
+            onClick={() => onSelectApp(r.id, `${r.applicationNumber} (${r.sponsorName})`)}
+          >
             Manage App
           </Button>
           <Button
@@ -877,7 +1090,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             icon={<Trash2 size={14} />}
             title="Delete App"
             loading={deletingAppIds.has(r.id)}
-            disabled={deletingAppIds.has(r.id)}
+            disabled={deletingAppIds.has(r.id) || appBatchDeleteDialog.running}
             onClick={() => openDeleteAppDialog(r.id)}
           />
         </Space>
@@ -890,11 +1103,41 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold m-0 text-gray-800">Applications</h2>
         <Space>
+          <Button
+            danger
+            icon={<Trash2 size={14} className="mr-1" />}
+            disabled={!canStartAppBatchDelete}
+            loading={appBatchDeleteDialog.running}
+            onClick={() => {
+              if (hasSingleAppDeleteRunning) {
+                return;
+              }
+              setAppBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false });
+            }}
+          >
+            批量删除
+          </Button>
           <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setAppModalVisible(true)}>New Application</Button>
           <Button onClick={fetchApps} loading={loading}>Refresh</Button>
         </Space>
       </div>
-      <Table loading={loading} columns={columns} dataSource={apps} rowKey="id" pagination={{ pageSize: 15 }} />
+      <Table
+        loading={loading}
+        columns={columns}
+        dataSource={apps}
+        rowKey="id"
+        rowSelection={{
+          selectedRowKeys: selectedAppKeys,
+          onChange: (nextSelectedRowKeys) => setSelectedAppKeys(nextSelectedRowKeys.map((key) => String(key))),
+          getCheckboxProps: (record: any) => ({
+            disabled: appBatchDeleteDialog.running || deletingAppIds.has(String(record.id)),
+          }),
+        }}
+        pagination={{
+          pageSize: 15,
+          onChange: () => setSelectedAppKeys([]),
+        }}
+      />
 
       <Modal title="Create New Application" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnClose width={600}>
         <Form form={form} layout="vertical">
@@ -961,6 +1204,69 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
               showIcon
               message="purgeWorkspace 是破坏性操作，无法撤销。"
             />
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        title="批量删除 Application"
+        open={appBatchDeleteDialog.open}
+        okText="确认批量删除"
+        cancelText="取消"
+        onOk={confirmBatchDeleteApps}
+        onCancel={() => setAppBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false })}
+        confirmLoading={appBatchDeleteDialog.running}
+        okButtonProps={{ disabled: !canStartAppBatchDelete }}
+        cancelButtonProps={{ disabled: appBatchDeleteDialog.running }}
+      >
+        <div className="flex flex-col gap-3">
+          <div>
+            已选择 <Tag>{selectedAppKeys.length}</Tag> 个 Application。
+          </div>
+          <Radio.Group
+            value={appBatchDeleteDialog.mode}
+            onChange={(event) => setAppBatchDeleteDialog((current) => ({
+              ...current,
+              mode: event.target.value as DeleteMode,
+            }))}
+          >
+            <Space direction="vertical">
+              <Radio value="databaseOnly">只删数据库记录</Radio>
+              <Radio value="purgeWorkspace">删除数据库记录并递归删除对应工作目录/发布产物</Radio>
+            </Space>
+          </Radio.Group>
+          {appBatchDeleteDialog.mode === 'purgeWorkspace' && (
+            <Alert
+              type="warning"
+              showIcon
+              message="purgeWorkspace 是破坏性操作，无法撤销。"
+            />
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        title="批量删除结果"
+        open={appBatchSummaryOpen}
+        okText="关闭"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        onOk={() => { void closeAppBatchSummary(); }}
+        onCancel={() => { void closeAppBatchSummary(); }}
+      >
+        <div className="flex flex-col gap-3">
+          <div>成功: <Tag color="green">{appBatchSummary?.successCount ?? 0}</Tag></div>
+          <div>失败: <Tag color="red">{appBatchSummary?.failureCount ?? 0}</Tag></div>
+          {failedAppBatchResults.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {failedAppBatchResults.map((result) => (
+                <Alert
+                  key={result.key}
+                  type="error"
+                  showIcon
+                  message={`${result.label}: ${result.outcome.message}`}
+                />
+              ))}
+            </div>
           )}
         </div>
       </Modal>
