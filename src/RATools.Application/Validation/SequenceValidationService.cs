@@ -15,14 +15,15 @@ public sealed class SequenceValidationService(
     IAuditLogService auditLogService,
     IValidationProfileProvider validationProfileProvider) : ISequenceValidationService
 {
-    private static readonly SectionDictionary SectionDictionary = new();
-
     public async Task<ValidationReportDto> ValidateAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
         var issues = new List<ValidationIssueDto>();
         var sectionMatches = new List<ValidationSectionMatchDto>();
         var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
-        var profileName = validationProfileProvider.ProfileName;
+        var normalizedProfileName = SectionDictionaryProfiles.NormalizeProfileName(validationProfileProvider.ProfileName);
+        var resolvedProfile = SectionDictionaryProfiles.ResolveByName(normalizedProfileName);
+        var profileName = resolvedProfile.Name;
+        var sectionDictionary = new SectionDictionary(resolvedProfile);
         var validationMode = validationProfileProvider.Mode;
 
         var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
@@ -174,7 +175,7 @@ public sealed class SequenceValidationService(
             }
             else
             {
-                var sectionMatch = SectionDictionary.Classify(placement.CtdSection);
+                var sectionMatch = sectionDictionary.Classify(placement.CtdSection);
                 if (sectionMatches.All(x => x.SectionPath != placement.CtdSection))
                 {
                     sectionMatches.Add(new ValidationSectionMatchDto(

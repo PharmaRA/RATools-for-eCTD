@@ -13,19 +13,19 @@ public sealed class EctdStructureService : IEctdStructureService
             throw new ArgumentException($"Region '{region}' is not supported.", nameof(region));
         }
 
-        var profile = SectionDictionaryProfiles.Default;
-        var roots = FdaEctd322.Root.Children.Select(MapNode).ToArray();
+        var profile = SectionDictionaryProfiles.ResolveByRegion(region);
+        var roots = FdaEctd322.Root.Children.Select(x => MapNode(x, profile.Name)).ToArray();
 
         return new EctdStructureDto(profile.Name, "US", roots);
     }
 
-    private static EctdStructureNodeDto MapNode(SectionDictionaryManualNode node)
+    private static EctdStructureNodeDto MapNode(SectionDictionaryManualNode node, string sourceProfile)
     {
         return new EctdStructureNodeDto(
             node.ElementName,
             node.SectionPath,
             node.Title,
-            SectionDictionaryProfiles.FdaEctd32.Name,
-            node.Children.Select(MapNode).OrderBy(x => x.SectionPath, StringComparer.OrdinalIgnoreCase).ToArray());
+            sourceProfile,
+            node.Children.Select(x => MapNode(x, sourceProfile)).OrderBy(x => x.SectionPath, StringComparer.OrdinalIgnoreCase).ToArray());
     }
 }

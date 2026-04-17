@@ -5,7 +5,7 @@ namespace RATools.Infrastructure.Validation;
 
 public sealed class ConfigurationValidationProfileProvider(IOptions<ValidationProfileOptions> options) : IValidationProfileProvider
 {
-    public string ProfileName => string.IsNullOrWhiteSpace(options.Value.Name) ? "default-v1" : options.Value.Name.Trim();
+    public string ProfileName => SectionDictionaryProfiles.NormalizeProfileName(options.Value.Name);
 
     public ValidationMode Mode
     {
