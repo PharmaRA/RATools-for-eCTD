@@ -136,10 +136,94 @@ public sealed class DocumentService(
         if (sharedPathCount == 0 && File.Exists(document.StoragePath))
         {
             File.Delete(document.StoragePath);
+            await TryDeleteEmptyWorkspaceFoldersAsync(document.StoragePath, cancellationToken);
         }
 
         return true;
     }
+
+    private async Task TryDeleteEmptyWorkspaceFoldersAsync(string deletedFilePath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var sequenceRoot = await ResolveSequenceWorkspaceRootAsync(deletedFilePath, cancellationToken);
+            if (string.IsNullOrWhiteSpace(sequenceRoot))
+            {
+                return;
+            }
+
+            var normalizedSequenceRoot = NormalizePath(sequenceRoot);
+            var currentDirectory = Path.GetDirectoryName(Path.GetFullPath(deletedFilePath));
+
+            while (!string.IsNullOrWhiteSpace(currentDirectory))
+            {
+                var normalizedCurrentDirectory = NormalizePath(currentDirectory);
+                if (!IsPathInsideScope(normalizedCurrentDirectory, normalizedSequenceRoot)
+                    || string.Equals(normalizedCurrentDirectory, normalizedSequenceRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                if (!Directory.Exists(normalizedCurrentDirectory)
+                    || Directory.EnumerateFileSystemEntries(normalizedCurrentDirectory).Any())
+                {
+                    break;
+                }
+
+                Directory.Delete(normalizedCurrentDirectory, false);
+                currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup: deletion should succeed even if folder pruning is blocked.
+        }
+    }
+
+    private async Task<string?> ResolveSequenceWorkspaceRootAsync(string filePath, CancellationToken cancellationToken)
+    {
+        if (!Path.IsPathFullyQualified(filePath))
+        {
+            return null;
+        }
+
+        var normalizedFilePath = NormalizePath(filePath);
+        var applications = await applicationRepository.ListAsync(cancellationToken);
+
+        foreach (var application in applications)
+        {
+            if (!Path.IsPathFullyQualified(application.WorkingDirectoryPath))
+            {
+                continue;
+            }
+
+            var applicationRoot = NormalizePath(application.WorkingDirectoryPath);
+            foreach (var sequence in application.Sequences)
+            {
+                var sequenceRoot = NormalizePath(Path.Combine(applicationRoot, sequence.SequenceNumber));
+                if (IsPathInsideScope(normalizedFilePath, sequenceRoot))
+                {
+                    return sequenceRoot;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsPathInsideScope(string path, string scopeRoot)
+    {
+        if (string.Equals(path, scopeRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var rootPrefix = scopeRoot + Path.DirectorySeparatorChar;
+        return path.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizePath(string path)
+        => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 }
 
 public sealed class DocumentSequenceUploadTargetNotFoundException(string message) : Exception(message);

@@ -19,10 +19,33 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   width: 20px;
-  height: 30px;
-  line-height: 30px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  padding: 0;
   margin: 0;
+}
+
+.ectd-tree .ant-tree-switcher::before {
+  inset: 0 !important;
+}
+
+.ectd-tree .ant-tree-switcher-icon,
+.ectd-tree .ant-tree-switcher .anticon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.ectd-tree .ant-tree-switcher .anticon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .ectd-tree .ant-tree-indent-unit {
@@ -111,6 +134,10 @@
 
 .ectd-tree-node--document.ectd-tree-node--hover {
   background: #eff6ff;
+}
+
+.ectd-tree-node--document.ectd-tree-node--dragging {
+  opacity: 0.65;
 }
 
 .ectd-tree-node--section.ectd-tree-node--hover.ectd-tree-node--droppable {

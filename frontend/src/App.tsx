@@ -25,6 +25,14 @@ import {
   type BatchDeleteSummary,
   type DeleteMode,
 } from './deleteActions';
+import {
+  deletePlacementWithDocument,
+  movePlacementToSection,
+  PlacementDeletePartialFailureError,
+  serializePlacementDragPayload,
+  tryParsePlacementDragPayload,
+  WORKSPACE_PLACEMENT_DRAG_MIME,
+} from './workspaceActions';
 
 // ==========================================
 // Types & Interfaces
@@ -275,12 +283,15 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
+  const [draggingPlacementId, setDraggingPlacementId] = useState<string | null>(null);
   const [treeLoading, setTreeLoading] = useState(false);
   const [treeError, setTreeError] = useState<string | null>(null);
   const [ectdRoots, setEctdRoots] = useState<EctdStructureNode[]>([]);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedTreeKey, setSelectedTreeKey] = useState<string | null>(null);
   const [selectedSectionPath, setSelectedSectionPath] = useState<string | null>(null);
+  const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set());
+  const [movingPlacementIds, setMovingPlacementIds] = useState<Set<string>>(new Set());
 
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById);
@@ -353,6 +364,70 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   }, [appId, seqNumber]);
   useEffect(() => { fetchEctdStructure(); }, [appId]);
 
+  const refreshWorkspaceData = async () => {
+    await Promise.all([fetchPlacements(), fetchDocuments()]);
+  };
+
+  const getPlacementPayloadFromDataTransfer = (dataTransfer: DataTransfer) => {
+    const preferred = tryParsePlacementDragPayload(dataTransfer.getData(WORKSPACE_PLACEMENT_DRAG_MIME));
+    if (preferred) {
+      return preferred;
+    }
+
+    return tryParsePlacementDragPayload(dataTransfer.getData('text/plain'));
+  };
+
+  const handleMovePlacement = async (placementId: string, fromSection: string, toSection: string) => {
+    setMovingPlacementIds((current) => new Set(current).add(placementId));
+    setLoading(true);
+    try {
+      const moved = await movePlacementToSection({ placementId, fromSection, toSection });
+
+      if (!moved) {
+        message.info('Document is already mapped to this section.');
+        return;
+      }
+
+      setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(toSection)])));
+      setSelectedTreeKey(toSection);
+      setSelectedSectionPath(toSection);
+      await refreshWorkspaceData();
+      message.success('Document moved to target section.');
+    } catch (error: any) {
+      message.error(`Failed to move document: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setMovingPlacementIds((current) => {
+        const next = new Set(current);
+        next.delete(placementId);
+        return next;
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePlacementWithFile = async (placementId: string, documentId: string) => {
+    setDeletingPlacementIds((current) => new Set(current).add(placementId));
+    setLoading(true);
+    try {
+      await deletePlacementWithDocument({ placementId, documentId });
+      await refreshWorkspaceData();
+      message.success('Document mapping and physical file deleted.');
+    } catch (error: any) {
+      if (error instanceof PlacementDeletePartialFailureError) {
+        message.error(`Mapping deleted, but document/file delete failed: ${error.message}`);
+      } else {
+        message.error(`Failed to delete mapped document: ${error?.message || 'Unknown error'}`);
+      }
+    } finally {
+      setDeletingPlacementIds((current) => {
+        const next = new Set(current);
+        next.delete(placementId);
+        return next;
+      });
+      setLoading(false);
+    }
+  };
+
   const handleDirectDrop = async (file: File, targetNodeKey: string) => {
     setLoading(true);
     message.loading({ content: `Processing ${file.name}...`, key: 'uploading' });
@@ -381,7 +456,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
       });
 
       message.success({ content: `${file.name} mapped to ${targetSection} and saved!`, key: 'uploading' });
-      await Promise.all([fetchPlacements(), fetchDocuments()]);
+      await refreshWorkspaceData();
     } catch (err: any) {
       message.error({ content: `Failed: ${err.message}`, key: 'uploading' });
     } finally {
@@ -441,6 +516,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
         <Col span={12}>
           <Card title="eCTD Structure (Drag & Drop PDFs here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
             {treeError && <Alert type="error" showIcon className="mb-3" message="Failed to load eCTD structure" description={treeError} />}
+            <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it.</p>
             <Spin spinning={loading || treeLoading}>
               <Tree
                 className="ectd-tree"
@@ -472,51 +548,111 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
                   const isSelected = selectedTreeKey === nodeData.key;
                   const isHovered = dragOverNode === nodeData.key;
                   const isSection = nodeData.nodeType === 'section';
-                  const canDrop = isSection && nodeData.canDrop;
+                  const acceptsPlacementDrop = isSection;
+                  const acceptsFileDrop = isSection && nodeData.canDrop;
+                  const canDrop = acceptsFileDrop || (isSection && draggingPlacementId !== null);
+                  const isBusy = loading || treeLoading;
                   const titleText = String(nodeData.title ?? '');
                   const titleMatch = isSection ? /^([0-9]+(?:\.[0-9A-Z]+)*)\s+(.+)$/.exec(titleText) : null;
                   const titlePrefix = titleMatch ? titleMatch[1] : null;
                   const titleLabel = titleMatch ? titleMatch[2] : titleText;
 
                   return (
-                     <div
-                       onDragOver={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         e.dataTransfer.dropEffect = canDrop ? 'copy' : 'none';
+                      <div
+                        draggable={!isSection && !isBusy}
+                        onDragStart={(e) => {
+                          if (isSection || nodeData.nodeType !== 'document') {
+                            return;
+                          }
 
-                         if (canDrop) {
-                           setDragOverNode(nodeData.key);
-                         } else if (dragOverNode === nodeData.key) {
-                           setDragOverNode(null);
-                         }
-                       }}
+                          setDraggingPlacementId(nodeData.placementId);
+                          e.dataTransfer.effectAllowed = 'move';
+                          const payload = serializePlacementDragPayload({
+                            placementId: nodeData.placementId,
+                            documentId: nodeData.documentId,
+                            sectionPath: nodeData.sectionPath,
+                          });
+                          e.dataTransfer.setData(
+                            WORKSPACE_PLACEMENT_DRAG_MIME,
+                            payload,
+                          );
+                          e.dataTransfer.setData('text/plain', payload);
+                        }}
+                        onDragEnd={() => setDraggingPlacementId(null)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          const internalPayload = getPlacementPayloadFromDataTransfer(e.dataTransfer);
+                          const internalDragActive = draggingPlacementId !== null || internalPayload !== null;
+                          const allowDrop = internalDragActive ? acceptsPlacementDrop : acceptsFileDrop;
+
+                          e.dataTransfer.dropEffect = allowDrop
+                            ? (internalDragActive ? 'move' : 'copy')
+                            : 'none';
+
+                          if (allowDrop) {
+                            setDragOverNode(nodeData.key);
+                          } else if (dragOverNode === nodeData.key) {
+                            setDragOverNode(null);
+                          }
+                        }}
                        onDragLeave={(e) => {
                          e.preventDefault();
                          e.stopPropagation();
                          if (dragOverNode === nodeData.key) setDragOverNode(null);
                        }}
-                       onDrop={async (e) => {
-                         e.preventDefault(); e.stopPropagation();
-                         setDragOverNode(null);
-                         const files = e.dataTransfer.files;
-                         if (!files || files.length === 0) {
-                           return;
-                         }
+                        onDrop={async (e) => {
+                          e.preventDefault(); e.stopPropagation();
+                          setDragOverNode(null);
 
-                         if (!canDrop) {
-                           message.warning(nodeData.nodeType === 'document'
-                             ? 'Drop files on a section, not a document.'
-                             : 'Only leaf sections accept dropped files.');
-                           return;
-                         }
+                          const internalPayload = getPlacementPayloadFromDataTransfer(e.dataTransfer)
+                            ?? (() => {
+                              if (!draggingPlacementId) {
+                                return null;
+                              }
+
+                              const placement = placements.find((item) => item.id === draggingPlacementId);
+                              if (!placement) {
+                                return null;
+                              }
+
+                              return {
+                                placementId: placement.id,
+                                documentId: placement.documentId,
+                                sectionPath: placement.ctdSection,
+                              };
+                            })();
+
+                          if (internalPayload) {
+                            if (!acceptsPlacementDrop) {
+                              message.warning('Move documents onto a section node.');
+                              return;
+                            }
+
+                            await handleMovePlacement(internalPayload.placementId, internalPayload.sectionPath, nodeData.sectionPath);
+                            setDraggingPlacementId(null);
+                            return;
+                          }
+
+                          const files = e.dataTransfer.files;
+                          if (!files || files.length === 0) {
+                            return;
+                          }
+
+                          if (!acceptsFileDrop) {
+                            message.warning(nodeData.nodeType === 'document'
+                              ? 'Drop files on a section, not a document.'
+                              : 'Only leaf sections accept dropped files.');
+                            return;
+                          }
 
                          const file = files[0];
                          if (!file.name.toLowerCase().endsWith('.pdf')) { message.error('Only PDF allowed.'); return; }
                          await handleDirectDrop(file, nodeData.sectionPath);
                        }}
-                       className={`ectd-tree-node ${isSection ? 'ectd-tree-node--section' : 'ectd-tree-node--document'} ${canDrop ? 'ectd-tree-node--droppable' : ''} ${isHovered ? 'ectd-tree-node--hover' : ''} ${isSelected ? 'ectd-tree-node--selected' : ''}`}
-                     >
+                        className={`ectd-tree-node ${isSection ? 'ectd-tree-node--section' : 'ectd-tree-node--document'} ${canDrop ? 'ectd-tree-node--droppable' : ''} ${isHovered ? 'ectd-tree-node--hover' : ''} ${isSelected ? 'ectd-tree-node--selected' : ''} ${nodeData.nodeType === 'document' && draggingPlacementId === nodeData.placementId ? 'ectd-tree-node--dragging' : ''}`}
+                      >
                        <div className="ectd-tree-node__main">
                          <span className="ectd-tree-node__icon">
                            {isSection ? <FolderOpen size={16} /> : <FileText size={16} />}
@@ -540,6 +676,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
 
         <Col span={12}>
           <Card title="Current Mapped Documents" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
+            <p className="mb-2 text-xs text-gray-500">Delete removes both mapping and physical file. Move by dragging a file node on the left tree.</p>
             {placements.length === 0 ? (
               <div className="text-center text-gray-400 mt-20">
                 <FolderOpen size={48} className="mx-auto mb-4 opacity-50"/>
@@ -553,8 +690,41 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
                 size="small" 
                 pagination={false}
                 columns={[
+                  {
+                    title: 'File',
+                    key: 'file',
+                    render: (_: any, record: DocumentPlacementRecord) => documentsById[record.documentId]?.fileName || record.title || record.documentId,
+                  },
                   { title: 'eCTD Node', dataIndex: 'ctdSection', key: 'node', render: (t) => <Tag>{t}</Tag> },
-                  { title: 'Operation', dataIndex: 'operation', key: 'op', render: (t) => <Tag color="blue">{t}</Tag> }
+                  { title: 'Operation', dataIndex: 'operation', key: 'op', render: (t) => <Tag color="blue">{t}</Tag> },
+                  {
+                    title: 'Actions',
+                    key: 'actions',
+                    render: (_: any, record: DocumentPlacementRecord) => (
+                      <Space>
+                        <Button
+                          danger
+                          size="small"
+                          type="text"
+                          icon={<Trash2 size={14} />}
+                          loading={deletingPlacementIds.has(record.id)}
+                          disabled={deletingPlacementIds.has(record.id) || movingPlacementIds.has(record.id) || loading}
+                          onClick={() => {
+                            Modal.confirm({
+                              title: 'Delete mapped document',
+                              content: 'This will remove mapping and delete the physical file from workspace. Continue?',
+                              okText: 'Delete',
+                              okButtonProps: { danger: true },
+                              cancelText: 'Cancel',
+                              onOk: async () => {
+                                await handleDeletePlacementWithFile(record.id, record.documentId);
+                              },
+                            });
+                          }}
+                        />
+                      </Space>
+                    ),
+                  },
                 ]}
               />
             )}

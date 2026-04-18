@@ -109,6 +109,11 @@ public sealed class DocumentPlacementService(
             placement.ReassignSection(request.CtdSection);
             if (await placementRepository.UpdateAsync(placement, cancellationToken))
             {
+                if (movedStoragePath is not null)
+                {
+                    TryDeleteEmptySourceFolders(application.WorkingDirectoryPath, placement.SequenceNumber, originalStoragePath, oldFolder.RelativeFolderPath);
+                }
+
                 return placement.ToDto();
             }
 
@@ -159,6 +164,83 @@ public sealed class DocumentPlacementService(
             throw new InvalidOperationException($"Document {document.Id} could not be restored after a failed section reassignment.");
         }
     }
+
+    private static void TryDeleteEmptySourceFolders(string applicationWorkingDirectoryPath, string sequenceNumber, string sourceFilePath, string oldRelativeFolderPath)
+    {
+        try
+        {
+            var sequenceRoot = NormalizePath(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber));
+            var directoriesToPrune = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var sourceDirectory = Path.GetDirectoryName(NormalizePath(sourceFilePath));
+            if (!string.IsNullOrWhiteSpace(sourceDirectory))
+            {
+                directoriesToPrune.Add(NormalizePath(sourceDirectory));
+            }
+
+            if (!string.IsNullOrWhiteSpace(oldRelativeFolderPath))
+            {
+                var canonicalSourceDirectory = NormalizePath(Path.Combine(sequenceRoot, oldRelativeFolderPath));
+                if (!string.Equals(canonicalSourceDirectory, sequenceRoot, StringComparison.OrdinalIgnoreCase)
+                    && IsPathInsideScope(canonicalSourceDirectory, sequenceRoot))
+                {
+                    directoriesToPrune.Add(canonicalSourceDirectory);
+                }
+            }
+
+            foreach (var directory in directoriesToPrune.OrderByDescending(x => x.Length))
+            {
+                TryDeleteEmptyFolderBranch(directory, sequenceRoot);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup: section reassignment succeeds even if empty-folder pruning is blocked.
+        }
+    }
+
+    private static void TryDeleteEmptyFolderBranch(string startDirectory, string sequenceRoot)
+    {
+        var currentDirectory = startDirectory;
+
+        while (!string.IsNullOrWhiteSpace(currentDirectory))
+        {
+            var normalizedCurrentDirectory = NormalizePath(currentDirectory);
+            if (!IsPathInsideScope(normalizedCurrentDirectory, sequenceRoot)
+                || string.Equals(normalizedCurrentDirectory, sequenceRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            if (!Directory.Exists(normalizedCurrentDirectory))
+            {
+                currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
+                continue;
+            }
+
+            if (Directory.EnumerateFileSystemEntries(normalizedCurrentDirectory).Any())
+            {
+                break;
+            }
+
+            Directory.Delete(normalizedCurrentDirectory, false);
+            currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
+        }
+    }
+
+    private static bool IsPathInsideScope(string path, string scopeRoot)
+    {
+        if (string.Equals(path, scopeRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var prefix = scopeRoot + Path.DirectorySeparatorChar;
+        return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizePath(string path)
+        => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
     public async Task<IReadOnlyCollection<DocumentPlacementDto>> ListAsync(CancellationToken cancellationToken = default)
     {
