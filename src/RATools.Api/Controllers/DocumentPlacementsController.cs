@@ -72,4 +72,18 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
             return Conflict(new { message = exception.Message });
         }
     }
+
+    [HttpPut("{id:guid}/metadata")]
+    public async Task<IActionResult> UpdateMetadata(Guid id, [FromBody] UpdateDocumentPlacementMetadataRequestBody request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.FileNamePrefix), cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
 }

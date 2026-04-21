@@ -4,6 +4,7 @@ import {
   deletePlacementWithDocument,
   movePlacementToSection,
   PlacementDeletePartialFailureError,
+  revisePlacementMetadata,
   serializePlacementDragPayload,
   tryParsePlacementDragPayload,
 } from './workspaceActions'
@@ -58,6 +59,25 @@ describe('workspaceActions', () => {
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/document-placements/placement-1', { method: 'DELETE' })
     expect(request).toHaveBeenNthCalledWith(2, '/api/documents/document-1', { method: 'DELETE' })
+  })
+
+  it('updates placement title and file name prefix for revision', async () => {
+    const request = vi.fn().mockResolvedValue({})
+
+    await revisePlacementMetadata(
+      {
+        placementId: 'placement-1',
+        title: 'Updated title',
+        fileNamePrefix: 'updated-report',
+      },
+      request,
+    )
+
+    expect(request).toHaveBeenCalledWith('/api/document-placements/placement-1/metadata', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Updated title', fileNamePrefix: 'updated-report' }),
+    })
   })
 
   it('throws partial failure error when placement delete succeeds but document delete fails', async () => {

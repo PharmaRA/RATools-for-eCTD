@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.Requests;
+using RATools.Application.Documents;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 
@@ -29,7 +30,7 @@ public sealed class ApplicationImportService(
 
         if (!Directory.Exists(workingDirectoryPath))
         {
-            throw new InvalidOperationException($"Working directory '{workingDirectoryPath}' does not exist.");
+            throw new InvalidOperationException($"WORKING_DIRECTORY_NOT_FOUND: Working directory '{workingDirectoryPath}' does not exist.");
         }
 
         var application = new SubmissionApplication(applicationNumber, request.Region, request.SponsorName, workingDirectoryPath);
@@ -37,7 +38,17 @@ public sealed class ApplicationImportService(
         var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
         var importedPlacements = new List<DocumentPlacement>();
 
-        foreach (var sequenceDirectory in Directory.GetDirectories(workingDirectoryPath).OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+        string[] sequenceDirectories;
+        try
+        {
+            sequenceDirectories = Directory.GetDirectories(workingDirectoryPath);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw new InvalidOperationException($"WORKING_DIRECTORY_ACCESS_DENIED: Unable to access working directory '{workingDirectoryPath}'.", exception);
+        }
+
+        foreach (var sequenceDirectory in sequenceDirectories.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
         {
             var sequenceNumber = Path.GetFileName(sequenceDirectory);
             if (!IsSequenceDirectory(sequenceNumber))
@@ -236,14 +247,7 @@ public sealed class ApplicationImportService(
 
     private static string GuessMediaType(string path)
     {
-        return Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".pdf" => "application/pdf",
-            ".xml" => "application/xml",
-            ".txt" => "text/plain",
-            ".xpt" => "application/octet-stream",
-            _ => "application/octet-stream"
-        };
+        return EctdDocumentFileRules.GetMediaType(path);
     }
 
     private sealed record SequenceImportResult(IReadOnlyCollection<ApplicationImportIssueDto> Issues);

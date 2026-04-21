@@ -9,6 +9,8 @@ public interface IDocumentPlacementService
 
     Task<DocumentPlacementDto?> UpdateSectionAsync(Guid id, UpdateDocumentPlacementSectionRequest request, CancellationToken cancellationToken = default);
 
+    Task<DocumentPlacementDto?> UpdateMetadataAsync(Guid id, UpdateDocumentPlacementMetadataRequest request, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<DocumentPlacementDto>> ListAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<DocumentPlacementDto>> ListByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default);

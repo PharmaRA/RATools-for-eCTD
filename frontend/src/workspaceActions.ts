@@ -19,6 +19,12 @@ export type DeletePlacementWithDocumentRequest = {
   documentId: string
 }
 
+export type RevisePlacementMetadataRequest = {
+  placementId: string
+  title?: string
+  fileNamePrefix: string
+}
+
 export class PlacementDeletePartialFailureError extends Error {
   readonly causeError: unknown
 
@@ -91,4 +97,18 @@ export const deletePlacementWithDocument = async (
       error,
     )
   }
+}
+
+export const revisePlacementMetadata = async (
+  request: RevisePlacementMetadataRequest,
+  executeRequest: typeof apiFetch = apiFetch,
+) => {
+  await executeRequest(`/api/document-placements/${request.placementId}/metadata`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: request.title,
+      fileNamePrefix: request.fileNamePrefix,
+    }),
+  })
 }

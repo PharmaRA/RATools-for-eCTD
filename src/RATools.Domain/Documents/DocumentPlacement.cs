@@ -70,4 +70,9 @@ public sealed class DocumentPlacement : Entity
         ArgumentException.ThrowIfNullOrWhiteSpace(ctdSection);
         CtdSection = ctdSection.Trim();
     }
+
+    public void ReviseTitle(string? title)
+    {
+        Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+    }
 }

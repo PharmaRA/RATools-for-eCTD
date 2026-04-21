@@ -1,6 +1,7 @@
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
+using RATools.Application.Documents;
 using RATools.Application.Publishing;
 using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
@@ -304,16 +305,7 @@ public sealed class SequenceValidationService(
 
     private static string? GuessMediaTypeByFileName(string fileName)
     {
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        return extension switch
-        {
-            ".pdf" => "application/pdf",
-            ".xml" => "application/xml",
-            ".txt" => "text/plain",
-            ".csv" => "text/csv",
-            ".json" => "application/json",
-            _ => null
-        };
+        return EctdDocumentFileRules.TryGetMediaType(fileName);
     }
 
     private static string BuildLifecycleErrorMessage(DocumentPlacement placement, LifecycleTargetResolution resolution)

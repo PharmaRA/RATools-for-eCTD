@@ -18,7 +18,7 @@ import {
   type EctdStructureNode,
   type WorkspaceTreeNode,
 } from './workspaceTree';
-import { apiFetch } from './apiClient';
+import { ApiRequestError, apiFetch } from './apiClient';
 import {
   performDelete,
   performBatchDelete,
@@ -26,13 +26,20 @@ import {
   type DeleteMode,
 } from './deleteActions';
 import {
+  importApplication,
+  mapImportErrorToMessage,
+  type ImportApplicationResult,
+} from './importActions';
+import {
   deletePlacementWithDocument,
   movePlacementToSection,
   PlacementDeletePartialFailureError,
+  revisePlacementMetadata,
   serializePlacementDragPayload,
   tryParsePlacementDragPayload,
   WORKSPACE_PLACEMENT_DRAG_MIME,
 } from './workspaceActions';
+import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from './ectdFileTypes';
 
 // ==========================================
 // Types & Interfaces
@@ -292,30 +299,77 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   const [selectedSectionPath, setSelectedSectionPath] = useState<string | null>(null);
   const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set());
   const [movingPlacementIds, setMovingPlacementIds] = useState<Set<string>>(new Set());
+  const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null);
 
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById);
   }, [documentsById, ectdRoots, placements]);
-  
-  const [form] = Form.useForm();
+
+  const [metadataForm] = Form.useForm();
+  const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm);
+
+  const selectedNode = useMemo(
+    () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
+    [selectedTreeKey, treeData],
+  );
+
+  const selectedPlacement = useMemo(() => {
+    if (!selectedNode || selectedNode.nodeType !== 'document') {
+      return undefined;
+    }
+
+    return placements.find((placement) => placement.id === selectedNode.placementId);
+  }, [placements, selectedNode]);
+
+  const selectedDocument = useMemo(() => {
+    if (!selectedPlacement) {
+      return undefined;
+    }
+
+    return documentsById[selectedPlacement.documentId];
+  }, [documentsById, selectedPlacement]);
+
+  const selectedSectionChildrenCount = useMemo(() => {
+    if (!selectedNode || selectedNode.nodeType !== 'section') {
+      return 0;
+    }
+
+    return selectedNode.children.filter((child) => child.nodeType === 'document').length;
+  }, [selectedNode]);
+
+  const selectedDocumentNameParts = useMemo(() => {
+    if (!selectedDocument) {
+      return { prefix: '', extension: '' };
+    }
+
+    return splitFileName(selectedDocument.fileName);
+  }, [selectedDocument]);
 
   useEffect(() => {
-    form.setFieldsValue({ ctdSection: selectedSectionPath ?? undefined });
-  }, [form, selectedSectionPath]);
+    if (!selectedNode || selectedNode.nodeType !== 'document' || !selectedPlacement || !selectedDocument) {
+      metadataForm.resetFields();
+      return;
+    }
+
+    metadataForm.setFieldsValue({
+      title: selectedPlacement.title || '',
+      fileNamePrefix: selectedDocumentNameParts.prefix,
+    });
+  }, [metadataForm, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement]);
 
   useEffect(() => {
     if (!selectedTreeKey) {
       return;
     }
 
-    const selectedNode = findWorkspaceTreeNode(treeData, selectedTreeKey);
-    if (!selectedNode) {
+    const resolvedSelectedNode = findWorkspaceTreeNode(treeData, selectedTreeKey);
+    if (!resolvedSelectedNode) {
       setSelectedTreeKey(null);
       return;
     }
 
-    if (selectedSectionPath !== selectedNode.sectionPath) {
-      setSelectedSectionPath(selectedNode.sectionPath);
+    if (selectedSectionPath !== resolvedSelectedNode.sectionPath) {
+      setSelectedSectionPath(resolvedSelectedNode.sectionPath);
     }
   }, [selectedSectionPath, selectedTreeKey, treeData]);
 
@@ -428,6 +482,45 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
     }
   };
 
+  const confirmDeletePlacement = (placementId: string, documentId: string) => {
+    Modal.confirm({
+      title: 'Delete mapped document',
+      content: 'This will remove mapping and delete the physical file from workspace. Continue?',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        await handleDeletePlacementWithFile(placementId, documentId);
+      },
+    });
+  };
+
+  const handleSaveRevision = async () => {
+    if (!selectedPlacement || !selectedDocument) {
+      return;
+    }
+
+    const values = await metadataForm.validateFields();
+    const normalizedPrefix = String(values.fileNamePrefix || '').trim();
+
+    setSavingRevisionPlacementId(selectedPlacement.id);
+    setLoading(true);
+    try {
+      await revisePlacementMetadata({
+        placementId: selectedPlacement.id,
+        title: String(values.title || '').trim() || undefined,
+        fileNamePrefix: normalizedPrefix,
+      });
+      await refreshWorkspaceData();
+      message.success('File metadata revision saved.');
+    } catch (error: any) {
+      message.error(`Failed to save metadata revision: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setSavingRevisionPlacementId(null);
+      setLoading(false);
+    }
+  };
+
   const handleDirectDrop = async (file: File, targetNodeKey: string) => {
     setLoading(true);
     message.loading({ content: `Processing ${file.name}...`, key: 'uploading' });
@@ -514,9 +607,9 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
 
       <Row gutter={16}>
         <Col span={12}>
-          <Card title="eCTD Structure (Drag & Drop PDFs here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
+          <Card title="eCTD Structure (Drag & Drop files here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
             {treeError && <Alert type="error" showIcon className="mb-3" message="Failed to load eCTD structure" description={treeError} />}
-            <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it.</p>
+            <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it. Allowed extensions: {ectdAllowedExtensionsHint}</p>
             <Spin spinning={loading || treeLoading}>
               <Tree
                 className="ectd-tree"
@@ -648,9 +741,12 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
                           }
 
                          const file = files[0];
-                         if (!file.name.toLowerCase().endsWith('.pdf')) { message.error('Only PDF allowed.'); return; }
+                         if (!isAllowedEctdFileName(file.name)) {
+                           message.error(`Unsupported file extension. Allowed: ${ectdAllowedExtensionsHint}`);
+                           return;
+                         }
                          await handleDirectDrop(file, nodeData.sectionPath);
-                       }}
+                        }}
                         className={`ectd-tree-node ${isSection ? 'ectd-tree-node--section' : 'ectd-tree-node--document'} ${canDrop ? 'ectd-tree-node--droppable' : ''} ${isHovered ? 'ectd-tree-node--hover' : ''} ${isSelected ? 'ectd-tree-node--selected' : ''} ${nodeData.nodeType === 'document' && draggingPlacementId === nodeData.placementId ? 'ectd-tree-node--dragging' : ''}`}
                       >
                        <div className="ectd-tree-node__main">
@@ -675,58 +771,96 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
         </Col>
 
         <Col span={12}>
-          <Card title="Current Mapped Documents" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
-            <p className="mb-2 text-xs text-gray-500">Delete removes both mapping and physical file. Move by dragging a file node on the left tree.</p>
-            {placements.length === 0 ? (
+          <Card title="Selection Details" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
+            {!selectedNode && (
               <div className="text-center text-gray-400 mt-20">
                 <FolderOpen size={48} className="mx-auto mb-4 opacity-50"/>
-                <p>No documents mapped yet.</p>
-                <p>Select a node on the left and drop a file.</p>
+                <p>Select a section or mapped file from the left tree.</p>
               </div>
-            ) : (
-              <Table 
-                dataSource={placements} 
-                rowKey="id" 
-                size="small" 
-                pagination={false}
-                columns={[
-                  {
-                    title: 'File',
-                    key: 'file',
-                    render: (_: any, record: DocumentPlacementRecord) => documentsById[record.documentId]?.fileName || record.title || record.documentId,
-                  },
-                  { title: 'eCTD Node', dataIndex: 'ctdSection', key: 'node', render: (t) => <Tag>{t}</Tag> },
-                  { title: 'Operation', dataIndex: 'operation', key: 'op', render: (t) => <Tag color="blue">{t}</Tag> },
-                  {
-                    title: 'Actions',
-                    key: 'actions',
-                    render: (_: any, record: DocumentPlacementRecord) => (
-                      <Space>
-                        <Button
-                          danger
-                          size="small"
-                          type="text"
-                          icon={<Trash2 size={14} />}
-                          loading={deletingPlacementIds.has(record.id)}
-                          disabled={deletingPlacementIds.has(record.id) || movingPlacementIds.has(record.id) || loading}
-                          onClick={() => {
-                            Modal.confirm({
-                              title: 'Delete mapped document',
-                              content: 'This will remove mapping and delete the physical file from workspace. Continue?',
-                              okText: 'Delete',
-                              okButtonProps: { danger: true },
-                              cancelText: 'Cancel',
-                              onOk: async () => {
-                                await handleDeletePlacementWithFile(record.id, record.documentId);
-                              },
-                            });
-                          }}
-                        />
-                      </Space>
-                    ),
-                  },
-                ]}
-              />
+            )}
+
+            {selectedNode?.nodeType === 'section' && (
+              <div className="flex flex-col gap-4">
+                <Descriptions size="small" bordered column={1}>
+                  <Descriptions.Item label="Section">{selectedNode.sectionPath}</Descriptions.Item>
+                  <Descriptions.Item label="Display">{selectedNode.title}</Descriptions.Item>
+                  <Descriptions.Item label="Leaf Node">{selectedNode.canDrop ? 'Yes' : 'No'}</Descriptions.Item>
+                  <Descriptions.Item label="Mapped Files">{selectedSectionChildrenCount}</Descriptions.Item>
+                </Descriptions>
+
+                <Alert
+                  type="info"
+                  showIcon
+                  message="Leaf Element Data Entry (Reserved)"
+                  description="This section is reserved for future leaf element data entry fields."
+                />
+
+                <p className="text-xs text-gray-500">Tip: Drop files on leaf sections. Drag file nodes between sections to move them.</p>
+              </div>
+            )}
+
+            {selectedNode?.nodeType === 'document' && selectedPlacement && selectedDocument && (
+              <div className="flex flex-col gap-4">
+                <Descriptions size="small" bordered column={1}>
+                  <Descriptions.Item label="Placement ID">{selectedPlacement.id}</Descriptions.Item>
+                  <Descriptions.Item label="eCTD Section"><Tag>{selectedPlacement.ctdSection}</Tag></Descriptions.Item>
+                  <Descriptions.Item label="Operation"><Tag color="blue">{selectedPlacement.operation}</Tag></Descriptions.Item>
+                  <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{selectedDocument.storagePath}</span></Descriptions.Item>
+                </Descriptions>
+
+                <Form form={metadataForm} layout="vertical" requiredMark={false}>
+                  <Form.Item name="title" label="Backbone Title (index.xml title)">
+                    <Input maxLength={255} placeholder="Optional title" />
+                  </Form.Item>
+                  <Form.Item
+                    name="fileNamePrefix"
+                    label="File Prefix"
+                    rules={[
+                      { required: true, message: 'File prefix is required.' },
+                      {
+                        validator: (_, value) => (
+                          String(value || '').trim().length > 0
+                            ? Promise.resolve()
+                            : Promise.reject(new Error('File prefix cannot be empty.'))
+                        ),
+                      },
+                    ]}
+                  >
+                    <Input maxLength={255} placeholder="example-file-name" />
+                  </Form.Item>
+                  <Form.Item label="Extension">
+                    <Input value={selectedDocumentNameParts.extension || '(no extension)'} readOnly />
+                  </Form.Item>
+                  <Form.Item label="Resulting File Name">
+                    <Input
+                      value={`${String(revisedPrefix || '').trim()}${selectedDocumentNameParts.extension}`}
+                      readOnly
+                    />
+                  </Form.Item>
+                </Form>
+
+                <Space>
+                  <Button
+                    type="primary"
+                    loading={savingRevisionPlacementId === selectedPlacement.id}
+                    disabled={loading || deletingPlacementIds.has(selectedPlacement.id) || movingPlacementIds.has(selectedPlacement.id)}
+                    onClick={handleSaveRevision}
+                  >
+                    Save Revision
+                  </Button>
+                  <Button
+                    danger
+                    icon={<Trash2 size={14} />}
+                    loading={deletingPlacementIds.has(selectedPlacement.id)}
+                    disabled={loading || deletingPlacementIds.has(selectedPlacement.id) || movingPlacementIds.has(selectedPlacement.id)}
+                    onClick={() => confirmDeletePlacement(selectedPlacement.id, selectedPlacement.documentId)}
+                  >
+                    Delete
+                  </Button>
+                </Space>
+
+                <p className="text-xs text-gray-500">Delete removes mapping and physical file. Editing revision only changes the file prefix; extension remains unchanged.</p>
+              </div>
             )}
           </Card>
         </Col>
@@ -1099,6 +1233,10 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   const [deletingAppIds, setDeletingAppIds] = useState<Set<string>>(new Set());
   const [apps, setApps] = useState<Application[]>([]);
   const [appModalVisible, setAppModalVisible] = useState(false);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importingApplication, setImportingApplication] = useState(false);
+  const [importResult, setImportResult] = useState<ImportApplicationResult | null>(null);
+  const [importResultVisible, setImportResultVisible] = useState(false);
   const [appDeleteDialog, setAppDeleteDialog] = useState<{ open: boolean; appId: string | null; mode: DeleteMode }>({
     open: false,
     appId: null,
@@ -1113,6 +1251,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   const [appBatchSummary, setAppBatchSummary] = useState<BatchDeleteSummary | null>(null);
   const [appBatchSummaryOpen, setAppBatchSummaryOpen] = useState(false);
   const [form] = Form.useForm();
+  const [importForm] = Form.useForm();
 
   const fetchApps = async () => {
     setLoading(true);
@@ -1154,6 +1293,32 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
       form.resetFields();
       fetchApps();
     } catch (e: any) { message.error('Failed to create application: ' + e.message); }
+  };
+
+  const handleImportApplication = async () => {
+    try {
+      const values = await importForm.validateFields();
+      setImportingApplication(true);
+
+      const result = await importApplication({
+        workingDirectoryPath: values.workingDirectoryPath,
+        region: values.region,
+        sponsorName: values.sponsorName,
+      });
+
+      setImportResult(result);
+      setImportResultVisible(true);
+      setImportModalVisible(false);
+      importForm.resetFields();
+      await fetchApps();
+      message.success(`Application ${result.applicationNumber} imported.`);
+    } catch (error) {
+      if (error instanceof ApiRequestError || error instanceof Error) {
+        message.error(mapImportErrorToMessage(error));
+      }
+    } finally {
+      setImportingApplication(false);
+    }
   };
 
   const handleDeleteApp = async (id: string, mode: DeleteMode) => {
@@ -1288,6 +1453,15 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             批量删除
           </Button>
           <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setAppModalVisible(true)}>New Application</Button>
+          <Button
+            icon={<HardDrive size={16} className="mr-1"/>}
+            onClick={() => {
+              importForm.setFieldsValue({ region: 'US' });
+              setImportModalVisible(true);
+            }}
+          >
+            Import Application
+          </Button>
           <Button onClick={fetchApps} loading={loading}>Refresh</Button>
         </Space>
       </div>
@@ -1341,6 +1515,98 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             <Input prefix={<FolderOpen size={16} className="text-gray-400" />} placeholder="e.g. C:\eCTD_Submissions" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="Import Application"
+        open={importModalVisible}
+        onOk={() => { void handleImportApplication(); }}
+        onCancel={() => setImportModalVisible(false)}
+        okText="Import"
+        cancelText="Cancel"
+        confirmLoading={importingApplication}
+        destroyOnClose
+        width={680}
+      >
+        <Form form={importForm} layout="vertical" initialValues={{ region: 'US' }}>
+          <Form.Item
+            name="workingDirectoryPath"
+            label="Working Directory Path"
+            rules={[{ required: true, message: 'Please input working directory path.' }]}
+          >
+            <Input prefix={<FolderOpen size={16} className="text-gray-400" />} placeholder="e.g. D:\eCTD\IND-IMPORT-1" />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="region" label="Region" rules={[{ required: true }]}>
+                <Select options={[{ value: 'US', label: 'US FDA' }]} />
+              </Form.Item>
+            </Col>
+            <Col span={16}>
+              <Form.Item name="sponsorName" label="Sponsor Name" rules={[{ required: true, message: 'Please input sponsor name.' }]}>
+                <Input placeholder="e.g. Demo Sponsor" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Alert
+            type="info"
+            showIcon
+            message="The import reads sequences from the application workspace directory and parses each sequence index.xml."
+          />
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Import Result"
+        open={importResultVisible}
+        okText="Close"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        onOk={() => {
+          setImportResultVisible(false);
+          setImportResult(null);
+        }}
+        onCancel={() => {
+          setImportResultVisible(false);
+          setImportResult(null);
+        }}
+        width={860}
+      >
+        {importResult && (
+          <div className="flex flex-col gap-4">
+            <Row gutter={12}>
+              <Col span={8}><Card size="small"><Statistic title="Imported Sequences" value={importResult.importedSequenceCount} /></Card></Col>
+              <Col span={8}><Card size="small"><Statistic title="Imported Documents" value={importResult.importedDocumentCount} /></Card></Col>
+              <Col span={8}><Card size="small"><Statistic title="Imported Placements" value={importResult.importedPlacementCount} /></Card></Col>
+            </Row>
+            <Row gutter={12}>
+              <Col span={12}><Card size="small"><Statistic title="Skipped Sequences" value={importResult.skippedSequenceCount} /></Card></Col>
+              <Col span={12}><Card size="small"><Statistic title="Failed Sequences" value={importResult.failedSequenceCount} /></Card></Col>
+            </Row>
+
+            {(importResult.issues || []).length === 0 ? (
+              <Alert type="success" showIcon message="Import finished without warnings or errors." />
+            ) : (
+              <Table
+                size="small"
+                pagination={{ pageSize: 8 }}
+                rowKey={(_, index) => `issue-${index}`}
+                dataSource={importResult.issues}
+                columns={[
+                  {
+                    title: 'Severity',
+                    dataIndex: 'severity',
+                    key: 'severity',
+                    width: 110,
+                    render: (value: string) => <Tag color={String(value).toLowerCase() === 'error' ? 'red' : 'gold'}>{value}</Tag>,
+                  },
+                  { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
+                  { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'sequenceNumber', width: 130, render: (value?: string | null) => value || '-' },
+                  { title: 'Message', dataIndex: 'message', key: 'message' },
+                ]}
+              />
+            )}
+          </div>
+        )}
       </Modal>
 
       <Modal

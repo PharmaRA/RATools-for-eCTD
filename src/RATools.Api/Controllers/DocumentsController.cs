@@ -42,19 +42,26 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             return ValidationProblem(ModelState);
         }
 
-        await using var stream = request.File.OpenReadStream();
-        var created = await documentService.UploadAsync(
-            new UploadDocumentRequest
-            {
-                FileName = request.File.FileName,
-                MediaType = string.IsNullOrWhiteSpace(request.File.ContentType)
-                    ? "application/octet-stream"
-                    : request.File.ContentType,
-                Content = stream
-            },
-            cancellationToken);
+        try
+        {
+            await using var stream = request.File.OpenReadStream();
+            var created = await documentService.UploadAsync(
+                new UploadDocumentRequest
+                {
+                    FileName = request.File.FileName,
+                    MediaType = string.IsNullOrWhiteSpace(request.File.ContentType)
+                        ? "application/octet-stream"
+                        : request.File.ContentType,
+                    Content = stream
+                },
+                cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (DocumentFileValidationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost("/api/applications/{applicationId:guid}/sequences/{sequenceNumber}/documents/upload")]
@@ -92,6 +99,10 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         catch (DocumentSequenceUploadConfigurationException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+        catch (DocumentFileValidationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
         }
     }
 

@@ -66,4 +66,13 @@ public sealed class SubmissionDocument : Entity
         ArgumentException.ThrowIfNullOrWhiteSpace(storagePath);
         StoragePath = storagePath.Trim();
     }
+
+    public void ReviseFileMetadata(string fileName, string mediaType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mediaType);
+
+        FileName = fileName.Trim();
+        MediaType = mediaType.Trim();
+    }
 }

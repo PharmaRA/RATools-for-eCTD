@@ -30,11 +30,13 @@ public sealed class DocumentService(
 
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
     {
+        ValidateAllowedFileName(request.FileName);
+
         var storedFile = await fileStorage.SaveAsync(
             new FileUploadRequest
             {
                 FileName = request.FileName,
-                MediaType = request.MediaType,
+                MediaType = EctdDocumentFileRules.GetMediaType(request.FileName),
                 Content = request.Content
             },
             cancellationToken);
@@ -52,6 +54,8 @@ public sealed class DocumentService(
 
     public async Task<DocumentDto> UploadToSequenceAsync(Guid applicationId, string sequenceNumber, UploadSequenceDocumentRequest request, CancellationToken cancellationToken = default)
     {
+        ValidateAllowedFileName(request.FileName);
+
         var application = await applicationRepository.GetAsync(applicationId, cancellationToken)
             ?? throw new DocumentSequenceUploadTargetNotFoundException($"Application {applicationId} was not found.");
 
@@ -73,7 +77,7 @@ public sealed class DocumentService(
             new FileUploadRequest
             {
                 FileName = request.FileName,
-                MediaType = request.MediaType,
+                MediaType = EctdDocumentFileRules.GetMediaType(request.FileName),
                 DestinationDirectoryPath = destinationDirectory,
                 Content = request.Content
             },
@@ -140,6 +144,14 @@ public sealed class DocumentService(
         }
 
         return true;
+    }
+
+    private static void ValidateAllowedFileName(string fileName)
+    {
+        if (!EctdDocumentFileRules.IsAllowedFileName(fileName))
+        {
+            throw new DocumentFileValidationException($"File name '{fileName}' has an invalid or unsupported extension. {EctdDocumentFileRules.BuildAllowedExtensionsMessage()}");
+        }
     }
 
     private async Task TryDeleteEmptyWorkspaceFoldersAsync(string deletedFilePath, CancellationToken cancellationToken)
@@ -229,6 +241,8 @@ public sealed class DocumentService(
 public sealed class DocumentSequenceUploadTargetNotFoundException(string message) : Exception(message);
 
 public sealed class DocumentSequenceUploadConfigurationException(string message, Exception? innerException = null) : Exception(message, innerException);
+
+public sealed class DocumentFileValidationException(string message) : Exception(message);
 
 internal static class DocumentMapping
 {

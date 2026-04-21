@@ -165,6 +165,171 @@ public sealed class DocumentPlacementService(
         }
     }
 
+    public async Task<DocumentPlacementDto?> UpdateMetadataAsync(Guid id, UpdateDocumentPlacementMetadataRequest request, CancellationToken cancellationToken = default)
+    {
+        var placement = await placementRepository.GetAsync(id, cancellationToken);
+        if (placement is null)
+        {
+            return null;
+        }
+
+        var document = await documentRepository.GetAsync(placement.DocumentId, cancellationToken)
+            ?? throw new InvalidOperationException($"Document {placement.DocumentId} was not found.");
+
+        var normalizedPrefix = NormalizeAndValidatePrefix(request.FileNamePrefix);
+        var extension = Path.GetExtension(document.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            throw new InvalidOperationException($"Document {document.Id} file name does not contain a valid extension.");
+        }
+
+        var normalizedExtension = extension.ToLowerInvariant();
+        var targetFileName = normalizedPrefix + normalizedExtension;
+
+        var application = await applicationRepository.GetAsync(placement.ApplicationId, cancellationToken)
+            ?? throw new InvalidOperationException($"Application {placement.ApplicationId} was not found.");
+        var sourcePath = ResolveSourcePathForRename(document, application, placement.SequenceNumber);
+        if (!string.Equals(sourcePath, Path.GetFullPath(document.StoragePath), StringComparison.OrdinalIgnoreCase))
+        {
+            document.Relocate(sourcePath);
+        }
+        var sourceDirectory = Path.GetDirectoryName(sourcePath)
+            ?? throw new InvalidOperationException($"Document {document.Id} storage path does not have a parent directory.");
+        var targetPath = Path.Combine(sourceDirectory, targetFileName);
+        var movedStoragePath = sourcePath;
+
+        if (!string.Equals(sourcePath, Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase))
+        {
+            if (File.Exists(targetPath))
+            {
+                throw new InvalidOperationException($"A file named '{targetFileName}' already exists in this workspace folder.");
+            }
+
+            try
+            {
+                File.Move(sourcePath, targetPath);
+            }
+            catch (FileNotFoundException exception)
+            {
+                throw new InvalidOperationException($"Unable to rename workspace file because source workspace file '{sourcePath}' was not found.", exception);
+            }
+            catch (IOException exception)
+            {
+                throw new InvalidOperationException($"Unable to rename workspace file '{sourcePath}' to '{targetPath}'.", exception);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                throw new InvalidOperationException($"Unable to rename workspace file '{sourcePath}' due to insufficient permissions.", exception);
+            }
+
+            movedStoragePath = Path.GetFullPath(targetPath);
+            document.Relocate(movedStoragePath);
+        }
+
+        var mediaType = EctdDocumentFileRules.GetMediaType(targetFileName);
+        var originalTitle = placement.Title;
+        var originalFileName = document.FileName;
+        var originalMediaType = document.MediaType;
+
+        placement.ReviseTitle(request.Title);
+        document.ReviseFileMetadata(targetFileName, mediaType);
+
+        try
+        {
+            if (!await documentRepository.UpdateAsync(document, cancellationToken))
+            {
+                throw new InvalidOperationException($"Document {document.Id} could not be updated.");
+            }
+
+            if (!await placementRepository.UpdateAsync(placement, cancellationToken))
+            {
+                throw new InvalidOperationException($"Document placement {placement.Id} could not be updated.");
+            }
+
+            return placement.ToDto();
+        }
+        catch
+        {
+            placement.ReviseTitle(originalTitle);
+            document.ReviseFileMetadata(originalFileName, originalMediaType);
+            document.Relocate(sourcePath);
+
+            if (!string.Equals(sourcePath, movedStoragePath, StringComparison.OrdinalIgnoreCase)
+                && File.Exists(movedStoragePath)
+                && !File.Exists(sourcePath))
+            {
+                try
+                {
+                    File.Move(movedStoragePath, sourcePath);
+                }
+                catch
+                {
+                    // Keep original exception; best effort rollback for file rename.
+                }
+            }
+
+            throw;
+        }
+    }
+
+    private static string ResolveSourcePathForRename(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
+    {
+        var validatedPath = ValidateDocumentStoragePath(document, application, sequenceNumber);
+        if (File.Exists(validatedPath))
+        {
+            return validatedPath;
+        }
+
+        var directory = Path.GetDirectoryName(validatedPath);
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+        {
+            return validatedPath;
+        }
+
+        var extension = Path.GetExtension(document.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = Path.GetExtension(validatedPath);
+        }
+
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return validatedPath;
+        }
+
+        var candidates = Directory.EnumerateFiles(directory)
+            .Where(path => string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (candidates.Length == 1)
+        {
+            return Path.GetFullPath(candidates[0]);
+        }
+
+        if (candidates.Length > 1)
+        {
+            throw new InvalidOperationException($"Unable to resolve source workspace file for rename because multiple '{extension}' files exist in '{directory}'.");
+        }
+
+        return validatedPath;
+    }
+
+    private static string NormalizeAndValidatePrefix(string fileNamePrefix)
+    {
+        var normalized = fileNamePrefix?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new InvalidOperationException("File name prefix cannot be empty.");
+        }
+
+        if (normalized.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
+        {
+            throw new InvalidOperationException("File name prefix cannot contain path separators.");
+        }
+
+        return normalized;
+    }
+
     private static void TryDeleteEmptySourceFolders(string applicationWorkingDirectoryPath, string sequenceNumber, string sourceFilePath, string oldRelativeFolderPath)
     {
         try
