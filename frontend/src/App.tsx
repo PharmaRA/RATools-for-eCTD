@@ -30,6 +30,7 @@ import {
   mapImportErrorToMessage,
   type ImportApplicationResult,
 } from './importActions';
+import { createAndExecutePublishJob } from './publishActions';
 import {
   deletePlacementWithDocument,
   movePlacementToSection,
@@ -300,12 +301,14 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set());
   const [movingPlacementIds, setMovingPlacementIds] = useState<Set<string>>(new Set());
   const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById);
   }, [documentsById, ectdRoots, placements]);
 
   const [metadataForm] = Form.useForm();
+  const [publishForm] = Form.useForm();
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm);
 
   const selectedNode = useMemo(
@@ -557,29 +560,33 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
     }
   };
 
+  const openPublishModal = () => {
+    publishForm.setFieldsValue({
+      outputDirectoryPath: '',
+      validationProfile: 'US-FDA-v3.3',
+    });
+    setIsPublishModalOpen(true);
+  };
+
+  const handlePublishModalCancel = () => {
+    setIsPublishModalOpen(false);
+    publishForm.resetFields();
+  };
+
   const triggerPublish = async () => {
+    const values = await publishForm.validateFields();
     setPublishing(true);
     try {
-      const jobRes = await apiFetch('/api/publish-jobs', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          applicationId: appId, 
-          sequenceNumber: String(seqNumber).trim(),
-          validationProfile: 'US-FDA-v3.3'
-        })
-      });
-      
-      const targetJobId = jobRes.id || jobRes.publishJobId;
-      if (!targetJobId) throw new Error("Job created but no valid Job ID returned from the server.");
-
-      await apiFetch('/api/publish-jobs/execute', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publishJobId: targetJobId })
+      await createAndExecutePublishJob({
+        applicationId: appId,
+        sequenceNumber: String(seqNumber).trim(),
+        validationProfile: String(values.validationProfile || 'US-FDA-v3.3'),
+        outputDirectoryPath: String(values.outputDirectoryPath || '').trim(),
       });
       
       message.success('Publish job initiated successfully! Check History tab for results.');
+      setIsPublishModalOpen(false);
+      publishForm.resetFields();
       onBack();
     } catch (err: any) {
       message.error('Publish failed: ' + err.message);
@@ -600,10 +607,32 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
             </p>
           </div>
         </div>
-        <Button type="primary" icon={<PlayCircle size={16} className="mr-1"/>} loading={publishing} onClick={triggerPublish}>
+        <Button type="primary" icon={<PlayCircle size={16} className="mr-1"/>} loading={publishing} onClick={openPublishModal}>
           Publish Sequence
         </Button>
       </div>
+
+      <Modal
+        title="Publish Sequence"
+        open={isPublishModalOpen}
+        onCancel={handlePublishModalCancel}
+        onOk={triggerPublish}
+        confirmLoading={publishing}
+        destroyOnClose
+      >
+        <Form form={publishForm} layout="vertical" requiredMark={false}>
+          <Form.Item
+            name="outputDirectoryPath"
+            label="Export Directory"
+            rules={[{ required: true, message: 'Export directory is required.' }]}
+          >
+            <Input placeholder="E:\exports\submission-a" />
+          </Form.Item>
+          <Form.Item name="validationProfile" label="Validation Profile">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Row gutter={16}>
         <Col span={12}>

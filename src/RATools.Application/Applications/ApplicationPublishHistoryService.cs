@@ -1,6 +1,7 @@
 using System.Text.Json;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.Dtos;
+using RATools.Application.Publishing;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Validation.Dtos;
 
@@ -103,7 +104,7 @@ public sealed class ApplicationPublishHistoryService(
             return (null, false, false, null);
         }
 
-        var reportPath = Path.Combine(outputDirectory, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+        var reportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
         if (!File.Exists(reportPath))
         {
             return (null, false, false, null);

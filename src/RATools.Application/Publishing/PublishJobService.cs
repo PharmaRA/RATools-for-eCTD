@@ -93,7 +93,7 @@ public sealed class PublishJobService(
             throw new PublishJobReportUnavailableException($"Publish output directory for job {id} no longer exists.");
         }
 
-        var expectedReportPath = Path.Combine(outputDirectory, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+        var expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
         if (!File.Exists(expectedReportPath))
         {
             throw new PublishJobReportUnavailableException($"Publish report for job {id} was not found at '{expectedReportPath}'.");
@@ -126,7 +126,7 @@ public sealed class PublishJobService(
         var outputPath = job.OutputPath;
         var reportPath = outputPath is null
             ? null
-            : Path.Combine(Path.GetDirectoryName(outputPath) ?? string.Empty, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
 
         var artifacts = new List<PublishArtifactDto>
         {
@@ -188,7 +188,7 @@ public sealed class PublishJobService(
         var outputPath = job.OutputPath;
         var reportPath = outputPath is null
             ? null
-            : Path.Combine(Path.GetDirectoryName(outputPath) ?? string.Empty, $"publish-report-{job.SequenceNumber}-{job.Id:N}.json");
+            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
 
         if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
         {
@@ -358,6 +358,7 @@ public sealed class PublishJobService(
                 new GenerateBackboneRequest(
                     request.ApplicationId,
                     request.SequenceNumber,
+                    request.OutputDirectoryPath,
                     $"publish-report-{request.SequenceNumber}-{job.Id:N}.json",
                     $"{request.SequenceNumber}-{job.Id:N}.zip"),
                 cancellationToken);

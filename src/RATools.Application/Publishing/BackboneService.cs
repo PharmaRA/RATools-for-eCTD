@@ -57,8 +57,9 @@ public sealed class BackboneService(
         var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
         var xmlContent = document.ToString();
         var output = await backboneFileWriter.SaveAsync(
-            request.ApplicationId,
+            application.ApplicationNumber,
             request.SequenceNumber,
+            request.OutputDirectoryPath,
             "index.xml",
             xmlContent,
             request.ReportFileName,
@@ -136,7 +137,7 @@ public sealed class BackboneService(
             element.Add(new XElement(EctdNamespace + "leaf",
                 new XAttribute("id", placement.Id),
                 new XAttribute("operation", operation),
-                new XAttribute(XlinkNamespace + "href", BuildLeafHref(document)),
+                new XAttribute(XlinkNamespace + "href", BuildLeafHref(document, placement.SequenceNumber)),
                 new XAttribute(XlinkNamespace + "type", "simple"),
                 new XAttribute("checksum-type", "md5"),
                 new XElement(EctdNamespace + "title", placement.Title ?? document.FileName),
@@ -148,9 +149,9 @@ public sealed class BackboneService(
         return element;
     }
 
-    private static string BuildLeafHref(SubmissionDocument document)
+    private static string BuildLeafHref(SubmissionDocument document, string sequenceNumber)
     {
-        return PublishOutputNaming.BuildPublishedDocumentRelativePath(document);
+        return PublishOutputNaming.BuildPublishedDocumentRelativePath(document, sequenceNumber);
     }
 
     private static string BuildLeafChecksum(SubmissionDocument document)

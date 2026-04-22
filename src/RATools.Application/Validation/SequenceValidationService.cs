@@ -82,7 +82,7 @@ public sealed class SequenceValidationService(
         var referencedDocuments = documents.Where(x => referencedDocumentIds.Contains(x.Id)).ToArray();
 
         var duplicatePublishedPaths = referencedDocuments
-            .GroupBy(PublishOutputNaming.BuildPublishedDocumentRelativePath, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(document => PublishOutputNaming.BuildPublishedDocumentRelativePath(document, request.SequenceNumber), StringComparer.OrdinalIgnoreCase)
             .Where(x => x.Count() > 1)
             .ToArray();
 

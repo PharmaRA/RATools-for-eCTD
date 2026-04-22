@@ -5,8 +5,9 @@ namespace RATools.Application.Abstractions.Publishing;
 public interface IBackboneFileWriter
 {
     Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
-        Guid applicationId,
+        string applicationNumber,
         string sequenceNumber,
+        string outputDirectoryPath,
         string fileName,
         string content,
         string reportFileName,

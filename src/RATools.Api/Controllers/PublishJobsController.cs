@@ -85,7 +85,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         try
         {
             var created = await publishJobService.CreateAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath),
                 cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -102,7 +102,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         try
         {
             var report = await publishJobService.ExecuteAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath),
                 cancellationToken);
 
             return Ok(report);
