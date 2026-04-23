@@ -3,7 +3,6 @@ import { apiFetch } from './apiClient'
 export type CreateAndExecutePublishJobRequest = {
   applicationId: string
   sequenceNumber: string
-  validationProfile: string
   outputDirectoryPath: string
 }
 
@@ -14,7 +13,6 @@ export const createAndExecutePublishJob = async (
   const body = {
     applicationId: request.applicationId,
     sequenceNumber: request.sequenceNumber,
-    validationProfile: request.validationProfile,
     outputDirectoryPath: request.outputDirectoryPath,
   }
 

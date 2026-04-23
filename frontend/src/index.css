@@ -164,3 +164,13 @@
 .ectd-tree-node__tag {
   margin-inline-start: 0.1rem;
 }
+
+.selection-details-descriptions .ant-descriptions-view table {
+  table-layout: fixed;
+}
+
+.selection-details-descriptions .ant-descriptions-item-label {
+  width: 9rem;
+  min-width: 9rem;
+  white-space: nowrap;
+}

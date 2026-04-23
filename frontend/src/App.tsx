@@ -563,7 +563,6 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
   const openPublishModal = () => {
     publishForm.setFieldsValue({
       outputDirectoryPath: '',
-      validationProfile: 'US-FDA-v3.3',
     });
     setIsPublishModalOpen(true);
   };
@@ -580,7 +579,6 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
       await createAndExecutePublishJob({
         applicationId: appId,
         sequenceNumber: String(seqNumber).trim(),
-        validationProfile: String(values.validationProfile || 'US-FDA-v3.3'),
         outputDirectoryPath: String(values.outputDirectoryPath || '').trim(),
       });
       
@@ -627,9 +625,6 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
             rules={[{ required: true, message: 'Export directory is required.' }]}
           >
             <Input placeholder="E:\exports\submission-a" />
-          </Form.Item>
-          <Form.Item name="validationProfile" label="Validation Profile">
-            <Input />
           </Form.Item>
         </Form>
       </Modal>
@@ -810,7 +805,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
 
             {selectedNode?.nodeType === 'section' && (
               <div className="flex flex-col gap-4">
-                <Descriptions size="small" bordered column={1}>
+                <Descriptions size="small" bordered column={1} className="selection-details-descriptions">
                   <Descriptions.Item label="Section">{selectedNode.sectionPath}</Descriptions.Item>
                   <Descriptions.Item label="Display">{selectedNode.title}</Descriptions.Item>
                   <Descriptions.Item label="Leaf Node">{selectedNode.canDrop ? 'Yes' : 'No'}</Descriptions.Item>
@@ -830,7 +825,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
 
             {selectedNode?.nodeType === 'document' && selectedPlacement && selectedDocument && (
               <div className="flex flex-col gap-4">
-                <Descriptions size="small" bordered column={1}>
+                <Descriptions size="small" bordered column={1} className="selection-details-descriptions">
                   <Descriptions.Item label="Placement ID">{selectedPlacement.id}</Descriptions.Item>
                   <Descriptions.Item label="eCTD Section"><Tag>{selectedPlacement.ctdSection}</Tag></Descriptions.Item>
                   <Descriptions.Item label="Operation"><Tag color="blue">{selectedPlacement.operation}</Tag></Descriptions.Item>
@@ -1081,7 +1076,7 @@ const ApplicationDetailsView = ({ appId, appTitle, onBack, onOpenWorkspace }: { 
                     setSequenceBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false });
                   }}
                 >
-                  批量删除
+                  Batch Delete
                 </Button>
               <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setSeqModalVisible(true)}>
                 New Sequence
@@ -1479,7 +1474,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
               setAppBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false });
             }}
           >
-            批量删除
+            Batch Delete
           </Button>
           <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setAppModalVisible(true)}>New Application</Button>
           <Button

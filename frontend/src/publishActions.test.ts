@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createAndExecutePublishJob } from './publishActions'
 
 describe('publishActions', () => {
-  it('creates and executes a publish job using application, sequence, and output directory', async () => {
+  it('creates and executes a publish job using only application, sequence, and output directory', async () => {
     const request = vi
       .fn()
       .mockResolvedValueOnce({ id: 'job-1' })
@@ -12,7 +12,6 @@ describe('publishActions', () => {
     await createAndExecutePublishJob({
       applicationId: 'app-1',
       sequenceNumber: '0001',
-      validationProfile: 'US-FDA-v3.3',
       outputDirectoryPath: 'E:/exports/submission-a',
     }, request)
 
@@ -22,7 +21,6 @@ describe('publishActions', () => {
       body: JSON.stringify({
         applicationId: 'app-1',
         sequenceNumber: '0001',
-        validationProfile: 'US-FDA-v3.3',
         outputDirectoryPath: 'E:/exports/submission-a',
       }),
     })
@@ -33,7 +31,6 @@ describe('publishActions', () => {
       body: JSON.stringify({
         applicationId: 'app-1',
         sequenceNumber: '0001',
-        validationProfile: 'US-FDA-v3.3',
         outputDirectoryPath: 'E:/exports/submission-a',
       }),
     })
