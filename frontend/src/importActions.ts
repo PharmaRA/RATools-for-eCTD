@@ -2,7 +2,7 @@ import { ApiRequestError, apiFetch } from './apiClient'
 
 export type ImportApplicationRequest = {
   workingDirectoryPath: string
-  region: string
+  ectdTemplateKey: string
   sponsorName: string
 }
 

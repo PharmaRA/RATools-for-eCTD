@@ -2,6 +2,7 @@ using System.Xml;
 using System.Xml.Linq;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.Dtos;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Documents;
 using RATools.Domain.Applications;
@@ -17,8 +18,10 @@ public sealed class ApplicationImportService(
     public async Task<ApplicationImportResultDto> ImportAsync(ImportApplicationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(request.WorkingDirectoryPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Region);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.EctdTemplateKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.SponsorName);
+
+        var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
 
         var workingDirectoryPath = Path.GetFullPath(request.WorkingDirectoryPath);
         var applicationNumber = Path.GetFileName(workingDirectoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
@@ -33,7 +36,7 @@ public sealed class ApplicationImportService(
             throw new InvalidOperationException($"WORKING_DIRECTORY_NOT_FOUND: Working directory '{workingDirectoryPath}' does not exist.");
         }
 
-        var application = new SubmissionApplication(applicationNumber, request.Region, request.SponsorName, workingDirectoryPath);
+        var application = new SubmissionApplication(applicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);
         var issues = new List<ApplicationImportIssueDto>();
         var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
         var importedPlacements = new List<DocumentPlacement>();
@@ -71,16 +74,39 @@ public sealed class ApplicationImportService(
             }
         }
 
-        await applicationRepository.AddAsync(application, cancellationToken);
+        var persistedDocumentIds = new List<Guid>();
+        var persistedPlacementIds = new List<Guid>();
 
-        foreach (var document in importedDocuments.Values)
+        try
         {
-            await documentRepository.AddAsync(document, cancellationToken);
+            await applicationRepository.AddAsync(application, cancellationToken);
+
+            foreach (var document in importedDocuments.Values)
+            {
+                await documentRepository.AddAsync(document, cancellationToken);
+                persistedDocumentIds.Add(document.Id);
+            }
+
+            foreach (var placement in importedPlacements)
+            {
+                await placementRepository.AddAsync(placement, cancellationToken);
+                persistedPlacementIds.Add(placement.Id);
+            }
         }
-
-        foreach (var placement in importedPlacements)
+        catch
         {
-            await placementRepository.AddAsync(placement, cancellationToken);
+            foreach (var placementId in persistedPlacementIds)
+            {
+                await placementRepository.DeleteAsync(placementId, cancellationToken);
+            }
+
+            foreach (var documentId in persistedDocumentIds)
+            {
+                await documentRepository.DeleteAsync(documentId, cancellationToken);
+            }
+
+            await applicationRepository.DeleteAsync(application.Id, cancellationToken);
+            throw;
         }
 
         var importedSequenceCount = application.Sequences.Count;
@@ -124,6 +150,12 @@ public sealed class ApplicationImportService(
                 }
 
                 var resolvedPath = Path.GetFullPath(Path.Combine(sequenceRoot, href.Replace('/', Path.DirectorySeparatorChar)));
+                if (!IsPathInsideScope(resolvedPath, sequenceRoot))
+                {
+                    issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_OUTSIDE_WORKSPACE", sequenceNumber, $"File '{href}' resolves outside the sequence workspace."));
+                    return new SequenceImportResult(issues);
+                }
+
                 if (!File.Exists(resolvedPath))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_MISSING", sequenceNumber, $"File '{href}' referenced by index.xml was not found."));
@@ -185,6 +217,18 @@ public sealed class ApplicationImportService(
     }
 
     private static bool IsSequenceDirectory(string name) => name.Length == 4 && name.All(char.IsDigit);
+
+    private static bool IsPathInsideScope(string path, string scopeRoot)
+    {
+        var normalizedPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedScopeRoot = Path.GetFullPath(scopeRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.Equals(normalizedPath, normalizedScopeRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return normalizedPath.StartsWith(normalizedScopeRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string ExtractSectionPath(string elementName)
     {

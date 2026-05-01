@@ -1,6 +1,7 @@
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Applications.Dtos;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Domain.Applications;
 
@@ -15,12 +16,13 @@ public sealed class ApplicationService(
 
     public async Task<ApplicationDto> CreateAsync(CreateApplicationRequest request, CancellationToken cancellationToken = default)
     {
+        var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
         var workingDirectoryPath = await _workspaceService.EnsureApplicationWorkingDirectoryAsync(
             request.WorkingDirectoryParentPath,
             request.ApplicationNumber,
             cancellationToken);
 
-        var application = new SubmissionApplication(request.ApplicationNumber, request.Region, request.SponsorName, workingDirectoryPath);
+        var application = new SubmissionApplication(request.ApplicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);
         await repository.AddAsync(application, cancellationToken);
         return application.ToDto();
     }
@@ -110,6 +112,8 @@ internal static class ApplicationMapping
             application.SponsorName,
             application.WorkingDirectoryPath,
             application.CreatedUtc,
+            application.EctdTemplateKey,
+            EctdTemplateRegistry.Resolve(application.EctdTemplateKey).DisplayName,
             application.Sequences
                 .Select(x => new SequenceDto(
                     x.SequenceNumber,

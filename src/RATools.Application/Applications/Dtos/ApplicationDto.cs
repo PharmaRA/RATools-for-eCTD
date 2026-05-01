@@ -7,4 +7,6 @@ public sealed record ApplicationDto(
     string SponsorName,
     string WorkingDirectoryPath,
     DateTime CreatedUtc,
+    string EctdTemplateKey,
+    string EctdTemplateDisplayName,
     IReadOnlyCollection<SequenceDto> Sequences);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Applications;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 
 namespace RATools.Api.Controllers;
@@ -48,11 +49,18 @@ public sealed class ApplicationsController(
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequestBody request, CancellationToken cancellationToken)
     {
-        var created = await applicationService.CreateAsync(
-            new CreateApplicationRequest(request.ApplicationNumber, request.Region, request.SponsorName, request.WorkingDirectoryParentPath),
-            cancellationToken);
+        try
+        {
+            var created = await applicationService.CreateAsync(
+                new CreateApplicationRequest(request.ApplicationNumber, request.EctdTemplateKey, request.SponsorName, request.WorkingDirectoryParentPath),
+                cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (EctdTemplateNotFoundException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost("import")]
@@ -61,7 +69,7 @@ public sealed class ApplicationsController(
         try
         {
             var result = await applicationImportService.ImportAsync(
-                new ImportApplicationRequest(request.WorkingDirectoryPath, request.Region, request.SponsorName),
+                new ImportApplicationRequest(request.WorkingDirectoryPath, request.EctdTemplateKey, request.SponsorName),
                 cancellationToken);
 
             return Ok(result);
@@ -69,6 +77,10 @@ public sealed class ApplicationsController(
         catch (ApplicationImportConflictException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+        catch (EctdTemplateNotFoundException exception)
+        {
+            return BadRequest(new { message = exception.Message });
         }
         catch (InvalidOperationException exception)
         {

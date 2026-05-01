@@ -6,8 +6,13 @@ public sealed class SubmissionApplication : Entity
 {
     private readonly List<SubmissionSequence> _sequences = [];
 
-    public SubmissionApplication(string applicationNumber, string region, string sponsorName, string workingDirectoryPath)
-        : this(Guid.NewGuid(), applicationNumber, region, sponsorName, DateTime.UtcNow, [], workingDirectoryPath)
+    public SubmissionApplication(
+        string applicationNumber,
+        string region,
+        string sponsorName,
+        string workingDirectoryPath,
+        string ectdTemplateKey)
+        : this(Guid.NewGuid(), applicationNumber, region, sponsorName, DateTime.UtcNow, [], workingDirectoryPath, ectdTemplateKey)
     {
     }
 
@@ -18,18 +23,21 @@ public sealed class SubmissionApplication : Entity
         string sponsorName,
         DateTime createdUtc,
         IEnumerable<SubmissionSequence> sequences,
-        string workingDirectoryPath)
+        string workingDirectoryPath,
+        string ectdTemplateKey)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(region);
         ArgumentException.ThrowIfNullOrWhiteSpace(sponsorName);
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectoryPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ectdTemplateKey);
 
         Id = id;
         ApplicationNumber = applicationNumber.Trim();
         Region = region.Trim();
         SponsorName = sponsorName.Trim();
         WorkingDirectoryPath = workingDirectoryPath.Trim();
+        EctdTemplateKey = ectdTemplateKey.Trim();
         CreatedUtc = createdUtc;
         _sequences.AddRange(sequences);
     }
@@ -39,6 +47,8 @@ public sealed class SubmissionApplication : Entity
     public string Region { get; private set; }
 
     public string SponsorName { get; private set; }
+
+    public string EctdTemplateKey { get; private set; }
 
     public string WorkingDirectoryPath { get; private set; }
 
@@ -78,9 +88,9 @@ public sealed class SubmissionApplication : Entity
         string sponsorName,
         DateTime createdUtc,
         IEnumerable<SubmissionSequence> sequences,
-        string workingDirectoryPath)
+        string ectdTemplateKey)
     {
-        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, workingDirectoryPath);
+        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, $"workspace-{applicationNumber}", ectdTemplateKey);
     }
 
     public static SubmissionApplication Rehydrate(
@@ -89,8 +99,10 @@ public sealed class SubmissionApplication : Entity
         string region,
         string sponsorName,
         DateTime createdUtc,
-        IEnumerable<SubmissionSequence> sequences)
+        IEnumerable<SubmissionSequence> sequences,
+        string workingDirectoryPath,
+        string ectdTemplateKey)
     {
-        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, $"workspace-{applicationNumber}");
+        return new SubmissionApplication(id, applicationNumber, region, sponsorName, createdUtc, sequences, workingDirectoryPath, ectdTemplateKey);
     }
 }

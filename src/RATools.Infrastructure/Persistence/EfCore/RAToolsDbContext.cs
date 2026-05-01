@@ -23,6 +23,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.ToTable("applications");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.ApplicationNumber).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.EctdTemplateKey).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Region).HasMaxLength(32).IsRequired();
             entity.Property(x => x.SponsorName).HasMaxLength(256).IsRequired();
             entity.Property(x => x.WorkingDirectoryPath).HasMaxLength(1024).IsRequired();

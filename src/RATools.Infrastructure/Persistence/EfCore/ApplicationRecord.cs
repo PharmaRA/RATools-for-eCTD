@@ -10,6 +10,8 @@ public sealed class ApplicationRecord
 
     public string SponsorName { get; set; } = string.Empty;
 
+    public string EctdTemplateKey { get; set; } = string.Empty;
+
     public string WorkingDirectoryPath { get; set; } = string.Empty;
 
     public DateTime CreatedUtc { get; set; }

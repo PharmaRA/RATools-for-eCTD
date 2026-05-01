@@ -19,7 +19,7 @@ describe('importActions', () => {
 
     const result = await importApplication({
       workingDirectoryPath: 'D:\\work\\IND-IMPORT',
-      region: 'US',
+      ectdTemplateKey: 'us-fda-ectd-3-2-2',
       sponsorName: 'Demo Sponsor',
     }, request)
 
@@ -28,7 +28,7 @@ describe('importActions', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         workingDirectoryPath: 'D:\\work\\IND-IMPORT',
-        region: 'US',
+        ectdTemplateKey: 'us-fda-ectd-3-2-2',
         sponsorName: 'Demo Sponsor',
       }),
     })

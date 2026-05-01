@@ -26,11 +26,17 @@ import {
   type DeleteMode,
 } from './deleteActions';
 import {
-  importApplication,
   mapImportErrorToMessage,
   type ImportApplicationResult,
 } from './importActions';
 import { createAndExecutePublishJob } from './publishActions';
+import {
+  createApplication,
+  getDefaultEctdTemplateKey,
+  importApplicationWithTemplate,
+  loadEctdTemplates,
+  type EctdTemplateOption,
+} from './ectdTemplateActions';
 import {
   deletePlacementWithDocument,
   movePlacementToSection,
@@ -49,6 +55,8 @@ interface Application {
   id: string;
   applicationNumber: string;
   region: string;
+  ectdTemplateKey?: string;
+  ectdTemplateDisplayName?: string;
   sponsorName: string;
   workingDirectoryPath?: string; // [新增] 物理工作区路径
   createdUtc: string;
@@ -1276,6 +1284,8 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   const [appBatchSummaryOpen, setAppBatchSummaryOpen] = useState(false);
   const [form] = Form.useForm();
   const [importForm] = Form.useForm();
+  const [ectdTemplates, setEctdTemplates] = useState<EctdTemplateOption[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
 
   const fetchApps = async () => {
     setLoading(true);
@@ -1292,6 +1302,22 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
   useEffect(() => { fetchApps(); }, []);
 
   useEffect(() => {
+    const fetchTemplates = async () => {
+      setTemplatesLoading(true);
+      try {
+        const templates = await loadEctdTemplates();
+        setEctdTemplates(templates);
+      } catch (err: any) {
+        message.error('Failed to load eCTD templates: ' + err.message);
+      } finally {
+        setTemplatesLoading(false);
+      }
+    };
+
+    void fetchTemplates();
+  }, []);
+
+  useEffect(() => {
     const validAppIds = new Set(apps.map((app) => app.id));
     setSelectedAppKeys((current) => {
       const next = current.filter((key) => validAppIds.has(key));
@@ -1299,18 +1325,20 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
     });
   }, [apps]);
 
+  const defaultTemplateKey = getDefaultEctdTemplateKey(ectdTemplates);
+  const ectdTemplateOptions = ectdTemplates.map((template) => ({
+    value: template.key,
+    label: template.displayName,
+  }));
+
   const handleCreateApp = async () => {
     try {
       const values = await form.validateFields();
-      await apiFetch('/api/applications', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          applicationNumber: values.applicationNumber,
-          region: values.region,
-          sponsorName: values.sponsorName,
-          // 提交后端的最新字段名：父工作路径
-          workingDirectoryParentPath: values.workingDirectoryParentPath
-        })
+      await createApplication({
+        applicationNumber: values.applicationNumber,
+        ectdTemplateKey: values.ectdTemplateKey,
+        sponsorName: values.sponsorName,
+        workingDirectoryParentPath: values.workingDirectoryParentPath,
       });
       message.success('Application created with Workspace!');
       setAppModalVisible(false);
@@ -1324,9 +1352,9 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
       const values = await importForm.validateFields();
       setImportingApplication(true);
 
-      const result = await importApplication({
+      const result = await importApplicationWithTemplate({
         workingDirectoryPath: values.workingDirectoryPath,
-        region: values.region,
+        ectdTemplateKey: values.ectdTemplateKey,
         sponsorName: values.sponsorName,
       });
 
@@ -1476,11 +1504,20 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
           >
             Batch Delete
           </Button>
-          <Button type="primary" icon={<Plus size={16} className="mr-1"/>} onClick={() => setAppModalVisible(true)}>New Application</Button>
+          <Button
+            type="primary"
+            icon={<Plus size={16} className="mr-1"/>}
+            onClick={() => {
+              form.setFieldsValue({ ectdTemplateKey: defaultTemplateKey });
+              setAppModalVisible(true);
+            }}
+          >
+            New Application
+          </Button>
           <Button
             icon={<HardDrive size={16} className="mr-1"/>}
             onClick={() => {
-              importForm.setFieldsValue({ region: 'US' });
+              importForm.setFieldsValue({ ectdTemplateKey: defaultTemplateKey });
               setImportModalVisible(true);
             }}
           >
@@ -1508,7 +1545,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
       />
 
       <Modal title="Create New Application" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnClose width={600}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="applicationNumber" label="Application Number" rules={[{ required: true }]}>
@@ -1516,8 +1553,13 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="region" label="Region" initialValue="US">
-                <Select options={[{ value: 'US', label: 'US FDA' }, { value: 'EU', label: 'EMA' }]} />
+              <Form.Item
+                name="ectdTemplateKey"
+                label="eCTD Template"
+                initialValue={defaultTemplateKey}
+                rules={[{ required: true, message: 'Please select an eCTD template.' }]}
+              >
+                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="Select an eCTD template" />
               </Form.Item>
             </Col>
           </Row>
@@ -1552,7 +1594,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
         destroyOnClose
         width={680}
       >
-        <Form form={importForm} layout="vertical" initialValues={{ region: 'US' }}>
+        <Form form={importForm} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
           <Form.Item
             name="workingDirectoryPath"
             label="Working Directory Path"
@@ -1562,8 +1604,8 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
           </Form.Item>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="region" label="Region" rules={[{ required: true }]}>
-                <Select options={[{ value: 'US', label: 'US FDA' }]} />
+              <Form.Item name="ectdTemplateKey" label="eCTD Template" rules={[{ required: true, message: 'Please select an eCTD template.' }]}> 
+                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="Select an eCTD template" />
               </Form.Item>
             </Col>
             <Col span={16}>

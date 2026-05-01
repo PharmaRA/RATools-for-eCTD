@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Applications;
 
@@ -26,6 +27,7 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
         existing.ApplicationNumber = application.ApplicationNumber;
         existing.Region = application.Region;
         existing.SponsorName = application.SponsorName;
+        existing.EctdTemplateKey = application.EctdTemplateKey;
 
         var incomingByNumber = application.Sequences.ToDictionary(x => x.SequenceNumber, StringComparer.Ordinal);
         existing.Sequences.RemoveAll(x => !incomingByNumber.ContainsKey(x.SequenceNumber));
@@ -97,6 +99,7 @@ internal static class ApplicationRecordMapping
             ApplicationNumber = application.ApplicationNumber,
             Region = application.Region,
             SponsorName = application.SponsorName,
+            EctdTemplateKey = application.EctdTemplateKey,
             WorkingDirectoryPath = application.WorkingDirectoryPath,
             CreatedUtc = application.CreatedUtc,
             Sequences = application.Sequences.Select(x => new SequenceRecord
@@ -126,6 +129,9 @@ internal static class ApplicationRecordMapping
             sequences,
             string.IsNullOrWhiteSpace(record.WorkingDirectoryPath)
                 ? Path.Combine("workspace", record.ApplicationNumber)
-                : record.WorkingDirectoryPath);
+                : record.WorkingDirectoryPath,
+            string.IsNullOrWhiteSpace(record.EctdTemplateKey)
+                ? EctdTemplateRegistry.DefaultTemplateKey
+                : record.EctdTemplateKey);
     }
 }

@@ -10,7 +10,7 @@ public sealed class CreateApplicationRequestBody
 
     [Required]
     [StringLength(32, MinimumLength = 2)]
-    public string Region { get; init; } = string.Empty;
+    public string EctdTemplateKey { get; init; } = string.Empty;
 
     [Required]
     [StringLength(128, MinimumLength = 2)]
