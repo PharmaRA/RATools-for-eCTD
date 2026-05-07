@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
 using RATools.Application.Documents;
@@ -21,18 +22,20 @@ public sealed class SequenceValidationService(
         var issues = new List<ValidationIssueDto>();
         var sectionMatches = new List<ValidationSectionMatchDto>();
         var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
-        var normalizedProfileName = SectionDictionaryProfiles.NormalizeProfileName(validationProfileProvider.ProfileName);
-        var resolvedProfile = SectionDictionaryProfiles.ResolveByName(normalizedProfileName);
-        var profileName = resolvedProfile.Name;
-        var sectionDictionary = new SectionDictionary(resolvedProfile);
         var validationMode = validationProfileProvider.Mode;
 
         var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
         if (application is null)
         {
             issues.Add(new ValidationIssueDto("Error", "APP_NOT_FOUND", $"Application {request.ApplicationId} was not found."));
-            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, profileName, false, issues, sectionMatches, lifecycleMatches);
+            return new ValidationReportDto(request.ApplicationId, request.SequenceNumber, SectionDictionaryProfiles.CanonicalUsProfileName, false, issues, sectionMatches, lifecycleMatches);
         }
+
+        var template = EctdTemplateRegistry.Resolve(application.EctdTemplateKey);
+        var normalizedProfileName = SectionDictionaryProfiles.NormalizeProfileName(template.ValidationProfileName);
+        var resolvedProfile = SectionDictionaryProfiles.ResolveByName(normalizedProfileName);
+        var profileName = resolvedProfile.Name;
+        var sectionDictionary = new SectionDictionary(resolvedProfile);
 
         var sequence = application.Sequences.SingleOrDefault(x => x.SequenceNumber == request.SequenceNumber);
         if (sequence is null)

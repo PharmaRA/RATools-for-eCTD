@@ -409,7 +409,6 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
     setTreeLoading(true);
     setTreeError(null);
     try {
-      const app = await apiFetch(`/api/applications/${appId}`) as Application;
       const response = await apiFetch(`/api/applications/${appId}/ectd-structure`) as EctdStructureResponse;
       const roots = response.roots || [];
       setEctdRoots(roots);
