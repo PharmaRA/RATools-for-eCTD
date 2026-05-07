@@ -410,7 +410,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
     setTreeError(null);
     try {
       const app = await apiFetch(`/api/applications/${appId}`) as Application;
-      const response = await apiFetch(`/api/ectd-structure?region=${encodeURIComponent(app.region || 'US')}`) as EctdStructureResponse;
+      const response = await apiFetch(`/api/applications/${appId}/ectd-structure`) as EctdStructureResponse;
       const roots = response.roots || [];
       setEctdRoots(roots);
       setExpandedKeys(roots.map((node) => node.sectionPath));
