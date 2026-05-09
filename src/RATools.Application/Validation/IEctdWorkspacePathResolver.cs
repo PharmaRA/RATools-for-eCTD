@@ -2,7 +2,7 @@ namespace RATools.Application.Validation;
 
 public interface IEctdWorkspacePathResolver
 {
-    EctdWorkspacePathResolution Resolve(string region, string ctdSection);
+    EctdWorkspacePathResolution Resolve(string ectdTemplateKey, string ctdSection);
 }
 
 public sealed record EctdWorkspacePathResolution(

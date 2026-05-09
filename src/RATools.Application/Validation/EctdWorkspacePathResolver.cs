@@ -1,3 +1,4 @@
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Validation.Profiles;
 
 namespace RATools.Application.Validation;
@@ -6,11 +7,11 @@ public sealed class EctdWorkspacePathResolver : IEctdWorkspacePathResolver
 {
     private static readonly IReadOnlyDictionary<string, EctdWorkspacePathResolution> CanonicalWorkspaceFolders = FdaEctd322.CanonicalWorkspaceFolders;
 
-    public EctdWorkspacePathResolution Resolve(string region, string ctdSection)
+    public EctdWorkspacePathResolution Resolve(string ectdTemplateKey, string ctdSection)
     {
-        if (!string.Equals(region, "US", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(ectdTemplateKey, "us-fda-ectd-3.2.2", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Region '{region}' is not supported for workspace folder resolution.");
+            throw new InvalidOperationException($"eCTD template '{ectdTemplateKey}' is not supported for workspace folder resolution.");
         }
 
         var normalizedSection = ctdSection.Trim();

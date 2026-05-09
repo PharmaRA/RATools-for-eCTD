@@ -70,7 +70,7 @@ public sealed class DocumentService(
         }
 
         var sequenceDirectory = await workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, sequenceNumber, cancellationToken);
-        var folder = ResolveSequenceUploadFolder(application.Region, request.CtdSection);
+        var folder = ResolveSequenceUploadFolder(application.EctdTemplateKey, request.CtdSection);
         var destinationDirectory = Path.Combine(sequenceDirectory, folder.RelativeFolderPath);
 
         var storedFile = await fileStorage.SaveAsync(
@@ -94,11 +94,11 @@ public sealed class DocumentService(
         return document.ToDto();
     }
 
-    private EctdWorkspacePathResolution ResolveSequenceUploadFolder(string region, string ctdSection)
+    private EctdWorkspacePathResolution ResolveSequenceUploadFolder(string ectdTemplateKey, string ctdSection)
     {
         try
         {
-            return workspacePathResolver.Resolve(region, ctdSection);
+            return workspacePathResolver.Resolve(ectdTemplateKey, ctdSection);
         }
         catch (InvalidOperationException exception)
         {

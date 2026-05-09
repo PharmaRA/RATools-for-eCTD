@@ -82,8 +82,8 @@ public sealed class DocumentPlacementService(
 
         var originalStoragePath = ValidateDocumentStoragePath(document, application, placement.SequenceNumber);
 
-        var oldFolder = workspacePathResolver.Resolve(application.Region, placement.CtdSection);
-        var newFolder = workspacePathResolver.Resolve(application.Region, request.CtdSection);
+        var oldFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, placement.CtdSection);
+        var newFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, request.CtdSection);
         var originalSection = placement.CtdSection;
         string? movedStoragePath = null;
 
