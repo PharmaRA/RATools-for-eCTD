@@ -6,4 +6,5 @@ public sealed record EctdTemplateDefinition(
     string Region,
     string StandardName,
     string StandardVersion,
-    string ValidationProfileName);
+    string ValidationProfileName,
+    string DtdVersion);

@@ -12,7 +12,8 @@ public static class EctdTemplateRegistry
         "US",
         "eCTD",
         "3.2.2",
-        "fda-ectd-3.2-manual");
+        "fda-ectd-3.2-manual",
+        "3.2.2");
 
     public static IReadOnlyCollection<EctdTemplateDefinition> All { get; } = [Default];
 

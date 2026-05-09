@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using System.Security.Cryptography;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
+using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Requests;
 using RATools.Domain.Applications;
@@ -32,6 +33,8 @@ public sealed class BackboneService(
             throw new InvalidOperationException($"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
         }
 
+        var template = EctdTemplateRegistry.Resolve(application.EctdTemplateKey);
+
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
         var documents = await documentRepository.ListAsync(cancellationToken);
         var documentById = documents.ToDictionary(x => x.Id, x => x);
@@ -45,11 +48,11 @@ public sealed class BackboneService(
         var root = new XElement(EctdNamespace + "ectd",
             new XAttribute(XNamespace.Xmlns + "ectd", EctdNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
-            new XAttribute("dtd-version", "3.2.2"),
+            new XAttribute("dtd-version", template.DtdVersion),
             new XAttribute("applicationNumber", application.ApplicationNumber),
             new XAttribute("sequenceNumber", sequence.SequenceNumber),
             new XAttribute("submissionType", sequence.SubmissionType),
-            new XAttribute("region", application.Region),
+            new XAttribute("region", template.Region),
             new XElement(EctdNamespace + "applicant", application.SponsorName),
             new XElement(EctdNamespace + "sequenceDescription", sequence.Description),
             BuildSectionTree(placements, documentById));
