@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
+        services.AddSingleton<IServerDirectoryBrowser, LocalServerDirectoryBrowser>();
         services.AddSingleton<IWorkspaceDeletionService, WorkspaceDeletionService>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddSingleton<IValidationProfileProvider, ConfigurationValidationProfileProvider>();

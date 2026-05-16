@@ -46,6 +46,7 @@ import {
   tryParsePlacementDragPayload,
   WORKSPACE_PLACEMENT_DRAG_MIME,
 } from './workspaceActions';
+import { PathPicker } from './PathPicker';
 import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from './ectdFileTypes';
 
 // ==========================================
@@ -631,7 +632,7 @@ const SequenceWorkspace = ({ appId, seqNumber, onBack }: { appId: string, seqNum
             label="Export Directory"
             rules={[{ required: true, message: 'Export directory is required.' }]}
           >
-            <Input placeholder="E:\exports\submission-a" />
+            <PathPicker placeholder="e.g. C:/eCTD/exports" />
           </Form.Item>
         </Form>
       </Modal>
@@ -1577,7 +1578,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             } 
             rules={[{ required: true, message: 'Please specify the working directory parent path.' }]}
           >
-            <Input prefix={<FolderOpen size={16} className="text-gray-400" />} placeholder="e.g. C:\eCTD_Submissions" />
+            <PathPicker placeholder="e.g. C:/eCTD/workspaces" />
           </Form.Item>
         </Form>
       </Modal>
@@ -1599,7 +1600,7 @@ const ApplicationListView = ({ onSelectApp }: { onSelectApp: (id: string, title:
             label="Working Directory Path"
             rules={[{ required: true, message: 'Please input working directory path.' }]}
           >
-            <Input prefix={<FolderOpen size={16} className="text-gray-400" />} placeholder="e.g. D:\eCTD\IND-IMPORT-1" />
+            <PathPicker placeholder="e.g. C:/eCTD/workspaces/NDA123456" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={8}>
