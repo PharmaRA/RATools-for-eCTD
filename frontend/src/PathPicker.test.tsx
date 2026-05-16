@@ -149,6 +149,33 @@ describe('PathPicker', () => {
     unmount()
   })
 
+  it('shows a clearer message when the local API cannot be reached', async () => {
+    const provider = {
+      ...defaultProvider,
+      resolveDirectory: vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    }
+
+    const { unmount } = renderPathPicker({
+      value: 'E:/Temp',
+      onChange: vi.fn(),
+      provider,
+    })
+
+    const input = document.querySelector('input') as HTMLInputElement
+
+    act(() => {
+      setInputValue(input, 'E:/Temp/ratools-workspaces')
+      input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    })
+
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Directory path could not be resolved')
+    expect(document.body.textContent).toContain('Cannot reach the API server. If you are running locally, make sure the backend is running at http://localhost:5000.')
+
+    unmount()
+  })
+
   it('opens the directory browser when Browse is clicked', async () => {
     const provider = {
       ...defaultProvider,

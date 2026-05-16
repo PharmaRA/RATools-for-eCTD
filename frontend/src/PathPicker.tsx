@@ -15,6 +15,14 @@ export type PathPickerProps = {
 
 const defaultProvider = filesystemActions
 
+const mapDirectoryResolutionError = (caught: unknown) => {
+  if (caught instanceof TypeError && caught.message.includes('Failed to fetch')) {
+    return 'Cannot reach the API server. If you are running locally, make sure the backend is running at http://localhost:5000.'
+  }
+
+  return caught instanceof Error ? caught.message : 'Failed to resolve directory'
+}
+
 export const PathPicker = ({ value, onChange, placeholder, provider = defaultProvider }: PathPickerProps) => {
   const resolvedValue = value ?? ''
   const resolvedOnChange = onChange ?? (() => {})
@@ -60,7 +68,7 @@ export const PathPicker = ({ value, onChange, placeholder, provider = defaultPro
         return
       }
 
-      setError(caught instanceof Error ? caught.message : 'Failed to resolve directory')
+      setError(mapDirectoryResolutionError(caught))
       setDraftValue(resolvedValue)
     }
   }

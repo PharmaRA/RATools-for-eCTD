@@ -105,6 +105,8 @@ internal static class ApplicationMapping
 {
     public static ApplicationDto ToDto(this SubmissionApplication application)
     {
+        var ectdTemplateDisplayName = ResolveTemplateDisplayName(application.EctdTemplateKey);
+
         return new ApplicationDto(
             application.Id,
             application.ApplicationNumber,
@@ -113,7 +115,7 @@ internal static class ApplicationMapping
             application.WorkingDirectoryPath,
             application.CreatedUtc,
             application.EctdTemplateKey,
-            EctdTemplateRegistry.Resolve(application.EctdTemplateKey).DisplayName,
+            ectdTemplateDisplayName,
             application.Sequences
                 .Select(x => new SequenceDto(
                     x.SequenceNumber,
@@ -122,5 +124,17 @@ internal static class ApplicationMapping
                     Path.Combine(application.WorkingDirectoryPath, x.SequenceNumber),
                     x.CreatedUtc))
                 .ToArray());
+    }
+
+    private static string ResolveTemplateDisplayName(string ectdTemplateKey)
+    {
+        try
+        {
+            return EctdTemplateRegistry.Resolve(ectdTemplateKey).DisplayName;
+        }
+        catch (EctdTemplateNotFoundException)
+        {
+            return $"Unknown Template ({ectdTemplateKey})";
+        }
     }
 }

@@ -15,3 +15,4 @@ obj/
 /frontend/.vite/deps
 /.worktrees
 /worktrees
+/docs
