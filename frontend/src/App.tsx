@@ -103,6 +103,21 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getLifecycleIssueCount = (summary?: any) => {
+  if (!summary) return 0;
+  return (summary.replaceTargetNotFoundCount || 0)
+    + (summary.deleteTargetNotFoundCount || 0)
+    + (summary.appendTargetNotFoundCount || 0)
+    + (summary.ambiguousCount || 0)
+    + (summary.currentSequenceCount || 0);
+};
+
+const getReportAvailabilityLabel = (entry: any) => {
+  if (!entry?.reportAvailable) return 'Missing';
+  if (!entry?.reportReadable) return 'Unreadable';
+  return 'Available';
+};
+
 const getSectionAncestorKeys = (sectionPath: string) => {
   const segments = sectionPath.split('.').filter(Boolean);
   const keys: string[] = [];
@@ -176,6 +191,9 @@ const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => 
     return <Alert message={title} description={errorState.message} type={type} showIcon className="mt-4" />;
   };
 
+  const lifecycleIssueCount = getLifecycleIssueCount(report?.validationReport?.lifecycleSummary);
+  const lifecycleMatches = report?.validationReport?.lifecycleMatches || [];
+
   return (
     <Drawer title="Publish Report Details" placement="right" width={800} onClose={onClose} open={!!jobId}>
       {loading && <Spin className="w-full mt-10 flex justify-center" />}
@@ -200,7 +218,61 @@ const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => 
             <Descriptions.Item label="Errors">{report.errorCount}</Descriptions.Item>
             <Descriptions.Item label="Warnings">{report.warningCount}</Descriptions.Item>
           </Descriptions>
-          <Tabs defaultActiveKey="issues">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Card size="small" title="Integrity Summary">
+                <Descriptions size="small" column={1}>
+                  <Descriptions.Item label="Consistent">{report.integritySummary ? (report.integritySummary.isConsistent ? 'Yes' : 'No') : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Missing Files">{report.integritySummary?.missingFilesCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Missing Zip Entries">{report.integritySummary?.missingZipEntriesCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Mismatched Artifacts">{report.integritySummary?.mismatchedArtifactsCount ?? '-'}</Descriptions.Item>
+                </Descriptions>
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card size="small" title="Artifact Summary">
+                <Descriptions size="small" column={1}>
+                  <Descriptions.Item label="File Count">{report.artifactSummary?.fileCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Total Size">{report.artifactSummary ? formatBytes(report.artifactSummary.totalSizeBytes || 0) : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Package Size">{report.artifactSummary ? formatBytes(report.artifactSummary.packageSizeBytes || 0) : '-'}</Descriptions.Item>
+                </Descriptions>
+              </Card>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Card size="small" title="Audit Summary">
+                <Descriptions size="small" column={1}>
+                  <Descriptions.Item label="Publish Job Events">{report.auditSummary?.publishJobEventCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Validation Events">{report.auditSummary?.validationEventCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Latest Action">{report.auditSummary?.latestPublishJobAction ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Latest Event">{formatDate(report.auditSummary?.latestPublishJobEventUtc)}</Descriptions.Item>
+                </Descriptions>
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card size="small" title="Lifecycle Summary">
+                <Descriptions size="small" column={1}>
+                  <Descriptions.Item label="Matched">{report.validationReport?.lifecycleSummary?.matchedCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Issues">{lifecycleIssueCount}</Descriptions.Item>
+                  <Descriptions.Item label="Warning Summary">{report.warningSummary || '-'}</Descriptions.Item>
+                </Descriptions>
+              </Card>
+            </Col>
+          </Row>
+          <Tabs defaultActiveKey="lifecycle">
+            <Tabs.TabPane tab={`Lifecycle (${lifecycleMatches.length})`} key="lifecycle">
+              <Table dataSource={lifecycleMatches} rowKey={(record: any, i) => `${record.documentId}-${i}`} pagination={{ pageSize: 10 }} size="small"
+                columns={[
+                  { title: 'Operation', dataIndex: 'operation', width: 120 },
+                  { title: 'CTD Section', dataIndex: 'ctdSection', width: 120 },
+                  { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
+                  { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
+                  { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
+                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: (values: string[]) => values?.join(', ') || '-' },
+                ]}
+              />
+            </Tabs.TabPane>
             <Tabs.TabPane tab={`Validation Issues (${report.validationReport?.issues?.length || 0})`} key="issues">
               <Table dataSource={report.validationReport?.issues || []} rowKey={(_, i) => i + ''} pagination={{ pageSize: 10 }} size="small"
                 columns={[
@@ -248,6 +320,41 @@ const PublishHistoryTab = ({ appId }: { appId: string }) => {
     { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq' },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Badge status={getStatusColor(s) as any} text={s} /> },
     { title: 'Profile', dataIndex: 'validationProfile', key: 'profile' },
+    {
+      title: 'Validation', key: 'validation', width: 220,
+      render: (_: any, r: any) => (
+        <div>
+          <div>{`Errors: ${r.errorCount ?? 0}`}</div>
+          <div>{`Warnings: ${r.warningCount ?? 0}`}</div>
+          {r.warningSummary && <div className="text-gray-500 text-xs">{r.warningSummary}</div>}
+        </div>
+      )
+    },
+    {
+      title: 'Lifecycle', key: 'lifecycle', width: 160,
+      render: (_: any, r: any) => {
+        const issueCount = getLifecycleIssueCount(r.lifecycleSummary);
+        return issueCount === 0 ? 'All matched' : `${issueCount} issues`;
+      }
+    },
+    {
+      title: 'Artifacts', key: 'artifacts', width: 180,
+      render: (_: any, r: any) => (
+        <div>
+          <div>{r.artifactSummary ? `${r.artifactSummary.fileCount} files` : '-'}</div>
+          {r.artifactSummary && <div className="text-gray-500 text-xs">{formatBytes(r.artifactSummary.packageSizeBytes || 0)}</div>}
+        </div>
+      )
+    },
+    {
+      title: 'Report', key: 'report', width: 180,
+      render: (_: any, r: any) => (
+        <div>
+          <div>{getReportAvailabilityLabel(r)}</div>
+          {r.reportError && <div className="text-gray-500 text-xs">{r.reportError}</div>}
+        </div>
+      )
+    },
     { title: 'Created', dataIndex: 'createdUtc', key: 'created', render: formatDate },
     {
       title: 'Actions', key: 'actions', fixed: 'right' as const, width: 200,
@@ -267,6 +374,16 @@ const PublishHistoryTab = ({ appId }: { appId: string }) => {
           <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Completed Jobs" value={data.statusSummary.completedCount} valueStyle={{ color: '#3f8600' }} /></Card></Col>
           <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Failed Jobs" value={data.statusSummary.failedCount} valueStyle={{ color: '#cf1322' }} /></Card></Col>
           <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Running Jobs" value={data.statusSummary.runningCount} valueStyle={{ color: '#1677ff' }} /></Card></Col>
+        </Row>
+      )}
+      {data?.lifecycleSummary && (
+        <Row gutter={16}>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount} /></Card></Col>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount} /></Card></Col>
+          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount} /></Card></Col>
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">
