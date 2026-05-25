@@ -159,15 +159,16 @@ public sealed class BackboneService(
 
     private static string BuildLeafChecksum(SubmissionDocument document)
     {
-        if (File.Exists(document.StoragePath))
+        if (!File.Exists(document.StoragePath))
         {
-            using var stream = File.OpenRead(document.StoragePath);
-            using var md5 = MD5.Create();
-            var hash = md5.ComputeHash(stream);
-            return Convert.ToHexString(hash).ToLowerInvariant();
+            throw new InvalidOperationException(
+                $"Document '{document.FileName}' is missing at publish time: '{document.StoragePath}'.");
         }
 
-        return document.Sha256;
+        using var stream = File.OpenRead(document.StoragePath);
+        using var md5 = MD5.Create();
+        var hash = md5.ComputeHash(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static string MapOperation(DocumentPlacementOperation operation)

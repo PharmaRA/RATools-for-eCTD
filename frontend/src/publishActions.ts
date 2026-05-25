@@ -16,17 +16,9 @@ export const createAndExecutePublishJob = async (
     outputDirectoryPath: request.outputDirectoryPath,
   }
 
-  const jobRes = await executeRequest('/api/publish-jobs', {
+  return executeRequest('/api/publish-jobs/execute', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-
-  await executeRequest('/api/publish-jobs/execute', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  return jobRes
 }

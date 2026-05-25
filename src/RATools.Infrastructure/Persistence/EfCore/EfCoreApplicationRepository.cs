@@ -28,6 +28,7 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
         existing.Region = application.Region;
         existing.SponsorName = application.SponsorName;
         existing.EctdTemplateKey = application.EctdTemplateKey;
+        existing.WorkingDirectoryPath = application.WorkingDirectoryPath;
 
         var incomingByNumber = application.Sequences.ToDictionary(x => x.SequenceNumber, StringComparer.Ordinal);
         existing.Sequences.RemoveAll(x => !incomingByNumber.ContainsKey(x.SequenceNumber));

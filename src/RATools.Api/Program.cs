@@ -31,7 +31,7 @@ if (swaggerEnabled)
     app.UseSwaggerUI();
 }
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/", () => Results.Redirect(swaggerEnabled ? "/swagger" : "/health"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/version", () =>
 {
