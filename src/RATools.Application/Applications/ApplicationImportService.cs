@@ -1,6 +1,7 @@
 using System.Xml;
 using System.Xml.Linq;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
@@ -13,7 +14,8 @@ namespace RATools.Application.Applications;
 public sealed class ApplicationImportService(
     IApplicationRepository applicationRepository,
     IDocumentRepository documentRepository,
-    IDocumentPlacementRepository placementRepository) : IApplicationImportService
+    IDocumentPlacementRepository placementRepository,
+    IWorkspacePathPolicy workspacePathPolicy) : IApplicationImportService
 {
     public async Task<ApplicationImportResultDto> ImportAsync(ImportApplicationRequest request, CancellationToken cancellationToken = default)
     {
@@ -23,7 +25,7 @@ public sealed class ApplicationImportService(
 
         var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
 
-        var workingDirectoryPath = Path.GetFullPath(request.WorkingDirectoryPath);
+        var workingDirectoryPath = workspacePathPolicy.EnsureAllowed(request.WorkingDirectoryPath);
         var applicationNumber = Path.GetFileName(workingDirectoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         var existingApplications = await applicationRepository.ListAsync(cancellationToken);
         if (existingApplications.Any(x => x.ApplicationNumber == applicationNumber || string.Equals(x.WorkingDirectoryPath, workingDirectoryPath, StringComparison.OrdinalIgnoreCase)))
@@ -53,20 +55,21 @@ public sealed class ApplicationImportService(
 
         foreach (var sequenceDirectory in sequenceDirectories.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
         {
-            var sequenceNumber = Path.GetFileName(sequenceDirectory);
+            var normalizedSequenceDirectory = workspacePathPolicy.EnsureAllowed(sequenceDirectory);
+            var sequenceNumber = Path.GetFileName(normalizedSequenceDirectory);
             if (!IsSequenceDirectory(sequenceNumber))
             {
                 continue;
             }
 
-            var indexXmlPath = Path.Combine(sequenceDirectory, "index.xml");
+            var indexXmlPath = workspacePathPolicy.EnsureAllowed(Path.Combine(normalizedSequenceDirectory, "index.xml"));
             if (!File.Exists(indexXmlPath))
             {
                 issues.Add(new ApplicationImportIssueDto("Warning", "SEQUENCE_INDEX_MISSING", sequenceNumber, $"Sequence directory '{sequenceNumber}' does not contain index.xml and was skipped."));
                 continue;
             }
 
-            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, importedDocuments, importedPlacements, cancellationToken);
+            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, importedDocuments, importedPlacements, cancellationToken);
             if (parsed is not null)
             {
                 application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
@@ -129,6 +132,7 @@ public sealed class ApplicationImportService(
         SubmissionApplication application,
         string sequenceNumber,
         string indexXmlPath,
+        IWorkspacePathPolicy workspacePathPolicy,
         Dictionary<string, SubmissionDocument> importedDocuments,
         List<DocumentPlacement> importedPlacements,
         CancellationToken cancellationToken)
@@ -155,6 +159,10 @@ public sealed class ApplicationImportService(
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_OUTSIDE_WORKSPACE", sequenceNumber, $"File '{href}' resolves outside the sequence workspace."));
                     return new SequenceImportResult(issues);
                 }
+
+                var leafParentPath = Path.GetDirectoryName(resolvedPath)!;
+                workspacePathPolicy.EnsureAllowed(leafParentPath);
+                resolvedPath = workspacePathPolicy.EnsureAllowed(resolvedPath);
 
                 if (!File.Exists(resolvedPath))
                 {

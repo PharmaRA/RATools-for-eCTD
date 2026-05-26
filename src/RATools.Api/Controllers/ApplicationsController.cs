@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
+using RATools.Api.Security;
 using RATools.Application.Applications;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
@@ -12,7 +14,8 @@ namespace RATools.Api.Controllers;
 public sealed class ApplicationsController(
     IApplicationService applicationService,
     IApplicationImportService applicationImportService,
-    IApplicationPublishHistoryService publishHistoryService) : ControllerBase
+    IApplicationPublishHistoryService publishHistoryService,
+    IAuthorizationService authorizationService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
@@ -46,6 +49,7 @@ public sealed class ApplicationsController(
         return history is null ? NotFound() : Ok(history);
     }
 
+    [Authorize(Policy = SecurityPolicyNames.HighRiskFilesystemAccess)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequestBody request, CancellationToken cancellationToken)
     {
@@ -63,6 +67,7 @@ public sealed class ApplicationsController(
         }
     }
 
+    [Authorize(Policy = SecurityPolicyNames.HighRiskFilesystemAccess)]
     [HttpPost("import")]
     public async Task<IActionResult> Import([FromBody] ImportApplicationRequestBody request, CancellationToken cancellationToken)
     {
@@ -117,6 +122,11 @@ public sealed class ApplicationsController(
             return BadRequest(new { message = $"Unsupported deleteMode '{deleteMode}'." });
         }
 
+        if (!await IsPurgeAuthorizedAsync(deleteMode))
+        {
+            return Challenge(ApiKeyAuthenticationDefaults.AuthenticationScheme);
+        }
+
         try
         {
             var deleted = await applicationService.DeleteAsync(id, deleteMode, cancellationToken);
@@ -144,6 +154,11 @@ public sealed class ApplicationsController(
             return BadRequest(new { message = $"Unsupported deleteMode '{deleteMode}'." });
         }
 
+        if (!await IsPurgeAuthorizedAsync(deleteMode))
+        {
+            return Challenge(ApiKeyAuthenticationDefaults.AuthenticationScheme);
+        }
+
         try
         {
             var deleted = await applicationService.DeleteSequenceAsync(id, sequenceNumber, deleteMode, cancellationToken);
@@ -157,5 +172,16 @@ public sealed class ApplicationsController(
         {
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = exception.Message });
         }
+    }
+
+    private async Task<bool> IsPurgeAuthorizedAsync(ApplicationDeleteMode deleteMode)
+    {
+        if (deleteMode != ApplicationDeleteMode.PurgeWorkspace)
+        {
+            return true;
+        }
+
+        var result = await authorizationService.AuthorizeAsync(User, SecurityPolicyNames.HighRiskFilesystemAccess);
+        return result.Succeeded;
     }
 }

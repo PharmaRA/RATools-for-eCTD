@@ -1,9 +1,9 @@
-using System.Runtime.InteropServices;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 
 namespace RATools.Infrastructure.Storage;
 
-public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
+public sealed class LocalServerDirectoryBrowser(IWorkspacePathPolicy workspacePathPolicy) : IServerDirectoryBrowser
 {
     public DirectoryBrowseResult Browse(string? path)
     {
@@ -23,7 +23,7 @@ public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
 
             return new DirectoryBrowseResult(
                 resolved.FullPath,
-                GetParentPath(resolved.FullPath),
+                GetAllowedParentPath(resolved.FullPath),
                 entries);
         }
         catch (UnauthorizedAccessException exception)
@@ -40,7 +40,7 @@ public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var normalizedPath = Path.GetFullPath(path.Trim());
+        var normalizedPath = workspacePathPolicy.EnsureAllowed(path);
         if (File.Exists(normalizedPath))
         {
             throw new InvalidOperationException($"Path '{normalizedPath}' is a file, not a directory.");
@@ -68,26 +68,55 @@ public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
         return new DirectoryResolutionResult(normalizedPath, true, true, true);
     }
 
-    private static DirectoryBrowseResult BrowseRoot()
+    private DirectoryBrowseResult BrowseRoot()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        var allowedRoots = workspacePathPolicy.GetAllowedRoots();
+        if (allowedRoots.Count == 0)
         {
-            var entries = DriveInfo.GetDrives()
-                .Where(drive => drive.IsReady)
-                .Select(drive => new DirectoryBrowseEntry(drive.Name, drive.RootDirectory.FullName, true, true))
-                .OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            return new DirectoryBrowseResult(null, null, entries);
+            workspacePathPolicy.EnsureAllowed(Environment.CurrentDirectory);
         }
 
-        var rootPath = Path.GetPathRoot(Environment.CurrentDirectory) ?? Path.DirectorySeparatorChar.ToString();
-        return new LocalServerDirectoryBrowser().Browse(rootPath);
+        var entries = allowedRoots
+            .Select(CreateRootBrowseEntry)
+            .OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new DirectoryBrowseResult(null, null, entries);
     }
 
-    private static DirectoryBrowseEntry CreateBrowseEntry(string directoryPath)
+    private DirectoryBrowseEntry CreateRootBrowseEntry(string directoryPath)
     {
         var normalizedPath = Path.GetFullPath(directoryPath);
+        try
+        {
+            normalizedPath = workspacePathPolicy.EnsureAllowed(normalizedPath);
+        }
+        catch (InvalidOperationException)
+        {
+            return CreateInaccessibleEntry(normalizedPath);
+        }
+
+        if (Directory.Exists(normalizedPath))
+        {
+            return CreateBrowseEntry(normalizedPath);
+        }
+
+        return CreateInaccessibleEntry(normalizedPath);
+    }
+
+    private DirectoryBrowseEntry CreateBrowseEntry(string directoryPath)
+    {
+        string normalizedPath;
+        try
+        {
+            normalizedPath = workspacePathPolicy.EnsureAllowed(directoryPath);
+        }
+        catch (InvalidOperationException)
+        {
+            normalizedPath = Path.GetFullPath(directoryPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return CreateInaccessibleEntry(normalizedPath);
+        }
+
         var hasChildren = false;
 
         try
@@ -97,19 +126,11 @@ public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
         }
         catch (UnauthorizedAccessException)
         {
-            return new DirectoryBrowseEntry(
-                Path.GetFileName(Path.TrimEndingDirectorySeparator(normalizedPath)),
-                normalizedPath,
-                false,
-                false);
+            return CreateInaccessibleEntry(normalizedPath);
         }
         catch (IOException)
         {
-            return new DirectoryBrowseEntry(
-                Path.GetFileName(Path.TrimEndingDirectorySeparator(normalizedPath)),
-                normalizedPath,
-                false,
-                false);
+            return CreateInaccessibleEntry(normalizedPath);
         }
 
         return new DirectoryBrowseEntry(
@@ -119,10 +140,31 @@ public sealed class LocalServerDirectoryBrowser : IServerDirectoryBrowser
             hasChildren);
     }
 
-    private static string? GetParentPath(string fullPath)
+    private static DirectoryBrowseEntry CreateInaccessibleEntry(string normalizedPath)
+    {
+        return new DirectoryBrowseEntry(
+            Path.GetFileName(Path.TrimEndingDirectorySeparator(normalizedPath)),
+            normalizedPath,
+            false,
+            false);
+    }
+
+    private string? GetAllowedParentPath(string fullPath)
     {
         var normalizedPath = Path.TrimEndingDirectorySeparator(fullPath);
         var parent = Directory.GetParent(normalizedPath);
-        return parent?.FullName;
+        if (parent is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return workspacePathPolicy.EnsureAllowed(parent.FullName);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 }

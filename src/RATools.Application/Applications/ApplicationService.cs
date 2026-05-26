@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
@@ -10,6 +11,7 @@ namespace RATools.Application.Applications;
 public sealed class ApplicationService(
     IApplicationRepository repository,
     IApplicationDeletionCoordinator deletionCoordinator,
+    IWorkspacePathPolicy workspacePathPolicy,
     IApplicationWorkspaceService? workspaceService = null) : IApplicationService
 {
     private readonly IApplicationWorkspaceService _workspaceService = workspaceService ?? new DefaultApplicationWorkspaceService();
@@ -17,9 +19,15 @@ public sealed class ApplicationService(
     public async Task<ApplicationDto> CreateAsync(CreateApplicationRequest request, CancellationToken cancellationToken = default)
     {
         var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
+        var requestedWorkingDirectoryPath = Path.Combine(request.WorkingDirectoryParentPath, request.ApplicationNumber);
+        var allowedWorkingDirectoryPath = Path.TrimEndingDirectorySeparator(workspacePathPolicy.EnsureAllowed(requestedWorkingDirectoryPath));
+        var allowedParentPath = Path.GetDirectoryName(allowedWorkingDirectoryPath)
+            ?? throw new InvalidOperationException($"Unable to derive a parent directory for '{allowedWorkingDirectoryPath}'.");
+        var allowedApplicationNumber = Path.GetFileName(allowedWorkingDirectoryPath);
+
         var workingDirectoryPath = await _workspaceService.EnsureApplicationWorkingDirectoryAsync(
-            request.WorkingDirectoryParentPath,
-            request.ApplicationNumber,
+            allowedParentPath,
+            allowedApplicationNumber,
             cancellationToken);
 
         var application = new SubmissionApplication(request.ApplicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);

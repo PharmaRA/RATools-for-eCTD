@@ -9,7 +9,7 @@ public sealed class ApplicationWorkspaceService : IApplicationWorkspaceService
         ArgumentException.ThrowIfNullOrWhiteSpace(parentPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
 
-        var path = Path.Combine(parentPath.Trim(), applicationNumber.Trim());
+        var path = Path.Combine(parentPath, applicationNumber);
         Directory.CreateDirectory(path);
         return Task.FromResult(path);
     }
@@ -19,7 +19,7 @@ public sealed class ApplicationWorkspaceService : IApplicationWorkspaceService
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationWorkingDirectoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
 
-        var path = Path.Combine(applicationWorkingDirectoryPath.Trim(), sequenceNumber.Trim());
+        var path = Path.Combine(applicationWorkingDirectoryPath, sequenceNumber);
         Directory.CreateDirectory(path);
         return Task.FromResult(path);
     }
