@@ -55,6 +55,8 @@ Backend starter for an eCTD publishing system using a layered architecture.
 - Optional: clean publish output before run: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CleanPublishOutput`
 - Optional: inject warning scenarios to verify warningCount/warningSummary: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -InjectWarnings`
 - Optional: corrupt the persisted publish report to verify tolerant report/history handling: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CorruptReportAfterPublish`
+- `POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`.
+- `POST /api/publish-jobs/execute` creates and executes a publish job and returns `200 OK` with `PublishExecutionReportDto`.
 - The smoke test now uses `POST /api/publish-jobs/execute` and prints the unified publish report summary.
 - The smoke test uploads documents with `CtdSection=m1.1`, verifies storage under `m1\us\11-forms`, then reassigns a placement and verifies the file is physically moved into the new canonical folder.
 - The smoke test also round-trips `GET /api/publish-jobs/{id}/report` to verify persisted report retrieval.

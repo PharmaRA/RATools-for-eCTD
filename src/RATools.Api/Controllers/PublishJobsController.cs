@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Publishing;
+using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Requests;
 
 namespace RATools.Api.Controllers;
@@ -80,6 +81,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -97,6 +99,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpPost("execute")]
+    [ProducesResponseType(typeof(PublishExecutionReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Execute([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {
         try

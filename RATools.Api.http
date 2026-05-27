@@ -166,6 +166,7 @@ Content-Type: application/json
 
 ### Create publish job
 # @name createPublishJob
+# Response: 201 Created PublishJobDto
 POST {{host}}/api/publish-jobs
 Content-Type: application/json
 
@@ -176,6 +177,7 @@ Content-Type: application/json
 
 ### Execute publish and return unified report
 # @name executePublishJob
+# Response: 200 OK PublishExecutionReportDto
 POST {{host}}/api/publish-jobs/execute
 Content-Type: application/json
 
