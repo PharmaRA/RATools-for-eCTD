@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save, Trash2 
 import { apiFetch } from '../apiClient'
 import { PathPicker } from '../PathPicker'
 import { createAndExecutePublishJob } from '../publishActions'
+import { validateSequence, type ValidationReport } from '../validationActions'
 import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from '../ectdFileTypes'
 import {
   deletePlacementWithDocument,
@@ -27,7 +28,21 @@ import {
 } from '../workspaceTree'
 import { type EctdStructureResponse, getSectionAncestorKeys } from './appShared'
 
-export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: string, seqNumber: string, onBack: () => void }) => {
+type SequenceWorkspacePageProps = {
+  appId: string
+  seqNumber: string
+  onBack: () => void
+  validateSequenceProvider?: typeof validateSequence
+  createAndExecutePublishJobProvider?: typeof createAndExecutePublishJob
+}
+
+export const SequenceWorkspacePage = ({
+  appId,
+  seqNumber,
+  onBack,
+  validateSequenceProvider = validateSequence,
+  createAndExecutePublishJobProvider = createAndExecutePublishJob,
+}: SequenceWorkspacePageProps) => {
   const [placements, setPlacements] = useState<DocumentPlacementRecord[]>([])
   const [documentsById, setDocumentsById] = useState<Record<string, DocumentRecord>>({})
   const [loading, setLoading] = useState(false)
@@ -44,6 +59,7 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
   const [movingPlacementIds, setMovingPlacementIds] = useState<Set<string>>(new Set())
   const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null)
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
+  const [validationResult, setValidationResult] = useState<ValidationReport | null>(null)
 
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById)
@@ -89,6 +105,36 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
 
     return splitFileName(selectedDocument.fileName)
   }, [selectedDocument])
+
+  const validationSummary = useMemo(() => {
+    if (!validationResult) {
+      return null
+    }
+
+    const issueCount = validationResult.issues.length
+    const hasApiError = validationResult.issues.some((issue) => issue.code === 'API_ERROR')
+
+    if (validationResult.isValid) {
+      return {
+        severity: 'success' as const,
+        profile: validationResult.validationProfile,
+        issueCount,
+        hasApiError,
+        detailItems: [{ code: 'OK', message: 'No validation issues found.' }],
+      }
+    }
+
+    return {
+      severity: 'error' as const,
+      profile: validationResult.validationProfile,
+      issueCount,
+      hasApiError,
+      detailItems: validationResult.issues.map((issue) => ({
+        code: issue.code,
+        message: issue.message,
+      })),
+    }
+  }, [validationResult])
 
   useEffect(() => {
     if (!selectedNode || selectedNode.nodeType !== 'document' || !selectedPlacement || !selectedDocument) {
@@ -302,11 +348,40 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
     }
   }
 
-  const openPublishModal = () => {
-    publishForm.setFieldsValue({
-      outputDirectoryPath: '',
-    })
-    setIsPublishModalOpen(true)
+  const openPublishModal = async () => {
+    setPublishing(true)
+    setValidationResult(null)
+    setIsPublishModalOpen(false)
+    publishForm.resetFields()
+    try {
+      const validationResult = await validateSequenceProvider({
+        applicationId: appId,
+        sequenceNumber: String(seqNumber).trim(),
+      })
+
+      setValidationResult(validationResult)
+      if (!validationResult.isValid) {
+        return
+      }
+
+      publishForm.setFieldsValue({
+        outputDirectoryPath: '',
+      })
+      setIsPublishModalOpen(true)
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Unknown error'
+      setValidationResult({
+        applicationId: appId,
+        sequenceNumber: String(seqNumber).trim(),
+        validationProfile: 'Validation API',
+        isValid: false,
+        issues: [{ severity: 'Error', code: 'API_ERROR', message: errorMessage }],
+        sectionMatches: [],
+        lifecycleMatches: [],
+      })
+    } finally {
+      setPublishing(false)
+    }
   }
 
   const handlePublishModalCancel = () => {
@@ -318,9 +393,11 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
     const values = await publishForm.validateFields()
     setPublishing(true)
     try {
-      await createAndExecutePublishJob({
+      const sequenceNumber = String(seqNumber).trim()
+
+      await createAndExecutePublishJobProvider({
         applicationId: appId,
-        sequenceNumber: String(seqNumber).trim(),
+        sequenceNumber,
         outputDirectoryPath: String(values.outputDirectoryPath || '').trim(),
       })
 
@@ -334,6 +411,17 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
       setPublishing(false)
     }
   }
+
+  const validationIssueCountText = validationSummary
+    ? `${validationSummary.issueCount} ${validationSummary.issueCount === 1 ? 'issue' : 'issues'}`
+    : ''
+  const validationStatusText = validationSummary
+    ? validationSummary.severity === 'success'
+      ? 'Validation passed'
+      : validationSummary.hasApiError
+        ? 'Validation API error'
+        : 'Validation failed'
+    : ''
 
   return (
     <div className="flex flex-col gap-4">
@@ -370,6 +458,34 @@ export const SequenceWorkspacePage = ({ appId, seqNumber, onBack }: { appId: str
           </Form.Item>
         </Form>
       </Modal>
+
+      {validationSummary && (
+        <div data-testid="validation-summary" data-severity={validationSummary.severity}>
+          <Alert
+            type={validationSummary.severity}
+            showIcon
+            message={<span data-testid="validation-summary-title">{validationStatusText}</span>}
+            description={(
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap gap-2">
+                  <span data-testid="validation-summary-profile">{validationSummary.profile}</span>
+                  <span data-testid="validation-summary-issue-count">{validationIssueCountText}</span>
+                  <span data-testid="validation-summary-has-api-error">{validationSummary.hasApiError ? 'Yes' : 'No'}</span>
+                  <span data-testid="validation-summary-status-label">{validationStatusText}</span>
+                </div>
+                <div data-testid="validation-summary-details" className="flex flex-col gap-1">
+                  {validationSummary.detailItems.map((item) => (
+                    <div key={`${item.code}-${item.message}`}>
+                      {item.code !== 'OK' && <Tag color="red">{item.code}</Tag>}
+                      {item.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          />
+        </div>
+      )}
 
       <Row gutter={16}>
         <Col span={12}>
