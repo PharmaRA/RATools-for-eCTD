@@ -85,19 +85,19 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     <div className="flex flex-col gap-4">
       {data?.statusSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Completed Jobs" value={data.statusSummary.completedCount} valueStyle={{ color: '#3f8600' }} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Failed Jobs" value={data.statusSummary.failedCount} valueStyle={{ color: '#cf1322' }} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Running Jobs" value={data.statusSummary.runningCount} valueStyle={{ color: '#1677ff' }} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Completed Jobs" value={data.statusSummary.completedCount} styles={{ content: { color: '#3f8600' } }} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Failed Jobs" value={data.statusSummary.failedCount} styles={{ content: { color: '#cf1322' } }} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Running Jobs" value={data.statusSummary.runningCount} styles={{ content: { color: '#1677ff' } }} /></Card></Col>
         </Row>
       )}
       {data?.lifecycleSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount} /></Card></Col>
-          <Col span={8}><Card size="small" bordered className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount} /></Card></Col>
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">

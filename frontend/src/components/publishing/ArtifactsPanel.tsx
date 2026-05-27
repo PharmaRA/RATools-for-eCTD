@@ -35,7 +35,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
   ]
 
   return (
-    <Drawer title="Publish Artifacts" placement="right" width={600} onClose={onClose} open={!!jobId}>
+    <Drawer title="Publish Artifacts" placement="right" size={600} onClose={onClose} open={!!jobId}>
       {loading ? <Spin className="w-full mt-10 flex justify-center" /> : <Table dataSource={artifacts} columns={columns} rowKey="name" pagination={false} size="small" />}
     </Drawer>
   )

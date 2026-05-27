@@ -1,13 +1,13 @@
 import { apiFetch } from './apiClient'
 
-export type CreateAndExecutePublishJobRequest = {
+export type ExecutePublishJobRequest = {
   applicationId: string
   sequenceNumber: string
   outputDirectoryPath: string
 }
 
-export const createAndExecutePublishJob = async (
-  request: CreateAndExecutePublishJobRequest,
+export const executePublishJob = async (
+  request: ExecutePublishJobRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
   const body = {
@@ -22,3 +22,7 @@ export const createAndExecutePublishJob = async (
     body: JSON.stringify(body),
   })
 }
+
+export type CreateAndExecutePublishJobRequest = ExecutePublishJobRequest
+
+export const createAndExecutePublishJob = executePublishJob

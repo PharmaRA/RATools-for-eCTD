@@ -446,7 +446,7 @@ export const SequenceWorkspacePage = ({
         onCancel={handlePublishModalCancel}
         onOk={triggerPublish}
         confirmLoading={publishing}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={publishForm} layout="vertical" requiredMark={false}>
           <Form.Item
@@ -464,7 +464,7 @@ export const SequenceWorkspacePage = ({
           <Alert
             type={validationSummary.severity}
             showIcon
-            message={<span data-testid="validation-summary-title">{validationStatusText}</span>}
+            title={<span data-testid="validation-summary-title">{validationStatusText}</span>}
             description={(
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap gap-2">
@@ -490,7 +490,7 @@ export const SequenceWorkspacePage = ({
       <Row gutter={16}>
         <Col span={12}>
           <Card title="eCTD Structure (Drag & Drop files here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
-            {treeError && <Alert type="error" showIcon className="mb-3" message="Failed to load eCTD structure" description={treeError} />}
+            {treeError && <Alert type="error" showIcon className="mb-3" title="Failed to load eCTD structure" description={treeError} />}
             <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it. Allowed extensions: {ectdAllowedExtensionsHint}</p>
             <Spin spinning={loading || treeLoading}>
               <Tree
@@ -673,7 +673,7 @@ export const SequenceWorkspacePage = ({
                 <Alert
                   type="info"
                   showIcon
-                  message="Leaf Element Data Entry (Reserved)"
+                  title="Leaf Element Data Entry (Reserved)"
                   description="This section is reserved for future leaf element data entry fields."
                 />
 

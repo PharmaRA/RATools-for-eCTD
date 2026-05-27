@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createAndExecutePublishJob } from './publishActions'
+import { executePublishJob } from './publishActions'
 
 describe('publishActions', () => {
   it('executes a publish job using only application, sequence, and output directory', async () => {
@@ -8,7 +8,7 @@ describe('publishActions', () => {
       .fn()
       .mockResolvedValueOnce({ succeeded: true })
 
-    await createAndExecutePublishJob({
+    await executePublishJob({
       applicationId: 'app-1',
       sequenceNumber: '0001',
       outputDirectoryPath: 'E:/exports/submission-a',

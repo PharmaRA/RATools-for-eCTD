@@ -16,3 +16,4 @@ obj/
 /.worktrees
 /worktrees
 /docs
+/scripts/tests

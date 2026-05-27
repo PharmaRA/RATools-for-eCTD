@@ -29,14 +29,14 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
     if (errorState.status === 409) { title = '任务未完成 (409)'; type = 'info' }
     if (errorState.status === 410) { title = '报告文件已缺失 (410)'; type = 'warning' }
     if (errorState.status === 422) { title = '报告已损坏 (422)'; type = 'error' }
-    return <Alert message={title} description={errorState.message} type={type} showIcon className="mt-4" />
+    return <Alert title={title} description={errorState.message} type={type} showIcon className="mt-4" />
   }
 
   const lifecycleIssueCount = getLifecycleIssueCount(report?.validationReport?.lifecycleSummary)
   const lifecycleMatches = report?.validationReport?.lifecycleMatches || []
 
   return (
-    <Drawer title="Publish Report Details" placement="right" width={800} onClose={onClose} open={!!jobId}>
+    <Drawer title="Publish Report Details" placement="right" size={800} onClose={onClose} open={!!jobId}>
       {loading && <Spin className="w-full mt-10 flex justify-center" />}
       {renderError()}
       {report && (
@@ -101,8 +101,13 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </Card>
             </Col>
           </Row>
-          <Tabs defaultActiveKey="lifecycle">
-            <Tabs.TabPane tab={`Lifecycle (${lifecycleMatches.length})`} key="lifecycle">
+          <Tabs
+            defaultActiveKey="lifecycle"
+            items={[
+              {
+                key: 'lifecycle',
+                label: `Lifecycle (${lifecycleMatches.length})`,
+                children: (
               <Table dataSource={lifecycleMatches} rowKey={(record: any, i) => `${record.documentId}-${i}`} pagination={{ pageSize: 10 }} size="small"
                 columns={[
                   { title: 'Operation', dataIndex: 'operation', width: 120 },
@@ -113,8 +118,12 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: (values: string[]) => values?.join(', ') || '-' },
                 ]}
               />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={`Validation Issues (${report.validationReport?.issues?.length || 0})`} key="issues">
+                ),
+              },
+              {
+                key: 'issues',
+                label: `Validation Issues (${report.validationReport?.issues?.length || 0})`,
+                children: (
               <Table dataSource={report.validationReport?.issues || []} rowKey={(_, i) => i + ''} pagination={{ pageSize: 10 }} size="small"
                 columns={[
                   { title: 'Severity', dataIndex: 'severity', render: (s: string) => <Tag color={s === 'Error' ? 'red' : 'orange'}>{s}</Tag>, width: 100 },
@@ -122,8 +131,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   { title: 'Message', dataIndex: 'message' },
                 ]}
               />
-            </Tabs.TabPane>
-          </Tabs>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Drawer>

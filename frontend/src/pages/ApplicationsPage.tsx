@@ -294,7 +294,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         }}
       />
 
-      <Modal title="Create New Application" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnClose width={600}>
+      <Modal title="Create New Application" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnHidden width={600}>
         <Form form={form} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -306,7 +306,6 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               <Form.Item
                 name="ectdTemplateKey"
                 label="eCTD Template"
-                initialValue={defaultTemplateKey}
                 rules={[{ required: true, message: 'Please select an eCTD template.' }]}
               >
                 <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="Select an eCTD template" />
@@ -341,7 +340,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         okText="Import"
         cancelText="Cancel"
         confirmLoading={importingApplication}
-        destroyOnClose
+        destroyOnHidden
         width={680}
       >
         <Form form={importForm} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
@@ -367,7 +366,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
           <Alert
             type="info"
             showIcon
-            message="The import reads sequences from the application workspace directory and parses each sequence index.xml."
+            title="The import reads sequences from the application workspace directory and parses each sequence index.xml."
           />
         </Form>
       </Modal>
@@ -400,7 +399,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
             </Row>
 
             {(importResult.issues || []).length === 0 ? (
-              <Alert type="success" showIcon message="Import finished without warnings or errors." />
+              <Alert type="success" showIcon title="Import finished without warnings or errors." />
             ) : (
               <Table
                 size="small"
@@ -454,7 +453,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
             <Alert
               type="warning"
               showIcon
-              message="purgeWorkspace 是破坏性操作，无法撤销。"
+              title="purgeWorkspace 是破坏性操作，无法撤销。"
             />
           )}
         </div>
@@ -491,7 +490,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
             <Alert
               type="warning"
               showIcon
-              message="purgeWorkspace 是破坏性操作，无法撤销。"
+              title="purgeWorkspace 是破坏性操作，无法撤销。"
             />
           )}
         </div>
@@ -515,7 +514,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                   key={result.key}
                   type="error"
                   showIcon
-                  message={`${result.label}: ${result.outcome.message}`}
+                  title={`${result.label}: ${result.outcome.message}`}
                 />
               ))}
             </div>

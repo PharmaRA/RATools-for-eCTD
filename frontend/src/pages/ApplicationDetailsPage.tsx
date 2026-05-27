@@ -150,6 +150,82 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0
   const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning
   const appTitle = appData ? `${appData.applicationNumber} (${appData.sponsorName})` : appId
+  const tabItems = [
+    {
+      key: 'sequences',
+      label: 'Sequences',
+      children: (
+        <>
+          <div className="mb-4 flex justify-end">
+            <Space>
+              <Button
+                danger
+                icon={<Trash2 size={14} className="mr-1" />}
+                disabled={!canStartBatchDelete}
+                loading={sequenceBatchDeleteDialog.running}
+                onClick={() => {
+                  if (hasSingleSequenceDeleteRunning) {
+                    return
+                  }
+                  setSequenceBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false })
+                }}
+              >
+                Batch Delete
+              </Button>
+              <Button type="primary" icon={<Plus size={16} className="mr-1" />} onClick={() => setSeqModalVisible(true)}>
+                New Sequence
+              </Button>
+            </Space>
+          </div>
+          <Table
+            loading={loading}
+            dataSource={appData?.sequences || []}
+            rowKey="sequenceNumber"
+            size="middle"
+            rowSelection={{
+              selectedRowKeys: selectedSequenceKeys,
+              onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(nextSelectedRowKeys.map((key) => String(key))),
+              getCheckboxProps: (record: any) => ({
+                disabled: sequenceBatchDeleteDialog.running || deletingSequenceNumbers.has(String(record.sequenceNumber)),
+              }),
+            }}
+            pagination={{
+              onChange: () => setSelectedSequenceKeys([]),
+            }}
+            columns={[
+              { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
+              { title: 'Submission Type', dataIndex: 'submissionType' },
+              { title: 'Description', dataIndex: 'description' },
+              {
+                title: 'Actions', key: 'actions', render: (_: any, r: any) => (
+                  <Space>
+                    <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
+                      Enter Workspace
+                    </Button>
+                    <Button
+                      danger
+                      type="text"
+                      size="small"
+                      icon={<Trash2 size={14} />}
+                      title="Delete Sequence"
+                      loading={deletingSequenceNumbers.has(r.sequenceNumber)}
+                      disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
+                      onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
+                    />
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </>
+      ),
+    },
+    {
+      key: 'history',
+      label: 'Publish History',
+      children: <PublishHistoryTab appId={appId} />,
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-4">
@@ -175,77 +251,10 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
       </div>
 
       <div className="bg-white p-4 rounded shadow-sm border border-gray-200">
-        <Tabs defaultActiveKey="sequences">
-          <Tabs.TabPane tab="Sequences" key="sequences">
-            <div className="mb-4 flex justify-end">
-              <Space>
-                <Button
-                  danger
-                  icon={<Trash2 size={14} className="mr-1" />}
-                  disabled={!canStartBatchDelete}
-                  loading={sequenceBatchDeleteDialog.running}
-                  onClick={() => {
-                    if (hasSingleSequenceDeleteRunning) {
-                      return
-                    }
-                    setSequenceBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false })
-                  }}
-                >
-                  Batch Delete
-                </Button>
-                <Button type="primary" icon={<Plus size={16} className="mr-1" />} onClick={() => setSeqModalVisible(true)}>
-                  New Sequence
-                </Button>
-              </Space>
-            </div>
-            <Table
-              loading={loading}
-              dataSource={appData?.sequences || []}
-              rowKey="sequenceNumber"
-              size="middle"
-              rowSelection={{
-                selectedRowKeys: selectedSequenceKeys,
-                onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(nextSelectedRowKeys.map((key) => String(key))),
-                getCheckboxProps: (record: any) => ({
-                  disabled: sequenceBatchDeleteDialog.running || deletingSequenceNumbers.has(String(record.sequenceNumber)),
-                }),
-              }}
-              pagination={{
-                onChange: () => setSelectedSequenceKeys([]),
-              }}
-              columns={[
-                { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
-                { title: 'Submission Type', dataIndex: 'submissionType' },
-                { title: 'Description', dataIndex: 'description' },
-                {
-                  title: 'Actions', key: 'actions', render: (_: any, r: any) => (
-                    <Space>
-                      <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
-                        Enter Workspace
-                      </Button>
-                      <Button
-                        danger
-                        type="text"
-                        size="small"
-                        icon={<Trash2 size={14} />}
-                        title="Delete Sequence"
-                        loading={deletingSequenceNumbers.has(r.sequenceNumber)}
-                        disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
-                        onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
-                      />
-                    </Space>
-                  ),
-                },
-              ]}
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="Publish History" key="history">
-            <PublishHistoryTab appId={appId} />
-          </Tabs.TabPane>
-        </Tabs>
+        <Tabs defaultActiveKey="sequences" items={tabItems} />
       </div>
 
-      <Modal title="Create New Sequence" open={seqModalVisible} onOk={handleCreateSequence} onCancel={() => setSeqModalVisible(false)} destroyOnClose>
+      <Modal title="Create New Sequence" open={seqModalVisible} onOk={handleCreateSequence} onCancel={() => setSeqModalVisible(false)} destroyOnHidden>
         <Form form={form} layout="vertical">
           <Form.Item name="sequenceNumber" label="Sequence Number" initialValue="0000" rules={[{ required: true }]}>
             <Input placeholder="0000" />
@@ -291,7 +300,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             <Alert
               type="warning"
               showIcon
-              message="purgeWorkspace 是破坏性操作，无法撤销。"
+              title="purgeWorkspace 是破坏性操作，无法撤销。"
             />
           )}
         </div>
@@ -328,7 +337,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             <Alert
               type="warning"
               showIcon
-              message="purgeWorkspace 是破坏性操作，无法撤销。"
+              title="purgeWorkspace 是破坏性操作，无法撤销。"
             />
           )}
         </div>
@@ -352,7 +361,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
                   key={result.key}
                   type="error"
                   showIcon
-                  message={`${result.label}: ${result.outcome.message}`}
+                  title={`${result.label}: ${result.outcome.message}`}
                 />
               ))}
             </div>
