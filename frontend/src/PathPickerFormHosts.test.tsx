@@ -2,12 +2,45 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('antd', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('antd')>()
+
+  return {
+    ...actual,
+    message: {
+      success: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      warning: vi.fn(),
+      loading: vi.fn(),
+    },
+  }
+})
+
 import App from './App'
 
 const flushPromises = async () => {
   await act(async () => {
     await Promise.resolve()
   })
+}
+
+const waitFor = async (assertion: () => void) => {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      assertion()
+      return
+    } catch (error) {
+      lastError = error
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+    }
+  }
+
+  throw lastError
 }
 
 const renderApp = () => {
@@ -45,29 +78,6 @@ const clickPrimaryModalButton = () => {
   act(() => {
     element!.click()
   })
-}
-
-if (!window.matchMedia) {
-  window.matchMedia = ((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia
-}
-
-if (!globalThis.ResizeObserver) {
-  class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-
-  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 }
 
 const setInputValue = (input: HTMLInputElement, value: string) => {
@@ -195,7 +205,7 @@ describe('PathPicker form hosts', () => {
     unmount()
   })
 
-  it('submits publish sequence with outputDirectoryPath', async () => {
+  it('validates then submits publish sequence with outputDirectoryPath', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, options?: RequestInit) => {
       if (url === '/health') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
@@ -216,7 +226,22 @@ describe('PathPicker form hosts', () => {
         ]) })
       }
 
-      if (url === '/api/publish-jobs') {
+      if (url === '/api/validation/sequence') {
+        return Promise.resolve({
+          ok: true,
+          json: vi.fn().mockResolvedValue({
+            applicationId: 'app-1',
+            sequenceNumber: '0000',
+            validationProfile: 'US FDA eCTD 3.2.2',
+            isValid: true,
+            issues: [],
+            sectionMatches: [],
+            lifecycleMatches: [],
+          }),
+        })
+      }
+
+      if (url === '/api/publish-jobs/execute') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
       }
 
@@ -233,6 +258,10 @@ describe('PathPicker form hosts', () => {
     await flushPromises()
     clickByText('Publish Sequence')
 
+    await waitFor(() => {
+      getInputByPlaceholder('e.g. C:/eCTD/exports')
+    })
+
     const input = getInputByPlaceholder('e.g. C:/eCTD/exports')
 
     act(() => {
@@ -246,9 +275,18 @@ describe('PathPicker form hosts', () => {
     await flushPromises()
 
     const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as Array<[string, RequestInit?]>
-    const publishCall = calls.find(([url, options]) => url === '/api/publish-jobs' && options?.method === 'POST')
+    const validationCall = calls.find(([url, options]) => url === '/api/validation/sequence' && options?.method === 'POST')
+    expect(validationCall).toBeTruthy()
+    expect(JSON.parse(String(validationCall?.[1]?.body))).toMatchObject({
+      applicationId: 'app-1',
+      sequenceNumber: '0000',
+    })
+
+    const publishCall = calls.find(([url, options]) => url === '/api/publish-jobs/execute' && options?.method === 'POST')
     expect(publishCall).toBeTruthy()
     expect(JSON.parse(String(publishCall?.[1]?.body))).toMatchObject({
+      applicationId: 'app-1',
+      sequenceNumber: '0000',
       outputDirectoryPath: 'E:/exports/submission-a',
     })
 

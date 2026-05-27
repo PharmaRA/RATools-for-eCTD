@@ -21,8 +21,6 @@ vi.mock('antd', async (importOriginal) => {
 
 import { SequenceWorkspacePage } from './SequenceWorkspacePage'
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true
-
 const flushPromises = async () => {
   await act(async () => {
     await Promise.resolve()
@@ -72,29 +70,6 @@ const setInputValue = (input: HTMLInputElement, value: string) => {
   const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
   valueSetter?.call(input, value)
   input.dispatchEvent(new Event('input', { bubbles: true }))
-}
-
-if (!window.matchMedia) {
-  window.matchMedia = ((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia
-}
-
-if (!globalThis.ResizeObserver) {
-  class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-
-  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 }
 
 describe('SequenceWorkspacePage validation-first publish workflow', () => {

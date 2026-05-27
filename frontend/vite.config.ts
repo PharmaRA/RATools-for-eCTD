@@ -6,7 +6,8 @@ import type { InlineConfig } from 'vitest/node'
 const config = {
   plugins: [react()],
   test: {
-    environment: 'jsdom'
+    environment: 'jsdom',
+    setupFiles: './src/testSetup.ts'
   },
   server: {
     port: 3000, // 我们把前端端口固定在 3000

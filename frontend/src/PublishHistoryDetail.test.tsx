@@ -10,7 +10,19 @@ const flushPromises = async () => {
   })
 }
 
+const waitForElement = async (getElement: () => HTMLElement | undefined, label: string) => {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await flushPromises()
+    const element = getElement()
+    if (element) return element
+  }
+
+  throw new Error(`Could not find ${label}`)
+}
+
 const renderApp = () => {
+  window.history.replaceState(null, '', '/')
+
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -29,35 +41,26 @@ const renderApp = () => {
   }
 }
 
-const clickByText = (text: string) => {
-  const element = Array.from(document.querySelectorAll('button, [role="tab"], .ant-tabs-tab-btn')).find((candidate) => candidate.textContent?.includes(text)) as HTMLElement | undefined
-  expect(element).toBeTruthy()
+const clickByText = async (text: string) => {
+  const element = await waitForElement(
+    () => Array.from(document.querySelectorAll('button, [role="tab"], .ant-tabs-tab-btn')).find((candidate) => candidate.textContent?.includes(text)) as HTMLElement | undefined,
+    `control with text ${text}`,
+  )
+
   act(() => {
-    element!.click()
+    element.click()
   })
 }
 
-if (!window.matchMedia) {
-  window.matchMedia = ((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia
-}
+const clickButtonByText = async (text: string) => {
+  const button = await waitForElement(
+    () => Array.from(document.querySelectorAll('button')).find((candidate) => candidate.textContent?.trim() === text) as HTMLElement | undefined,
+    `button with text ${text}`,
+  )
 
-if (!globalThis.ResizeObserver) {
-  class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-
-  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
+  act(() => {
+    button.click()
+  })
 }
 
 const publishHistoryResponse = {
@@ -198,9 +201,8 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    clickByText('Manage App')
-    await flushPromises()
-    clickByText('Publish History')
+    await clickByText('Manage App')
+    await clickByText('Publish History')
     await flushPromises()
 
     expect(document.body.textContent).toContain('Matched')
@@ -251,11 +253,9 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    clickByText('Manage App')
-    await flushPromises()
-    clickByText('Publish History')
-    await flushPromises()
-    clickByText('Report')
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Report')
     await flushPromises()
 
     expect(document.body.textContent).toContain('Integrity Summary')
