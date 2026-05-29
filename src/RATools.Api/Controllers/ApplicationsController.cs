@@ -49,7 +49,6 @@ public sealed class ApplicationsController(
         return history is null ? NotFound() : Ok(history);
     }
 
-    [Authorize(Policy = SecurityPolicyNames.HighRiskFilesystemAccess)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequestBody request, CancellationToken cancellationToken)
     {
@@ -67,7 +66,6 @@ public sealed class ApplicationsController(
         }
     }
 
-    [Authorize(Policy = SecurityPolicyNames.HighRiskFilesystemAccess)]
     [HttpPost("import")]
     public async Task<IActionResult> Import([FromBody] ImportApplicationRequestBody request, CancellationToken cancellationToken)
     {

@@ -1,13 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
-using RATools.Api.Security;
 using RATools.Application.Abstractions.Storage;
 
 namespace RATools.Api.Controllers;
 
 [ApiController]
-[Authorize(Policy = SecurityPolicyNames.HighRiskFilesystemAccess)]
 [Route("api/filesystem")]
 public sealed class FilesystemController(IServerDirectoryBrowser serverDirectoryBrowser) : ControllerBase
 {
