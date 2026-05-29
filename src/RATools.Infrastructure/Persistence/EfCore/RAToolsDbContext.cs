@@ -28,6 +28,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.SponsorName).HasMaxLength(256).IsRequired();
             entity.Property(x => x.WorkingDirectoryPath).HasMaxLength(1024).IsRequired();
             entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.HasIndex(x => x.ApplicationNumber).IsUnique();
             entity.HasMany(x => x.Sequences)
                 .WithOne()
                 .HasForeignKey(x => x.ApplicationId)
@@ -67,6 +68,20 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.Operation).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Title).HasMaxLength(512);
             entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber });
+            entity.HasIndex(x => x.DocumentId);
+            entity.HasOne<ApplicationRecord>()
+                .WithMany()
+                .HasForeignKey(x => x.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<SequenceRecord>()
+                .WithMany()
+                .HasForeignKey(x => new { x.ApplicationId, x.SequenceNumber })
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<DocumentRecord>()
+                .WithMany()
+                .HasForeignKey(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PublishJobRecord>(entity =>
@@ -80,6 +95,12 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.PackagePath).HasMaxLength(512);
             entity.Property(x => x.CreatedUtc).IsRequired();
             entity.Property(x => x.FailureReason).HasMaxLength(1024);
+            entity.HasIndex(x => new { x.ApplicationId, x.CreatedUtc });
+            entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.CreatedUtc });
+            entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.Status });
+            entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber })
+                .IsUnique()
+                .HasFilter("\"Status\" IN ('Pending', 'Running')");
         });
 
         modelBuilder.Entity<AuditLogRecord>(entity =>
