@@ -28,7 +28,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.SponsorName).HasMaxLength(256).IsRequired();
             entity.Property(x => x.WorkingDirectoryPath).HasMaxLength(1024).IsRequired();
             entity.Property(x => x.CreatedUtc).IsRequired();
-            entity.HasIndex(x => x.ApplicationNumber).IsUnique();
+            entity.HasIndex(x => x.ApplicationNumber);
             entity.HasMany(x => x.Sequences)
                 .WithOne()
                 .HasForeignKey(x => x.ApplicationId)

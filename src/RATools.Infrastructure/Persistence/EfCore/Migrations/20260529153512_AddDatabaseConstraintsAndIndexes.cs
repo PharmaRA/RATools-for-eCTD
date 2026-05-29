@@ -45,8 +45,9 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_applications_ApplicationNumber",
                 table: "applications",
-                column: "ApplicationNumber",
-                unique: true);
+                column: "ApplicationNumber");
+
+            migrationBuilder.Sql("CREATE UNIQUE INDEX \"IX_applications_ApplicationNumber_lower\" ON applications (lower(\"ApplicationNumber\"));");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_document_placements_applications_ApplicationId",
@@ -115,6 +116,8 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_applications_ApplicationNumber",
                 table: "applications");
+
+            migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_applications_ApplicationNumber_lower\";");
         }
     }
 }

@@ -61,8 +61,7 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplicationNumber")
-                        .IsUnique();
+                    b.HasIndex("ApplicationNumber");
 
                     b.ToTable("applications", (string)null);
                 });

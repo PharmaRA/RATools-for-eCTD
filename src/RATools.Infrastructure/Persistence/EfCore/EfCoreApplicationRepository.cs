@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using RATools.Application.Applications;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Applications;
@@ -9,9 +11,21 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
 {
     public async Task AddAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
     {
-        await dbContext.Applications.AddAsync(application.ToRecord(), cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.Applications.AddAsync(application.ToRecord(), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsApplicationNumberUniqueViolation(exception))
+        {
+            throw new ApplicationNumberAlreadyExistsException($"Application number '{application.ApplicationNumber}' already exists.", exception);
+        }
     }
+
+    private static bool IsApplicationNumberUniqueViolation(DbUpdateException exception)
+        => exception.InnerException is PostgresException postgresException
+            && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+            && string.Equals(postgresException.ConstraintName, "IX_applications_ApplicationNumber_lower", StringComparison.Ordinal);
 
     public async Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
     {
