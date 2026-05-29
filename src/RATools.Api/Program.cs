@@ -25,6 +25,9 @@ builder.Services.AddAuthorization(options =>
         policy.AuthenticationSchemes.Add(ApiKeyAuthenticationDefaults.AuthenticationScheme);
         policy.RequireAuthenticatedUser();
     });
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(ApiKeyAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
 });
 
 builder.Services.AddControllers();
@@ -51,13 +54,13 @@ if (swaggerEnabled)
     app.UseSwaggerUI();
 }
 
-app.MapGet("/", () => Results.Redirect(swaggerEnabled ? "/swagger" : "/health"));
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/", () => Results.Redirect(swaggerEnabled ? "/swagger" : "/health")).AllowAnonymous();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapGet("/version", () =>
 {
     var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
     return Results.Ok(new { name = "RATools.Api", version });
-});
+}).AllowAnonymous();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
