@@ -1,5 +1,6 @@
 param(
     [string]$BaseUrl = "http://localhost:5000",
+    [string]$ApiKey = "dev-api-key-do-not-use-in-production",
     [switch]$KeepSampleFile,
     [switch]$SkipAuditCheck,
     [switch]$CleanPublishOutput,
@@ -8,6 +9,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ApiHeaders = @{ "X-RA-Tools-Api-Key" = $ApiKey }
 
 try {
     Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
@@ -27,24 +29,24 @@ function Invoke-JsonPost {
         [object]$Body
     )
 
-    return Invoke-RestMethod -Method Post -Uri $Url -ContentType "application/json" -Body ($Body | ConvertTo-Json -Depth 10)
+    return Invoke-RestMethod -Method Post -Uri $Url -Headers $ApiHeaders -ContentType "application/json" -Body ($Body | ConvertTo-Json -Depth 10)
 }
 
 function Invoke-JsonGet {
     param([string]$Url)
-    return Invoke-RestMethod -Method Get -Uri $Url
+    return Invoke-RestMethod -Method Get -Uri $Url -Headers $ApiHeaders
 }
 
 function Invoke-TextGet {
     param([string]$Url)
-    return Invoke-WebRequest -Method Get -Uri $Url -UseBasicParsing | Select-Object -ExpandProperty Content
+    return Invoke-WebRequest -Method Get -Uri $Url -Headers $ApiHeaders -UseBasicParsing | Select-Object -ExpandProperty Content
 }
 
 function Invoke-RequestStatusCode {
     param([string]$Url)
 
     try {
-        Invoke-WebRequest -Method Get -Uri $Url -UseBasicParsing | Out-Null
+        Invoke-WebRequest -Method Get -Uri $Url -Headers $ApiHeaders -UseBasicParsing | Out-Null
         return 200
     }
     catch {
@@ -62,7 +64,7 @@ function Download-File {
         [string]$DestinationPath
     )
 
-    Invoke-WebRequest -Method Get -Uri $Url -OutFile $DestinationPath -UseBasicParsing | Out-Null
+    Invoke-WebRequest -Method Get -Uri $Url -Headers $ApiHeaders -OutFile $DestinationPath -UseBasicParsing | Out-Null
 }
 
 function Invoke-FileUpload {
@@ -74,6 +76,7 @@ function Invoke-FileUpload {
 
     $httpClient = New-Object System.Net.Http.HttpClient
     try {
+        $httpClient.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", $ApiKey)
         $multipart = New-Object System.Net.Http.MultipartFormDataContent
         $fileBytes = [System.IO.File]::ReadAllBytes($FilePath)
         $fileName = [System.IO.Path]::GetFileName($FilePath)
@@ -229,7 +232,7 @@ try {
         $expectedReassignedDirectory = Join-Path $sequenceWorkspaceResolvedPath (Join-Path "m5" (Join-Path "53-clinical-study-reports" (Join-Path "535-reports-of-efficacy-and-safety-studies" "5351-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication")))
 
         Write-Step "Reassigning document placement to canonical clinical section"
-        $placement = Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/document-placements/$($placement.id)/section" -ContentType "application/json" -Body (@{ ctdSection = $reassignedSection } | ConvertTo-Json)
+        $placement = Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/document-placements/$($placement.id)/section" -Headers $ApiHeaders -ContentType "application/json" -Body (@{ ctdSection = $reassignedSection } | ConvertTo-Json)
         $document = Invoke-JsonGet -Url "$BaseUrl/api/documents/$($document.id)"
 
         if ($placement.ctdSection -ne $reassignedSection) {
