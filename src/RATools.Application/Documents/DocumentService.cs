@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
@@ -13,7 +14,8 @@ public sealed class DocumentService(
     IDocumentPlacementRepository placementRepository,
     IApplicationRepository applicationRepository,
     IApplicationWorkspaceService workspaceService,
-    IEctdWorkspacePathResolver workspacePathResolver) : IDocumentService
+    IEctdWorkspacePathResolver workspacePathResolver,
+    IWorkspacePathPolicy workspacePathPolicy) : IDocumentService
 {
     public async Task<DocumentDto> CreateAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -72,6 +74,7 @@ public sealed class DocumentService(
         var sequenceDirectory = await workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, sequenceNumber, cancellationToken);
         var folder = ResolveSequenceUploadFolder(application.EctdTemplateKey, request.CtdSection);
         var destinationDirectory = Path.Combine(sequenceDirectory, folder.RelativeFolderPath);
+        workspacePathPolicy.EnsureAllowed(destinationDirectory);
 
         var storedFile = await fileStorage.SaveAsync(
             new FileUploadRequest

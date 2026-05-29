@@ -62,6 +62,10 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         {
             return BadRequest(new { message = exception.Message });
         }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost("/api/applications/{applicationId:guid}/sequences/{sequenceNumber}/documents/upload")]
