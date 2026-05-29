@@ -19,6 +19,12 @@ public sealed class ApplicationService(
     public async Task<ApplicationDto> CreateAsync(CreateApplicationRequest request, CancellationToken cancellationToken = default)
     {
         var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
+        var existingApplications = await repository.ListAsync(cancellationToken);
+        if (existingApplications.Any(x => string.Equals(x.ApplicationNumber, request.ApplicationNumber, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ApplicationNumberAlreadyExistsException($"Application number '{request.ApplicationNumber}' already exists.");
+        }
+
         var requestedWorkingDirectoryPath = Path.Combine(request.WorkingDirectoryParentPath, request.ApplicationNumber);
         var allowedWorkingDirectoryPath = Path.TrimEndingDirectorySeparator(workspacePathPolicy.EnsureAllowed(requestedWorkingDirectoryPath));
         var allowedParentPath = Path.GetDirectoryName(allowedWorkingDirectoryPath)

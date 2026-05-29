@@ -64,6 +64,10 @@ public sealed class ApplicationsController(
         {
             return BadRequest(new { message = exception.Message });
         }
+        catch (ApplicationNumberAlreadyExistsException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     [HttpPost("import")]
