@@ -1,79 +1,127 @@
 # RATools-for-eCTD
 
-Backend starter for an eCTD publishing system using a layered architecture.
+RATools-for-eCTD is an eCTD publishing system for regulatory submission workflows. It provides a .NET backend and React frontend for managing applications, sequences, document placements, validation, publish jobs, publish artifacts, and publish history.
 
 ## Structure
 
-- `src/RATools.Api`: HTTP API and composition root.
-- `src/RATools.Application`: use cases, contracts, and orchestration.
-- `src/RATools.Domain`: core business model and invariants.
-- `src/RATools.Infrastructure`: persistence and external service implementations.
+- `src/RATools.Api`: HTTP API, authentication policies, Swagger, and composition root.
+- `src/RATools.Application`: use cases, contracts, validation, publishing, and orchestration.
+- `src/RATools.Domain`: core business entities and state transitions.
+- `src/RATools.Infrastructure`: EF Core/PostgreSQL persistence, in-memory repositories, file storage, workspace policies, and local publish output.
+- `frontend`: React UI for application management, sequence workspaces, validation, publishing, and publish history.
+- `tests/RATools.Tests`: backend xUnit tests.
+- `scripts`: local development and smoke-test scripts.
 
-## Current scope
+## Current Scope
 
-- Foundation with layered boundaries and sample Application aggregate.
-- Persistence uses EF Core + PostgreSQL.
+- Application and sequence lifecycle management.
+- Application import from an existing eCTD workspace.
+- Template-driven application setup for `us-fda-ectd-3.2.2`.
+- Document upload with canonical CTD section-folder storage.
+- Document placement creation, section reassignment, metadata editing, and deletion.
+- Sequence validation for section matches, lifecycle targets, file existence, and publish readiness.
+- FDA eCTD 3.2.2 backbone generation.
+- Publish job execution with report, index, checksum, package zip, and artifact metadata.
+- Publish history filtering, pagination, report retrieval, artifact listing, and artifact download.
+- Audit log capture for validation and publish events.
 
-## Local run
+## Local Run
 
-- Start PostgreSQL and create a database named `ratools` (or update connection string).
-- Quick start with Docker: `docker compose up -d`.
-- Default connection string is in `src/RATools.Api/appsettings.json`.
-- Run: `dotnet run --project src/RATools.Api/RATools.Api.csproj`.
+Start PostgreSQL:
 
-## Working directories
+```powershell
+docker compose up -d
+```
 
-- Creating an application now requires a `workingDirectoryParentPath`.
+Run the backend:
+
+```powershell
+dotnet run --project src/RATools.Api/RATools.Api.csproj
+```
+
+Run the frontend:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` to the backend at `http://localhost:5000`.
+
+Default backend configuration is in `src/RATools.Api/appsettings.json`.
+
+## Working Directories
+
+- Creating an application requires `workingDirectoryParentPath`.
 - The backend creates and stores `{workingDirectoryParentPath}/{applicationNumber}` as the application working directory.
 - Creating a sequence automatically creates `{applicationWorkingDirectoryPath}/{sequenceNumber}`.
-- The recommended upload path is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload`, which requires multipart fields `File` and `CtdSection` and writes source files into the canonical section folder under the sequence workspace, for example `m1\us\11-forms`.
-- Reassigning a placement through `PUT /api/document-placements/{id}/section` also moves the physical file into the new canonical section folder and updates the stored document path.
+- Creating or importing an application uses `ectdTemplateKey`, for example `us-fda-ectd-3.2.2`.
+- The recommended upload endpoint is `POST /api/applications/{id}/sequences/{sequenceNumber}/documents/upload` with multipart fields `File` and `CtdSection`.
+- Uploads are written into the canonical section folder under the sequence workspace, for example `m1\us\11-forms`.
+- Reassigning a placement through `PUT /api/document-placements/{id}/section` moves the physical file into the new canonical section folder and updates the stored document path.
 - Importing an existing workspace is available through `POST /api/applications/import`, which scans sequence subdirectories and reads each sequence `index.xml`.
-- The import endpoint expects `workingDirectoryPath`, `region`, and `sponsorName`; `applicationNumber` is inferred from the imported directory name.
+- The import endpoint expects `workingDirectoryPath`, `ectdTemplateKey`, and `sponsorName`; `applicationNumber` is inferred from the imported directory name.
 
-## Database migrations
+## Database Migrations
 
-- Create migration:
-  `dotnet ef migrations add <MigrationName> --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --context RAToolsDbContext --output-dir Persistence/EfCore/Migrations`
-- Apply migrations:
-  `dotnet ef database update --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --context RAToolsDbContext`
-- The API now applies migrations automatically on startup when `Persistence:Provider` is `PostgreSql`.
+Create a migration:
 
-## Useful commands
+```powershell
+dotnet ef migrations add <MigrationName> --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --context RAToolsDbContext --output-dir Persistence/EfCore/Migrations
+```
+
+Apply migrations:
+
+```powershell
+dotnet ef database update --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --context RAToolsDbContext
+```
+
+The API applies migrations automatically on startup when `Persistence:Provider` is `PostgreSql`.
+
+## Useful Commands
 
 - Check PostgreSQL health: `docker ps`.
 - View PostgreSQL logs: `docker logs ratools-postgres`.
 - Stop database: `docker compose down`.
+- Run backend tests: `dotnet test tests/RATools.Tests/RATools.Tests.csproj`.
+- Run frontend tests: `cd frontend && npm test`.
+- Build frontend: `cd frontend && npm run build`.
 
-## Smoke test
+## Smoke Test
 
-- Start the API first: `dotnet run --project src/RATools.Api/RATools.Api.csproj`
-- Run the end-to-end smoke test: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1`
-- Optional: target a different API URL: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -BaseUrl http://localhost:5001`
-- Optional: keep the temporary sample file: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -KeepSampleFile`
-- Optional: skip audit linkage check: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -SkipAuditCheck`
-- Optional: clean publish output before run: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CleanPublishOutput`
-- Optional: inject warning scenarios to verify warningCount/warningSummary: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -InjectWarnings`
-- Optional: corrupt the persisted publish report to verify tolerant report/history handling: `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -CorruptReportAfterPublish`
-- `POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`.
-- `POST /api/publish-jobs/execute` creates and executes a publish job and returns `200 OK` with `PublishExecutionReportDto`.
-- The smoke test now uses `POST /api/publish-jobs/execute` and prints the unified publish report summary.
-- The smoke test uploads documents with `CtdSection=m1.1`, verifies storage under `m1\us\11-forms`, then reassigns a placement and verifies the file is physically moved into the new canonical folder.
-- The smoke test also round-trips `GET /api/publish-jobs/{id}/report` to verify persisted report retrieval.
-- The smoke test also checks `GET /api/publish-jobs/{id}/artifacts` and verifies the expected publish outputs are present.
-- The smoke test also checks `GET /api/applications/{id}/publish-history` and verifies the current publish job appears in application history.
-- The smoke test also verifies `publish-history` filtering and pagination using `sequenceNumber`, `page`, and `pageSize`.
-- The smoke test also verifies `publish-history` status and `createdUtc` range filters.
-- The smoke test also verifies `publish-history.statusSummary` values for the current filtered history views.
-- The smoke test also verifies `publish-history.lifecycleSummary` values for the default non-lifecycle scenario.
-- The smoke test also verifies `publishReport.integritySummary.isConsistent` after publish execution.
-- The smoke test also downloads `PublishReport` and `PackageZip` through the artifact download endpoint and verifies the responses match artifact metadata.
-- With `-InjectWarnings`, the smoke test also verifies `NON_STANDARD_SECTION_PATTERN` is returned in the validation report.
-- The smoke test also verifies validation `sectionMatches` and `MatchedPrefixes` audit details.
-- The smoke test also verifies `lifecycleMatches` and `LifecycleResults` summaries for the default validation path.
-- When audit checks are enabled (default), the script prints filtered PublishJob, SequenceValidation, and PublishJobArtifact audit details for the current run.
-- The smoke test also verifies that `publish-report.json`, `index.xml`, and the packaged zip are all created.
-- The smoke test also verifies the packaged zip path is job-specific so repeated publishes do not overwrite history.
-- The smoke test also verifies `index.xml` uses a job-safe unique document `href` based on the uploaded document id.
-- The smoke test now uploads two documents with the same file name and verifies their published `href` values remain unique.
-- The smoke test also verifies the generated backbone includes `dtd-version="3.2.2"`, `xlink:type="simple"`, and `checksum-type="md5"`.
+Start the API first:
+
+```powershell
+dotnet run --project src/RATools.Api/RATools.Api.csproj
+```
+
+Run the end-to-end smoke test:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1
+```
+
+Optional smoke-test arguments:
+
+- `-BaseUrl http://localhost:5001`: target a different API URL.
+- `-KeepSampleFile`: keep the temporary sample file.
+- `-SkipAuditCheck`: skip audit linkage checks.
+- `-CleanPublishOutput`: clean publish output before run.
+- `-InjectWarnings`: inject warning scenarios to verify warning counts and summaries.
+- `-CorruptReportAfterPublish`: corrupt the persisted publish report to verify tolerant report/history handling.
+
+The smoke test covers application and sequence creation, document upload, canonical storage, placement reassignment, validation, publish execution, persisted report retrieval, artifact listing, artifact download, publish history filters, audit logs, duplicate file-name handling, and generated backbone metadata.
+
+## API Examples
+
+Use `RATools.Api.http` for local HTTP examples. New application and import requests use `ectdTemplateKey`:
+
+```json
+{
+  "applicationNumber": "IND-0001",
+  "ectdTemplateKey": "us-fda-ectd-3.2.2",
+  "sponsorName": "Demo Sponsor",
+  "workingDirectoryParentPath": "D:\\eCTD-work"
+}
+```

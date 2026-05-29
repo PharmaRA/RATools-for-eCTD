@@ -6,8 +6,8 @@ GET {{host}}/health
 ### Version
 GET {{host}}/version
 
-### ECTD structure tree for US region
-GET {{host}}/api/ectd-structure?region=US
+### ECTD structure tree for FDA eCTD 3.2.2 template
+GET {{host}}/api/ectd-structure?ectdTemplateKey=us-fda-ectd-3.2.2
 
 ### List applications
 GET {{host}}/api/applications
@@ -19,7 +19,7 @@ Content-Type: application/json
 
 {
   "applicationNumber": "IND-0001",
-  "region": "US",
+  "ectdTemplateKey": "us-fda-ectd-3.2.2",
   "sponsorName": "Demo Sponsor",
   "workingDirectoryParentPath": "D:\\eCTD-work"
 }
@@ -30,7 +30,7 @@ Content-Type: application/json
 
 {
   "workingDirectoryPath": "D:\\eCTD-work\\IND-0001",
-  "region": "US",
+  "ectdTemplateKey": "us-fda-ectd-3.2.2",
   "sponsorName": "Demo Sponsor"
 }
 

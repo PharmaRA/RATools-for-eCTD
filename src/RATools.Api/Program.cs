@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using RATools.Api.Middleware;
 using RATools.Api.Security;
 using RATools.Application;
 using RATools.Infrastructure;
@@ -41,6 +42,8 @@ if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
 }
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (swaggerEnabled)
 {

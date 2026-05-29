@@ -4,16 +4,29 @@ obj/
 .vscode/
 *.user
 *.suo
-/.artifacts/api-build
-/docs/superpowers
-/tests
-/src/RATools.Api/App_Data
-/.artifacts
-/reference
-/tools
-/frontend/node_modules
-/frontend/.vite/deps
-/.worktrees
-/worktrees
-/docs
-/scripts/tests
+
+# Build/test artifacts
+/.artifacts/
+/.pytest_cache/
+**/.pytest_cache/
+**/__pycache__/
+*.pyc
+
+# Runtime data
+/src/RATools.Api/App_Data/uploads/
+/src/RATools.Api/App_Data/publish/*
+!/src/RATools.Api/App_Data/publish/.gitkeep
+
+# Local tooling and generated dependencies
+/frontend/node_modules/
+/frontend/.vite/deps/
+/.worktrees/
+/worktrees/
+
+# Untracked source directories (managed separately)
+/docs/superpowers/
+/docs/2026-*
+/tests/
+/reference/
+/tools/
+/scripts/tests/

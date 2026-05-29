@@ -13,8 +13,7 @@
 Run all commands before merge:
 
 ```bash
-dotnet test tests/RATools.Application.Tests/RATools.Application.Tests.csproj --filter "SectionDictionaryTests|SequenceValidationServiceTests|EctdStructureServiceTests|FdaEctd322ProfileGuardTests"
-dotnet test tests/RATools.Api.Tests/RATools.Api.Tests.csproj --filter EctdStructureControllerTests
+dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "SectionDictionaryTests|SequenceValidationServiceTests|EctdStructureServiceTests|FdaEctd322ProfileGuardTests|EctdStructureControllerTests"
 ```
 
 Expected outcome: all listed tests pass and `FdaEctd322ProfileGuardTests` has no skipped tests.

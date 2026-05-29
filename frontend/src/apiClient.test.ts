@@ -59,4 +59,27 @@ describe('apiClient', () => {
       message: 'One or more validation errors occurred. - CtdSection: The CtdSection field is required.',
     } satisfies Partial<ApiRequestError>);
   });
+
+  it('throws ApiRequestError with ProblemDetails metadata', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      headers: new Headers({ 'content-type': 'application/problem+json' }),
+      json: vi.fn().mockResolvedValue({
+        type: 'https://tools.ietf.org/html/rfc7231#section-6.6.1',
+        title: 'An error occurred while processing your request.',
+        status: 500,
+        traceId: 'trace-123',
+      }),
+    }));
+
+    await expect(apiFetch('/api/applications')).rejects.toMatchObject({
+      name: 'ApiRequestError',
+      status: 500,
+      message: 'An error occurred while processing your request.',
+      title: 'An error occurred while processing your request.',
+      type: 'https://tools.ietf.org/html/rfc7231#section-6.6.1',
+      traceId: 'trace-123',
+    } satisfies Partial<ApiRequestError>);
+  });
 });

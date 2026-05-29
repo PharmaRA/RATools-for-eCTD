@@ -1,40 +1,69 @@
+type ProblemDetails = {
+  type?: string;
+  title?: string;
+  status?: number;
+  traceId?: string;
+  errors?: Record<string, string[]>;
+  message?: string;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
+  readonly title?: string;
+  readonly type?: string;
+  readonly traceId?: string;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, details?: Pick<ProblemDetails, 'title' | 'type' | 'traceId'>) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.title = details?.title;
+    this.type = details?.type;
+    this.traceId = details?.traceId;
   }
 }
+
+const buildErrorMessage = (status: number, data?: ProblemDetails) => {
+  let errorMsg = `HTTP Error ${status}`;
+
+  if (!data) {
+    return errorMsg;
+  }
+
+  if (data.message) {
+    errorMsg = data.message;
+  } else if (data.title) {
+    errorMsg = data.title;
+
+    if (data.errors) {
+      const details = Object.entries(data.errors)
+        .map(([key, vals]) => `${key}: ${vals.join(', ')}`)
+        .join(' | ');
+
+      errorMsg += ` - ${details}`;
+    }
+  }
+
+  return errorMsg;
+};
 
 export const apiFetch = async (url: string, options?: RequestInit) => {
   const res = await fetch(url, options);
 
   if (!res.ok) {
-    let errorMsg = `HTTP Error ${res.status}`;
+    let data: ProblemDetails | undefined;
 
     try {
-      const data = await res.json();
-
-      if (data.message) {
-        errorMsg = data.message;
-      } else if (data.title) {
-        errorMsg = data.title;
-
-        if (data.errors) {
-          const details = Object.entries(data.errors)
-            .map(([key, vals]) => `${key}: ${(vals as string[]).join(', ')}`)
-            .join(' | ');
-
-          errorMsg += ` - ${details}`;
-        }
-      }
+      data = await res.json();
     } catch {
-      // Leave the fallback message in place when error JSON is unavailable.
+      data = undefined;
     }
 
-    throw new ApiRequestError(res.status, errorMsg);
+    throw new ApiRequestError(res.status, buildErrorMessage(res.status, data), {
+      title: data?.title,
+      type: data?.type,
+      traceId: data?.traceId,
+    });
   }
 
   if (res.status === 204) {
