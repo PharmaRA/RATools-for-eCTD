@@ -47,8 +47,19 @@ const buildErrorMessage = (status: number, data?: ProblemDetails) => {
   return errorMsg;
 };
 
+const buildHeaders = (init?: RequestInit) => {
+  const headers = new Headers(init?.headers);
+  const apiKey = import.meta.env.VITE_API_KEY;
+
+  if (apiKey && !headers.has('X-RA-Tools-Api-Key')) {
+    headers.set('X-RA-Tools-Api-Key', apiKey);
+  }
+
+  return headers;
+};
+
 export const apiFetch = async (url: string, options?: RequestInit) => {
-  const res = await fetch(url, options);
+  const res = await fetch(url, { ...options, headers: buildHeaders(options) });
 
   if (!res.ok) {
     let data: ProblemDetails | undefined;

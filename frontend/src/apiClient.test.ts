@@ -5,6 +5,7 @@ import { ApiRequestError, apiFetch } from './apiClient';
 describe('apiClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('returns parsed JSON when the response succeeds', async () => {
@@ -81,5 +82,20 @@ describe('apiClient', () => {
       type: 'https://tools.ietf.org/html/rfc7231#section-6.6.1',
       traceId: 'trace-123',
     } satisfies Partial<ApiRequestError>);
+  });
+
+  it('injects the configured API key as X-RA-Tools-Api-Key header', async () => {
+    vi.stubEnv('VITE_API_KEY', 'dev-api-key-do-not-use-in-production');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await apiFetch('/api/applications');
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const headers = new Headers(init.headers);
+    expect(headers.get('X-RA-Tools-Api-Key')).toBe('dev-api-key-do-not-use-in-production');
   });
 });
