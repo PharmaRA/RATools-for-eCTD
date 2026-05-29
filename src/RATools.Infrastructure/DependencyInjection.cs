@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
         services.AddSingleton<IWorkspacePathPolicy, ConfiguredWorkspacePathPolicy>();
+        services.AddSingleton<StartupConfigurationValidator>();
         services.AddSingleton<IServerDirectoryBrowser, LocalServerDirectoryBrowser>();
         services.AddSingleton<IWorkspaceDeletionService, WorkspaceDeletionService>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();

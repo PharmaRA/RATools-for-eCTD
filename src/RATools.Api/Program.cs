@@ -5,6 +5,7 @@ using RATools.Api.Security;
 using RATools.Application;
 using RATools.Infrastructure;
 using RATools.Infrastructure.Persistence.EfCore;
+using RATools.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,13 @@ if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RAToolsDbContext>();
     dbContext.Database.Migrate();
+}
+
+if (!string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    using var validatorScope = app.Services.CreateScope();
+    var validator = validatorScope.ServiceProvider.GetRequiredService<StartupConfigurationValidator>();
+    validator.Validate();
 }
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);
