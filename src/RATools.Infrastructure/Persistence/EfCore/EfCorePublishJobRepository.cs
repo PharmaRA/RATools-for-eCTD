@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Publishing;
 using RATools.Domain.Publishing;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
@@ -8,8 +10,28 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
 {
     public async Task AddAsync(PublishJob job, CancellationToken cancellationToken = default)
     {
-        await dbContext.PublishJobs.AddAsync(job.ToRecord(), cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.PublishJobs.AddAsync(job.ToRecord(), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsActivePublishJobConflict(exception))
+        {
+            throw new PublishJobAlreadyInProgressException($"A publish job is already pending or running for application {job.ApplicationId}, sequence {job.SequenceNumber}.");
+        }
+    }
+
+    private static bool IsActivePublishJobConflict(DbUpdateException exception)
+    {
+        if (exception.InnerException is PostgresException postgresException)
+        {
+            return postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+                && string.Equals(postgresException.ConstraintName, "IX_publish_jobs_ApplicationId_SequenceNumber", StringComparison.Ordinal);
+        }
+
+        return exception.InnerException?.Message.Contains(
+            "publish_jobs.ApplicationId, publish_jobs.SequenceNumber",
+            StringComparison.OrdinalIgnoreCase) == true;
     }
 
     public async Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default)
