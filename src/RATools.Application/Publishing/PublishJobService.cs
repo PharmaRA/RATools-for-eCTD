@@ -358,6 +358,7 @@ public sealed class PublishJobService(
                 new GenerateBackboneRequest(
                     request.ApplicationId,
                     request.SequenceNumber,
+                    job.Id,
                     request.OutputDirectoryPath,
                     $"publish-report-{request.SequenceNumber}-{job.Id:N}.json",
                     $"{request.SequenceNumber}-{job.Id:N}.zip"),

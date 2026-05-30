@@ -14,8 +14,15 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
     {
         try
         {
+            var publishJobId = Guid.NewGuid();
             var generated = await backboneService.GenerateAsync(
-                new GenerateBackboneRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath, "publish-report.json", $"{request.SequenceNumber}.zip"),
+                new GenerateBackboneRequest(
+                    request.ApplicationId,
+                    request.SequenceNumber,
+                    publishJobId,
+                    request.OutputDirectoryPath,
+                    $"publish-report-{request.SequenceNumber}-{publishJobId:N}.json",
+                    $"{request.SequenceNumber}-{publishJobId:N}.zip"),
                 cancellationToken);
 
             return Ok(generated);

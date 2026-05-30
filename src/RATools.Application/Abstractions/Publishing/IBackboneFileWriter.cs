@@ -7,6 +7,7 @@ public interface IBackboneFileWriter
     Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
         string applicationNumber,
         string sequenceNumber,
+        Guid publishJobId,
         string outputDirectoryPath,
         string fileName,
         string content,

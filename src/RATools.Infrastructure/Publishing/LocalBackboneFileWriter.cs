@@ -13,6 +13,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
     public async Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
         string applicationNumber,
         string sequenceNumber,
+        Guid publishJobId,
         string outputDirectoryPath,
         string fileName,
         string content,
@@ -41,11 +42,14 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         }
 
         var fullRootPath = Path.GetFullPath(rootPath);
+        var jobIdSegment = publishJobId.ToString("N");
         var applicationRoot = Path.Combine(fullRootPath, applicationNumber);
-        var deliveryRoot = Path.Combine(applicationRoot, sequenceNumber);
-        var reportDirectory = Path.Combine(applicationRoot, "_artifacts", sequenceNumber);
+        var deliveryRoot = Path.Combine(applicationRoot, "_jobs", jobIdSegment, sequenceNumber);
+        var reportDirectory = Path.Combine(applicationRoot, "_artifacts", sequenceNumber, jobIdSegment);
+        var packageDirectory = Path.Combine(applicationRoot, "_packages", sequenceNumber);
         Directory.CreateDirectory(deliveryRoot);
         Directory.CreateDirectory(reportDirectory);
+        Directory.CreateDirectory(packageDirectory);
 
         foreach (var document in documents)
         {
@@ -72,7 +76,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         var reportPath = Path.Combine(reportDirectory, reportFileName);
         await File.WriteAllTextAsync(reportPath, reportContent, cancellationToken);
 
-        var packagePath = Path.Combine(applicationRoot, packageFileName);
+        var packagePath = Path.Combine(packageDirectory, packageFileName);
         if (File.Exists(packagePath))
         {
             File.Delete(packagePath);

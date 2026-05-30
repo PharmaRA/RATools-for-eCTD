@@ -30,10 +30,23 @@ public static class PublishOutputNaming
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
 
+        var jobIdSegment = jobId.ToString("N");
         var deliveryRoot = Path.GetDirectoryName(Path.GetFullPath(outputPath))
             ?? throw new InvalidOperationException($"Output path '{outputPath}' does not have a parent directory.");
-        var applicationRoot = Path.GetDirectoryName(deliveryRoot)
+        var deliveryRootInfo = new DirectoryInfo(deliveryRoot);
+        var jobDirectory = deliveryRootInfo.Parent;
+        var jobsDirectory = jobDirectory?.Parent;
+        var newLayoutApplicationRoot = jobsDirectory?.Parent;
+
+        if (string.Equals(jobDirectory?.Name, jobIdSegment, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(jobsDirectory?.Name, "_jobs", StringComparison.OrdinalIgnoreCase)
+            && newLayoutApplicationRoot is not null)
+        {
+            return Path.Combine(newLayoutApplicationRoot.FullName, "_artifacts", sequenceNumber, jobIdSegment, $"publish-report-{sequenceNumber}-{jobId:N}.json");
+        }
+
+        var legacyApplicationRoot = Path.GetDirectoryName(deliveryRoot)
             ?? throw new InvalidOperationException($"Delivery root '{deliveryRoot}' does not have a parent directory.");
-        return Path.Combine(applicationRoot, "_artifacts", sequenceNumber, $"publish-report-{sequenceNumber}-{jobId:N}.json");
+        return Path.Combine(legacyApplicationRoot, "_artifacts", sequenceNumber, $"publish-report-{sequenceNumber}-{jobId:N}.json");
     }
 }

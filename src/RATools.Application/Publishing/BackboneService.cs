@@ -62,6 +62,7 @@ public sealed class BackboneService(
         var output = await backboneFileWriter.SaveAsync(
             application.ApplicationNumber,
             request.SequenceNumber,
+            request.PublishJobId,
             request.OutputDirectoryPath,
             "index.xml",
             xmlContent,
