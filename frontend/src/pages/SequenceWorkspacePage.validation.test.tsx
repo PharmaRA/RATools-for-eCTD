@@ -54,6 +54,14 @@ const clickByText = (text: string) => {
   })
 }
 
+const clickAnyByText = (text: string) => {
+  const element = Array.from(document.querySelectorAll('button, .ant-tree-node-content-wrapper, .ectd-tree-node')).find((candidate) => candidate.textContent?.includes(text)) as HTMLElement | undefined
+  expect(element).toBeTruthy()
+  act(() => {
+    element!.click()
+  })
+}
+
 const clickPrimaryModalButton = () => {
   const element = Array.from(document.querySelectorAll('.ant-modal .ant-btn-primary')).at(-1) as HTMLButtonElement | undefined
   expect(element).toBeTruthy()
@@ -70,6 +78,13 @@ const setInputValue = (input: HTMLInputElement, value: string) => {
   const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
   valueSetter?.call(input, value)
   input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+const getInputByLabel = (label: string) => {
+  const item = Array.from(document.querySelectorAll('.ant-form-item')).find((candidate) => candidate.textContent?.includes(label))
+  const input = item?.querySelector('input') as HTMLInputElement | undefined
+  expect(input).toBeTruthy()
+  return input!
 }
 
 describe('SequenceWorkspacePage validation-first publish workflow', () => {
@@ -300,6 +315,151 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
     expect(getValidationSummaryField('title')?.textContent).toContain('Validation failed')
     expect(getValidationSummaryField('details')?.textContent).toContain('STALE_EXPORT_BLOCKED')
+
+    unmount()
+  })
+
+  it('replaces the reserved section placeholder with a leaf metadata guide', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/document-placements') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'placement-1',
+            documentId: 'document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0001',
+            ctdSection: 'm1.1',
+            operation: 'New',
+            title: 'Protocol Leaf',
+          },
+        ]) })
+      }
+
+      if (url === '/api/documents') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'document-1',
+            fileName: 'protocol.pdf',
+            storagePath: 'C:/workspace/app/0001/m1/us/11-forms/protocol.pdf',
+            mediaType: 'application/pdf',
+            sha256: 'abc123',
+            sizeBytes: 1234,
+          },
+        ]) })
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          profileName: 'US FDA eCTD 3.2.2',
+          region: 'US',
+          roots: [
+            {
+              elementName: 'm1-1-forms',
+              sectionPath: 'm1.1',
+              displayName: 'Forms',
+              sourceProfile: 'US FDA eCTD 3.2.2',
+              children: [],
+            },
+          ],
+        }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickAnyByText('Forms')
+    await flushPromises()
+
+    expect(document.body.textContent).not.toContain('Leaf Element Data Entry (Reserved)')
+    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+    expect(document.body.textContent).toContain('Mapped Leaves')
+    expect(document.body.textContent).toContain('1')
+
+    unmount()
+  })
+
+  it('shows editable leaf metadata and preview for a selected mapped document', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/document-placements') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'placement-1',
+            documentId: 'document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0001',
+            ctdSection: 'm1.1',
+            operation: 'Replace',
+            title: 'Protocol Leaf',
+          },
+        ]) })
+      }
+
+      if (url === '/api/documents') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'document-1',
+            fileName: 'protocol.pdf',
+            storagePath: 'C:/workspace/app/0001/m1/us/11-forms/protocol.pdf',
+            mediaType: 'application/pdf',
+            sha256: 'abc123',
+            sizeBytes: 1234,
+          },
+        ]) })
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          profileName: 'US FDA eCTD 3.2.2',
+          region: 'US',
+          roots: [
+            {
+              elementName: 'm1-1-forms',
+              sectionPath: 'm1.1',
+              displayName: 'Forms',
+              sourceProfile: 'US FDA eCTD 3.2.2',
+              children: [],
+            },
+          ],
+        }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickAnyByText('protocol.pdf')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Leaf Metadata')
+    expect(document.body.textContent).toContain('Operation')
+    expect(document.body.textContent).toContain('xlink:href')
+    expect(document.body.textContent).toContain('Mime Type')
+    expect(document.body.textContent).toContain('Checksum')
+    expect(document.body.textContent).toContain('md5')
+    expect(document.body.textContent).toContain('Computed at publish')
+    expect(document.body.textContent).toContain('Save Leaf Metadata')
+
+    act(() => {
+      setInputValue(getInputByLabel('File Prefix'), 'updated-protocol')
+    })
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('m1/us/11-forms/updated-protocol.pdf')
 
     unmount()
   })

@@ -22,6 +22,7 @@ export type DeletePlacementWithDocumentRequest = {
 export type RevisePlacementMetadataRequest = {
   placementId: string
   title?: string
+  operation: string
   fileNamePrefix: string
 }
 
@@ -108,6 +109,7 @@ export const revisePlacementMetadata = async (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: request.title,
+      operation: request.operation,
       fileNamePrefix: request.fileNamePrefix,
     }),
   })

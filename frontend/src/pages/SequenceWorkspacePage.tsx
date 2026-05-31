@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Space, Spin, Tag, Tree, message } from 'antd'
+import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Select, Space, Spin, Tag, Tree, message } from 'antd'
 import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save, Trash2 } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
@@ -27,6 +27,23 @@ import {
   type WorkspaceTreeNode,
 } from '../workspaceTree'
 import { type EctdStructureResponse, getSectionAncestorKeys } from './appShared'
+
+const placementOperations = ['New', 'Replace', 'Delete', 'Append']
+
+const buildPublishedHrefPreview = (storagePath: string | undefined, sequenceNumber: string, fallbackFileName: string | undefined) => {
+  const fileName = fallbackFileName || '-'
+  if (!storagePath) {
+    return fileName
+  }
+
+  const segments = storagePath.split(/[\\/]+/).filter(Boolean)
+  const sequenceIndex = segments.map((segment) => segment.toLowerCase()).lastIndexOf(sequenceNumber.toLowerCase())
+  if (sequenceIndex >= 0 && sequenceIndex < segments.length - 1) {
+    return [...segments.slice(sequenceIndex + 1, -1), fileName].join('/')
+  }
+
+  return fileName || segments.at(-1) || '-'
+}
 
 type SequenceWorkspacePageProps = {
   appId: string
@@ -68,6 +85,7 @@ export const SequenceWorkspacePage = ({
   const [metadataForm] = Form.useForm()
   const [publishForm] = Form.useForm()
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm)
+  const revisedOperation = Form.useWatch('operation', metadataForm)
 
   const selectedNode = useMemo(
     () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
@@ -144,6 +162,7 @@ export const SequenceWorkspacePage = ({
 
     metadataForm.setFieldsValue({
       title: selectedPlacement.title || '',
+      operation: selectedPlacement.operation || 'New',
       fileNamePrefix: selectedDocumentNameParts.prefix,
     })
   }, [metadataForm, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement, selectedDocument])
@@ -300,6 +319,7 @@ export const SequenceWorkspacePage = ({
       await revisePlacementMetadata({
         placementId: selectedPlacement.id,
         title: String(values.title || '').trim() || undefined,
+        operation: String(values.operation || selectedPlacement.operation || 'New'),
         fileNamePrefix: normalizedPrefix,
       })
       await refreshWorkspaceData()
@@ -422,6 +442,10 @@ export const SequenceWorkspacePage = ({
         ? 'Validation API error'
         : 'Validation failed'
     : ''
+  const revisedFileName = `${String(revisedPrefix || '').trim()}${selectedDocumentNameParts.extension}`
+  const leafHrefPreview = buildPublishedHrefPreview(selectedDocument?.storagePath, seqNumber, revisedFileName || selectedDocument?.fileName)
+  const leafTitlePreview = String(metadataForm.getFieldValue('title') || '').trim() || selectedPlacement?.title || selectedDocument?.fileName || '-'
+  const leafOperationPreview = String(revisedOperation || selectedPlacement?.operation || 'New')
 
   return (
     <div className="flex flex-col gap-4">
@@ -673,8 +697,14 @@ export const SequenceWorkspacePage = ({
                 <Alert
                   type="info"
                   showIcon
-                  title="Leaf Element Data Entry (Reserved)"
-                  description="This section is reserved for future leaf element data entry fields."
+                  title="Leaf Metadata Guide"
+                  description={(
+                    <div className="flex flex-col gap-1 text-sm">
+                      <div>Mapped Leaves: <b>{selectedSectionChildrenCount}</b></div>
+                      <div>Drop files on leaf sections, then select a mapped leaf to edit its title, operation, and file naming metadata.</div>
+                      {!selectedNode.canDrop && <div>This section has child sections, so files should be mapped to a leaf child section.</div>}
+                    </div>
+                  )}
                 />
 
                 <p className="text-xs text-gray-500">Tip: Drop files on leaf sections. Drag file nodes between sections to move them.</p>
@@ -690,10 +720,29 @@ export const SequenceWorkspacePage = ({
                   <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{selectedDocument.storagePath}</span></Descriptions.Item>
                 </Descriptions>
 
+                <div>
+                  <h3 className="text-base font-semibold m-0">Leaf Metadata</h3>
+                  <p className="text-xs text-gray-500 m-0">Edit the metadata that will be emitted on this document's backbone leaf.</p>
+                </div>
+
                 <Form form={metadataForm} layout="vertical" requiredMark={false}>
-                  <Form.Item name="title" label="Backbone Title (index.xml title)">
+                  <Form.Item name="title" label="Leaf Title">
                     <Input maxLength={255} placeholder="Optional title" />
                   </Form.Item>
+                  <Form.Item name="operation" label="Operation" rules={[{ required: true, message: 'Operation is required.' }]}>
+                    <Select
+                      options={placementOperations.map((operation) => ({ value: operation, label: operation }))}
+                    />
+                  </Form.Item>
+                  {['Replace', 'Delete', 'Append'].includes(leafOperationPreview) && (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      className="mb-3"
+                      title="Lifecycle operation"
+                      description="Replace, Delete, and Append require a matching historical lifecycle target. Validation will report an error until a valid target exists."
+                    />
+                  )}
                   <Form.Item
                     name="fileNamePrefix"
                     label="File Prefix"
@@ -715,11 +764,23 @@ export const SequenceWorkspacePage = ({
                   </Form.Item>
                   <Form.Item label="Resulting File Name">
                     <Input
-                      value={`${String(revisedPrefix || '').trim()}${selectedDocumentNameParts.extension}`}
+                      value={revisedFileName}
                       readOnly
                     />
                   </Form.Item>
                 </Form>
+
+                <Descriptions title="Leaf Preview" size="small" bordered column={1} className="selection-details-descriptions">
+                  <Descriptions.Item label="operation">{leafOperationPreview}</Descriptions.Item>
+                  <Descriptions.Item label="title">{leafTitlePreview}</Descriptions.Item>
+                  <Descriptions.Item label="xlink:href"><span className="text-xs break-all">{leafHrefPreview}</span></Descriptions.Item>
+                  <Descriptions.Item label="Mime Type">{selectedDocument.mediaType || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Checksum Type">md5</Descriptions.Item>
+                  <Descriptions.Item label="Checksum"><span className="text-xs break-all">Computed at publish</span></Descriptions.Item>
+                  <Descriptions.Item label="Source File Name">{selectedDocument.fileName}</Descriptions.Item>
+                  <Descriptions.Item label="Resulting File Name">{revisedFileName || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{selectedDocument.storagePath}</span></Descriptions.Item>
+                </Descriptions>
 
                 <Space>
                   <Button
@@ -728,7 +789,7 @@ export const SequenceWorkspacePage = ({
                     disabled={loading || deletingPlacementIds.has(selectedPlacement.id) || movingPlacementIds.has(selectedPlacement.id)}
                     onClick={handleSaveRevision}
                   >
-                    Save Revision
+                    Save Leaf Metadata
                   </Button>
                   <Button
                     danger
@@ -741,7 +802,7 @@ export const SequenceWorkspacePage = ({
                   </Button>
                 </Space>
 
-                <p className="text-xs text-gray-500">Delete removes mapping and physical file. Editing revision only changes the file prefix; extension remains unchanged.</p>
+                <p className="text-xs text-gray-500">Delete removes mapping and physical file. Editing leaf metadata can change the placement operation, backbone title, and file prefix; extension remains unchanged.</p>
               </div>
             )}
           </Card>

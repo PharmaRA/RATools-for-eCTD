@@ -34,7 +34,8 @@ public sealed class DocumentPlacementService(
             throw new InvalidOperationException($"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
         }
 
-        if (!Enum.TryParse<DocumentPlacementOperation>(request.Operation, ignoreCase: true, out var operation))
+        if (!Enum.TryParse<DocumentPlacementOperation>(request.Operation, ignoreCase: true, out var operation)
+            || !Enum.IsDefined(operation))
         {
             throw new InvalidOperationException($"Unsupported placement operation '{request.Operation}'.");
         }
@@ -176,6 +177,12 @@ public sealed class DocumentPlacementService(
         var document = await documentRepository.GetAsync(placement.DocumentId, cancellationToken)
             ?? throw new InvalidOperationException($"Document {placement.DocumentId} was not found.");
 
+        if (!Enum.TryParse<DocumentPlacementOperation>(request.Operation, ignoreCase: true, out var operation)
+            || !Enum.IsDefined(operation))
+        {
+            throw new InvalidOperationException($"Unsupported placement operation '{request.Operation}'.");
+        }
+
         var normalizedPrefix = NormalizeAndValidatePrefix(request.FileNamePrefix);
         var extension = Path.GetExtension(document.FileName);
         if (string.IsNullOrWhiteSpace(extension))
@@ -228,10 +235,12 @@ public sealed class DocumentPlacementService(
 
         var mediaType = EctdDocumentFileRules.GetMediaType(targetFileName);
         var originalTitle = placement.Title;
+        var originalOperation = placement.Operation;
         var originalFileName = document.FileName;
         var originalMediaType = document.MediaType;
 
         placement.ReviseTitle(request.Title);
+        placement.ReviseOperation(operation);
         document.ReviseFileMetadata(targetFileName, mediaType);
 
         try
@@ -251,6 +260,7 @@ public sealed class DocumentPlacementService(
         catch
         {
             placement.ReviseTitle(originalTitle);
+            placement.ReviseOperation(originalOperation);
             document.ReviseFileMetadata(originalFileName, originalMediaType);
             document.Relocate(sourcePath);
 

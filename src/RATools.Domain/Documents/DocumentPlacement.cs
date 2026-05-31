@@ -75,4 +75,9 @@ public sealed class DocumentPlacement : Entity
     {
         Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
     }
+
+    public void ReviseOperation(DocumentPlacementOperation operation)
+    {
+        Operation = operation;
+    }
 }

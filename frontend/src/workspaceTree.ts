@@ -10,6 +10,9 @@ export interface DocumentRecord {
   id: string
   fileName: string
   storagePath: string
+  mediaType?: string
+  sha256?: string
+  sizeBytes?: number
 }
 
 export interface DocumentPlacementRecord {

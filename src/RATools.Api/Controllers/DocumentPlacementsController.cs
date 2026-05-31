@@ -78,7 +78,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     {
         try
         {
-            var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.FileNamePrefix), cancellationToken);
+            var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.Operation, request.FileNamePrefix), cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
         }
         catch (InvalidOperationException exception)
