@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Select, Space, Spin, Tag, Tree, message } from 'antd'
-import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save, Trash2 } from 'lucide-react'
+import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Spin, Tag, Tree, message } from 'antd'
+import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
 import { PathPicker } from '../PathPicker'
@@ -27,23 +27,7 @@ import {
   type WorkspaceTreeNode,
 } from '../workspaceTree'
 import { type EctdStructureResponse, getSectionAncestorKeys } from './appShared'
-
-const placementOperations = ['New', 'Replace', 'Delete', 'Append']
-
-const buildPublishedHrefPreview = (storagePath: string | undefined, sequenceNumber: string, fallbackFileName: string | undefined) => {
-  const fileName = fallbackFileName || '-'
-  if (!storagePath) {
-    return fileName
-  }
-
-  const segments = storagePath.split(/[\\/]+/).filter(Boolean)
-  const sequenceIndex = segments.map((segment) => segment.toLowerCase()).lastIndexOf(sequenceNumber.toLowerCase())
-  if (sequenceIndex >= 0 && sequenceIndex < segments.length - 1) {
-    return [...segments.slice(sequenceIndex + 1, -1), fileName].join('/')
-  }
-
-  return fileName || segments.at(-1) || '-'
-}
+import { LeafMetadataPanel } from './LeafMetadataPanel'
 
 type SequenceWorkspacePageProps = {
   appId: string
@@ -442,11 +426,6 @@ export const SequenceWorkspacePage = ({
         ? 'Validation API error'
         : 'Validation failed'
     : ''
-  const revisedFileName = `${String(revisedPrefix || '').trim()}${selectedDocumentNameParts.extension}`
-  const leafHrefPreview = buildPublishedHrefPreview(selectedDocument?.storagePath, seqNumber, revisedFileName || selectedDocument?.fileName)
-  const leafTitlePreview = String(metadataForm.getFieldValue('title') || '').trim() || selectedPlacement?.title || selectedDocument?.fileName || '-'
-  const leafOperationPreview = String(revisedOperation || selectedPlacement?.operation || 'New')
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-200">
@@ -712,98 +691,21 @@ export const SequenceWorkspacePage = ({
             )}
 
             {selectedNode?.nodeType === 'document' && selectedPlacement && selectedDocument && (
-              <div className="flex flex-col gap-4">
-                <Descriptions size="small" bordered column={1} className="selection-details-descriptions">
-                  <Descriptions.Item label="Placement ID">{selectedPlacement.id}</Descriptions.Item>
-                  <Descriptions.Item label="eCTD Section"><Tag>{selectedPlacement.ctdSection}</Tag></Descriptions.Item>
-                  <Descriptions.Item label="Operation"><Tag color="blue">{selectedPlacement.operation}</Tag></Descriptions.Item>
-                  <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{selectedDocument.storagePath}</span></Descriptions.Item>
-                </Descriptions>
-
-                <div>
-                  <h3 className="text-base font-semibold m-0">Leaf Metadata</h3>
-                  <p className="text-xs text-gray-500 m-0">Edit the metadata that will be emitted on this document's backbone leaf.</p>
-                </div>
-
-                <Form form={metadataForm} layout="vertical" requiredMark={false}>
-                  <Form.Item name="title" label="Leaf Title">
-                    <Input maxLength={255} placeholder="Optional title" />
-                  </Form.Item>
-                  <Form.Item name="operation" label="Operation" rules={[{ required: true, message: 'Operation is required.' }]}>
-                    <Select
-                      options={placementOperations.map((operation) => ({ value: operation, label: operation }))}
-                    />
-                  </Form.Item>
-                  {['Replace', 'Delete', 'Append'].includes(leafOperationPreview) && (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      className="mb-3"
-                      title="Lifecycle operation"
-                      description="Replace, Delete, and Append require a matching historical lifecycle target. Validation will report an error until a valid target exists."
-                    />
-                  )}
-                  <Form.Item
-                    name="fileNamePrefix"
-                    label="File Prefix"
-                    rules={[
-                      { required: true, message: 'File prefix is required.' },
-                      {
-                        validator: (_, value) => (
-                          String(value || '').trim().length > 0
-                            ? Promise.resolve()
-                            : Promise.reject(new Error('File prefix cannot be empty.'))
-                        ),
-                      },
-                    ]}
-                  >
-                    <Input maxLength={255} placeholder="example-file-name" />
-                  </Form.Item>
-                  <Form.Item label="Extension">
-                    <Input value={selectedDocumentNameParts.extension || '(no extension)'} readOnly />
-                  </Form.Item>
-                  <Form.Item label="Resulting File Name">
-                    <Input
-                      value={revisedFileName}
-                      readOnly
-                    />
-                  </Form.Item>
-                </Form>
-
-                <Descriptions title="Leaf Preview" size="small" bordered column={1} className="selection-details-descriptions">
-                  <Descriptions.Item label="operation">{leafOperationPreview}</Descriptions.Item>
-                  <Descriptions.Item label="title">{leafTitlePreview}</Descriptions.Item>
-                  <Descriptions.Item label="xlink:href"><span className="text-xs break-all">{leafHrefPreview}</span></Descriptions.Item>
-                  <Descriptions.Item label="Mime Type">{selectedDocument.mediaType || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Checksum Type">md5</Descriptions.Item>
-                  <Descriptions.Item label="Checksum"><span className="text-xs break-all">Computed at publish</span></Descriptions.Item>
-                  <Descriptions.Item label="Source File Name">{selectedDocument.fileName}</Descriptions.Item>
-                  <Descriptions.Item label="Resulting File Name">{revisedFileName || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{selectedDocument.storagePath}</span></Descriptions.Item>
-                </Descriptions>
-
-                <Space>
-                  <Button
-                    type="primary"
-                    loading={savingRevisionPlacementId === selectedPlacement.id}
-                    disabled={loading || deletingPlacementIds.has(selectedPlacement.id) || movingPlacementIds.has(selectedPlacement.id)}
-                    onClick={handleSaveRevision}
-                  >
-                    Save Leaf Metadata
-                  </Button>
-                  <Button
-                    danger
-                    icon={<Trash2 size={14} />}
-                    loading={deletingPlacementIds.has(selectedPlacement.id)}
-                    disabled={loading || deletingPlacementIds.has(selectedPlacement.id) || movingPlacementIds.has(selectedPlacement.id)}
-                    onClick={() => confirmDeletePlacement(selectedPlacement.id, selectedPlacement.documentId)}
-                  >
-                    Delete
-                  </Button>
-                </Space>
-
-                <p className="text-xs text-gray-500">Delete removes mapping and physical file. Editing leaf metadata can change the placement operation, backbone title, and file prefix; extension remains unchanged.</p>
-              </div>
+              <LeafMetadataPanel
+                form={metadataForm}
+                placement={selectedPlacement}
+                document={selectedDocument}
+                sequenceNumber={seqNumber}
+                documentNameParts={selectedDocumentNameParts}
+                revisedPrefix={revisedPrefix}
+                revisedOperation={revisedOperation}
+                loading={loading}
+                isSaving={savingRevisionPlacementId === selectedPlacement.id}
+                isDeleting={deletingPlacementIds.has(selectedPlacement.id)}
+                isMoving={movingPlacementIds.has(selectedPlacement.id)}
+                onSave={handleSaveRevision}
+                onDelete={() => confirmDeletePlacement(selectedPlacement.id, selectedPlacement.documentId)}
+              />
             )}
           </Card>
         </Col>
