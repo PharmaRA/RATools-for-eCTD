@@ -42,6 +42,7 @@ public sealed class ApplicationImportService(
         var issues = new List<ApplicationImportIssueDto>();
         var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
         var importedPlacements = new List<DocumentPlacement>();
+        var importedPlacementByHref = new Dictionary<string, DocumentPlacement>(StringComparer.Ordinal);
 
         string[] sequenceDirectories;
         try
@@ -69,7 +70,7 @@ public sealed class ApplicationImportService(
                 continue;
             }
 
-            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, importedDocuments, importedPlacements, cancellationToken);
+            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, importedDocuments, importedPlacements, importedPlacementByHref, cancellationToken);
             if (parsed is not null)
             {
                 application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
@@ -135,6 +136,7 @@ public sealed class ApplicationImportService(
         IWorkspacePathPolicy workspacePathPolicy,
         Dictionary<string, SubmissionDocument> importedDocuments,
         List<DocumentPlacement> importedPlacements,
+        Dictionary<string, DocumentPlacement> importedPlacementByHref,
         CancellationToken cancellationToken)
     {
         var issues = new List<ApplicationImportIssueDto>();
@@ -190,15 +192,35 @@ public sealed class ApplicationImportService(
                     importedDocuments[resolvedPath] = document;
                 }
 
+                var operation = ParseOperation(leaf.Attribute("operation")?.Value);
                 var placement = new DocumentPlacement(
                     document.Id,
                     application.Id,
                     sequenceNumber,
                     ExtractSectionPath(leaf.Parent?.Name.LocalName ?? string.Empty),
-                    ParseOperation(leaf.Attribute("operation")?.Value),
+                    operation,
                     leaf.Elements().FirstOrDefault(x => x.Name.LocalName == "title")?.Value);
 
+                if (operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append)
+                {
+                    var modifiedFile = leaf.Attribute("modified-file")?.Value;
+                    if (string.IsNullOrWhiteSpace(modifiedFile))
+                    {
+                        issues.Add(new ApplicationImportIssueDto("Warning", "LIFECYCLE_TARGET_MISSING", sequenceNumber, $"Lifecycle leaf '{href}' is missing modified-file."));
+                    }
+                    else if (importedPlacementByHref.TryGetValue(NormalizeLeafHref(modifiedFile), out var targetPlacement)
+                        && CompareSequenceNumbers(targetPlacement.SequenceNumber, sequenceNumber) < 0)
+                    {
+                        placement.ReviseLifecycleTarget(targetPlacement.Id);
+                    }
+                    else
+                    {
+                        issues.Add(new ApplicationImportIssueDto("Warning", "LIFECYCLE_TARGET_NOT_IMPORTED", sequenceNumber, $"Lifecycle leaf '{href}' references modified-file '{modifiedFile}', but no imported historical leaf matched it."));
+                    }
+                }
+
                 importedPlacements.Add(placement);
+                importedPlacementByHref[NormalizeLeafHref(href)] = placement;
             }
 
             return new SequenceImportResult(issues);
@@ -288,6 +310,27 @@ public sealed class ApplicationImportService(
             "append" => DocumentPlacementOperation.Append,
             _ => throw new XmlException($"Unsupported leaf operation '{operation}'.")
         };
+    }
+
+    private static string NormalizeLeafHref(string href)
+    {
+        var normalized = href.Replace('\\', '/');
+        while (normalized.StartsWith("./", StringComparison.Ordinal))
+        {
+            normalized = normalized[2..];
+        }
+
+        return normalized;
+    }
+
+    private static int CompareSequenceNumbers(string left, string right)
+    {
+        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
+        {
+            return leftNumber.CompareTo(rightNumber);
+        }
+
+        return string.Compare(left, right, StringComparison.Ordinal);
     }
 
     private static string ComputeMd5(string path)
