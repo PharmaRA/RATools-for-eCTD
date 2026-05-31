@@ -23,6 +23,7 @@ export interface DocumentPlacementRecord {
   ctdSection: string
   operation: string
   title?: string
+  lifecycleTargetPlacementId?: string | null
 }
 
 export type WorkspaceTreeNode =

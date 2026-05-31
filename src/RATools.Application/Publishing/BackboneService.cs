@@ -36,8 +36,10 @@ public sealed class BackboneService(
         var template = EctdTemplateRegistry.Resolve(application.EctdTemplateKey);
 
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
+        var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
         var documents = await documentRepository.ListAsync(cancellationToken);
         var documentById = documents.ToDictionary(x => x.Id, x => x);
+        var placementById = applicationPlacements.ToDictionary(x => x.Id, x => x);
         var referencedDocuments = placements
             .Select(x => x.DocumentId)
             .Distinct()
@@ -55,7 +57,7 @@ public sealed class BackboneService(
             new XAttribute("region", template.Region),
             new XElement(EctdNamespace + "applicant", application.SponsorName),
             new XElement(EctdNamespace + "sequenceDescription", sequence.Description),
-            BuildSectionTree(placements, documentById));
+            BuildSectionTree(placements, documentById, placementById));
 
         var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
         var xmlContent = document.ToString();
@@ -84,7 +86,8 @@ public sealed class BackboneService(
 
     private static IEnumerable<XElement> BuildSectionTree(
         IReadOnlyCollection<DocumentPlacement> placements,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
+        IReadOnlyDictionary<Guid, DocumentPlacement> placementById)
     {
         var roots = new SortedDictionary<string, SectionNode>(StringComparer.OrdinalIgnoreCase);
 
@@ -116,17 +119,20 @@ public sealed class BackboneService(
 
         foreach (var root in roots.Values)
         {
-            yield return BuildSectionElement(root, documentById);
+            yield return BuildSectionElement(root, documentById, placementById);
         }
     }
 
-    private static XElement BuildSectionElement(SectionNode node, IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+    private static XElement BuildSectionElement(
+        SectionNode node,
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
+        IReadOnlyDictionary<Guid, DocumentPlacement> placementById)
     {
         var element = new XElement(EctdNamespace + "section", new XAttribute("id", node.Path));
 
         foreach (var child in node.Children.Values)
         {
-            element.Add(BuildSectionElement(child, documentById));
+            element.Add(BuildSectionElement(child, documentById, placementById));
         }
 
         foreach (var placement in node.Placements.OrderBy(x => x.CreatedUtc))
@@ -137,13 +143,32 @@ public sealed class BackboneService(
             }
 
             var operation = MapOperation(placement.Operation);
-
-            element.Add(new XElement(EctdNamespace + "leaf",
+            var attributes = new List<object>
+            {
                 new XAttribute("id", placement.Id),
                 new XAttribute("operation", operation),
                 new XAttribute(XlinkNamespace + "href", BuildLeafHref(document, placement.SequenceNumber)),
                 new XAttribute(XlinkNamespace + "type", "simple"),
-                new XAttribute("checksum-type", "md5"),
+                new XAttribute("checksum-type", "md5")
+            };
+
+            if (placement.Operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append)
+            {
+                if (placement.LifecycleTargetPlacementId is null
+                    || !placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out var targetPlacement)
+                    || targetPlacement.ApplicationId != placement.ApplicationId
+                    || !string.Equals(targetPlacement.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase)
+                    || CompareSequenceNumbers(targetPlacement.SequenceNumber, placement.SequenceNumber) >= 0
+                    || !documentById.TryGetValue(targetPlacement.DocumentId, out var targetDocument))
+                {
+                    throw new InvalidOperationException($"Placement {placement.Id} requires a valid lifecycle target before publishing.");
+                }
+
+                attributes.Add(new XAttribute("modified-file", BuildLeafHref(targetDocument, targetPlacement.SequenceNumber)));
+            }
+
+            element.Add(new XElement(EctdNamespace + "leaf",
+                attributes,
                 new XElement(EctdNamespace + "title", placement.Title ?? document.FileName),
                 new XElement(EctdNamespace + "fileName", document.FileName),
                 new XElement(EctdNamespace + "mimeType", document.MediaType),
@@ -170,6 +195,16 @@ public sealed class BackboneService(
         using var md5 = MD5.Create();
         var hash = md5.ComputeHash(stream);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static int CompareSequenceNumbers(string left, string right)
+    {
+        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
+        {
+            return leftNumber.CompareTo(rightNumber);
+        }
+
+        return string.Compare(left, right, StringComparison.Ordinal);
     }
 
     private static string MapOperation(DocumentPlacementOperation operation)

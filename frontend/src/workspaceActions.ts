@@ -24,6 +24,7 @@ export type RevisePlacementMetadataRequest = {
   title?: string
   operation: string
   fileNamePrefix: string
+  lifecycleTargetPlacementId?: string | null
 }
 
 export class PlacementDeletePartialFailureError extends Error {
@@ -111,6 +112,7 @@ export const revisePlacementMetadata = async (
       title: request.title,
       operation: request.operation,
       fileNamePrefix: request.fileNamePrefix,
+      lifecycleTargetPlacementId: request.lifecycleTargetPlacementId,
     }),
   })
 }

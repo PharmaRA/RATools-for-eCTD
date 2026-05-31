@@ -67,9 +67,11 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.CtdSection).HasMaxLength(128).IsRequired();
             entity.Property(x => x.Operation).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Title).HasMaxLength(512);
+            entity.Property(x => x.LifecycleTargetPlacementId);
             entity.Property(x => x.CreatedUtc).IsRequired();
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber });
             entity.HasIndex(x => x.DocumentId);
+            entity.HasIndex(x => x.LifecycleTargetPlacementId);
             entity.HasOne<ApplicationRecord>()
                 .WithMany()
                 .HasForeignKey(x => x.ApplicationId)

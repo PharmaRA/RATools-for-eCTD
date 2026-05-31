@@ -11,64 +11,40 @@ public static class LifecycleTargetResolver
         IReadOnlyCollection<DocumentPlacement> historicalPlacements,
         IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
     {
-        var effectiveTitle = GetEffectiveTitle(placement, currentDocument);
+        _ = currentDocument;
+        _ = currentSequencePlacements;
+        _ = documentById;
 
-        var currentMatches = currentSequencePlacements
-            .Where(x => x.Id != placement.Id)
-            .Where(x => x.CtdSection == placement.CtdSection)
-            .Where(x => x.DocumentId == placement.DocumentId ||
-                        (documentById.TryGetValue(x.DocumentId, out var currentMatchDocument) &&
-                         GetEffectiveTitle(x, currentMatchDocument) == effectiveTitle))
-            .ToArray();
+        if (placement.LifecycleTargetPlacementId is null)
+        {
+            return CreateNotFoundResult(placement, ["ExplicitPlacementId"]);
+        }
 
-        if (currentMatches.Length > 0)
+        var explicitTarget = historicalPlacements.SingleOrDefault(x => x.Id == placement.LifecycleTargetPlacementId.Value);
+        if (explicitTarget is null || !documentById.ContainsKey(explicitTarget.DocumentId))
         {
             return new LifecycleTargetResolution(
-                "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE",
-                "CurrentSequence",
-                ["CurrentSequence"],
-                currentMatches.Length,
-                currentMatches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray(),
-                currentMatches.Select(x => x.Id).ToArray(),
-                "CurrentSequence");
+                "LIFECYCLE_TARGET_INVALID",
+                "ExplicitPlacementId",
+                ["ExplicitPlacementId"],
+                0,
+                Array.Empty<string>(),
+                [placement.LifecycleTargetPlacementId.Value],
+                "Invalid");
         }
 
-        var attemptedStrategies = new List<string> { "DocumentId" };
+        return new LifecycleTargetResolution(
+            "MATCHED",
+            "ExplicitPlacementId",
+            ["ExplicitPlacementId"],
+            1,
+            [explicitTarget.SequenceNumber],
+            [explicitTarget.Id],
+            "Active");
+    }
 
-        var documentIdMatches = historicalPlacements
-            .Where(x => x.DocumentId == placement.DocumentId)
-            .ToArray();
-
-        if (documentIdMatches.Length > 1)
-        {
-            return CreateAmbiguousResult(documentIdMatches, "DocumentId", attemptedStrategies);
-        }
-
-        if (documentIdMatches.Length == 1)
-        {
-            return CreateMatchedResult(documentIdMatches, "DocumentId", attemptedStrategies);
-        }
-
-        if (historicalPlacements.Count > 0)
-        {
-            attemptedStrategies.Add("EffectiveTitle");
-
-            var effectiveTitleMatches = historicalPlacements
-                .Where(x => documentById.TryGetValue(x.DocumentId, out var historicalDocument) &&
-                            GetEffectiveTitle(x, historicalDocument) == effectiveTitle)
-                .ToArray();
-
-            if (effectiveTitleMatches.Length > 1)
-            {
-                return CreateAmbiguousResult(effectiveTitleMatches, "EffectiveTitle", attemptedStrategies);
-            }
-
-            if (effectiveTitleMatches.Length == 1)
-            {
-                return CreateMatchedResult(effectiveTitleMatches, "EffectiveTitle", attemptedStrategies);
-            }
-        }
-
+    private static LifecycleTargetResolution CreateNotFoundResult(DocumentPlacement placement, IReadOnlyCollection<string> attemptedStrategies)
+    {
         var notFoundCode = placement.Operation switch
         {
             DocumentPlacementOperation.Replace => "REPLACE_TARGET_NOT_FOUND",
@@ -87,38 +63,4 @@ public static class LifecycleTargetResolver
             "NotFound");
     }
 
-    private static LifecycleTargetResolution CreateMatchedResult(
-        IReadOnlyCollection<DocumentPlacement> matches,
-        string strategy,
-        IReadOnlyCollection<string> attemptedStrategies)
-    {
-        return new LifecycleTargetResolution(
-            "MATCHED",
-            strategy,
-            attemptedStrategies,
-            matches.Count,
-            matches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray(),
-            matches.Select(x => x.Id).ToArray(),
-            "Active");
-    }
-
-    private static LifecycleTargetResolution CreateAmbiguousResult(
-        IReadOnlyCollection<DocumentPlacement> matches,
-        string strategy,
-        IReadOnlyCollection<string> attemptedStrategies)
-    {
-        return new LifecycleTargetResolution(
-            "LIFECYCLE_TARGET_AMBIGUOUS",
-            strategy,
-            attemptedStrategies,
-            matches.Count,
-            matches.Select(x => x.SequenceNumber).Distinct().OrderBy(x => x).ToArray(),
-            matches.Select(x => x.Id).ToArray(),
-            "Active");
-    }
-
-    private static string GetEffectiveTitle(DocumentPlacement placement, SubmissionDocument document)
-    {
-        return string.IsNullOrWhiteSpace(placement.Title) ? document.FileName : placement.Title.Trim();
-    }
 }

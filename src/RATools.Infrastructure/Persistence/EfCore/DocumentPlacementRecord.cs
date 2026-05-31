@@ -16,5 +16,7 @@ public sealed class DocumentPlacementRecord
 
     public string? Title { get; set; }
 
+    public Guid? LifecycleTargetPlacementId { get; set; }
+
     public DateTime CreatedUtc { get; set; }
 }

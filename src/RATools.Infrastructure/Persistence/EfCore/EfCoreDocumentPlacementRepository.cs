@@ -23,6 +23,7 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
         existing.CtdSection = placement.CtdSection;
         existing.Operation = placement.Operation.ToString();
         existing.Title = placement.Title;
+        existing.LifecycleTargetPlacementId = placement.LifecycleTargetPlacementId;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -94,6 +95,7 @@ internal static class DocumentPlacementRecordMapping
             CtdSection = placement.CtdSection,
             Operation = placement.Operation.ToString(),
             Title = placement.Title,
+            LifecycleTargetPlacementId = placement.LifecycleTargetPlacementId,
             CreatedUtc = placement.CreatedUtc
         };
     }
@@ -109,6 +111,7 @@ internal static class DocumentPlacementRecordMapping
             record.CtdSection,
             operation,
             record.Title,
+            record.LifecycleTargetPlacementId,
             record.CreatedUtc);
     }
 }

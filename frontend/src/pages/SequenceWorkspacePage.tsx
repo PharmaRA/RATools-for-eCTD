@@ -29,6 +29,17 @@ import {
 import { type EctdStructureResponse, getSectionAncestorKeys } from './appShared'
 import { LeafMetadataPanel } from './LeafMetadataPanel'
 
+const compareSequenceNumbers = (left: string, right: string) => {
+  const leftNumber = Number(left)
+  const rightNumber = Number(right)
+
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber
+  }
+
+  return left.localeCompare(right)
+}
+
 type SequenceWorkspacePageProps = {
   appId: string
   seqNumber: string
@@ -45,6 +56,7 @@ export const SequenceWorkspacePage = ({
   createAndExecutePublishJobProvider = createAndExecutePublishJob,
 }: SequenceWorkspacePageProps) => {
   const [placements, setPlacements] = useState<DocumentPlacementRecord[]>([])
+  const [applicationPlacements, setApplicationPlacements] = useState<DocumentPlacementRecord[]>([])
   const [documentsById, setDocumentsById] = useState<Record<string, DocumentRecord>>({})
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -70,6 +82,7 @@ export const SequenceWorkspacePage = ({
   const [publishForm] = Form.useForm()
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm)
   const revisedOperation = Form.useWatch('operation', metadataForm)
+  const revisedLifecycleTargetPlacementId = Form.useWatch('lifecycleTargetPlacementId', metadataForm)
 
   const selectedNode = useMemo(
     () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
@@ -107,6 +120,18 @@ export const SequenceWorkspacePage = ({
 
     return splitFileName(selectedDocument.fileName)
   }, [selectedDocument])
+
+  const lifecycleTargetCandidates = useMemo(() => {
+    if (!selectedPlacement) {
+      return []
+    }
+
+    return applicationPlacements
+      .filter((placement) => placement.applicationId === selectedPlacement.applicationId)
+      .filter((placement) => placement.ctdSection === selectedPlacement.ctdSection)
+      .filter((placement) => compareSequenceNumbers(placement.sequenceNumber, selectedPlacement.sequenceNumber) < 0)
+      .filter((placement) => Boolean(documentsById[placement.documentId]))
+  }, [applicationPlacements, documentsById, selectedPlacement])
 
   const validationSummary = useMemo(() => {
     if (!validationResult) {
@@ -148,6 +173,7 @@ export const SequenceWorkspacePage = ({
       title: selectedPlacement.title || '',
       operation: selectedPlacement.operation || 'New',
       fileNamePrefix: selectedDocumentNameParts.prefix,
+      lifecycleTargetPlacementId: selectedPlacement.lifecycleTargetPlacementId || null,
     })
   }, [metadataForm, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement, selectedDocument])
 
@@ -171,7 +197,9 @@ export const SequenceWorkspacePage = ({
     try {
       const res = await apiFetch('/api/document-placements')
       const list = Array.isArray(res) ? res : (res.items || [])
+      const applicationMapped = list.filter((p: DocumentPlacementRecord) => p.applicationId === appId)
       const mapped = list.filter((p: DocumentPlacementRecord) => p.applicationId === appId && p.sequenceNumber === seqNumber)
+      setApplicationPlacements(applicationMapped)
       setPlacements(mapped)
     } catch (e) {
       console.warn('Could not fetch existing placements', e)
@@ -296,6 +324,7 @@ export const SequenceWorkspacePage = ({
 
     const values = await metadataForm.validateFields()
     const normalizedPrefix = String(values.fileNamePrefix || '').trim()
+    const operation = String(values.operation || selectedPlacement.operation || 'New')
 
     setSavingRevisionPlacementId(selectedPlacement.id)
     setLoading(true)
@@ -303,8 +332,11 @@ export const SequenceWorkspacePage = ({
       await revisePlacementMetadata({
         placementId: selectedPlacement.id,
         title: String(values.title || '').trim() || undefined,
-        operation: String(values.operation || selectedPlacement.operation || 'New'),
+        operation,
         fileNamePrefix: normalizedPrefix,
+        lifecycleTargetPlacementId: operation === 'New'
+          ? null
+          : values.lifecycleTargetPlacementId || null,
       })
       await refreshWorkspaceData()
       message.success('File metadata revision saved.')
@@ -699,6 +731,9 @@ export const SequenceWorkspacePage = ({
                 documentNameParts={selectedDocumentNameParts}
                 revisedPrefix={revisedPrefix}
                 revisedOperation={revisedOperation}
+                revisedLifecycleTargetPlacementId={revisedLifecycleTargetPlacementId}
+                lifecycleTargetCandidates={lifecycleTargetCandidates}
+                documentsById={documentsById}
                 loading={loading}
                 isSaving={savingRevisionPlacementId === selectedPlacement.id}
                 isDeleting={deletingPlacementIds.has(selectedPlacement.id)}

@@ -70,6 +70,7 @@ describe('workspaceActions', () => {
         title: 'Updated title',
         operation: 'Replace',
         fileNamePrefix: 'updated-report',
+        lifecycleTargetPlacementId: 'target-placement-1',
       },
       request,
     )
@@ -77,7 +78,7 @@ describe('workspaceActions', () => {
     expect(request).toHaveBeenCalledWith('/api/document-placements/placement-1/metadata', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Updated title', operation: 'Replace', fileNamePrefix: 'updated-report' }),
+      body: JSON.stringify({ title: 'Updated title', operation: 'Replace', fileNamePrefix: 'updated-report', lifecycleTargetPlacementId: 'target-placement-1' }),
     })
   })
 

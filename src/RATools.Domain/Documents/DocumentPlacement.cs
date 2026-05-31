@@ -11,7 +11,7 @@ public sealed class DocumentPlacement : Entity
         string ctdSection,
         DocumentPlacementOperation operation,
         string? title)
-        : this(Guid.NewGuid(), documentId, applicationId, sequenceNumber, ctdSection, operation, title, DateTime.UtcNow)
+        : this(Guid.NewGuid(), documentId, applicationId, sequenceNumber, ctdSection, operation, title, null, DateTime.UtcNow)
     {
     }
 
@@ -23,6 +23,7 @@ public sealed class DocumentPlacement : Entity
         string ctdSection,
         DocumentPlacementOperation operation,
         string? title,
+        Guid? lifecycleTargetPlacementId,
         DateTime createdUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
@@ -35,6 +36,7 @@ public sealed class DocumentPlacement : Entity
         CtdSection = ctdSection.Trim();
         Operation = operation;
         Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+        LifecycleTargetPlacementId = lifecycleTargetPlacementId;
         CreatedUtc = createdUtc;
     }
 
@@ -50,6 +52,8 @@ public sealed class DocumentPlacement : Entity
 
     public string? Title { get; private set; }
 
+    public Guid? LifecycleTargetPlacementId { get; private set; }
+
     public DateTime CreatedUtc { get; private set; }
 
     public static DocumentPlacement Rehydrate(
@@ -60,9 +64,10 @@ public sealed class DocumentPlacement : Entity
         string ctdSection,
         DocumentPlacementOperation operation,
         string? title,
+        Guid? lifecycleTargetPlacementId,
         DateTime createdUtc)
     {
-        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, createdUtc);
+        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc);
     }
 
     public void ReassignSection(string ctdSection)
@@ -79,5 +84,10 @@ public sealed class DocumentPlacement : Entity
     public void ReviseOperation(DocumentPlacementOperation operation)
     {
         Operation = operation;
+    }
+
+    public void ReviseLifecycleTarget(Guid? lifecycleTargetPlacementId)
+    {
+        LifecycleTargetPlacementId = lifecycleTargetPlacementId;
     }
 }

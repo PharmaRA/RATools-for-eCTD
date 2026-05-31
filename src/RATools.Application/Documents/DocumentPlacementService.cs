@@ -183,6 +183,10 @@ public sealed class DocumentPlacementService(
             throw new InvalidOperationException($"Unsupported placement operation '{request.Operation}'.");
         }
 
+        var lifecycleTargetPlacementId = operation == DocumentPlacementOperation.New
+            ? null
+            : request.LifecycleTargetPlacementId;
+
         var normalizedPrefix = NormalizeAndValidatePrefix(request.FileNamePrefix);
         var extension = Path.GetExtension(document.FileName);
         if (string.IsNullOrWhiteSpace(extension))
@@ -236,11 +240,13 @@ public sealed class DocumentPlacementService(
         var mediaType = EctdDocumentFileRules.GetMediaType(targetFileName);
         var originalTitle = placement.Title;
         var originalOperation = placement.Operation;
+        var originalLifecycleTargetPlacementId = placement.LifecycleTargetPlacementId;
         var originalFileName = document.FileName;
         var originalMediaType = document.MediaType;
 
         placement.ReviseTitle(request.Title);
         placement.ReviseOperation(operation);
+        placement.ReviseLifecycleTarget(lifecycleTargetPlacementId);
         document.ReviseFileMetadata(targetFileName, mediaType);
 
         try
@@ -261,6 +267,7 @@ public sealed class DocumentPlacementService(
         {
             placement.ReviseTitle(originalTitle);
             placement.ReviseOperation(originalOperation);
+            placement.ReviseLifecycleTarget(originalLifecycleTargetPlacementId);
             document.ReviseFileMetadata(originalFileName, originalMediaType);
             document.Relocate(sourcePath);
 
@@ -463,6 +470,7 @@ internal static class DocumentPlacementMapping
             placement.CtdSection,
             placement.Operation.ToString(),
             placement.Title,
+            placement.LifecycleTargetPlacementId,
             placement.CreatedUtc);
     }
 }

@@ -324,6 +324,15 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
       if (url === '/api/document-placements') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
+            id: 'target-placement-1',
+            documentId: 'target-document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0000',
+            ctdSection: 'm1.1',
+            operation: 'New',
+            title: 'Historical Leaf',
+          },
+          {
             id: 'placement-1',
             documentId: 'document-1',
             applicationId: 'app-1',
@@ -337,6 +346,14 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
       if (url === '/api/documents') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'target-document-1',
+            fileName: 'historical.pdf',
+            storagePath: 'C:/workspace/app/0000/m1/us/11-forms/historical.pdf',
+            mediaType: 'application/pdf',
+            sha256: 'target123',
+            sizeBytes: 1234,
+          },
           {
             id: 'document-1',
             fileName: 'protocol.pdf',
@@ -391,6 +408,15 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
       if (url === '/api/document-placements') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
+            id: 'target-placement-1',
+            documentId: 'target-document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0000',
+            ctdSection: 'm1.1',
+            operation: 'New',
+            title: 'Historical Leaf',
+          },
+          {
             id: 'placement-1',
             documentId: 'document-1',
             applicationId: 'app-1',
@@ -404,6 +430,14 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
       if (url === '/api/documents') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'target-document-1',
+            fileName: 'historical.pdf',
+            storagePath: 'C:/workspace/app/0000/m1/us/11-forms/historical.pdf',
+            mediaType: 'application/pdf',
+            sha256: 'target123',
+            sizeBytes: 1234,
+          },
           {
             id: 'document-1',
             fileName: 'protocol.pdf',
@@ -452,6 +486,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(document.body.textContent).toContain('Checksum')
     expect(document.body.textContent).toContain('md5')
     expect(document.body.textContent).toContain('Computed at publish')
+    expect(document.body.textContent).toContain('Lifecycle Target')
+    expect(document.body.textContent).toContain('0000 | m1.1 | Historical Leaf | New')
+    expect(document.body.textContent).toContain('modified-file')
     expect(document.body.textContent).toContain('Save Leaf Metadata')
 
     act(() => {

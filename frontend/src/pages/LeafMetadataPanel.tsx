@@ -34,6 +34,9 @@ type LeafMetadataPanelProps = {
   documentNameParts: DocumentNameParts
   revisedPrefix: unknown
   revisedOperation: unknown
+  revisedLifecycleTargetPlacementId: unknown
+  lifecycleTargetCandidates: DocumentPlacementRecord[]
+  documentsById: Record<string, DocumentRecord>
   loading: boolean
   isSaving: boolean
   isDeleting: boolean
@@ -50,6 +53,9 @@ export const LeafMetadataPanel = ({
   documentNameParts,
   revisedPrefix,
   revisedOperation,
+  revisedLifecycleTargetPlacementId,
+  lifecycleTargetCandidates,
+  documentsById,
   loading,
   isSaving,
   isDeleting,
@@ -61,6 +67,13 @@ export const LeafMetadataPanel = ({
   const leafHrefPreview = buildPublishedHrefPreview(document.storagePath, sequenceNumber, revisedFileName || document.fileName)
   const leafTitlePreview = String(form.getFieldValue('title') || '').trim() || placement.title || document.fileName || '-'
   const leafOperationPreview = String(revisedOperation || placement.operation || 'New')
+  const selectedLifecycleTargetId = String(revisedLifecycleTargetPlacementId || '') || null
+  const selectedLifecycleTarget = lifecycleTargetCandidates.find((candidate) => candidate.id === selectedLifecycleTargetId)
+  const selectedLifecycleTargetDocument = selectedLifecycleTarget ? documentsById[selectedLifecycleTarget.documentId] : undefined
+  const selectedLifecycleTargetHref = selectedLifecycleTarget && selectedLifecycleTargetDocument
+    ? buildPublishedHrefPreview(selectedLifecycleTargetDocument.storagePath, selectedLifecycleTarget.sequenceNumber, selectedLifecycleTargetDocument.fileName)
+    : 'Not selected'
+  const isLifecycleOperation = ['Replace', 'Delete', 'Append'].includes(leafOperationPreview)
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,14 +98,43 @@ export const LeafMetadataPanel = ({
             options={placementOperations.map((operation) => ({ value: operation, label: operation }))}
           />
         </Form.Item>
-        {['Replace', 'Delete', 'Append'].includes(leafOperationPreview) && (
+        {isLifecycleOperation && (
           <Alert
             type="warning"
             showIcon
             className="mb-3"
             title="Lifecycle operation"
-            description="Replace, Delete, and Append require a matching historical lifecycle target. Validation will report an error until a valid target exists."
+            description={lifecycleTargetCandidates.length === 0
+              ? 'No historical leaf targets are available in this CTD section. Validation will report an error until a valid target exists.'
+              : 'Select the historical leaf that this lifecycle operation modifies. Validation will report an error if no valid target is selected.'}
           />
+        )}
+        {isLifecycleOperation && (
+          <>
+            <Form.Item name="lifecycleTargetPlacementId" label="Lifecycle Target">
+              <Select
+                allowClear
+                placeholder="Select historical leaf target"
+                options={lifecycleTargetCandidates.map((candidate) => {
+                  const targetDocument = documentsById[candidate.documentId]
+                  const title = candidate.title || targetDocument?.fileName || candidate.documentId
+                  return {
+                    value: candidate.id,
+                    label: `${candidate.sequenceNumber} | ${candidate.ctdSection} | ${title} | ${candidate.operation}`,
+                  }
+                })}
+              />
+            </Form.Item>
+            {lifecycleTargetCandidates.length > 0 && (
+              <div className="text-xs text-gray-500 -mt-3 mb-3">
+                Available Targets: {lifecycleTargetCandidates.map((candidate) => {
+                  const targetDocument = documentsById[candidate.documentId]
+                  const title = candidate.title || targetDocument?.fileName || candidate.documentId
+                  return `${candidate.sequenceNumber} | ${candidate.ctdSection} | ${title} | ${candidate.operation}`
+                }).join('; ')}
+              </div>
+            )}
+          </>
         )}
         <Form.Item
           name="fileNamePrefix"
@@ -125,6 +167,7 @@ export const LeafMetadataPanel = ({
         <Descriptions.Item label="operation">{leafOperationPreview}</Descriptions.Item>
         <Descriptions.Item label="title">{leafTitlePreview}</Descriptions.Item>
         <Descriptions.Item label="xlink:href"><span className="text-xs break-all">{leafHrefPreview}</span></Descriptions.Item>
+        {isLifecycleOperation && <Descriptions.Item label="modified-file"><span className="text-xs break-all">{selectedLifecycleTargetHref}</span></Descriptions.Item>}
         <Descriptions.Item label="Mime Type">{document.mediaType || '-'}</Descriptions.Item>
         <Descriptions.Item label="Checksum Type">md5</Descriptions.Item>
         <Descriptions.Item label="Checksum"><span className="text-xs break-all">Computed at publish</span></Descriptions.Item>

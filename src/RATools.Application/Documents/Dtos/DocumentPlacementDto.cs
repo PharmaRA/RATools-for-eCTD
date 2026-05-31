@@ -8,4 +8,5 @@ public sealed record DocumentPlacementDto(
     string CtdSection,
     string Operation,
     string? Title,
+    Guid? LifecycleTargetPlacementId,
     DateTime CreatedUtc);
