@@ -138,8 +138,14 @@ export const SequenceWorkspacePage = ({
       return null
     }
 
-    const issueCount = validationResult.issues.length
-    const hasApiError = validationResult.issues.some((issue) => issue.code === 'API_ERROR')
+    const issues = validationResult.issues || []
+    const sectionMatches = validationResult.sectionMatches || []
+    const lifecycleMatches = validationResult.lifecycleMatches || []
+    const issueCount = issues.length
+    const hasApiError = issues.some((issue) => issue.code === 'API_ERROR')
+    const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
+    const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
+    const sectionRows = sectionMatches.filter((match) => !match.isValid || !match.isStandard)
 
     if (validationResult.isValid) {
       return {
@@ -147,6 +153,12 @@ export const SequenceWorkspacePage = ({
         profile: validationResult.validationProfile,
         issueCount,
         hasApiError,
+        issues,
+        lifecycleMatches,
+        sectionMatches,
+        invalidSectionCount,
+        nonStandardSectionCount,
+        sectionRows,
         detailItems: [{ code: 'OK', message: 'No validation issues found.' }],
       }
     }
@@ -156,7 +168,13 @@ export const SequenceWorkspacePage = ({
       profile: validationResult.validationProfile,
       issueCount,
       hasApiError,
-      detailItems: validationResult.issues.map((issue) => ({
+      issues,
+      lifecycleMatches,
+      sectionMatches,
+      invalidSectionCount,
+      nonStandardSectionCount,
+      sectionRows,
+      detailItems: issues.map((issue) => ({
         code: issue.code,
         message: issue.message,
       })),
@@ -508,13 +526,67 @@ export const SequenceWorkspacePage = ({
                   <span data-testid="validation-summary-has-api-error">{validationSummary.hasApiError ? 'Yes' : 'No'}</span>
                   <span data-testid="validation-summary-status-label">{validationStatusText}</span>
                 </div>
-                <div data-testid="validation-summary-details" className="flex flex-col gap-1">
-                  {validationSummary.detailItems.map((item) => (
-                    <div key={`${item.code}-${item.message}`}>
-                      {item.code !== 'OK' && <Tag color="red">{item.code}</Tag>}
-                      {item.message}
-                    </div>
-                  ))}
+                <div data-testid="validation-summary-details" className="flex flex-col gap-3">
+                  <div data-testid="validation-summary-issues" className="rounded border border-gray-200 bg-white/70 p-3">
+                    <div className="mb-2 font-semibold">Issues to fix</div>
+                    {validationSummary.issues.length === 0 ? (
+                      <div>No validation issues found.</div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {validationSummary.issues.map((issue) => (
+                          <div key={`${issue.severity}-${issue.code}-${issue.message}`}>
+                            <Tag color={issue.severity.toLowerCase() === 'warning' ? 'gold' : 'red'}>{issue.severity}</Tag>
+                            <Tag color="red">{issue.code}</Tag>
+                            {issue.message}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div data-testid="validation-summary-lifecycle" className="rounded border border-gray-200 bg-white/70 p-3">
+                    <div className="mb-2 font-semibold">Lifecycle Targets</div>
+                    {validationSummary.lifecycleMatches.length === 0 ? (
+                      <div>No lifecycle operations were checked.</div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {validationSummary.lifecycleMatches.map((match) => (
+                          <div key={`${match.operation}-${match.sequenceNumber}-${match.ctdSection}-${match.documentId}`}>
+                            <Tag color={match.resultCode === 'MATCHED' ? 'green' : 'red'}>{match.resultCode}</Tag>
+                            <span>{match.operation} in {match.ctdSection}</span>
+                            <span> | sequence {match.sequenceNumber}</span>
+                            <span> | strategy {match.matchStrategy}</span>
+                            <span> | {match.historicalMatchCount} historical match{match.historicalMatchCount === 1 ? '' : 'es'}</span>
+                            {match.historicalSequenceNumbers.length > 0 && <span> | historical sequences {match.historicalSequenceNumbers.join(', ')}</span>}
+                            <span> | final state {match.historicalFinalState}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div data-testid="validation-summary-sections" className="rounded border border-gray-200 bg-white/70 p-3">
+                    <div className="mb-2 font-semibold">Section Matches</div>
+                    {validationSummary.sectionMatches.length === 0 ? (
+                      <div>No section matches were checked.</div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <div>
+                          {validationSummary.sectionMatches.length} checked | {validationSummary.invalidSectionCount} invalid | {validationSummary.nonStandardSectionCount} non-standard
+                        </div>
+                        {validationSummary.sectionRows.length === 0 ? (
+                          <div>All checked sections are valid standard matches.</div>
+                        ) : (
+                          validationSummary.sectionRows.map((match) => (
+                            <div key={`${match.sectionPath}-${match.reason || 'ok'}`}>
+                              <Tag color={match.isValid ? 'gold' : 'red'}>{match.isValid ? 'Non-standard' : 'Invalid'}</Tag>
+                              <span>{match.sectionPath}</span>
+                              {match.matchedPrefix && <span> | matched {match.matchedPrefix}</span>}
+                              {match.reason && <span> | {match.reason}</span>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

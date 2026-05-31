@@ -107,7 +107,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         validationProfile: 'US FDA eCTD 3.2.2',
         isValid: true,
         issues: [],
-        sectionMatches: [],
+        sectionMatches: [
+          { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+        ],
         lifecycleMatches: [],
       }
     })
@@ -143,6 +145,10 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
     expect(getValidationSummaryField('status-label')?.textContent).toContain('Validation passed')
     expect(getValidationSummaryField('details')?.textContent).toContain('No validation issues found.')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('No validation issues found.')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('No lifecycle operations were checked.')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('1 checked | 0 invalid | 0 non-standard')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('All checked sections are valid standard matches.')
 
     const input = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
     expect(input).toBeTruthy()
@@ -315,6 +321,73 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
     expect(getValidationSummaryField('title')?.textContent).toContain('Validation failed')
     expect(getValidationSummaryField('details')?.textContent).toContain('STALE_EXPORT_BLOCKED')
+
+    unmount()
+  })
+
+  it('renders editing-oriented validation report sections', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0002',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [
+        { severity: 'Error', code: 'LIFECYCLE_TARGET_INVALID', message: 'Replace target must be from an earlier sequence.' },
+        { severity: 'Warning', code: 'SECTION_NON_STANDARD', message: 'Section uses a non-standard profile match.' },
+      ],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+        { sectionPath: 'm3.2.p', isValid: true, isStandard: false, matchedPrefix: 'm3.2', reason: 'Matched parent section.' },
+        { sectionPath: 'm9.9', isValid: false, isStandard: false, matchedPrefix: null, reason: 'Unknown section.' },
+      ],
+      lifecycleMatches: [
+        {
+          operation: 'Replace',
+          sequenceNumber: '0002',
+          ctdSection: 'm3.2.p',
+          documentId: 'document-1',
+          resultCode: 'INVALID_TARGET',
+          matchStrategy: 'ExplicitPlacementId',
+          attemptedStrategies: ['ExplicitPlacementId'],
+          historicalMatchCount: 1,
+          historicalSequenceNumbers: ['0001'],
+          historicalPlacementIds: ['target-placement-1'],
+          historicalFinalState: 'Current',
+        },
+      ],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0002',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Issues to fix')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('LIFECYCLE_TARGET_INVALID')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Replace target must be from an earlier sequence.')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Warning')
+
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Lifecycle Targets')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Replace')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('m3.2.p')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('INVALID_TARGET')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('ExplicitPlacementId')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('0001')
+
+    expect(getValidationSummaryField('sections')?.textContent).toContain('Section Matches')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('1 invalid')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('1 non-standard')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('m9.9')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('Unknown section.')
 
     unmount()
   })

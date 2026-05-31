@@ -20,6 +20,7 @@ obj/
 # Local tooling and generated dependencies
 /frontend/node_modules/
 /frontend/.vite/deps/
+/.superpowers/
 /.worktrees/
 /worktrees/
 
