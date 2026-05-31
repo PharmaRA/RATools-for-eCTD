@@ -124,7 +124,6 @@ internal static class ApplicationMapping
         return new ApplicationDto(
             application.Id,
             application.ApplicationNumber,
-            application.Region,
             application.SponsorName,
             application.WorkingDirectoryPath,
             application.CreatedUtc,

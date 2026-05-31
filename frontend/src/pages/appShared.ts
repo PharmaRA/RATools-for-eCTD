@@ -3,7 +3,6 @@ import type { EctdStructureNode } from '../workspaceTree'
 export interface Application {
   id: string
   applicationNumber: string
-  region: string
   ectdTemplateKey?: string
   ectdTemplateDisplayName?: string
   sponsorName: string
@@ -29,6 +28,10 @@ export const formatBytes = (bytes: number) => {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+export const getApplicationTemplateLabel = (application?: Pick<Application, 'ectdTemplateDisplayName' | 'ectdTemplateKey'> | null) => {
+  return application?.ectdTemplateDisplayName || application?.ectdTemplateKey || 'Unknown Template'
 }
 
 export const getStatusColor = (status: string) => {

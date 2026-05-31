@@ -217,7 +217,8 @@ describe('PathPicker form hosts', () => {
             id: 'app-1',
             applicationNumber: 'APP-1',
             sponsorName: 'Sponsor',
-            region: 'US',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
             createdUtc: '2024-01-01T00:00:00Z',
             sequences: [
               { sequenceNumber: '0000', submissionType: 'Original Application', description: 'Desc' },

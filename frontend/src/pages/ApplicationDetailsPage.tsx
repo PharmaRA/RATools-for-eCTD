@@ -5,7 +5,7 @@ import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 import { apiFetch } from '../apiClient'
 import { performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
-import { type Application, formatDate } from './appShared'
+import { type Application, formatDate, getApplicationTemplateLabel } from './appShared'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
   const [appData, setAppData] = useState<Application | null>(null)
@@ -236,7 +236,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             <h2 className="m-0 text-xl font-bold">{appTitle}</h2>
           </div>
           <Space className="mt-2 flex-wrap">
-            <Tag color="purple">{appData?.region || 'Unknown Region'}</Tag>
+            <Tag color="blue">{getApplicationTemplateLabel(appData)}</Tag>
             <span className="text-gray-500 text-sm border-r pr-2">Created: {formatDate(appData?.createdUtc)}</span>
             {appData?.workingDirectoryPath && (
               <Tooltip title="Physical Working Directory Path">

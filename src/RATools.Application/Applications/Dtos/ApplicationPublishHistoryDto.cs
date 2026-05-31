@@ -6,7 +6,6 @@ namespace RATools.Application.Applications.Dtos;
 public sealed record ApplicationPublishHistoryDto(
     Guid ApplicationId,
     string ApplicationNumber,
-    string Region,
     string SponsorName,
     int Page,
     int PageSize,

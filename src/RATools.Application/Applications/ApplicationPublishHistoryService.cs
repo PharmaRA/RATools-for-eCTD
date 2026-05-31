@@ -79,7 +79,6 @@ public sealed class ApplicationPublishHistoryService(
         return new ApplicationPublishHistoryDto(
             application.Id,
             application.ApplicationNumber,
-            application.Region,
             application.SponsorName,
             page,
             pageSize,

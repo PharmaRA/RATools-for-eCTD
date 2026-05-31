@@ -7,7 +7,7 @@ import { performBatchDelete, performDelete, type BatchDeleteSummary, type Delete
 import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
 import { mapImportErrorToMessage, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
-import { type Application, formatDate } from './appShared'
+import { type Application, formatDate, getApplicationTemplateLabel } from './appShared'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
   const [loading, setLoading] = useState(false)
@@ -206,7 +206,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
 
   const columns = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
-    { title: 'Region', dataIndex: 'region', render: (t: string) => <Tag>{t}</Tag> },
+    { title: 'eCTD Template', key: 'ectdTemplate', render: (_: any, r: Application) => <Tag color="blue">{getApplicationTemplateLabel(r)}</Tag> },
     { title: 'Sponsor', dataIndex: 'sponsorName' },
     { title: 'Created', dataIndex: 'createdUtc', render: formatDate },
     { title: 'Sequences', key: 'sequences', render: (_: any, r: Application) => r.sequences?.length || 0 },
