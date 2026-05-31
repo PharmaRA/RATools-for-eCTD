@@ -2,7 +2,7 @@ import { act } from 'react-dom/test-utils'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { type DirectoryBrowseResult, type DirectoryResolutionResult, type filesystemActions } from './filesystemActions'
+import { type DirectoryBrowseResult, type filesystemActions } from './filesystemActions'
 import { DirectoryBrowserModal } from './DirectoryBrowserModal'
 
 type FilesystemProvider = typeof filesystemActions

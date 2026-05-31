@@ -158,7 +158,7 @@ describe('PathPicker form hosts', () => {
   })
 
   it('submits import application with workingDirectoryPath', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url === '/health') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
       }
@@ -206,7 +206,7 @@ describe('PathPicker form hosts', () => {
   })
 
   it('validates then submits publish sequence with outputDirectoryPath', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url === '/health') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
       }
