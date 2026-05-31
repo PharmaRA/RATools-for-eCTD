@@ -203,6 +203,12 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   const failedAppBatchResults = (appBatchSummary?.results || []).filter((result) => result.outcome.kind === 'error')
   const hasSingleAppDeleteRunning = deletingAppIds.size > 0
   const canStartAppBatchDelete = selectedAppKeys.length > 0 && !appBatchDeleteDialog.running && !hasSingleAppDeleteRunning
+  const importIssues = importResult?.issues || []
+  const lifecycleTargetIssueCodes = new Set(['LIFECYCLE_TARGET_MISSING', 'LIFECYCLE_TARGET_NOT_IMPORTED'])
+  const importLifecycleIssues = importIssues.filter((issue) => lifecycleTargetIssueCodes.has(issue.code))
+  const importOtherIssues = importIssues.filter((issue) => !lifecycleTargetIssueCodes.has(issue.code))
+  const importWarningCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'warning').length
+  const importErrorCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'error').length
 
   const columns = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
@@ -398,27 +404,84 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               <Col span={12}><Card size="small"><Statistic title="Failed Sequences" value={importResult.failedSequenceCount} /></Card></Col>
             </Row>
 
+            <div data-testid="import-result-summary" className="flex flex-wrap gap-2">
+              <Tag color="blue">{importIssues.length} total issues</Tag>
+              <Tag color="gold">{importWarningCount} warnings</Tag>
+              <Tag color="red">{importErrorCount} errors</Tag>
+              <Tag color={importLifecycleIssues.length > 0 ? 'gold' : 'green'}>{importLifecycleIssues.length} lifecycle target warnings</Tag>
+            </div>
+
+            <Card size="small" title="Lifecycle Targets Need Review" data-testid="import-result-lifecycle-issues">
+              {importLifecycleIssues.length === 0 ? (
+                <Alert type="success" showIcon title="No lifecycle target warnings." />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {importLifecycleIssues.map((issue, index) => (
+                    <Alert
+                      key={`lifecycle-import-issue-${index}`}
+                      type="warning"
+                      showIcon
+                      title={(
+                        <span>
+                          <Tag>{issue.sequenceNumber || '-'}</Tag>
+                          <Tag color="gold">{issue.code}</Tag>
+                          {issue.message}
+                        </span>
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card size="small" title="Other Import Issues" data-testid="import-result-other-issues">
+              {importOtherIssues.length === 0 ? (
+                <Alert type="success" showIcon title="No other import issues." />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {importOtherIssues.map((issue, index) => (
+                    <Alert
+                      key={`other-import-issue-${index}`}
+                      type={String(issue.severity).toLowerCase() === 'error' ? 'error' : 'warning'}
+                      showIcon
+                      title={(
+                        <span>
+                          <Tag>{issue.sequenceNumber || '-'}</Tag>
+                          <Tag color={String(issue.severity).toLowerCase() === 'error' ? 'red' : 'gold'}>{issue.severity}</Tag>
+                          <Tag>{issue.code}</Tag>
+                          {issue.message}
+                        </span>
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+
             {(importResult.issues || []).length === 0 ? (
               <Alert type="success" showIcon title="Import finished without warnings or errors." />
             ) : (
-              <Table
-                size="small"
-                pagination={{ pageSize: 8 }}
-                rowKey={(_, index) => `issue-${index}`}
-                dataSource={importResult.issues}
-                columns={[
-                  {
-                    title: 'Severity',
-                    dataIndex: 'severity',
-                    key: 'severity',
-                    width: 110,
-                    render: (value: string) => <Tag color={String(value).toLowerCase() === 'error' ? 'red' : 'gold'}>{value}</Tag>,
-                  },
-                  { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
-                  { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'sequenceNumber', width: 130, render: (value?: string | null) => value || '-' },
-                  { title: 'Message', dataIndex: 'message', key: 'message' },
-                ]}
-              />
+              <div data-testid="import-result-all-issues" className="flex flex-col gap-2">
+                <div className="font-semibold">All Import Issues</div>
+                <Table
+                  size="small"
+                  pagination={{ pageSize: 8 }}
+                  rowKey={(_, index) => `issue-${index}`}
+                  dataSource={importResult.issues}
+                  columns={[
+                    {
+                      title: 'Severity',
+                      dataIndex: 'severity',
+                      key: 'severity',
+                      width: 110,
+                      render: (value: string) => <Tag color={String(value).toLowerCase() === 'error' ? 'red' : 'gold'}>{value}</Tag>,
+                    },
+                    { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
+                    { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'sequenceNumber', width: 130, render: (value?: string | null) => value || '-' },
+                    { title: 'Message', dataIndex: 'message', key: 'message' },
+                  ]}
+                />
+              </div>
             )}
           </div>
         )}

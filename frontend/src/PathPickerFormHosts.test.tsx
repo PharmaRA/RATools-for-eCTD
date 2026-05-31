@@ -168,7 +168,21 @@ describe('PathPicker form hosts', () => {
       }
 
       if (url === '/api/applications/import') {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ importedSequenceCount: 0, importedDocumentCount: 0, importedPlacementCount: 0, skippedSequenceCount: 0, failedSequenceCount: 0, issues: [] }) })
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          applicationId: 'app-imported',
+          applicationNumber: 'IND-IMPORT',
+          workingDirectoryPath: 'D:/workspace/import',
+          importedSequenceCount: 2,
+          importedDocumentCount: 3,
+          importedPlacementCount: 3,
+          skippedSequenceCount: 1,
+          failedSequenceCount: 0,
+          issues: [
+            { severity: 'Warning', code: 'LIFECYCLE_TARGET_MISSING', sequenceNumber: '0002', message: 'Lifecycle leaf is missing modified-file.' },
+            { severity: 'Warning', code: 'LIFECYCLE_TARGET_NOT_IMPORTED', sequenceNumber: '0003', message: 'modified-file was not imported.' },
+            { severity: 'Warning', code: 'SEQUENCE_INDEX_MISSING', sequenceNumber: '0004', message: 'Sequence index.xml missing.' },
+          ],
+        }) })
       }
 
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
@@ -201,6 +215,18 @@ describe('PathPicker form hosts', () => {
       workingDirectoryPath: 'D:/workspace/import',
       sponsorName: 'Imported Sponsor',
     })
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('3 total issues')
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('3 warnings')
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('0 errors')
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('2 lifecycle target warnings')
+    expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('Lifecycle Targets Need Review')
+    expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_MISSING')
+    expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_NOT_IMPORTED')
+    expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).toContain('Other Import Issues')
+    expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).toContain('SEQUENCE_INDEX_MISSING')
+    expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).not.toContain('LIFECYCLE_TARGET_MISSING')
+    expect(document.querySelector('[data-testid="import-result-all-issues"]')?.textContent).toContain('All Import Issues')
+    expect(document.querySelector('[data-testid="import-result-all-issues"]')?.textContent).toContain('modified-file was not imported.')
 
     unmount()
   })
