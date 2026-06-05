@@ -3,7 +3,20 @@ import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs,
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes, formatDate, getLifecycleIssueCount } from '../../pages/appShared'
+import { formatBytes, formatDate } from '../../pages/appShared'
+
+const buildLifecycleSummary = (matches: any[]) => ({
+  matchedCount: matches.filter((match) => match.resultCode === 'MATCHED').length,
+  replaceTargetNotFoundCount: matches.filter((match) => match.resultCode === 'REPLACE_TARGET_NOT_FOUND').length,
+  deleteTargetNotFoundCount: matches.filter((match) => match.resultCode === 'DELETE_TARGET_NOT_FOUND').length,
+  appendTargetNotFoundCount: matches.filter((match) => match.resultCode === 'APPEND_TARGET_NOT_FOUND').length,
+  ambiguousCount: matches.filter((match) => match.resultCode === 'LIFECYCLE_TARGET_AMBIGUOUS').length,
+  currentSequenceCount: matches.filter((match) => match.resultCode === 'LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE').length,
+})
+
+const getLifecycleMatchIssueCount = (matches: any[]) => matches.filter((match) => match.resultCode !== 'MATCHED').length
+
+const formatList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
 
 export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => void }) => {
   const [loading, setLoading] = useState(false)
@@ -32,8 +45,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
     return <Alert title={title} description={errorState.message} type={type} showIcon className="mt-4" />
   }
 
-  const lifecycleIssueCount = getLifecycleIssueCount(report?.validationReport?.lifecycleSummary)
   const lifecycleMatches = report?.validationReport?.lifecycleMatches || []
+  const lifecycleSummary = buildLifecycleSummary(lifecycleMatches)
+  const lifecycleIssueCount = getLifecycleMatchIssueCount(lifecycleMatches)
+  const integrityState = report?.integritySummary ? (report.integritySummary.isConsistent ? 'Consistent' : 'Inconsistent') : '-'
 
   return (
     <Drawer title="Publish Report Details" placement="right" size={800} onClose={onClose} open={!!jobId}>
@@ -58,12 +73,14 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             <Descriptions.Item label="Duration">{report.durationMs} ms</Descriptions.Item>
             <Descriptions.Item label="Errors">{report.errorCount}</Descriptions.Item>
             <Descriptions.Item label="Warnings">{report.warningCount}</Descriptions.Item>
+            <Descriptions.Item label="Lifecycle Issues">{lifecycleIssueCount}</Descriptions.Item>
+            <Descriptions.Item label="Integrity">{integrityState}</Descriptions.Item>
           </Descriptions>
           <Row gutter={16}>
             <Col span={12}>
               <Card size="small" title="Integrity Summary">
                 <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Consistent">{report.integritySummary ? (report.integritySummary.isConsistent ? 'Yes' : 'No') : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Consistent">{integrityState}</Descriptions.Item>
                   <Descriptions.Item label="Missing Files">{report.integritySummary?.missingFilesCount ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="Missing Zip Entries">{report.integritySummary?.missingZipEntriesCount ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="Mismatched Artifacts">{report.integritySummary?.mismatchedArtifactsCount ?? '-'}</Descriptions.Item>
@@ -94,8 +111,13 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             <Col span={12}>
               <Card size="small" title="Lifecycle Summary">
                 <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Matched">{report.validationReport?.lifecycleSummary?.matchedCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Matched">{lifecycleSummary.matchedCount}</Descriptions.Item>
                   <Descriptions.Item label="Issues">{lifecycleIssueCount}</Descriptions.Item>
+                  <Descriptions.Item label="Replace Missing">{lifecycleSummary.replaceTargetNotFoundCount}</Descriptions.Item>
+                  <Descriptions.Item label="Delete Missing">{lifecycleSummary.deleteTargetNotFoundCount}</Descriptions.Item>
+                  <Descriptions.Item label="Append Missing">{lifecycleSummary.appendTargetNotFoundCount}</Descriptions.Item>
+                  <Descriptions.Item label="Ambiguous">{lifecycleSummary.ambiguousCount}</Descriptions.Item>
+                  <Descriptions.Item label="Current Sequence">{lifecycleSummary.currentSequenceCount}</Descriptions.Item>
                   <Descriptions.Item label="Warning Summary">{report.warningSummary || '-'}</Descriptions.Item>
                 </Descriptions>
               </Card>
@@ -111,11 +133,16 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               <Table dataSource={lifecycleMatches} rowKey={(record: any, i) => `${record.documentId}-${i}`} pagination={{ pageSize: 10 }} size="small"
                 columns={[
                   { title: 'Operation', dataIndex: 'operation', width: 120 },
+                  { title: 'Sequence', dataIndex: 'sequenceNumber', width: 100 },
                   { title: 'CTD Section', dataIndex: 'ctdSection', width: 120 },
+                  { title: 'Document ID', dataIndex: 'documentId', width: 180 },
                   { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
                   { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
+                  { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', render: formatList, width: 220 },
                   { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
-                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: (values: string[]) => values?.join(', ') || '-' },
+                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: formatList, width: 180 },
+                  { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', render: formatList, width: 240 },
+                  { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
                 ]}
               />
                 ),

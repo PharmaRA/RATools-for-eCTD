@@ -63,6 +63,49 @@ const clickButtonByText = async (text: string) => {
   })
 }
 
+const expectDescriptionItem = (label: string, expectedValue: string) => {
+  const labelCell = Array.from(document.querySelectorAll('.ant-descriptions-item-label')).find((candidate) => candidate.textContent?.trim() === label)
+  expect(labelCell).toBeTruthy()
+  expect(labelCell?.nextElementSibling?.textContent?.trim()).toBe(expectedValue)
+}
+
+const normalizeText = (value?: string | null) => value?.replace(/\s+/g, ' ').trim() || ''
+
+const getLifecycleTable = () => {
+  const tables = Array.from(document.querySelectorAll('.ant-table'))
+  const table = tables.find((candidate) => {
+    const headers = Array.from(candidate.querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
+    return headers.includes('Document ID') && headers.includes('Attempted Strategies')
+  })
+  expect(table).toBeTruthy()
+  return table as HTMLElement
+}
+
+const getLifecycleColumnIndex = (columnTitle: string) => {
+  const headers = Array.from(getLifecycleTable().querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
+  const index = headers.findIndex((header) => header === columnTitle)
+  expect(index).toBeGreaterThanOrEqual(0)
+  return index
+}
+
+const getLifecycleRowByDocumentId = (documentId: string) => {
+  const table = getLifecycleTable()
+  const documentIdIndex = getLifecycleColumnIndex('Document ID')
+  const row = Array.from(table.querySelectorAll('tbody tr.ant-table-row')).find((candidate) => {
+    const cells = Array.from(candidate.querySelectorAll('td')).map((cell) => normalizeText(cell.textContent))
+    return cells[documentIdIndex] === documentId
+  })
+  expect(row).toBeTruthy()
+  return row as HTMLElement
+}
+
+const expectLifecycleCell = (documentId: string, columnTitle: string, expectedValue: string) => {
+  const row = getLifecycleRowByDocumentId(documentId)
+  const columnIndex = getLifecycleColumnIndex(columnTitle)
+  const cells = Array.from(row.querySelectorAll('td')).map((cell) => normalizeText(cell.textContent))
+  expect(cells[columnIndex]).toBe(expectedValue)
+}
+
 const publishHistoryResponse = {
   applicationId: 'app-1',
   applicationNumber: 'APP-1',
@@ -158,6 +201,84 @@ const publishReportResponse = {
         historicalSequenceNumbers: [],
         historicalPlacementIds: [],
         historicalFinalState: 'Missing',
+      },
+      {
+        operation: 'Append',
+        sequenceNumber: '0001',
+        ctdSection: '1.3.5',
+        documentId: 'doc-2',
+        resultCode: 'APPEND_TARGET_NOT_FOUND',
+        matchStrategy: 'explicit-placement-id',
+        attemptedStrategies: ['explicit-placement-id', 'document-id'],
+        historicalMatchCount: 0,
+        historicalSequenceNumbers: [],
+        historicalPlacementIds: [],
+        historicalFinalState: 'Missing',
+      },
+      {
+        operation: 'Delete',
+        sequenceNumber: '0001',
+        ctdSection: '1.3.7',
+        documentId: 'doc-delete',
+        resultCode: 'DELETE_TARGET_NOT_FOUND',
+        matchStrategy: 'document-id',
+        attemptedStrategies: ['document-id'],
+        historicalMatchCount: 0,
+        historicalSequenceNumbers: [],
+        historicalPlacementIds: [],
+        historicalFinalState: 'Missing',
+      },
+      {
+        operation: 'Replace',
+        sequenceNumber: '0001',
+        ctdSection: '1.4.1',
+        documentId: 'doc-3',
+        resultCode: 'LIFECYCLE_TARGET_AMBIGUOUS',
+        matchStrategy: 'document-id',
+        attemptedStrategies: ['document-id'],
+        historicalMatchCount: 2,
+        historicalSequenceNumbers: ['0000', '0001'],
+        historicalPlacementIds: ['placement-1', 'placement-2'],
+        historicalFinalState: 'Current',
+      },
+      {
+        operation: 'Delete',
+        sequenceNumber: '0001',
+        ctdSection: '1.5.1',
+        documentId: 'doc-4',
+        resultCode: 'LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE',
+        matchStrategy: 'document-id',
+        attemptedStrategies: ['document-id'],
+        historicalMatchCount: 1,
+        historicalSequenceNumbers: ['0001'],
+        historicalPlacementIds: ['placement-3'],
+        historicalFinalState: 'Current',
+      },
+      {
+        operation: 'Replace',
+        sequenceNumber: '0001',
+        ctdSection: '1.6.1',
+        documentId: 'doc-5',
+        resultCode: 'MATCHED',
+        matchStrategy: 'document-id',
+        attemptedStrategies: ['document-id'],
+        historicalMatchCount: 1,
+        historicalSequenceNumbers: ['0000'],
+        historicalPlacementIds: ['placement-4'],
+        historicalFinalState: 'Superseded',
+      },
+      {
+        operation: 'Replace',
+        sequenceNumber: '0001',
+        ctdSection: '1.7.1',
+        documentId: 'doc-invalid',
+        resultCode: 'LIFECYCLE_TARGET_INVALID',
+        matchStrategy: 'explicit-placement-id',
+        attemptedStrategies: ['explicit-placement-id'],
+        historicalMatchCount: 1,
+        historicalSequenceNumbers: ['0000'],
+        historicalPlacementIds: ['placement-invalid'],
+        historicalFinalState: 'Invalid',
       },
     ],
   },
@@ -259,6 +380,29 @@ describe('Publish history detail frontend', () => {
     await clickButtonByText('Report')
     await flushPromises()
 
+    expect(document.body.textContent).toContain('Publish Succeeded')
+    expect(document.body.textContent).toContain('Publish completed successfully.')
+    expect(document.body.textContent).toContain('Profile')
+    expect(document.body.textContent).toContain('US FDA eCTD 3.2.2')
+    expect(document.body.textContent).toContain('Duration')
+    expect(document.body.textContent).toContain('1534 ms')
+    expect(document.body.textContent).toContain('Errors')
+    expect(document.body.textContent).toContain('Warnings')
+    expect(document.body.textContent).toContain('Lifecycle Issues')
+    expectDescriptionItem('Lifecycle Issues', '6')
+    expect(document.body.textContent).toContain('Integrity')
+    expectDescriptionItem('Integrity', 'Inconsistent')
+    expect(document.body.textContent).toContain('Replace Missing')
+    expectDescriptionItem('Matched', '1')
+    expectDescriptionItem('Replace Missing', '1')
+    expectDescriptionItem('Delete Missing', '1')
+    expectDescriptionItem('Append Missing', '1')
+    expectDescriptionItem('Ambiguous', '1')
+    expectDescriptionItem('Current Sequence', '1')
+    expect(document.body.textContent).toContain('Delete Missing')
+    expect(document.body.textContent).toContain('Append Missing')
+    expect(document.body.textContent).toContain('Ambiguous')
+    expect(document.body.textContent).toContain('Current Sequence')
     expect(document.body.textContent).toContain('Integrity Summary')
     expect(document.body.textContent).toContain('Consistent')
     expect(document.body.textContent).toContain('Missing Files')
@@ -269,7 +413,36 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('Latest Action')
     expect(document.body.textContent).toContain('Lifecycle')
     expect(document.body.textContent).toContain('REPLACE_TARGET_NOT_FOUND')
+    expect(document.body.textContent).toContain('DELETE_TARGET_NOT_FOUND')
+    expect(document.body.textContent).toContain('LIFECYCLE_TARGET_INVALID')
     expect(document.body.textContent).toContain('by-file-name')
+    expect(document.body.textContent).toContain('Sequence')
+    expect(document.body.textContent).toContain('Historical Matches')
+    expect(document.body.textContent).toContain('Historical Sequences')
+    expect(document.body.textContent).toContain('Document ID')
+    expect(document.body.textContent).toContain('Attempted Strategies')
+    expect(document.body.textContent).toContain('Historical Placement IDs')
+    expect(document.body.textContent).toContain('Final State')
+    expectLifecycleCell('doc-2', 'Operation', 'Append')
+    expectLifecycleCell('doc-2', 'Sequence', '0001')
+    expectLifecycleCell('doc-2', 'CTD Section', '1.3.5')
+    expectLifecycleCell('doc-2', 'Result Code', 'APPEND_TARGET_NOT_FOUND')
+    expectLifecycleCell('doc-2', 'Match Strategy', 'explicit-placement-id')
+    expectLifecycleCell('doc-2', 'Attempted Strategies', 'explicit-placement-id, document-id')
+    expectLifecycleCell('doc-2', 'Historical Matches', '0')
+    expectLifecycleCell('doc-2', 'Historical Sequences', '-')
+    expectLifecycleCell('doc-2', 'Historical Placement IDs', '-')
+    expectLifecycleCell('doc-2', 'Final State', 'Missing')
+    expectLifecycleCell('doc-3', 'Operation', 'Replace')
+    expectLifecycleCell('doc-3', 'Sequence', '0001')
+    expectLifecycleCell('doc-3', 'CTD Section', '1.4.1')
+    expectLifecycleCell('doc-3', 'Result Code', 'LIFECYCLE_TARGET_AMBIGUOUS')
+    expectLifecycleCell('doc-3', 'Match Strategy', 'document-id')
+    expectLifecycleCell('doc-3', 'Attempted Strategies', 'document-id')
+    expectLifecycleCell('doc-3', 'Historical Matches', '2')
+    expectLifecycleCell('doc-3', 'Historical Sequences', '0000, 0001')
+    expectLifecycleCell('doc-3', 'Historical Placement IDs', 'placement-1, placement-2')
+    expectLifecycleCell('doc-3', 'Final State', 'Current')
 
     unmount()
   })
