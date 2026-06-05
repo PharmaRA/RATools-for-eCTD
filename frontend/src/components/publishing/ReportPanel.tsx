@@ -18,6 +18,14 @@ const getLifecycleMatchIssueCount = (matches: any[]) => matches.filter((match) =
 
 const formatList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
 
+const formatBooleanStatus = (value?: boolean | null) => {
+  if (value === true) return <Tag color="green">Present</Tag>
+  if (value === false) return <Tag color="red">Missing from zip</Tag>
+  return '-'
+}
+
+const formatExistsStatus = (exists?: boolean) => exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag>
+
 export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [errorState, setErrorState] = useState<{ status: number, message: string } | null>(null)
@@ -158,6 +166,39 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   { title: 'Message', dataIndex: 'message' },
                 ]}
               />
+                ),
+              },
+              {
+                key: 'evidence',
+                label: 'Evidence',
+                children: report.integrityEvidence ? (
+                  <div className="flex flex-col gap-4">
+                    <Card size="small" title="Integrity Findings">
+                      <Table dataSource={report.integrityEvidence.findings || []} rowKey={(_: any, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
+                        locale={{ emptyText: 'No integrity findings were recorded.' }}
+                        columns={[
+                          { title: 'Severity', dataIndex: 'severity', width: 100, render: (value: string) => <Tag color={value === 'Error' ? 'red' : 'orange'}>{value}</Tag> },
+                          { title: 'Type', dataIndex: 'type', width: 200 },
+                          { title: 'Path', dataIndex: 'path', width: 260, render: (value?: string | null) => value || '-' },
+                          { title: 'Message', dataIndex: 'message' },
+                        ]}
+                      />
+                    </Card>
+                    <Card size="small" title="Artifact Manifest">
+                      <Table dataSource={report.integrityEvidence.artifacts || []} rowKey={(_: any, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
+                        columns={[
+                          { title: 'Role', dataIndex: 'role', width: 140 },
+                          { title: 'Relative Path', dataIndex: 'relativePath', width: 260, render: (value?: string | null) => value || '-' },
+                          { title: 'Exists', dataIndex: 'exists', width: 120, render: formatExistsStatus },
+                          { title: 'Size', dataIndex: 'sizeBytes', width: 120, render: (value: number) => formatBytes(value || 0) },
+                          { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150, render: formatBooleanStatus },
+                          { title: 'Source', dataIndex: 'source', width: 160 },
+                        ]}
+                      />
+                    </Card>
+                  </div>
+                ) : (
+                  <Alert type="info" showIcon title="No detailed integrity evidence was recorded for this report." />
                 ),
               },
             ]}

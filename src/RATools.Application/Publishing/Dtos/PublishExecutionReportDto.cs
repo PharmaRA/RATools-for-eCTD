@@ -12,6 +12,7 @@ public sealed record PublishExecutionReportDto(
     PublishJobDto PublishJob,
     long DurationMs,
     PublishIntegritySummaryDto? IntegritySummary,
+    PublishIntegrityEvidenceDto? IntegrityEvidence,
     PublishArtifactSummaryDto? ArtifactSummary,
     PublishAuditSummaryDto? AuditSummary,
     int ErrorCount,

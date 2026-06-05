@@ -39,7 +39,7 @@ public sealed class PublishJobService(
         var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var warningSummary = BuildWarningSummary(result.ValidationReport);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
-        var integritySummary = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
+        var integrityVerification = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
 
         var report = new PublishExecutionReportDto(
             PublishExecutionReportVersion,
@@ -50,7 +50,8 @@ public sealed class PublishJobService(
             result.ValidationReport,
             jobDto,
             stopwatch.ElapsedMilliseconds,
-            integritySummary,
+            integrityVerification.Summary,
+            integrityVerification.Evidence,
             null,
             auditSummary,
             errorCount,

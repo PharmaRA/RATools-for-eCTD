@@ -173,6 +173,15 @@ const publishReportResponse = {
     missingZipEntriesCount: 0,
     mismatchedArtifactsCount: 2,
   },
+  integrityEvidence: {
+    findings: [
+      { severity: 'Error', type: 'MissingZipEntry', path: 'm1/us/11-forms/leaf.pdf', message: 'Output file is missing from package zip.' },
+    ],
+    artifacts: [
+      { role: 'BackboneXml', relativePath: 'index.xml', path: 'E:/exports/index.xml', exists: true, sizeBytes: 512, zipEntryPresent: true, source: 'TopLevelArtifact' },
+      { role: 'OutputFile', relativePath: 'm1/us/11-forms/leaf.pdf', path: 'E:/exports/m1/us/11-forms/leaf.pdf', exists: true, sizeBytes: 2048, zipEntryPresent: false, source: 'OutputDirectory' },
+    ],
+  },
   artifactSummary: {
     fileCount: 7,
     totalSizeBytes: 4096,
@@ -443,6 +452,63 @@ describe('Publish history detail frontend', () => {
     expectLifecycleCell('doc-3', 'Historical Sequences', '0000, 0001')
     expectLifecycleCell('doc-3', 'Historical Placement IDs', 'placement-1, placement-2')
     expectLifecycleCell('doc-3', 'Final State', 'Current')
+    await clickByText('Evidence')
+    expect(document.body.textContent).toContain('Integrity Findings')
+    expect(document.body.textContent).toContain('MissingZipEntry')
+    expect(document.body.textContent).toContain('m1/us/11-forms/leaf.pdf')
+    expect(document.body.textContent).toContain('Output file is missing from package zip.')
+    expect(document.body.textContent).toContain('Artifact Manifest')
+    expect(document.body.textContent).toContain('BackboneXml')
+    expect(document.body.textContent).toContain('OutputFile')
+    expect(document.body.textContent).toContain('2 KB')
+    expect(document.body.textContent).toContain('Missing from zip')
+
+    unmount()
+  })
+
+  it('shows old-report compatibility message when integrity evidence is absent', async () => {
+    const { integrityEvidence: _, ...oldReportResponse } = publishReportResponse
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(oldReportResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Report')
+    await flushPromises()
+    await clickByText('Evidence')
+
+    expect(document.body.textContent).toContain('No detailed integrity evidence was recorded for this report.')
 
     unmount()
   })
