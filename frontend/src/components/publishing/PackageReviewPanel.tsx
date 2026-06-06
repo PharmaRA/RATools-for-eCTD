@@ -82,6 +82,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState<any>(null)
   const [artifacts, setArtifacts] = useState<Artifact[]>([])
+  const [artifactsLoaded, setArtifactsLoaded] = useState(false)
   const [reportError, setReportError] = useState<Error | null>(null)
   const [artifactsError, setArtifactsError] = useState<Error | null>(null)
 
@@ -90,6 +91,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
       setLoading(false)
       setReport(null)
       setArtifacts([])
+      setArtifactsLoaded(false)
       setReportError(null)
       setArtifactsError(null)
       return
@@ -100,6 +102,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     setLoading(true)
     setReport(null)
     setArtifacts([])
+    setArtifactsLoaded(false)
     setReportError(null)
     setArtifactsError(null)
 
@@ -118,6 +121,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
       if (artifactsResult.status === 'fulfilled') {
         const artifactData = artifactsResult.value
         setArtifacts(Array.isArray(artifactData) ? toArtifactArray(artifactData) : toArtifactArray(artifactData?.artifacts))
+        setArtifactsLoaded(true)
       } else {
         setArtifactsError(normalizeError(artifactsResult.reason))
       }
@@ -182,7 +186,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: report?.integritySummary?.missingZipEntriesCount ?? '-' },
     { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: report?.integritySummary?.mismatchedArtifactsCount ?? '-' },
   ]
-  const reviewExportAvailable = reportLoaded || (!artifactsError && artifacts.length > 0)
+  const reviewExportAvailable = reportLoaded || artifactsLoaded
   const checklistExportRows: ChecklistExportRow[] = checklistRows.map((row) => ({
     key: row.key,
     check: row.check,
