@@ -4,11 +4,13 @@ import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, T
 import { apiFetch } from '../../apiClient'
 import { formatBytes, formatDate, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
+import { PackageReviewPanel } from './PackageReviewPanel'
 import { ReportPanel } from './ReportPanel'
 
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any>(null)
+  const [selectedReviewJobId, setSelectedReviewJobId] = useState<string | null>(null)
   const [selectedReportJobId, setSelectedReportJobId] = useState<string | null>(null)
   const [selectedArtifactsJobId, setSelectedArtifactsJobId] = useState<string | null>(null)
   const [form] = Form.useForm()
@@ -71,9 +73,10 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     },
     { title: 'Created', dataIndex: 'createdUtc', key: 'created', render: formatDate },
     {
-      title: 'Actions', key: 'actions', fixed: 'right' as const, width: 200,
+      title: 'Actions', key: 'actions', fixed: 'right' as const, width: 260,
       render: (_: any, r: any) => (
         <Space>
+          <Button size="small" type="primary" onClick={() => setSelectedReviewJobId(r.publishJobId)}>Review</Button>
           <Button size="small" onClick={() => setSelectedReportJobId(r.publishJobId)}>Report</Button>
           <Button size="small" type="primary" ghost onClick={() => setSelectedArtifactsJobId(r.publishJobId)}>Artifacts</Button>
         </Space>
@@ -116,6 +119,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
           pagination={{ current: page, pageSize, total: data?.totalCount || 0, showSizeChanger: true, onChange: (p, ps) => { setPage(p); setPageSize(ps) } }}
         />
       </div>
+      <PackageReviewPanel jobId={selectedReviewJobId} onClose={() => setSelectedReviewJobId(null)} />
       <ReportPanel jobId={selectedReportJobId} onClose={() => setSelectedReportJobId(null)} />
       <ArtifactsPanel jobId={selectedArtifactsJobId} onClose={() => setSelectedArtifactsJobId(null)} />
     </div>
