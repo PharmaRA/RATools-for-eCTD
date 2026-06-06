@@ -821,6 +821,60 @@ describe('Publish history detail frontend', () => {
     unmount()
   })
 
+  it('disables review json export when report and artifacts cannot load', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: false, status: 422, json: vi.fn().mockResolvedValue({ message: 'Publish report is corrupted.' }) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/artifacts') {
+        return Promise.resolve({ ok: false, status: 410, json: vi.fn().mockResolvedValue({ message: 'Artifacts unavailable.' }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Review')
+    await flushPromises()
+
+    const { createdBlobs } = setupDownloadCapture()
+
+    expect(document.body.textContent).toContain('Package Review')
+    expect(document.body.textContent).toContain('Publish report is corrupted.')
+    expect(document.body.textContent).toContain('Artifacts unavailable.')
+    expectControlDisabled('Download Review JSON')
+    expect(createdBlobs).toHaveLength(0)
+
+    unmount()
+  })
+
   it('exports review json when only an empty artifact list is available', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url === '/health') {
