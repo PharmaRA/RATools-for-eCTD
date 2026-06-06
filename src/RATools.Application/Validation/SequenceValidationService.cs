@@ -24,6 +24,9 @@ public sealed class SequenceValidationService(
         var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
         var validationMode = validationProfileProvider.Mode;
 
+        static ValidationIssueDto PlacementIssue(string severity, string code, string message, DocumentPlacement placement)
+            => new(severity, code, message, placement.CtdSection, placement.DocumentId, placement.Id);
+
         var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
         if (application is null)
         {
@@ -73,10 +76,11 @@ public sealed class SequenceValidationService(
 
             foreach (var duplicate in duplicatePlacements)
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Warning",
                     "DUPLICATE_PLACEMENT",
-                    $"Document {duplicate.Key.DocumentId} appears multiple times in section {duplicate.Key.Section}."));
+                    $"Document {duplicate.Key.DocumentId} appears multiple times in section {duplicate.Key.Section}.",
+                    duplicate.First()));
             }
         }
 
@@ -91,10 +95,13 @@ public sealed class SequenceValidationService(
 
         foreach (var duplicatePublishedPath in duplicatePublishedPaths)
         {
-            issues.Add(new ValidationIssueDto(
+            var duplicateDocumentIds = duplicatePublishedPath.Select(x => x.Id).ToHashSet();
+            var placement = placements.First(x => duplicateDocumentIds.Contains(x.DocumentId));
+            issues.Add(PlacementIssue(
                 "Error",
                 "DUPLICATE_PUBLISHED_DOCUMENT_PATH",
-                $"Multiple documents resolve to the same published path '{duplicatePublishedPath.Key}'."));
+                $"Multiple documents resolve to the same published path '{duplicatePublishedPath.Key}'.",
+                placement));
         }
 
         var documentById = documents
@@ -105,19 +112,21 @@ public sealed class SequenceValidationService(
         {
             if (!IsSupportedOperation(placement.Operation))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Error",
                     "UNSUPPORTED_OPERATION_VALUE",
-                    $"Operation '{placement.Operation}' is not supported for backbone generation."));
+                    $"Operation '{placement.Operation}' is not supported for backbone generation.",
+                    placement));
                 continue;
             }
 
             if (!documentById.TryGetValue(placement.DocumentId, out var document))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Error",
                     "DOCUMENT_NOT_FOUND",
-                    $"Referenced document {placement.DocumentId} was not found for section {placement.CtdSection}."));
+                    $"Referenced document {placement.DocumentId} was not found for section {placement.CtdSection}.",
+                    placement));
                 continue;
             }
 
@@ -151,10 +160,11 @@ public sealed class SequenceValidationService(
 
                 if (resolution.ResultCode != "MATCHED")
                 {
-                    issues.Add(new ValidationIssueDto(
+                    issues.Add(PlacementIssue(
                         "Error",
                         resolution.ResultCode,
-                        BuildLifecycleErrorMessage(placement, resolution)));
+                        BuildLifecycleErrorMessage(placement, resolution),
+                        placement));
                     continue;
                 }
             }
@@ -163,19 +173,21 @@ public sealed class SequenceValidationService(
                 || string.IsNullOrWhiteSpace(document.MediaType)
                 || string.IsNullOrWhiteSpace(document.Sha256))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Error",
                     "MISSING_LEAF_CORE_METADATA",
-                    $"Document {document.Id} is missing required backbone metadata (file name, media type, or checksum)."));
+                    $"Document {document.Id} is missing required backbone metadata (file name, media type, or checksum).",
+                    placement));
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(placement.CtdSection))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Error",
                     "SECTION_MISSING",
-                    $"Document {document.FileName} is missing a CTD section."));
+                    $"Document {document.FileName} is missing a CTD section.",
+                    placement));
             }
             else
             {
@@ -192,38 +204,42 @@ public sealed class SequenceValidationService(
 
                 if (!sectionMatch.IsValid)
                 {
-                    issues.Add(new ValidationIssueDto(
+                    issues.Add(PlacementIssue(
                         "Error",
                         "INVALID_SECTION_PATH",
-                        $"Section '{placement.CtdSection}' is not a valid CTD section path."));
+                        $"Section '{placement.CtdSection}' is not a valid CTD section path.",
+                        placement));
                 }
                 else
                 {
                     var sectionDepth = placement.CtdSection.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
                     if (validationMode == ValidationMode.Strict && sectionDepth < 2)
                     {
-                        issues.Add(new ValidationIssueDto(
+                        issues.Add(PlacementIssue(
                             "Warning",
                             "SECTION_DEPTH_SHALLOW",
-                            $"Section '{placement.CtdSection}' may be too coarse; consider a deeper CTD node."));
+                            $"Section '{placement.CtdSection}' may be too coarse; consider a deeper CTD node.",
+                            placement));
                     }
 
                     if (validationMode == ValidationMode.Strict && !sectionMatch.IsStandard)
                     {
-                        issues.Add(new ValidationIssueDto(
+                        issues.Add(PlacementIssue(
                             "Warning",
                             "NON_STANDARD_SECTION_PATTERN",
-                            $"Section '{placement.CtdSection}' is valid but uses a non-standard FDA/ICH segment pattern."));
+                            $"Section '{placement.CtdSection}' is valid but uses a non-standard FDA/ICH segment pattern.",
+                            placement));
                     }
                 }
             }
 
             if (validationMode == ValidationMode.Strict && string.IsNullOrWhiteSpace(placement.Title))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Warning",
                     "TITLE_FALLBACK_USED",
-                    $"Placement for document {document.FileName} has no explicit title, so the file name will be used in the backbone."));
+                    $"Placement for document {document.FileName} has no explicit title, so the file name will be used in the backbone.",
+                    placement));
             }
 
             var expectedMediaType = GuessMediaTypeByFileName(document.FileName);
@@ -231,18 +247,20 @@ public sealed class SequenceValidationService(
                 !string.IsNullOrWhiteSpace(expectedMediaType) &&
                 !string.Equals(expectedMediaType, document.MediaType, StringComparison.OrdinalIgnoreCase))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Warning",
                     "MEDIA_TYPE_MISMATCH",
-                    $"Document {document.FileName} media type '{document.MediaType}' does not match expected '{expectedMediaType}'."));
+                    $"Document {document.FileName} media type '{document.MediaType}' does not match expected '{expectedMediaType}'.",
+                    placement));
             }
 
             if (!File.Exists(document.StoragePath))
             {
-                issues.Add(new ValidationIssueDto(
+                issues.Add(PlacementIssue(
                     "Error",
                     "FILE_MISSING",
-                    $"Document file '{document.StoragePath}' does not exist."));
+                    $"Document file '{document.StoragePath}' does not exist.",
+                    placement));
             }
         }
 

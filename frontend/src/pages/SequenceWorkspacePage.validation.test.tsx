@@ -20,6 +20,7 @@ vi.mock('antd', async (importOriginal) => {
 })
 
 import { SequenceWorkspacePage } from './SequenceWorkspacePage'
+import { message } from 'antd'
 
 const flushPromises = async () => {
   await act(async () => {
@@ -73,6 +74,66 @@ const clickPrimaryModalButton = () => {
 const getValidationSummary = () => document.querySelector('[data-testid="validation-summary"]')
 
 const getValidationSummaryField = (field: string) => document.querySelector(`[data-testid="validation-summary-${field}"]`)
+
+const getLocateButtons = (container: Element | null) => Array.from(container?.querySelectorAll('button') || [])
+  .filter((button) => button.textContent?.includes('Locate')) as HTMLButtonElement[]
+
+const clickLocateButton = (container: Element | null, index = 0) => {
+  const button = getLocateButtons(container).at(index)
+  expect(button).toBeTruthy()
+  act(() => {
+    button!.click()
+  })
+}
+
+const stubWorkspaceFetch = () => {
+  vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+    if (url === '/api/document-placements') {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+        {
+          id: 'placement-1',
+          documentId: 'document-1',
+          applicationId: 'app-1',
+          sequenceNumber: '0001',
+          ctdSection: 'm1.1',
+          operation: 'Replace',
+          title: 'Protocol Leaf',
+        },
+      ]) })
+    }
+
+    if (url === '/api/documents') {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+        {
+          id: 'document-1',
+          fileName: 'protocol.pdf',
+          storagePath: 'C:/workspace/app/0001/m1/us/11-forms/protocol.pdf',
+          mediaType: 'application/pdf',
+          sha256: 'abc123',
+          sizeBytes: 1234,
+        },
+      ]) })
+    }
+
+    if (url === '/api/applications/app-1/ectd-structure') {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        profileName: 'US FDA eCTD 3.2.2',
+        region: 'US',
+        roots: [
+          {
+            elementName: 'm1-1-forms',
+            sectionPath: 'm1.1',
+            displayName: 'Forms',
+            sourceProfile: 'US FDA eCTD 3.2.2',
+            children: [],
+          },
+        ],
+      }) })
+    }
+
+    return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+  }))
+}
 
 const setInputValue = (input: HTMLInputElement, value: string) => {
   const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
@@ -388,6 +449,311 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(getValidationSummaryField('sections')?.textContent).toContain('1 non-standard')
     expect(getValidationSummaryField('sections')?.textContent).toContain('m9.9')
     expect(getValidationSummaryField('sections')?.textContent).toContain('Unknown section.')
+
+    unmount()
+  })
+
+  it('locates a validation issue document and does not render Locate for non-locatable issues', async () => {
+    stubWorkspaceFetch()
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [
+        {
+          severity: 'Error',
+          code: 'PLACEMENT_INVALID',
+          message: 'Protocol placement needs review.',
+          placementId: 'placement-1',
+          documentId: 'document-1',
+          sectionPath: 'm1.1',
+        },
+        {
+          severity: 'Warning',
+          code: 'GENERAL_WARNING',
+          message: 'Review the validation report.',
+        },
+      ],
+      sectionMatches: [],
+      lifecycleMatches: [],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    const issuesArea = getValidationSummaryField('issues')
+    expect(getLocateButtons(issuesArea)).toHaveLength(1)
+
+    clickLocateButton(issuesArea)
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Leaf Metadata')
+    expect(document.body.textContent).toContain('protocol.pdf')
+    expect(document.body.textContent).toContain('Operation')
+
+    unmount()
+  })
+
+  it('warns without crashing when a validation issue locator is stale', async () => {
+    stubWorkspaceFetch()
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [
+        {
+          severity: 'Error',
+          code: 'STALE_LOCATOR',
+          message: 'This issue points at a removed document.',
+          placementId: 'missing-placement',
+        },
+      ],
+      sectionMatches: [],
+      lifecycleMatches: [],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickAnyByText('Forms')
+    await flushPromises()
+    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    const issuesArea = getValidationSummaryField('issues')
+    expect(getLocateButtons(issuesArea)).toHaveLength(1)
+
+    clickLocateButton(issuesArea)
+    await flushPromises()
+
+    expect(message.warning).toHaveBeenCalledWith('Could not locate this validation issue in the workspace tree.')
+    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+    expect(document.body.textContent).not.toContain('Leaf Metadata\nOperation')
+
+    unmount()
+  })
+
+  it('locates a section match abnormal row by section path', async () => {
+    stubWorkspaceFetch()
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: false, isStandard: false, matchedPrefix: null, reason: 'Unknown section.' },
+      ],
+      lifecycleMatches: [],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    clickLocateButton(getValidationSummaryField('sections'))
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Section')
+    expect(document.body.textContent).toContain('m1.1')
+    expect(document.body.textContent).toContain('Display')
+    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+
+    unmount()
+  })
+
+  it('locates a lifecycle row document by current sequence document id', async () => {
+    stubWorkspaceFetch()
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [],
+      sectionMatches: [],
+      lifecycleMatches: [
+        {
+          operation: 'Replace',
+          sequenceNumber: '0001',
+          ctdSection: 'm1.1',
+          documentId: 'document-1',
+          resultCode: 'INVALID_TARGET',
+          matchStrategy: 'DocumentId',
+          attemptedStrategies: ['DocumentId'],
+          historicalMatchCount: 0,
+          historicalSequenceNumbers: [],
+          historicalPlacementIds: [],
+          historicalFinalState: 'Missing',
+        },
+      ],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    clickLocateButton(getValidationSummaryField('lifecycle'))
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Leaf Metadata')
+    expect(document.body.textContent).toContain('protocol.pdf')
+    expect(document.body.textContent).toContain('Operation')
+
+    unmount()
+  })
+
+  it('locates a lifecycle row document by document id and section when duplicate placements exist', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/document-placements') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'placement-1',
+            documentId: 'document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0001',
+            ctdSection: 'm1.1',
+            operation: 'New',
+            title: 'Forms Leaf',
+          },
+          {
+            id: 'placement-2',
+            documentId: 'document-1',
+            applicationId: 'app-1',
+            sequenceNumber: '0001',
+            ctdSection: 'm1.2',
+            operation: 'Replace',
+            title: 'Cover Leaf',
+          },
+        ]) })
+      }
+
+      if (url === '/api/documents') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'document-1',
+            fileName: 'shared.pdf',
+            storagePath: 'C:/workspace/app/0001/m1/us/shared.pdf',
+            mediaType: 'application/pdf',
+            sha256: 'abc123',
+            sizeBytes: 1234,
+          },
+        ]) })
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          profileName: 'US FDA eCTD 3.2.2',
+          region: 'US',
+          roots: [
+            {
+              elementName: 'm1-1-forms',
+              sectionPath: 'm1.1',
+              displayName: 'Forms',
+              sourceProfile: 'US FDA eCTD 3.2.2',
+              children: [],
+            },
+            {
+              elementName: 'm1-2-cover-letters',
+              sectionPath: 'm1.2',
+              displayName: 'Cover Letters',
+              sourceProfile: 'US FDA eCTD 3.2.2',
+              children: [],
+            },
+          ],
+        }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [],
+      sectionMatches: [],
+      lifecycleMatches: [
+        {
+          operation: 'Replace',
+          sequenceNumber: '0001',
+          ctdSection: 'm1.2',
+          documentId: 'document-1',
+          resultCode: 'INVALID_TARGET',
+          matchStrategy: 'DocumentId',
+          attemptedStrategies: ['DocumentId'],
+          historicalMatchCount: 0,
+          historicalSequenceNumbers: [],
+          historicalPlacementIds: [],
+          historicalFinalState: 'Missing',
+        },
+      ],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    clickLocateButton(getValidationSummaryField('lifecycle'))
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Placement ID')
+    expect(document.body.textContent).toContain('placement-2')
+    expect(document.body.textContent).toContain('m1.2')
+    expect(getInputByLabel('Leaf Title').value).toBe('Cover Leaf')
+    expect(document.body.textContent).not.toContain('placement-1')
 
     unmount()
   })

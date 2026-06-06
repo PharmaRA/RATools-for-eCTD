@@ -9,6 +9,9 @@ export type ValidationIssue = {
   severity: string
   code: string
   message: string
+  sectionPath?: string | null
+  documentId?: string | null
+  placementId?: string | null
 }
 
 export type ValidationSectionMatch = {

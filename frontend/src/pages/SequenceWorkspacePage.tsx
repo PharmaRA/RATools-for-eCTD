@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from '
 import { apiFetch } from '../apiClient'
 import { PathPicker } from '../PathPicker'
 import { createAndExecutePublishJob } from '../publishActions'
-import { validateSequence, type ValidationReport } from '../validationActions'
+import { validateSequence, type ValidationIssue, type ValidationReport } from '../validationActions'
 import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from '../ectdFileTypes'
 import {
   deletePlacementWithDocument,
@@ -46,6 +46,12 @@ type SequenceWorkspacePageProps = {
   onBack: () => void
   validateSequenceProvider?: typeof validateSequence
   createAndExecutePublishJobProvider?: typeof createAndExecutePublishJob
+}
+
+type ValidationLocation = {
+  placementId?: string | null
+  documentId?: string | null
+  sectionPath?: string | null
 }
 
 export const SequenceWorkspacePage = ({
@@ -132,6 +138,64 @@ export const SequenceWorkspacePage = ({
       .filter((placement) => compareSequenceNumbers(placement.sequenceNumber, selectedPlacement.sequenceNumber) < 0)
       .filter((placement) => Boolean(documentsById[placement.documentId]))
   }, [applicationPlacements, documentsById, selectedPlacement])
+
+  const hasValidationLocation = (location: ValidationLocation) => Boolean(
+    location.placementId?.trim()
+    || location.documentId?.trim()
+    || location.sectionPath?.trim(),
+  )
+
+  const resolveValidationLocation = (location: ValidationLocation) => {
+    const placementId = location.placementId?.trim()
+    if (placementId) {
+      const key = `placement:${placementId}`
+      const node = findWorkspaceTreeNode(treeData, key)
+      if (node) {
+        return { key: node.key, sectionPath: node.sectionPath }
+      }
+    }
+
+    const documentId = location.documentId?.trim()
+    const sectionPath = location.sectionPath?.trim()
+    if (documentId) {
+      const placement = sectionPath
+        ? placements.find((item) => item.documentId === documentId && item.ctdSection === sectionPath)
+        : undefined
+      const fallbackPlacement = placement || placements.find((item) => item.documentId === documentId)
+      if (fallbackPlacement) {
+        const key = `placement:${fallbackPlacement.id}`
+        const node = findWorkspaceTreeNode(treeData, key)
+        if (node) {
+          return { key: node.key, sectionPath: node.sectionPath }
+        }
+      }
+    }
+
+    if (sectionPath) {
+      const node = findWorkspaceTreeNode(treeData, sectionPath)
+      if (node) {
+        return { key: node.key, sectionPath: node.sectionPath }
+      }
+    }
+
+    return null
+  }
+
+  const locateValidationIssue = (location: ValidationLocation) => {
+    const resolvedLocation = resolveValidationLocation(location)
+    if (!resolvedLocation) {
+      message.warning('Could not locate this validation issue in the workspace tree.')
+      return
+    }
+
+    setSelectedTreeKey(resolvedLocation.key)
+    setSelectedSectionPath(resolvedLocation.sectionPath)
+    setExpandedKeys((current) => Array.from(new Set([
+      ...current,
+      ...getSectionAncestorKeys(resolvedLocation.sectionPath),
+      resolvedLocation.sectionPath,
+    ])))
+  }
 
   const validationSummary = useMemo(() => {
     if (!validationResult) {
@@ -533,11 +597,14 @@ export const SequenceWorkspacePage = ({
                       <div>No validation issues found.</div>
                     ) : (
                       <div className="flex flex-col gap-2">
-                        {validationSummary.issues.map((issue) => (
+                        {validationSummary.issues.map((issue: ValidationIssue) => (
                           <div key={`${issue.severity}-${issue.code}-${issue.message}`}>
                             <Tag color={issue.severity.toLowerCase() === 'warning' ? 'gold' : 'red'}>{issue.severity}</Tag>
                             <Tag color="red">{issue.code}</Tag>
                             {issue.message}
+                            {hasValidationLocation(issue) && (
+                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue(issue)}>Locate</Button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -558,6 +625,9 @@ export const SequenceWorkspacePage = ({
                             <span> | {match.historicalMatchCount} historical match{match.historicalMatchCount === 1 ? '' : 'es'}</span>
                             {match.historicalSequenceNumbers.length > 0 && <span> | historical sequences {match.historicalSequenceNumbers.join(', ')}</span>}
                             <span> | final state {match.historicalFinalState}</span>
+                            {hasValidationLocation({ documentId: match.documentId, sectionPath: match.ctdSection }) && (
+                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue({ documentId: match.documentId, sectionPath: match.ctdSection })}>Locate</Button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -581,6 +651,9 @@ export const SequenceWorkspacePage = ({
                               <span>{match.sectionPath}</span>
                               {match.matchedPrefix && <span> | matched {match.matchedPrefix}</span>}
                               {match.reason && <span> | {match.reason}</span>}
+                              {hasValidationLocation({ sectionPath: match.sectionPath }) && (
+                                <Button size="small" className="ml-2" onClick={() => locateValidationIssue({ sectionPath: match.sectionPath })}>Locate</Button>
+                              )}
                             </div>
                           ))
                         )}
