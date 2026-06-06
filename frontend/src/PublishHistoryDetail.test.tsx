@@ -798,6 +798,25 @@ describe('Publish history detail frontend', () => {
     expectReviewChecklistRow('Required artifacts present', 'Fail')
     expectControlDisabled('Download Package')
     expectControlDisabled('Download Report')
+    const { createdBlobs, clickedDownloads } = setupDownloadCapture()
+    await clickButtonByText('Download Review JSON')
+
+    expect(createdBlobs).toHaveLength(1)
+    expect(clickedDownloads).toEqual(['package-review-0001-job-1.json'])
+    const exportJson = await readJsonBlob(createdBlobs[0])
+    expect(exportJson.reportVersion).toBe('package-review-export-v1')
+    expect(exportJson.verdict).toBe('NotReadyForSubmission')
+    expect(exportJson.requiredArtifacts).toEqual([
+      { name: 'BackboneXml', exists: false },
+      { name: 'PublishReport', exists: false },
+      { name: 'PackageZip', exists: false },
+    ])
+    expect(exportJson.errors).toEqual({
+      artifacts: {
+        message: 'Artifacts unavailable.',
+        status: 410,
+      },
+    })
 
     unmount()
   })

@@ -32,6 +32,11 @@ type ChecklistExportRow = {
   detail: string
 }
 
+type ReviewExportError = {
+  message: string
+  status?: number
+}
+
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
 
 const isArtifact = (value: unknown): value is Artifact => {
@@ -76,6 +81,14 @@ const downloadJson = (filename: string, value: unknown) => {
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+const buildErrorExport = (error: Error | null): ReviewExportError | undefined => {
+  if (!error) return undefined
+
+  return error instanceof ApiRequestError
+    ? { message: error.message, status: error.status }
+    : { message: error.message }
 }
 
 export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) => {
@@ -208,6 +221,10 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
     try {
       const sequenceNumber = report?.sequenceNumber ?? null
+      const errors = {
+        report: buildErrorExport(reportError),
+        artifacts: buildErrorExport(artifactsError),
+      }
       const exportObject = {
         reportVersion: 'package-review-export-v1',
         generatedAtUtc: new Date().toISOString(),
@@ -231,6 +248,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           contentType: artifact.contentType,
         })),
         integrityFindings: findings,
+        ...(errors.report || errors.artifacts ? { errors } : {}),
       }
 
       downloadJson(`package-review-${sequenceNumber || 'unknown'}-${jobId}.json`, exportObject)
