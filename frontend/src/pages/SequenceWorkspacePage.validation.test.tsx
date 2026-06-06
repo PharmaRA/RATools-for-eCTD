@@ -21,6 +21,7 @@ vi.mock('antd', async (importOriginal) => {
 
 import { SequenceWorkspacePage } from './SequenceWorkspacePage'
 import { message } from 'antd'
+import { type ValidationReport } from '../validationActions'
 
 const flushPromises = async () => {
   await act(async () => {
@@ -364,6 +365,59 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     unmount()
   })
 
+  it('allows publishing when API_ERROR is a validation warning', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: true,
+      issues: [
+        {
+          severity: 'Warning',
+          code: 'API_ERROR',
+          message: 'API warning for reviewer awareness.',
+        },
+      ],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+      ],
+      lifecycleMatches: [],
+    })
+    const createAndExecutePublishJobProvider = vi.fn().mockResolvedValue({ id: 'job-1' })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    const modal = document.querySelector('.ant-modal')
+    expect(modal).toBeTruthy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 warning')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
+    const apiChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-api-reachable"]')
+    expect(apiChecklistRow?.textContent).toContain('Validation API reachable')
+    expect(apiChecklistRow?.textContent).toContain('Pass')
+    expect(apiChecklistRow?.textContent).toContain('Validation API returned a report')
+    expect(apiChecklistRow?.textContent).not.toContain('Fail')
+    const warningsSummary = expectValidationSummaryField('warnings')
+    expect(warningsSummary.textContent).toContain('API_ERROR')
+    expect(warningsSummary.textContent).toContain('API warning for reviewer awareness.')
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
   it('allows publishing when section matches are non-standard but not invalid', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
 
@@ -449,6 +503,125 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(checklistSummary.textContent).toContain('Validation service did not return a usable report.')
     expect(getValidationSummaryField('issues')?.textContent).toContain('API_ERROR')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Validation service unavailable.')
+
+    unmount()
+  })
+
+  it('fails closed when validation returns a structurally unusable report', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({} as ValidationReport)
+    const createAndExecutePublishJobProvider = vi.fn()
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(validateSequenceProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+    })
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+    expect(document.querySelector('.ant-modal')).toBeFalsy()
+    const validationSummary = getValidationSummary()
+    expect(validationSummary).toBeTruthy()
+    expect(validationSummary?.getAttribute('data-severity')).toBe('error')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('profile')?.textContent).toContain('Validation API')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('Yes')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('API_ERROR')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Validation service returned an unusable report.')
+
+    unmount()
+  })
+
+  it('fails closed when validation returns an issue without severity', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [
+        { code: 'MISSING_DOCUMENT', message: 'Missing document.' } as ValidationReport['issues'][number],
+      ],
+      sectionMatches: [],
+      lifecycleMatches: [],
+    })
+    const createAndExecutePublishJobProvider = vi.fn()
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+    expect(document.querySelector('.ant-modal')).toBeFalsy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
+    const issuesArea = expectValidationSummaryField('issues')
+    expect(issuesArea.textContent).toContain('API_ERROR')
+    expect(issuesArea.textContent).toContain('Validation service returned an unusable report.')
+
+    unmount()
+  })
+
+  it('fails the section checklist row for blocking section issues without section match rows', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: false,
+      issues: [
+        {
+          severity: 'Error',
+          code: 'SECTION_MISSING',
+          message: 'The section path m1.99 is not available in the validation profile.',
+        },
+      ],
+      sectionMatches: [],
+      lifecycleMatches: [],
+    })
+    const createAndExecutePublishJobProvider = vi.fn()
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+    expect(document.querySelector('.ant-modal')).toBeFalsy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('SECTION_MISSING')
+    const sectionChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-section-paths"]')
+    expect(sectionChecklistRow?.textContent).toContain('Section paths acceptable')
+    expect(sectionChecklistRow?.textContent).toContain('Fail')
+    expect(sectionChecklistRow?.textContent).toContain('0 invalid | 0 non-standard')
 
     unmount()
   })

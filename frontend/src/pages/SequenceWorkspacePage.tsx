@@ -5,7 +5,13 @@ import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from '
 import { apiFetch } from '../apiClient'
 import { PathPicker } from '../PathPicker'
 import { createAndExecutePublishJob } from '../publishActions'
-import { validateSequence, type ValidationIssue, type ValidationReport } from '../validationActions'
+import {
+  validateSequence,
+  type ValidationIssue,
+  type ValidationLifecycleMatch,
+  type ValidationReport,
+  type ValidationSectionMatch,
+} from '../validationActions'
 import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from '../ectdFileTypes'
 import {
   deletePlacementWithDocument,
@@ -62,11 +68,57 @@ type PrePublishChecklistRow = {
   blocking: boolean
 }
 
+type NormalizedValidationReport = {
+  validationProfile: string
+  issues: ValidationIssue[]
+  sectionMatches: ValidationSectionMatch[]
+  lifecycleMatches: ValidationLifecycleMatch[]
+}
+
+const validationApiProfile = 'Validation API'
+const apiErrorCode = 'API_ERROR'
+const structurallyUnusableReportMessage = 'Validation service returned an unusable report.'
+const blockingSectionIssueCodes = new Set(['INVALID_SECTION_PATH', 'SECTION_MISSING'])
+
 const stringEqualsIgnoreCase = (left: string | null | undefined, right: string) => {
   return String(left || '').trim().toLowerCase() === right.toLowerCase()
 }
 
 const isErrorIssue = (issue: ValidationIssue) => stringEqualsIgnoreCase(issue.severity, 'Error')
+
+const hasUsableIssueSeverity = (issue: ValidationIssue) => typeof issue?.severity === 'string'
+  && issue.severity.trim().length > 0
+
+const normalizeValidationReport = (validationResult: ValidationReport): NormalizedValidationReport => {
+  const issues = Array.isArray(validationResult.issues) ? validationResult.issues : []
+  const sectionMatches = Array.isArray(validationResult.sectionMatches) ? validationResult.sectionMatches : []
+  const lifecycleMatches = Array.isArray(validationResult.lifecycleMatches) ? validationResult.lifecycleMatches : []
+  const validationProfile = validationResult.validationProfile || validationApiProfile
+  const isStructurallyUsable = Array.isArray(validationResult.issues)
+    && Array.isArray(validationResult.sectionMatches)
+    && Array.isArray(validationResult.lifecycleMatches)
+    && issues.every(hasUsableIssueSeverity)
+
+  if (isStructurallyUsable) {
+    return { validationProfile, issues, sectionMatches, lifecycleMatches }
+  }
+
+  return {
+    validationProfile,
+    issues: [
+      ...issues,
+      { severity: 'Error', code: apiErrorCode, message: structurallyUnusableReportMessage },
+    ],
+    sectionMatches,
+    lifecycleMatches,
+  }
+}
+
+const isBlockingSectionIssue = (issue: ValidationIssue) => {
+  const code = String(issue.code || '').trim().toUpperCase()
+  return blockingSectionIssueCodes.has(code)
+    || (Boolean(issue.sectionPath?.trim()) && code.includes('SECTION'))
+}
 
 const getChecklistTagColor = (row: PrePublishChecklistRow) => {
   if (row.status === 'pass') return 'green'
@@ -81,12 +133,13 @@ const getChecklistTagLabel = (row: PrePublishChecklistRow) => {
 }
 
 const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => {
-  const issues = validationResult.issues || []
-  const sectionMatches = validationResult.sectionMatches || []
-  const lifecycleMatches = validationResult.lifecycleMatches || []
+  const normalizedResult = normalizeValidationReport(validationResult)
+  const issues = normalizedResult.issues
+  const sectionMatches = normalizedResult.sectionMatches
+  const lifecycleMatches = normalizedResult.lifecycleMatches
   const blockingIssues = issues.filter(isErrorIssue)
   const warningIssues = issues.filter((issue) => !isErrorIssue(issue))
-  const hasApiError = issues.some((issue) => issue.code === 'API_ERROR')
+  const hasApiError = blockingIssues.some((issue) => stringEqualsIgnoreCase(issue.code, apiErrorCode))
   const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
   const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
   const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
@@ -95,7 +148,7 @@ const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => 
   const hasBlockingLifecycleIssue = blockingIssues.some((issue) => lifecycleMatches.some((match) => issue.code === match.resultCode)
     || issue.code.startsWith('LIFECYCLE_')
     || issue.code.endsWith('_TARGET_NOT_FOUND'))
-  const hasBlockingSectionIssue = blockingIssues.some((issue) => issue.code === 'INVALID_SECTION_PATH')
+  const hasBlockingSectionIssue = blockingIssues.some(isBlockingSectionIssue)
   const checklistRows: PrePublishChecklistRow[] = [
     {
       key: 'api-reachable',
@@ -123,13 +176,13 @@ const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => 
     {
       key: 'section-paths',
       label: 'Section paths acceptable',
-      status: invalidSectionCount > 0 && hasBlockingSectionIssue
+      status: hasBlockingSectionIssue
         ? 'fail'
         : invalidSectionCount > 0 || nonStandardSectionCount > 0
           ? 'info'
           : 'pass',
       detail: `${invalidSectionCount} invalid | ${nonStandardSectionCount} non-standard`,
-      blocking: invalidSectionCount > 0 && hasBlockingSectionIssue,
+      blocking: hasBlockingSectionIssue,
     },
     {
       key: 'warnings-reviewed',
@@ -142,7 +195,7 @@ const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => 
 
   return {
     severity: canProceed ? 'success' as const : 'error' as const,
-    profile: validationResult.validationProfile,
+    profile: normalizedResult.validationProfile,
     issueCount: issues.length,
     blockingIssueCount: blockingIssues.length,
     warningCount: warningIssues.length,
