@@ -63,6 +63,16 @@ const clickButtonByText = async (text: string) => {
   })
 }
 
+const expectControlDisabled = (text: string) => {
+  const control = Array.from(document.querySelectorAll('button, a')).find((candidate) => candidate.textContent?.trim() === text) as HTMLElement | undefined
+  expect(control).toBeTruthy()
+  expect(
+    control?.hasAttribute('disabled')
+    || control?.getAttribute('aria-disabled') === 'true'
+    || control?.classList.contains('ant-btn-disabled'),
+  ).toBe(true)
+}
+
 const expectDescriptionItem = (label: string, expectedValue: string) => {
   const labelCell = Array.from(document.querySelectorAll('.ant-descriptions-item-label')).find((candidate) => candidate.textContent?.trim() === label)
   expect(labelCell).toBeTruthy()
@@ -104,6 +114,15 @@ const expectLifecycleCell = (documentId: string, columnTitle: string, expectedVa
   const columnIndex = getLifecycleColumnIndex(columnTitle)
   const cells = Array.from(row.querySelectorAll('td')).map((cell) => normalizeText(cell.textContent))
   expect(cells[columnIndex]).toBe(expectedValue)
+}
+
+const expectReviewChecklistRow = (label: string, expectedStatus: string) => {
+  const checklistCard = Array.from(document.querySelectorAll('.ant-card')).find((candidate) => normalizeText(candidate.textContent).includes('Submission Readiness Checklist'))
+  expect(checklistCard).toBeTruthy()
+  const row = Array.from(checklistCard!.querySelectorAll('tbody tr')).find((candidate) => normalizeText(candidate.textContent).includes(label))
+  expect(row).toBeTruthy()
+  const cells = Array.from(row!.querySelectorAll('td')).map((cell) => normalizeText(cell.textContent))
+  expect(cells[1]).toBe(expectedStatus)
 }
 
 const publishHistoryResponse = {
@@ -293,6 +312,54 @@ const publishReportResponse = {
   },
 }
 
+const publishArtifactsResponse = {
+  artifacts: [
+    { name: 'BackboneXml', type: 'file', path: 'E:/exports/index.xml', exists: true, sizeBytes: 512, contentType: 'application/xml' },
+    { name: 'PublishReport', type: 'file', path: 'E:/exports/publish-report.json', exists: true, sizeBytes: 1024, contentType: 'application/json' },
+    { name: 'PackageZip', type: 'file', path: 'E:/exports/package.zip', exists: true, sizeBytes: 2048, contentType: 'application/zip' },
+  ],
+}
+
+const readyPublishReportResponse = {
+  ...publishReportResponse,
+  errorCount: 0,
+  warningCount: 1,
+  integritySummary: {
+    isConsistent: true,
+    missingFilesCount: 0,
+    missingZipEntriesCount: 0,
+    mismatchedArtifactsCount: 0,
+  },
+  integrityEvidence: {
+    findings: [],
+    artifacts: [
+      { role: 'BackboneXml', relativePath: 'index.xml', path: 'E:/exports/index.xml', exists: true, sizeBytes: 512, zipEntryPresent: true, source: 'TopLevelArtifact' },
+      { role: 'OutputFile', relativePath: 'm1/us/11-forms/leaf.pdf', path: 'E:/exports/m1/us/11-forms/leaf.pdf', exists: true, sizeBytes: 2048, zipEntryPresent: true, source: 'OutputDirectory' },
+    ],
+  },
+  validationReport: {
+    ...publishReportResponse.validationReport,
+    issues: [
+      { severity: 'Warning', code: 'WARN-1', message: 'One warning remains.' },
+    ],
+    lifecycleMatches: [
+      {
+        operation: 'Replace',
+        sequenceNumber: '0001',
+        ctdSection: '1.6.1',
+        documentId: 'doc-ready',
+        resultCode: 'MATCHED',
+        matchStrategy: 'document-id',
+        attemptedStrategies: ['document-id'],
+        historicalMatchCount: 1,
+        historicalSequenceNumbers: ['0000'],
+        historicalPlacementIds: ['placement-ready'],
+        historicalFinalState: 'Superseded',
+      },
+    ],
+  },
+}
+
 describe('Publish history detail frontend', () => {
   afterEach(() => {
     document.body.innerHTML = ''
@@ -462,6 +529,250 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('OutputFile')
     expect(document.body.textContent).toContain('2 KB')
     expect(document.body.textContent).toContain('Missing from zip')
+
+    unmount()
+  })
+
+  it('shows a strict not-ready package review with checklist, evidence, and downloads', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishReportResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/artifacts') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishArtifactsResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Review')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/publish-jobs/job-1/report', expect.anything())
+    expect(fetchMock).toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts', expect.anything())
+
+    for (const text of [
+      'Package Review',
+      'Not Ready for Submission',
+      'Submission Readiness Checklist',
+      'Publish succeeded',
+      'Validation errors',
+      'Lifecycle issues',
+      'Integrity consistent',
+      'Required artifacts present',
+      'Risk Summary',
+      'MissingZipEntry',
+      'Output file is missing from package zip.',
+      'Required Artifacts',
+      'BackboneXml',
+      'PublishReport',
+      'PackageZip',
+      'Download Package',
+      'Download Report',
+    ]) {
+      expect(document.body.textContent).toContain(text)
+    }
+    expectReviewChecklistRow('Publish succeeded', 'Pass')
+    expectReviewChecklistRow('Validation errors', 'Fail')
+    expectReviewChecklistRow('Lifecycle issues', 'Fail')
+    expectReviewChecklistRow('Integrity consistent', 'Fail')
+    expectReviewChecklistRow('Required artifacts present', 'Pass')
+
+    unmount()
+  })
+
+  it('shows ready for submission when every strict package review check passes', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(readyPublishReportResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/artifacts') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishArtifactsResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Review')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Ready for Submission')
+    expect(document.body.textContent).toContain('Warnings do not block readiness')
+    expect(document.body.textContent).toContain('No integrity findings were recorded')
+    expectReviewChecklistRow('Publish succeeded', 'Pass')
+    expectReviewChecklistRow('Validation errors', 'Pass')
+    expectReviewChecklistRow('Lifecycle issues', 'Pass')
+    expectReviewChecklistRow('Integrity consistent', 'Pass')
+    expectReviewChecklistRow('Required artifacts present', 'Pass')
+
+    unmount()
+  })
+
+  it('keeps package review open and fails artifacts check when artifacts cannot load', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(readyPublishReportResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/artifacts') {
+        return Promise.resolve({ ok: false, status: 410, json: vi.fn().mockResolvedValue({ message: 'Artifacts unavailable.' }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Review')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Package Review')
+    expect(document.body.textContent).toContain('Not Ready for Submission')
+    expect(document.body.textContent).toContain('Artifacts unavailable.')
+    expect(document.body.textContent).toContain('Required artifacts present')
+    expectReviewChecklistRow('Required artifacts present', 'Fail')
+    expectControlDisabled('Download Package')
+    expectControlDisabled('Download Report')
+
+    unmount()
+  })
+
+  it('handles malformed artifact rows without crashing the package review', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/report') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(readyPublishReportResponse) })
+      }
+
+      if (url === '/api/publish-jobs/job-1/artifacts') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          artifacts: [
+            null,
+            { name: 'PublishReport', type: 'file', path: 'E:/exports/publish-report.json', exists: true, sizeBytes: 1024, contentType: 'application/json' },
+            { name: 'PackageZip', type: 'file', path: 'E:/exports/package.zip', exists: false, contentType: 'application/zip' },
+          ],
+        }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await clickButtonByText('Review')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Package Review')
+    expect(document.body.textContent).toContain('Not Ready for Submission')
+    expect(document.body.textContent).toContain('Required Artifacts')
+    expectReviewChecklistRow('Required artifacts present', 'Fail')
+    expectControlDisabled('Download Package')
 
     unmount()
   })
