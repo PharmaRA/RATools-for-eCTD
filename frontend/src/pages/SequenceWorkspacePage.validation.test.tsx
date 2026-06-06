@@ -75,6 +75,12 @@ const getValidationSummary = () => document.querySelector('[data-testid="validat
 
 const getValidationSummaryField = (field: string) => document.querySelector(`[data-testid="validation-summary-${field}"]`)
 
+const expectValidationSummaryField = (field: string) => {
+  const element = getValidationSummaryField(field)
+  expect(element).toBeTruthy()
+  return element!
+}
+
 const getLocateButtons = (container: Element | null) => Array.from(container?.querySelectorAll('button') || [])
   .filter((button) => button.textContent?.includes('Locate')) as HTMLButtonElement[]
 
@@ -200,16 +206,27 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('success')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Validation passed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
     expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 issues')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
     expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Validation passed')
-    expect(getValidationSummaryField('details')?.textContent).toContain('No validation issues found.')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('No validation issues found.')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks passed')
+    const checklistSummary = expectValidationSummaryField('checklist')
+    expect(checklistSummary.textContent).toContain('Pre-publish Checklist')
+    expect(checklistSummary.textContent).toContain('Validation API reachable')
+    expect(checklistSummary.textContent).toContain('No blocking validation errors')
+    expect(checklistSummary.textContent).toContain('Lifecycle targets resolved')
+    expect(checklistSummary.textContent).toContain('Section paths acceptable')
+    expect(checklistSummary.textContent).toContain('Warnings reviewed')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('No blocking validation errors found.')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('No validation warnings found.')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('No lifecycle operations were checked.')
     expect(getValidationSummaryField('sections')?.textContent).toContain('1 checked | 0 invalid | 0 non-standard')
     expect(getValidationSummaryField('sections')?.textContent).toContain('All checked sections are valid standard matches.')
+    const modal = document.querySelector('.ant-modal')
+    expect(modal).toBeTruthy()
+    expect(modal?.textContent).toContain('Pre-publish checks passed. 0 warning(s) remain for reviewer awareness.')
 
     const input = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
     expect(input).toBeTruthy()
@@ -281,13 +298,115 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('error')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Validation failed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
     expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 issue')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 blocking')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
     expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Validation failed')
-    expect(getValidationSummaryField('details')?.textContent).toContain('MISSING_DOCUMENT')
-    expect(getValidationSummaryField('details')?.textContent).toContain('Module 3 document is required.')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks failed')
+    const checklistSummary = expectValidationSummaryField('checklist')
+    expect(checklistSummary.textContent).toContain('No blocking validation errors')
+    expect(checklistSummary.textContent).toContain('1 blocking error(s)')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Blocking Issues')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('MISSING_DOCUMENT')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Module 3 document is required.')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('No validation warnings found.')
+
+    unmount()
+  })
+
+  it('allows publishing when validation only returns warnings', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: true,
+      issues: [
+        {
+          severity: 'Warning',
+          code: 'TITLE_FALLBACK_USED',
+          message: 'Placement has no explicit title, so the file name will be used.',
+        },
+      ],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+      ],
+      lifecycleMatches: [],
+    })
+    const createAndExecutePublishJobProvider = vi.fn().mockResolvedValue({ id: 'job-1' })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    const modal = document.querySelector('.ant-modal')
+    expect(modal).toBeTruthy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 warning')
+    const checklistSummary = expectValidationSummaryField('checklist')
+    expect(checklistSummary.textContent).toContain('Warnings reviewed')
+    expect(checklistSummary.textContent).toContain('1 warning(s) for reviewer awareness')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('TITLE_FALLBACK_USED')
+    expect(modal?.textContent).toContain('Pre-publish checks passed. 1 warning(s) remain for reviewer awareness.')
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('allows publishing when section matches are non-standard but not invalid', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: true,
+      issues: [
+        {
+          severity: 'Warning',
+          code: 'NON_STANDARD_SECTION_PATTERN',
+          message: "Section 'm3.2.p' is valid but uses a non-standard FDA/ICH segment pattern.",
+          sectionPath: 'm3.2.p',
+        },
+      ],
+      sectionMatches: [
+        { sectionPath: 'm3.2.p', isValid: true, isStandard: false, matchedPrefix: 'm3.2', reason: 'Matched parent section.' },
+      ],
+      lifecycleMatches: [],
+    })
+    const createAndExecutePublishJobProvider = vi.fn()
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    const modal = document.querySelector('.ant-modal')
+    expect(modal).toBeTruthy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(expectValidationSummaryField('checklist').textContent).toContain('0 invalid | 1 non-standard')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('Non-standard')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('m3.2.p')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('NON_STANDARD_SECTION_PATTERN')
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
 
     unmount()
   })
@@ -319,13 +438,17 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('error')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Validation API error')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
     expect(getValidationSummaryField('profile')?.textContent).toContain('Validation API')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 issue')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 blocking')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
     expect(getValidationSummaryField('has-api-error')?.textContent).toContain('Yes')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Validation API error')
-    expect(getValidationSummaryField('details')?.textContent).toContain('API_ERROR')
-    expect(getValidationSummaryField('details')?.textContent).toContain('Validation service unavailable.')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks failed')
+    const checklistSummary = expectValidationSummaryField('checklist')
+    expect(checklistSummary.textContent).toContain('Validation API reachable')
+    expect(checklistSummary.textContent).toContain('Validation service did not return a usable report.')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('API_ERROR')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Validation service unavailable.')
 
     unmount()
   })
@@ -380,8 +503,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(validateSequenceProvider).toHaveBeenCalledTimes(2)
     expect(document.querySelector('.ant-modal')).toBeFalsy()
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Validation failed')
-    expect(getValidationSummaryField('details')?.textContent).toContain('STALE_EXPORT_BLOCKED')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(expectValidationSummaryField('issues').textContent).toContain('STALE_EXPORT_BLOCKED')
 
     unmount()
   })
@@ -432,10 +555,14 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     clickByText('Publish Sequence')
     await flushPromises()
 
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Issues to fix')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Blocking Issues')
     expect(getValidationSummaryField('issues')?.textContent).toContain('LIFECYCLE_TARGET_INVALID')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Replace target must be from an earlier sequence.')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Warning')
+
+    const warningsSummary = expectValidationSummaryField('warnings')
+    expect(warningsSummary.textContent).toContain('Warnings')
+    expect(warningsSummary.textContent).toContain('SECTION_NON_STANDARD')
+    expect(warningsSummary.textContent).toContain('Section uses a non-standard profile match.')
 
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Lifecycle Targets')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Replace')
@@ -584,6 +711,12 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     clickByText('Publish Sequence')
     await flushPromises()
 
+    const sectionChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-section-paths"]')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(sectionChecklistRow?.textContent).toContain('Section paths acceptable')
+    expect(sectionChecklistRow?.textContent).toContain('Awareness')
+    expect(sectionChecklistRow?.textContent).toContain('Non-blocking')
+
     clickLocateButton(getValidationSummaryField('sections'))
     await flushPromises()
 
@@ -634,6 +767,12 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
     clickByText('Publish Sequence')
     await flushPromises()
+
+    const lifecycleChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-lifecycle-targets"]')
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(lifecycleChecklistRow?.textContent).toContain('Lifecycle targets resolved')
+    expect(lifecycleChecklistRow?.textContent).toContain('Awareness')
+    expect(lifecycleChecklistRow?.textContent).toContain('Non-blocking')
 
     clickLocateButton(getValidationSummaryField('lifecycle'))
     await flushPromises()

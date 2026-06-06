@@ -54,6 +54,112 @@ type ValidationLocation = {
   sectionPath?: string | null
 }
 
+type PrePublishChecklistRow = {
+  key: string
+  label: string
+  status: 'pass' | 'fail' | 'info'
+  detail: string
+  blocking: boolean
+}
+
+const stringEqualsIgnoreCase = (left: string | null | undefined, right: string) => {
+  return String(left || '').trim().toLowerCase() === right.toLowerCase()
+}
+
+const isErrorIssue = (issue: ValidationIssue) => stringEqualsIgnoreCase(issue.severity, 'Error')
+
+const getChecklistTagColor = (row: PrePublishChecklistRow) => {
+  if (row.status === 'pass') return 'green'
+  if (row.blocking) return 'red'
+  return 'blue'
+}
+
+const getChecklistTagLabel = (row: PrePublishChecklistRow) => {
+  if (row.status === 'pass') return 'Pass'
+  if (row.status === 'fail') return 'Fail'
+  return 'Awareness'
+}
+
+const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => {
+  const issues = validationResult.issues || []
+  const sectionMatches = validationResult.sectionMatches || []
+  const lifecycleMatches = validationResult.lifecycleMatches || []
+  const blockingIssues = issues.filter(isErrorIssue)
+  const warningIssues = issues.filter((issue) => !isErrorIssue(issue))
+  const hasApiError = issues.some((issue) => issue.code === 'API_ERROR')
+  const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
+  const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
+  const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
+  const sectionRows = sectionMatches.filter((match) => !match.isValid || !match.isStandard)
+  const canProceed = !hasApiError && blockingIssues.length === 0
+  const hasBlockingLifecycleIssue = blockingIssues.some((issue) => lifecycleMatches.some((match) => issue.code === match.resultCode)
+    || issue.code.startsWith('LIFECYCLE_')
+    || issue.code.endsWith('_TARGET_NOT_FOUND'))
+  const hasBlockingSectionIssue = blockingIssues.some((issue) => issue.code === 'INVALID_SECTION_PATH')
+  const checklistRows: PrePublishChecklistRow[] = [
+    {
+      key: 'api-reachable',
+      label: 'Validation API reachable',
+      status: hasApiError ? 'fail' : 'pass',
+      detail: hasApiError ? 'Validation service did not return a usable report.' : 'Validation API returned a report.',
+      blocking: true,
+    },
+    {
+      key: 'blocking-errors',
+      label: 'No blocking validation errors',
+      status: blockingIssues.length === 0 ? 'pass' : 'fail',
+      detail: `${blockingIssues.length} blocking error(s)`,
+      blocking: true,
+    },
+    {
+      key: 'lifecycle-targets',
+      label: 'Lifecycle targets resolved',
+      status: lifecycleIssueCount === 0 ? 'pass' : hasBlockingLifecycleIssue ? 'fail' : 'info',
+      detail: lifecycleMatches.length === 0
+        ? 'No lifecycle operations were checked.'
+        : `${lifecycleIssueCount} lifecycle issue(s)`,
+      blocking: lifecycleIssueCount > 0 && hasBlockingLifecycleIssue,
+    },
+    {
+      key: 'section-paths',
+      label: 'Section paths acceptable',
+      status: invalidSectionCount > 0 && hasBlockingSectionIssue
+        ? 'fail'
+        : invalidSectionCount > 0 || nonStandardSectionCount > 0
+          ? 'info'
+          : 'pass',
+      detail: `${invalidSectionCount} invalid | ${nonStandardSectionCount} non-standard`,
+      blocking: invalidSectionCount > 0 && hasBlockingSectionIssue,
+    },
+    {
+      key: 'warnings-reviewed',
+      label: 'Warnings reviewed',
+      status: warningIssues.length === 0 ? 'pass' : 'info',
+      detail: `${warningIssues.length} warning(s) for reviewer awareness`,
+      blocking: false,
+    },
+  ]
+
+  return {
+    severity: canProceed ? 'success' as const : 'error' as const,
+    profile: validationResult.validationProfile,
+    issueCount: issues.length,
+    blockingIssueCount: blockingIssues.length,
+    warningCount: warningIssues.length,
+    hasApiError,
+    canProceed,
+    blockingIssues,
+    warningIssues,
+    lifecycleMatches,
+    lifecycleIssueCount,
+    sectionMatches,
+    invalidSectionCount,
+    nonStandardSectionCount,
+    sectionRows,
+    checklistRows,
+  }
+}
+
 export const SequenceWorkspacePage = ({
   appId,
   seqNumber,
@@ -202,47 +308,7 @@ export const SequenceWorkspacePage = ({
       return null
     }
 
-    const issues = validationResult.issues || []
-    const sectionMatches = validationResult.sectionMatches || []
-    const lifecycleMatches = validationResult.lifecycleMatches || []
-    const issueCount = issues.length
-    const hasApiError = issues.some((issue) => issue.code === 'API_ERROR')
-    const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
-    const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
-    const sectionRows = sectionMatches.filter((match) => !match.isValid || !match.isStandard)
-
-    if (validationResult.isValid) {
-      return {
-        severity: 'success' as const,
-        profile: validationResult.validationProfile,
-        issueCount,
-        hasApiError,
-        issues,
-        lifecycleMatches,
-        sectionMatches,
-        invalidSectionCount,
-        nonStandardSectionCount,
-        sectionRows,
-        detailItems: [{ code: 'OK', message: 'No validation issues found.' }],
-      }
-    }
-
-    return {
-      severity: 'error' as const,
-      profile: validationResult.validationProfile,
-      issueCount,
-      hasApiError,
-      issues,
-      lifecycleMatches,
-      sectionMatches,
-      invalidSectionCount,
-      nonStandardSectionCount,
-      sectionRows,
-      detailItems: issues.map((issue) => ({
-        code: issue.code,
-        message: issue.message,
-      })),
-    }
+    return buildPrePublishChecklistSummary(validationResult)
   }, [validationResult])
 
   useEffect(() => {
@@ -477,8 +543,9 @@ export const SequenceWorkspacePage = ({
         sequenceNumber: String(seqNumber).trim(),
       })
 
+      const checklistSummary = buildPrePublishChecklistSummary(validationResult)
       setValidationResult(validationResult)
-      if (!validationResult.isValid) {
+      if (!checklistSummary.canProceed) {
         return
       }
 
@@ -531,14 +598,12 @@ export const SequenceWorkspacePage = ({
   }
 
   const validationIssueCountText = validationSummary
-    ? `${validationSummary.issueCount} ${validationSummary.issueCount === 1 ? 'issue' : 'issues'}`
+    ? `${validationSummary.blockingIssueCount} blocking | ${validationSummary.warningCount} ${validationSummary.warningCount === 1 ? 'warning' : 'warnings'}`
     : ''
   const validationStatusText = validationSummary
-    ? validationSummary.severity === 'success'
-      ? 'Validation passed'
-      : validationSummary.hasApiError
-        ? 'Validation API error'
-        : 'Validation failed'
+    ? validationSummary.canProceed
+      ? 'Pre-publish checks passed'
+      : 'Pre-publish checks failed'
     : ''
   return (
     <div className="flex flex-col gap-4">
@@ -566,6 +631,15 @@ export const SequenceWorkspacePage = ({
         destroyOnHidden
       >
         <Form form={publishForm} layout="vertical" requiredMark={false}>
+          {validationSummary?.canProceed && (
+            <Alert
+              type="success"
+              showIcon
+              className="mb-3"
+              title="Pre-publish checks passed"
+              description={`Pre-publish checks passed. ${validationSummary.warningCount} warning(s) remain for reviewer awareness.`}
+            />
+          )}
           <Form.Item
             name="outputDirectoryPath"
             label="Export Directory"
@@ -591,15 +665,29 @@ export const SequenceWorkspacePage = ({
                   <span data-testid="validation-summary-status-label">{validationStatusText}</span>
                 </div>
                 <div data-testid="validation-summary-details" className="flex flex-col gap-3">
+                  <div data-testid="validation-summary-checklist" className="rounded border border-gray-200 bg-white/70 p-3">
+                    <div className="mb-2 font-semibold">Pre-publish Checklist</div>
+                    <div className="flex flex-col gap-2">
+                      {validationSummary.checklistRows.map((row) => (
+                        <div key={row.key} data-testid={`validation-summary-checklist-${row.key}`}>
+                          <Tag color={getChecklistTagColor(row)}>{getChecklistTagLabel(row)}</Tag>
+                          <span>{row.label}</span>
+                          <span> | {row.detail}</span>
+                          {!row.blocking && <Tag color="blue" className="ml-2">Non-blocking</Tag>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div data-testid="validation-summary-issues" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Issues to fix</div>
-                    {validationSummary.issues.length === 0 ? (
-                      <div>No validation issues found.</div>
+                    <div className="mb-2 font-semibold">Blocking Issues</div>
+                    {validationSummary.blockingIssues.length === 0 ? (
+                      <div>No blocking validation errors found.</div>
                     ) : (
                       <div className="flex flex-col gap-2">
-                        {validationSummary.issues.map((issue: ValidationIssue) => (
-                          <div key={`${issue.severity}-${issue.code}-${issue.message}`}>
-                            <Tag color={issue.severity.toLowerCase() === 'warning' ? 'gold' : 'red'}>{issue.severity}</Tag>
+                        {validationSummary.blockingIssues.map((issue: ValidationIssue) => (
+                          <div key={`blocking-${issue.severity}-${issue.code}-${issue.message}`}>
+                            <Tag color="red">{issue.severity}</Tag>
                             <Tag color="red">{issue.code}</Tag>
                             {issue.message}
                             {hasValidationLocation(issue) && (
@@ -610,6 +698,27 @@ export const SequenceWorkspacePage = ({
                       </div>
                     )}
                   </div>
+
+                  <div data-testid="validation-summary-warnings" className="rounded border border-gray-200 bg-white/70 p-3">
+                    <div className="mb-2 font-semibold">Warnings</div>
+                    {validationSummary.warningIssues.length === 0 ? (
+                      <div>No validation warnings found.</div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {validationSummary.warningIssues.map((issue: ValidationIssue) => (
+                          <div key={`warning-${issue.severity}-${issue.code}-${issue.message}`}>
+                            <Tag color="gold">{issue.severity}</Tag>
+                            <Tag color="gold">{issue.code}</Tag>
+                            {issue.message}
+                            {hasValidationLocation(issue) && (
+                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue(issue)}>Locate</Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div data-testid="validation-summary-lifecycle" className="rounded border border-gray-200 bg-white/70 p-3">
                     <div className="mb-2 font-semibold">Lifecycle Targets</div>
                     {validationSummary.lifecycleMatches.length === 0 ? (
@@ -633,6 +742,7 @@ export const SequenceWorkspacePage = ({
                       </div>
                     )}
                   </div>
+
                   <div data-testid="validation-summary-sections" className="rounded border border-gray-200 bg-white/70 p-3">
                     <div className="mb-2 font-semibold">Section Matches</div>
                     {validationSummary.sectionMatches.length === 0 ? (
