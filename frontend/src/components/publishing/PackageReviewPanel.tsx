@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, Tag } from 'antd'
+import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, Tag, message } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../../apiClient'
@@ -22,6 +22,13 @@ type ChecklistRow = {
   key: string
   check: string
   pass: boolean
+  detail: string
+}
+
+type ChecklistExportRow = {
+  key: string
+  check: string
+  status: 'Pass' | 'Fail'
   detail: string
 }
 
@@ -58,6 +65,18 @@ const getReviewErrorTitle = (error: Error) => {
 const getErrorMessage = (error: Error | null) => error?.message || ''
 
 const hasArtifact = (artifacts: Artifact[], name: string) => artifacts.some((artifact) => artifact.name === name && artifact.exists === true)
+
+const downloadJson = (filename: string, value: unknown) => {
+  const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
 
 export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) => {
   const [loading, setLoading] = useState(false)
@@ -163,6 +182,13 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: report?.integritySummary?.missingZipEntriesCount ?? '-' },
     { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: report?.integritySummary?.mismatchedArtifactsCount ?? '-' },
   ]
+  const reviewExportAvailable = reportLoaded || (!artifactsError && artifacts.length > 0)
+  const checklistExportRows: ChecklistExportRow[] = checklistRows.map((row) => ({
+    key: row.key,
+    check: row.check,
+    status: row.pass ? 'Pass' : 'Fail',
+    detail: row.detail,
+  }))
 
   const renderError = (error: Error | null) => error && (
     <Alert
@@ -172,6 +198,42 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
       description={getErrorMessage(error)}
     />
   )
+
+  const handleDownloadReviewJson = () => {
+    if (!jobId || !reviewExportAvailable) return
+
+    try {
+      const sequenceNumber = report?.sequenceNumber ?? null
+      const exportObject = {
+        reportVersion: 'package-review-export-v1',
+        generatedAtUtc: new Date().toISOString(),
+        publishJobId: jobId,
+        sequenceNumber,
+        validationProfile: report?.validationProfile ?? null,
+        verdict: readyForSubmission ? 'ReadyForSubmission' : 'NotReadyForSubmission',
+        checklist: checklistExportRows,
+        riskSummary: {
+          validationErrors: report?.errorCount ?? null,
+          warnings: report?.warningCount ?? null,
+          lifecycleIssues: reportLoaded ? lifecycleIssueCount : null,
+          missingFiles: report?.integritySummary?.missingFilesCount ?? null,
+          missingZipEntries: report?.integritySummary?.missingZipEntriesCount ?? null,
+          mismatchedArtifacts: report?.integritySummary?.mismatchedArtifactsCount ?? null,
+        },
+        requiredArtifacts: requiredArtifactRows.map((artifact) => ({
+          name: artifact.name,
+          exists: artifact.exists === true,
+          sizeBytes: artifact.sizeBytes,
+          contentType: artifact.contentType,
+        })),
+        integrityFindings: findings,
+      }
+
+      downloadJson(`package-review-${sequenceNumber || 'unknown'}-${jobId}.json`, exportObject)
+    } catch {
+      message.error('Failed to export package review.')
+    }
+  }
 
   return (
     <Drawer title="Package Review" placement="right" size={900} onClose={onClose} open={!!jobId}>
@@ -191,6 +253,13 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             </p>
           </div>
           <Space>
+            <Button
+              icon={<Download size={16} className="mr-1" />}
+              onClick={handleDownloadReviewJson}
+              disabled={!reviewExportAvailable}
+            >
+              Download Review JSON
+            </Button>
             <Button
               type="primary"
               icon={<Download size={16} className="mr-1" />}

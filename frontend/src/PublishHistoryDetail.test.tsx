@@ -63,6 +63,43 @@ const clickButtonByText = async (text: string) => {
   })
 }
 
+const setupDownloadCapture = () => {
+  const createdBlobs: Blob[] = []
+  const clickedDownloads: string[] = []
+  const originalCreateElement = document.createElement.bind(document)
+
+  vi.stubGlobal('URL', {
+    ...URL,
+    createObjectURL: vi.fn((blob: Blob | MediaSource) => {
+      createdBlobs.push(blob as Blob)
+      return 'blob:package-review'
+    }),
+    revokeObjectURL: vi.fn(),
+  })
+  vi.spyOn(document, 'createElement').mockImplementation(((tagName: string, options?: ElementCreationOptions) => {
+    const element = originalCreateElement(tagName, options)
+    if (tagName.toLowerCase() === 'a') {
+      vi.spyOn(element, 'click').mockImplementation(() => {
+        clickedDownloads.push((element as HTMLAnchorElement).download)
+      })
+    }
+    return element
+  }) as typeof document.createElement)
+
+  return { createdBlobs, clickedDownloads }
+}
+
+const readJsonBlob = async (blob: Blob) => {
+  const text = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+
+  return JSON.parse(text)
+}
+
 const expectControlDisabled = (text: string) => {
   const control = Array.from(document.querySelectorAll('button, a')).find((candidate) => candidate.textContent?.trim() === text) as HTMLElement | undefined
   expect(control).toBeTruthy()
@@ -181,6 +218,7 @@ const publishHistoryResponse = {
 
 const publishReportResponse = {
   succeeded: true,
+  sequenceNumber: '0001',
   message: 'Publish completed successfully.',
   validationProfile: 'US FDA eCTD 3.2.2',
   durationMs: 1534,
@@ -596,6 +634,7 @@ describe('Publish history detail frontend', () => {
       'BackboneXml',
       'PublishReport',
       'PackageZip',
+      'Download Review JSON',
       'Download Package',
       'Download Report',
     ]) {
@@ -606,6 +645,50 @@ describe('Publish history detail frontend', () => {
     expectReviewChecklistRow('Lifecycle issues', 'Fail')
     expectReviewChecklistRow('Integrity consistent', 'Fail')
     expectReviewChecklistRow('Required artifacts present', 'Pass')
+    const { createdBlobs, clickedDownloads } = setupDownloadCapture()
+    await clickButtonByText('Download Review JSON')
+
+    expect(createdBlobs).toHaveLength(1)
+    expect(clickedDownloads).toEqual(['package-review-0001-job-1.json'])
+    const exportJson = await readJsonBlob(createdBlobs[0])
+    expect(exportJson).toMatchObject({
+      reportVersion: 'package-review-export-v1',
+      publishJobId: 'job-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      verdict: 'NotReadyForSubmission',
+      riskSummary: {
+        validationErrors: 1,
+        warnings: 2,
+        lifecycleIssues: 6,
+        missingFiles: 1,
+        missingZipEntries: 0,
+        mismatchedArtifacts: 2,
+      },
+      requiredArtifacts: [
+        { name: 'BackboneXml', exists: true, sizeBytes: 512, contentType: 'application/xml' },
+        { name: 'PublishReport', exists: true, sizeBytes: 1024, contentType: 'application/json' },
+        { name: 'PackageZip', exists: true, sizeBytes: 2048, contentType: 'application/zip' },
+      ],
+      integrityFindings: [
+        {
+          severity: 'Error',
+          type: 'MissingZipEntry',
+          path: 'm1/us/11-forms/leaf.pdf',
+          message: 'Output file is missing from package zip.',
+        },
+      ],
+    })
+    expect(exportJson.generatedAtUtc).toEqual(expect.any(String))
+    expect(exportJson.checklist).toEqual([
+      { key: 'publish-succeeded', check: 'Publish succeeded', status: 'Pass', detail: 'Publish completed successfully.' },
+      { key: 'validation-errors', check: 'Validation errors', status: 'Fail', detail: '1 error(s)' },
+      { key: 'lifecycle-issues', check: 'Lifecycle issues', status: 'Fail', detail: '6 issue(s)' },
+      { key: 'integrity-consistent', check: 'Integrity consistent', status: 'Fail', detail: 'Inconsistent or unavailable' },
+      { key: 'required-artifacts-present', check: 'Required artifacts present', status: 'Pass', detail: '3/3 present' },
+    ])
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PackageZip/download', expect.anything())
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PublishReport/download', expect.anything())
 
     unmount()
   })
