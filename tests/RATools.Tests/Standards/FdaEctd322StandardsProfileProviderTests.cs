@@ -22,4 +22,36 @@ public sealed class FdaEctd322StandardsProfileProviderTests
         Assert.Equal("4.5", profile.ValidationCriteriaVersion);
         Assert.Contains(profile.OfficialReferences, x => x.Contains("fda.gov", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void GetProfile_IncludesBundledDtdAssetsWithChecksums()
+    {
+        var provider = new FdaEctd322StandardsProfileProvider();
+
+        var profile = provider.GetProfile(EctdTemplateRegistry.DefaultTemplateKey);
+
+        var ichDtd = Assert.Single(profile.Assets, x => x.Key == "ich-ectd-3-2-dtd");
+        Assert.Equal("ICH eCTD DTD", ichDtd.DisplayName);
+        Assert.Equal("DTD", ichDtd.Category);
+        Assert.Equal("3.2.2", ichDtd.Version);
+        Assert.Equal("reference/dtd/ich-ectd-3-2.dtd", ichDtd.LocalRelativePath);
+        Assert.StartsWith("https://", ichDtd.SourceUrl, StringComparison.Ordinal);
+        Assert.Matches("^[a-f0-9]{64}$", ichDtd.Sha256);
+
+        var regionalDtd = Assert.Single(profile.Assets, x => x.Key == "us-regional-v3-3-dtd");
+        Assert.Equal("US Regional DTD", regionalDtd.DisplayName);
+        Assert.Equal("3.3", regionalDtd.Version);
+        Assert.Equal("reference/dtd/us-regional-v3-3.dtd", regionalDtd.LocalRelativePath);
+        Assert.Matches("^[a-f0-9]{64}$", regionalDtd.Sha256);
+    }
+
+    [Fact]
+    public void GetProfile_ThrowsForUnsupportedTemplate()
+    {
+        var provider = new FdaEctd322StandardsProfileProvider();
+
+        var exception = Assert.Throws<StandardsProfileNotFoundException>(() => provider.GetProfile("eu-ectd-3.2.2"));
+
+        Assert.Contains("Unsupported standards profile", exception.Message);
+    }
 }
