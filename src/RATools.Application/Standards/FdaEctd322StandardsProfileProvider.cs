@@ -8,6 +8,14 @@ public sealed class FdaEctd322StandardsProfileProvider : IStandardsProfileProvid
     private const string StandardsPageUrl = "https://www.fda.gov/drugs/electronic-regulatory-submission-and-review/ectd-submission-standards-ectd-v322-and-regional-m1";
     private const string EctdOverviewUrl = "https://www.fda.gov/ectd";
     private const string IchSpecificationUrl = "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf";
+    private readonly string _assetRootPath;
+
+    public FdaEctd322StandardsProfileProvider(string? assetRootPath = null)
+    {
+        _assetRootPath = string.IsNullOrWhiteSpace(assetRootPath)
+            ? AppContext.BaseDirectory
+            : assetRootPath;
+    }
 
     public StandardsProfile GetProfile(string templateKey)
     {
@@ -46,7 +54,7 @@ public sealed class FdaEctd322StandardsProfileProvider : IStandardsProfileProvid
             ]);
     }
 
-    private static StandardsAsset BuildAsset(
+    private StandardsAsset BuildAsset(
         string key,
         string displayName,
         string category,
@@ -56,12 +64,16 @@ public sealed class FdaEctd322StandardsProfileProvider : IStandardsProfileProvid
         DateOnly? supportedFrom)
     {
         var path = ResolveLocalAssetPath(localRelativePath);
-        var sha256 = File.Exists(path) ? ComputeSha256(path) : string.Empty;
-        return new StandardsAsset(key, displayName, category, version, localRelativePath, sourceUrl, supportedFrom, sha256);
+        if (!File.Exists(path))
+        {
+            throw new StandardsAssetMissingException($"Bundled standards asset '{localRelativePath}' was not found at '{path}'.");
+        }
+
+        return new StandardsAsset(key, displayName, category, version, localRelativePath, sourceUrl, supportedFrom, ComputeSha256(path));
     }
 
-    private static string ResolveLocalAssetPath(string localRelativePath)
-        => Path.Combine(AppContext.BaseDirectory, localRelativePath.Replace('/', Path.DirectorySeparatorChar));
+    private string ResolveLocalAssetPath(string localRelativePath)
+        => Path.Combine(_assetRootPath, localRelativePath.Replace('/', Path.DirectorySeparatorChar));
 
     private static string ComputeSha256(string path)
     {

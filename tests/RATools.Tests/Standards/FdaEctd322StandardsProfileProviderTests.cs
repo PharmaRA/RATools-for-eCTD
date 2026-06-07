@@ -54,4 +54,15 @@ public sealed class FdaEctd322StandardsProfileProviderTests
 
         Assert.Contains("Unsupported standards profile", exception.Message);
     }
+
+    [Fact]
+    public void GetProfile_FailsWhenBundledDtdAssetIsMissing()
+    {
+        var provider = new FdaEctd322StandardsProfileProvider(assetRootPath: Path.Combine(Path.GetTempPath(), $"missing-assets-{Guid.NewGuid():N}"));
+
+        var exception = Assert.Throws<StandardsAssetMissingException>(() => provider.GetProfile(EctdTemplateRegistry.DefaultTemplateKey));
+
+        Assert.Contains("Bundled standards asset", exception.Message);
+        Assert.Contains("ich-ectd-3-2.dtd", exception.Message);
+    }
 }
