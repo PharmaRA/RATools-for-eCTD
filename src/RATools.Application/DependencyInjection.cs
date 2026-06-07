@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<IApplicationImportService, ApplicationImportService>();
         services.AddScoped<IApplicationPublishHistoryService, ApplicationPublishHistoryService>();
+        services.AddScoped<ISequencePublishingMetadataService, SequencePublishingMetadataService>();
         services.AddSingleton<IEctdStructureService, EctdStructureService>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();

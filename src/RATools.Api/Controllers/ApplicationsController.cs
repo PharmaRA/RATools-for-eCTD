@@ -15,6 +15,7 @@ public sealed class ApplicationsController(
     IApplicationService applicationService,
     IApplicationImportService applicationImportService,
     IApplicationPublishHistoryService publishHistoryService,
+    ISequencePublishingMetadataService sequencePublishingMetadataService,
     IAuthorizationService authorizationService) : ControllerBase
 {
     [HttpGet]
@@ -110,6 +111,45 @@ public sealed class ApplicationsController(
         catch (InvalidOperationException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpGet("{id:guid}/sequences/{sequenceNumber}/publishing-metadata")]
+    public async Task<IActionResult> GetSequencePublishingMetadata(
+        Guid id,
+        string sequenceNumber,
+        CancellationToken cancellationToken)
+    {
+        var metadata = await sequencePublishingMetadataService.GetAsync(id, sequenceNumber, cancellationToken);
+        return metadata is null ? NotFound() : Ok(metadata);
+    }
+
+    [HttpPut("{id:guid}/sequences/{sequenceNumber}/publishing-metadata")]
+    public async Task<IActionResult> UpdateSequencePublishingMetadata(
+        Guid id,
+        string sequenceNumber,
+        [FromBody] UpdateSequencePublishingMetadataRequestBody request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await sequencePublishingMetadataService.UpdateAsync(
+                id,
+                sequenceNumber,
+                new UpdateSequencePublishingMetadataRequest(
+                    request.ApplicationType,
+                    request.SubmissionType,
+                    request.SubmissionSubtype,
+                    request.SequenceDescription,
+                    request.ApplicantName,
+                    request.FormType),
+                cancellationToken);
+
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
         }
     }
 

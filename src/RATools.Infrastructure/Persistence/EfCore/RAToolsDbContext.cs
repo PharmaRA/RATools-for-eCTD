@@ -42,6 +42,12 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
             entity.Property(x => x.SubmissionType).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(512).IsRequired();
+            entity.Property(x => x.FdaApplicationType).HasMaxLength(32);
+            entity.Property(x => x.FdaSubmissionType).HasMaxLength(128);
+            entity.Property(x => x.FdaSubmissionSubtype).HasMaxLength(128);
+            entity.Property(x => x.FdaSequenceDescription).HasMaxLength(512);
+            entity.Property(x => x.FdaApplicantName).HasMaxLength(256);
+            entity.Property(x => x.FdaFormType).HasMaxLength(128);
             entity.Property(x => x.CreatedUtc).IsRequired();
         });
 
