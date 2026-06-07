@@ -58,13 +58,25 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
                     SequenceNumber = sequence.SequenceNumber,
                     SubmissionType = sequence.SubmissionType,
                     Description = sequence.Description,
-                    CreatedUtc = sequence.CreatedUtc
+                    CreatedUtc = sequence.CreatedUtc,
+                    FdaApplicationType = sequence.PublishingMetadata?.ApplicationType,
+                    FdaSubmissionType = sequence.PublishingMetadata?.SubmissionType,
+                    FdaSubmissionSubtype = sequence.PublishingMetadata?.SubmissionSubtype,
+                    FdaSequenceDescription = sequence.PublishingMetadata?.SequenceDescription,
+                    FdaApplicantName = sequence.PublishingMetadata?.ApplicantName,
+                    FdaFormType = sequence.PublishingMetadata?.FormType
                 });
                 continue;
             }
 
             existingSequence.SubmissionType = sequence.SubmissionType;
             existingSequence.Description = sequence.Description;
+            existingSequence.FdaApplicationType = sequence.PublishingMetadata?.ApplicationType;
+            existingSequence.FdaSubmissionType = sequence.PublishingMetadata?.SubmissionType;
+            existingSequence.FdaSubmissionSubtype = sequence.PublishingMetadata?.SubmissionSubtype;
+            existingSequence.FdaSequenceDescription = sequence.PublishingMetadata?.SequenceDescription;
+            existingSequence.FdaApplicantName = sequence.PublishingMetadata?.ApplicantName;
+            existingSequence.FdaFormType = sequence.PublishingMetadata?.FormType;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -123,7 +135,13 @@ internal static class ApplicationRecordMapping
                 SequenceNumber = x.SequenceNumber,
                 SubmissionType = x.SubmissionType,
                 Description = x.Description,
-                CreatedUtc = x.CreatedUtc
+                CreatedUtc = x.CreatedUtc,
+                FdaApplicationType = x.PublishingMetadata?.ApplicationType,
+                FdaSubmissionType = x.PublishingMetadata?.SubmissionType,
+                FdaSubmissionSubtype = x.PublishingMetadata?.SubmissionSubtype,
+                FdaSequenceDescription = x.PublishingMetadata?.SequenceDescription,
+                FdaApplicantName = x.PublishingMetadata?.ApplicantName,
+                FdaFormType = x.PublishingMetadata?.FormType
             }).ToList()
         };
     }
@@ -132,7 +150,12 @@ internal static class ApplicationRecordMapping
     {
         var sequences = record.Sequences
             .OrderBy(x => x.CreatedUtc)
-            .Select(x => SubmissionSequence.Rehydrate(x.SequenceNumber, x.SubmissionType, x.Description, x.CreatedUtc))
+            .Select(x => SubmissionSequence.Rehydrate(
+                x.SequenceNumber,
+                x.SubmissionType,
+                x.Description,
+                x.CreatedUtc,
+                BuildPublishingMetadata(x)))
             .ToArray();
 
         return SubmissionApplication.Rehydrate(
@@ -148,5 +171,23 @@ internal static class ApplicationRecordMapping
             string.IsNullOrWhiteSpace(record.EctdTemplateKey)
                 ? EctdTemplateRegistry.DefaultTemplateKey
                 : record.EctdTemplateKey);
+    }
+
+    private static SequencePublishingMetadata? BuildPublishingMetadata(SequenceRecord record)
+    {
+        if (string.IsNullOrWhiteSpace(record.FdaSubmissionType)
+            || string.IsNullOrWhiteSpace(record.FdaSequenceDescription)
+            || string.IsNullOrWhiteSpace(record.FdaApplicantName))
+        {
+            return null;
+        }
+
+        return SequencePublishingMetadata.Create(
+            record.FdaApplicationType,
+            record.FdaSubmissionType,
+            record.FdaSubmissionSubtype,
+            record.FdaSequenceDescription,
+            record.FdaApplicantName,
+            record.FdaFormType);
     }
 }
