@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using RATools.Application;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Standards;
@@ -367,6 +369,18 @@ public sealed class EctdPackageModelBuilderTests
             () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
 
         Assert.Equal(999, exception.OperationValue);
+    }
+
+    [Fact]
+    public void AddApplication_RegistersPackageModelBuilder()
+    {
+        var services = new ServiceCollection();
+
+        services.AddApplication();
+
+        var descriptor = Assert.Single(services, x => x.ServiceType == typeof(IEctdPackageModelBuilder));
+        Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
+        Assert.Equal(typeof(EctdPackageModelBuilder), descriptor.ImplementationType);
     }
 
     private static SubmissionApplication CreateApplication(Guid applicationId, params string[] sequenceNumbers)
