@@ -1,5 +1,6 @@
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Standards;
+using RATools.Domain.Documents;
 
 namespace RATools.Application.Publishing.PackageModel;
 
@@ -41,9 +42,14 @@ public sealed class EctdPackageModelBuilder(
             metadata?.ApplicantName ?? application.SponsorName,
             metadata?.FormType);
 
-        await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
+        var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
         await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
-        await documentRepository.ListAsync(cancellationToken);
+        var documents = await documentRepository.ListAsync(cancellationToken);
+        var documentById = documents.ToDictionary(x => x.Id, x => x);
+        var leaves = BuildLeaves(request.ApplicationId, request.SequenceNumber, placements, documentById);
+        var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
+        var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
+        var publishedFiles = BuildPublishedFiles(leaves);
 
         return new EctdSequencePackage(
             application.Id,
@@ -54,8 +60,86 @@ public sealed class EctdPackageModelBuilder(
             profile.UsRegionalModule1Version,
             applicationMetadata,
             sequenceMetadata,
-            [],
-            [],
-            []);
+            module1Leaves,
+            ichBackboneLeaves,
+            publishedFiles);
+    }
+
+    private static IReadOnlyCollection<EctdLeaf> BuildLeaves(
+        Guid applicationId,
+        string sequenceNumber,
+        IReadOnlyCollection<DocumentPlacement> placements,
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+    {
+        return placements
+            .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.CreatedUtc)
+            .ThenBy(x => x.Id)
+            .Select(placement => BuildLeaf(applicationId, sequenceNumber, placement, documentById))
+            .ToArray();
+    }
+
+    private static EctdLeaf BuildLeaf(
+        Guid applicationId,
+        string sequenceNumber,
+        DocumentPlacement placement,
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+    {
+        if (!documentById.TryGetValue(placement.DocumentId, out var document))
+        {
+            throw new EctdPackageDocumentNotFoundException(applicationId, sequenceNumber, placement.Id, placement.DocumentId);
+        }
+
+        var module = ClassifyModule(applicationId, sequenceNumber, placement);
+        return new EctdLeaf(
+            placement.Id,
+            placement.DocumentId,
+            $"leaf-{placement.Id:N}",
+            placement.SequenceNumber,
+            placement.CtdSection,
+            module,
+            MapOperation(applicationId, sequenceNumber, placement),
+            placement.Title ?? document.FileName,
+            PublishOutputNaming.BuildPublishedDocumentRelativePath(document, placement.SequenceNumber),
+            document.FileName,
+            document.MediaType,
+            document.StoragePath,
+            document.FileSize,
+            document.Sha256,
+            null);
+    }
+
+    private static string ClassifyModule(Guid applicationId, string sequenceNumber, DocumentPlacement placement)
+    {
+        var module = placement.CtdSection
+            .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault()
+            ?.ToLowerInvariant();
+
+        return module is "m1" or "m2" or "m3" or "m4" or "m5"
+            ? module
+            : throw new EctdPackageInvalidSectionException(applicationId, sequenceNumber, placement.Id, placement.CtdSection);
+    }
+
+    private static string MapOperation(Guid applicationId, string sequenceNumber, DocumentPlacement placement)
+    {
+        return placement.Operation switch
+        {
+            DocumentPlacementOperation.New => "new",
+            DocumentPlacementOperation.Replace => "replace",
+            DocumentPlacementOperation.Delete => "delete",
+            DocumentPlacementOperation.Append => "append",
+            _ => throw new EctdPackageUnsupportedOperationException(applicationId, sequenceNumber, placement.Id, (int)placement.Operation)
+        };
+    }
+
+    private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(IReadOnlyCollection<EctdLeaf> leaves)
+    {
+        return leaves
+            .GroupBy(x => x.DocumentId)
+            .Select(x => x.First())
+            .Select(x => new EctdPublishedFile(x.DocumentId, x.SourcePath, x.Href, x.FileName, x.FileSize, x.Sha256))
+            .OrderBy(x => x.Href, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }

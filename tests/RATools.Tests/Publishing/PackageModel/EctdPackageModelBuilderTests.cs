@@ -164,6 +164,107 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal("0009", exception.SequenceNumber);
     }
 
+    [Fact]
+    public async Task BuildAsync_CreatesDeterministicLeavesAndSplitsModules()
+    {
+        var applicationId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        var oldTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var newTime = oldTime.AddMinutes(1);
+        var application = CreateApplication(applicationId, "0001");
+        var module1Document = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001"), "cover.pdf", "C:/workspace/ANDA123456/0001/m1/us/cover.pdf", 10, "sha-cover");
+        var module3Document = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002"), "quality.pdf", "C:/workspace/ANDA123456/0001/m3/32-body-data/quality.pdf", 20, "sha-quality");
+        var module3PlacementId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000002");
+        var module1PlacementId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001");
+        var placements = new[]
+        {
+            DocumentPlacement.Rehydrate(module3PlacementId, module3Document.Id, applicationId, "0001", "m3.2", DocumentPlacementOperation.New, null, null, newTime),
+            DocumentPlacement.Rehydrate(module1PlacementId, module1Document.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.New, "Cover Letter", null, oldTime)
+        };
+        var builder = CreateBuilder(application, placements, [module1Document, module3Document]);
+
+        var package = await builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001"));
+
+        var module1Leaf = Assert.Single(package.Module1Leaves);
+        Assert.Equal(module1PlacementId, module1Leaf.PlacementId);
+        Assert.Equal("leaf-bbbbbbbb000000000000000000000001", module1Leaf.LeafId);
+        Assert.Equal("m1", module1Leaf.Module);
+        Assert.Equal("new", module1Leaf.Operation);
+        Assert.Equal("Cover Letter", module1Leaf.Title);
+        Assert.Equal("m1/us/cover.pdf", module1Leaf.Href);
+        Assert.Equal("cover.pdf", module1Leaf.FileName);
+        Assert.Equal("application/pdf", module1Leaf.MediaType);
+        Assert.Equal(module1Document.StoragePath, module1Leaf.SourcePath);
+        Assert.Equal(10, module1Leaf.FileSize);
+        Assert.Equal("sha-cover", module1Leaf.Sha256);
+        Assert.Null(module1Leaf.Lifecycle);
+
+        var module3Leaf = Assert.Single(package.IchBackboneLeaves);
+        Assert.Equal(module3PlacementId, module3Leaf.PlacementId);
+        Assert.Equal("m3", module3Leaf.Module);
+        Assert.Equal("quality.pdf", module3Leaf.Title);
+        Assert.Equal("m3/32-body-data/quality.pdf", module3Leaf.Href);
+    }
+
+    [Fact]
+    public async Task BuildAsync_CreatesPublishedFileInventoryWithoutDuplicates()
+    {
+        var applicationId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+        var application = CreateApplication(applicationId, "0001");
+        var document = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000003"), "same.pdf", "C:/workspace/ANDA123456/0001/m1/us/same.pdf", 30, "sha-same");
+        var placements = new[]
+        {
+            DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.New, "First", null, DateTime.UtcNow),
+            DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, applicationId, "0001", "m1.2", DocumentPlacementOperation.New, "Second", null, DateTime.UtcNow.AddMinutes(1))
+        };
+        var builder = CreateBuilder(application, placements, [document]);
+
+        var package = await builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001"));
+
+        var file = Assert.Single(package.PublishedFiles);
+        Assert.Equal(document.Id, file.DocumentId);
+        Assert.Equal("m1/us/same.pdf", file.Href);
+        Assert.Equal("same.pdf", file.FileName);
+        Assert.Equal(30, file.FileSize);
+        Assert.Equal("sha-same", file.Sha256);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenPlacementDocumentIsMissing()
+    {
+        var applicationId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        var missingDocumentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000004");
+        var placementId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000004");
+        var application = CreateApplication(applicationId, "0001");
+        var placement = DocumentPlacement.Rehydrate(placementId, missingDocumentId, applicationId, "0001", "m1.1", DocumentPlacementOperation.New, "Missing", null, DateTime.UtcNow);
+        var builder = CreateBuilder(application, [placement], []);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageDocumentNotFoundException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal(applicationId, exception.ApplicationId);
+        Assert.Equal("0001", exception.SequenceNumber);
+        Assert.Equal(placementId, exception.PlacementId);
+        Assert.Equal(missingDocumentId, exception.DocumentId);
+    }
+
+    private static SubmissionApplication CreateApplication(Guid applicationId, params string[] sequenceNumbers)
+    {
+        return SubmissionApplication.Rehydrate(
+            applicationId,
+            "ANDA123456",
+            "US",
+            "Acme Pharma",
+            DateTime.UtcNow,
+            sequenceNumbers.Select(x => SubmissionSequence.Rehydrate(x, "original-application", $"Sequence {x}", DateTime.UtcNow)).ToArray(),
+            "C:/workspace/ANDA123456",
+            "us-fda-ectd-322");
+    }
+
+    private static SubmissionDocument CreateDocument(Guid documentId, string fileName, string storagePath, long fileSize, string sha256)
+    {
+        return SubmissionDocument.Rehydrate(documentId, fileName, "application/pdf", fileSize, sha256, storagePath, DateTime.UtcNow);
+    }
+
     private static EctdPackageModelBuilder CreateBuilder(
         SubmissionApplication? application,
         IReadOnlyCollection<DocumentPlacement> placements,
