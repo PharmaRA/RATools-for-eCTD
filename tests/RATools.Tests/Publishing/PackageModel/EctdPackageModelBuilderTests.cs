@@ -247,6 +247,128 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal(missingDocumentId, exception.DocumentId);
     }
 
+    [Fact]
+    public async Task BuildAsync_ResolvesLifecycleModifiedFileHrefForReplaceOperation()
+    {
+        var applicationId = Guid.Parse("88888888-8888-8888-8888-888888888888");
+        var application = CreateApplication(applicationId, "0000", "0001");
+        var historicalDocument = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000005"), "old.pdf", "C:/workspace/ANDA123456/0000/m1/us/old.pdf", 40, "sha-old");
+        var currentDocument = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000006"), "new.pdf", "C:/workspace/ANDA123456/0001/m1/us/new.pdf", 50, "sha-new");
+        var historicalPlacementId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000005");
+        var historicalPlacement = DocumentPlacement.Rehydrate(historicalPlacementId, historicalDocument.Id, applicationId, "0000", "m1.1", DocumentPlacementOperation.New, "Old", null, DateTime.UtcNow);
+        var currentPlacement = DocumentPlacement.Rehydrate(Guid.Parse("bbbbbbbb-0000-0000-0000-000000000006"), currentDocument.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Replace, "New", historicalPlacementId, DateTime.UtcNow.AddDays(1));
+        var builder = CreateBuilder(application, [historicalPlacement, currentPlacement], [historicalDocument, currentDocument]);
+
+        var package = await builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001"));
+
+        var leaf = Assert.Single(package.Module1Leaves);
+        Assert.Equal("replace", leaf.Operation);
+        Assert.NotNull(leaf.Lifecycle);
+        Assert.Equal(historicalPlacementId, leaf.Lifecycle.TargetPlacementId);
+        Assert.Equal(historicalDocument.Id, leaf.Lifecycle.TargetDocumentId);
+        Assert.Equal("0000", leaf.Lifecycle.TargetSequenceNumber);
+        Assert.Equal("m1/us/old.pdf", leaf.Lifecycle.ModifiedFileHref);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenLifecycleTargetIsMissing()
+    {
+        var applicationId = Guid.Parse("99999999-9999-9999-9999-999999999999");
+        var application = CreateApplication(applicationId, "0001");
+        var document = CreateDocument(Guid.NewGuid(), "new.pdf", "C:/workspace/ANDA123456/0001/m1/us/new.pdf", 50, "sha-new");
+        var placement = DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Replace, "New", null, DateTime.UtcNow);
+        var builder = CreateBuilder(application, [placement], [document]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageLifecycleTargetException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal(placement.Id, exception.PlacementId);
+        Assert.Null(exception.TargetPlacementId);
+    }
+
+    [Theory]
+    [InlineData("0001", "target sequence is not earlier than current sequence")]
+    [InlineData("0002", "target sequence is not earlier than current sequence")]
+    public async Task BuildAsync_ThrowsWhenLifecycleTargetSequenceIsNotEarlier(string targetSequenceNumber, string expectedReason)
+    {
+        var applicationId = Guid.Parse("abababab-abab-abab-abab-abababababab");
+        var application = CreateApplication(applicationId, "0001", "0002");
+        var targetDocument = CreateDocument(Guid.NewGuid(), "old.pdf", $"C:/workspace/ANDA123456/{targetSequenceNumber}/m1/us/old.pdf", 40, "sha-old");
+        var currentDocument = CreateDocument(Guid.NewGuid(), "new.pdf", "C:/workspace/ANDA123456/0001/m1/us/new.pdf", 50, "sha-new");
+        var targetPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), targetDocument.Id, applicationId, targetSequenceNumber, "m1.1", DocumentPlacementOperation.New, "Old", null, DateTime.UtcNow);
+        var currentPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), currentDocument.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Replace, "New", targetPlacement.Id, DateTime.UtcNow.AddDays(1));
+        var builder = CreateBuilder(application, [targetPlacement, currentPlacement], [targetDocument, currentDocument]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageLifecycleTargetException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal(expectedReason, exception.Reason);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenLifecycleTargetIsInDifferentSection()
+    {
+        var applicationId = Guid.Parse("bcbcbcbc-bcbc-bcbc-bcbc-bcbcbcbcbcbc");
+        var application = CreateApplication(applicationId, "0000", "0001");
+        var targetDocument = CreateDocument(Guid.NewGuid(), "old.pdf", "C:/workspace/ANDA123456/0000/m1/us/old.pdf", 40, "sha-old");
+        var currentDocument = CreateDocument(Guid.NewGuid(), "new.pdf", "C:/workspace/ANDA123456/0001/m1/us/new.pdf", 50, "sha-new");
+        var targetPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), targetDocument.Id, applicationId, "0000", "m1.2", DocumentPlacementOperation.New, "Old", null, DateTime.UtcNow);
+        var currentPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), currentDocument.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Replace, "New", targetPlacement.Id, DateTime.UtcNow.AddDays(1));
+        var builder = CreateBuilder(application, [targetPlacement, currentPlacement], [targetDocument, currentDocument]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageLifecycleTargetException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal("target placement is in a different CTD section", exception.Reason);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenLifecycleTargetDocumentIsMissing()
+    {
+        var applicationId = Guid.Parse("cacacaca-caca-caca-caca-cacacacacaca");
+        var application = CreateApplication(applicationId, "0000", "0001");
+        var targetDocumentId = Guid.NewGuid();
+        var currentDocument = CreateDocument(Guid.NewGuid(), "new.pdf", "C:/workspace/ANDA123456/0001/m1/us/new.pdf", 50, "sha-new");
+        var targetPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), targetDocumentId, applicationId, "0000", "m1.1", DocumentPlacementOperation.New, "Old", null, DateTime.UtcNow);
+        var currentPlacement = DocumentPlacement.Rehydrate(Guid.NewGuid(), currentDocument.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Replace, "New", targetPlacement.Id, DateTime.UtcNow.AddDays(1));
+        var builder = CreateBuilder(application, [targetPlacement, currentPlacement], [currentDocument]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageLifecycleTargetException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal("target document was not found", exception.Reason);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenCtdSectionModuleIsUnsupported()
+    {
+        var applicationId = Guid.Parse("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd");
+        var application = CreateApplication(applicationId, "0001");
+        var document = CreateDocument(Guid.NewGuid(), "bad.pdf", "C:/workspace/ANDA123456/0001/x1/bad.pdf", 10, "sha-bad");
+        var placement = DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, applicationId, "0001", "x1.1", DocumentPlacementOperation.New, "Bad", null, DateTime.UtcNow);
+        var builder = CreateBuilder(application, [placement], [document]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageInvalidSectionException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal("x1.1", exception.CtdSection);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ThrowsWhenOperationValueIsUnsupported()
+    {
+        var applicationId = Guid.Parse("dededede-dede-dede-dede-dededededede");
+        var application = CreateApplication(applicationId, "0001");
+        var document = CreateDocument(Guid.NewGuid(), "bad.pdf", "C:/workspace/ANDA123456/0001/m1/us/bad.pdf", 10, "sha-bad");
+        var placement = DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, applicationId, "0001", "m1.1", (DocumentPlacementOperation)999, "Bad", null, DateTime.UtcNow);
+        var builder = CreateBuilder(application, [placement], [document]);
+
+        var exception = await Assert.ThrowsAsync<EctdPackageUnsupportedOperationException>(
+            () => builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001")));
+
+        Assert.Equal(999, exception.OperationValue);
+    }
+
     private static SubmissionApplication CreateApplication(Guid applicationId, params string[] sequenceNumbers)
     {
         return SubmissionApplication.Rehydrate(

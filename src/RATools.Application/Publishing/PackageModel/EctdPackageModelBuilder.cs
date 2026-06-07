@@ -43,10 +43,11 @@ public sealed class EctdPackageModelBuilder(
             metadata?.FormType);
 
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
-        await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
+        var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
         var documents = await documentRepository.ListAsync(cancellationToken);
         var documentById = documents.ToDictionary(x => x.Id, x => x);
-        var leaves = BuildLeaves(request.ApplicationId, request.SequenceNumber, placements, documentById);
+        var placementById = applicationPlacements.ToDictionary(x => x.Id, x => x);
+        var leaves = BuildLeaves(request.ApplicationId, request.SequenceNumber, placements, placementById, documentById);
         var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
         var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
         var publishedFiles = BuildPublishedFiles(leaves);
@@ -69,13 +70,14 @@ public sealed class EctdPackageModelBuilder(
         Guid applicationId,
         string sequenceNumber,
         IReadOnlyCollection<DocumentPlacement> placements,
+        IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
         IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
     {
         return placements
             .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.CreatedUtc)
             .ThenBy(x => x.Id)
-            .Select(placement => BuildLeaf(applicationId, sequenceNumber, placement, documentById))
+            .Select(placement => BuildLeaf(applicationId, sequenceNumber, placement, placementById, documentById))
             .ToArray();
     }
 
@@ -83,6 +85,7 @@ public sealed class EctdPackageModelBuilder(
         Guid applicationId,
         string sequenceNumber,
         DocumentPlacement placement,
+        IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
         IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
     {
         if (!documentById.TryGetValue(placement.DocumentId, out var document))
@@ -91,6 +94,7 @@ public sealed class EctdPackageModelBuilder(
         }
 
         var module = ClassifyModule(applicationId, sequenceNumber, placement);
+        var lifecycle = BuildLifecycle(applicationId, sequenceNumber, placement, placementById, documentById);
         return new EctdLeaf(
             placement.Id,
             placement.DocumentId,
@@ -106,7 +110,61 @@ public sealed class EctdPackageModelBuilder(
             document.StoragePath,
             document.FileSize,
             document.Sha256,
-            null);
+            lifecycle);
+    }
+
+    private static EctdLifecycleReference? BuildLifecycle(
+        Guid applicationId,
+        string sequenceNumber,
+        DocumentPlacement placement,
+        IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+    {
+        if (placement.Operation is DocumentPlacementOperation.New)
+        {
+            return null;
+        }
+
+        if (placement.Operation is not (DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append))
+        {
+            return null;
+        }
+
+        if (placement.LifecycleTargetPlacementId is null)
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, null, "target placement is missing");
+        }
+
+        if (!placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out var targetPlacement))
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement was not found");
+        }
+
+        if (targetPlacement.ApplicationId != applicationId)
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement belongs to a different application");
+        }
+
+        if (!string.Equals(targetPlacement.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement is in a different CTD section");
+        }
+
+        if (CompareSequenceNumbers(targetPlacement.SequenceNumber, placement.SequenceNumber) >= 0)
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target sequence is not earlier than current sequence");
+        }
+
+        if (!documentById.TryGetValue(targetPlacement.DocumentId, out var targetDocument))
+        {
+            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target document was not found");
+        }
+
+        return new EctdLifecycleReference(
+            targetPlacement.Id,
+            targetPlacement.DocumentId,
+            targetPlacement.SequenceNumber,
+            PublishOutputNaming.BuildPublishedDocumentRelativePath(targetDocument, targetPlacement.SequenceNumber));
     }
 
     private static string ClassifyModule(Guid applicationId, string sequenceNumber, DocumentPlacement placement)
@@ -141,5 +199,15 @@ public sealed class EctdPackageModelBuilder(
             .Select(x => new EctdPublishedFile(x.DocumentId, x.SourcePath, x.Href, x.FileName, x.FileSize, x.Sha256))
             .OrderBy(x => x.Href, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static int CompareSequenceNumbers(string left, string right)
+    {
+        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
+        {
+            return leftNumber.CompareTo(rightNumber);
+        }
+
+        return string.Compare(left, right, StringComparison.Ordinal);
     }
 }
