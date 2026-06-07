@@ -4,6 +4,7 @@ using RATools.Application.Applications;
 using RATools.Application.Documents;
 using RATools.Application.EctdStructure;
 using RATools.Application.Publishing;
+using RATools.Application.Standards;
 using RATools.Application.Validation;
 
 namespace RATools.Application;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IDocumentPlacementService, DocumentPlacementService>();
         services.AddScoped<IBackboneService, BackboneService>();
+        services.AddSingleton<IStandardsProfileProvider, FdaEctd322StandardsProfileProvider>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
         services.AddSingleton<PublishOutputVerifier>();
         services.AddScoped<IPublishJobService, PublishJobService>();

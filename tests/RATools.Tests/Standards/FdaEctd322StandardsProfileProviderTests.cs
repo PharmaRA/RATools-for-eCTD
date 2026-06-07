@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using RATools.Application;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Standards;
 
@@ -64,5 +66,19 @@ public sealed class FdaEctd322StandardsProfileProviderTests
 
         Assert.Contains("Bundled standards asset", exception.Message);
         Assert.Contains("ich-ectd-3-2.dtd", exception.Message);
+    }
+
+    [Fact]
+    public void AddApplication_RegistersStandardsProfileProvider()
+    {
+        var services = new ServiceCollection();
+
+        services.AddApplication();
+        using var provider = services.BuildServiceProvider();
+
+        var standardsProvider = provider.GetRequiredService<IStandardsProfileProvider>();
+        var profile = standardsProvider.GetProfile(EctdTemplateRegistry.DefaultTemplateKey);
+
+        Assert.Equal("FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3", profile.DisplayName);
     }
 }
