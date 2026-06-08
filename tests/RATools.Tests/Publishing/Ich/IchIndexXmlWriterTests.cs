@@ -46,6 +46,63 @@ public sealed class IchIndexXmlWriterTests
         Assert.Throws<ArgumentNullException>(Act);
     }
 
+    [Fact]
+    public void Write_MapsIchLeavesToDtdSectionElements()
+    {
+        var writer = new IchIndexXmlWriter();
+        var package = CreatePackage(ichLeaves:
+        [
+            CreateLeaf("m5.3.5.1", "leaf-00000000000000000000000000000005", "clinical.pdf"),
+            CreateLeaf("m3.2", "leaf-00000000000000000000000000000003", "quality.pdf"),
+            CreateLeaf("m2", "leaf-00000000000000000000000000000002", "summary.pdf"),
+            CreateLeaf("m4.2", "leaf-00000000000000000000000000000004", "nonclinical.pdf")
+        ]);
+
+        var result = writer.Write(package);
+        var xml = result.XmlContent;
+
+        Assert.Contains("<m2-common-technical-document-summaries>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m3-quality><m3-2-body-of-data>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m4-nonclinical-study-reports><m4-2-study-reports>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m5-clinical-study-reports><m5-3-clinical-study-reports><m5-3-5-reports-of-efficacy-and-safety-studies><m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication>", xml, StringComparison.Ordinal);
+        Assert.True(xml.IndexOf("<m2-common", StringComparison.Ordinal) < xml.IndexOf("<m3-quality", StringComparison.Ordinal));
+        Assert.True(xml.IndexOf("<m3-quality", StringComparison.Ordinal) < xml.IndexOf("<m4-nonclinical", StringComparison.Ordinal));
+        Assert.True(xml.IndexOf("<m4-nonclinical", StringComparison.Ordinal) < xml.IndexOf("<m5-clinical", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Write_IgnoresModule1Leaves()
+    {
+        var writer = new IchIndexXmlWriter();
+        var module1Leaf = CreateLeaf("m1.1", "leaf-00000000000000000000000000000001", "m1.pdf");
+        var package = CreatePackage(module1Leaves: [module1Leaf], ichLeaves: []);
+
+        var result = writer.Write(package);
+
+        Assert.DoesNotContain("m1-administrative-information-and-prescribing-information", result.XmlContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("leaf-00000000000000000000000000000001", result.XmlContent, StringComparison.Ordinal);
+    }
+
+    private static EctdLeaf CreateLeaf(string ctdSection, string leafId, string fileName, string operation = "new", EctdLifecycleReference? lifecycle = null)
+    {
+        return new EctdLeaf(
+            Guid.Parse($"{leafId[5..13]}-{leafId[13..17]}-{leafId[17..21]}-{leafId[21..25]}-{leafId[25..37]}"),
+            Guid.NewGuid(),
+            leafId,
+            "0001",
+            ctdSection,
+            ctdSection.Split('.')[0],
+            operation,
+            Path.GetFileNameWithoutExtension(fileName),
+            $"{ctdSection.Replace('.', '/')}/{fileName}",
+            fileName,
+            "application/pdf",
+            $"C:/workspace/0001/{ctdSection}/{fileName}",
+            10,
+            $"sha-{fileName}",
+            lifecycle);
+    }
+
     private static EctdSequencePackage CreatePackage(
         IReadOnlyCollection<EctdLeaf>? module1Leaves = null,
         IReadOnlyCollection<EctdLeaf>? ichLeaves = null)
