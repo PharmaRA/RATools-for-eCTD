@@ -1,0 +1,830 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 3-1 Modified the m1-16 heading and added sub-headings-->
+<!--version 3-2 Two additional attributes were added to the m1-15-2-1-material sub-heading-->
+<!--version 3-3 Modified the m1-15-1-5 heading-->
+<!ELEMENT fda-regional:fda-regional (admin, m1-regional?)>
+<!ATTLIST fda-regional:fda-regional
+	xmlns:fda-regional CDATA #FIXED "http://www.ich.org/fda"
+	xmlns:xlink CDATA #FIXED "http://www.w3c.org/1999/xlink"
+	xml:lang CDATA #IMPLIED
+	dtd-version CDATA #FIXED "3.3"
+>
+<!ELEMENT leaf (title, link-text?)>
+<!ATTLIST leaf
+	ID ID #REQUIRED
+	application-version CDATA #IMPLIED
+	version CDATA #IMPLIED
+	font-library CDATA #IMPLIED
+	operation (delete | new | append | replace) #REQUIRED
+	modified-file CDATA #IMPLIED
+	checksum CDATA #IMPLIED
+	checksum-type CDATA #IMPLIED
+	keywords CDATA #IMPLIED
+	xlink:type CDATA #FIXED "simple"
+	xlink:role CDATA #IMPLIED
+	xlink:href CDATA #IMPLIED
+	xlink:show (embed | none | other | new | replace) #IMPLIED
+	xlink:actuate (onLoad | none | other | onRequest) #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT title (#PCDATA)>
+<!ATTLIST title
+	ID ID #IMPLIED
+>
+<!ELEMENT link-text (#PCDATA | xref)*>
+<!ATTLIST link-text
+	ID ID #IMPLIED
+>
+<!ELEMENT xref EMPTY>
+<!ATTLIST xref
+	ID ID #IMPLIED
+	xlink:type CDATA #FIXED "simple"
+	xlink:role CDATA #IMPLIED
+	xlink:title CDATA #REQUIRED
+	xlink:href CDATA #REQUIRED
+	xlink:show (embed | none | other | new | replace) #IMPLIED
+	xlink:actuate (onLoad | none | other | onRequest) #IMPLIED
+>
+<!ELEMENT node-extension (title, (leaf | node-extension)+)>
+<!ATTLIST node-extension
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT admin (applicant-info, application-set)>
+<!ELEMENT applicant-info (id, company-name, submission-description?, applicant-contacts)>
+<!ELEMENT id (#PCDATA)>
+<!ELEMENT company-name (#PCDATA)>
+<!ELEMENT submission-description (#PCDATA)>
+<!ELEMENT applicant-contacts (applicant-contact+)>
+<!ELEMENT applicant-contact (applicant-contact-name, telephones, emails)>
+<!ELEMENT applicant-contact-name (#PCDATA)>
+<!ATTLIST applicant-contact-name
+	applicant-contact-type CDATA #REQUIRED
+>
+<!ELEMENT telephones (telephone+)>
+<!ELEMENT telephone (#PCDATA)>
+<!ATTLIST telephone
+	telephone-number-type CDATA #REQUIRED
+>
+<!ELEMENT emails (email+)>
+<!ELEMENT email (#PCDATA)>
+<!ELEMENT application-set (application+)>
+<!ELEMENT application (application-information, submission-information)>
+<!ATTLIST application
+	application-containing-files (false | true) #REQUIRED
+>
+<!ELEMENT application-information (application-number, cross-reference-application-number*)>
+<!ELEMENT application-number (#PCDATA)>
+<!ATTLIST application-number
+	application-type CDATA #REQUIRED
+>
+<!ELEMENT cross-reference-application-number (#PCDATA)>
+<!ATTLIST cross-reference-application-number
+	application-type CDATA #REQUIRED
+>
+<!ELEMENT submission-information (submission-id, sequence-number, form?)>
+<!ELEMENT submission-id (#PCDATA)>
+<!ATTLIST submission-id
+	submission-type CDATA #REQUIRED
+	supplement-effective-date-type CDATA #IMPLIED
+>
+<!ELEMENT sequence-number (#PCDATA)>
+<!ATTLIST sequence-number
+	submission-sub-type CDATA #REQUIRED
+>
+<!ELEMENT form ((leaf | node-extension)*)>
+<!ATTLIST form
+	form-type CDATA #REQUIRED
+>
+<!ELEMENT m1-regional (m1-1-forms?, m1-2-cover-letters?, m1-3-administrative-information?, m1-4-references?, m1-5-application-status?, m1-6-meetings?, m1-7-fast-track?, m1-8-special-protocol-assessment-request?, m1-9-pediatric-administrative-information?, m1-10-dispute-resolution?, m1-11-information-amendment-information-not-covered-under-modules-2-to-5?, m1-12-other-correspondence?, m1-13-annual-report?, m1-14-labeling?, m1-15-promotional-material?, m1-16-risk-management-plan?, m1-17-postmarketing-studies?, m1-18-proprietary-names?, m1-19-pre-eua-and-eua?, m1-20-general-investigational-plan-for-initial-ind?)>
+<!ATTLIST m1-regional
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-1-forms (form*)>
+<!ELEMENT m1-2-cover-letters ((leaf | node-extension)*)>
+<!ATTLIST m1-2-cover-letters
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-administrative-information (m1-3-1-contact-sponsor-applicant-information*, m1-3-2-field-copy-certification*, m1-3-3-debarment-certification*, m1-3-4-financial-certification-and-disclosure*, m1-3-5-patent-and-exclusivity*, m1-3-6-tropical-disease-priority-review-voucher*)>
+<!ATTLIST m1-3-administrative-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-contact-sponsor-applicant-information (m1-3-1-1-change-of-address-or-corporate-name*, m1-3-1-2-change-in-contact-agent*, m1-3-1-3-change-in-sponsor*, m1-3-1-4-transfer-of-obligation*, m1-3-1-5-change-in-ownership-of-an-application-or-reissuance-of-license*)>
+<!ATTLIST m1-3-1-contact-sponsor-applicant-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-1-change-of-address-or-corporate-name ((leaf | node-extension)*)>
+<!ATTLIST m1-3-1-1-change-of-address-or-corporate-name
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-2-change-in-contact-agent ((leaf | node-extension)*)>
+<!ATTLIST m1-3-1-2-change-in-contact-agent
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-3-change-in-sponsor ((leaf | node-extension)*)>
+<!ATTLIST m1-3-1-3-change-in-sponsor
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-4-transfer-of-obligation ((leaf | node-extension)*)>
+<!ATTLIST m1-3-1-4-transfer-of-obligation
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-1-5-change-in-ownership-of-an-application-or-reissuance-of-license ((leaf | node-extension)*)>
+<!ATTLIST m1-3-1-5-change-in-ownership-of-an-application-or-reissuance-of-license
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-2-field-copy-certification ((leaf | node-extension)*)>
+<!ATTLIST m1-3-2-field-copy-certification
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-3-debarment-certification ((leaf | node-extension)*)>
+<!ATTLIST m1-3-3-debarment-certification
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-4-financial-certification-and-disclosure ((leaf | node-extension)*)>
+<!ATTLIST m1-3-4-financial-certification-and-disclosure
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-5-patent-and-exclusivity (m1-3-5-1-patent-information*, m1-3-5-2-patent-certification*, m1-3-5-3-exclusivity-claim*)>
+<!ATTLIST m1-3-5-patent-and-exclusivity
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-5-1-patent-information ((leaf | node-extension)*)>
+<!ATTLIST m1-3-5-1-patent-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-5-2-patent-certification ((leaf | node-extension)*)>
+<!ATTLIST m1-3-5-2-patent-certification
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-5-3-exclusivity-claim ((leaf | node-extension)*)>
+<!ATTLIST m1-3-5-3-exclusivity-claim
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-3-6-tropical-disease-priority-review-voucher ((leaf | node-extension)*)>
+<!ATTLIST m1-3-6-tropical-disease-priority-review-voucher
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-4-references (m1-4-1-letter-of-authorization*, m1-4-2-statement-of-right-of-reference*, m1-4-3-list-of-authorized-persons-to-incorporate-by-reference*, m1-4-4-cross-reference-to-previously-submitted-information*)>
+<!ATTLIST m1-4-references
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-4-1-letter-of-authorization ((leaf | node-extension)*)>
+<!ATTLIST m1-4-1-letter-of-authorization
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-4-2-statement-of-right-of-reference ((leaf | node-extension)*)>
+<!ATTLIST m1-4-2-statement-of-right-of-reference
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-4-3-list-of-authorized-persons-to-incorporate-by-reference ((leaf | node-extension)*)>
+<!ATTLIST m1-4-3-list-of-authorized-persons-to-incorporate-by-reference
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-4-4-cross-reference-to-previously-submitted-information ((leaf | node-extension)*)>
+<!ATTLIST m1-4-4-cross-reference-to-previously-submitted-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-application-status (m1-5-1-withdrawal-of-an-ind*, m1-5-2-inactivation-request*, m1-5-3-reactivation-request*, m1-5-4-reinstatement-request*, m1-5-5-withdrawal-of-an-unapproved-bla-nda-anda-or-supplement*, m1-5-6-withdrawal-of-listed-drug*, m1-5-7-withdrawal-of-approval-of-an-application-or-revocation-of-license*)>
+<!ATTLIST m1-5-application-status
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-1-withdrawal-of-an-ind ((leaf | node-extension)*)>
+<!ATTLIST m1-5-1-withdrawal-of-an-ind
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-2-inactivation-request ((leaf | node-extension)*)>
+<!ATTLIST m1-5-2-inactivation-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-3-reactivation-request ((leaf | node-extension)*)>
+<!ATTLIST m1-5-3-reactivation-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-4-reinstatement-request ((leaf | node-extension)*)>
+<!ATTLIST m1-5-4-reinstatement-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-5-withdrawal-of-an-unapproved-bla-nda-anda-or-supplement ((leaf | node-extension)*)>
+<!ATTLIST m1-5-5-withdrawal-of-an-unapproved-bla-nda-anda-or-supplement
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-6-withdrawal-of-listed-drug ((leaf | node-extension)*)>
+<!ATTLIST m1-5-6-withdrawal-of-listed-drug
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-5-7-withdrawal-of-approval-of-an-application-or-revocation-of-license ((leaf | node-extension)*)>
+<!ATTLIST m1-5-7-withdrawal-of-approval-of-an-application-or-revocation-of-license
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-6-meetings (m1-6-1-meeting-request*, m1-6-2-meeting-background-materials*, m1-6-3-correspondence-regarding-meetings*)>
+<!ATTLIST m1-6-meetings
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-6-1-meeting-request ((leaf | node-extension)*)>
+<!ATTLIST m1-6-1-meeting-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-6-2-meeting-background-materials ((leaf | node-extension)*)>
+<!ATTLIST m1-6-2-meeting-background-materials
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-6-3-correspondence-regarding-meetings ((leaf | node-extension)*)>
+<!ATTLIST m1-6-3-correspondence-regarding-meetings
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-7-fast-track (m1-7-1-fast-track-designation-request*, m1-7-2-fast-track-designation-withdrawal-request*, m1-7-3-rolling-review-request*, m1-7-4-correspondence-regarding-fast-track-rolling-review*)>
+<!ATTLIST m1-7-fast-track
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-7-1-fast-track-designation-request ((leaf | node-extension)*)>
+<!ATTLIST m1-7-1-fast-track-designation-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-7-2-fast-track-designation-withdrawal-request ((leaf | node-extension)*)>
+<!ATTLIST m1-7-2-fast-track-designation-withdrawal-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-7-3-rolling-review-request ((leaf | node-extension)*)>
+<!ATTLIST m1-7-3-rolling-review-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-7-4-correspondence-regarding-fast-track-rolling-review ((leaf | node-extension)*)>
+<!ATTLIST m1-7-4-correspondence-regarding-fast-track-rolling-review
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-8-special-protocol-assessment-request (m1-8-1-clinical-study*, m1-8-2-carcinogenicity-study*, m1-8-3-stability-study*, m1-8-4-animal-efficacy-study-for-approval-under-the-animal-rule*)>
+<!ATTLIST m1-8-special-protocol-assessment-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-8-1-clinical-study ((leaf | node-extension)*)>
+<!ATTLIST m1-8-1-clinical-study
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-8-2-carcinogenicity-study ((leaf | node-extension)*)>
+<!ATTLIST m1-8-2-carcinogenicity-study
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-8-3-stability-study ((leaf | node-extension)*)>
+<!ATTLIST m1-8-3-stability-study
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-8-4-animal-efficacy-study-for-approval-under-the-animal-rule ((leaf | node-extension)*)>
+<!ATTLIST m1-8-4-animal-efficacy-study-for-approval-under-the-animal-rule
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-pediatric-administrative-information (m1-9-1-request-for-waiver-of-pediatric-studies*, m1-9-2-request-for-deferral-of-pediatric-studies*, m1-9-3-request-for-pediatric-exclusivity-determination*, m1-9-4-proposed-pediatric-study-request-and-amendments*, m1-9-6-other-correspondence-regarding-pediatric-exclusivity-or-study-plans*)>
+<!ATTLIST m1-9-pediatric-administrative-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-1-request-for-waiver-of-pediatric-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-9-1-request-for-waiver-of-pediatric-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-2-request-for-deferral-of-pediatric-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-9-2-request-for-deferral-of-pediatric-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-3-request-for-pediatric-exclusivity-determination ((leaf | node-extension)*)>
+<!ATTLIST m1-9-3-request-for-pediatric-exclusivity-determination
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-4-proposed-pediatric-study-request-and-amendments ((leaf | node-extension)*)>
+<!ATTLIST m1-9-4-proposed-pediatric-study-request-and-amendments
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-9-6-other-correspondence-regarding-pediatric-exclusivity-or-study-plans ((leaf | node-extension)*)>
+<!ATTLIST m1-9-6-other-correspondence-regarding-pediatric-exclusivity-or-study-plans
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-10-dispute-resolution (m1-10-1-request-for-dispute-resolution*, m1-10-2-correspondence-related-to-dispute-resolution*)>
+<!ATTLIST m1-10-dispute-resolution
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-10-1-request-for-dispute-resolution ((leaf | node-extension)*)>
+<!ATTLIST m1-10-1-request-for-dispute-resolution
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-10-2-correspondence-related-to-dispute-resolution ((leaf | node-extension)*)>
+<!ATTLIST m1-10-2-correspondence-related-to-dispute-resolution
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-11-information-amendment-information-not-covered-under-modules-2-to-5 (m1-11-1-quality-information-amendment*, m1-11-2-nonclinical-information-amendment*, m1-11-3-clinical-information-amendment*, m1-11-4-multiple-module-information-amendment*)>
+<!ATTLIST m1-11-information-amendment-information-not-covered-under-modules-2-to-5
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-11-1-quality-information-amendment ((leaf | node-extension)*)>
+<!ATTLIST m1-11-1-quality-information-amendment
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-11-2-nonclinical-information-amendment ((leaf | node-extension)*)>
+<!ATTLIST m1-11-2-nonclinical-information-amendment
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-11-3-clinical-information-amendment ((leaf | node-extension)*)>
+<!ATTLIST m1-11-3-clinical-information-amendment
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-11-4-multiple-module-information-amendment ((leaf | node-extension)*)>
+<!ATTLIST m1-11-4-multiple-module-information-amendment
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-other-correspondence (m1-12-1-pre-ind-correspondence*, m1-12-2-request-to-charge-for-clinical-trial*, m1-12-3-request-to-charge-for-expanded-access*, m1-12-4-request-for-comments-and-advice*, m1-12-5-request-for-a-waiver*, m1-12-6-exception-from-informed-consent-for-emergency-research*, m1-12-7-public-disclosure-statement-for-exception-from-informed-consent-for-emergency-research*, m1-12-8-correspondence-regarding-exception-from-informed-consent-for-emergency-research*, m1-12-9-notification-of-discontinuation-of-clinical-trial*, m1-12-10-generic-drug-enforcement-act-statement*, m1-12-11-anda-basis-for-submission-statement*, m1-12-12-comparison-of-generic-drug-and-reference-listed-drug*, m1-12-13-request-for-waiver-for-in-vivo-studies*, m1-12-14-environmental-analysis*, m1-12-15-request-for-waiver-of-in-vivo-bioavailability-studies*, m1-12-16-field-alert-reports*, m1-12-17-orphan-drug-designation*)>
+<!ATTLIST m1-12-other-correspondence
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-1-pre-ind-correspondence ((leaf | node-extension)*)>
+<!ATTLIST m1-12-1-pre-ind-correspondence
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-2-request-to-charge-for-clinical-trial ((leaf | node-extension)*)>
+<!ATTLIST m1-12-2-request-to-charge-for-clinical-trial
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-3-request-to-charge-for-expanded-access ((leaf | node-extension)*)>
+<!ATTLIST m1-12-3-request-to-charge-for-expanded-access
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-4-request-for-comments-and-advice ((leaf | node-extension)*)>
+<!ATTLIST m1-12-4-request-for-comments-and-advice
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-5-request-for-a-waiver ((leaf | node-extension)*)>
+<!ATTLIST m1-12-5-request-for-a-waiver
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-6-exception-from-informed-consent-for-emergency-research ((leaf | node-extension)*)>
+<!ATTLIST m1-12-6-exception-from-informed-consent-for-emergency-research
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-7-public-disclosure-statement-for-exception-from-informed-consent-for-emergency-research ((leaf | node-extension)*)>
+<!ATTLIST m1-12-7-public-disclosure-statement-for-exception-from-informed-consent-for-emergency-research
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-8-correspondence-regarding-exception-from-informed-consent-for-emergency-research ((leaf | node-extension)*)>
+<!ATTLIST m1-12-8-correspondence-regarding-exception-from-informed-consent-for-emergency-research
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-9-notification-of-discontinuation-of-clinical-trial ((leaf | node-extension)*)>
+<!ATTLIST m1-12-9-notification-of-discontinuation-of-clinical-trial
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-10-generic-drug-enforcement-act-statement ((leaf | node-extension)*)>
+<!ATTLIST m1-12-10-generic-drug-enforcement-act-statement
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-11-anda-basis-for-submission-statement ((leaf | node-extension)*)>
+<!ATTLIST m1-12-11-anda-basis-for-submission-statement
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-12-comparison-of-generic-drug-and-reference-listed-drug ((leaf | node-extension)*)>
+<!ATTLIST m1-12-12-comparison-of-generic-drug-and-reference-listed-drug
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-13-request-for-waiver-for-in-vivo-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-12-13-request-for-waiver-for-in-vivo-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-14-environmental-analysis ((leaf | node-extension)*)>
+<!ATTLIST m1-12-14-environmental-analysis
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-15-request-for-waiver-of-in-vivo-bioavailability-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-12-15-request-for-waiver-of-in-vivo-bioavailability-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-16-field-alert-reports ((leaf | node-extension)*)>
+<!ATTLIST m1-12-16-field-alert-reports
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-12-17-orphan-drug-designation ((leaf | node-extension)*)>
+<!ATTLIST m1-12-17-orphan-drug-designation
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-annual-report (m1-13-1-summary-for-nonclinical-studies*, m1-13-2-summary-of-clinical-pharmacology-information*, m1-13-3-summary-of-safety-information*, m1-13-4-summary-of-labeling-changes*, m1-13-5-summary-of-manufacturing-changes*, m1-13-6-summary-of-microbiological-changes*, m1-13-7-summary-of-other-significant-new-information*, m1-13-8-individual-study-information*, m1-13-9-general-investigational-plan*, m1-13-10-foreign-marketing*, m1-13-11-distribution-data*, m1-13-12-status-of-postmarketing-study-commitments-and-requirements*, m1-13-13-status-of-other-postmarketing-studies-and-requirements*, m1-13-14-log-of-outstanding-regulatory-business*, m1-13-15-development-safety-update-report-dsur*)>
+<!ATTLIST m1-13-annual-report
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-1-summary-for-nonclinical-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-13-1-summary-for-nonclinical-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-2-summary-of-clinical-pharmacology-information ((leaf | node-extension)*)>
+<!ATTLIST m1-13-2-summary-of-clinical-pharmacology-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-3-summary-of-safety-information ((leaf | node-extension)*)>
+<!ATTLIST m1-13-3-summary-of-safety-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-4-summary-of-labeling-changes ((leaf | node-extension)*)>
+<!ATTLIST m1-13-4-summary-of-labeling-changes
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-5-summary-of-manufacturing-changes ((leaf | node-extension)*)>
+<!ATTLIST m1-13-5-summary-of-manufacturing-changes
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-6-summary-of-microbiological-changes ((leaf | node-extension)*)>
+<!ATTLIST m1-13-6-summary-of-microbiological-changes
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-7-summary-of-other-significant-new-information ((leaf | node-extension)*)>
+<!ATTLIST m1-13-7-summary-of-other-significant-new-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-8-individual-study-information ((leaf | node-extension)*)>
+<!ATTLIST m1-13-8-individual-study-information
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-9-general-investigational-plan ((leaf | node-extension)*)>
+<!ATTLIST m1-13-9-general-investigational-plan
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-10-foreign-marketing ((leaf | node-extension)*)>
+<!ATTLIST m1-13-10-foreign-marketing
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-11-distribution-data ((leaf | node-extension)*)>
+<!ATTLIST m1-13-11-distribution-data
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-12-status-of-postmarketing-study-commitments-and-requirements ((leaf | node-extension)*)>
+<!ELEMENT m1-13-13-status-of-other-postmarketing-studies-and-requirements ((leaf | node-extension)*)>
+<!ATTLIST m1-13-13-status-of-other-postmarketing-studies-and-requirements
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-14-log-of-outstanding-regulatory-business ((leaf | node-extension)*)>
+<!ATTLIST m1-13-14-log-of-outstanding-regulatory-business
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-13-15-development-safety-update-report-dsur ((leaf | node-extension)*)>
+<!ATTLIST m1-13-15-development-safety-update-report-dsur
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-labeling (m1-14-1-draft-labeling*, m1-14-2-final-labeling*, m1-14-3-listed-drug-labeling*, m1-14-4-investigational-drug-labeling*, m1-14-5-foreign-labeling*, m1-14-6-product-labeling-for-2253-submissions*)>
+<!ATTLIST m1-14-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-draft-labeling (m1-14-1-1-draft-carton-and-container-labels*, m1-14-1-2-annotated-draft-labeling-text*, m1-14-1-3-draft-labeling-text*, m1-14-1-4-label-comprehension-studies*, m1-14-1-5-labeling-history*)>
+<!ATTLIST m1-14-1-draft-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-1-draft-carton-and-container-labels ((leaf | node-extension)*)>
+<!ATTLIST m1-14-1-1-draft-carton-and-container-labels
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-2-annotated-draft-labeling-text ((leaf | node-extension)*)>
+<!ATTLIST m1-14-1-2-annotated-draft-labeling-text
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-3-draft-labeling-text ((leaf | node-extension)*)>
+<!ATTLIST m1-14-1-3-draft-labeling-text
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-4-label-comprehension-studies ((leaf | node-extension)*)>
+<!ATTLIST m1-14-1-4-label-comprehension-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-1-5-labeling-history ((leaf | node-extension)*)>
+<!ATTLIST m1-14-1-5-labeling-history
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-2-final-labeling (m1-14-2-1-final-carton-or-container-labels*, m1-14-2-2-final-package-insert-package-inserts-patient-information-medication-guides*, m1-14-2-3-final-labeling-text*)>
+<!ATTLIST m1-14-2-final-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-2-1-final-carton-or-container-labels ((leaf | node-extension)*)>
+<!ATTLIST m1-14-2-1-final-carton-or-container-labels
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-2-2-final-package-insert-package-inserts-patient-information-medication-guides ((leaf | node-extension)*)>
+<!ATTLIST m1-14-2-2-final-package-insert-package-inserts-patient-information-medication-guides
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-2-3-final-labeling-text ((leaf | node-extension)*)>
+<!ATTLIST m1-14-2-3-final-labeling-text
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-3-listed-drug-labeling (m1-14-3-1-annotated-comparison-with-listed-drug*, m1-14-3-2-approved-labeling-text-for-listed-drug*, m1-14-3-3-labeling-text-for-reference-listed-drug*)>
+<!ATTLIST m1-14-3-listed-drug-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-3-1-annotated-comparison-with-listed-drug ((leaf | node-extension)*)>
+<!ATTLIST m1-14-3-1-annotated-comparison-with-listed-drug
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-3-2-approved-labeling-text-for-listed-drug ((leaf | node-extension)*)>
+<!ATTLIST m1-14-3-2-approved-labeling-text-for-listed-drug
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-3-3-labeling-text-for-reference-listed-drug ((leaf | node-extension)*)>
+<!ATTLIST m1-14-3-3-labeling-text-for-reference-listed-drug
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-4-investigational-drug-labeling (m1-14-4-1-investigational-brochure*, m1-14-4-2-investigational-drug-labeling*)>
+<!ATTLIST m1-14-4-investigational-drug-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-4-1-investigational-brochure ((leaf | node-extension)*)>
+<!ATTLIST m1-14-4-1-investigational-brochure
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-4-2-investigational-drug-labeling ((leaf | node-extension)*)>
+<!ATTLIST m1-14-4-2-investigational-drug-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-5-foreign-labeling ((leaf | node-extension)*)>
+<!ATTLIST m1-14-5-foreign-labeling
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-14-6-product-labeling-for-2253-submissions ((leaf | node-extension)*)>
+<!ATTLIST m1-14-6-product-labeling-for-2253-submissions
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-promotional-material (m1-15-1-correspondence-relating-to-promotional-materials?, m1-15-2-materials?)>
+<!ATTLIST m1-15-promotional-material
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+	promotional-material-audience-type CDATA #REQUIRED
+>
+<!ELEMENT m1-15-1-correspondence-relating-to-promotional-materials (m1-15-1-1-request-for-advisory-comments-on-launch-materials?, m1-15-1-2-request-for-advisory-comments-on-non-launch-materials?, m1-15-1-3-pre-submission-of-launch-promotional-materials-for-accelerated-approval-products?, m1-15-1-4-pre-submission-of-non-launch-promotional-materials-for-accelerated-approval-products?, m1-15-1-5-pre-dissemination-review-of-television-ads?, m1-15-1-6-response-to-untitled-letter-or-warning-letter?, m1-15-1-7-response-to-information-request?, m1-15-1-8-correspondence-accompanying-materials-previously-missing-or-rejected?, m1-15-1-9-withdrawal-request?, m1-15-1-10-submission-of-annotated-references?, m1-15-1-11-general-correspondence?)>
+<!ATTLIST m1-15-1-correspondence-relating-to-promotional-materials
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-1-request-for-advisory-comments-on-launch-materials ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-1-request-for-advisory-comments-on-launch-materials
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-2-request-for-advisory-comments-on-non-launch-materials ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-2-request-for-advisory-comments-on-non-launch-materials
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-3-pre-submission-of-launch-promotional-materials-for-accelerated-approval-products ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-3-pre-submission-of-launch-promotional-materials-for-accelerated-approval-products
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-4-pre-submission-of-non-launch-promotional-materials-for-accelerated-approval-products ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-4-pre-submission-of-non-launch-promotional-materials-for-accelerated-approval-products
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-5-pre-dissemination-review-of-television-ads ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-5-pre-dissemination-review-of-television-ads
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-6-response-to-untitled-letter-or-warning-letter ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-6-response-to-untitled-letter-or-warning-letter
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-7-response-to-information-request ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-7-response-to-information-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-8-correspondence-accompanying-materials-previously-missing-or-rejected ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-8-correspondence-accompanying-materials-previously-missing-or-rejected
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-9-withdrawal-request ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-9-withdrawal-request
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-10-submission-of-annotated-references ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-10-submission-of-annotated-references
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-1-11-general-correspondence ((leaf | node-extension)*)>
+<!ATTLIST m1-15-1-11-general-correspondence
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-2-materials (m1-15-2-1-material*)>
+<!ATTLIST m1-15-2-materials
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+	promotional-material-doc-type CDATA #REQUIRED
+>
+<!ELEMENT m1-15-2-1-material (m1-15-2-1-1-clean-version?, m1-15-2-1-2-annotated-version?, m1-15-2-1-3-annotated-labeling-version?, m1-15-2-1-4-annotated-references?)>
+<!ATTLIST m1-15-2-1-material
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+	promotional-material-type CDATA #REQUIRED
+	material-id CDATA #REQUIRED
+	issue-date CDATA #IMPLIED
+>
+<!ELEMENT m1-15-2-1-1-clean-version ((leaf | node-extension)*)>
+<!ATTLIST m1-15-2-1-1-clean-version
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-2-1-2-annotated-version ((leaf | node-extension)*)>
+<!ATTLIST m1-15-2-1-2-annotated-version
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-2-1-3-annotated-labeling-version ((leaf | node-extension)*)>
+<!ATTLIST m1-15-2-1-3-annotated-labeling-version
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-15-2-1-4-annotated-references ((leaf | node-extension)*)>
+<!ATTLIST m1-15-2-1-4-annotated-references
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-risk-management-plan (m1-16-1-risk-management-non-rems?, m1-16-2-risk-evaluation-and-mitigation-strategies-rems?)>
+<!ATTLIST m1-16-risk-management-plan
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-1-risk-management-non-rems ((leaf | node-extension)*)>
+<!ATTLIST m1-16-1-risk-management-non-rems
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-risk-evaluation-and-mitigation-strategies-rems (m1-16-2-1-final-rems?, m1-16-2-2-draft-rems?,    m1-16-2-3-rems-assessment?, m1-16-2-4-rems-assessment-methodology?, m1-16-2-5-rems-correspondence?, m1-16-2-6-rems-modification-history?)>
+<!ATTLIST m1-16-2-risk-evaluation-and-mitigation-strategies-rems
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-1-final-rems ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-1-final-rems
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-2-draft-rems ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-2-draft-rems
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-3-rems-assessment ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-3-rems-assessment
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-4-rems-assessment-methodology ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-4-rems-assessment-methodology
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-5-rems-correspondence ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-5-rems-correspondence
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-16-2-6-rems-modification-history ((leaf | node-extension)*)>
+<!ATTLIST m1-16-2-6-rems-modification-history
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-17-postmarketing-studies (m1-17-1-correspondence-regarding-postmarketing-commitments*, m1-17-2-correspondence-regarding-postmarketing-requirements*)>
+<!ATTLIST m1-17-postmarketing-studies
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-17-1-correspondence-regarding-postmarketing-commitments ((leaf | node-extension)*)>
+<!ATTLIST m1-17-1-correspondence-regarding-postmarketing-commitments
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-17-2-correspondence-regarding-postmarketing-requirements ((leaf | node-extension)*)>
+<!ATTLIST m1-17-2-correspondence-regarding-postmarketing-requirements
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-18-proprietary-names ((leaf | node-extension)*)>
+<!ATTLIST m1-18-proprietary-names
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-19-pre-eua-and-eua ((leaf | node-extension)*)>
+<!ATTLIST m1-19-pre-eua-and-eua
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
+<!ELEMENT m1-20-general-investigational-plan-for-initial-ind ((leaf | node-extension)*)>
+<!ATTLIST m1-20-general-investigational-plan-for-initial-ind
+	ID ID #IMPLIED
+	xml:lang CDATA #IMPLIED
+>
