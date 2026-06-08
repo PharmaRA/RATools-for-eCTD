@@ -9,6 +9,7 @@ public sealed record EctdSequencePackage(
     string UsRegionalModule1Version,
     EctdApplicationMetadata Application,
     EctdSequenceMetadata Sequence,
+    EctdUsRegionalMetadata UsRegional,
     IReadOnlyCollection<EctdLeaf> Module1Leaves,
     IReadOnlyCollection<EctdLeaf> IchBackboneLeaves,
     IReadOnlyCollection<EctdPublishedFile> PublishedFiles);
@@ -26,6 +27,20 @@ public sealed record EctdSequenceMetadata(
     string? SubmissionSubtype,
     string Description,
     string ApplicantName,
+    string? FormType);
+
+public sealed record EctdUsRegionalMetadata(
+    string ApplicantId,
+    string CompanyName,
+    string SubmissionDescription,
+    string ApplicantContactName,
+    string ApplicantContactType,
+    string Telephone,
+    string TelephoneNumberType,
+    string Email,
+    string ApplicationType,
+    string SubmissionType,
+    string SubmissionSubtype,
     string? FormType);
 
 public sealed record EctdLeaf(

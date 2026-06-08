@@ -26,6 +26,19 @@ public sealed class EctdPackageModelBuilderTests
             "3.3",
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
             new EctdSequenceMetadata("0001", "original-application", null, "Initial sequence", "Acme Pharma", "356h"),
+            new EctdUsRegionalMetadata(
+                "ANDA123456",
+                "Acme Pharma",
+                "Initial sequence",
+                "Jane Regulatory",
+                "regulatory",
+                "301-555-0100",
+                "office",
+                "jane.regulatory@example.test",
+                "anda",
+                "original-application",
+                "initial",
+                "356h"),
             [
                 new EctdLeaf(
                     placementId,
@@ -57,6 +70,18 @@ public sealed class EctdPackageModelBuilderTests
 
         Assert.Equal(applicationId, package.ApplicationId);
         Assert.Equal("3.2.2", package.IchEctdVersion);
+        Assert.Equal("ANDA123456", package.UsRegional.ApplicantId);
+        Assert.Equal("Acme Pharma", package.UsRegional.CompanyName);
+        Assert.Equal("Initial sequence", package.UsRegional.SubmissionDescription);
+        Assert.Equal("Jane Regulatory", package.UsRegional.ApplicantContactName);
+        Assert.Equal("regulatory", package.UsRegional.ApplicantContactType);
+        Assert.Equal("301-555-0100", package.UsRegional.Telephone);
+        Assert.Equal("office", package.UsRegional.TelephoneNumberType);
+        Assert.Equal("jane.regulatory@example.test", package.UsRegional.Email);
+        Assert.Equal("anda", package.UsRegional.ApplicationType);
+        Assert.Equal("original-application", package.UsRegional.SubmissionType);
+        Assert.Equal("initial", package.UsRegional.SubmissionSubtype);
+        Assert.Equal("356h", package.UsRegional.FormType);
         Assert.Single(package.Module1Leaves);
         Assert.Empty(package.IchBackboneLeaves);
         Assert.Single(package.PublishedFiles);
@@ -95,6 +120,18 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal("Initial sequence", package.Sequence.Description);
         Assert.Equal("Acme Pharma", package.Sequence.ApplicantName);
         Assert.Null(package.Sequence.FormType);
+        Assert.Equal("ANDA123456", package.UsRegional.ApplicantId);
+        Assert.Equal("Acme Pharma", package.UsRegional.CompanyName);
+        Assert.Equal("Initial sequence", package.UsRegional.SubmissionDescription);
+        Assert.Equal(string.Empty, package.UsRegional.ApplicantContactName);
+        Assert.Equal(string.Empty, package.UsRegional.ApplicantContactType);
+        Assert.Equal(string.Empty, package.UsRegional.Telephone);
+        Assert.Equal(string.Empty, package.UsRegional.TelephoneNumberType);
+        Assert.Equal(string.Empty, package.UsRegional.Email);
+        Assert.Equal(string.Empty, package.UsRegional.ApplicationType);
+        Assert.Equal("original-application", package.UsRegional.SubmissionType);
+        Assert.Equal(string.Empty, package.UsRegional.SubmissionSubtype);
+        Assert.Null(package.UsRegional.FormType);
         Assert.Empty(package.Module1Leaves);
         Assert.Empty(package.IchBackboneLeaves);
         Assert.Empty(package.PublishedFiles);
@@ -130,6 +167,12 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal("Safety update", package.Sequence.Description);
         Assert.Equal("Regulatory Applicant LLC", package.Sequence.ApplicantName);
         Assert.Equal("356h", package.Sequence.FormType);
+        Assert.Equal("Regulatory Applicant LLC", package.UsRegional.CompanyName);
+        Assert.Equal("Safety update", package.UsRegional.SubmissionDescription);
+        Assert.Equal("anda", package.UsRegional.ApplicationType);
+        Assert.Equal("supplement", package.UsRegional.SubmissionType);
+        Assert.Equal("efficacy", package.UsRegional.SubmissionSubtype);
+        Assert.Equal("356h", package.UsRegional.FormType);
     }
 
     [Fact]

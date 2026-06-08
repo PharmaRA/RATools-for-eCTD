@@ -41,6 +41,19 @@ public sealed class EctdPackageModelBuilder(
             metadata?.SequenceDescription ?? sequence.Description,
             metadata?.ApplicantName ?? application.SponsorName,
             metadata?.FormType);
+        var usRegionalMetadata = new EctdUsRegionalMetadata(
+            application.ApplicationNumber,
+            sequenceMetadata.ApplicantName,
+            sequenceMetadata.Description,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            applicationMetadata.ApplicationType ?? string.Empty,
+            sequenceMetadata.SubmissionType,
+            sequenceMetadata.SubmissionSubtype ?? string.Empty,
+            sequenceMetadata.FormType);
 
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
         var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
@@ -61,6 +74,7 @@ public sealed class EctdPackageModelBuilder(
             profile.UsRegionalModule1Version,
             applicationMetadata,
             sequenceMetadata,
+            usRegionalMetadata,
             module1Leaves,
             ichBackboneLeaves,
             publishedFiles);
