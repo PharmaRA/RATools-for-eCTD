@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using RATools.Application;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 
@@ -146,6 +148,18 @@ public sealed class IchIndexXmlWriterTests
         Assert.Equal(package.SequenceNumber, exception.SequenceNumber);
         Assert.Equal("m3.999", exception.CtdSection);
         Assert.Equal("section is not in the supported ICH profile", exception.Reason);
+    }
+
+    [Fact]
+    public void AddApplication_RegistersIchIndexXmlWriter()
+    {
+        var services = new ServiceCollection();
+
+        services.AddApplication();
+
+        var descriptor = Assert.Single(services, x => x.ServiceType == typeof(IIchIndexXmlWriter));
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        Assert.Equal(typeof(IchIndexXmlWriter), descriptor.ImplementationType);
     }
 
     private static EctdLeaf CreateLeaf(string ctdSection, string leafId, string fileName, string operation = "new", EctdLifecycleReference? lifecycle = null)
