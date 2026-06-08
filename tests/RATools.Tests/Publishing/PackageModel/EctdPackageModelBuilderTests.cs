@@ -128,7 +128,7 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal(string.Empty, package.UsRegional.Telephone);
         Assert.Equal(string.Empty, package.UsRegional.TelephoneNumberType);
         Assert.Equal(string.Empty, package.UsRegional.Email);
-        Assert.Equal(string.Empty, package.UsRegional.ApplicationType);
+        Assert.Equal("anda", package.UsRegional.ApplicationType);
         Assert.Equal("original-application", package.UsRegional.SubmissionType);
         Assert.Equal(string.Empty, package.UsRegional.SubmissionSubtype);
         Assert.Null(package.UsRegional.FormType);

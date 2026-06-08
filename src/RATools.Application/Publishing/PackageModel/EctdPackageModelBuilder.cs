@@ -50,7 +50,7 @@ public sealed class EctdPackageModelBuilder(
             string.Empty,
             string.Empty,
             string.Empty,
-            applicationMetadata.ApplicationType ?? string.Empty,
+            applicationMetadata.ApplicationType ?? DeriveApplicationType(application.ApplicationNumber),
             sequenceMetadata.SubmissionType,
             sequenceMetadata.SubmissionSubtype ?? string.Empty,
             sequenceMetadata.FormType);
@@ -203,6 +203,31 @@ public sealed class EctdPackageModelBuilder(
             DocumentPlacementOperation.Append => "append",
             _ => throw new EctdPackageUnsupportedOperationException(applicationId, sequenceNumber, placement.Id, (int)placement.Operation)
         };
+    }
+
+    private static string DeriveApplicationType(string applicationNumber)
+    {
+        if (applicationNumber.StartsWith("ANDA", StringComparison.OrdinalIgnoreCase))
+        {
+            return "anda";
+        }
+
+        if (applicationNumber.StartsWith("NDA", StringComparison.OrdinalIgnoreCase))
+        {
+            return "nda";
+        }
+
+        if (applicationNumber.StartsWith("BLA", StringComparison.OrdinalIgnoreCase))
+        {
+            return "bla";
+        }
+
+        if (applicationNumber.StartsWith("IND", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ind";
+        }
+
+        return string.Empty;
     }
 
     private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(IReadOnlyCollection<EctdLeaf> leaves)
