@@ -1,253 +1,47 @@
-using System.Xml.Linq;
-using System.Security.Cryptography;
-using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
-using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Publishing.Dtos;
+using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Requests;
-using RATools.Domain.Applications;
-using RATools.Domain.Documents;
+using RATools.Application.Publishing.UsRegional;
 
 namespace RATools.Application.Publishing;
 
 public sealed class BackboneService(
-    IApplicationRepository applicationRepository,
-    IDocumentPlacementRepository placementRepository,
-    IDocumentRepository documentRepository,
+    IEctdPackageModelBuilder packageModelBuilder,
+    IIchIndexXmlWriter ichIndexXmlWriter,
+    IUsRegionalXmlWriter usRegionalXmlWriter,
     IBackboneFileWriter backboneFileWriter) : IBackboneService
 {
-    private static readonly XNamespace EctdNamespace = "http://example.org/ectd/backbone";
-    private static readonly XNamespace XlinkNamespace = "http://www.w3.org/1999/xlink";
-
     public async Task<GeneratedBackboneDto> GenerateAsync(GenerateBackboneRequest request, CancellationToken cancellationToken = default)
     {
-        var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
-        if (application is null)
-        {
-            throw new InvalidOperationException($"Application {request.ApplicationId} was not found.");
-        }
-
-        var sequence = application.Sequences.SingleOrDefault(x => x.SequenceNumber == request.SequenceNumber);
-        if (sequence is null)
-        {
-            throw new InvalidOperationException($"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
-        }
-
-        var template = EctdTemplateRegistry.Resolve(application.EctdTemplateKey);
-
-        var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
-        var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
-        var documents = await documentRepository.ListAsync(cancellationToken);
-        var documentById = documents.ToDictionary(x => x.Id, x => x);
-        var placementById = applicationPlacements.ToDictionary(x => x.Id, x => x);
-        var referencedDocuments = placements
-            .Select(x => x.DocumentId)
-            .Distinct()
-            .Where(documentById.ContainsKey)
-            .Select(id => documentById[id])
-            .ToArray();
-
-        var root = new XElement(EctdNamespace + "ectd",
-            new XAttribute(XNamespace.Xmlns + "ectd", EctdNamespace.NamespaceName),
-            new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
-            new XAttribute("dtd-version", template.DtdVersion),
-            new XAttribute("applicationNumber", application.ApplicationNumber),
-            new XAttribute("sequenceNumber", sequence.SequenceNumber),
-            new XAttribute("submissionType", sequence.SubmissionType),
-            new XAttribute("region", template.Region),
-            new XElement(EctdNamespace + "applicant", application.SponsorName),
-            new XElement(EctdNamespace + "sequenceDescription", sequence.Description),
-            BuildSectionTree(placements, documentById, placementById));
-
-        var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
-        var xmlContent = document.ToString();
+        var package = await packageModelBuilder.BuildAsync(
+            new BuildEctdPackageRequest(request.ApplicationId, request.SequenceNumber),
+            cancellationToken);
+        var indexXml = ichIndexXmlWriter.Write(package);
+        var usRegionalXml = usRegionalXmlWriter.Write(package);
         var output = await backboneFileWriter.SaveAsync(
-            application.ApplicationNumber,
-            request.SequenceNumber,
+            package.ApplicationNumber,
+            package.SequenceNumber,
             request.PublishJobId,
             request.OutputDirectoryPath,
-            [new BackboneGeneratedFile("index.xml", xmlContent)],
+            [
+                new BackboneGeneratedFile(indexXml.FileName, indexXml.XmlContent),
+                new BackboneGeneratedFile(usRegionalXml.RelativePath, usRegionalXml.XmlContent)
+            ],
             request.ReportFileName,
             request.PackageFileName,
             "{}",
-            BuildPublishedFiles(referencedDocuments, request.SequenceNumber),
+            package.PublishedFiles,
             cancellationToken);
 
         return new GeneratedBackboneDto(
             request.ApplicationId,
             request.SequenceNumber,
-            "index.xml",
+            indexXml.FileName,
             output.FilePath,
             output.ReportPath,
             output.PackagePath,
-            xmlContent);
-    }
-
-    private static IEnumerable<XElement> BuildSectionTree(
-        IReadOnlyCollection<DocumentPlacement> placements,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
-        IReadOnlyDictionary<Guid, DocumentPlacement> placementById)
-    {
-        var roots = new SortedDictionary<string, SectionNode>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var placement in placements.OrderBy(x => x.CreatedUtc))
-        {
-            var sectionPath = SplitSectionPath(placement.CtdSection);
-            if (sectionPath.Length == 0)
-            {
-                continue;
-            }
-
-            var currentLevel = roots;
-            SectionNode? currentNode = null;
-
-            foreach (var part in sectionPath)
-            {
-                var nextPath = currentNode is null ? part : $"{currentNode.Path}.{part}";
-                if (!currentLevel.TryGetValue(part, out currentNode))
-                {
-                    currentNode = new SectionNode(part, nextPath);
-                    currentLevel[part] = currentNode;
-                }
-
-                currentLevel = currentNode.Children;
-            }
-
-            currentNode?.Placements.Add(placement);
-        }
-
-        foreach (var root in roots.Values)
-        {
-            yield return BuildSectionElement(root, documentById, placementById);
-        }
-    }
-
-    private static XElement BuildSectionElement(
-        SectionNode node,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
-        IReadOnlyDictionary<Guid, DocumentPlacement> placementById)
-    {
-        var element = new XElement(EctdNamespace + "section", new XAttribute("id", node.Path));
-
-        foreach (var child in node.Children.Values)
-        {
-            element.Add(BuildSectionElement(child, documentById, placementById));
-        }
-
-        foreach (var placement in node.Placements.OrderBy(x => x.CreatedUtc))
-        {
-            if (!documentById.TryGetValue(placement.DocumentId, out var document))
-            {
-                continue;
-            }
-
-            var operation = MapOperation(placement.Operation);
-            var attributes = new List<object>
-            {
-                new XAttribute("id", placement.Id),
-                new XAttribute("operation", operation),
-                new XAttribute(XlinkNamespace + "href", BuildLeafHref(document, placement.SequenceNumber)),
-                new XAttribute(XlinkNamespace + "type", "simple"),
-                new XAttribute("checksum-type", "md5")
-            };
-
-            if (placement.Operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append)
-            {
-                if (placement.LifecycleTargetPlacementId is null
-                    || !placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out var targetPlacement)
-                    || targetPlacement.ApplicationId != placement.ApplicationId
-                    || !string.Equals(targetPlacement.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase)
-                    || CompareSequenceNumbers(targetPlacement.SequenceNumber, placement.SequenceNumber) >= 0
-                    || !documentById.TryGetValue(targetPlacement.DocumentId, out var targetDocument))
-                {
-                    throw new InvalidOperationException($"Placement {placement.Id} requires a valid lifecycle target before publishing.");
-                }
-
-                attributes.Add(new XAttribute("modified-file", BuildLeafHref(targetDocument, targetPlacement.SequenceNumber)));
-            }
-
-            element.Add(new XElement(EctdNamespace + "leaf",
-                attributes,
-                new XElement(EctdNamespace + "title", placement.Title ?? document.FileName),
-                new XElement(EctdNamespace + "fileName", document.FileName),
-                new XElement(EctdNamespace + "mimeType", document.MediaType),
-                new XElement(EctdNamespace + "checksum", BuildLeafChecksum(document))));
-        }
-
-        return element;
-    }
-
-    private static string BuildLeafHref(SubmissionDocument document, string sequenceNumber)
-    {
-        return PublishOutputNaming.BuildPublishedDocumentRelativePath(document, sequenceNumber);
-    }
-
-    private static string BuildLeafChecksum(SubmissionDocument document)
-    {
-        if (!File.Exists(document.StoragePath))
-        {
-            throw new InvalidOperationException(
-                $"Document '{document.FileName}' is missing at publish time: '{document.StoragePath}'.");
-        }
-
-        using var stream = File.OpenRead(document.StoragePath);
-        using var md5 = MD5.Create();
-        var hash = md5.ComputeHash(stream);
-        return Convert.ToHexString(hash).ToLowerInvariant();
-    }
-
-    private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(
-        IReadOnlyCollection<SubmissionDocument> documents,
-        string sequenceNumber)
-    {
-        return documents
-            .Select(document => new EctdPublishedFile(
-                document.Id,
-                document.StoragePath,
-                BuildLeafHref(document, sequenceNumber),
-                document.FileName,
-                document.FileSize,
-                document.Sha256))
-            .ToArray();
-    }
-
-    private static int CompareSequenceNumbers(string left, string right)
-    {
-        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
-        {
-            return leftNumber.CompareTo(rightNumber);
-        }
-
-        return string.Compare(left, right, StringComparison.Ordinal);
-    }
-
-    private static string MapOperation(DocumentPlacementOperation operation)
-    {
-        return operation switch
-        {
-            DocumentPlacementOperation.New => "new",
-            DocumentPlacementOperation.Replace => "replace",
-            DocumentPlacementOperation.Delete => "delete",
-            DocumentPlacementOperation.Append => "append",
-            _ => throw new InvalidOperationException($"Unsupported operation value '{operation}'.")
-        };
-    }
-
-    private static string[] SplitSectionPath(string ctdSection)
-    {
-        return ctdSection
-            .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
-
-    private sealed class SectionNode(string id, string path)
-    {
-        public string Id { get; } = id;
-
-        public string Path { get; } = path;
-
-        public SortedDictionary<string, SectionNode> Children { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public List<DocumentPlacement> Placements { get; } = [];
+            indexXml.XmlContent);
     }
 }
