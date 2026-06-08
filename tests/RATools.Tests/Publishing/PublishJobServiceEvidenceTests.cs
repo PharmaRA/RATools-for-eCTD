@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Dtos;
@@ -34,6 +35,11 @@ public sealed class PublishJobServiceEvidenceTests
             Assert.Contains(report.IntegrityEvidence.Artifacts, x => x.Role == "BackboneXml" && x.Exists);
             Assert.Contains(report.IntegrityEvidence.Artifacts, x => x.Role == "PackageZip" && x.Exists);
             Assert.Empty(report.IntegrityEvidence.Findings);
+
+            using var archive = ZipFile.OpenRead(report.PublishJob.PackagePath!);
+            var entries = archive.Entries.Select(x => x.FullName.Replace('\\', '/')).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("index.xml", entries);
+            Assert.Contains("leaf.txt", entries);
         }
         finally
         {

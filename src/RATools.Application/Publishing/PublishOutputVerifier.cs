@@ -216,11 +216,16 @@ public sealed class PublishOutputVerifier
     private static IReadOnlyCollection<string> ReadDocumentReferences(string outputPath)
     {
         var document = XDocument.Load(outputPath);
-        var xlink = XNamespace.Get("http://www.w3.org/1999/xlink");
+        XNamespace[] xlinkNamespaces =
+        [
+            XNamespace.Get("http://www.w3.org/1999/xlink"),
+            XNamespace.Get("http://www.w3c.org/1999/xlink")
+        ];
 
         return document
             .Descendants()
-            .Attributes(xlink + "href")
+            .Attributes()
+            .Where(attribute => xlinkNamespaces.Contains(attribute.Name.Namespace) && attribute.Name.LocalName == "href")
             .Select(x => x.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();

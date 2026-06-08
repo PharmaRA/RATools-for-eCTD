@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO.Compression;
 using System.Text.Json;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
@@ -64,7 +63,7 @@ public sealed class PublishJobService(
 
         if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
         {
-            await WriteFinalReportAsync(report, jobDto.PackagePath, cancellationToken);
+            await WriteFinalReportAsync(report, cancellationToken);
         }
 
         return report;
@@ -423,7 +422,6 @@ public sealed class PublishJobService(
 
     private static async Task WriteFinalReportAsync(
         PublishExecutionReportDto report,
-        string packagePath,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(report.ReportPath))
@@ -431,21 +429,14 @@ public sealed class PublishJobService(
             return;
         }
 
+        var reportDirectory = Path.GetDirectoryName(report.ReportPath);
+        if (!string.IsNullOrWhiteSpace(reportDirectory))
+        {
+            Directory.CreateDirectory(reportDirectory);
+        }
+
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(report.ReportPath, json, cancellationToken);
-
-        var outputDirectory = Path.GetDirectoryName(report.ReportPath);
-        if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
-        {
-            return;
-        }
-
-        if (File.Exists(packagePath))
-        {
-            File.Delete(packagePath);
-        }
-
-        ZipFile.CreateFromDirectory(outputDirectory, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
     }
 
     private async Task TryWriteAuditAsync(

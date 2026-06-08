@@ -67,6 +67,34 @@ public sealed class PublishOutputVerifierTests
     }
 
     [Fact]
+    public async Task VerifyAsync_ReadsReferencesFromDtdCompatibleXlinkNamespace()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(outputDir);
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(backbonePath, DtdCompatibleBackboneXml("m1/us/12-cover-letters/missing.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.False(result.Summary.IsConsistent);
+            Assert.Equal(1, result.Summary.MissingFilesCount);
+            Assert.Contains(result.Evidence.Findings, x => x.Type == "MissingReferencedFile" && x.Path == "m1/us/12-cover-letters/missing.pdf");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
     public async Task VerifyAsync_ReportsMissingZipEntry()
     {
         var root = CreateTempRoot();
@@ -196,6 +224,13 @@ public sealed class PublishOutputVerifierTests
     private static string BackboneXml(string href) => $"""
         <?xml version="1.0" encoding="utf-8"?>
         <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <ectd:leaf xlink:href="{href}" />
+        </ectd:ectd>
+        """;
+
+    private static string DtdCompatibleBackboneXml(string href) => $"""
+        <?xml version="1.0" encoding="utf-8"?>
+        <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink">
           <ectd:leaf xlink:href="{href}" />
         </ectd:ectd>
         """;
