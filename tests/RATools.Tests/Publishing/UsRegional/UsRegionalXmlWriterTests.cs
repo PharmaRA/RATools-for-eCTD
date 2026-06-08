@@ -81,20 +81,88 @@ public sealed class UsRegionalXmlWriterTests
     }
 
     [Fact]
-    public void Write_ThrowsSectionMappingExceptionWhenModule1LeavesExistBeforeMappingIsImplemented()
+    public void Write_MapsModule1LeavesToDtdSectionsInOrder()
     {
         var writer = new UsRegionalXmlWriter();
-        var leaf = CreateLeaf("m1.2", "leaf-11111111111111111111111111111111", "cover.pdf");
-        var package = CreatePackage(module1Leaves: [leaf]);
+        var package = CreatePackage(module1Leaves:
+        [
+            CreateLeaf("m1.16.2.1", "leaf-00000000000000000000000000000003", "rems.pdf"),
+            CreateLeaf("m1.2", "leaf-00000000000000000000000000000001", "cover-letter.pdf"),
+            CreateLeaf("m1.14.2.3", "leaf-00000000000000000000000000000002", "labeling.pdf")
+        ]);
 
-        void Act() => writer.Write(package);
+        var xml = writer.Write(package).XmlContent;
 
-        var exception = Assert.Throws<UsRegionalXmlSectionMappingException>(Act);
-        Assert.Equal(package.ApplicationId, exception.ApplicationId);
-        Assert.Equal(package.SequenceNumber, exception.SequenceNumber);
-        Assert.Equal(leaf.PlacementId, exception.PlacementId);
-        Assert.Equal("m1.2", exception.CtdSection);
-        Assert.Equal("Module 1 leaf mapping is not implemented", exception.Reason);
+        Assert.Contains("<m1-regional>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m1-2-cover-letters>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m1-14-labeling><m1-14-2-final-labeling><m1-14-2-3-final-labeling-text>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m1-16-risk-management-plan><m1-16-2-risk-evaluation-and-mitigation-strategies-rems><m1-16-2-1-final-rems>", xml, StringComparison.Ordinal);
+        Assert.True(xml.IndexOf("<m1-2-cover", StringComparison.Ordinal) < xml.IndexOf("<m1-14-labeling", StringComparison.Ordinal));
+        Assert.True(xml.IndexOf("<m1-14-labeling", StringComparison.Ordinal) < xml.IndexOf("<m1-16-risk", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Write_IgnoresIchLeaves()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var ichLeaf = CreateLeaf("m3.2", "leaf-00000000000000000000000000000004", "quality.pdf");
+        var package = CreatePackage(module1Leaves: [], ichLeaves: [ichLeaf]);
+
+        var xml = writer.Write(package).XmlContent;
+
+        Assert.DoesNotContain("m3-quality", xml, StringComparison.Ordinal);
+        Assert.DoesNotContain("leaf-00000000000000000000000000000004", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Write_EmitsLeafAttributesRelativeHrefAndLifecycleModifiedFile()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var lifecycle = new EctdLifecycleReference(Guid.NewGuid(), Guid.NewGuid(), "0000", "m1/us/12-cover-letters/old.pdf");
+        var package = CreatePackage(module1Leaves:
+        [
+            CreateLeaf("m1.2", "leaf-11111111111111111111111111111111", "new.pdf", "replace", lifecycle)
+        ]);
+
+        var result = writer.Write(package);
+        var leaf = result.Document.Descendants("leaf").Single();
+
+        Assert.Equal("leaf-11111111111111111111111111111111", leaf.Attribute("ID")?.Value);
+        Assert.Equal("replace", leaf.Attribute("operation")?.Value);
+        Assert.Equal("sha-new.pdf", leaf.Attribute("checksum")?.Value);
+        Assert.Equal("sha256", leaf.Attribute("checksum-type")?.Value);
+        Assert.Equal("simple", leaf.Attribute(XName.Get("type", "http://www.w3c.org/1999/xlink"))?.Value);
+        Assert.Equal("12-cover-letters/new.pdf", leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
+        Assert.Equal("../../../0000/m1/us/12-cover-letters/old.pdf", leaf.Attribute("modified-file")?.Value);
+        Assert.Equal("new", leaf.Element("title")?.Value);
+    }
+
+    [Fact]
+    public void Write_DoesNotEmitPrototypeOnlyLeafChildren()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves: [CreateLeaf("m1.2", "leaf-22222222222222222222222222222222", "cover.pdf")]);
+
+        var xml = writer.Write(package).XmlContent;
+
+        Assert.DoesNotContain("<fileName>", xml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<mimeType>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Write_ProducesStableXmlForRepeatedWrites()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves:
+        [
+            CreateLeaf("m1.2", "leaf-33333333333333333333333333333333", "cover-a.pdf"),
+            CreateLeaf("m1.2", "leaf-33333333333333333333333333333334", "cover-b.pdf")
+        ]);
+
+        var first = writer.Write(package).XmlContent;
+        var second = writer.Write(package).XmlContent;
+
+        Assert.Equal(first, second);
     }
 
     private static EctdSequencePackage CreatePackage(
@@ -135,8 +203,21 @@ public sealed class UsRegionalXmlWriterTests
             "356h");
     }
 
-    private static EctdLeaf CreateLeaf(string ctdSection, string leafId, string fileName)
+    private static EctdLeaf CreateLeaf(
+        string ctdSection,
+        string leafId,
+        string fileName,
+        string operation = "new",
+        EctdLifecycleReference? lifecycle = null)
     {
+        var href = ctdSection switch
+        {
+            "m1.2" => $"m1/us/12-cover-letters/{fileName}",
+            "m1.14.2.3" => $"m1/us/114-labeling/{fileName}",
+            "m1.16.2.1" => $"m1/us/116-risk-management-plan/{fileName}",
+            _ => $"{ctdSection.Replace('.', '/')}/{fileName}"
+        };
+
         return new EctdLeaf(
             Guid.Parse($"{leafId[5..13]}-{leafId[13..17]}-{leafId[17..21]}-{leafId[21..25]}-{leafId[25..37]}"),
             Guid.NewGuid(),
@@ -144,14 +225,14 @@ public sealed class UsRegionalXmlWriterTests
             "0001",
             ctdSection,
             ctdSection.Split('.')[0],
-            "new",
+            operation,
             Path.GetFileNameWithoutExtension(fileName),
-            $"m1/us/{fileName}",
+            href,
             fileName,
             "application/pdf",
-            $"C:/workspace/0001/m1/us/{fileName}",
+            $"C:/workspace/0001/{ctdSection}/{fileName}",
             10,
             $"sha-{fileName}",
-            null);
+            lifecycle);
     }
 }
