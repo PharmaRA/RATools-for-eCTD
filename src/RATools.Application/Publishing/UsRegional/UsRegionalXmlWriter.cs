@@ -39,6 +39,9 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
     private static XElement BuildAdminElement(EctdSequencePackage package)
     {
         var metadata = package.UsRegional;
+        var formLeaves = package.Module1Leaves
+            .Where(x => string.Equals(x.CtdSection, "m1.1", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
         var submissionInformationChildren = new List<object>
         {
             new XElement("submission-id",
@@ -49,10 +52,12 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
                 package.SequenceNumber)
         };
 
-        if (!string.IsNullOrWhiteSpace(metadata.FormType))
+        if (!string.IsNullOrWhiteSpace(metadata.FormType) || formLeaves.Length > 0)
         {
+            Require(package, nameof(metadata.FormType), metadata.FormType);
             submissionInformationChildren.Add(new XElement("form",
-                new XAttribute("form-type", metadata.FormType)));
+                new XAttribute("form-type", metadata.FormType!),
+                formLeaves.Select(BuildLeafElement)));
         }
 
         return new XElement("admin",
@@ -86,6 +91,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         ValidateLeaves(package);
 
         var leavesBySection = package.Module1Leaves
+            .Where(leaf => !string.Equals(leaf.CtdSection, "m1.1", StringComparison.OrdinalIgnoreCase))
             .Select((leaf, index) => new IndexedLeaf(leaf, index))
             .GroupBy(x => x.Leaf.CtdSection, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
@@ -194,6 +200,36 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
                     leaf.PlacementId,
                     leaf.CtdSection,
                     "leaf is not a Module 1 leaf");
+            }
+
+            if (!UsRegionalM1V33.TryFind(leaf.CtdSection, out var node) || node is null)
+            {
+                throw new UsRegionalXmlSectionMappingException(
+                    package.ApplicationId,
+                    package.SequenceNumber,
+                    leaf.PlacementId,
+                    leaf.CtdSection,
+                    "section is not in the supported US Regional M1 profile");
+            }
+
+            if (node.RequiresUnsupportedAttributes)
+            {
+                throw new UsRegionalXmlSectionMappingException(
+                    package.ApplicationId,
+                    package.SequenceNumber,
+                    leaf.PlacementId,
+                    leaf.CtdSection,
+                    "section requires unsupported regional attributes");
+            }
+
+            if (!node.AcceptsLeaves && !string.Equals(node.SectionPath, "m1.1", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UsRegionalXmlSectionMappingException(
+                    package.ApplicationId,
+                    package.SequenceNumber,
+                    leaf.PlacementId,
+                    leaf.CtdSection,
+                    "section does not directly accept leaves");
             }
         }
     }

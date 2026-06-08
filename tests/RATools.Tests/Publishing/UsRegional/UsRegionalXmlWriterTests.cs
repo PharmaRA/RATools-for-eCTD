@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using RATools.Application;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
 
@@ -163,6 +165,74 @@ public sealed class UsRegionalXmlWriterTests
         var second = writer.Write(package).XmlContent;
 
         Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public void Write_ThrowsForUnknownModule1Section()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves: [CreateLeaf("m1.999", "leaf-44444444444444444444444444444444", "bad.pdf")]);
+
+        void Act() => writer.Write(package);
+
+        var exception = Assert.Throws<UsRegionalXmlSectionMappingException>(Act);
+
+        Assert.Equal(package.ApplicationId, exception.ApplicationId);
+        Assert.Equal(package.SequenceNumber, exception.SequenceNumber);
+        Assert.Equal("m1.999", exception.CtdSection);
+        Assert.Equal("section is not in the supported US Regional M1 profile", exception.Reason);
+    }
+
+    [Fact]
+    public void Write_ThrowsForUnsupportedAttributeHeavySection()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves: [CreateLeaf("m1.15.2.1.1", "leaf-55555555555555555555555555555555", "promo.pdf")]);
+
+        void Act() => writer.Write(package);
+
+        var exception = Assert.Throws<UsRegionalXmlSectionMappingException>(Act);
+
+        Assert.Equal("m1.15.2.1.1", exception.CtdSection);
+        Assert.Equal("section requires unsupported regional attributes", exception.Reason);
+    }
+
+    [Fact]
+    public void Write_ThrowsForModule1SectionThatDoesNotDirectlyAcceptLeaves()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves: [CreateLeaf("m1.14.2", "leaf-77777777777777777777777777777777", "bad.pdf")]);
+
+        void Act() => writer.Write(package);
+
+        var exception = Assert.Throws<UsRegionalXmlSectionMappingException>(Act);
+
+        Assert.Equal("m1.14.2", exception.CtdSection);
+        Assert.Equal("section does not directly accept leaves", exception.Reason);
+    }
+
+    [Fact]
+    public void Write_EmitsM1FormsInsideAdminFormElement()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves: [CreateLeaf("m1.1", "leaf-66666666666666666666666666666666", "form-356h.pdf")]);
+
+        var xml = writer.Write(package).XmlContent;
+
+        Assert.Contains("<form form-type=\"356h\"><leaf", xml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<m1-1-forms>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddApplication_RegistersUsRegionalXmlWriter()
+    {
+        var services = new ServiceCollection();
+
+        services.AddApplication();
+
+        var descriptor = Assert.Single(services, x => x.ServiceType == typeof(IUsRegionalXmlWriter));
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        Assert.Equal(typeof(UsRegionalXmlWriter), descriptor.ImplementationType);
     }
 
     private static EctdSequencePackage CreatePackage(
