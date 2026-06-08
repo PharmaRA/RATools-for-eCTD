@@ -12,6 +12,9 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
         .Where(x => x.SectionPath is "m2" or "m3" or "m4" or "m5")
         .Select(BuildSectionPathNode)
         .ToArray();
+    private static readonly IReadOnlyDictionary<string, SectionPathNode> SectionByPath = IchTopLevelNodes
+        .SelectMany(Flatten)
+        .ToDictionary(x => x.SectionPath, x => x, StringComparer.OrdinalIgnoreCase);
 
     public IchIndexXmlWriteResult Write(EctdSequencePackage package)
     {
@@ -21,11 +24,14 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
             new XAttribute(XNamespace.Xmlns + "ectd", EctdNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
             new XAttribute("dtd-version", "3.2"));
+        ValidateLeaves(package);
+
         var leavesBySection = package.IchBackboneLeaves
-            .GroupBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
+            .Select((leaf, index) => new IndexedLeaf(leaf, index))
+            .GroupBy(x => x.Leaf.CtdSection, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 x => x.Key,
-                x => x.OrderBy(leaf => leaf.LeafId, StringComparer.OrdinalIgnoreCase).ToArray(),
+                x => x.OrderBy(leaf => leaf.Index).ThenBy(leaf => leaf.Leaf.LeafId, StringComparer.OrdinalIgnoreCase).Select(leaf => leaf.Leaf).ToArray(),
                 StringComparer.OrdinalIgnoreCase);
 
         foreach (var module in IchTopLevelNodes)
@@ -51,6 +57,45 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
             node.ElementName,
             node.SectionPath,
             node.Children.Select(BuildSectionPathNode).ToArray());
+    }
+
+    private static IEnumerable<SectionPathNode> Flatten(SectionPathNode node)
+    {
+        yield return node;
+
+        foreach (var child in node.Children)
+        {
+            foreach (var descendant in Flatten(child))
+            {
+                yield return descendant;
+            }
+        }
+    }
+
+    private static void ValidateLeaves(EctdSequencePackage package)
+    {
+        foreach (var leaf in package.IchBackboneLeaves)
+        {
+            if (leaf.Module is not ("m2" or "m3" or "m4" or "m5"))
+            {
+                throw new IchIndexXmlSectionMappingException(
+                    package.ApplicationId,
+                    package.SequenceNumber,
+                    leaf.PlacementId,
+                    leaf.CtdSection,
+                    "leaf is not an ICH M2-M5 leaf");
+            }
+
+            if (!SectionByPath.ContainsKey(leaf.CtdSection))
+            {
+                throw new IchIndexXmlSectionMappingException(
+                    package.ApplicationId,
+                    package.SequenceNumber,
+                    leaf.PlacementId,
+                    leaf.CtdSection,
+                    "section is not in the supported ICH profile");
+            }
+        }
     }
 
     private static XElement? BuildSectionElement(
@@ -84,15 +129,27 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
 
     private static XElement BuildLeafElement(EctdLeaf leaf)
     {
-        return new XElement("leaf",
+        var attributes = new List<object>
+        {
             new XAttribute("ID", leaf.LeafId),
             new XAttribute("operation", leaf.Operation),
             new XAttribute("checksum", leaf.Sha256),
             new XAttribute("checksum-type", "sha256"),
             new XAttribute(XlinkNamespace + "type", "simple"),
-            new XAttribute(XlinkNamespace + "href", leaf.Href),
+            new XAttribute(XlinkNamespace + "href", leaf.Href)
+        };
+
+        if (leaf.Lifecycle is not null)
+        {
+            attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.ModifiedFileHref));
+        }
+
+        return new XElement("leaf",
+            attributes,
             new XElement("title", leaf.Title));
     }
+
+    private sealed record IndexedLeaf(EctdLeaf Leaf, int Index);
 
     private sealed record SectionPathNode(
         string ElementName,

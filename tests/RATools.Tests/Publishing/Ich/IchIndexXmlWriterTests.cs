@@ -83,6 +83,71 @@ public sealed class IchIndexXmlWriterTests
         Assert.DoesNotContain("leaf-00000000000000000000000000000001", result.XmlContent, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Write_EmitsLeafAttributesAndLifecycleModifiedFile()
+    {
+        var writer = new IchIndexXmlWriter();
+        var lifecycle = new EctdLifecycleReference(Guid.NewGuid(), Guid.NewGuid(), "0000", "m3/32-body-of-data/old.pdf");
+        var package = CreatePackage(ichLeaves:
+        [
+            CreateLeaf("m3.2", "leaf-11111111111111111111111111111111", "new.pdf", "replace", lifecycle)
+        ]);
+
+        var result = writer.Write(package);
+        var leaf = result.Document.Descendants("leaf").Single();
+
+        Assert.Equal("leaf-11111111111111111111111111111111", leaf.Attribute("ID")?.Value);
+        Assert.Equal("replace", leaf.Attribute("operation")?.Value);
+        Assert.Equal("sha-new.pdf", leaf.Attribute("checksum")?.Value);
+        Assert.Equal("sha256", leaf.Attribute("checksum-type")?.Value);
+        Assert.Equal("simple", leaf.Attribute(XName.Get("type", "http://www.w3c.org/1999/xlink"))?.Value);
+        Assert.Equal("m3/2/new.pdf", leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
+        Assert.Equal("m3/32-body-of-data/old.pdf", leaf.Attribute("modified-file")?.Value);
+        Assert.Equal("new", leaf.Element("title")?.Value);
+    }
+
+    [Fact]
+    public void Write_DoesNotEmitPrototypeOnlyLeafChildren()
+    {
+        var writer = new IchIndexXmlWriter();
+        var package = CreatePackage(ichLeaves: [CreateLeaf("m3.2", "leaf-22222222222222222222222222222222", "quality.pdf")]);
+
+        var result = writer.Write(package);
+
+        Assert.DoesNotContain("<fileName>", result.XmlContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("<mimeType>", result.XmlContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Write_ProducesStableXmlForRepeatedWrites()
+    {
+        var writer = new IchIndexXmlWriter();
+        var package = CreatePackage(ichLeaves:
+        [
+            CreateLeaf("m3.2", "leaf-33333333333333333333333333333333", "quality-a.pdf"),
+            CreateLeaf("m3.2", "leaf-33333333333333333333333333333334", "quality-b.pdf")
+        ]);
+
+        var first = writer.Write(package).XmlContent;
+        var second = writer.Write(package).XmlContent;
+
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public void Write_ThrowsForUnknownIchSection()
+    {
+        var writer = new IchIndexXmlWriter();
+        var package = CreatePackage(ichLeaves: [CreateLeaf("m3.999", "leaf-44444444444444444444444444444444", "bad.pdf")]);
+
+        var exception = Assert.Throws<IchIndexXmlSectionMappingException>(() => writer.Write(package));
+
+        Assert.Equal(package.ApplicationId, exception.ApplicationId);
+        Assert.Equal(package.SequenceNumber, exception.SequenceNumber);
+        Assert.Equal("m3.999", exception.CtdSection);
+        Assert.Equal("section is not in the supported ICH profile", exception.Reason);
+    }
+
     private static EctdLeaf CreateLeaf(string ctdSection, string leafId, string fileName, string operation = "new", EctdLifecycleReference? lifecycle = null)
     {
         return new EctdLeaf(
