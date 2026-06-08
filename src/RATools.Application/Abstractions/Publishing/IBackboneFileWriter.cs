@@ -1,4 +1,4 @@
-using RATools.Domain.Documents;
+using RATools.Application.Publishing.PackageModel;
 
 namespace RATools.Application.Abstractions.Publishing;
 
@@ -9,11 +9,10 @@ public interface IBackboneFileWriter
         string sequenceNumber,
         Guid publishJobId,
         string outputDirectoryPath,
-        string fileName,
-        string content,
+        IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,
         string reportContent,
-        IReadOnlyCollection<SubmissionDocument> documents,
+        IReadOnlyCollection<EctdPublishedFile> publishedFiles,
         CancellationToken cancellationToken = default);
 }

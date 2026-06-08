@@ -4,6 +4,7 @@ using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Publishing.Dtos;
+using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Requests;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
@@ -66,12 +67,11 @@ public sealed class BackboneService(
             request.SequenceNumber,
             request.PublishJobId,
             request.OutputDirectoryPath,
-            "index.xml",
-            xmlContent,
+            [new BackboneGeneratedFile("index.xml", xmlContent)],
             request.ReportFileName,
             request.PackageFileName,
             "{}",
-            referencedDocuments,
+            BuildPublishedFiles(referencedDocuments, request.SequenceNumber),
             cancellationToken);
 
         return new GeneratedBackboneDto(
@@ -195,6 +195,21 @@ public sealed class BackboneService(
         using var md5 = MD5.Create();
         var hash = md5.ComputeHash(stream);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(
+        IReadOnlyCollection<SubmissionDocument> documents,
+        string sequenceNumber)
+    {
+        return documents
+            .Select(document => new EctdPublishedFile(
+                document.Id,
+                document.StoragePath,
+                BuildLeafHref(document, sequenceNumber),
+                document.FileName,
+                document.FileSize,
+                document.Sha256))
+            .ToArray();
     }
 
     private static int CompareSequenceNumbers(string left, string right)

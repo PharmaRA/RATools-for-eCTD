@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing;
-using RATools.Domain.Documents;
+using RATools.Application.Publishing.PackageModel;
 
 namespace RATools.Infrastructure.Publishing;
 
@@ -15,23 +15,21 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         string sequenceNumber,
         Guid publishJobId,
         string outputDirectoryPath,
-        string fileName,
-        string content,
+        IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,
         string reportContent,
-        IReadOnlyCollection<SubmissionDocument> documents,
+        IReadOnlyCollection<EctdPublishedFile> publishedFiles,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectoryPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(reportFileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageFileName);
-        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(generatedFiles);
         ArgumentNullException.ThrowIfNull(reportContent);
-        ArgumentNullException.ThrowIfNull(documents);
+        ArgumentNullException.ThrowIfNull(publishedFiles);
 
         var rootPath = string.IsNullOrWhiteSpace(outputDirectoryPath)
             ? options.Value.RootPath
@@ -51,23 +49,30 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         Directory.CreateDirectory(reportDirectory);
         Directory.CreateDirectory(packageDirectory);
 
-        foreach (var document in documents)
+        foreach (var generatedFile in generatedFiles)
         {
-            if (!File.Exists(document.StoragePath))
+            var destinationPath = ResolveDeliveryPath(deliveryRoot, generatedFile.RelativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            await File.WriteAllTextAsync(destinationPath, generatedFile.Content, cancellationToken);
+        }
+
+        foreach (var publishedFile in publishedFiles)
+        {
+            if (!File.Exists(publishedFile.SourcePath))
             {
-                continue;
+                throw new FileNotFoundException(
+                    $"Published source file '{publishedFile.SourcePath}' was not found.",
+                    publishedFile.SourcePath);
             }
 
-            var relativePath = PublishOutputNaming.BuildPublishedDocumentRelativePath(document, sequenceNumber);
-            var destinationPath = Path.Combine(deliveryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            var destinationPath = ResolveDeliveryPath(deliveryRoot, publishedFile.Href);
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            await using var sourceStream = File.OpenRead(document.StoragePath);
+            await using var sourceStream = File.OpenRead(publishedFile.SourcePath);
             await using var destinationStream = File.Create(destinationPath);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
         }
 
-        var fullPath = Path.Combine(deliveryRoot, fileName);
-        await File.WriteAllTextAsync(fullPath, content, cancellationToken);
+        CopyStandardsAssets(deliveryRoot);
 
         var indexMd5Path = Path.Combine(deliveryRoot, "index-md5.txt");
         var md5Content = BuildMd5Manifest(deliveryRoot, indexMd5Path);
@@ -84,7 +89,51 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
 
         ZipFile.CreateFromDirectory(deliveryRoot, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
 
+        var fullPath = ResolveDeliveryPath(deliveryRoot, "index.xml");
         return (fullPath, reportPath, packagePath);
+    }
+
+    private static string ResolveDeliveryPath(string deliveryRoot, string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+        if (Path.IsPathRooted(relativePath))
+        {
+            throw new InvalidOperationException($"Package relative path '{relativePath}' must not be rooted.");
+        }
+
+        var normalizedRelativePath = relativePath
+            .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+        var fullDeliveryRoot = Path.GetFullPath(deliveryRoot);
+        var fullPath = Path.GetFullPath(Path.Combine(fullDeliveryRoot, normalizedRelativePath));
+        var allowedPrefix = fullDeliveryRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? fullDeliveryRoot
+            : fullDeliveryRoot + Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Package relative path '{relativePath}' escapes the delivery root.");
+        }
+
+        return fullPath;
+    }
+
+    private static void CopyStandardsAssets(string deliveryRoot)
+    {
+        var sourceDirectory = Path.Combine(AppContext.BaseDirectory, "reference", "dtd");
+        if (!Directory.Exists(sourceDirectory))
+        {
+            throw new DirectoryNotFoundException($"Standards DTD directory was not found at '{sourceDirectory}'.");
+        }
+
+        var destinationDirectory = Path.Combine(deliveryRoot, "util", "dtd");
+        Directory.CreateDirectory(destinationDirectory);
+
+        foreach (var sourcePath in Directory.GetFiles(sourceDirectory, "*.dtd", SearchOption.TopDirectoryOnly))
+        {
+            var destinationPath = Path.Combine(destinationDirectory, Path.GetFileName(sourcePath));
+            File.Copy(sourcePath, destinationPath, overwrite: true);
+        }
     }
 
     private static string BuildMd5Manifest(string deliveryRoot, string indexMd5Path)
