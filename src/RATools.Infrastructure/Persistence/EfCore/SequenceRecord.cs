@@ -22,5 +22,15 @@ public sealed class SequenceRecord
 
     public string? FdaFormType { get; set; }
 
+    public string? FdaApplicantContactName { get; set; }
+
+    public string? FdaApplicantContactType { get; set; }
+
+    public string? FdaTelephone { get; set; }
+
+    public string? FdaTelephoneNumberType { get; set; }
+
+    public string? FdaEmail { get; set; }
+
     public DateTime CreatedUtc { get; set; }
 }

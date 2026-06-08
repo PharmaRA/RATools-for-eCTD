@@ -64,7 +64,12 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
                     FdaSubmissionSubtype = sequence.PublishingMetadata?.SubmissionSubtype,
                     FdaSequenceDescription = sequence.PublishingMetadata?.SequenceDescription,
                     FdaApplicantName = sequence.PublishingMetadata?.ApplicantName,
-                    FdaFormType = sequence.PublishingMetadata?.FormType
+                    FdaFormType = sequence.PublishingMetadata?.FormType,
+                    FdaApplicantContactName = sequence.PublishingMetadata?.ApplicantContactName,
+                    FdaApplicantContactType = sequence.PublishingMetadata?.ApplicantContactType,
+                    FdaTelephone = sequence.PublishingMetadata?.Telephone,
+                    FdaTelephoneNumberType = sequence.PublishingMetadata?.TelephoneNumberType,
+                    FdaEmail = sequence.PublishingMetadata?.Email
                 });
                 continue;
             }
@@ -77,6 +82,11 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
             existingSequence.FdaSequenceDescription = sequence.PublishingMetadata?.SequenceDescription;
             existingSequence.FdaApplicantName = sequence.PublishingMetadata?.ApplicantName;
             existingSequence.FdaFormType = sequence.PublishingMetadata?.FormType;
+            existingSequence.FdaApplicantContactName = sequence.PublishingMetadata?.ApplicantContactName;
+            existingSequence.FdaApplicantContactType = sequence.PublishingMetadata?.ApplicantContactType;
+            existingSequence.FdaTelephone = sequence.PublishingMetadata?.Telephone;
+            existingSequence.FdaTelephoneNumberType = sequence.PublishingMetadata?.TelephoneNumberType;
+            existingSequence.FdaEmail = sequence.PublishingMetadata?.Email;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -141,7 +151,12 @@ internal static class ApplicationRecordMapping
                 FdaSubmissionSubtype = x.PublishingMetadata?.SubmissionSubtype,
                 FdaSequenceDescription = x.PublishingMetadata?.SequenceDescription,
                 FdaApplicantName = x.PublishingMetadata?.ApplicantName,
-                FdaFormType = x.PublishingMetadata?.FormType
+                FdaFormType = x.PublishingMetadata?.FormType,
+                FdaApplicantContactName = x.PublishingMetadata?.ApplicantContactName,
+                FdaApplicantContactType = x.PublishingMetadata?.ApplicantContactType,
+                FdaTelephone = x.PublishingMetadata?.Telephone,
+                FdaTelephoneNumberType = x.PublishingMetadata?.TelephoneNumberType,
+                FdaEmail = x.PublishingMetadata?.Email
             }).ToList()
         };
     }
@@ -188,6 +203,11 @@ internal static class ApplicationRecordMapping
             record.FdaSubmissionSubtype,
             record.FdaSequenceDescription,
             record.FdaApplicantName,
-            record.FdaFormType);
+            record.FdaFormType,
+            record.FdaApplicantContactName,
+            record.FdaApplicantContactType,
+            record.FdaTelephone,
+            record.FdaTelephoneNumberType,
+            record.FdaEmail);
     }
 }

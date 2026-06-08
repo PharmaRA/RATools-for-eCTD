@@ -259,9 +259,21 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<string>("FdaApplicantContactName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("FdaApplicantContactType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("FdaApplicationType")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("FdaEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("FdaFormType")
                         .HasMaxLength(128)
@@ -278,6 +290,14 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.Property<string>("FdaSubmissionType")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FdaTelephone")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FdaTelephoneNumberType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("SubmissionType")
                         .IsRequired()

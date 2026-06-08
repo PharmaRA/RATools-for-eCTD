@@ -79,7 +79,12 @@ public sealed class EfCoreApplicationRepositoryTests
             "safety",
             "Updated sequence description",
             "Updated Applicant",
-            "form-1571"));
+            "form-1571",
+            "Jane Regulatory",
+            "regulatory",
+            "301-555-0100",
+            "office",
+            "jane.regulatory@example.test"));
         await repository.UpdateAsync(original);
 
         var persisted = await repository.GetAsync(applicationId);
@@ -93,5 +98,10 @@ public sealed class EfCoreApplicationRepositoryTests
         Assert.Equal("Updated sequence description", persistedSequence.PublishingMetadata.SequenceDescription);
         Assert.Equal("Updated Applicant", persistedSequence.PublishingMetadata.ApplicantName);
         Assert.Equal("form-1571", persistedSequence.PublishingMetadata.FormType);
+        Assert.Equal("Jane Regulatory", persistedSequence.PublishingMetadata.ApplicantContactName);
+        Assert.Equal("regulatory", persistedSequence.PublishingMetadata.ApplicantContactType);
+        Assert.Equal("301-555-0100", persistedSequence.PublishingMetadata.Telephone);
+        Assert.Equal("office", persistedSequence.PublishingMetadata.TelephoneNumberType);
+        Assert.Equal("jane.regulatory@example.test", persistedSequence.PublishingMetadata.Email);
     }
 }

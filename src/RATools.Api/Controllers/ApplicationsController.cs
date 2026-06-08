@@ -142,7 +142,12 @@ public sealed class ApplicationsController(
                     request.SubmissionSubtype,
                     request.SequenceDescription,
                     request.ApplicantName,
-                    request.FormType),
+                    request.FormType,
+                    request.ApplicantContactName,
+                    request.ApplicantContactType,
+                    request.Telephone,
+                    request.TelephoneNumberType,
+                    request.Email),
                 cancellationToken);
 
             return updated is null ? NotFound() : Ok(updated);

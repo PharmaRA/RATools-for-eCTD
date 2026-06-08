@@ -48,6 +48,11 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.FdaSequenceDescription).HasMaxLength(512);
             entity.Property(x => x.FdaApplicantName).HasMaxLength(256);
             entity.Property(x => x.FdaFormType).HasMaxLength(128);
+            entity.Property(x => x.FdaApplicantContactName).HasMaxLength(256);
+            entity.Property(x => x.FdaApplicantContactType).HasMaxLength(64);
+            entity.Property(x => x.FdaTelephone).HasMaxLength(64);
+            entity.Property(x => x.FdaTelephoneNumberType).HasMaxLength(64);
+            entity.Property(x => x.FdaEmail).HasMaxLength(256);
             entity.Property(x => x.CreatedUtc).IsRequired();
         });
 

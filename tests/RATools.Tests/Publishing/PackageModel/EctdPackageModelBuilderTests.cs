@@ -146,7 +146,12 @@ public sealed class EctdPackageModelBuilderTests
             "efficacy",
             "Safety update",
             "Regulatory Applicant LLC",
-            "356h");
+            "356h",
+            "Jane Regulatory",
+            "regulatory",
+            "301-555-0100",
+            "office",
+            "jane.regulatory@example.test");
         var applicationId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var application = SubmissionApplication.Rehydrate(
             applicationId,
@@ -173,6 +178,11 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal("supplement", package.UsRegional.SubmissionType);
         Assert.Equal("efficacy", package.UsRegional.SubmissionSubtype);
         Assert.Equal("356h", package.UsRegional.FormType);
+        Assert.Equal("Jane Regulatory", package.UsRegional.ApplicantContactName);
+        Assert.Equal("regulatory", package.UsRegional.ApplicantContactType);
+        Assert.Equal("301-555-0100", package.UsRegional.Telephone);
+        Assert.Equal("office", package.UsRegional.TelephoneNumberType);
+        Assert.Equal("jane.regulatory@example.test", package.UsRegional.Email);
     }
 
     [Fact]

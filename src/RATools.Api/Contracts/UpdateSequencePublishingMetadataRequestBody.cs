@@ -13,4 +13,14 @@ public sealed class UpdateSequencePublishingMetadataRequestBody
     public string ApplicantName { get; set; } = string.Empty;
 
     public string? FormType { get; set; }
+
+    public string? ApplicantContactName { get; set; }
+
+    public string? ApplicantContactType { get; set; }
+
+    public string? Telephone { get; set; }
+
+    public string? TelephoneNumberType { get; set; }
+
+    public string? Email { get; set; }
 }

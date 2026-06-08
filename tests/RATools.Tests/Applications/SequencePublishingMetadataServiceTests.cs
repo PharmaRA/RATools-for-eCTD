@@ -37,6 +37,11 @@ public sealed class SequencePublishingMetadataServiceTests
         Assert.Null(metadata.ApplicationType);
         Assert.Null(metadata.SubmissionSubtype);
         Assert.Null(metadata.FormType);
+        Assert.Null(metadata.ApplicantContactName);
+        Assert.Null(metadata.ApplicantContactType);
+        Assert.Null(metadata.Telephone);
+        Assert.Null(metadata.TelephoneNumberType);
+        Assert.Null(metadata.Email);
     }
 
     [Fact]
@@ -64,7 +69,12 @@ public sealed class SequencePublishingMetadataServiceTests
                 "safety",
                 "Updated sequence description",
                 "Updated Applicant",
-                "form-1571"));
+                "form-1571",
+                "Jane Regulatory",
+                "regulatory",
+                "301-555-0100",
+                "office",
+                "jane.regulatory@example.test"));
 
         Assert.NotNull(updated);
         Assert.Equal("IND", updated!.ApplicationType);
@@ -73,11 +83,18 @@ public sealed class SequencePublishingMetadataServiceTests
         Assert.Equal("Updated sequence description", updated.SequenceDescription);
         Assert.Equal("Updated Applicant", updated.ApplicantName);
         Assert.Equal("form-1571", updated.FormType);
+        Assert.Equal("Jane Regulatory", updated.ApplicantContactName);
+        Assert.Equal("regulatory", updated.ApplicantContactType);
+        Assert.Equal("301-555-0100", updated.Telephone);
+        Assert.Equal("office", updated.TelephoneNumberType);
+        Assert.Equal("jane.regulatory@example.test", updated.Email);
         Assert.Equal(1, repository.UpdateCount);
 
         var reloaded = await service.GetAsync(applicationId, "0001");
         Assert.Equal("protocol-amendment", reloaded!.SubmissionType);
         Assert.Equal("Updated Applicant", reloaded.ApplicantName);
+        Assert.Equal("Jane Regulatory", reloaded.ApplicantContactName);
+        Assert.Equal("jane.regulatory@example.test", reloaded.Email);
     }
 
     [Fact]

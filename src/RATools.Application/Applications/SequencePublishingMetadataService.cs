@@ -41,7 +41,12 @@ public sealed class SequencePublishingMetadataService(
             request.SubmissionSubtype,
             request.SequenceDescription,
             request.ApplicantName,
-            request.FormType);
+            request.FormType,
+            request.ApplicantContactName,
+            request.ApplicantContactType,
+            request.Telephone,
+            request.TelephoneNumberType,
+            request.Email);
 
         sequence.RevisePublishingMetadata(metadata);
         await applicationRepository.UpdateAsync(application, cancellationToken);
@@ -62,6 +67,11 @@ public sealed class SequencePublishingMetadataService(
             metadata?.SubmissionSubtype,
             metadata?.SequenceDescription ?? sequence.Description,
             metadata?.ApplicantName ?? application.SponsorName,
-            metadata?.FormType);
+            metadata?.FormType,
+            metadata?.ApplicantContactName,
+            metadata?.ApplicantContactType,
+            metadata?.Telephone,
+            metadata?.TelephoneNumberType,
+            metadata?.Email);
     }
 }

@@ -6,7 +6,12 @@ public sealed record SequencePublishingMetadata(
     string? SubmissionSubtype,
     string SequenceDescription,
     string ApplicantName,
-    string? FormType)
+    string? FormType,
+    string? ApplicantContactName,
+    string? ApplicantContactType,
+    string? Telephone,
+    string? TelephoneNumberType,
+    string? Email)
 {
     public static SequencePublishingMetadata Create(
         string? applicationType,
@@ -14,7 +19,12 @@ public sealed record SequencePublishingMetadata(
         string? submissionSubtype,
         string sequenceDescription,
         string applicantName,
-        string? formType)
+        string? formType,
+        string? applicantContactName = null,
+        string? applicantContactType = null,
+        string? telephone = null,
+        string? telephoneNumberType = null,
+        string? email = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(submissionType);
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceDescription);
@@ -26,7 +36,12 @@ public sealed record SequencePublishingMetadata(
             NormalizeOptional(submissionSubtype),
             sequenceDescription.Trim(),
             applicantName.Trim(),
-            NormalizeOptional(formType));
+            NormalizeOptional(formType),
+            NormalizeOptional(applicantContactName),
+            NormalizeOptional(applicantContactType),
+            NormalizeOptional(telephone),
+            NormalizeOptional(telephoneNumberType),
+            NormalizeOptional(email));
     }
 
     private static string? NormalizeOptional(string? value)

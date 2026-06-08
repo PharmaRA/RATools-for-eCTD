@@ -47,6 +47,11 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
         Assert.NotNull(defaults);
         Assert.Equal("Demo Sponsor", defaults!.ApplicantName);
         Assert.Equal("original-application", defaults.SubmissionType);
+        Assert.Null(defaults.ApplicantContactName);
+        Assert.Null(defaults.ApplicantContactType);
+        Assert.Null(defaults.Telephone);
+        Assert.Null(defaults.TelephoneNumberType);
+        Assert.Null(defaults.Email);
 
         var updateResponse = await client.PutAsJsonAsync($"/api/applications/{application.Id}/sequences/0000/publishing-metadata", new
         {
@@ -55,7 +60,12 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
             SubmissionSubtype = "safety",
             SequenceDescription = "Updated sequence description",
             ApplicantName = "Updated Applicant",
-            FormType = "form-1571"
+            FormType = "form-1571",
+            ApplicantContactName = "Jane Regulatory",
+            ApplicantContactType = "regulatory",
+            Telephone = "301-555-0100",
+            TelephoneNumberType = "office",
+            Email = "jane.regulatory@example.test"
         });
         var updated = await updateResponse.Content.ReadFromJsonAsync<PublishingMetadataResponse>();
 
@@ -67,6 +77,11 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
         Assert.Equal("Updated sequence description", updated.SequenceDescription);
         Assert.Equal("Updated Applicant", updated.ApplicantName);
         Assert.Equal("form-1571", updated.FormType);
+        Assert.Equal("Jane Regulatory", updated.ApplicantContactName);
+        Assert.Equal("regulatory", updated.ApplicantContactType);
+        Assert.Equal("301-555-0100", updated.Telephone);
+        Assert.Equal("office", updated.TelephoneNumberType);
+        Assert.Equal("jane.regulatory@example.test", updated.Email);
     }
 
     [Fact]
@@ -119,7 +134,12 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
         string? SubmissionSubtype,
         string SequenceDescription,
         string ApplicantName,
-        string? FormType);
+        string? FormType,
+        string? ApplicantContactName,
+        string? ApplicantContactType,
+        string? Telephone,
+        string? TelephoneNumberType,
+        string? Email);
 
     private sealed class TemporaryDirectory : IDisposable
     {
