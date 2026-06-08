@@ -7,6 +7,7 @@ using RATools.Application.Publishing;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
+using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
 
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IBackboneService, BackboneService>();
         services.AddSingleton<IIchIndexXmlWriter, IchIndexXmlWriter>();
         services.AddSingleton<IUsRegionalXmlWriter, UsRegionalXmlWriter>();
+        services.AddSingleton<IEctdXmlValidator, EctdXmlValidator>();
         services.AddScoped<IEctdPackageModelBuilder, EctdPackageModelBuilder>();
         services.AddSingleton<IStandardsProfileProvider, FdaEctd322StandardsProfileProvider>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();

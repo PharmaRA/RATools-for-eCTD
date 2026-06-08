@@ -5,6 +5,7 @@ using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Requests;
 using RATools.Application.Publishing.UsRegional;
+using RATools.Application.Publishing.Validation;
 
 namespace RATools.Tests.Publishing;
 
@@ -19,8 +20,9 @@ public sealed class BackboneServiceTests
         var packageBuilder = new RecordingPackageModelBuilder(package);
         var ichWriter = new RecordingIchIndexXmlWriter();
         var usRegionalWriter = new RecordingUsRegionalXmlWriter();
-        var fileWriter = new RecordingBackboneFileWriter();
-        var service = new BackboneService(packageBuilder, ichWriter, usRegionalWriter, fileWriter);
+        var validator = new RecordingEctdXmlValidator();
+        var fileWriter = new RecordingBackboneFileWriter(validator);
+        var service = new BackboneService(packageBuilder, ichWriter, usRegionalWriter, validator, fileWriter);
 
         var result = await service.GenerateAsync(new GenerateBackboneRequest(
             applicationId,
@@ -42,6 +44,8 @@ public sealed class BackboneServiceTests
         Assert.Equal("{}", fileWriter.ReportContent);
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "index.xml" && x.Content == "<ich />");
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "m1/us/us-regional.xml" && x.Content == "<regional />");
+        Assert.Equal(["index.xml", "m1/us/us-regional.xml"], validator.ValidatedRelativePaths);
+        Assert.Equal(2, validator.ValidatedBeforeWrite.Count(x => x));
         Assert.Same(package.PublishedFiles, fileWriter.PublishedFiles);
         Assert.Equal(applicationId, result.ApplicationId);
         Assert.Equal("0001", result.SequenceNumber);
@@ -131,6 +135,17 @@ public sealed class BackboneServiceTests
 
     private sealed class RecordingBackboneFileWriter : IBackboneFileWriter
     {
+        private readonly RecordingEctdXmlValidator? _validator;
+
+        public RecordingBackboneFileWriter()
+        {
+        }
+
+        public RecordingBackboneFileWriter(RecordingEctdXmlValidator validator)
+        {
+            _validator = validator;
+        }
+
         public string? ApplicationNumber { get; private set; }
 
         public string? SequenceNumber { get; private set; }
@@ -161,6 +176,11 @@ public sealed class BackboneServiceTests
             IReadOnlyCollection<EctdPublishedFile> publishedFiles,
             CancellationToken cancellationToken = default)
         {
+            if (_validator is not null)
+            {
+                _validator.FileWriterWasInvoked = true;
+            }
+
             ApplicationNumber = applicationNumber;
             SequenceNumber = sequenceNumber;
             PublishJobId = publishJobId;
@@ -171,6 +191,21 @@ public sealed class BackboneServiceTests
             GeneratedFiles = generatedFiles;
             PublishedFiles = publishedFiles;
             return Task.FromResult(("C:/out/index.xml", "C:/out/report.json", "C:/out/package.zip"));
+        }
+    }
+
+    private sealed class RecordingEctdXmlValidator : IEctdXmlValidator
+    {
+        public bool FileWriterWasInvoked { get; set; }
+
+        public List<string> ValidatedRelativePaths { get; } = [];
+
+        public List<bool> ValidatedBeforeWrite { get; } = [];
+
+        public void Validate(BackboneGeneratedFile file)
+        {
+            ValidatedRelativePaths.Add(file.RelativePath);
+            ValidatedBeforeWrite.Add(!FileWriterWasInvoked);
         }
     }
 }
