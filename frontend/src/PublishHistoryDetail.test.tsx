@@ -250,6 +250,35 @@ const publishReportResponse = {
     latestPublishJobAction: 'Completed',
     latestPublishJobEventUtc: '2024-01-02T12:05:00Z',
   },
+  publishReadiness: {
+    isReady: false,
+    status: 'Blocked',
+    blockingErrorCount: 1,
+    warningCount: 0,
+    missingMetadataFields: ['ApplicantContactName'],
+    categorySummaries: [
+      {
+        category: 'RegionalMetadata',
+        blockingErrorCount: 1,
+        warningCount: 0,
+        findingCount: 1,
+      },
+    ],
+    findings: [
+      {
+        source: 'PublishPreflight',
+        severity: 'Error',
+        code: 'US_REGIONAL_METADATA_MISSING',
+        message: "metadata field 'ApplicantContactName' is required.",
+        category: 'RegionalMetadata',
+        recommendedAction: 'Populate the required US Regional publishing metadata field before publishing.',
+        fieldName: 'ApplicantContactName',
+        sectionPath: null,
+        documentId: null,
+        placementId: null,
+      },
+    ],
+  },
   validationReport: {
     issues: [
       { severity: 'Error', code: 'ERR-1', message: 'One validation error.' },
@@ -362,6 +391,35 @@ const readyPublishReportResponse = {
   ...publishReportResponse,
   errorCount: 0,
   warningCount: 1,
+  publishReadiness: {
+    isReady: true,
+    status: 'Ready',
+    blockingErrorCount: 0,
+    warningCount: 1,
+    missingMetadataFields: [],
+    categorySummaries: [
+      {
+        category: 'Validation',
+        blockingErrorCount: 0,
+        warningCount: 1,
+        findingCount: 1,
+      },
+    ],
+    findings: [
+      {
+        source: 'Validation',
+        severity: 'Warning',
+        code: 'TITLE_FALLBACK_USED',
+        message: 'Placement has no explicit title, so the file name will be used.',
+        category: 'Validation',
+        recommendedAction: 'Resolve the validation issue before publishing.',
+        fieldName: null,
+        sectionPath: null,
+        documentId: null,
+        placementId: null,
+      },
+    ],
+  },
   integritySummary: {
     isConsistent: true,
     missingFilesCount: 0,
@@ -622,6 +680,9 @@ describe('Publish history detail frontend', () => {
       'Package Review',
       'Not Ready for Submission',
       'Submission Readiness Checklist',
+      'Publish Readiness Snapshot',
+      'ApplicantContactName',
+      'Populate the required US Regional publishing metadata field before publishing.',
       'Publish succeeded',
       'Validation errors',
       'Lifecycle issues',
@@ -657,6 +718,30 @@ describe('Publish history detail frontend', () => {
       sequenceNumber: '0001',
       validationProfile: 'US FDA eCTD 3.2.2',
       verdict: 'NotReadyForSubmission',
+      publishReadiness: {
+        isReady: false,
+        status: 'Blocked',
+        blockingErrorCount: 1,
+        warningCount: 0,
+        missingMetadataFields: ['ApplicantContactName'],
+        categorySummaries: [
+          {
+            category: 'RegionalMetadata',
+            blockingErrorCount: 1,
+            warningCount: 0,
+            findingCount: 1,
+          },
+        ],
+        findings: [
+          {
+            severity: 'Error',
+            code: 'US_REGIONAL_METADATA_MISSING',
+            category: 'RegionalMetadata',
+            fieldName: 'ApplicantContactName',
+            recommendedAction: 'Populate the required US Regional publishing metadata field before publishing.',
+          },
+        ],
+      },
       riskSummary: {
         validationErrors: 1,
         warnings: 2,
@@ -738,6 +823,9 @@ describe('Publish history detail frontend', () => {
 
     expect(document.body.textContent).toContain('Ready for Submission')
     expect(document.body.textContent).toContain('Warnings do not block readiness')
+    expect(document.body.textContent).toContain('Publish Readiness Snapshot')
+    expect(document.body.textContent).toContain('Ready')
+    expect(document.body.textContent).toContain('TITLE_FALLBACK_USED')
     expect(document.body.textContent).toContain('No integrity findings were recorded')
     expectReviewChecklistRow('Publish succeeded', 'Pass')
     expectReviewChecklistRow('Validation errors', 'Pass')

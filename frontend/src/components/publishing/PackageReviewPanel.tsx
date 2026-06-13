@@ -37,6 +37,27 @@ type ReviewExportError = {
   status?: number
 }
 
+type PublishReadiness = {
+  isReady?: boolean
+  status?: string
+  blockingErrorCount?: number
+  warningCount?: number
+  missingMetadataFields?: string[]
+  categorySummaries?: Array<{
+    category: string
+    blockingErrorCount: number
+    warningCount: number
+    findingCount: number
+  }>
+  findings?: Array<{
+    severity: string
+    code: string
+    category: string
+    fieldName?: string | null
+    recommendedAction: string
+  }>
+}
+
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
 
 const isArtifact = (value: unknown): value is Artifact => {
@@ -206,6 +227,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     status: row.pass ? 'Pass' : 'Fail',
     detail: row.detail,
   }))
+  const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
 
   const renderError = (error: Error | null) => error && (
     <Alert
@@ -241,6 +263,21 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           missingZipEntries: report?.integritySummary?.missingZipEntriesCount ?? null,
           mismatchedArtifacts: report?.integritySummary?.mismatchedArtifactsCount ?? null,
         },
+        publishReadiness: publishReadiness ? {
+          isReady: publishReadiness.isReady ?? null,
+          status: publishReadiness.status ?? null,
+          blockingErrorCount: publishReadiness.blockingErrorCount ?? null,
+          warningCount: publishReadiness.warningCount ?? null,
+          missingMetadataFields: publishReadiness.missingMetadataFields || [],
+          categorySummaries: publishReadiness.categorySummaries || [],
+          findings: (publishReadiness.findings || []).map((finding) => ({
+            severity: finding.severity,
+            code: finding.code,
+            category: finding.category,
+            fieldName: finding.fieldName ?? null,
+            recommendedAction: finding.recommendedAction,
+          })),
+        } : null,
         requiredArtifacts: requiredArtifactRows.map((artifact) => ({
           name: artifact.name,
           exists: artifact.exists === true,
@@ -328,6 +365,60 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
         <Card size="small" title="Risk Summary">
           <Descriptions bordered size="small" column={2} items={riskSummaryItems} />
         </Card>
+
+        {publishReadiness && (
+          <Card size="small" title="Publish Readiness Snapshot">
+            <div className="flex flex-col gap-3">
+              <Descriptions
+                bordered
+                size="small"
+                column={2}
+                items={[
+                  { key: 'readiness-status', label: 'Status', children: publishReadiness.status || '-' },
+                  { key: 'readiness-ready', label: 'Ready', children: publishReadiness.isReady ? 'Yes' : 'No' },
+                  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: publishReadiness.blockingErrorCount ?? '-' },
+                  { key: 'readiness-warnings', label: 'Warnings', children: publishReadiness.warningCount ?? '-' },
+                  {
+                    key: 'readiness-missing-fields',
+                    label: 'Missing Metadata Fields',
+                    children: (publishReadiness.missingMetadataFields || []).length > 0
+                      ? publishReadiness.missingMetadataFields!.join(', ')
+                      : 'None',
+                  },
+                ]}
+              />
+
+              <Table
+                dataSource={publishReadiness.categorySummaries || []}
+                rowKey={(row) => row.category}
+                pagination={false}
+                size="small"
+                locale={{ emptyText: 'No readiness category summaries were recorded.' }}
+                columns={[
+                  { title: 'Category', dataIndex: 'category', key: 'category' },
+                  { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
+                  { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
+                  { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
+                ]}
+              />
+
+              <Table
+                dataSource={publishReadiness.findings || []}
+                rowKey={(row, index) => `${row.code}-${row.fieldName || 'none'}-${index}`}
+                pagination={{ pageSize: 10 }}
+                size="small"
+                locale={{ emptyText: 'No publish readiness findings were recorded.' }}
+                columns={[
+                  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120, render: (severity: string) => <Tag color={severity === 'Error' ? 'red' : 'gold'}>{severity}</Tag> },
+                  { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
+                  { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
+                  { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: (value?: string | null) => value || '-' },
+                  { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction' },
+                ]}
+              />
+            </div>
+          </Card>
+        )}
 
         <Card size="small" title="Evidence Preview">
           {!reportLoaded ? (
