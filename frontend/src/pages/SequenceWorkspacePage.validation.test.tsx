@@ -21,7 +21,8 @@ vi.mock('antd', async (importOriginal) => {
 
 import { SequenceWorkspacePage } from './SequenceWorkspacePage'
 import { message } from 'antd'
-import { type ValidationReport } from '../validationActions'
+import { type PublishReadinessReport, type ValidationReport } from '../validationActions'
+import { type SequencePublishingMetadata } from '../sequencePublishingMetadataActions'
 
 const flushPromises = async () => {
   await act(async () => {
@@ -29,13 +30,58 @@ const flushPromises = async () => {
   })
 }
 
+const defaultPublishingMetadata = (): SequencePublishingMetadata => ({
+  applicationId: 'app-1',
+  sequenceNumber: '0001',
+  standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
+  applicationType: 'IND',
+  submissionType: 'original-application',
+  submissionSubtype: 'initial',
+  sequenceDescription: 'Initial sequence',
+  applicantName: 'Acme Pharma',
+  formType: '356h',
+  applicantContactName: 'Jane Regulatory',
+  applicantContactType: 'regulatory',
+  telephone: '301-555-0100',
+  telephoneNumberType: 'office',
+  email: 'jane.regulatory@example.test',
+})
+
+const defaultPublishReadiness = (): PublishReadinessReport => ({
+  applicationId: 'app-1',
+  sequenceNumber: '0001',
+  isReady: true,
+  status: 'Ready',
+  blockingErrorCount: 0,
+  warningCount: 0,
+  validationReport: {
+    applicationId: 'app-1',
+    sequenceNumber: '0001',
+    validationProfile: 'US FDA eCTD 3.2.2',
+    isValid: true,
+    issues: [],
+    sectionMatches: [],
+    lifecycleMatches: [],
+  },
+  missingMetadataFields: [],
+  categorySummaries: [],
+  findings: [],
+})
+
 const renderSequenceWorkspacePage = (props: React.ComponentProps<typeof SequenceWorkspacePage>) => {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
 
   act(() => {
-    root.render(<SequenceWorkspacePage {...props} />)
+    root.render(
+      <SequenceWorkspacePage
+        getPublishReadinessProvider={props.getPublishReadinessProvider ?? vi.fn().mockResolvedValue(defaultPublishReadiness())}
+        getSequencePublishingMetadataProvider={props.getSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
+        updateSequencePublishingMetadataProvider={props.updateSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
+        {...props}
+      />,
+    )
   })
 
   return {
@@ -312,6 +358,264 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(getValidationSummaryField('issues')?.textContent).toContain('MISSING_DOCUMENT')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Module 3 document is required.')
     expect(expectValidationSummaryField('warnings').textContent).toContain('No validation warnings found.')
+
+    unmount()
+  })
+
+  it('runs publish readiness before allowing publish and shows metadata checklist details', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: true,
+      issues: [],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+      ],
+      lifecycleMatches: [],
+    })
+    const getSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
+      applicationType: 'IND',
+      submissionType: 'original-application',
+      submissionSubtype: 'initial',
+      sequenceDescription: 'Initial sequence',
+      applicantName: 'Acme Pharma',
+      formType: '356h',
+      applicantContactName: null,
+      applicantContactType: 'regulatory',
+      telephone: '301-555-0100',
+      telephoneNumberType: 'office',
+      email: 'jane.regulatory@example.test',
+    })
+    const getPublishReadinessProvider = vi.fn()
+      .mockResolvedValueOnce({
+        applicationId: 'app-1',
+        sequenceNumber: '0001',
+        isReady: false,
+        status: 'Blocked',
+        blockingErrorCount: 1,
+        warningCount: 0,
+        validationReport: {
+          applicationId: 'app-1',
+          sequenceNumber: '0001',
+          validationProfile: 'US FDA eCTD 3.2.2',
+          isValid: true,
+          issues: [],
+          sectionMatches: [],
+          lifecycleMatches: [],
+        },
+        missingMetadataFields: ['ApplicantContactName'],
+        categorySummaries: [
+          { category: 'RegionalMetadata', blockingErrorCount: 1, warningCount: 0, findingCount: 1 },
+        ],
+        findings: [
+          {
+            source: 'PublishPreflight',
+            severity: 'Error',
+            code: 'US_REGIONAL_METADATA_MISSING',
+            message: "metadata field 'ApplicantContactName' is required.",
+            category: 'RegionalMetadata',
+            recommendedAction: 'Populate the required US Regional publishing metadata field before publishing.',
+            fieldName: 'ApplicantContactName',
+            sectionPath: null,
+            documentId: null,
+            placementId: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        applicationId: 'app-1',
+        sequenceNumber: '0001',
+        isReady: true,
+        status: 'Ready',
+        blockingErrorCount: 0,
+        warningCount: 0,
+        validationReport: {
+          applicationId: 'app-1',
+          sequenceNumber: '0001',
+          validationProfile: 'US FDA eCTD 3.2.2',
+          isValid: true,
+          issues: [],
+          sectionMatches: [],
+          lifecycleMatches: [],
+        },
+        missingMetadataFields: [],
+        categorySummaries: [],
+        findings: [],
+      })
+    const updateSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
+      applicationType: 'IND',
+      submissionType: 'original-application',
+      submissionSubtype: 'initial',
+      sequenceDescription: 'Initial sequence',
+      applicantName: 'Acme Pharma',
+      formType: '356h',
+      applicantContactName: 'Jane Regulatory',
+      applicantContactType: 'regulatory',
+      telephone: '301-555-0100',
+      telephoneNumberType: 'office',
+      email: 'jane.regulatory@example.test',
+    })
+    const createAndExecutePublishJobProvider = vi.fn().mockResolvedValue({ id: 'job-1' })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      getPublishReadinessProvider,
+      getSequencePublishingMetadataProvider,
+      updateSequencePublishingMetadataProvider,
+      createAndExecutePublishJobProvider,
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(validateSequenceProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+    })
+    expect(getSequencePublishingMetadataProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+    })
+    expect(getPublishReadinessProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+    })
+    expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
+
+    const modal = document.querySelector('.ant-modal')
+    expect(modal).toBeTruthy()
+    expect(modal?.textContent).toContain('Publish readiness is blocked')
+    expect(modal?.textContent).toContain('ApplicantContactName')
+    expect(modal?.textContent).toContain('Populate the required US Regional publishing metadata field before publishing.')
+    expect(getInputByLabel('Applicant Contact Name').value).toBe('')
+
+    act(() => {
+      setInputValue(getInputByLabel('Applicant Contact Name'), 'Jane Regulatory')
+    })
+    await flushPromises()
+
+    const outputInput = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
+    expect(outputInput).toBeTruthy()
+
+    act(() => {
+      setInputValue(outputInput!, 'E:/exports/submission-a')
+    })
+    await flushPromises()
+
+    clickPrimaryModalButton()
+    await flushPromises()
+
+    expect(updateSequencePublishingMetadataProvider).toHaveBeenCalled()
+    expect(createAndExecutePublishJobProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      outputDirectoryPath: 'E:/exports/submission-a',
+    })
+
+    unmount()
+  })
+
+  it('does not open publish modal when publish readiness returns non-metadata blocking errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
+
+    const validateSequenceProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      validationProfile: 'US FDA eCTD 3.2.2',
+      isValid: true,
+      issues: [],
+      sectionMatches: [
+        { sectionPath: 'm1.1', isValid: true, isStandard: true, matchedPrefix: 'm1.1', reason: null },
+      ],
+      lifecycleMatches: [],
+    })
+    const getSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
+      applicationType: 'IND',
+      submissionType: 'original-application',
+      submissionSubtype: 'initial',
+      sequenceDescription: 'Initial sequence',
+      applicantName: 'Acme Pharma',
+      formType: '356h',
+      applicantContactName: 'Jane Regulatory',
+      applicantContactType: 'regulatory',
+      telephone: '301-555-0100',
+      telephoneNumberType: 'office',
+      email: 'jane.regulatory@example.test',
+    })
+    const getPublishReadinessProvider = vi.fn().mockResolvedValue({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      isReady: false,
+      status: 'Blocked',
+      blockingErrorCount: 1,
+      warningCount: 0,
+      validationReport: {
+        applicationId: 'app-1',
+        sequenceNumber: '0001',
+        validationProfile: 'US FDA eCTD 3.2.2',
+        isValid: true,
+        issues: [],
+        sectionMatches: [],
+        lifecycleMatches: [],
+      },
+      missingMetadataFields: [],
+      categorySummaries: [
+        { category: 'RegionalStructure', blockingErrorCount: 1, warningCount: 0, findingCount: 1 },
+      ],
+      findings: [
+        {
+          source: 'PublishPreflight',
+          severity: 'Error',
+          code: 'US_REGIONAL_SECTION_UNSUPPORTED',
+          message: 'Section m1.99 is not supported.',
+          category: 'RegionalStructure',
+          recommendedAction: 'Move the document to a supported US Regional Module 1 section or extend the writer support before publishing.',
+          fieldName: null,
+          sectionPath: 'm1.99',
+          documentId: null,
+          placementId: 'placement-1',
+        },
+      ],
+    })
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider,
+      getPublishReadinessProvider,
+      getSequencePublishingMetadataProvider,
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    clickByText('Publish Sequence')
+    await flushPromises()
+
+    expect(getPublishReadinessProvider).toHaveBeenCalledWith({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+    })
+    expect(document.querySelector('.ant-modal')).toBeFalsy()
+    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('Publish readiness')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('US_REGIONAL_SECTION_UNSUPPORTED')
 
     unmount()
   })

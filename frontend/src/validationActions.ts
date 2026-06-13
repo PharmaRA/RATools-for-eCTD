@@ -46,11 +46,55 @@ export type ValidationReport = {
   lifecycleMatches: ValidationLifecycleMatch[]
 }
 
+export type PublishReadinessFinding = {
+  source: string
+  severity: string
+  code: string
+  message: string
+  category: string
+  recommendedAction: string
+  fieldName?: string | null
+  sectionPath?: string | null
+  documentId?: string | null
+  placementId?: string | null
+}
+
+export type PublishReadinessCategorySummary = {
+  category: string
+  blockingErrorCount: number
+  warningCount: number
+  findingCount: number
+}
+
+export type PublishReadinessReport = {
+  applicationId: string
+  sequenceNumber: string
+  isReady: boolean
+  status: string
+  blockingErrorCount: number
+  warningCount: number
+  validationReport: ValidationReport
+  missingMetadataFields: string[]
+  categorySummaries: PublishReadinessCategorySummary[]
+  findings: PublishReadinessFinding[]
+}
+
 export const validateSequence = async (
   request: ValidateSequenceRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<ValidationReport> => {
   return executeRequest('/api/validation/sequence', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+}
+
+export const getPublishReadiness = async (
+  request: ValidateSequenceRequest,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<PublishReadinessReport> => {
+  return executeRequest('/api/validation/publish-readiness', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

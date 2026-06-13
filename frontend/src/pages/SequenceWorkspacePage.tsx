@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Spin, Tag, Tree, message } from 'antd'
+import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Spin, Tag, Tree, message } from 'antd'
 import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
 import { PathPicker } from '../PathPicker'
 import { createAndExecutePublishJob } from '../publishActions'
 import {
+  getSequencePublishingMetadata,
+  updateSequencePublishingMetadata,
+} from '../sequencePublishingMetadataActions'
+import {
+  getPublishReadiness,
+  type PublishReadinessReport,
   validateSequence,
   type ValidationIssue,
   type ValidationLifecycleMatch,
@@ -51,6 +57,9 @@ type SequenceWorkspacePageProps = {
   seqNumber: string
   onBack: () => void
   validateSequenceProvider?: typeof validateSequence
+  getPublishReadinessProvider?: typeof getPublishReadiness
+  getSequencePublishingMetadataProvider?: typeof getSequencePublishingMetadata
+  updateSequencePublishingMetadataProvider?: typeof updateSequencePublishingMetadata
   createAndExecutePublishJobProvider?: typeof createAndExecutePublishJob
 }
 
@@ -73,6 +82,20 @@ type NormalizedValidationReport = {
   issues: ValidationIssue[]
   sectionMatches: ValidationSectionMatch[]
   lifecycleMatches: ValidationLifecycleMatch[]
+}
+
+type MetadataFormValues = {
+  applicationType?: string
+  submissionType: string
+  submissionSubtype?: string
+  sequenceDescription: string
+  applicantName: string
+  formType?: string
+  applicantContactName?: string
+  applicantContactType?: string
+  telephone?: string
+  telephoneNumberType?: string
+  email?: string
 }
 
 const validationApiProfile = 'Validation API'
@@ -218,6 +241,9 @@ export const SequenceWorkspacePage = ({
   seqNumber,
   onBack,
   validateSequenceProvider = validateSequence,
+  getPublishReadinessProvider = getPublishReadiness,
+  getSequencePublishingMetadataProvider = getSequencePublishingMetadata,
+  updateSequencePublishingMetadataProvider = updateSequencePublishingMetadata,
   createAndExecutePublishJobProvider = createAndExecutePublishJob,
 }: SequenceWorkspacePageProps) => {
   const [placements, setPlacements] = useState<DocumentPlacementRecord[]>([])
@@ -245,9 +271,11 @@ export const SequenceWorkspacePage = ({
 
   const [metadataForm] = Form.useForm()
   const [publishForm] = Form.useForm()
+  const [publishMetadataForm] = Form.useForm<MetadataFormValues>()
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm)
   const revisedOperation = Form.useWatch('operation', metadataForm)
   const revisedLifecycleTargetPlacementId = Form.useWatch('lifecycleTargetPlacementId', metadataForm)
+  const [publishReadiness, setPublishReadiness] = useState<PublishReadinessReport | null>(null)
 
   const selectedNode = useMemo(
     () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
@@ -588,17 +616,68 @@ export const SequenceWorkspacePage = ({
   const openPublishModal = async () => {
     setPublishing(true)
     setValidationResult(null)
+    setPublishReadiness(null)
     setIsPublishModalOpen(false)
     publishForm.resetFields()
+    publishMetadataForm.resetFields()
     try {
+      const sequenceNumber = String(seqNumber).trim()
       const validationResult = await validateSequenceProvider({
         applicationId: appId,
-        sequenceNumber: String(seqNumber).trim(),
+        sequenceNumber,
       })
 
       const checklistSummary = buildPrePublishChecklistSummary(validationResult)
       setValidationResult(validationResult)
       if (!checklistSummary.canProceed) {
+        return
+      }
+
+      const [metadata, readiness] = await Promise.all([
+        getSequencePublishingMetadataProvider({
+          applicationId: appId,
+          sequenceNumber,
+        }),
+        getPublishReadinessProvider({
+          applicationId: appId,
+          sequenceNumber,
+        }),
+      ])
+
+      publishMetadataForm.setFieldsValue({
+        applicationType: metadata.applicationType || '',
+        submissionType: metadata.submissionType,
+        submissionSubtype: metadata.submissionSubtype || '',
+        sequenceDescription: metadata.sequenceDescription,
+        applicantName: metadata.applicantName,
+        formType: metadata.formType || '',
+        applicantContactName: metadata.applicantContactName || '',
+        applicantContactType: metadata.applicantContactType || '',
+        telephone: metadata.telephone || '',
+        telephoneNumberType: metadata.telephoneNumberType || '',
+        email: metadata.email || '',
+      })
+      setPublishReadiness(readiness)
+
+      if (!readiness.isReady && readiness.missingMetadataFields.length === 0) {
+        setValidationResult({
+          ...validationResult,
+          isValid: false,
+          issues: [
+            ...validationResult.issues,
+            ...readiness.findings
+              .filter((finding) => finding.severity.toLowerCase() === 'error')
+              .map((finding) => ({
+                severity: finding.severity,
+                code: finding.code,
+                message: `[Publish readiness] ${finding.message}`,
+                sectionPath: finding.sectionPath,
+                documentId: finding.documentId,
+                placementId: finding.placementId,
+              })),
+          ],
+        })
+        setPublishReadiness(null)
         return
       }
 
@@ -625,23 +704,57 @@ export const SequenceWorkspacePage = ({
   const handlePublishModalCancel = () => {
     setIsPublishModalOpen(false)
     publishForm.resetFields()
+    publishMetadataForm.resetFields()
+    setPublishReadiness(null)
   }
 
   const triggerPublish = async () => {
-    const values = await publishForm.validateFields()
     setPublishing(true)
     try {
       const sequenceNumber = String(seqNumber).trim()
+      const publishValues = await publishForm.validateFields()
+      let readinessToUse = publishReadiness
+
+      if (publishReadiness && !publishReadiness.isReady && publishReadiness.missingMetadataFields.length > 0) {
+        const metadataValues = await publishMetadataForm.validateFields()
+        await updateSequencePublishingMetadataProvider({
+          applicationId: appId,
+          sequenceNumber,
+          applicationType: String(metadataValues.applicationType || '').trim() || null,
+          submissionType: String(metadataValues.submissionType || '').trim(),
+          submissionSubtype: String(metadataValues.submissionSubtype || '').trim() || null,
+          sequenceDescription: String(metadataValues.sequenceDescription || '').trim(),
+          applicantName: String(metadataValues.applicantName || '').trim(),
+          formType: String(metadataValues.formType || '').trim() || null,
+          applicantContactName: String(metadataValues.applicantContactName || '').trim() || null,
+          applicantContactType: String(metadataValues.applicantContactType || '').trim() || null,
+          telephone: String(metadataValues.telephone || '').trim() || null,
+          telephoneNumberType: String(metadataValues.telephoneNumberType || '').trim() || null,
+          email: String(metadataValues.email || '').trim() || null,
+        })
+        readinessToUse = await getPublishReadinessProvider({
+          applicationId: appId,
+          sequenceNumber,
+        })
+        setPublishReadiness(readinessToUse)
+
+        if (!readinessToUse.isReady) {
+          message.error('Publish readiness is still blocked. Resolve the remaining findings before publishing.')
+          return
+        }
+      }
 
       await createAndExecutePublishJobProvider({
         applicationId: appId,
         sequenceNumber,
-        outputDirectoryPath: String(values.outputDirectoryPath || '').trim(),
+        outputDirectoryPath: String(publishValues.outputDirectoryPath || '').trim(),
       })
 
       message.success('Publish job initiated successfully! Check History tab for results.')
       setIsPublishModalOpen(false)
       publishForm.resetFields()
+      publishMetadataForm.resetFields()
+      setPublishReadiness(null)
       onBack()
     } catch (err: any) {
       message.error('Publish failed: ' + err.message)
@@ -692,6 +805,60 @@ export const SequenceWorkspacePage = ({
               title="Pre-publish checks passed"
               description={`Pre-publish checks passed. ${validationSummary.warningCount} warning(s) remain for reviewer awareness.`}
             />
+          )}
+          {publishReadiness && !publishReadiness.isReady && (publishReadiness.missingMetadataFields?.length || 0) > 0 && (
+            <div className="mb-3 flex flex-col gap-3">
+              <Alert
+                type="warning"
+                showIcon
+                title="Publish readiness is blocked"
+                description="Complete the required publishing metadata fields below. The publish action will save them and rerun readiness before execution."
+              />
+              <div className="rounded border border-gray-200 bg-white/70 p-3 text-sm" data-testid="publish-readiness-findings">
+                {publishReadiness.findings.map((finding) => (
+                  <div key={`${finding.code}-${finding.fieldName || 'none'}`} className="mb-2 last:mb-0">
+                    <Tag color={finding.severity.toLowerCase() === 'error' ? 'red' : 'gold'}>{finding.code}</Tag>
+                    {finding.fieldName && <Tag color="blue">{finding.fieldName}</Tag>}
+                    <span>{finding.recommendedAction}</span>
+                  </div>
+                ))}
+              </div>
+              <Form form={publishMetadataForm} layout="vertical" requiredMark={false} component={false}>
+                <Form.Item name="applicationType" label="Application Type" rules={[{ required: true, message: 'Application type is required.' }]}>
+                  <Input placeholder="e.g. IND" />
+                </Form.Item>
+                <Form.Item name="submissionType" label="Submission Type" rules={[{ required: true, message: 'Submission type is required.' }]}>
+                  <Input placeholder="e.g. original-application" />
+                </Form.Item>
+                <Form.Item name="submissionSubtype" label="Submission Subtype" rules={[{ required: true, message: 'Submission subtype is required.' }]}>
+                  <Input placeholder="e.g. initial" />
+                </Form.Item>
+                <Form.Item name="sequenceDescription" label="Sequence Description" rules={[{ required: true, message: 'Sequence description is required.' }]}>
+                  <Input.TextArea rows={2} />
+                </Form.Item>
+                <Form.Item name="applicantName" label="Applicant Name" rules={[{ required: true, message: 'Applicant name is required.' }]}>
+                  <Input placeholder="e.g. Acme Pharma" />
+                </Form.Item>
+                <Form.Item name="formType" label="Form Type">
+                  <Input placeholder="e.g. 356h" />
+                </Form.Item>
+                <Form.Item name="applicantContactName" label="Applicant Contact Name" rules={[{ required: true, message: 'Applicant contact name is required.' }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="applicantContactType" label="Applicant Contact Type" rules={[{ required: true, message: 'Applicant contact type is required.' }]}>
+                  <Input placeholder="e.g. regulatory" />
+                </Form.Item>
+                <Form.Item name="telephone" label="Telephone" rules={[{ required: true, message: 'Telephone is required.' }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="telephoneNumberType" label="Telephone Number Type" rules={[{ required: true, message: 'Telephone number type is required.' }]}>
+                  <Input placeholder="e.g. office" />
+                </Form.Item>
+                <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required.' }]}>
+                  <Input type="email" />
+                </Form.Item>
+              </Form>
+            </div>
           )}
           <Form.Item
             name="outputDirectoryPath"
