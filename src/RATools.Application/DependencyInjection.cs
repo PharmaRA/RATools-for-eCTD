@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddSingleton<PublishOutputVerifier>();
         services.AddScoped<IPublishJobService, PublishJobService>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();
+        services.AddScoped<IPublishReadinessService, PublishReadinessService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         return services;
     }
