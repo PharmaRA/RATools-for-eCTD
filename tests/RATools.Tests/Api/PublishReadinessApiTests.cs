@@ -79,6 +79,11 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         Assert.NotNull(readiness);
         Assert.False(readiness!.IsReady);
         Assert.Equal("Blocked", readiness.Status);
+        Assert.Contains(readiness.CategorySummaries, x =>
+            x.Category == "RegionalMetadata"
+            && x.BlockingErrorCount == 1
+            && x.WarningCount == 0
+            && x.FindingCount == 1);
         Assert.Contains(readiness.Findings, x =>
             x.Code == "US_REGIONAL_METADATA_MISSING"
             && x.FieldName == "ApplicantContactName"
@@ -194,7 +199,12 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
 
     private sealed record ApplicationResponse(Guid Id);
     private sealed record DocumentResponse(Guid Id);
-    private sealed record PublishReadinessResponse(bool IsReady, string Status, IReadOnlyCollection<PublishReadinessFindingResponse> Findings);
+    private sealed record PublishReadinessResponse(
+        bool IsReady,
+        string Status,
+        IReadOnlyCollection<PublishReadinessCategorySummaryResponse> CategorySummaries,
+        IReadOnlyCollection<PublishReadinessFindingResponse> Findings);
+    private sealed record PublishReadinessCategorySummaryResponse(string Category, int BlockingErrorCount, int WarningCount, int FindingCount);
     private sealed record PublishReadinessFindingResponse(string Code, string? FieldName, string Category, string RecommendedAction);
     private sealed record PublishExecutionResponse(bool Succeeded, PublishJobResponse PublishJob, PublishReadinessResponse? PublishReadiness);
     private sealed record PublishJobResponse(string Status, string? OutputPath, string? PackagePath);

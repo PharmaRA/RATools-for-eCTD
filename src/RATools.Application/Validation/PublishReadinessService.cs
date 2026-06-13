@@ -164,6 +164,15 @@ public sealed class PublishReadinessService(
         var blockingErrorCount = findings.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
         var warningCount = findings.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var isReady = blockingErrorCount == 0;
+        var categorySummaries = findings
+            .GroupBy(x => x.Category, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new PublishReadinessCategorySummaryDto(
+                group.Key,
+                group.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase)),
+                group.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase)),
+                group.Count()))
+            .OrderBy(x => x.Category, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         return new PublishReadinessReportDto(
             request.ApplicationId,
@@ -173,6 +182,7 @@ public sealed class PublishReadinessService(
             blockingErrorCount,
             warningCount,
             validationReport,
+            categorySummaries,
             findings);
     }
 

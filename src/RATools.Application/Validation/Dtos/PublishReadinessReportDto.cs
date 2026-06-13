@@ -8,4 +8,5 @@ public sealed record PublishReadinessReportDto(
     int BlockingErrorCount,
     int WarningCount,
     ValidationReportDto ValidationReport,
+    IReadOnlyCollection<PublishReadinessCategorySummaryDto> CategorySummaries,
     IReadOnlyCollection<PublishReadinessFindingDto> Findings);

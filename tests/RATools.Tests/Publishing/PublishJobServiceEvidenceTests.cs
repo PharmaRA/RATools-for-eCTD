@@ -128,6 +128,9 @@ public sealed class PublishJobServiceEvidenceTests
                 0,
                 validationReport,
                 [
+                    new PublishReadinessCategorySummaryDto("RegionalMetadata", 1, 0, 1)
+                ],
+                [
                     new PublishReadinessFindingDto(
                         "PublishPreflight",
                         "Error",
@@ -158,6 +161,7 @@ public sealed class PublishJobServiceEvidenceTests
                 0,
                 0,
                 validationReport,
+                Array.Empty<PublishReadinessCategorySummaryDto>(),
                 Array.Empty<PublishReadinessFindingDto>()));
         }
     }

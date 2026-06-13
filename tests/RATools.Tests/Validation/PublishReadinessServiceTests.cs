@@ -36,6 +36,11 @@ public sealed class PublishReadinessServiceTests
 
         Assert.False(report.IsReady);
         Assert.Equal("Blocked", report.Status);
+        Assert.Contains(report.CategorySummaries, x =>
+            x.Category == "SequenceContent"
+            && x.BlockingErrorCount == 1
+            && x.WarningCount == 0
+            && x.FindingCount == 1);
         Assert.Contains(report.Findings, x =>
             x.Source == "Validation"
             && x.Code == "NO_PLACEMENTS"
@@ -76,6 +81,11 @@ public sealed class PublishReadinessServiceTests
 
         Assert.False(report.IsReady);
         Assert.Equal("Blocked", report.Status);
+        Assert.Contains(report.CategorySummaries, x =>
+            x.Category == "RegionalMetadata"
+            && x.BlockingErrorCount == 1
+            && x.WarningCount == 0
+            && x.FindingCount == 1);
         Assert.Contains(report.Findings, x =>
             x.Source == "PublishPreflight"
             && x.Code == "US_REGIONAL_METADATA_MISSING"
@@ -130,6 +140,7 @@ public sealed class PublishReadinessServiceTests
         Assert.True(report.IsReady);
         Assert.Equal("Ready", report.Status);
         Assert.Empty(report.Findings);
+        Assert.Empty(report.CategorySummaries);
         Assert.Equal(0, report.BlockingErrorCount);
         Assert.Equal(0, report.WarningCount);
     }
