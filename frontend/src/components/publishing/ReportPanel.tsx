@@ -26,6 +26,27 @@ const formatBooleanStatus = (value?: boolean | null) => {
 
 const formatExistsStatus = (exists?: boolean) => exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag>
 
+type PublishReadiness = {
+  isReady?: boolean
+  status?: string
+  blockingErrorCount?: number
+  warningCount?: number
+  missingMetadataFields?: string[]
+  categorySummaries?: Array<{
+    category: string
+    blockingErrorCount: number
+    warningCount: number
+    findingCount: number
+  }>
+  findings?: Array<{
+    severity: string
+    code: string
+    category: string
+    fieldName?: string | null
+    recommendedAction: string
+  }>
+}
+
 export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [errorState, setErrorState] = useState<{ status: number, message: string } | null>(null)
@@ -57,6 +78,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
   const lifecycleSummary = buildLifecycleSummary(lifecycleMatches)
   const lifecycleIssueCount = getLifecycleMatchIssueCount(lifecycleMatches)
   const integrityState = report?.integritySummary ? (report.integritySummary.isConsistent ? 'Consistent' : 'Inconsistent') : '-'
+  const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
 
   return (
     <Drawer title="Publish Report Details" placement="right" size={800} onClose={onClose} open={!!jobId}>
@@ -131,6 +153,50 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </Card>
             </Col>
           </Row>
+          {publishReadiness && (
+            <Card size="small" title="Publish Readiness">
+              <div className="flex flex-col gap-4">
+                <Descriptions bordered size="small" column={2}>
+                  <Descriptions.Item label="Status">{publishReadiness.status || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Ready">{publishReadiness.isReady ? 'Yes' : 'No'}</Descriptions.Item>
+                  <Descriptions.Item label="Blocking Errors">{publishReadiness.blockingErrorCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Warnings">{publishReadiness.warningCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Missing Metadata Fields" span={2}>
+                    {(publishReadiness.missingMetadataFields || []).length > 0
+                      ? publishReadiness.missingMetadataFields!.join(', ')
+                      : 'None'}
+                  </Descriptions.Item>
+                </Descriptions>
+                <Table
+                  dataSource={publishReadiness.categorySummaries || []}
+                  rowKey={(row) => row.category}
+                  pagination={false}
+                  size="small"
+                  locale={{ emptyText: 'No publish readiness category summaries were recorded.' }}
+                  columns={[
+                    { title: 'Category', dataIndex: 'category', width: 220 },
+                    { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
+                    { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
+                    { title: 'Findings', dataIndex: 'findingCount', width: 120 },
+                  ]}
+                />
+                <Table
+                  dataSource={publishReadiness.findings || []}
+                  rowKey={(row, index) => `${row.code}-${row.fieldName || 'none'}-${index}`}
+                  pagination={{ pageSize: 10 }}
+                  size="small"
+                  locale={{ emptyText: 'No publish readiness findings were recorded.' }}
+                  columns={[
+                    { title: 'Severity', dataIndex: 'severity', width: 100, render: (value: string) => <Tag color={value === 'Error' ? 'red' : 'orange'}>{value}</Tag> },
+                    { title: 'Code', dataIndex: 'code', width: 220 },
+                    { title: 'Category', dataIndex: 'category', width: 180 },
+                    { title: 'Field', dataIndex: 'fieldName', width: 180, render: (value?: string | null) => value || '-' },
+                    { title: 'Recommended Action', dataIndex: 'recommendedAction' },
+                  ]}
+                />
+              </div>
+            </Card>
+          )}
           <Tabs
             defaultActiveKey="lifecycle"
             items={[
