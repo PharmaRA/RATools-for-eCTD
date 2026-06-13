@@ -36,7 +36,11 @@ public sealed class PublishReadinessServiceTests
 
         Assert.False(report.IsReady);
         Assert.Equal("Blocked", report.Status);
-        Assert.Contains(report.Findings, x => x.Source == "Validation" && x.Code == "NO_PLACEMENTS");
+        Assert.Contains(report.Findings, x =>
+            x.Source == "Validation"
+            && x.Code == "NO_PLACEMENTS"
+            && x.Category == "SequenceContent"
+            && x.RecommendedAction == "Add at least one document placement to the sequence before publishing.");
     }
 
     [Fact]
@@ -72,7 +76,12 @@ public sealed class PublishReadinessServiceTests
 
         Assert.False(report.IsReady);
         Assert.Equal("Blocked", report.Status);
-        Assert.Contains(report.Findings, x => x.Source == "PublishPreflight" && x.Code == "US_REGIONAL_METADATA_MISSING" && x.FieldName == "ApplicantContactName");
+        Assert.Contains(report.Findings, x =>
+            x.Source == "PublishPreflight"
+            && x.Code == "US_REGIONAL_METADATA_MISSING"
+            && x.FieldName == "ApplicantContactName"
+            && x.Category == "RegionalMetadata"
+            && x.RecommendedAction == "Populate the required US Regional publishing metadata field before publishing.");
         Assert.DoesNotContain(report.Findings, x => x.Code == "NO_PLACEMENTS");
     }
 

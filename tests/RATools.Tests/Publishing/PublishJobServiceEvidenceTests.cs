@@ -133,6 +133,8 @@ public sealed class PublishJobServiceEvidenceTests
                         "Error",
                         "US_REGIONAL_METADATA_MISSING",
                         "metadata field 'ApplicantContactName' is required.",
+                        "RegionalMetadata",
+                        "Populate the required US Regional publishing metadata field before publishing.",
                         "ApplicantContactName")
                 ]));
         }

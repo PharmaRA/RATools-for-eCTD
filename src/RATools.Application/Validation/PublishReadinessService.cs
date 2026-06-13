@@ -28,15 +28,7 @@ public sealed class PublishReadinessService(
     {
         var findings = new List<PublishReadinessFindingDto>();
 
-        findings.AddRange(validationReport.Issues.Select(issue => new PublishReadinessFindingDto(
-            "Validation",
-            issue.Severity,
-            issue.Code,
-            issue.Message,
-            null,
-            issue.SectionPath,
-            issue.DocumentId,
-            issue.PlacementId)));
+        findings.AddRange(validationReport.Issues.Select(MapValidationFinding));
 
         if (validationReport.IsValid)
         {
@@ -59,6 +51,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "US_REGIONAL_METADATA_MISSING",
                     exception.Message,
+                    "RegionalMetadata",
+                    "Populate the required US Regional publishing metadata field before publishing.",
                     exception.FieldName));
             }
             catch (UsRegionalXmlSectionMappingException exception)
@@ -68,6 +62,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "US_REGIONAL_SECTION_UNSUPPORTED",
                     exception.Message,
+                    "RegionalStructure",
+                    "Move the document to a supported US Regional Module 1 section or extend the writer support before publishing.",
                     null,
                     exception.CtdSection,
                     null,
@@ -80,6 +76,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "ICH_SECTION_UNSUPPORTED",
                     exception.Message,
+                    "IchStructure",
+                    "Move the document to a supported ICH CTD section before publishing.",
                     null,
                     exception.CtdSection,
                     null,
@@ -91,7 +89,9 @@ public sealed class PublishReadinessService(
                     "PublishPreflight",
                     "Error",
                     "ECTD_XML_DTD_VALIDATION_FAILED",
-                    exception.Message));
+                    exception.Message,
+                    "XmlValidation",
+                    "Correct the XML content or source metadata so the generated backbone passes bundled DTD validation."));
             }
             catch (EctdPackageDocumentNotFoundException exception)
             {
@@ -100,6 +100,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "ECTD_PACKAGE_DOCUMENT_NOT_FOUND",
                     exception.Message,
+                    "DocumentInventory",
+                    "Restore the missing document record or relink the placement to an existing document before publishing.",
                     null,
                     null,
                     exception.DocumentId,
@@ -112,6 +114,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "ECTD_PACKAGE_LIFECYCLE_TARGET_INVALID",
                     exception.Message,
+                    "Lifecycle",
+                    "Select a valid historical lifecycle target in the same section before publishing.",
                     null,
                     null,
                     null,
@@ -124,6 +128,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "ECTD_PACKAGE_INVALID_SECTION",
                     exception.Message,
+                    "SectionMapping",
+                    "Assign the placement to a supported CTD section before publishing.",
                     null,
                     exception.CtdSection,
                     null,
@@ -136,6 +142,8 @@ public sealed class PublishReadinessService(
                     "Error",
                     "ECTD_PACKAGE_UNSUPPORTED_OPERATION",
                     exception.Message,
+                    "Lifecycle",
+                    "Change the placement operation to a supported eCTD lifecycle action before publishing.",
                     null,
                     null,
                     null,
@@ -147,7 +155,9 @@ public sealed class PublishReadinessService(
                     "PublishPreflight",
                     "Error",
                     "ECTD_PACKAGE_BUILD_FAILED",
-                    exception.Message));
+                    exception.Message,
+                    "PackageModel",
+                    "Resolve the package model error and rerun publish readiness before publishing."));
             }
         }
 
@@ -164,5 +174,50 @@ public sealed class PublishReadinessService(
             warningCount,
             validationReport,
             findings);
+    }
+
+    private static PublishReadinessFindingDto MapValidationFinding(ValidationIssueDto issue)
+    {
+        var category = issue.Code switch
+        {
+            "NO_PLACEMENTS" => "SequenceContent",
+            "FILE_MISSING" => "DocumentInventory",
+            "DOCUMENT_NOT_FOUND" => "DocumentInventory",
+            "INVALID_SECTION_PATH" => "SectionMapping",
+            "DUPLICATE_PUBLISHED_DOCUMENT_PATH" => "DocumentInventory",
+            "REPLACE_TARGET_NOT_FOUND" => "Lifecycle",
+            "DELETE_TARGET_NOT_FOUND" => "Lifecycle",
+            "APPEND_TARGET_NOT_FOUND" => "Lifecycle",
+            "LIFECYCLE_TARGET_INVALID" => "Lifecycle",
+            "UNSUPPORTED_OPERATION_VALUE" => "Lifecycle",
+            _ => "Validation"
+        };
+
+        var recommendedAction = issue.Code switch
+        {
+            "NO_PLACEMENTS" => "Add at least one document placement to the sequence before publishing.",
+            "FILE_MISSING" => "Restore the missing file on disk or update the document storage path before publishing.",
+            "DOCUMENT_NOT_FOUND" => "Restore the missing document record or remove the broken placement before publishing.",
+            "INVALID_SECTION_PATH" => "Correct the CTD section path so it matches the supported standards profile before publishing.",
+            "DUPLICATE_PUBLISHED_DOCUMENT_PATH" => "Rename or relocate documents so each published path is unique before publishing.",
+            "REPLACE_TARGET_NOT_FOUND" => "Select a valid historical replace target before publishing.",
+            "DELETE_TARGET_NOT_FOUND" => "Select a valid historical delete target before publishing.",
+            "APPEND_TARGET_NOT_FOUND" => "Select a valid historical append target before publishing.",
+            "LIFECYCLE_TARGET_INVALID" => "Select a valid historical lifecycle target in the same section before publishing.",
+            "UNSUPPORTED_OPERATION_VALUE" => "Change the placement operation to a supported eCTD lifecycle action before publishing.",
+            _ => "Resolve the validation issue before publishing."
+        };
+
+        return new PublishReadinessFindingDto(
+            "Validation",
+            issue.Severity,
+            issue.Code,
+            issue.Message,
+            category,
+            recommendedAction,
+            null,
+            issue.SectionPath,
+            issue.DocumentId,
+            issue.PlacementId);
     }
 }

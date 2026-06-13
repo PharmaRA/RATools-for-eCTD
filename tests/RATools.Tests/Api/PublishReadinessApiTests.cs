@@ -79,7 +79,11 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         Assert.NotNull(readiness);
         Assert.False(readiness!.IsReady);
         Assert.Equal("Blocked", readiness.Status);
-        Assert.Contains(readiness.Findings, x => x.Code == "US_REGIONAL_METADATA_MISSING" && x.FieldName == "ApplicantContactName");
+        Assert.Contains(readiness.Findings, x =>
+            x.Code == "US_REGIONAL_METADATA_MISSING"
+            && x.FieldName == "ApplicantContactName"
+            && x.Category == "RegionalMetadata"
+            && x.RecommendedAction == "Populate the required US Regional publishing metadata field before publishing.");
     }
 
     [Fact]
@@ -191,7 +195,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
     private sealed record ApplicationResponse(Guid Id);
     private sealed record DocumentResponse(Guid Id);
     private sealed record PublishReadinessResponse(bool IsReady, string Status, IReadOnlyCollection<PublishReadinessFindingResponse> Findings);
-    private sealed record PublishReadinessFindingResponse(string Code, string? FieldName);
+    private sealed record PublishReadinessFindingResponse(string Code, string? FieldName, string Category, string RecommendedAction);
     private sealed record PublishExecutionResponse(bool Succeeded, PublishJobResponse PublishJob, PublishReadinessResponse? PublishReadiness);
     private sealed record PublishJobResponse(string Status, string? OutputPath, string? PackagePath);
 
