@@ -40,8 +40,16 @@ public sealed record ApplicationPublishHistoryEntryDto(
     int? ErrorCount,
     int? WarningCount,
     string? WarningSummary,
+    ApplicationPublishHistoryReadinessSummaryDto? PublishReadiness,
     ApplicationPublishHistoryLifecycleSummaryDto LifecycleSummary,
     IReadOnlyCollection<ValidationLifecycleMatchDto> LifecycleMatches,
     PublishArtifactSummaryDto? ArtifactSummary,
     string? ReportPath,
     string? PackagePath);
+
+public sealed record ApplicationPublishHistoryReadinessSummaryDto(
+    bool IsReady,
+    string Status,
+    int BlockingErrorCount,
+    int WarningCount,
+    IReadOnlyCollection<string> MissingMetadataFields);

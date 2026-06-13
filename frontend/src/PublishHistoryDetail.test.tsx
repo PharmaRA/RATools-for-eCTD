@@ -196,6 +196,13 @@ const publishHistoryResponse = {
       errorCount: 1,
       warningCount: 2,
       warningSummary: 'Leaf title missing in one section',
+      publishReadiness: {
+        isReady: false,
+        status: 'Blocked',
+        blockingErrorCount: 1,
+        warningCount: 0,
+        missingMetadataFields: ['ApplicantContactName'],
+      },
       lifecycleSummary: {
         matchedCount: 2,
         replaceTargetNotFoundCount: 1,
@@ -505,6 +512,9 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('Errors: 1')
     expect(document.body.textContent).toContain('Warnings: 2')
     expect(document.body.textContent).toContain('Leaf title missing in one section')
+    expect(document.body.textContent).toContain('Readiness')
+    expect(document.body.textContent).toContain('Blocked')
+    expect(document.body.textContent).toContain('ApplicantContactName')
     expect(document.body.textContent).toContain('Artifacts')
     expect(document.body.textContent).toContain('7 files')
     expect(document.body.textContent).toContain('Report')

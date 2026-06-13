@@ -67,6 +67,7 @@ public sealed class ApplicationPublishHistoryService(
                 reportState.Report?.ErrorCount,
                 reportState.Report?.WarningCount,
                 reportState.Report?.WarningSummary,
+                BuildReadinessSummary(reportState.Report?.PublishReadiness),
                 BuildLifecycleSummary(entryLifecycleMatches),
                 entryLifecycleMatches,
                 reportState.Report?.ArtifactSummary,
@@ -136,5 +137,20 @@ public sealed class ApplicationPublishHistoryService(
             lifecycleMatches.Count(x => x.ResultCode == "APPEND_TARGET_NOT_FOUND"),
             lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_AMBIGUOUS"),
             lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"));
+    }
+
+    private static ApplicationPublishHistoryReadinessSummaryDto? BuildReadinessSummary(PublishReadinessReportDto? readiness)
+    {
+        if (readiness is null)
+        {
+            return null;
+        }
+
+        return new ApplicationPublishHistoryReadinessSummaryDto(
+            readiness.IsReady,
+            readiness.Status,
+            readiness.BlockingErrorCount,
+            readiness.WarningCount,
+            readiness.MissingMetadataFields?.ToArray() ?? Array.Empty<string>());
     }
 }

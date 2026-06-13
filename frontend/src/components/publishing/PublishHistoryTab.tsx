@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, message } from 'antd'
+import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, message } from 'antd'
 
 import { apiFetch } from '../../apiClient'
 import { formatBytes, formatDate, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor } from '../../pages/appShared'
@@ -32,6 +32,40 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
 
   useEffect(() => { fetchHistory() }, [appId, page, pageSize])
 
+  const renderReadiness = (readiness?: {
+    isReady?: boolean
+    status?: string
+    blockingErrorCount?: number
+    warningCount?: number
+    missingMetadataFields?: string[]
+  } | null) => {
+    if (!readiness) return '-'
+
+    const missingMetadataFields = readiness.missingMetadataFields || []
+    const primaryHint = missingMetadataFields[0]
+    const additionalCount = Math.max(0, missingMetadataFields.length - 1)
+
+    return (
+      <div>
+        <div>
+          <Tag color={readiness.isReady ? 'green' : 'red'}>{readiness.status || (readiness.isReady ? 'Ready' : 'Blocked')}</Tag>
+        </div>
+        {!readiness.isReady && primaryHint && (
+          <div className="text-gray-500 text-xs">
+            {primaryHint}
+            {additionalCount > 0 ? ` +${additionalCount}` : ''}
+          </div>
+        )}
+        {readiness.isReady && (readiness.warningCount || 0) > 0 && (
+          <div className="text-gray-500 text-xs">{`Warnings: ${readiness.warningCount}`}</div>
+        )}
+        {!readiness.isReady && !primaryHint && (readiness.blockingErrorCount || 0) > 0 && (
+          <div className="text-gray-500 text-xs">{`Blocking errors: ${readiness.blockingErrorCount}`}</div>
+        )}
+      </div>
+    )
+  }
+
   const columns = [
     { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq' },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Badge status={getStatusColor(s) as any} text={s} /> },
@@ -45,6 +79,10 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
           {r.warningSummary && <div className="text-gray-500 text-xs">{r.warningSummary}</div>}
         </div>
       ),
+    },
+    {
+      title: 'Readiness', key: 'readiness', width: 180,
+      render: (_: any, r: any) => renderReadiness(r.publishReadiness),
     },
     {
       title: 'Lifecycle', key: 'lifecycle', width: 160,
