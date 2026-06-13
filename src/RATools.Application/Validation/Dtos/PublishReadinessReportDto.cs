@@ -8,5 +8,6 @@ public sealed record PublishReadinessReportDto(
     int BlockingErrorCount,
     int WarningCount,
     ValidationReportDto ValidationReport,
+    IReadOnlyCollection<string> MissingMetadataFields,
     IReadOnlyCollection<PublishReadinessCategorySummaryDto> CategorySummaries,
     IReadOnlyCollection<PublishReadinessFindingDto> Findings);

@@ -84,6 +84,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
             && x.BlockingErrorCount == 1
             && x.WarningCount == 0
             && x.FindingCount == 1);
+        Assert.Equal(["ApplicantContactName"], readiness.MissingMetadataFields);
         Assert.Contains(readiness.Findings, x =>
             x.Code == "US_REGIONAL_METADATA_MISSING"
             && x.FieldName == "ApplicantContactName"
@@ -202,6 +203,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
     private sealed record PublishReadinessResponse(
         bool IsReady,
         string Status,
+        IReadOnlyCollection<string> MissingMetadataFields,
         IReadOnlyCollection<PublishReadinessCategorySummaryResponse> CategorySummaries,
         IReadOnlyCollection<PublishReadinessFindingResponse> Findings);
     private sealed record PublishReadinessCategorySummaryResponse(string Category, int BlockingErrorCount, int WarningCount, int FindingCount);

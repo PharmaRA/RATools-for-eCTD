@@ -164,6 +164,14 @@ public sealed class PublishReadinessService(
         var blockingErrorCount = findings.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
         var warningCount = findings.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var isReady = blockingErrorCount == 0;
+        var missingMetadataFields = findings
+            .Where(x => string.Equals(x.Code, "US_REGIONAL_METADATA_MISSING", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.FieldName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .Cast<string>()
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToArray();
         var categorySummaries = findings
             .GroupBy(x => x.Category, StringComparer.OrdinalIgnoreCase)
             .Select(group => new PublishReadinessCategorySummaryDto(
@@ -182,6 +190,7 @@ public sealed class PublishReadinessService(
             blockingErrorCount,
             warningCount,
             validationReport,
+            missingMetadataFields,
             categorySummaries,
             findings);
     }

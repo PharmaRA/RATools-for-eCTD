@@ -127,6 +127,7 @@ public sealed class PublishJobServiceEvidenceTests
                 1,
                 0,
                 validationReport,
+                ["ApplicantContactName"],
                 [
                     new PublishReadinessCategorySummaryDto("RegionalMetadata", 1, 0, 1)
                 ],
@@ -161,6 +162,7 @@ public sealed class PublishJobServiceEvidenceTests
                 0,
                 0,
                 validationReport,
+                Array.Empty<string>(),
                 Array.Empty<PublishReadinessCategorySummaryDto>(),
                 Array.Empty<PublishReadinessFindingDto>()));
         }

@@ -86,6 +86,7 @@ public sealed class PublishReadinessServiceTests
             && x.BlockingErrorCount == 1
             && x.WarningCount == 0
             && x.FindingCount == 1);
+        Assert.Equal(["ApplicantContactName"], report.MissingMetadataFields);
         Assert.Contains(report.Findings, x =>
             x.Source == "PublishPreflight"
             && x.Code == "US_REGIONAL_METADATA_MISSING"
@@ -141,6 +142,7 @@ public sealed class PublishReadinessServiceTests
         Assert.Equal("Ready", report.Status);
         Assert.Empty(report.Findings);
         Assert.Empty(report.CategorySummaries);
+        Assert.Empty(report.MissingMetadataFields);
         Assert.Equal(0, report.BlockingErrorCount);
         Assert.Equal(0, report.WarningCount);
     }
