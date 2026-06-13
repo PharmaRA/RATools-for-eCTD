@@ -13,6 +13,7 @@ public sealed record PublishExecutionReportDto(
     long DurationMs,
     PublishIntegritySummaryDto? IntegritySummary,
     PublishIntegrityEvidenceDto? IntegrityEvidence,
+    PublishReadinessReportDto? PublishReadiness,
     PublishArtifactSummaryDto? ArtifactSummary,
     PublishAuditSummaryDto? AuditSummary,
     int ErrorCount,

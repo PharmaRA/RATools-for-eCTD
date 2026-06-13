@@ -18,6 +18,14 @@ public sealed class PublishReadinessService(
     public async Task<PublishReadinessReportDto> GetAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
         var validationReport = await validationService.ValidateAsync(request, cancellationToken);
+        return await GetAsync(request, validationReport, cancellationToken);
+    }
+
+    public async Task<PublishReadinessReportDto> GetAsync(
+        ValidateSequenceRequest request,
+        ValidationReportDto validationReport,
+        CancellationToken cancellationToken = default)
+    {
         var findings = new List<PublishReadinessFindingDto>();
 
         findings.AddRange(validationReport.Issues.Select(issue => new PublishReadinessFindingDto(

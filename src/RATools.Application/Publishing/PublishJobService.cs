@@ -16,6 +16,7 @@ public sealed class PublishJobService(
     IPublishJobRepository repository,
     IBackboneService backboneService,
     ISequenceValidationService validationService,
+    IPublishReadinessService publishReadinessService,
     IAuditLogService auditLogService,
     PublishOutputVerifier publishOutputVerifier) : IPublishJobService
 {
@@ -51,6 +52,7 @@ public sealed class PublishJobService(
             stopwatch.ElapsedMilliseconds,
             integrityVerification.Summary,
             integrityVerification.Evidence,
+            result.PublishReadiness,
             null,
             auditSummary,
             errorCount,
@@ -308,13 +310,14 @@ public sealed class PublishJobService(
         }
     }
 
-    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, string? Message, string? ReportPath)> ExecuteInternalAsync(
+    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath)> ExecuteInternalAsync(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
         await EnsureNoActivePublishAsync(request, cancellationToken);
 
         ValidationReportDto? validationReport = null;
+        PublishReadinessReportDto? publishReadiness = null;
         string? reportPath = null;
         var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
         await repository.AddAsync(job, cancellationToken);
@@ -342,7 +345,35 @@ public sealed class PublishJobService(
                     action: "ValidationFailed",
                     details: $"Profile={validationReport.ValidationProfile}; {failureMessage}",
                     cancellationToken);
-                return (job, validationReport, "Publish stopped because validation failed.", reportPath);
+                return (job, validationReport, null, "Publish stopped because validation failed.", reportPath);
+            }
+
+            publishReadiness = await publishReadinessService.GetAsync(
+                new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
+                validationReport,
+                cancellationToken);
+
+            if (!publishReadiness.IsReady)
+            {
+                var readinessFailureMessage = string.Join(
+                    " | ",
+                    publishReadiness.Findings
+                        .Where(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase))
+                        .Select(x => $"{x.Code}: {x.Message}"));
+                if (string.IsNullOrWhiteSpace(readinessFailureMessage))
+                {
+                    readinessFailureMessage = "Publish readiness check failed.";
+                }
+
+                job.MarkFailed(readinessFailureMessage);
+                await repository.UpdateAsync(job, cancellationToken);
+                await TryWriteAuditAsync(
+                    entityType: "PublishJob",
+                    entityId: job.Id.ToString(),
+                    action: "ReadinessBlocked",
+                    details: $"Profile={publishReadiness.ValidationReport.ValidationProfile}; {readinessFailureMessage}",
+                    cancellationToken);
+                return (job, validationReport, publishReadiness, "Publish stopped because publish readiness check failed.", reportPath);
             }
 
             job.MarkRunning();
@@ -374,7 +405,7 @@ public sealed class PublishJobService(
                 cancellationToken);
 
             await repository.UpdateAsync(job, cancellationToken);
-            return (job, validationReport, "Publish completed successfully.", reportPath);
+            return (job, validationReport, publishReadiness, "Publish completed successfully.", reportPath);
         }
         catch (Exception exception)
         {
@@ -393,7 +424,7 @@ public sealed class PublishJobService(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
-            return (job, validationReport, "Publish failed during execution.", reportPath);
+            return (job, validationReport, publishReadiness, "Publish failed during execution.", reportPath);
         }
     }
 

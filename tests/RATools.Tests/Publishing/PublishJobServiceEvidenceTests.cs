@@ -27,7 +27,8 @@ public sealed class PublishJobServiceEvidenceTests
             var repository = new InMemoryPublishJobRepository();
             var validation = new PassingValidationService();
             var backbone = new EvidenceBackboneService(root);
-            var service = new PublishJobService(repository, backbone, validation, new NoopAuditLogService(), new PublishOutputVerifier());
+            var readiness = new PassingPublishReadinessService();
+            var service = new PublishJobService(repository, backbone, validation, readiness, new NoopAuditLogService(), new PublishOutputVerifier());
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 
@@ -50,6 +51,47 @@ public sealed class PublishJobServiceEvidenceTests
         }
     }
 
+    [Fact]
+    public async Task ExecuteAsync_StopsBeforeBackboneGenerationWhenPublishReadinessBlocks()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"publish-service-readiness-blocked-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var repository = new InMemoryPublishJobRepository();
+            var validation = new PassingValidationService();
+            var backbone = new ThrowingBackboneService();
+            var readiness = new BlockingPublishReadinessService();
+            var service = new PublishJobService(
+                repository,
+                backbone,
+                validation,
+                readiness,
+                new NoopAuditLogService(),
+                new PublishOutputVerifier());
+
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
+
+            Assert.False(report.Succeeded);
+            Assert.Equal("Failed", report.PublishJob.Status);
+            Assert.Contains("publish readiness", report.Message ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            Assert.Null(report.PublishJob.OutputPath);
+            Assert.Null(report.PublishJob.PackagePath);
+            Assert.Null(report.ReportPath);
+            Assert.NotNull(report.PublishReadiness);
+            Assert.False(report.PublishReadiness!.IsReady);
+            Assert.Contains(report.PublishReadiness.Findings, x => x.Code == "US_REGIONAL_METADATA_MISSING");
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     private sealed class PassingValidationService : ISequenceValidationService
     {
         public Task<ValidationReportDto> ValidateAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
@@ -62,6 +104,59 @@ public sealed class PublishJobServiceEvidenceTests
                 Array.Empty<ValidationIssueDto>(),
                 Array.Empty<ValidationSectionMatchDto>(),
                 Array.Empty<ValidationLifecycleMatchDto>()));
+        }
+    }
+
+    private sealed class BlockingPublishReadinessService : IPublishReadinessService
+    {
+        public Task<PublishReadinessReportDto> GetAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
+        {
+            return GetAsync(request, BuildValidationReport(request), cancellationToken);
+        }
+
+        public Task<PublishReadinessReportDto> GetAsync(
+            ValidateSequenceRequest request,
+            ValidationReportDto validationReport,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new PublishReadinessReportDto(
+                request.ApplicationId,
+                request.SequenceNumber,
+                false,
+                "Blocked",
+                1,
+                0,
+                validationReport,
+                [
+                    new PublishReadinessFindingDto(
+                        "PublishPreflight",
+                        "Error",
+                        "US_REGIONAL_METADATA_MISSING",
+                        "metadata field 'ApplicantContactName' is required.",
+                        "ApplicantContactName")
+                ]));
+        }
+    }
+
+    private sealed class PassingPublishReadinessService : IPublishReadinessService
+    {
+        public Task<PublishReadinessReportDto> GetAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
+            => GetAsync(request, BuildValidationReport(request), cancellationToken);
+
+        public Task<PublishReadinessReportDto> GetAsync(
+            ValidateSequenceRequest request,
+            ValidationReportDto validationReport,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new PublishReadinessReportDto(
+                request.ApplicationId,
+                request.SequenceNumber,
+                true,
+                "Ready",
+                0,
+                0,
+                validationReport,
+                Array.Empty<PublishReadinessFindingDto>()));
         }
     }
 
@@ -92,6 +187,12 @@ public sealed class PublishJobServiceEvidenceTests
         }
     }
 
+    private sealed class ThrowingBackboneService : IBackboneService
+    {
+        public Task<GeneratedBackboneDto> GenerateAsync(GenerateBackboneRequest request, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Backbone generation should not run when readiness is blocked.");
+    }
+
     private sealed class NoopAuditLogService : IAuditLogService
     {
         public Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
@@ -99,5 +200,17 @@ public sealed class PublishJobServiceEvidenceTests
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());
+    }
+
+    private static ValidationReportDto BuildValidationReport(ValidateSequenceRequest request)
+    {
+        return new ValidationReportDto(
+            request.ApplicationId,
+            request.SequenceNumber,
+            "US FDA eCTD 3.2.2",
+            true,
+            Array.Empty<ValidationIssueDto>(),
+            Array.Empty<ValidationSectionMatchDto>(),
+            Array.Empty<ValidationLifecycleMatchDto>());
     }
 }

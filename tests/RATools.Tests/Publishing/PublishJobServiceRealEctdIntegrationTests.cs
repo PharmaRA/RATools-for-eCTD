@@ -198,11 +198,18 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             documentRepository,
             auditLogService,
             new RelaxedValidationProfileProvider());
+        var publishReadinessService = new PublishReadinessService(
+            validationService,
+            packageModelBuilder,
+            new IchIndexXmlWriter(),
+            new UsRegionalXmlWriter(),
+            new EctdXmlValidator());
 
         return new PublishJobService(
             publishJobRepository,
             backboneService,
             validationService,
+            publishReadinessService,
             auditLogService,
             new PublishOutputVerifier());
     }
