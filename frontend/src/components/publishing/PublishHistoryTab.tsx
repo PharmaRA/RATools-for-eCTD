@@ -23,6 +23,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() })
     if (values.sequenceNumber) params.append('sequenceNumber', values.sequenceNumber)
     if (values.status) params.append('status', values.status)
+    if (values.readinessStatus) params.append('readinessStatus', values.readinessStatus)
 
     apiFetch(`/api/applications/${appId}/publish-history?${params.toString()}`)
       .then((res) => setData(res))
@@ -31,6 +32,25 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   }
 
   useEffect(() => { fetchHistory() }, [appId, page, pageSize])
+
+  const applyFilters = () => {
+    if (page !== 1) {
+      setPage(1)
+      return
+    }
+
+    fetchHistory()
+  }
+
+  const resetFilters = () => {
+    form.resetFields()
+    if (page !== 1) {
+      setPage(1)
+      return
+    }
+
+    fetchHistory()
+  }
 
   const renderReadiness = (readiness?: {
     isReady?: boolean
@@ -142,7 +162,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">
-        <Form form={form} layout="inline" onFinish={() => setPage(1)} className="mb-4">
+        <Form form={form} layout="inline" onFinish={applyFilters} className="mb-4">
           <Form.Item name="sequenceNumber" label="Sequence"><Input placeholder="e.g. 0000" allowClear className="w-32" /></Form.Item>
           <Form.Item name="status" label="Status">
             <Select placeholder="All" allowClear className="w-32">
@@ -151,7 +171,14 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
               <Select.Option value="Running">Running</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item><Button type="primary" htmlType="submit">Filter</Button><Button className="ml-2" onClick={() => { form.resetFields(); setPage(1) }}>Reset</Button></Form.Item>
+          <Form.Item name="readinessStatus" label="Readiness">
+            <Select placeholder="All" allowClear className="w-36">
+              <Select.Option value="Ready">Ready</Select.Option>
+              <Select.Option value="Blocked">Blocked</Select.Option>
+              <Select.Option value="Unknown">Unknown</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item><Button type="primary" htmlType="submit">Filter</Button><Button className="ml-2" onClick={resetFilters}>Reset</Button></Form.Item>
         </Form>
         <Table loading={loading} dataSource={data?.entries || []} columns={columns} rowKey="publishJobId" size="small"
           pagination={{ current: page, pageSize, total: data?.totalCount || 0, showSizeChanger: true, onChange: (p, ps) => { setPage(p); setPageSize(ps) } }}

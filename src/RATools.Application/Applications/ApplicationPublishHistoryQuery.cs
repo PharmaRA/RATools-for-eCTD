@@ -6,4 +6,5 @@ public sealed record ApplicationPublishHistoryQuery(
     int PageSize = 20,
     string? Status = null,
     DateTime? CreatedFromUtc = null,
-    DateTime? CreatedToUtc = null);
+    DateTime? CreatedToUtc = null,
+    string? ReadinessStatus = null);

@@ -22,11 +22,6 @@ public sealed class ApplicationPublishHistoryService(
             return null;
         }
 
-        var page = query.Page < 1 ? 1 : query.Page;
-        var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
-
-        var entries = new List<ApplicationPublishHistoryEntryDto>();
-
         var result = await publishJobRepository.QueryHistoryAsync(
             new PublishJobHistoryQuery(
                 applicationId,
@@ -34,26 +29,29 @@ public sealed class ApplicationPublishHistoryService(
                 query.Status,
                 query.CreatedFromUtc,
                 query.CreatedToUtc,
-                page,
-                pageSize),
+                1,
+                int.MaxValue),
             cancellationToken);
 
-        var filteredJobs = result.Items;
-        var totalCount = result.TotalCount;
-        var statusSummary = new ApplicationPublishHistoryStatusSummaryDto(
-            result.CompletedCount,
-            result.FailedCount,
-            result.RunningCount);
+        var entries = new List<ApplicationPublishHistoryEntryDto>();
         var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
 
-        foreach (var job in filteredJobs)
+        foreach (var job in result.Items)
         {
             var reportState = await TryReadReportAsync(job, cancellationToken);
             var entryLifecycleMatches = reportState.Report?.ValidationReport?.LifecycleMatches?.ToArray() ?? Array.Empty<ValidationLifecycleMatchDto>();
+            var readinessSummary = BuildReadinessSummary(reportState.Report?.PublishReadiness);
+
+            if (!MatchesReadinessFilter(readinessSummary, query.ReadinessStatus))
+            {
+                continue;
+            }
+
             if (entryLifecycleMatches.Length > 0)
             {
                 lifecycleMatches.AddRange(entryLifecycleMatches);
             }
+
             entries.Add(new ApplicationPublishHistoryEntryDto(
                 job.Id,
                 job.SequenceNumber,
@@ -67,7 +65,7 @@ public sealed class ApplicationPublishHistoryService(
                 reportState.Report?.ErrorCount,
                 reportState.Report?.WarningCount,
                 reportState.Report?.WarningSummary,
-                BuildReadinessSummary(reportState.Report?.PublishReadiness),
+                readinessSummary,
                 BuildLifecycleSummary(entryLifecycleMatches),
                 entryLifecycleMatches,
                 reportState.Report?.ArtifactSummary,
@@ -75,6 +73,20 @@ public sealed class ApplicationPublishHistoryService(
                 job.PackagePath));
         }
 
+        var page = query.Page < 1 ? 1 : query.Page;
+        var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
+        var pagedEntries = entries
+            .OrderByDescending(x => x.CreatedUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+        var filteredStatuses = entries
+            .GroupBy(x => x.Status, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+        var statusSummary = new ApplicationPublishHistoryStatusSummaryDto(
+            filteredStatuses.GetValueOrDefault("Completed", 0),
+            filteredStatuses.GetValueOrDefault("Failed", 0),
+            filteredStatuses.GetValueOrDefault("Running", 0));
         var lifecycleSummary = BuildLifecycleSummary(lifecycleMatches);
 
         return new ApplicationPublishHistoryDto(
@@ -83,10 +95,10 @@ public sealed class ApplicationPublishHistoryService(
             application.SponsorName,
             page,
             pageSize,
-            totalCount,
+            entries.Count,
             statusSummary,
             lifecycleSummary,
-            entries);
+            pagedEntries);
     }
 
     private static async Task<(PublishExecutionReportDto? Report, bool Exists, bool Readable, string? Error)> TryReadReportAsync(
@@ -152,5 +164,23 @@ public sealed class ApplicationPublishHistoryService(
             readiness.BlockingErrorCount,
             readiness.WarningCount,
             readiness.MissingMetadataFields?.ToArray() ?? Array.Empty<string>());
+    }
+
+    private static bool MatchesReadinessFilter(
+        ApplicationPublishHistoryReadinessSummaryDto? readiness,
+        string? readinessStatus)
+    {
+        if (string.IsNullOrWhiteSpace(readinessStatus))
+        {
+            return true;
+        }
+
+        if (string.Equals(readinessStatus, "Unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return readiness is null;
+        }
+
+        return readiness is not null
+            && readiness.Status.Equals(readinessStatus, StringComparison.OrdinalIgnoreCase);
     }
 }

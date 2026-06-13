@@ -37,6 +37,7 @@ public sealed class ApplicationsController(
         Guid id,
         [FromQuery] string? sequenceNumber,
         [FromQuery] string? status,
+        [FromQuery] string? readinessStatus,
         [FromQuery] DateTime? createdFromUtc,
         [FromQuery] DateTime? createdToUtc,
         [FromQuery] int page = 1,
@@ -45,7 +46,7 @@ public sealed class ApplicationsController(
     {
         var history = await publishHistoryService.GetAsync(
             id,
-            new ApplicationPublishHistoryQuery(sequenceNumber, page, pageSize, status, createdFromUtc, createdToUtc),
+            new ApplicationPublishHistoryQuery(sequenceNumber, page, pageSize, status, createdFromUtc, createdToUtc, readinessStatus),
             cancellationToken);
         return history is null ? NotFound() : Ok(history);
     }

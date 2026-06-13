@@ -63,6 +63,28 @@ const clickButtonByText = async (text: string) => {
   })
 }
 
+const selectOptionByInputId = async (inputId: string, optionText: string) => {
+  const input = await waitForElement(
+    () => document.getElementById(inputId) as HTMLInputElement | undefined,
+    `select input ${inputId}`,
+  )
+  const select = input.closest('.ant-select') as HTMLElement | null
+  expect(select).toBeTruthy()
+
+  act(() => {
+    select!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+  })
+
+  const option = await waitForElement(
+    () => Array.from(document.querySelectorAll('.ant-select-item-option')).find((candidate) => candidate.textContent?.includes(optionText)) as HTMLElement | undefined,
+    `select option ${optionText}`,
+  )
+
+  act(() => {
+    option.click()
+  })
+}
+
 const setupDownloadCapture = () => {
   const createdBlobs: Blob[] = []
   const clickedDownloads: string[] = []
@@ -788,6 +810,50 @@ describe('Publish history detail frontend', () => {
     ])
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PackageZip/download', expect.anything())
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PublishReport/download', expect.anything())
+
+    unmount()
+  })
+
+  it('sends the readiness filter when publish history is filtered to blocked readiness', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await selectOptionByInputId('readinessStatus', 'Blocked')
+    await clickButtonByText('Filter')
+    await flushPromises()
+
+    expect(
+      fetchMock.mock.calls.some((call) => String(call[0]).includes('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')),
+    ).toBe(true)
 
     unmount()
   })
