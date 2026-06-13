@@ -87,6 +87,10 @@ public sealed class ApplicationPublishHistoryService(
             filteredStatuses.GetValueOrDefault("Completed", 0),
             filteredStatuses.GetValueOrDefault("Failed", 0),
             filteredStatuses.GetValueOrDefault("Running", 0));
+        var readinessAggregate = new ApplicationPublishHistoryReadinessAggregateDto(
+            entries.Count(x => x.PublishReadiness?.Status.Equals("Ready", StringComparison.OrdinalIgnoreCase) == true),
+            entries.Count(x => x.PublishReadiness?.Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase) == true),
+            entries.Count(x => x.PublishReadiness is null));
         var lifecycleSummary = BuildLifecycleSummary(lifecycleMatches);
 
         return new ApplicationPublishHistoryDto(
@@ -97,6 +101,7 @@ public sealed class ApplicationPublishHistoryService(
             pageSize,
             entries.Count,
             statusSummary,
+            readinessAggregate,
             lifecycleSummary,
             pagedEntries);
     }

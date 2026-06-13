@@ -11,6 +11,7 @@ public sealed record ApplicationPublishHistoryDto(
     int PageSize,
     int TotalCount,
     ApplicationPublishHistoryStatusSummaryDto StatusSummary,
+    ApplicationPublishHistoryReadinessAggregateDto ReadinessSummary,
     ApplicationPublishHistoryLifecycleSummaryDto LifecycleSummary,
     IReadOnlyCollection<ApplicationPublishHistoryEntryDto> Entries);
 
@@ -53,3 +54,8 @@ public sealed record ApplicationPublishHistoryReadinessSummaryDto(
     int BlockingErrorCount,
     int WarningCount,
     IReadOnlyCollection<string> MissingMetadataFields);
+
+public sealed record ApplicationPublishHistoryReadinessAggregateDto(
+    int ReadyCount,
+    int BlockedCount,
+    int UnknownCount);

@@ -196,6 +196,11 @@ const publishHistoryResponse = {
     failedCount: 1,
     runningCount: 0,
   },
+  readinessSummary: {
+    readyCount: 0,
+    blockedCount: 1,
+    unknownCount: 0,
+  },
   lifecycleSummary: {
     matchedCount: 4,
     replaceTargetNotFoundCount: 1,
@@ -541,6 +546,9 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('7 files')
     expect(document.body.textContent).toContain('Report')
     expect(document.body.textContent).toContain('Available')
+    expect(document.body.textContent).toContain('Ready Sequences')
+    expect(document.body.textContent).toContain('Blocked Sequences')
+    expect(document.body.textContent).toContain('Unknown Readiness')
 
     unmount()
   })

@@ -151,6 +151,13 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
           <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Running Jobs" value={data.statusSummary.runningCount} styles={{ content: { color: '#1677ff' } }} /></Card></Col>
         </Row>
       )}
+      {data?.readinessSummary && (
+        <Row gutter={16}>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ready Sequences" value={data.readinessSummary.readyCount} styles={{ content: { color: '#3f8600' } }} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Blocked Sequences" value={data.readinessSummary.blockedCount} styles={{ content: { color: '#cf1322' } }} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Unknown Readiness" value={data.readinessSummary.unknownCount} styles={{ content: { color: '#595959' } }} /></Card></Col>
+        </Row>
+      )}
       {data?.lifecycleSummary && (
         <Row gutter={16}>
           <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount} /></Card></Col>

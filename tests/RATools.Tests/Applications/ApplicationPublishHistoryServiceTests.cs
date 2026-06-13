@@ -56,6 +56,10 @@ public sealed class ApplicationPublishHistoryServiceTests
         Assert.Equal(1, entry.PublishReadiness.BlockingErrorCount);
         Assert.Equal(0, entry.PublishReadiness.WarningCount);
         Assert.Equal(["ApplicantContactName"], entry.PublishReadiness.MissingMetadataFields);
+        Assert.NotNull(history.ReadinessSummary);
+        Assert.Equal(0, history.ReadinessSummary!.ReadyCount);
+        Assert.Equal(1, history.ReadinessSummary.BlockedCount);
+        Assert.Equal(0, history.ReadinessSummary.UnknownCount);
     }
 
     [Theory]
@@ -90,6 +94,49 @@ public sealed class ApplicationPublishHistoryServiceTests
         Assert.NotNull(entry.PublishReadiness);
         Assert.Equal(isReady, entry.PublishReadiness!.IsReady);
         Assert.Equal(1, history.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_ComputesReadinessSummaryAcrossReadyBlockedAndUnknownEntries()
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var applicationId = Guid.NewGuid();
+        var blockedJobId = Guid.NewGuid();
+        var readyJobId = Guid.NewGuid();
+        var unknownJobId = Guid.NewGuid();
+        var application = SubmissionApplication.Rehydrate(
+            applicationId,
+            "APP-001",
+            "US",
+            "Sponsor",
+            DateTime.UtcNow,
+            [],
+            tempRoot.Path,
+            "us-fda-ectd-3.2.2");
+
+        var blockedJob = CreateCompletedJob(tempRoot.Path, applicationId, blockedJobId, "0001", isReady: false);
+        var readyJob = CreateCompletedJob(tempRoot.Path, applicationId, readyJobId, "0002", isReady: true);
+        var unknownJob = PublishJob.Rehydrate(
+            unknownJobId,
+            applicationId,
+            "0003",
+            PublishJobStatus.Completed,
+            null,
+            null,
+            DateTime.UtcNow.AddMinutes(-3),
+            DateTime.UtcNow,
+            null);
+        var service = new ApplicationPublishHistoryService(
+            new StubApplicationRepository(application),
+            new StubPublishJobRepository([blockedJob, readyJob, unknownJob]));
+
+        var history = await service.GetAsync(applicationId, new ApplicationPublishHistoryQuery(null, 1, 20, null, null, null, null));
+
+        Assert.NotNull(history);
+        Assert.NotNull(history!.ReadinessSummary);
+        Assert.Equal(1, history.ReadinessSummary!.ReadyCount);
+        Assert.Equal(1, history.ReadinessSummary.BlockedCount);
+        Assert.Equal(1, history.ReadinessSummary.UnknownCount);
     }
 
     private static PublishJob CreateCompletedJob(string rootPath, Guid applicationId, Guid publishJobId, string sequenceNumber, bool isReady)
