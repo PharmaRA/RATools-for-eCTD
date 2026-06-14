@@ -16,6 +16,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [form] = Form.useForm()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  const [readinessSort, setReadinessSort] = useState<string | null>(null)
 
   const fetchHistory = () => {
     setLoading(true)
@@ -34,6 +35,9 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   useEffect(() => { fetchHistory() }, [appId, page, pageSize])
 
   const applyFilters = () => {
+    const values = form.getFieldsValue()
+    setReadinessSort(values.readinessSort === 'default' ? null : values.readinessSort || null)
+
     if (page !== 1) {
       setPage(1)
       return
@@ -44,6 +48,8 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
 
   const resetFilters = () => {
     form.resetFields()
+    setReadinessSort(null)
+
     if (page !== 1) {
       setPage(1)
       return
@@ -84,6 +90,31 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
         )}
       </div>
     )
+  }
+
+  const getReadinessSortRank = (readiness?: { status?: string } | null) => {
+    const status = readiness?.status?.toLowerCase()
+    if (status === 'blocked') return 0
+    if (!status || status === 'unknown') return 1
+    if (status === 'ready') return 2
+    return 3
+  }
+
+  const getSortedEntries = () => {
+    const entries = [...(data?.entries || [])]
+    if (!readinessSort) return entries
+
+    return entries.sort((left, right) => {
+      const leftRank = getReadinessSortRank(left.publishReadiness)
+      const rightRank = getReadinessSortRank(right.publishReadiness)
+      if (leftRank === rightRank) return 0
+
+      if (readinessSort === 'blocked-first') {
+        return leftRank - rightRank
+      }
+
+      return rightRank - leftRank
+    })
   }
 
   const columns = [
@@ -185,9 +216,16 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
               <Select.Option value="Unknown">Unknown</Select.Option>
             </Select>
           </Form.Item>
+          <Form.Item name="readinessSort" label="Sort">
+            <Select placeholder="Default" allowClear className="w-40">
+              <Select.Option value="default">Default</Select.Option>
+              <Select.Option value="blocked-first">Blocked first</Select.Option>
+              <Select.Option value="ready-first">Ready first</Select.Option>
+            </Select>
+          </Form.Item>
           <Form.Item><Button type="primary" htmlType="submit">Filter</Button><Button className="ml-2" onClick={resetFilters}>Reset</Button></Form.Item>
         </Form>
-        <Table loading={loading} dataSource={data?.entries || []} columns={columns} rowKey="publishJobId" size="small"
+        <Table loading={loading} dataSource={getSortedEntries()} columns={columns} rowKey="publishJobId" size="small"
           pagination={{ current: page, pageSize, total: data?.totalCount || 0, showSizeChanger: true, onChange: (p, ps) => { setPage(p); setPageSize(ps) } }}
         />
       </div>

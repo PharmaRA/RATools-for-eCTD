@@ -184,6 +184,16 @@ const expectReviewChecklistRow = (label: string, expectedStatus: string) => {
   expect(cells[1]).toBe(expectedStatus)
 }
 
+const getPublishHistorySequenceOrder = () => {
+  const tables = Array.from(document.querySelectorAll('.ant-table'))
+  const table = tables.find((candidate) => {
+    const headers = Array.from(candidate.querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
+    return headers.includes('Sequence') && headers.includes('Readiness') && headers.includes('Actions')
+  })
+  expect(table).toBeTruthy()
+  return Array.from(table!.querySelectorAll('tbody tr.ant-table-row')).map((row) => normalizeText(row.querySelector('td')?.textContent))
+}
+
 const publishHistoryResponse = {
   applicationId: 'app-1',
   applicationNumber: 'APP-1',
@@ -246,6 +256,70 @@ const publishHistoryResponse = {
       },
       reportPath: 'E:/exports/report.json',
       packagePath: 'E:/exports/output.zip',
+    },
+    {
+      publishJobId: 'job-2',
+      sequenceNumber: '0002',
+      status: 'Completed',
+      createdUtc: '2024-01-02T12:10:00Z',
+      completedUtc: '2024-01-02T12:15:00Z',
+      reportAvailable: true,
+      reportReadable: true,
+      reportError: null,
+      validationProfile: 'US FDA eCTD 3.2.2',
+      errorCount: 0,
+      warningCount: 1,
+      warningSummary: null,
+      publishReadiness: {
+        isReady: true,
+        status: 'Ready',
+        blockingErrorCount: 0,
+        warningCount: 1,
+        missingMetadataFields: [],
+      },
+      lifecycleSummary: {
+        matchedCount: 1,
+        replaceTargetNotFoundCount: 0,
+        deleteTargetNotFoundCount: 0,
+        appendTargetNotFoundCount: 0,
+        ambiguousCount: 0,
+        currentSequenceCount: 0,
+      },
+      lifecycleMatches: [],
+      artifactSummary: {
+        fileCount: 6,
+        totalSizeBytes: 3072,
+        packageSizeBytes: 1536,
+      },
+      reportPath: 'E:/exports/report-2.json',
+      packagePath: 'E:/exports/output-2.zip',
+    },
+    {
+      publishJobId: 'job-3',
+      sequenceNumber: '0003',
+      status: 'Completed',
+      createdUtc: '2024-01-02T12:20:00Z',
+      completedUtc: '2024-01-02T12:25:00Z',
+      reportAvailable: false,
+      reportReadable: false,
+      reportError: null,
+      validationProfile: null,
+      errorCount: null,
+      warningCount: null,
+      warningSummary: null,
+      publishReadiness: null,
+      lifecycleSummary: {
+        matchedCount: 0,
+        replaceTargetNotFoundCount: 0,
+        deleteTargetNotFoundCount: 0,
+        appendTargetNotFoundCount: 0,
+        ambiguousCount: 0,
+        currentSequenceCount: 0,
+      },
+      lifecycleMatches: [],
+      artifactSummary: null,
+      reportPath: null,
+      packagePath: null,
     },
   ],
 }
@@ -862,6 +936,106 @@ describe('Publish history detail frontend', () => {
     expect(
       fetchMock.mock.calls.some((call) => String(call[0]).includes('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')),
     ).toBe(true)
+
+    unmount()
+  })
+
+  it('sorts publish history by readiness priority when blocked first is selected', async () => {
+    const responseWithUnknownStatus = {
+      ...publishHistoryResponse,
+      entries: publishHistoryResponse.entries.map((entry) => (
+        entry.publishJobId === 'job-3'
+          ? {
+            ...entry,
+            publishReadiness: {
+              isReady: false,
+              status: 'Unknown',
+              blockingErrorCount: 0,
+              warningCount: 0,
+              missingMetadataFields: [],
+            },
+          }
+          : entry
+      )),
+    }
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(responseWithUnknownStatus) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await selectOptionByInputId('readinessSort', 'Blocked first')
+    await clickButtonByText('Filter')
+    await flushPromises()
+
+    expect(getPublishHistorySequenceOrder()).toEqual(['0001', '0003', '0002'])
+
+    unmount()
+  })
+
+  it('sorts publish history by readiness priority when ready first is selected', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderApp()
+
+    await flushPromises()
+    await clickByText('Manage App')
+    await clickByText('Publish History')
+    await selectOptionByInputId('readinessSort', 'Ready first')
+    await clickButtonByText('Filter')
+    await flushPromises()
+
+    expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
 
     unmount()
   })
