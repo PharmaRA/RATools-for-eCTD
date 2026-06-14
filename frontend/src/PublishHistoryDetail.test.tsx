@@ -20,8 +20,8 @@ const waitForElement = async (getElement: () => HTMLElement | undefined, label: 
   throw new Error(`Could not find ${label}`)
 }
 
-const renderApp = () => {
-  window.history.replaceState(null, '', '/')
+const renderApp = (initialPath = '/') => {
+  window.history.replaceState(null, '', initialPath)
 
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -1036,6 +1036,57 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
 
     expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
+
+    unmount()
+  })
+
+  it('restores and persists publish history filter state in the browser query', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (url === '/api/applications') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+          {
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [],
+          },
+        ]) })
+      }
+
+      if (String(url).startsWith('/api/applications/app-1/publish-history?')) {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue(publishHistoryResponse) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { unmount } = renderApp('/applications/app-1?publishReadinessStatus=Blocked&publishReadinessSort=ready-first')
+
+    await flushPromises()
+    await clickByText('Publish History')
+    await flushPromises()
+
+    expect(
+      fetchMock.mock.calls.some((call) => String(call[0]).includes('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')),
+    ).toBe(true)
+    expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
+
+    await selectOptionByInputId('readinessSort', 'Blocked first')
+    await clickButtonByText('Filter')
+    await flushPromises()
+
+    expect(window.location.search).toContain('publishReadinessStatus=Blocked')
+    expect(window.location.search).toContain('publishReadinessSort=blocked-first')
+    expect(window.location.search).not.toContain('readinessSort=')
+    expect(getPublishHistorySequenceOrder()).toEqual(['0001', '0003', '0002'])
 
     unmount()
   })

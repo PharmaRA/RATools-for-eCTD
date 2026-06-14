@@ -7,7 +7,25 @@ import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
 import { ReportPanel } from './ReportPanel'
 
+const readinessSortOptions = ['blocked-first', 'ready-first'] as const
+
+const getInitialQueryState = () => {
+  const params = new URLSearchParams(window.location.search)
+  const readinessSort = params.get('publishReadinessSort')
+
+  return {
+    formValues: {
+      sequenceNumber: params.get('publishSequenceNumber') || undefined,
+      status: params.get('publishStatus') || undefined,
+      readinessStatus: params.get('publishReadinessStatus') || undefined,
+      readinessSort: readinessSort && readinessSortOptions.includes(readinessSort as any) ? readinessSort : undefined,
+    },
+    readinessSort: readinessSort && readinessSortOptions.includes(readinessSort as any) ? readinessSort : null,
+  }
+}
+
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
+  const [initialQueryState] = useState(getInitialQueryState)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any>(null)
   const [selectedReviewJobId, setSelectedReviewJobId] = useState<string | null>(null)
@@ -16,7 +34,23 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [form] = Form.useForm()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [readinessSort, setReadinessSort] = useState<string | null>(null)
+  const [readinessSort, setReadinessSort] = useState<string | null>(initialQueryState.readinessSort)
+
+  const replaceBrowserQuery = (values: any, nextReadinessSort: string | null) => {
+    const params = new URLSearchParams(window.location.search)
+    params.delete('publishSequenceNumber')
+    params.delete('publishStatus')
+    params.delete('publishReadinessStatus')
+    params.delete('publishReadinessSort')
+
+    if (values.sequenceNumber) params.set('publishSequenceNumber', values.sequenceNumber)
+    if (values.status) params.set('publishStatus', values.status)
+    if (values.readinessStatus) params.set('publishReadinessStatus', values.readinessStatus)
+    if (nextReadinessSort) params.set('publishReadinessSort', nextReadinessSort)
+
+    const nextSearch = params.toString()
+    window.history.replaceState(null, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`)
+  }
 
   const fetchHistory = () => {
     setLoading(true)
@@ -36,7 +70,9 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
 
   const applyFilters = () => {
     const values = form.getFieldsValue()
-    setReadinessSort(values.readinessSort === 'default' ? null : values.readinessSort || null)
+    const nextReadinessSort = values.readinessSort === 'default' ? null : values.readinessSort || null
+    setReadinessSort(nextReadinessSort)
+    replaceBrowserQuery(values, nextReadinessSort)
 
     if (page !== 1) {
       setPage(1)
@@ -49,6 +85,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const resetFilters = () => {
     form.resetFields()
     setReadinessSort(null)
+    replaceBrowserQuery({}, null)
 
     if (page !== 1) {
       setPage(1)
@@ -200,7 +237,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">
-        <Form form={form} layout="inline" onFinish={applyFilters} className="mb-4">
+        <Form form={form} layout="inline" onFinish={applyFilters} className="mb-4" initialValues={initialQueryState.formValues}>
           <Form.Item name="sequenceNumber" label="Sequence"><Input placeholder="e.g. 0000" allowClear className="w-32" /></Form.Item>
           <Form.Item name="status" label="Status">
             <Select placeholder="All" allowClear className="w-32">
