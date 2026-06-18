@@ -76,6 +76,7 @@ Content-Type: application/json
   "mediaType": "application/pdf",
   "fileSize": 102400,
   "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "md5": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "storagePath": "files/study-report.pdf"
 }
 

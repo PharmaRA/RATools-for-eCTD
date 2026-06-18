@@ -29,6 +29,7 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
 
         await using var destination = File.Create(fullPath);
         using var sha256 = SHA256.Create();
+        using var md5 = MD5.Create();
 
         var buffer = new byte[81920];
         long totalBytes = 0;
@@ -38,17 +39,21 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
         {
             await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+            md5.TransformBlock(buffer, 0, bytesRead, null, 0);
             totalBytes += bytesRead;
         }
 
         sha256.TransformFinalBlock([], 0, 0);
+        md5.TransformFinalBlock([], 0, 0);
         var hash = Convert.ToHexString(sha256.Hash!).ToLowerInvariant();
+        var md5Hash = Convert.ToHexString(md5.Hash!).ToLowerInvariant();
 
         return new FileUploadResult(
             safeFileName,
             request.MediaType.Trim(),
             totalBytes,
             hash,
+            md5Hash,
             fullPath);
     }
 

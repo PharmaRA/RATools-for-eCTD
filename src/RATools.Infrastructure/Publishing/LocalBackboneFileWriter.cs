@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing;
@@ -75,7 +74,7 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         CopyStandardsAssets(deliveryRoot);
 
         var indexMd5Path = Path.Combine(deliveryRoot, "index-md5.txt");
-        var md5Content = BuildMd5Manifest(deliveryRoot, indexMd5Path);
+        var md5Content = BuildIndexMd5(deliveryRoot);
         await File.WriteAllTextAsync(indexMd5Path, md5Content, cancellationToken);
 
         var reportPath = Path.Combine(reportDirectory, reportFileName);
@@ -136,23 +135,18 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         }
     }
 
-    private static string BuildMd5Manifest(string deliveryRoot, string indexMd5Path)
+    // FDA 惯例：index-md5.txt 仅包含 index.xml 自身的 MD5（格式为 "<md5>  index.xml"）。
+    private static string BuildIndexMd5(string deliveryRoot)
     {
-        var builder = new StringBuilder();
-        var files = Directory.GetFiles(deliveryRoot, "*", SearchOption.AllDirectories)
-            .Where(path => !string.Equals(Path.GetFullPath(path), Path.GetFullPath(indexMd5Path), StringComparison.OrdinalIgnoreCase))
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        foreach (var file in files)
+        var indexPath = Path.Combine(deliveryRoot, "index.xml");
+        if (!File.Exists(indexPath))
         {
-            builder.Append(ComputeMd5(file));
-            builder.Append("  ");
-            builder.Append(Path.GetRelativePath(deliveryRoot, file).Replace('\\', '/'));
-            builder.AppendLine();
+            throw new FileNotFoundException(
+                $"index.xml was not found at '{indexPath}'; cannot build index-md5.txt.",
+                indexPath);
         }
 
-        return builder.ToString();
+        return $"{ComputeMd5(indexPath)}  index.xml{Environment.NewLine}";
     }
 
     private static string ComputeMd5(string path)

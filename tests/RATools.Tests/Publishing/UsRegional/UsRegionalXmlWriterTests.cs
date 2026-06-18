@@ -131,8 +131,8 @@ public sealed class UsRegionalXmlWriterTests
 
         Assert.Equal("leaf-11111111111111111111111111111111", leaf.Attribute("ID")?.Value);
         Assert.Equal("replace", leaf.Attribute("operation")?.Value);
-        Assert.Equal("sha-new.pdf", leaf.Attribute("checksum")?.Value);
-        Assert.Equal("sha256", leaf.Attribute("checksum-type")?.Value);
+        Assert.Equal("md5-new.pdf", leaf.Attribute("checksum")?.Value);
+        Assert.Equal("md5", leaf.Attribute("checksum-type")?.Value);
         Assert.Equal("simple", leaf.Attribute(XName.Get("type", "http://www.w3c.org/1999/xlink"))?.Value);
         Assert.Equal("12-cover-letters/new.pdf", leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
         Assert.Equal("../../../0000/m1/us/12-cover-letters/old.pdf", leaf.Attribute("modified-file")?.Value);
@@ -303,6 +303,7 @@ public sealed class UsRegionalXmlWriterTests
             $"C:/workspace/0001/{ctdSection}/{fileName}",
             10,
             $"sha-{fileName}",
+            $"md5-{fileName}",
             lifecycle);
     }
 }

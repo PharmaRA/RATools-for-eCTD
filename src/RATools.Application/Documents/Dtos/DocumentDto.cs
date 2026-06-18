@@ -6,5 +6,6 @@ public sealed record DocumentDto(
     string MediaType,
     long FileSize,
     string Sha256,
+    string Md5,
     string StoragePath,
     DateTime CreatedUtc);

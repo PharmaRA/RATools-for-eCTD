@@ -64,6 +64,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.MediaType).HasMaxLength(128).IsRequired();
             entity.Property(x => x.FileSize).IsRequired();
             entity.Property(x => x.Sha256).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Md5).HasMaxLength(128).IsRequired();
             entity.Property(x => x.StoragePath).HasMaxLength(512).IsRequired();
             entity.Property(x => x.CreatedUtc).IsRequired();
         });

@@ -34,7 +34,8 @@ public sealed class LocalBackboneFileWriterTests
                     "m1/us/12-cover-letters/cover.pdf",
                     "cover.pdf",
                     new FileInfo(sourcePath).Length,
-                    "sha-cover")
+                    "sha-cover",
+                    "md5-cover")
             };
 
             var result = await writer.SaveAsync(
@@ -67,11 +68,12 @@ public sealed class LocalBackboneFileWriterTests
             Assert.True(File.Exists(result.PackagePath));
 
             var md5Manifest = await File.ReadAllTextAsync(indexMd5Path);
-            Assert.Contains("index.xml", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("m1/us/12-cover-letters/cover.pdf", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("util/dtd/ich-ectd-3-2.dtd", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("util/dtd/us-regional-v3-3.dtd", md5Manifest, StringComparison.Ordinal);
+            var expectedIndexMd5 = ComputeMd5Hex(indexPath);
+            Assert.Equal($"{expectedIndexMd5}  index.xml{Environment.NewLine}", md5Manifest);
+            Assert.DoesNotContain("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
+            Assert.DoesNotContain("m1/us/12-cover-letters/cover.pdf", md5Manifest, StringComparison.Ordinal);
+            Assert.DoesNotContain("util/dtd/ich-ectd-3-2.dtd", md5Manifest, StringComparison.Ordinal);
+            Assert.DoesNotContain("util/dtd/us-regional-v3-3.dtd", md5Manifest, StringComparison.Ordinal);
 
             using var archive = ZipFile.OpenRead(result.PackagePath);
             var entries = archive.Entries.Select(x => x.FullName.Replace('\\', '/')).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -108,7 +110,8 @@ public sealed class LocalBackboneFileWriterTests
                     "m3/32-body-of-data/quality.pdf",
                     "quality.pdf",
                     123,
-                    "sha-quality")
+                    "sha-quality",
+                    "md5-quality")
             };
 
             var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => writer.SaveAsync(
@@ -135,6 +138,13 @@ public sealed class LocalBackboneFileWriterTests
         var root = Path.Combine(Path.GetTempPath(), $"local-backbone-writer-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    private static string ComputeMd5Hex(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
     }
 
     private static void DeleteIfExists(string path)

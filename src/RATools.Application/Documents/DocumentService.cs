@@ -24,6 +24,7 @@ public sealed class DocumentService(
             request.MediaType,
             request.FileSize,
             request.Sha256,
+            request.Md5,
             request.StoragePath);
 
         await repository.AddAsync(document, cancellationToken);
@@ -48,6 +49,7 @@ public sealed class DocumentService(
             storedFile.MediaType,
             storedFile.FileSize,
             storedFile.Sha256,
+            storedFile.Md5,
             storedFile.StoragePath);
 
         await repository.AddAsync(document, cancellationToken);
@@ -91,6 +93,7 @@ public sealed class DocumentService(
             storedFile.MediaType,
             storedFile.FileSize,
             storedFile.Sha256,
+            storedFile.Md5,
             storedFile.StoragePath);
 
         await repository.AddAsync(document, cancellationToken);
@@ -257,6 +260,7 @@ internal static class DocumentMapping
             document.MediaType,
             document.FileSize,
             document.Sha256,
+            document.Md5,
             document.StoragePath,
             document.CreatedUtc);
     }

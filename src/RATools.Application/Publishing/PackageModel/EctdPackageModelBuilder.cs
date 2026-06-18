@@ -124,7 +124,27 @@ public sealed class EctdPackageModelBuilder(
             document.StoragePath,
             document.FileSize,
             document.Sha256,
+            ResolveMd5(document),
             lifecycle);
+    }
+
+    // 包模型是 backbone 校验和的事实来源。优先使用上传时持久化的 MD5；
+    // 对于回填前的存量文档（MD5 为空），在源文件存在时按文件计算补齐。
+    private static string ResolveMd5(SubmissionDocument document)
+    {
+        if (!string.IsNullOrWhiteSpace(document.Md5))
+        {
+            return document.Md5;
+        }
+
+        if (!string.IsNullOrWhiteSpace(document.StoragePath) && File.Exists(document.StoragePath))
+        {
+            using var stream = File.OpenRead(document.StoragePath);
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
+        }
+
+        return string.Empty;
     }
 
     private static EctdLifecycleReference? BuildLifecycle(
@@ -235,7 +255,7 @@ public sealed class EctdPackageModelBuilder(
         return leaves
             .GroupBy(x => x.DocumentId)
             .Select(x => x.First())
-            .Select(x => new EctdPublishedFile(x.DocumentId, x.SourcePath, x.Href, x.FileName, x.FileSize, x.Sha256))
+            .Select(x => new EctdPublishedFile(x.DocumentId, x.SourcePath, x.Href, x.FileName, x.FileSize, x.Sha256, x.Md5))
             .OrderBy(x => x.Href, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

@@ -20,6 +20,10 @@ public sealed class CreateDocumentRequestBody
     public string Sha256 { get; init; } = string.Empty;
 
     [Required]
+    [StringLength(128, MinimumLength = 16)]
+    public string Md5 { get; init; } = string.Empty;
+
+    [Required]
     [StringLength(512, MinimumLength = 1)]
     public string StoragePath { get; init; } = string.Empty;
 }

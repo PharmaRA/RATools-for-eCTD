@@ -64,7 +64,7 @@ public sealed class PublishReadinessServiceTests
             [SubmissionSequence.Rehydrate("0001", "original-application", "Initial sequence", DateTime.UtcNow)],
             Path.GetTempPath(),
             EctdTemplateRegistry.DefaultTemplateKey);
-        var document = SubmissionDocument.Rehydrate(documentId, "cover.pdf", "application/pdf", 10, "sha-cover", filePath, DateTime.UtcNow);
+        var document = SubmissionDocument.Rehydrate(documentId, "cover.pdf", "application/pdf", 10, "sha-cover", "md5-cover", filePath, DateTime.UtcNow);
         var placement = DocumentPlacement.Rehydrate(
             placementId,
             documentId,
@@ -123,7 +123,7 @@ public sealed class PublishReadinessServiceTests
             [SubmissionSequence.Rehydrate("0001", "original-application", "Initial sequence", DateTime.UtcNow, metadata)],
             Path.GetTempPath(),
             EctdTemplateRegistry.DefaultTemplateKey);
-        var document = SubmissionDocument.Rehydrate(documentId, "cover.pdf", "application/pdf", 10, "sha-cover", filePath, DateTime.UtcNow);
+        var document = SubmissionDocument.Rehydrate(documentId, "cover.pdf", "application/pdf", 10, "sha-cover", "md5-cover", filePath, DateTime.UtcNow);
         var placement = DocumentPlacement.Rehydrate(
             Guid.NewGuid(),
             documentId,

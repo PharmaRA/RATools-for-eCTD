@@ -51,6 +51,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
             MediaType = "application/pdf",
             FileSize = 5,
             Sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            Md5 = "0123456789abcdef0123456789abcdef",
             StoragePath = documentPath
         });
         var document = await documentResponse.Content.ReadFromJsonAsync<DocumentResponse>();
@@ -178,6 +179,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
             MediaType = "application/pdf",
             FileSize = 5,
             Sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            Md5 = "0123456789abcdef0123456789abcdef",
             StoragePath = documentPath
         });
         var document = await documentResponse.Content.ReadFromJsonAsync<DocumentResponse>();

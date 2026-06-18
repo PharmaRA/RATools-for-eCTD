@@ -27,7 +27,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     public async Task<IActionResult> Create([FromBody] CreateDocumentRequestBody request, CancellationToken cancellationToken)
     {
         var created = await documentService.CreateAsync(
-            new CreateDocumentRequest(request.FileName, request.MediaType, request.FileSize, request.Sha256, request.StoragePath),
+            new CreateDocumentRequest(request.FileName, request.MediaType, request.FileSize, request.Sha256, request.Md5, request.StoragePath),
             cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);

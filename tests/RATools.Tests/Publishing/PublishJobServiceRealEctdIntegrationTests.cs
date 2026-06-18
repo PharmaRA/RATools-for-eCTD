@@ -77,6 +77,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
                 "application/pdf",
                 new FileInfo(publishedDocumentPath).Length,
                 "sha-cover-letter",
+                string.Empty,
                 publishedDocumentPath,
                 DateTime.UtcNow);
             await documentRepository.AddAsync(document);
@@ -147,8 +148,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             Assert.Contains("../../util/dtd/us-regional-v3-3.dtd", usRegionalXml, StringComparison.Ordinal);
             Assert.Contains("jane.regulatory@example.test", usRegionalXml, StringComparison.Ordinal);
             Assert.Contains("index.xml", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
-            Assert.Contains("m1/us/12-cover-letters/cover-letter.pdf", md5Manifest, StringComparison.Ordinal);
+            Assert.DoesNotContain("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
+            Assert.DoesNotContain("m1/us/12-cover-letters/cover-letter.pdf", md5Manifest, StringComparison.Ordinal);
             Assert.Contains("\"Succeeded\": true", reportJson, StringComparison.Ordinal);
 
             using var archive = ZipFile.OpenRead(report.PublishJob.PackagePath!);

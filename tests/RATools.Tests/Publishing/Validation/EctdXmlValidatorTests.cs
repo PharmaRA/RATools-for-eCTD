@@ -39,7 +39,7 @@ public sealed class EctdXmlValidatorTests
             <!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
             <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
               <m2-common-technical-document-summaries>
-                <leaf ID="leaf-bad" operation="new" checksum-type="sha256" xlink:type="simple" xlink:href="m2/bad.pdf">
+                <leaf ID="leaf-bad" operation="new" checksum-type="md5" xlink:type="simple" xlink:href="m2/bad.pdf">
                   <title>Bad leaf</title>
                 </leaf>
               </m2-common-technical-document-summaries>

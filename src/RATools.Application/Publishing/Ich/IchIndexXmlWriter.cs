@@ -133,8 +133,8 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
         {
             new XAttribute("ID", leaf.LeafId),
             new XAttribute("operation", leaf.Operation),
-            new XAttribute("checksum", leaf.Sha256),
-            new XAttribute("checksum-type", "sha256"),
+            new XAttribute("checksum", leaf.Md5),
+            new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
             new XAttribute(XlinkNamespace + "href", leaf.Href)
         };

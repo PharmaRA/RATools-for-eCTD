@@ -186,7 +186,8 @@ public sealed class ApplicationImportService(
                         Path.GetFileName(resolvedPath),
                         GuessMediaType(resolvedPath),
                         new FileInfo(resolvedPath).Length,
-                        checksum,
+                        ComputeSha256(resolvedPath),
+                        actualChecksum,
                         resolvedPath);
 
                     importedDocuments[resolvedPath] = document;
@@ -338,6 +339,13 @@ public sealed class ApplicationImportService(
         using var stream = File.OpenRead(path);
         using var md5 = System.Security.Cryptography.MD5.Create();
         return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
+    }
+
+    private static string ComputeSha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
     }
 
     private static string GuessMediaType(string path)

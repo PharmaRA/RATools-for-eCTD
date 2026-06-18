@@ -12,6 +12,8 @@ public sealed class DocumentRecord
 
     public string Sha256 { get; set; } = string.Empty;
 
+    public string Md5 { get; set; } = string.Empty;
+
     public string StoragePath { get; set; } = string.Empty;
 
     public DateTime CreatedUtc { get; set; }

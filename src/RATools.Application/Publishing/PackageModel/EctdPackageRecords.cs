@@ -58,6 +58,7 @@ public sealed record EctdLeaf(
     string SourcePath,
     long FileSize,
     string Sha256,
+    string Md5,
     EctdLifecycleReference? Lifecycle);
 
 public sealed record EctdLifecycleReference(
@@ -72,4 +73,5 @@ public sealed record EctdPublishedFile(
     string Href,
     string FileName,
     long FileSize,
-    string Sha256);
+    string Sha256,
+    string Md5);

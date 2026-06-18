@@ -55,6 +55,7 @@ public sealed class EctdPackageModelBuilderTests
                     "C:/work/0001/m1/us/cover.pdf",
                     20,
                     "sha256",
+                    "md5",
                     null)
             ],
             [],
@@ -65,7 +66,8 @@ public sealed class EctdPackageModelBuilderTests
                     "m1/us/cover.pdf",
                     "cover.pdf",
                     20,
-                    "sha256")
+                    "sha256",
+                    "md5")
             ]);
 
         Assert.Equal(applicationId, package.ApplicationId);
@@ -451,7 +453,8 @@ public sealed class EctdPackageModelBuilderTests
 
     private static SubmissionDocument CreateDocument(Guid documentId, string fileName, string storagePath, long fileSize, string sha256)
     {
-        return SubmissionDocument.Rehydrate(documentId, fileName, "application/pdf", fileSize, sha256, storagePath, DateTime.UtcNow);
+        var md5 = sha256.Replace("sha-", "md5-", StringComparison.Ordinal);
+        return SubmissionDocument.Rehydrate(documentId, fileName, "application/pdf", fileSize, sha256, md5, storagePath, DateTime.UtcNow);
     }
 
     private static EctdPackageModelBuilder CreateBuilder(

@@ -66,7 +66,8 @@ public sealed class BackboneServiceTests
                 "m3/32-body-of-data/quality.pdf",
                 "quality.pdf",
                 123,
-                "sha-quality")
+                "sha-quality",
+                "md5-quality")
         };
 
         return new EctdSequencePackage(

@@ -24,6 +24,7 @@ public sealed class EfCoreDocumentRepository(RAToolsDbContext dbContext) : IDocu
         existing.MediaType = document.MediaType;
         existing.FileSize = document.FileSize;
         existing.Sha256 = document.Sha256;
+        existing.Md5 = document.Md5;
         existing.StoragePath = document.StoragePath;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -72,6 +73,7 @@ internal static class DocumentRecordMapping
             MediaType = document.MediaType,
             FileSize = document.FileSize,
             Sha256 = document.Sha256,
+            Md5 = document.Md5,
             StoragePath = document.StoragePath,
             CreatedUtc = document.CreatedUtc
         };
@@ -85,6 +87,7 @@ internal static class DocumentRecordMapping
             record.MediaType,
             record.FileSize,
             record.Sha256,
+            record.Md5,
             record.StoragePath,
             record.CreatedUtc);
     }
