@@ -428,6 +428,9 @@ public sealed class PublishJobService(
         }
     }
 
+    // Best-effort 预检：在正常路径上给出友好的"已有活动作业"冲突提示。
+    // 防重的事实来源是 IPublishJobRepository.AddAsync —— 关系型 provider 的活动作业
+    // 部分唯一索引与 InMemory 仓储的活动作业守卫，两者都会在并发竞态下拒绝第二个活动作业。
     private async Task EnsureNoActivePublishAsync(CreatePublishJobRequest request, CancellationToken cancellationToken)
     {
         var pending = await repository.QueryHistoryAsync(
