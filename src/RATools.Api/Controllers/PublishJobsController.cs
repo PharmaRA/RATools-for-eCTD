@@ -99,16 +99,17 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpPost("execute")]
-    [ProducesResponseType(typeof(PublishExecutionReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Execute([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
     {
         try
         {
-            var report = await publishJobService.ExecuteAsync(
+            var job = await publishJobService.EnqueueExecutionAsync(
                 new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath),
                 cancellationToken);
 
-            return Ok(report);
+            // 发布在后台作业中执行；客户端通过 GetById / report / artifacts 端点轮询状态。
+            return AcceptedAtAction(nameof(GetById), new { id = job.Id }, job);
         }
         catch (PublishJobAlreadyInProgressException exception)
         {

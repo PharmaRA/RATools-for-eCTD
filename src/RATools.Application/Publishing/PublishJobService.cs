@@ -18,7 +18,8 @@ public sealed class PublishJobService(
     ISequenceValidationService validationService,
     IPublishReadinessService publishReadinessService,
     IAuditLogService auditLogService,
-    PublishOutputVerifier publishOutputVerifier) : IPublishJobService
+    PublishOutputVerifier publishOutputVerifier,
+    IPublishJobQueue publishJobQueue) : IPublishJobService
 {
     private const string PublishExecutionReportVersion = "1.1";
 
@@ -34,6 +35,39 @@ public sealed class PublishJobService(
         var result = await ExecuteInternalAsync(request, cancellationToken);
         stopwatch.Stop();
 
+        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+    }
+
+    // 后台执行入口：在一个已创建的 Pending 作业上运行发布流程并生成报告。
+    // 防重已在 CreatePendingJobAsync 阶段保证，此处不再重复创建作业。
+    public async Task<PublishExecutionReportDto> ExecuteQueuedAsync(
+        Guid jobId,
+        CreatePublishJobRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var job = await repository.GetAsync(jobId, cancellationToken)
+            ?? throw new InvalidOperationException($"Publish job {jobId} was not found for queued execution.");
+
+        var stopwatch = Stopwatch.StartNew();
+        var result = await RunPipelineAsync(job, request, cancellationToken);
+        stopwatch.Stop();
+
+        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+    }
+
+    public async Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
+    {
+        var job = await CreatePendingJobAsync(request, cancellationToken);
+        await publishJobQueue.EnqueueAsync(new QueuedPublishJob(job.Id, request), cancellationToken);
+        return job.ToDto();
+    }
+
+    private async Task<PublishExecutionReportDto> BuildAndPersistReportAsync(
+        CreatePublishJobRequest request,
+        (PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath) result,
+        long elapsedMilliseconds,
+        CancellationToken cancellationToken)
+    {
         var jobDto = result.Job.ToDto();
         var errorCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
         var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
@@ -49,7 +83,7 @@ public sealed class PublishJobService(
             result.ReportPath,
             result.ValidationReport,
             jobDto,
-            stopwatch.ElapsedMilliseconds,
+            elapsedMilliseconds,
             integrityVerification.Summary,
             integrityVerification.Evidence,
             result.PublishReadiness,
@@ -314,11 +348,18 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
+        var job = await CreatePendingJobAsync(request, cancellationToken);
+        return await RunPipelineAsync(job, request, cancellationToken);
+    }
+
+    // 创建处于 Pending 的作业并持久化。防重的事实来源是 repository.AddAsync
+    // （活动作业唯一约束/守卫）；EnsureNoActivePublishAsync 仅作 best-effort 友好提示。
+    private async Task<PublishJob> CreatePendingJobAsync(
+        CreatePublishJobRequest request,
+        CancellationToken cancellationToken)
+    {
         await EnsureNoActivePublishAsync(request, cancellationToken);
 
-        ValidationReportDto? validationReport = null;
-        PublishReadinessReportDto? publishReadiness = null;
-        string? reportPath = null;
         var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
         await repository.AddAsync(job, cancellationToken);
         await TryWriteAuditAsync(
@@ -328,7 +369,17 @@ public sealed class PublishJobService(
             details: $"Publish job created for application {request.ApplicationId}, sequence {request.SequenceNumber}.",
             cancellationToken);
 
-        try
+        return job;
+    }
+
+    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath)> RunPipelineAsync(
+        PublishJob job,
+        CreatePublishJobRequest request,
+        CancellationToken cancellationToken)
+    {
+        ValidationReportDto? validationReport = null;
+        PublishReadinessReportDto? publishReadiness = null;
+        string? reportPath = null;        try
         {
             validationReport = await validationService.ValidateAsync(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),

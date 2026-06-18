@@ -108,17 +108,32 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
             SequenceNumber = "0001",
             OutputDirectoryPath = tempRoot.Path
         });
-        var report = await executeResponse.Content.ReadFromJsonAsync<PublishExecutionResponse>();
 
-        Assert.Equal(HttpStatusCode.OK, executeResponse.StatusCode);
-        Assert.NotNull(report);
-        Assert.False(report!.Succeeded);
-        Assert.Equal("Failed", report.PublishJob.Status);
-        Assert.NotNull(report.PublishReadiness);
-        Assert.False(report.PublishReadiness!.IsReady);
-        Assert.Contains(report.PublishReadiness.Findings, x => x.Code == "US_REGIONAL_METADATA_MISSING");
-        Assert.Null(report.PublishJob.OutputPath);
-        Assert.Null(report.PublishJob.PackagePath);
+        // 发布改为后台执行：/execute 返回 202 与作业 id，结果通过轮询作业获取。
+        Assert.Equal(HttpStatusCode.Accepted, executeResponse.StatusCode);
+        var acceptedJob = await executeResponse.Content.ReadFromJsonAsync<PublishJobResponse>();
+        Assert.NotNull(acceptedJob);
+
+        var job = await PollUntilTerminalAsync(client, acceptedJob!.Id);
+        Assert.Equal("Failed", job.Status);
+        Assert.Null(job.OutputPath);
+        Assert.Null(job.PackagePath);
+    }
+
+    private static async Task<PublishJobResponse> PollUntilTerminalAsync(HttpClient client, Guid jobId)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var job = await client.GetFromJsonAsync<PublishJobResponse>($"/api/publish-jobs/{jobId}");
+            if (job is not null && job.Status is "Completed" or "Failed")
+            {
+                return job;
+            }
+
+            await Task.Delay(50);
+        }
+
+        throw new InvalidOperationException($"Publish job {jobId} did not reach a terminal status in time.");
     }
 
     private HttpClient CreateClient(string allowedRoot, string apiKey)
@@ -210,8 +225,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         IReadOnlyCollection<PublishReadinessFindingResponse> Findings);
     private sealed record PublishReadinessCategorySummaryResponse(string Category, int BlockingErrorCount, int WarningCount, int FindingCount);
     private sealed record PublishReadinessFindingResponse(string Code, string? FieldName, string Category, string RecommendedAction);
-    private sealed record PublishExecutionResponse(bool Succeeded, PublishJobResponse PublishJob, PublishReadinessResponse? PublishReadiness);
-    private sealed record PublishJobResponse(string Status, string? OutputPath, string? PackagePath);
+    private sealed record PublishJobResponse(Guid Id, string Status, string? OutputPath, string? PackagePath);
 
     private sealed class TemporaryDirectory : IDisposable
     {

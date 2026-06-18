@@ -6,6 +6,7 @@ using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Applications;
+using RATools.Application.Publishing;
 using RATools.Application.Validation;
 using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Persistence.EfCore;
@@ -25,6 +26,8 @@ public static class DependencyInjection
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
+        services.AddSingleton<IPublishJobQueue, ChannelPublishJobQueue>();
+        services.AddHostedService<PublishJobBackgroundService>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
         services.AddSingleton<IWorkspacePathPolicy, ConfiguredWorkspacePathPolicy>();
         services.AddSingleton<StartupConfigurationValidator>();

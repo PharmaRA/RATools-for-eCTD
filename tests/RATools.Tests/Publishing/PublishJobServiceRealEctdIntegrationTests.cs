@@ -212,7 +212,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             validationService,
             publishReadinessService,
             auditLogService,
-            new PublishOutputVerifier());
+            new PublishOutputVerifier(),
+            new FakePublishJobQueue());
     }
 
     private sealed class RecordingAuditLogService : IAuditLogService

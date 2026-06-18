@@ -28,7 +28,7 @@ public sealed class PublishJobServiceEvidenceTests
             var validation = new PassingValidationService();
             var backbone = new EvidenceBackboneService(root);
             var readiness = new PassingPublishReadinessService();
-            var service = new PublishJobService(repository, backbone, validation, readiness, new NoopAuditLogService(), new PublishOutputVerifier());
+            var service = new PublishJobService(repository, backbone, validation, readiness, new NoopAuditLogService(), new PublishOutputVerifier(), new FakePublishJobQueue());
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 
@@ -69,7 +69,8 @@ public sealed class PublishJobServiceEvidenceTests
                 validation,
                 readiness,
                 new NoopAuditLogService(),
-                new PublishOutputVerifier());
+                new PublishOutputVerifier(),
+                new FakePublishJobQueue());
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 

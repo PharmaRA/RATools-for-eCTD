@@ -53,7 +53,6 @@ function Invoke-RequestStatusCode {
         if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
             return [int]$_.Exception.Response.StatusCode
         }
-
         throw
     }
 }
@@ -65,6 +64,25 @@ function Download-File {
     )
 
     Invoke-WebRequest -Method Get -Uri $Url -Headers $ApiHeaders -OutFile $DestinationPath -UseBasicParsing | Out-Null
+}
+
+function Wait-ForPublishJob {
+    param(
+        [string]$BaseUrl,
+        [string]$JobId,
+        [int]$TimeoutSeconds = 60
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $job = Invoke-JsonGet -Url "$BaseUrl/api/publish-jobs/$JobId"
+        if ($job.status -eq "Completed" -or $job.status -eq "Failed") {
+            return $job
+        }
+        Start-Sleep -Milliseconds 250
+    }
+
+    throw "Publish job $JobId did not reach a terminal status within $TimeoutSeconds seconds."
 }
 
 function Invoke-FileUpload {
@@ -284,16 +302,18 @@ try {
     }
 
     Write-Step "Executing publish job"
-    $publishReport = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs/execute" -Body @{
+    $acceptedJob = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs/execute" -Body @{
         applicationId = $application.id
         sequenceNumber = "0000"
     }
 
-    $publishJob = $publishReport.publishJob
+    Write-Step "Waiting for background publish job to complete"
+    $publishJob = Wait-ForPublishJob -BaseUrl $BaseUrl -JobId $acceptedJob.id
 
     if ($CorruptReportAfterPublish) {
         Write-Step "Corrupting persisted publish report"
-        Set-Content -Path $publishReport.reportPath -Value "{not-json}" -Encoding UTF8
+        $reportForCorruption = Invoke-JsonGet -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/report"
+        Set-Content -Path $reportForCorruption.reportPath -Value "{not-json}" -Encoding UTF8
     }
 
     Write-Step "Reading persisted publish report"
@@ -328,21 +348,21 @@ try {
         throw "Publish job did not complete successfully. Failure: $($publishJob.failureReason)"
     }
 
-    if (-not $publishReport.integritySummary) {
-        throw "Publish execution report did not include integritySummary."
-    }
-
-    if (-not $publishReport.integritySummary.isConsistent) {
-        throw "Publish execution report integritySummary reported inconsistent artifacts."
-    }
-
     if (-not $CorruptReportAfterPublish) {
-        if ($persistedReport.reportVersion -ne $publishReport.reportVersion) {
-            throw "Persisted report version '$($persistedReport.reportVersion)' does not match execute response '$($publishReport.reportVersion)'."
+        if (-not $persistedReport.integritySummary) {
+            throw "Persisted publish report did not include integritySummary."
         }
 
-        if ($persistedReport.reportPath -ne $publishReport.reportPath) {
-            throw "Persisted report path '$($persistedReport.reportPath)' does not match execute response '$($publishReport.reportPath)'."
+        if (-not $persistedReport.integritySummary.isConsistent) {
+            throw "Persisted publish report integritySummary reported inconsistent artifacts."
+        }
+
+        if (-not $persistedReport.reportVersion) {
+            throw "Persisted publish report did not include a reportVersion."
+        }
+
+        if (-not $persistedReport.reportPath) {
+            throw "Persisted publish report did not include a reportPath."
         }
     }
     else {
@@ -511,8 +531,10 @@ try {
         throw 'Generated index.xml does not contain checksum-type="md5" on leaf nodes.'
     }
 
-    if ([string]::IsNullOrWhiteSpace($publishReport.reportPath) -or -not (Test-Path $publishReport.reportPath)) {
-        throw "Publish report path does not exist: $($publishReport.reportPath)"
+    if (-not $CorruptReportAfterPublish) {
+        if ([string]::IsNullOrWhiteSpace($persistedReport.reportPath) -or -not (Test-Path $persistedReport.reportPath)) {
+            throw "Publish report path does not exist: $($persistedReport.reportPath)"
+        }
     }
 
     if ([string]::IsNullOrWhiteSpace($publishJob.packagePath) -or -not (Test-Path $publishJob.packagePath)) {
@@ -586,53 +608,53 @@ try {
 
     Write-Host ""
     Write-Host "Smoke test completed." -ForegroundColor Green
-    Write-Host "Report Ver.    : $($publishReport.reportVersion)"
+    Write-Host "Report Ver.    : $($persistedReport.reportVersion)"
     Write-Host "Application ID : $($application.id)"
     Write-Host "Document ID    : $($document.id)"
     Write-Host "Document ID 2  : $($duplicateDocument.id)"
     Write-Host "Placement ID   : $($placement.id)"
     Write-Host "Placement ID 2 : $($duplicatePlacement.id)"
     Write-Host "Valid          : $($validation.isValid)"
-    Write-Host "Publish Valid  : $($publishReport.validationReport.isValid)"
-    Write-Host "Val Profile    : $($publishReport.validationProfile)"
-    Write-Host "Succeeded      : $($publishReport.succeeded)"
-    Write-Host "Message        : $($publishReport.message)"
-    Write-Host "Duration (ms)  : $($publishReport.durationMs)"
-    Write-Host "Integrity OK   : $($publishReport.integritySummary.isConsistent)"
-    Write-Host "Error Count    : $($publishReport.errorCount)"
-    Write-Host "Warning Count  : $($publishReport.warningCount)"
-    Write-Host "Warn Summary   : $($publishReport.warningSummary)"
+    Write-Host "Publish Valid  : $($persistedReport.validationReport.isValid)"
+    Write-Host "Val Profile    : $($persistedReport.validationProfile)"
+    Write-Host "Succeeded      : $($persistedReport.succeeded)"
+    Write-Host "Message        : $($persistedReport.message)"
+    Write-Host "Duration (ms)  : $($persistedReport.durationMs)"
+    Write-Host "Integrity OK   : $($persistedReport.integritySummary.isConsistent)"
+    Write-Host "Error Count    : $($persistedReport.errorCount)"
+    Write-Host "Warning Count  : $($persistedReport.warningCount)"
+    Write-Host "Warn Summary   : $($persistedReport.warningSummary)"
     Write-Host "Publish Job ID : $($publishJob.id)"
     Write-Host "Status         : $($publishJob.status)"
-    Write-Host "Report Path    : $($publishReport.reportPath)"
+    Write-Host "Report Path    : $($persistedReport.reportPath)"
     Write-Host "Index Path     : $($publishJob.outputPath)"
     Write-Host "Package Path   : $($publishJob.packagePath)"
 
-    if ($publishReport.artifactSummary) {
-        Write-Host "Artifact Files : $($publishReport.artifactSummary.fileCount)"
-        Write-Host "Artifact Bytes : $($publishReport.artifactSummary.totalSizeBytes)"
-        Write-Host "Package Bytes  : $($publishReport.artifactSummary.packageSizeBytes)"
+    if ($persistedReport.artifactSummary) {
+        Write-Host "Artifact Files : $($persistedReport.artifactSummary.fileCount)"
+        Write-Host "Artifact Bytes : $($persistedReport.artifactSummary.totalSizeBytes)"
+        Write-Host "Package Bytes  : $($persistedReport.artifactSummary.packageSizeBytes)"
     }
 
-    if ($publishReport.auditSummary) {
-        Write-Host "Audit(Publish) : $($publishReport.auditSummary.publishJobEventCount)"
-        Write-Host "Audit(Valid)   : $($publishReport.auditSummary.validationEventCount)"
-        Write-Host "Audit Last Act : $($publishReport.auditSummary.latestPublishJobAction)"
+    if ($persistedReport.auditSummary) {
+        Write-Host "Audit(Publish) : $($persistedReport.auditSummary.publishJobEventCount)"
+        Write-Host "Audit(Valid)   : $($persistedReport.auditSummary.validationEventCount)"
+        Write-Host "Audit Last Act : $($persistedReport.auditSummary.latestPublishJobAction)"
     }
 
     Write-Host "Artifacts OK   : $($artifacts.artifacts.Count) item(s)"
     Write-Host "Download Check : Passed"
 
-    if (-not $publishReport.validationReport.isValid) {
+    if (-not $persistedReport.validationReport.isValid) {
         Write-Host ""
         Write-Host "Validation issues:" -ForegroundColor Yellow
-        $publishReport.validationReport.issues | ForEach-Object {
+        $persistedReport.validationReport.issues | ForEach-Object {
             Write-Host "- [$($_.severity)] $($_.code): $($_.message)"
         }
     }
 
     if ($InjectWarnings) {
-        $nonStandardPatternWarning = $publishReport.validationReport.issues | Where-Object { $_.code -eq "NON_STANDARD_SECTION_PATTERN" } | Select-Object -First 1
+        $nonStandardPatternWarning = $persistedReport.validationReport.issues | Where-Object { $_.code -eq "NON_STANDARD_SECTION_PATTERN" } | Select-Object -First 1
         if (-not $nonStandardPatternWarning) {
             throw "Expected NON_STANDARD_SECTION_PATTERN warning was not returned when InjectWarnings was enabled."
         }
