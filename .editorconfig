@@ -1,0 +1,41 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Noisy rules start at suggestion and can be promoted as the codebase is cleaned.
+dotnet_diagnostic.CA1062.severity = suggestion
+dotnet_diagnostic.CA1031.severity = suggestion
+dotnet_diagnostic.CA1303.severity = suggestion
+dotnet_diagnostic.CA2007.severity = none
+
+# MD5 is used as a non-security file-integrity checksum mandated by the eCTD
+# ICH v3.2.2 backbone spec (see LocalBackboneFileWriter, IchIndexXmlWriter).
+# SHA256 covers the security-sensitive integrity evidence. Suppress the
+# "broken cryptographic algorithm" rule for this intentional, documented use.
+dotnet_diagnostic.CA5351.severity = none
+
+[*Tests.cs]
+# xUnit test method names use Method_Scenario_Result with underscores by convention.
+dotnet_diagnostic.CA1707.severity = none
+
+[*.{ts,tsx,js,jsx,json,yml,yaml,css}]
+indent_style = space
+indent_size = 2
+
+[*.{csproj,props,targets}]
+indent_style = space
+indent_size = 2
