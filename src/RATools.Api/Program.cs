@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Reflection;
+using RATools.Api.Health;
 using RATools.Api.Middleware;
 using RATools.Api.Security;
 using RATools.Application;
@@ -35,6 +37,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// 健康检查：存活探针不含依赖；就绪探针（ready 标签）在关系型 provider 下探测数据库。
+var healthChecksBuilder = builder.Services.AddHealthChecks();
+var persistenceProvider = builder.Configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
+if (!string.Equals(persistenceProvider, "InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    healthChecksBuilder.AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
+}
+
 var app = builder.Build();
 
 var provider = app.Configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
@@ -64,6 +74,19 @@ if (swaggerEnabled)
 
 app.MapGet("/", () => Results.Redirect(swaggerEnabled ? "/swagger" : "/health")).AllowAnonymous();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
+// 存活探针：进程在跑即 200，不探测依赖，供编排器存活探针使用。
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous();
+
+// 就绪探针：聚合 ready 标签下的检查（数据库等），不就绪时返回 503，供负载均衡器/就绪探针使用。
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).AllowAnonymous();
+
 app.MapGet("/version", () =>
 {
     var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
