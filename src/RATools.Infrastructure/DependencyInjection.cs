@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();
         services.AddScoped<IPublishJobRepository, EfCorePublishJobRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
+        services.AddScoped<IApplicationDeletionTransaction, EfCoreApplicationDeletionTransaction>();
         return services;
     }
 }
