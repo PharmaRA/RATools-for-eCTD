@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Spin, Tag, Tree, message } from 'antd'
-import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Tag, message } from 'antd'
+import { ArrowLeft, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
-import { PathPicker } from '../PathPicker'
 import { createAndExecutePublishJob } from '../publishActions'
 import {
   getSequencePublishingMetadata,
@@ -13,33 +12,29 @@ import {
   getPublishReadiness,
   type PublishReadinessReport,
   validateSequence,
-  type ValidationIssue,
-  type ValidationLifecycleMatch,
   type ValidationReport,
-  type ValidationSectionMatch,
 } from '../validationActions'
-import { ectdAllowedExtensionsHint, isAllowedEctdFileName, splitFileName } from '../ectdFileTypes'
+import {
+  buildPrePublishChecklistSummary,
+} from '../prePublishChecklist'
+import { splitFileName } from '../ectdFileTypes'
 import {
   deletePlacementWithDocument,
   movePlacementToSection,
   PlacementDeletePartialFailureError,
   revisePlacementMetadata,
-  serializePlacementDragPayload,
-  tryParsePlacementDragPayload,
-  WORKSPACE_PLACEMENT_DRAG_MIME,
 } from '../workspaceActions'
 import {
-  attachDocumentNodes,
   findWorkspaceTreeNode,
-  mapSectionTreeData,
   resolveUploadSection,
-  type DocumentPlacementRecord,
-  type DocumentRecord,
-  type EctdStructureNode,
-  type WorkspaceTreeNode,
 } from '../workspaceTree'
-import { type EctdStructureResponse, getErrorMessage, getSectionAncestorKeys } from './appShared'
+import { getErrorMessage, getSectionAncestorKeys } from './appShared'
 import { LeafMetadataPanel } from './LeafMetadataPanel'
+import { PublishModal, type MetadataFormValues } from './workspace/PublishModal'
+import { useWorkspaceDragDrop } from './workspace/useWorkspaceDragDrop'
+import { useWorkspaceData } from './workspace/useWorkspaceData'
+import { ValidationSummaryPanel } from './workspace/ValidationSummaryPanel'
+import { WorkspaceTree } from './workspace/WorkspaceTree'
 
 const compareSequenceNumbers = (left: string, right: string) => {
   const leftNumber = Number(left)
@@ -69,173 +64,6 @@ type ValidationLocation = {
   sectionPath?: string | null
 }
 
-type PrePublishChecklistRow = {
-  key: string
-  label: string
-  status: 'pass' | 'fail' | 'info'
-  detail: string
-  blocking: boolean
-}
-
-type NormalizedValidationReport = {
-  validationProfile: string
-  issues: ValidationIssue[]
-  sectionMatches: ValidationSectionMatch[]
-  lifecycleMatches: ValidationLifecycleMatch[]
-}
-
-type MetadataFormValues = {
-  applicationType?: string
-  submissionType: string
-  submissionSubtype?: string
-  sequenceDescription: string
-  applicantName: string
-  formType?: string
-  applicantContactName?: string
-  applicantContactType?: string
-  telephone?: string
-  telephoneNumberType?: string
-  email?: string
-}
-
-const validationApiProfile = 'Validation API'
-const apiErrorCode = 'API_ERROR'
-const structurallyUnusableReportMessage = 'Validation service returned an unusable report.'
-const blockingSectionIssueCodes = new Set(['INVALID_SECTION_PATH', 'SECTION_MISSING'])
-
-const stringEqualsIgnoreCase = (left: string | null | undefined, right: string) => {
-  return String(left || '').trim().toLowerCase() === right.toLowerCase()
-}
-
-const isErrorIssue = (issue: ValidationIssue) => stringEqualsIgnoreCase(issue.severity, 'Error')
-
-const hasUsableIssueSeverity = (issue: ValidationIssue) => typeof issue?.severity === 'string'
-  && issue.severity.trim().length > 0
-
-const normalizeValidationReport = (validationResult: ValidationReport): NormalizedValidationReport => {
-  const issues = Array.isArray(validationResult.issues) ? validationResult.issues : []
-  const sectionMatches = Array.isArray(validationResult.sectionMatches) ? validationResult.sectionMatches : []
-  const lifecycleMatches = Array.isArray(validationResult.lifecycleMatches) ? validationResult.lifecycleMatches : []
-  const validationProfile = validationResult.validationProfile || validationApiProfile
-  const isStructurallyUsable = Array.isArray(validationResult.issues)
-    && Array.isArray(validationResult.sectionMatches)
-    && Array.isArray(validationResult.lifecycleMatches)
-    && issues.every(hasUsableIssueSeverity)
-
-  if (isStructurallyUsable) {
-    return { validationProfile, issues, sectionMatches, lifecycleMatches }
-  }
-
-  return {
-    validationProfile,
-    issues: [
-      ...issues,
-      { severity: 'Error', code: apiErrorCode, message: structurallyUnusableReportMessage },
-    ],
-    sectionMatches,
-    lifecycleMatches,
-  }
-}
-
-const isBlockingSectionIssue = (issue: ValidationIssue) => {
-  const code = String(issue.code || '').trim().toUpperCase()
-  return blockingSectionIssueCodes.has(code)
-    || (Boolean(issue.sectionPath?.trim()) && code.includes('SECTION'))
-}
-
-const getChecklistTagColor = (row: PrePublishChecklistRow) => {
-  if (row.status === 'pass') return 'green'
-  if (row.blocking) return 'red'
-  return 'blue'
-}
-
-const getChecklistTagLabel = (row: PrePublishChecklistRow) => {
-  if (row.status === 'pass') return 'Pass'
-  if (row.status === 'fail') return 'Fail'
-  return 'Awareness'
-}
-
-const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => {
-  const normalizedResult = normalizeValidationReport(validationResult)
-  const issues = normalizedResult.issues
-  const sectionMatches = normalizedResult.sectionMatches
-  const lifecycleMatches = normalizedResult.lifecycleMatches
-  const blockingIssues = issues.filter(isErrorIssue)
-  const warningIssues = issues.filter((issue) => !isErrorIssue(issue))
-  const hasApiError = blockingIssues.some((issue) => stringEqualsIgnoreCase(issue.code, apiErrorCode))
-  const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
-  const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
-  const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
-  const sectionRows = sectionMatches.filter((match) => !match.isValid || !match.isStandard)
-  const canProceed = !hasApiError && blockingIssues.length === 0
-  const hasBlockingLifecycleIssue = blockingIssues.some((issue) => lifecycleMatches.some((match) => issue.code === match.resultCode)
-    || issue.code.startsWith('LIFECYCLE_')
-    || issue.code.endsWith('_TARGET_NOT_FOUND'))
-  const hasBlockingSectionIssue = blockingIssues.some(isBlockingSectionIssue)
-  const checklistRows: PrePublishChecklistRow[] = [
-    {
-      key: 'api-reachable',
-      label: 'Validation API reachable',
-      status: hasApiError ? 'fail' : 'pass',
-      detail: hasApiError ? 'Validation service did not return a usable report.' : 'Validation API returned a report.',
-      blocking: true,
-    },
-    {
-      key: 'blocking-errors',
-      label: 'No blocking validation errors',
-      status: blockingIssues.length === 0 ? 'pass' : 'fail',
-      detail: `${blockingIssues.length} blocking error(s)`,
-      blocking: true,
-    },
-    {
-      key: 'lifecycle-targets',
-      label: 'Lifecycle targets resolved',
-      status: lifecycleIssueCount === 0 ? 'pass' : hasBlockingLifecycleIssue ? 'fail' : 'info',
-      detail: lifecycleMatches.length === 0
-        ? 'No lifecycle operations were checked.'
-        : `${lifecycleIssueCount} lifecycle issue(s)`,
-      blocking: lifecycleIssueCount > 0 && hasBlockingLifecycleIssue,
-    },
-    {
-      key: 'section-paths',
-      label: 'Section paths acceptable',
-      status: hasBlockingSectionIssue
-        ? 'fail'
-        : invalidSectionCount > 0 || nonStandardSectionCount > 0
-          ? 'info'
-          : 'pass',
-      detail: `${invalidSectionCount} invalid | ${nonStandardSectionCount} non-standard`,
-      blocking: hasBlockingSectionIssue,
-    },
-    {
-      key: 'warnings-reviewed',
-      label: 'Warnings reviewed',
-      status: warningIssues.length === 0 ? 'pass' : 'info',
-      detail: `${warningIssues.length} warning(s) for reviewer awareness`,
-      blocking: false,
-    },
-  ]
-
-  return {
-    severity: canProceed ? 'success' as const : 'error' as const,
-    profile: normalizedResult.validationProfile,
-    issueCount: issues.length,
-    blockingIssueCount: blockingIssues.length,
-    warningCount: warningIssues.length,
-    hasApiError,
-    canProceed,
-    blockingIssues,
-    warningIssues,
-    lifecycleMatches,
-    lifecycleIssueCount,
-    sectionMatches,
-    invalidSectionCount,
-    nonStandardSectionCount,
-    sectionRows,
-    checklistRows,
-  }
-}
-
 export const SequenceWorkspacePage = ({
   appId,
   seqNumber,
@@ -246,17 +74,21 @@ export const SequenceWorkspacePage = ({
   updateSequencePublishingMetadataProvider = updateSequencePublishingMetadata,
   createAndExecutePublishJobProvider = createAndExecutePublishJob,
 }: SequenceWorkspacePageProps) => {
-  const [placements, setPlacements] = useState<DocumentPlacementRecord[]>([])
-  const [applicationPlacements, setApplicationPlacements] = useState<DocumentPlacementRecord[]>([])
-  const [documentsById, setDocumentsById] = useState<Record<string, DocumentRecord>>({})
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [dragOverNode, setDragOverNode] = useState<string | null>(null)
-  const [draggingPlacementId, setDraggingPlacementId] = useState<string | null>(null)
-  const [treeLoading, setTreeLoading] = useState(false)
-  const [treeError, setTreeError] = useState<string | null>(null)
-  const [ectdRoots, setEctdRoots] = useState<EctdStructureNode[]>([])
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+  const {
+    placements,
+    applicationPlacements,
+    documentsById,
+    treeData,
+    treeLoading,
+    treeError,
+    placementsError,
+    documentsError,
+    expandedKeys,
+    setExpandedKeys,
+    refreshWorkspaceData,
+  } = useWorkspaceData({ appId, seqNumber })
   const [selectedTreeKey, setSelectedTreeKey] = useState<string | null>(null)
   const [selectedSectionPath, setSelectedSectionPath] = useState<string | null>(null)
   const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set())
@@ -264,10 +96,6 @@ export const SequenceWorkspacePage = ({
   const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null)
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
   const [validationResult, setValidationResult] = useState<ValidationReport | null>(null)
-
-  const treeData = useMemo(() => {
-    return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById)
-  }, [documentsById, ectdRoots, placements])
 
   const [metadataForm] = Form.useForm()
   const [publishForm] = Form.useForm()
@@ -422,70 +250,6 @@ export const SequenceWorkspacePage = ({
     }
   }, [selectedSectionPath, selectedTreeKey, treeData])
 
-  const fetchPlacements = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/document-placements')
-      const list = Array.isArray(res) ? res : (res.items || [])
-      const applicationMapped = list.filter((p: DocumentPlacementRecord) => p.applicationId === appId)
-      const mapped = list.filter((p: DocumentPlacementRecord) => p.applicationId === appId && p.sequenceNumber === seqNumber)
-      setApplicationPlacements(applicationMapped)
-      setPlacements(mapped)
-    } catch (e) {
-      console.warn('Could not fetch existing placements', e)
-    }
-  }, [appId, seqNumber])
-
-  const fetchDocuments = useCallback(async () => {
-    try {
-      const docs = await apiFetch('/api/documents') as DocumentRecord[]
-      const mapped = Object.fromEntries((docs || []).map((doc) => [doc.id, doc]))
-      setDocumentsById(mapped)
-    } catch (e) {
-      console.warn('Could not fetch documents', e)
-    }
-  }, [])
-
-  const fetchEctdStructure = useCallback(async () => {
-    setTreeLoading(true)
-    setTreeError(null)
-    try {
-      const response = await apiFetch(`/api/applications/${appId}/ectd-structure`) as EctdStructureResponse
-      const roots = response.roots || []
-      setEctdRoots(roots)
-      setExpandedKeys(roots.map((node) => node.sectionPath))
-    } catch (e) {
-      setTreeError(getErrorMessage(e, 'Failed to load eCTD structure'))
-      setEctdRoots([])
-      setExpandedKeys([])
-    } finally {
-      setTreeLoading(false)
-    }
-  }, [appId])
-
-  useEffect(() => {
-    void Promise.resolve().then(async () => {
-      await fetchPlacements()
-      await fetchDocuments()
-    })
-  }, [fetchDocuments, fetchPlacements])
-
-  useEffect(() => {
-    void Promise.resolve().then(fetchEctdStructure)
-  }, [fetchEctdStructure])
-
-  const refreshWorkspaceData = async () => {
-    await Promise.all([fetchPlacements(), fetchDocuments()])
-  }
-
-  const getPlacementPayloadFromDataTransfer = (dataTransfer: DataTransfer) => {
-    const preferred = tryParsePlacementDragPayload(dataTransfer.getData(WORKSPACE_PLACEMENT_DRAG_MIME))
-    if (preferred) {
-      return preferred
-    }
-
-    return tryParsePlacementDragPayload(dataTransfer.getData('text/plain'))
-  }
-
   const handleMovePlacement = async (placementId: string, fromSection: string, toSection: string) => {
     setMovingPlacementIds((current) => new Set(current).add(placementId))
     setLoading(true)
@@ -616,6 +380,12 @@ export const SequenceWorkspacePage = ({
       setLoading(false)
     }
   }
+
+  const dragDrop = useWorkspaceDragDrop({
+    placements,
+    movePlacement: handleMovePlacement,
+    uploadFile: handleDirectDrop,
+  })
 
   const openPublishModal = async () => {
     setPublishing(true)
@@ -792,378 +562,46 @@ export const SequenceWorkspacePage = ({
         </Button>
       </div>
 
-      <Modal
-        title="Publish Sequence"
+      <PublishModal
         open={isPublishModalOpen}
-        onCancel={handlePublishModalCancel}
+        publishing={publishing}
+        validationSummary={validationSummary}
+        publishReadiness={publishReadiness}
+        publishForm={publishForm}
+        publishMetadataForm={publishMetadataForm}
         onOk={triggerPublish}
-        confirmLoading={publishing}
-        destroyOnHidden
-      >
-        <Form form={publishForm} layout="vertical" requiredMark={false}>
-          {validationSummary?.canProceed && (
-            <Alert
-              type="success"
-              showIcon
-              className="mb-3"
-              title="Pre-publish checks passed"
-              description={`Pre-publish checks passed. ${validationSummary.warningCount} warning(s) remain for reviewer awareness.`}
-            />
-          )}
-          {publishReadiness && !publishReadiness.isReady && (publishReadiness.missingMetadataFields?.length || 0) > 0 && (
-            <div className="mb-3 flex flex-col gap-3">
-              <Alert
-                type="warning"
-                showIcon
-                title="Publish readiness is blocked"
-                description="Complete the required publishing metadata fields below. The publish action will save them and rerun readiness before execution."
-              />
-              <div className="rounded border border-gray-200 bg-white/70 p-3 text-sm" data-testid="publish-readiness-findings">
-                {publishReadiness.findings.map((finding) => (
-                  <div key={`${finding.code}-${finding.fieldName || 'none'}`} className="mb-2 last:mb-0">
-                    <Tag color={finding.severity.toLowerCase() === 'error' ? 'red' : 'gold'}>{finding.code}</Tag>
-                    {finding.fieldName && <Tag color="blue">{finding.fieldName}</Tag>}
-                    <span>{finding.recommendedAction}</span>
-                  </div>
-                ))}
-              </div>
-              <Form form={publishMetadataForm} layout="vertical" requiredMark={false} component={false}>
-                <Form.Item name="applicationType" label="Application Type" rules={[{ required: true, message: 'Application type is required.' }]}>
-                  <Input placeholder="e.g. IND" />
-                </Form.Item>
-                <Form.Item name="submissionType" label="Submission Type" rules={[{ required: true, message: 'Submission type is required.' }]}>
-                  <Input placeholder="e.g. original-application" />
-                </Form.Item>
-                <Form.Item name="submissionSubtype" label="Submission Subtype" rules={[{ required: true, message: 'Submission subtype is required.' }]}>
-                  <Input placeholder="e.g. initial" />
-                </Form.Item>
-                <Form.Item name="sequenceDescription" label="Sequence Description" rules={[{ required: true, message: 'Sequence description is required.' }]}>
-                  <Input.TextArea rows={2} />
-                </Form.Item>
-                <Form.Item name="applicantName" label="Applicant Name" rules={[{ required: true, message: 'Applicant name is required.' }]}>
-                  <Input placeholder="e.g. Acme Pharma" />
-                </Form.Item>
-                <Form.Item name="formType" label="Form Type">
-                  <Input placeholder="e.g. 356h" />
-                </Form.Item>
-                <Form.Item name="applicantContactName" label="Applicant Contact Name" rules={[{ required: true, message: 'Applicant contact name is required.' }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item name="applicantContactType" label="Applicant Contact Type" rules={[{ required: true, message: 'Applicant contact type is required.' }]}>
-                  <Input placeholder="e.g. regulatory" />
-                </Form.Item>
-                <Form.Item name="telephone" label="Telephone" rules={[{ required: true, message: 'Telephone is required.' }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item name="telephoneNumberType" label="Telephone Number Type" rules={[{ required: true, message: 'Telephone number type is required.' }]}>
-                  <Input placeholder="e.g. office" />
-                </Form.Item>
-                <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required.' }]}>
-                  <Input type="email" />
-                </Form.Item>
-              </Form>
-            </div>
-          )}
-          <Form.Item
-            name="outputDirectoryPath"
-            label="Export Directory"
-            rules={[{ required: true, message: 'Export directory is required.' }]}
-          >
-            <PathPicker placeholder="e.g. C:/eCTD/exports" />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onCancel={handlePublishModalCancel}
+      />
 
       {validationSummary && (
-        <div data-testid="validation-summary" data-severity={validationSummary.severity}>
-          <Alert
-            type={validationSummary.severity}
-            showIcon
-            title={<span data-testid="validation-summary-title">{validationStatusText}</span>}
-            description={(
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap gap-2">
-                  <span data-testid="validation-summary-profile">{validationSummary.profile}</span>
-                  <span data-testid="validation-summary-issue-count">{validationIssueCountText}</span>
-                  <span data-testid="validation-summary-has-api-error">{validationSummary.hasApiError ? 'Yes' : 'No'}</span>
-                  <span data-testid="validation-summary-status-label">{validationStatusText}</span>
-                </div>
-                <div data-testid="validation-summary-details" className="flex flex-col gap-3">
-                  <div data-testid="validation-summary-checklist" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Pre-publish Checklist</div>
-                    <div className="flex flex-col gap-2">
-                      {validationSummary.checklistRows.map((row) => (
-                        <div key={row.key} data-testid={`validation-summary-checklist-${row.key}`}>
-                          <Tag color={getChecklistTagColor(row)}>{getChecklistTagLabel(row)}</Tag>
-                          <span>{row.label}</span>
-                          <span> | {row.detail}</span>
-                          {!row.blocking && <Tag color="blue" className="ml-2">Non-blocking</Tag>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div data-testid="validation-summary-issues" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Blocking Issues</div>
-                    {validationSummary.blockingIssues.length === 0 ? (
-                      <div>No blocking validation errors found.</div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {validationSummary.blockingIssues.map((issue: ValidationIssue) => (
-                          <div key={`blocking-${issue.severity}-${issue.code}-${issue.message}`}>
-                            <Tag color="red">{issue.severity}</Tag>
-                            <Tag color="red">{issue.code}</Tag>
-                            {issue.message}
-                            {hasValidationLocation(issue) && (
-                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue(issue)}>Locate</Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div data-testid="validation-summary-warnings" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Warnings</div>
-                    {validationSummary.warningIssues.length === 0 ? (
-                      <div>No validation warnings found.</div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {validationSummary.warningIssues.map((issue: ValidationIssue) => (
-                          <div key={`warning-${issue.severity}-${issue.code}-${issue.message}`}>
-                            <Tag color="gold">{issue.severity}</Tag>
-                            <Tag color="gold">{issue.code}</Tag>
-                            {issue.message}
-                            {hasValidationLocation(issue) && (
-                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue(issue)}>Locate</Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div data-testid="validation-summary-lifecycle" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Lifecycle Targets</div>
-                    {validationSummary.lifecycleMatches.length === 0 ? (
-                      <div>No lifecycle operations were checked.</div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {validationSummary.lifecycleMatches.map((match) => (
-                          <div key={`${match.operation}-${match.sequenceNumber}-${match.ctdSection}-${match.documentId}`}>
-                            <Tag color={match.resultCode === 'MATCHED' ? 'green' : 'red'}>{match.resultCode}</Tag>
-                            <span>{match.operation} in {match.ctdSection}</span>
-                            <span> | sequence {match.sequenceNumber}</span>
-                            <span> | strategy {match.matchStrategy}</span>
-                            <span> | {match.historicalMatchCount} historical match{match.historicalMatchCount === 1 ? '' : 'es'}</span>
-                            {match.historicalSequenceNumbers.length > 0 && <span> | historical sequences {match.historicalSequenceNumbers.join(', ')}</span>}
-                            <span> | final state {match.historicalFinalState}</span>
-                            {hasValidationLocation({ documentId: match.documentId, sectionPath: match.ctdSection }) && (
-                              <Button size="small" className="ml-2" onClick={() => locateValidationIssue({ documentId: match.documentId, sectionPath: match.ctdSection })}>Locate</Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div data-testid="validation-summary-sections" className="rounded border border-gray-200 bg-white/70 p-3">
-                    <div className="mb-2 font-semibold">Section Matches</div>
-                    {validationSummary.sectionMatches.length === 0 ? (
-                      <div>No section matches were checked.</div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <div>
-                          {validationSummary.sectionMatches.length} checked | {validationSummary.invalidSectionCount} invalid | {validationSummary.nonStandardSectionCount} non-standard
-                        </div>
-                        {validationSummary.sectionRows.length === 0 ? (
-                          <div>All checked sections are valid standard matches.</div>
-                        ) : (
-                          validationSummary.sectionRows.map((match) => (
-                            <div key={`${match.sectionPath}-${match.reason || 'ok'}`}>
-                              <Tag color={match.isValid ? 'gold' : 'red'}>{match.isValid ? 'Non-standard' : 'Invalid'}</Tag>
-                              <span>{match.sectionPath}</span>
-                              {match.matchedPrefix && <span> | matched {match.matchedPrefix}</span>}
-                              {match.reason && <span> | {match.reason}</span>}
-                              {hasValidationLocation({ sectionPath: match.sectionPath }) && (
-                                <Button size="small" className="ml-2" onClick={() => locateValidationIssue({ sectionPath: match.sectionPath })}>Locate</Button>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          />
-        </div>
+        <ValidationSummaryPanel
+          summary={validationSummary}
+          statusText={validationStatusText}
+          issueCountText={validationIssueCountText}
+          hasValidationLocation={hasValidationLocation}
+          locateValidationIssue={locateValidationIssue}
+        />
       )}
+
+      {placementsError && <Alert type="error" showIcon title="Failed to load workspace placements" description={placementsError} />}
+      {documentsError && <Alert type="error" showIcon title="Failed to load workspace documents" description={documentsError} />}
 
       <Row gutter={16}>
         <Col span={12}>
-          <Card title="eCTD Structure (Drag & Drop files here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
-            {treeError && <Alert type="error" showIcon className="mb-3" title="Failed to load eCTD structure" description={treeError} />}
-            <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it. Allowed extensions: {ectdAllowedExtensionsHint}</p>
-            <Spin spinning={loading || treeLoading}>
-              <Tree
-                className="ectd-tree"
-                treeData={treeData}
-                expandedKeys={expandedKeys}
-                selectedKeys={selectedTreeKey ? [selectedTreeKey] : []}
-                blockNode
-                height={520}
-                virtual
-                motion={null}
-                onExpand={(keys) => setExpandedKeys(keys.map((key) => String(key)))}
-                onSelect={(keys) => {
-                  const selectedKey = keys.length > 0 ? String(keys[0]) : null
-                  if (!selectedKey) {
-                    setSelectedTreeKey(null)
-                    return
-                  }
-
-                  const resolvedSelectedNode = findWorkspaceTreeNode(treeData, selectedKey)
-                  if (!resolvedSelectedNode) {
-                    return
-                  }
-
-                  setSelectedTreeKey(resolvedSelectedNode.key)
-                  setSelectedSectionPath(resolvedSelectedNode.sectionPath)
-                  setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(resolvedSelectedNode.sectionPath)])))
-                }}
-                titleRender={(nodeData: WorkspaceTreeNode) => {
-                  const isSelected = selectedTreeKey === nodeData.key
-                  const isHovered = dragOverNode === nodeData.key
-                  const isSection = nodeData.nodeType === 'section'
-                  const acceptsPlacementDrop = isSection
-                  const acceptsFileDrop = isSection && nodeData.canDrop
-                  const canDrop = acceptsFileDrop || (isSection && draggingPlacementId !== null)
-                  const isBusy = loading || treeLoading
-                  const titleText = String(nodeData.title ?? '')
-                  const titleMatch = isSection ? /^([0-9]+(?:\.[0-9A-Z]+)*)\s+(.+)$/.exec(titleText) : null
-                  const titlePrefix = titleMatch ? titleMatch[1] : null
-                  const titleLabel = titleMatch ? titleMatch[2] : titleText
-
-                  return (
-                    <div
-                      draggable={!isSection && !isBusy}
-                      onDragStart={(e) => {
-                        if (isSection || nodeData.nodeType !== 'document') {
-                          return
-                        }
-
-                        setDraggingPlacementId(nodeData.placementId)
-                        e.dataTransfer.effectAllowed = 'move'
-                        const payload = serializePlacementDragPayload({
-                          placementId: nodeData.placementId,
-                          documentId: nodeData.documentId,
-                          sectionPath: nodeData.sectionPath,
-                        })
-                        e.dataTransfer.setData(
-                          WORKSPACE_PLACEMENT_DRAG_MIME,
-                          payload,
-                        )
-                        e.dataTransfer.setData('text/plain', payload)
-                      }}
-                      onDragEnd={() => setDraggingPlacementId(null)}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-
-                        const internalPayload = getPlacementPayloadFromDataTransfer(e.dataTransfer)
-                        const internalDragActive = draggingPlacementId !== null || internalPayload !== null
-                        const allowDrop = internalDragActive ? acceptsPlacementDrop : acceptsFileDrop
-
-                        e.dataTransfer.dropEffect = allowDrop
-                          ? (internalDragActive ? 'move' : 'copy')
-                          : 'none'
-
-                        if (allowDrop) {
-                          setDragOverNode(nodeData.key)
-                        } else if (dragOverNode === nodeData.key) {
-                          setDragOverNode(null)
-                        }
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (dragOverNode === nodeData.key) setDragOverNode(null)
-                      }}
-                      onDrop={async (e) => {
-                        e.preventDefault(); e.stopPropagation()
-                        setDragOverNode(null)
-
-                        const internalPayload = getPlacementPayloadFromDataTransfer(e.dataTransfer)
-                          ?? (() => {
-                            if (!draggingPlacementId) {
-                              return null
-                            }
-
-                            const placement = placements.find((item) => item.id === draggingPlacementId)
-                            if (!placement) {
-                              return null
-                            }
-
-                            return {
-                              placementId: placement.id,
-                              documentId: placement.documentId,
-                              sectionPath: placement.ctdSection,
-                            }
-                          })()
-
-                        if (internalPayload) {
-                          if (!acceptsPlacementDrop) {
-                            message.warning('Move documents onto a section node.')
-                            return
-                          }
-
-                          await handleMovePlacement(internalPayload.placementId, internalPayload.sectionPath, nodeData.sectionPath)
-                          setDraggingPlacementId(null)
-                          return
-                        }
-
-                        const files = e.dataTransfer.files
-                        if (!files || files.length === 0) {
-                          return
-                        }
-
-                        if (!acceptsFileDrop) {
-                          message.warning(nodeData.nodeType === 'document'
-                            ? 'Drop files on a section, not a document.'
-                            : 'Only leaf sections accept dropped files.')
-                          return
-                        }
-
-                        const file = files[0]
-                        if (!isAllowedEctdFileName(file.name)) {
-                          message.error(`Unsupported file extension. Allowed: ${ectdAllowedExtensionsHint}`)
-                          return
-                        }
-                        await handleDirectDrop(file, nodeData.sectionPath)
-                      }}
-                      className={`ectd-tree-node ${isSection ? 'ectd-tree-node--section' : 'ectd-tree-node--document'} ${canDrop ? 'ectd-tree-node--droppable' : ''} ${isHovered ? 'ectd-tree-node--hover' : ''} ${isSelected ? 'ectd-tree-node--selected' : ''} ${nodeData.nodeType === 'document' && draggingPlacementId === nodeData.placementId ? 'ectd-tree-node--dragging' : ''}`}
-                    >
-                      <div className="ectd-tree-node__main">
-                        <span className="ectd-tree-node__icon">
-                          {isSection ? <FolderOpen size={16} /> : <FileText size={16} />}
-                        </span>
-                        <div className="ectd-tree-node__text">
-                          <div className="ectd-tree-node__labelRow">
-                            {titlePrefix && <span className="ectd-tree-node__prefix">{titlePrefix}</span>}
-                            <span className="ectd-tree-node__label">{titleLabel}</span>
-                            {!isSection && <Tag className="ectd-tree-node__tag" color="blue">{nodeData.operation}</Tag>}
-                          </div>
-                        </div>
-                      </div>
-                      {isSection && nodeData.hasPlacement && <CheckCircle size={14} className="ectd-tree-node__status" />}
-                    </div>
-                  )
-                }}
-              />
-            </Spin>
-          </Card>
+          <WorkspaceTree
+            treeData={treeData}
+            expandedKeys={expandedKeys}
+            selectedTreeKey={selectedTreeKey}
+            loading={loading}
+            treeLoading={treeLoading}
+            treeError={treeError}
+            setExpandedKeys={setExpandedKeys}
+            onSelectNode={(node) => {
+              setSelectedTreeKey(node.key)
+              setSelectedSectionPath(node.sectionPath)
+            }}
+            dragDrop={dragDrop}
+          />
         </Col>
 
         <Col span={12}>

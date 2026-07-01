@@ -1,0 +1,134 @@
+import { act, useEffect } from 'react'
+import { createRoot } from 'react-dom/client'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useWorkspaceData } from './useWorkspaceData'
+import type { apiFetch as defaultApiFetch } from '../../apiClient'
+
+type UseWorkspaceDataOptions = {
+  appId: string
+  seqNumber: string
+  apiFetch: typeof defaultApiFetch
+}
+
+type UseWorkspaceDataResult = ReturnType<typeof useWorkspaceData>
+
+const waitForExpectation = async (assertion: () => void) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      assertion()
+      return
+    } catch (error) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+
+      if (attempt === 19) {
+        throw error
+      }
+    }
+  }
+}
+
+const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  let current: UseWorkspaceDataResult | null = null
+
+  const Probe = () => {
+    const value = useWorkspaceData(options)
+    useEffect(() => {
+      current = value
+    })
+    return null
+  }
+
+  act(() => {
+    root.render(<Probe />)
+  })
+
+  return {
+    get current() {
+      if (!current) {
+        throw new Error('Hook did not render.')
+      }
+
+      return current
+    },
+    unmount: () => {
+      act(() => {
+        root.unmount()
+      })
+      host.remove()
+    },
+  }
+}
+
+describe('useWorkspaceData', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('loads placements, documents, structure, and derived tree data', async () => {
+    const apiFetch = vi.fn()
+      .mockImplementation((url: string) => {
+        if (url === '/api/document-placements') {
+          return Promise.resolve([
+            { id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New' },
+          ])
+        }
+
+        if (url === '/api/documents') {
+          return Promise.resolve([
+            { id: 'doc-1', fileName: 'cover.pdf', storagePath: '/tmp/cover.pdf' },
+          ])
+        }
+
+        if (url === '/api/applications/app-1/ectd-structure') {
+          return Promise.resolve({
+            roots: [{ elementName: 'm1', sectionPath: '1.2', displayName: 'Cover', sourceProfile: 'FDA', children: [] }],
+          })
+        }
+
+        return Promise.reject(new Error(`Unexpected URL ${url}`))
+      })
+
+    const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
+
+    await waitForExpectation(() => expect(result.current.treeData).toHaveLength(1))
+
+    expect(result.current.placements).toHaveLength(1)
+    expect(result.current.documentsById['doc-1'].fileName).toBe('cover.pdf')
+    expect(result.current.treeData[0].children).toHaveLength(1)
+    expect(result.current.treeError).toBeNull()
+    expect(result.current.placementsError).toBeNull()
+    expect(result.current.documentsError).toBeNull()
+    result.unmount()
+  })
+
+  it('stores visible placement and document load errors', async () => {
+    const apiFetch = vi.fn()
+      .mockImplementation((url: string) => {
+        if (url === '/api/document-placements') {
+          return Promise.reject(new Error('placements unavailable'))
+        }
+
+        if (url === '/api/documents') {
+          return Promise.reject(new Error('documents unavailable'))
+        }
+
+        if (url === '/api/applications/app-1/ectd-structure') {
+          return Promise.resolve({ roots: [] })
+        }
+
+        return Promise.reject(new Error(`Unexpected URL ${url}`))
+      })
+
+    const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
+
+    await waitForExpectation(() => expect(result.current.placementsError).toBe('placements unavailable'))
+    expect(result.current.documentsError).toBe('documents unavailable')
+    result.unmount()
+  })
+})

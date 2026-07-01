@@ -304,6 +304,161 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(source).not.toContain('statusLabel')
   })
 
+  it('renders visible workspace data load errors', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/document-placements') {
+        return Promise.reject(new Error('placements unavailable'))
+      }
+
+      if (url === '/api/documents') {
+        return Promise.reject(new Error('documents unavailable'))
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          profileName: 'US FDA eCTD 3.2.2',
+          region: 'US',
+          roots: [],
+        }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider: vi.fn(),
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Failed to load workspace placements')
+    expect(document.body.textContent).toContain('placements unavailable')
+    expect(document.body.textContent).toContain('Failed to load workspace documents')
+    expect(document.body.textContent).toContain('documents unavailable')
+
+    unmount()
+  })
+
+  it('renders focusable accessible workspace tree items', async () => {
+    stubWorkspaceFetch()
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider: vi.fn(),
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+
+    const treeItems = Array.from(document.querySelectorAll('.ectd-tree-node[role="treeitem"]')) as HTMLElement[]
+    const documentNode = treeItems.find((item) => item.classList.contains('ectd-tree-node--document') && item.textContent?.includes('protocol.pdf'))
+    const sectionNode = treeItems.find((item) => item.classList.contains('ectd-tree-node--section') && item.textContent?.includes('Forms'))
+
+    expect(sectionNode).toBeTruthy()
+    expect(documentNode).toBeTruthy()
+    expect(documentNode?.getAttribute('aria-grabbed')).toBe('false')
+    expect(documentNode?.tabIndex).toBe(0)
+
+    act(() => {
+      documentNode!.focus()
+    })
+
+    expect(document.activeElement).toBe(documentNode)
+    unmount()
+  })
+
+  it('uploads every valid file from a multi-file section drop and reports invalid files', async () => {
+    const uploadedFileNames: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/document-placements' && init?.method === 'POST') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
+      }
+
+      if (url === '/api/document-placements') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+      }
+
+      if (url === '/api/documents') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+          profileName: 'US FDA eCTD 3.2.2',
+          region: 'US',
+          roots: [
+            {
+              elementName: 'm1-1-forms',
+              sectionPath: 'm1.1',
+              displayName: 'Forms',
+              sourceProfile: 'US FDA eCTD 3.2.2',
+              children: [],
+            },
+          ],
+        }) })
+      }
+
+      if (url === '/api/applications/app-1/sequences/0001/documents/upload') {
+        const body = init?.body as FormData
+        const file = body.get('file') as File
+        uploadedFileNames.push(file.name)
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ id: `doc-${uploadedFileNames.length}` }) })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    }))
+
+    const { unmount } = renderSequenceWorkspacePage({
+      appId: 'app-1',
+      seqNumber: '0001',
+      onBack: vi.fn(),
+      validateSequenceProvider: vi.fn(),
+      createAndExecutePublishJobProvider: vi.fn(),
+    })
+
+    await flushPromises()
+    await flushPromises()
+
+    const sectionNode = Array.from(document.querySelectorAll('.ectd-tree-node--section[role="treeitem"]'))
+      .find((item) => item.textContent?.includes('Forms')) as HTMLElement | undefined
+    expect(sectionNode).toBeTruthy()
+
+    const files = [
+      new File(['one'], 'one.pdf', { type: 'application/pdf' }),
+      new File(['two'], 'two.xml', { type: 'text/xml' }),
+      new File(['bad'], 'bad.exe', { type: 'application/octet-stream' }),
+    ]
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(dropEvent, 'dataTransfer', {
+      value: {
+        files,
+        getData: vi.fn().mockReturnValue(''),
+        dropEffect: 'none',
+      },
+    })
+
+    await act(async () => {
+      sectionNode!.dispatchEvent(dropEvent)
+    })
+
+    for (let attempt = 0; attempt < 10 && uploadedFileNames.length < 2; attempt += 1) {
+      await flushPromises()
+    }
+
+    expect(uploadedFileNames).toEqual(['one.pdf', 'two.xml'])
+    expect(message.error).toHaveBeenCalledWith(expect.stringContaining('bad.exe'))
+    unmount()
+  })
+
   it('renders validation failures without opening the publish modal', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
 
@@ -1031,6 +1186,13 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
     clickByText('Publish Sequence')
     await flushPromises()
+
+    expect(getValidationSummary()).toBeTruthy()
+    expect(getValidationSummaryField('checklist')).toBeTruthy()
+    expect(getValidationSummaryField('issues')).toBeTruthy()
+    expect(getValidationSummaryField('warnings')).toBeTruthy()
+    expect(getValidationSummaryField('lifecycle')).toBeTruthy()
+    expect(getValidationSummaryField('sections')).toBeTruthy()
 
     expect(getValidationSummaryField('issues')?.textContent).toContain('Blocking Issues')
     expect(getValidationSummaryField('issues')?.textContent).toContain('LIFECYCLE_TARGET_INVALID')
