@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message, type TableColumnsType } from 'antd'
 import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
 import { performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
-import { type Application, formatDate, getApplicationTemplateLabel } from './appShared'
+import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
   const [appData, setAppData] = useState<Application | null>(null)
@@ -27,27 +27,29 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const [sequenceBatchSummaryOpen, setSequenceBatchSummaryOpen] = useState(false)
   const [form] = Form.useForm()
 
-  const fetchApp = async () => {
+  const fetchApp = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/api/applications')
-      const target = data.find((a: any) => a.id === appId)
+      const data = await apiFetch('/api/applications') as Application[]
+      const target = data.find((application) => application.id === appId)
       setAppData(target || null)
     } catch {
       message.error('Failed to load application details.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [appId])
 
-  useEffect(() => { fetchApp() }, [appId])
+  useEffect(() => {
+    void Promise.resolve().then(fetchApp)
+  }, [fetchApp])
 
   useEffect(() => {
     setSelectedSequenceKeys([])
   }, [appId])
 
   useEffect(() => {
-    const validSequenceKeys = new Set((appData?.sequences || []).map((sequence: any) => String(sequence.sequenceNumber)))
+    const validSequenceKeys = new Set((appData?.sequences || []).map((sequence) => String(sequence.sequenceNumber)))
     setSelectedSequenceKeys((current) => {
       const next = current.filter((key) => validSequenceKeys.has(key))
       return next.length === current.length ? current : next
@@ -65,7 +67,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
       setSeqModalVisible(false)
       form.resetFields()
       fetchApp()
-    } catch (e: any) { message.error('Failed to create sequence: ' + e.message) }
+    } catch (e) { message.error('Failed to create sequence: ' + getErrorMessage(e)) }
   }
 
   const handleDeleteSequence = async (seqNumber: string, mode: DeleteMode) => {
@@ -133,8 +135,8 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
       setSequenceBatchSummary(summary)
       setSequenceBatchSummaryOpen(true)
       setSequenceBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false })
-    } catch (error: any) {
-      message.error('批量删除失败: ' + (error?.message || '未知错误'))
+    } catch (error) {
+      message.error('批量删除失败: ' + getErrorMessage(error, '未知错误'))
       setSequenceBatchDeleteDialog((current) => ({ ...current, running: false }))
     }
   }
@@ -150,6 +152,30 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0
   const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning
   const appTitle = appData ? `${appData.applicationNumber} (${appData.sponsorName})` : appId
+  const sequenceColumns: TableColumnsType<SequenceSummary> = [
+    { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
+    { title: 'Submission Type', dataIndex: 'submissionType' },
+    { title: 'Description', dataIndex: 'description' },
+    {
+      title: 'Actions', key: 'actions', render: (_, r) => (
+        <Space>
+          <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
+            Enter Workspace
+          </Button>
+          <Button
+            danger
+            type="text"
+            size="small"
+            icon={<Trash2 size={14} />}
+            title="Delete Sequence"
+            loading={deletingSequenceNumbers.has(r.sequenceNumber)}
+            disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
+            onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
+          />
+        </Space>
+      ),
+    },
+  ]
   const tabItems = [
     {
       key: 'sequences',
@@ -177,7 +203,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
               </Button>
             </Space>
           </div>
-          <Table
+          <Table<SequenceSummary>
             loading={loading}
             dataSource={appData?.sequences || []}
             rowKey="sequenceNumber"
@@ -185,37 +211,14 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             rowSelection={{
               selectedRowKeys: selectedSequenceKeys,
               onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(nextSelectedRowKeys.map((key) => String(key))),
-              getCheckboxProps: (record: any) => ({
+              getCheckboxProps: (record) => ({
                 disabled: sequenceBatchDeleteDialog.running || deletingSequenceNumbers.has(String(record.sequenceNumber)),
               }),
             }}
             pagination={{
               onChange: () => setSelectedSequenceKeys([]),
             }}
-            columns={[
-              { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
-              { title: 'Submission Type', dataIndex: 'submissionType' },
-              { title: 'Description', dataIndex: 'description' },
-              {
-                title: 'Actions', key: 'actions', render: (_: any, r: any) => (
-                  <Space>
-                    <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
-                      Enter Workspace
-                    </Button>
-                    <Button
-                      danger
-                      type="text"
-                      size="small"
-                      icon={<Trash2 size={14} />}
-                      title="Delete Sequence"
-                      loading={deletingSequenceNumbers.has(r.sequenceNumber)}
-                      disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
-                      onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
-                    />
-                  </Space>
-                ),
-              },
-            ]}
+            columns={sequenceColumns}
           />
         </>
       ),
@@ -237,7 +240,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
           </div>
           <Space className="mt-2 flex-wrap">
             <Tag color="blue">{getApplicationTemplateLabel(appData)}</Tag>
-            <span className="text-gray-500 text-sm border-r pr-2">Created: {formatDate(appData?.createdUtc)}</span>
+            <span className="text-gray-500 text-sm border-r pr-2">Created: {formatDate(appData?.createdUtc ?? undefined)}</span>
             {appData?.workingDirectoryPath && (
               <Tooltip title="Physical Working Directory Path">
                 <span className="text-gray-600 text-sm flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded font-mono">

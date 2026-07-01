@@ -1,42 +1,101 @@
-import { useEffect, useState } from 'react'
-import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, message } from 'antd'
+import { useCallback, useEffect, useState } from 'react'
+import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, message, type TableColumnsType } from 'antd'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes, formatDate, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor } from '../../pages/appShared'
+import { formatBytes, formatDate, getErrorMessage, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor, type LifecycleSummary, type ReportAvailability } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
 import { ReportPanel } from './ReportPanel'
 
 const readinessSortOptions = ['blocked-first', 'ready-first'] as const
+type ReadinessSort = typeof readinessSortOptions[number]
+
+type PublishHistoryFilterValues = {
+  sequenceNumber?: string
+  status?: string
+  readinessStatus?: string
+  readinessSort?: ReadinessSort | 'default' | null
+}
+
+type PublishReadinessSummary = {
+  isReady?: boolean
+  status?: string
+  blockingErrorCount?: number
+  warningCount?: number
+  missingMetadataFields?: string[]
+}
+
+type ArtifactSummary = {
+  fileCount?: number
+  packageSizeBytes?: number | null
+}
+
+type PublishHistoryEntry = ReportAvailability & {
+  publishJobId: string
+  sequenceNumber: string
+  status: string
+  validationProfile?: string | null
+  errorCount?: number | null
+  warningCount?: number | null
+  warningSummary?: string | null
+  lifecycleSummary?: LifecycleSummary | null
+  artifactSummary?: ArtifactSummary | null
+  reportError?: string | null
+  createdUtc?: string | null
+  publishReadiness?: PublishReadinessSummary | null
+}
+
+type PublishHistoryResponse = {
+  entries?: PublishHistoryEntry[]
+  totalCount?: number
+  statusSummary?: {
+    completedCount?: number
+    failedCount?: number
+    runningCount?: number
+  }
+  readinessSummary?: {
+    readyCount?: number
+    blockedCount?: number
+    unknownCount?: number
+  }
+  lifecycleSummary?: LifecycleSummary & {
+    matchedCount?: number
+  }
+}
+
+const isReadinessSort = (value: string | null): value is ReadinessSort => {
+  return !!value && (readinessSortOptions as readonly string[]).includes(value)
+}
 
 const getInitialQueryState = () => {
   const params = new URLSearchParams(window.location.search)
   const readinessSort = params.get('publishReadinessSort')
+  const validatedReadinessSort = isReadinessSort(readinessSort) ? readinessSort : null
 
   return {
     formValues: {
       sequenceNumber: params.get('publishSequenceNumber') || undefined,
       status: params.get('publishStatus') || undefined,
       readinessStatus: params.get('publishReadinessStatus') || undefined,
-      readinessSort: readinessSort && readinessSortOptions.includes(readinessSort as any) ? readinessSort : undefined,
+      readinessSort: validatedReadinessSort || undefined,
     },
-    readinessSort: readinessSort && readinessSortOptions.includes(readinessSort as any) ? readinessSort : null,
+    readinessSort: validatedReadinessSort,
   }
 }
 
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [initialQueryState] = useState(getInitialQueryState)
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<PublishHistoryResponse | null>(null)
   const [selectedReviewJobId, setSelectedReviewJobId] = useState<string | null>(null)
   const [selectedReportJobId, setSelectedReportJobId] = useState<string | null>(null)
   const [selectedArtifactsJobId, setSelectedArtifactsJobId] = useState<string | null>(null)
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<PublishHistoryFilterValues>()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [readinessSort, setReadinessSort] = useState<string | null>(initialQueryState.readinessSort)
+  const [readinessSort, setReadinessSort] = useState<ReadinessSort | null>(initialQueryState.readinessSort)
 
-  const replaceBrowserQuery = (values: any, nextReadinessSort: string | null) => {
+  const replaceBrowserQuery = (values: PublishHistoryFilterValues, nextReadinessSort: ReadinessSort | null) => {
     const params = new URLSearchParams(window.location.search)
     params.delete('publishSequenceNumber')
     params.delete('publishStatus')
@@ -52,7 +111,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     window.history.replaceState(null, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`)
   }
 
-  const fetchHistory = () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true)
     const values = form.getFieldsValue()
     const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() })
@@ -60,17 +119,24 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     if (values.status) params.append('status', values.status)
     if (values.readinessStatus) params.append('readinessStatus', values.readinessStatus)
 
-    apiFetch(`/api/applications/${appId}/publish-history?${params.toString()}`)
-      .then((res) => setData(res))
-      .catch((err) => message.error('Failed to load history: ' + err.message))
-      .finally(() => setLoading(false))
-  }
+    try {
+      const res = await apiFetch(`/api/applications/${appId}/publish-history?${params.toString()}`) as PublishHistoryResponse
+      setData(res)
+    } catch (err) {
+      message.error('Failed to load history: ' + getErrorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [appId, form, page, pageSize])
 
-  useEffect(() => { fetchHistory() }, [appId, page, pageSize])
+  useEffect(() => {
+    void Promise.resolve().then(fetchHistory)
+  }, [fetchHistory])
 
   const applyFilters = () => {
     const values = form.getFieldsValue()
-    const nextReadinessSort = values.readinessSort === 'default' ? null : values.readinessSort || null
+    const selectedReadinessSort = values.readinessSort || null
+    const nextReadinessSort = isReadinessSort(selectedReadinessSort) ? selectedReadinessSort : null
     setReadinessSort(nextReadinessSort)
     replaceBrowserQuery(values, nextReadinessSort)
 
@@ -154,13 +220,13 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     })
   }
 
-  const columns = [
+  const columns: TableColumnsType<PublishHistoryEntry> = [
     { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Badge status={getStatusColor(s) as any} text={s} /> },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Badge status={getStatusColor(s)} text={s} /> },
     { title: 'Profile', dataIndex: 'validationProfile', key: 'profile' },
     {
       title: 'Validation', key: 'validation', width: 220,
-      render: (_: any, r: any) => (
+      render: (_, r) => (
         <div>
           <div>{`Errors: ${r.errorCount ?? 0}`}</div>
           <div>{`Warnings: ${r.warningCount ?? 0}`}</div>
@@ -170,18 +236,18 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     },
     {
       title: 'Readiness', key: 'readiness', width: 180,
-      render: (_: any, r: any) => renderReadiness(r.publishReadiness),
+      render: (_, r) => renderReadiness(r.publishReadiness),
     },
     {
       title: 'Lifecycle', key: 'lifecycle', width: 160,
-      render: (_: any, r: any) => {
+      render: (_, r) => {
         const issueCount = getLifecycleIssueCount(r.lifecycleSummary)
         return issueCount === 0 ? 'All matched' : `${issueCount} issues`
       },
     },
     {
       title: 'Artifacts', key: 'artifacts', width: 180,
-      render: (_: any, r: any) => (
+      render: (_, r) => (
         <div>
           <div>{r.artifactSummary ? `${r.artifactSummary.fileCount} files` : '-'}</div>
           {r.artifactSummary && <div className="text-gray-500 text-xs">{formatBytes(r.artifactSummary.packageSizeBytes || 0)}</div>}
@@ -190,7 +256,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     },
     {
       title: 'Report', key: 'report', width: 180,
-      render: (_: any, r: any) => (
+      render: (_, r) => (
         <div>
           <div>{getReportAvailabilityLabel(r)}</div>
           {r.reportError && <div className="text-gray-500 text-xs">{r.reportError}</div>}
@@ -200,7 +266,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     { title: 'Created', dataIndex: 'createdUtc', key: 'created', render: formatDate },
     {
       title: 'Actions', key: 'actions', fixed: 'right' as const, width: 260,
-      render: (_: any, r: any) => (
+      render: (_, r) => (
         <Space>
           <Button size="small" type="primary" onClick={() => setSelectedReviewJobId(r.publishJobId)}>Review</Button>
           <Button size="small" onClick={() => setSelectedReportJobId(r.publishJobId)}>Report</Button>
@@ -228,12 +294,12 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       )}
       {data?.lifecycleSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount ?? 0} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount ?? 0} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount ?? 0} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount ?? 0} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount ?? 0} /></Card></Col>
+          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount ?? 0} /></Card></Col>
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">
@@ -262,7 +328,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
           </Form.Item>
           <Form.Item><Button type="primary" htmlType="submit">Filter</Button><Button className="ml-2" onClick={resetFilters}>Reset</Button></Form.Item>
         </Form>
-        <Table loading={loading} dataSource={getSortedEntries()} columns={columns} rowKey="publishJobId" size="small"
+        <Table<PublishHistoryEntry> loading={loading} dataSource={getSortedEntries()} columns={columns} rowKey="publishJobId" size="small"
           pagination={{ current: page, pageSize, total: data?.totalCount || 0, showSizeChanger: true, onChange: (p, ps) => { setPage(p); setPageSize(ps) } }}
         />
       </div>

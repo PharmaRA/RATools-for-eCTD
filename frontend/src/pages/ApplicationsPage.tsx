@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message } from 'antd'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message, type TableColumnsType } from 'antd'
 import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../apiClient'
@@ -7,7 +7,7 @@ import { performBatchDelete, performDelete, type BatchDeleteSummary, type Delete
 import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
 import { mapImportErrorToMessage, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
-import { type Application, formatDate, getApplicationTemplateLabel } from './appShared'
+import { type Application, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
   const [loading, setLoading] = useState(false)
@@ -36,19 +36,21 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   const [ectdTemplates, setEctdTemplates] = useState<EctdTemplateOption[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
 
-  const fetchApps = async () => {
+  const fetchApps = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/api/applications')
+      const data = await apiFetch('/api/applications') as Application[]
       setApps(data)
-    } catch (err: any) {
-      message.error('Failed to load apps: ' + err.message)
+    } catch (err) {
+      message.error('Failed to load apps: ' + getErrorMessage(err))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { fetchApps() }, [])
+  useEffect(() => {
+    void Promise.resolve().then(fetchApps)
+  }, [fetchApps])
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -56,8 +58,8 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       try {
         const templates = await loadEctdTemplates()
         setEctdTemplates(templates)
-      } catch (err: any) {
-        message.error('Failed to load eCTD templates: ' + err.message)
+      } catch (err) {
+        message.error('Failed to load eCTD templates: ' + getErrorMessage(err))
       } finally {
         setTemplatesLoading(false)
       }
@@ -93,7 +95,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       setAppModalVisible(false)
       form.resetFields()
       fetchApps()
-    } catch (e: any) { message.error('Failed to create application: ' + e.message) }
+    } catch (e) { message.error('Failed to create application: ' + getErrorMessage(e)) }
   }
 
   const handleImportApplication = async () => {
@@ -187,8 +189,8 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       setAppBatchSummary(summary)
       setAppBatchSummaryOpen(true)
       setAppBatchDeleteDialog({ open: false, mode: 'databaseOnly', running: false })
-    } catch (error: any) {
-      message.error('批量删除失败: ' + (error?.message || '未知错误'))
+    } catch (error) {
+      message.error('批量删除失败: ' + getErrorMessage(error, '未知错误'))
       setAppBatchDeleteDialog((current) => ({ ...current, running: false }))
     }
   }
@@ -210,14 +212,14 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   const importWarningCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'warning').length
   const importErrorCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'error').length
 
-  const columns = [
+  const columns: TableColumnsType<Application> = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
-    { title: 'eCTD Template', key: 'ectdTemplate', render: (_: any, r: Application) => <Tag color="blue">{getApplicationTemplateLabel(r)}</Tag> },
+    { title: 'eCTD Template', key: 'ectdTemplate', render: (_, r) => <Tag color="blue">{getApplicationTemplateLabel(r)}</Tag> },
     { title: 'Sponsor', dataIndex: 'sponsorName' },
     { title: 'Created', dataIndex: 'createdUtc', render: formatDate },
-    { title: 'Sequences', key: 'sequences', render: (_: any, r: Application) => r.sequences?.length || 0 },
+    { title: 'Sequences', key: 'sequences', render: (_, r) => r.sequences?.length || 0 },
     {
-      title: 'Action', key: 'action', render: (_: any, r: Application) => (
+      title: 'Action', key: 'action', render: (_, r) => (
         <Space>
           <Button
             type="primary"
@@ -282,7 +284,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
           <Button onClick={fetchApps} loading={loading}>Refresh</Button>
         </Space>
       </div>
-      <Table
+      <Table<Application>
         loading={loading}
         columns={columns}
         dataSource={apps}
@@ -290,7 +292,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         rowSelection={{
           selectedRowKeys: selectedAppKeys,
           onChange: (nextSelectedRowKeys) => setSelectedAppKeys(nextSelectedRowKeys.map((key) => String(key))),
-          getCheckboxProps: (record: any) => ({
+          getCheckboxProps: (record) => ({
             disabled: appBatchDeleteDialog.running || deletingAppIds.has(String(record.id)),
           }),
         }}

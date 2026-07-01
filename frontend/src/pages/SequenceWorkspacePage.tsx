@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Card, Col, Descriptions, Form, Input, Modal, Row, Spin, Tag, Tree, message } from 'antd'
 import { ArrowLeft, CheckCircle, FileText, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
@@ -38,7 +38,7 @@ import {
   type EctdStructureNode,
   type WorkspaceTreeNode,
 } from '../workspaceTree'
-import { type EctdStructureResponse, getSectionAncestorKeys } from './appShared'
+import { type EctdStructureResponse, getErrorMessage, getSectionAncestorKeys } from './appShared'
 import { LeafMetadataPanel } from './LeafMetadataPanel'
 
 const compareSequenceNumbers = (left: string, right: string) => {
@@ -422,7 +422,7 @@ export const SequenceWorkspacePage = ({
     }
   }, [selectedSectionPath, selectedTreeKey, treeData])
 
-  const fetchPlacements = async () => {
+  const fetchPlacements = useCallback(async () => {
     try {
       const res = await apiFetch('/api/document-placements')
       const list = Array.isArray(res) ? res : (res.items || [])
@@ -433,9 +433,9 @@ export const SequenceWorkspacePage = ({
     } catch (e) {
       console.warn('Could not fetch existing placements', e)
     }
-  }
+  }, [appId, seqNumber])
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       const docs = await apiFetch('/api/documents') as DocumentRecord[]
       const mapped = Object.fromEntries((docs || []).map((doc) => [doc.id, doc]))
@@ -443,9 +443,9 @@ export const SequenceWorkspacePage = ({
     } catch (e) {
       console.warn('Could not fetch documents', e)
     }
-  }
+  }, [])
 
-  const fetchEctdStructure = async () => {
+  const fetchEctdStructure = useCallback(async () => {
     setTreeLoading(true)
     setTreeError(null)
     try {
@@ -453,21 +453,25 @@ export const SequenceWorkspacePage = ({
       const roots = response.roots || []
       setEctdRoots(roots)
       setExpandedKeys(roots.map((node) => node.sectionPath))
-    } catch (e: any) {
-      setTreeError(e.message || 'Failed to load eCTD structure')
+    } catch (e) {
+      setTreeError(getErrorMessage(e, 'Failed to load eCTD structure'))
       setEctdRoots([])
       setExpandedKeys([])
     } finally {
       setTreeLoading(false)
     }
-  }
+  }, [appId])
 
   useEffect(() => {
-    fetchPlacements()
-    fetchDocuments()
-  }, [appId, seqNumber])
+    void Promise.resolve().then(async () => {
+      await fetchPlacements()
+      await fetchDocuments()
+    })
+  }, [fetchDocuments, fetchPlacements])
 
-  useEffect(() => { fetchEctdStructure() }, [appId])
+  useEffect(() => {
+    void Promise.resolve().then(fetchEctdStructure)
+  }, [fetchEctdStructure])
 
   const refreshWorkspaceData = async () => {
     await Promise.all([fetchPlacements(), fetchDocuments()])
@@ -498,8 +502,8 @@ export const SequenceWorkspacePage = ({
       setSelectedSectionPath(toSection)
       await refreshWorkspaceData()
       message.success('Document moved to target section.')
-    } catch (error: any) {
-      message.error(`Failed to move document: ${error?.message || 'Unknown error'}`)
+    } catch (error) {
+      message.error(`Failed to move document: ${getErrorMessage(error)}`)
     } finally {
       setMovingPlacementIds((current) => {
         const next = new Set(current)
@@ -517,11 +521,11 @@ export const SequenceWorkspacePage = ({
       await deletePlacementWithDocument({ placementId, documentId })
       await refreshWorkspaceData()
       message.success('Document mapping and physical file deleted.')
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof PlacementDeletePartialFailureError) {
         message.error(`Mapping deleted, but document/file delete failed: ${error.message}`)
       } else {
-        message.error(`Failed to delete mapped document: ${error?.message || 'Unknown error'}`)
+        message.error(`Failed to delete mapped document: ${getErrorMessage(error)}`)
       }
     } finally {
       setDeletingPlacementIds((current) => {
@@ -569,8 +573,8 @@ export const SequenceWorkspacePage = ({
       })
       await refreshWorkspaceData()
       message.success('File metadata revision saved.')
-    } catch (error: any) {
-      message.error(`Failed to save metadata revision: ${error?.message || 'Unknown error'}`)
+    } catch (error) {
+      message.error(`Failed to save metadata revision: ${getErrorMessage(error)}`)
     } finally {
       setSavingRevisionPlacementId(null)
       setLoading(false)
@@ -606,8 +610,8 @@ export const SequenceWorkspacePage = ({
 
       message.success({ content: `${file.name} mapped to ${targetSection} and saved!`, key: 'uploading' })
       await refreshWorkspaceData()
-    } catch (err: any) {
-      message.error({ content: `Failed: ${err.message}`, key: 'uploading' })
+    } catch (err) {
+      message.error({ content: `Failed: ${getErrorMessage(err)}`, key: 'uploading' })
     } finally {
       setLoading(false)
     }
@@ -685,8 +689,8 @@ export const SequenceWorkspacePage = ({
         outputDirectoryPath: '',
       })
       setIsPublishModalOpen(true)
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Unknown error'
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
       setValidationResult({
         applicationId: appId,
         sequenceNumber: String(seqNumber).trim(),
@@ -756,8 +760,8 @@ export const SequenceWorkspacePage = ({
       publishMetadataForm.resetFields()
       setPublishReadiness(null)
       onBack()
-    } catch (err: any) {
-      message.error('Publish failed: ' + err.message)
+    } catch (err) {
+      message.error('Publish failed: ' + getErrorMessage(err))
     } finally {
       setPublishing(false)
     }

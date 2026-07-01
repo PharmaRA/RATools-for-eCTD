@@ -1409,7 +1409,10 @@ describe('Publish history detail frontend', () => {
   })
 
   it('shows old-report compatibility message when integrity evidence is absent', async () => {
-    const { integrityEvidence: _, ...oldReportResponse } = publishReportResponse
+    const oldReportResponse: Omit<typeof publishReportResponse, 'integrityEvidence'> & {
+      integrityEvidence?: typeof publishReportResponse.integrityEvidence
+    } = { ...publishReportResponse }
+    delete oldReportResponse.integrityEvidence
 
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url === '/health') {

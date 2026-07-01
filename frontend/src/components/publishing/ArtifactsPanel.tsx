@@ -3,19 +3,43 @@ import { Button, Drawer, Spin, Table, Tag, message } from 'antd'
 import { Download } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes } from '../../pages/appShared'
+import { formatBytes, getErrorMessage } from '../../pages/appShared'
+
+type PublishArtifact = {
+  name: string
+  exists: boolean
+  sizeBytes: number
+  contentType?: string | null
+}
+
+type PublishArtifactsResponse = {
+  artifacts?: PublishArtifact[]
+}
 
 export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => void }) => {
   const [loading, setLoading] = useState(false)
-  const [artifacts, setArtifacts] = useState<any[]>([])
+  const [artifacts, setArtifacts] = useState<PublishArtifact[]>([])
 
   useEffect(() => {
     if (!jobId) return
-    setLoading(true)
-    apiFetch(`/api/publish-jobs/${jobId}/artifacts`)
-      .then((data) => setArtifacts(data.artifacts || []))
-      .catch((err) => message.error('Failed to load artifacts: ' + err.message))
-      .finally(() => setLoading(false))
+
+    let active = true
+
+    void Promise.resolve().then(async () => {
+      setLoading(true)
+      try {
+        const data = await apiFetch(`/api/publish-jobs/${jobId}/artifacts`) as PublishArtifactsResponse
+        if (active) setArtifacts(data.artifacts || [])
+      } catch (error) {
+        if (active) message.error('Failed to load artifacts: ' + getErrorMessage(error))
+      } finally {
+        if (active) setLoading(false)
+      }
+    })
+
+    return () => {
+      active = false
+    }
   }, [jobId])
 
   const columns = [
@@ -24,7 +48,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
     { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: (s: number) => formatBytes(s) },
     { title: 'Type', dataIndex: 'contentType', key: 'type' },
     {
-      title: 'Action', key: 'action', render: (_: any, record: any) => (
+      title: 'Action', key: 'action', render: (_: unknown, record: PublishArtifact) => (
         record.exists ? (
           <Button type="link" icon={<Download size={14} className="mr-1" />} href={`/api/publish-jobs/${jobId}/artifacts/${record.name}/download`} target="_blank" download>
             Download

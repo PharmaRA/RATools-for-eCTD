@@ -58,6 +58,42 @@ type PublishReadiness = {
   }>
 }
 
+type ValidationLifecycleMatch = {
+  resultCode: string
+}
+
+type IntegrityFinding = {
+  severity: string
+  type: string
+  path?: string | null
+  message: string
+}
+
+type PackageReviewReport = {
+  succeeded?: boolean
+  message?: string
+  sequenceNumber?: string | null
+  validationProfile?: string | null
+  errorCount?: number | null
+  warningCount?: number | null
+  publishJob?: {
+    status?: string | null
+  }
+  validationReport?: {
+    lifecycleMatches?: ValidationLifecycleMatch[]
+  }
+  integritySummary?: {
+    isConsistent?: boolean
+    missingFilesCount?: number | null
+    missingZipEntriesCount?: number | null
+    mismatchedArtifactsCount?: number | null
+  }
+  integrityEvidence?: {
+    findings?: IntegrityFinding[]
+  }
+  publishReadiness?: PublishReadiness | null
+}
+
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
 
 const isArtifact = (value: unknown): value is Artifact => {
@@ -65,6 +101,12 @@ const isArtifact = (value: unknown): value is Artifact => {
 }
 
 const toArtifactArray = (value: unknown) => Array.isArray(value) ? value.filter(isArtifact) : []
+
+const getArtifactsFromResponse = (value: unknown) => {
+  if (Array.isArray(value)) return toArtifactArray(value)
+  if (!value || typeof value !== 'object') return []
+  return toArtifactArray((value as { artifacts?: unknown }).artifacts)
+}
 
 const normalizeError = (error: unknown) => {
   if (error instanceof Error) return error
@@ -114,7 +156,7 @@ const buildErrorExport = (error: Error | null): ReviewExportError | undefined =>
 
 export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) => {
   const [loading, setLoading] = useState(false)
-  const [report, setReport] = useState<any>(null)
+  const [report, setReport] = useState<PackageReviewReport | null>(null)
   const [artifacts, setArtifacts] = useState<Artifact[]>([])
   const [artifactsLoaded, setArtifactsLoaded] = useState(false)
   const [reportError, setReportError] = useState<Error | null>(null)
@@ -122,45 +164,48 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
   useEffect(() => {
     if (!jobId) {
-      setLoading(false)
-      setReport(null)
-      setArtifacts([])
-      setArtifactsLoaded(false)
-      setReportError(null)
-      setArtifactsError(null)
+      void Promise.resolve().then(() => {
+        setLoading(false)
+        setReport(null)
+        setArtifacts([])
+        setArtifactsLoaded(false)
+        setReportError(null)
+        setArtifactsError(null)
+      })
       return
     }
 
     let active = true
 
-    setLoading(true)
-    setReport(null)
-    setArtifacts([])
-    setArtifactsLoaded(false)
-    setReportError(null)
-    setArtifactsError(null)
+    void Promise.resolve().then(async () => {
+      setLoading(true)
+      setReport(null)
+      setArtifacts([])
+      setArtifactsLoaded(false)
+      setReportError(null)
+      setArtifactsError(null)
 
-    Promise.allSettled([
-      apiFetch(`/api/publish-jobs/${jobId}/report`),
-      apiFetch(`/api/publish-jobs/${jobId}/artifacts`),
-    ]).then(([reportResult, artifactsResult]) => {
+      const [reportResult, artifactsResult] = await Promise.allSettled([
+        apiFetch(`/api/publish-jobs/${jobId}/report`),
+        apiFetch(`/api/publish-jobs/${jobId}/artifacts`),
+      ])
+
       if (!active) return
 
       if (reportResult.status === 'fulfilled') {
-        setReport(reportResult.value)
+        setReport(reportResult.value as PackageReviewReport)
       } else {
         setReportError(normalizeError(reportResult.reason))
       }
 
       if (artifactsResult.status === 'fulfilled') {
-        const artifactData = artifactsResult.value
-        setArtifacts(Array.isArray(artifactData) ? toArtifactArray(artifactData) : toArtifactArray(artifactData?.artifacts))
+        setArtifacts(getArtifactsFromResponse(artifactsResult.value))
         setArtifactsLoaded(true)
       } else {
         setArtifactsError(normalizeError(artifactsResult.reason))
       }
-    }).finally(() => {
-      if (active) setLoading(false)
+
+      setLoading(false)
     })
 
     return () => {
@@ -170,7 +215,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
   const reportLoaded = !reportError && !!report
   const lifecycleMatches = report?.validationReport?.lifecycleMatches || []
-  const lifecycleIssueCount = lifecycleMatches.filter((match: any) => match.resultCode !== 'MATCHED').length
+  const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
   const presentArtifactCount = REQUIRED_ARTIFACTS.filter((name) => hasArtifact(artifacts, name)).length
   const packageZipExists = hasArtifact(artifacts, 'PackageZip')
   const publishReportExists = hasArtifact(artifacts, 'PublishReport')
@@ -209,7 +254,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
   ]
 
   const readyForSubmission = checklistRows.every((row) => row.pass)
-  const findings = reportLoaded ? report?.integrityEvidence?.findings || [] : []
+  const findings: IntegrityFinding[] = reportLoaded ? report?.integrityEvidence?.findings || [] : []
   const requiredArtifactRows = REQUIRED_ARTIFACTS.map((name) => artifacts.find((artifact) => artifact.name === name) || { name, exists: false })
   const reviewLoading = loading || (!!jobId && !report && !reportError && artifacts.length === 0 && !artifactsError)
   const riskSummaryItems = [
@@ -344,7 +389,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             type="warning"
             showIcon
             title="Warnings do not block readiness"
-            description={`${report.warningCount} warning(s) remain for reviewer awareness.`}
+            description={`${report?.warningCount ?? 0} warning(s) remain for reviewer awareness.`}
           />
         )}
 
@@ -431,7 +476,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           ) : findings.length > 0 ? (
             <Table
               dataSource={findings}
-              rowKey={(_: any, index) => `finding-${index}`}
+              rowKey={(_, index) => `finding-${index}`}
               pagination={{ pageSize: 10 }}
               size="small"
               columns={[
