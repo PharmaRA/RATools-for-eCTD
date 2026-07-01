@@ -17,6 +17,7 @@ using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
+using RATools.Application.Validation.Rules;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 using RATools.Infrastructure.Persistence.InMemory;
@@ -204,7 +205,9 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             packageModelBuilder,
             new IchIndexXmlWriter(),
             new UsRegionalXmlWriter(),
-            new EctdXmlValidator());
+            new EctdXmlValidator(),
+            standardsProfileProvider,
+            new EctdValidationEngine(new FdaEctdRuleSetProvider([new FileNamingConventionRule()])));
 
         return new PublishJobService(
             publishJobRepository,

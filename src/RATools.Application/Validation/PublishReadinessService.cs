@@ -3,8 +3,10 @@ using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
+using RATools.Application.Standards;
 using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
+using RATools.Application.Validation.Rules;
 
 namespace RATools.Application.Validation;
 
@@ -13,7 +15,9 @@ public sealed class PublishReadinessService(
     IEctdPackageModelBuilder packageModelBuilder,
     IIchIndexXmlWriter ichIndexXmlWriter,
     IUsRegionalXmlWriter usRegionalXmlWriter,
-    IEctdXmlValidator ectdXmlValidator) : IPublishReadinessService
+    IEctdXmlValidator ectdXmlValidator,
+    IStandardsProfileProvider standardsProfileProvider,
+    IEctdValidationEngine validationEngine) : IPublishReadinessService
 {
     public async Task<PublishReadinessReportDto> GetAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
@@ -43,6 +47,13 @@ public sealed class PublishReadinessService(
 
                 var regionalResult = usRegionalXmlWriter.Write(package);
                 ectdXmlValidator.Validate(new BackboneGeneratedFile(regionalResult.RelativePath, regionalResult.XmlContent));
+
+                // dry-run 构建与 DTD 校验通过后，运行验证准则规则引擎，
+                // 其分级 finding 并入 readiness finding 与分类统计。
+                var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
+                var ruleFindings = validationEngine.Evaluate(
+                    new EctdValidationContext(profile, request, package, null));
+                findings.AddRange(ruleFindings);
             }
             catch (UsRegionalXmlMetadataException exception)
             {

@@ -10,6 +10,7 @@ using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
+using RATools.Application.Validation.Rules;
 
 namespace RATools.Application;
 
@@ -32,6 +33,9 @@ public static class DependencyInjection
         services.AddSingleton<IEctdXmlValidator, EctdXmlValidator>();
         services.AddScoped<IEctdPackageModelBuilder, EctdPackageModelBuilder>();
         services.AddSingleton<IStandardsProfileProvider, FdaEctd322StandardsProfileProvider>();
+        services.AddSingleton<IEctdValidationRule, FileNamingConventionRule>();
+        services.AddSingleton<IEctdValidationRuleSetProvider, FdaEctdRuleSetProvider>();
+        services.AddSingleton<IEctdValidationEngine, EctdValidationEngine>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
         services.AddSingleton<PublishOutputVerifier>();
         services.AddScoped<IPublishJobService, PublishJobService>();
