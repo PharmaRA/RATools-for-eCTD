@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
 using RATools.Application.Validation;
@@ -18,6 +17,8 @@ public sealed class PublishJobService(
     ISequenceValidationService validationService,
     IPublishReadinessService publishReadinessService,
     IAuditLogService auditLogService,
+    PublishArtifactResolver artifactResolver,
+    PublishReportStore reportStore,
     PublishOutputVerifier publishOutputVerifier,
     IPublishJobQueue publishJobQueue) : IPublishJobService
 {
@@ -73,7 +74,6 @@ public sealed class PublishJobService(
         var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
         var warningSummary = BuildWarningSummary(result.ValidationReport);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
-        var integrityVerification = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
 
         var report = new PublishExecutionReportDto(
             PublishExecutionReportVersion,
@@ -84,8 +84,8 @@ public sealed class PublishJobService(
             result.ValidationReport,
             jobDto,
             elapsedMilliseconds,
-            integrityVerification.Summary,
-            integrityVerification.Evidence,
+            null,
+            null,
             result.PublishReadiness,
             null,
             auditSummary,
@@ -95,11 +95,23 @@ public sealed class PublishJobService(
             result.Job.Status == PublishJobStatus.Completed,
             result.Message);
 
-        report = report with { ArtifactSummary = BuildArtifactSummary(jobDto) };
+        report = report with { ArtifactSummary = await artifactResolver.BuildArtifactSummaryAsync(jobDto, cancellationToken) };
 
         if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
         {
-            await WriteFinalReportAsync(report, cancellationToken);
+            await reportStore.WriteAsync(report, cancellationToken);
+        }
+
+        var integrityVerification = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
+        report = report with
+        {
+            IntegritySummary = integrityVerification.Summary,
+            IntegrityEvidence = integrityVerification.Evidence
+        };
+
+        if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
+        {
+            await reportStore.WriteAsync(report, cancellationToken);
         }
 
         return report;
@@ -113,42 +125,7 @@ public sealed class PublishJobService(
             return null;
         }
 
-        if (job.Status != PublishJobStatus.Completed)
-        {
-            throw new PublishJobNotReadyException($"Publish job {id} is in status '{job.Status}' and does not have a final report yet.");
-        }
-
-        if (string.IsNullOrWhiteSpace(job.OutputPath))
-        {
-            throw new PublishJobReportUnavailableException($"Publish job {id} completed without an output path.");
-        }
-
-        var outputDirectory = Path.GetDirectoryName(job.OutputPath);
-        if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
-        {
-            throw new PublishJobReportUnavailableException($"Publish output directory for job {id} no longer exists.");
-        }
-
-        var expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
-        if (!File.Exists(expectedReportPath))
-        {
-            throw new PublishJobReportUnavailableException($"Publish report for job {id} was not found at '{expectedReportPath}'.");
-        }
-
-        try
-        {
-            var json = await File.ReadAllTextAsync(expectedReportPath, cancellationToken);
-            var report = JsonSerializer.Deserialize<PublishExecutionReportDto>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            return report ?? throw new PublishJobReportCorruptedException($"Publish report for job {id} could not be deserialized.");
-        }
-        catch (JsonException exception)
-        {
-            throw new PublishJobReportCorruptedException($"Publish report for job {id} is corrupted: {exception.Message}");
-        }
+        return await reportStore.ReadAsync(job, cancellationToken);
     }
 
     public async Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -159,19 +136,7 @@ public sealed class PublishJobService(
             return null;
         }
 
-        var outputPath = job.OutputPath;
-        var reportPath = outputPath is null
-            ? null
-            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
-
-        var artifacts = new List<PublishArtifactDto>
-        {
-            BuildArtifact("BackboneXml", "file", outputPath),
-            BuildArtifact("PublishReport", "file", reportPath),
-            BuildArtifact("PackageZip", "file", job.PackagePath)
-        };
-
-        return new PublishArtifactsDto(job.Id, job.ApplicationId, job.SequenceNumber, artifacts);
+        return await artifactResolver.BuildArtifactsAsync(job, cancellationToken);
     }
 
     public async Task<PublishArtifactDownloadDto?> GetArtifactDownloadAsync(Guid id, string artifactName, CancellationToken cancellationToken = default)
@@ -187,7 +152,7 @@ public sealed class PublishJobService(
             throw new PublishJobNotReadyException($"Publish job {id} is in status '{job.Status}' and artifacts are not available yet.");
         }
 
-        var artifact = ResolveArtifact(job, artifactName);
+        var artifact = await artifactResolver.ResolveAsync(job, artifactName, cancellationToken);
         if (artifact is null)
         {
             throw new PublishArtifactNotSupportedException($"Artifact '{artifactName}' is not supported.");
@@ -212,58 +177,6 @@ public sealed class PublishJobService(
             artifact.ContentType);
     }
 
-    private static PublishArtifactDto BuildArtifact(string name, string type, string? path)
-    {
-        var exists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
-        var sizeBytes = exists ? new FileInfo(path!).Length : 0;
-        return new PublishArtifactDto(name, type, path, exists, sizeBytes, GetContentType(name, path));
-    }
-
-    private static PublishArtifactDto? ResolveArtifact(PublishJob job, string artifactName)
-    {
-        var outputPath = job.OutputPath;
-        var reportPath = outputPath is null
-            ? null
-            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
-
-        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
-        {
-            return BuildArtifact("BackboneXml", "file", outputPath);
-        }
-
-        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
-        {
-            return BuildArtifact("PublishReport", "file", reportPath);
-        }
-
-        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
-        {
-            return BuildArtifact("PackageZip", "file", job.PackagePath);
-        }
-
-        return null;
-    }
-
-    private static string GetContentType(string artifactName, string? path)
-    {
-        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/xml";
-        }
-
-        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/json";
-        }
-
-        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/zip";
-        }
-
-        return "application/octet-stream";
-    }
-
     private static string? BuildWarningSummary(ValidationReportDto validationReport)
     {
         var warningMessages = validationReport.Issues
@@ -286,32 +199,6 @@ public sealed class PublishJobService(
         }
 
         return summary;
-    }
-
-    private static PublishArtifactSummaryDto? BuildArtifactSummary(PublishJobDto publishJob)
-    {
-        if (string.IsNullOrWhiteSpace(publishJob.OutputPath) || !File.Exists(publishJob.OutputPath))
-        {
-            return null;
-        }
-
-        var outputFile = new FileInfo(publishJob.OutputPath);
-        var outputDir = outputFile.Directory;
-        if (outputDir is null || !outputDir.Exists)
-        {
-            return null;
-        }
-
-        var allFiles = outputDir.GetFiles("*", SearchOption.AllDirectories);
-        var totalSize = allFiles.Sum(x => x.Length);
-
-        long packageSize = 0;
-        if (!string.IsNullOrWhiteSpace(publishJob.PackagePath) && File.Exists(publishJob.PackagePath))
-        {
-            packageSize = new FileInfo(publishJob.PackagePath).Length;
-        }
-
-        return new PublishArtifactSummaryDto(allFiles.Length, totalSize, packageSize);
     }
 
     private async Task<PublishAuditSummaryDto?> BuildAuditSummaryAsync(
@@ -503,25 +390,6 @@ public sealed class PublishJobService(
             throw new PublishJobAlreadyInProgressException(
                 $"A publish job is already running for application {request.ApplicationId}, sequence {request.SequenceNumber}.");
         }
-    }
-
-    private static async Task WriteFinalReportAsync(
-        PublishExecutionReportDto report,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(report.ReportPath))
-        {
-            return;
-        }
-
-        var reportDirectory = Path.GetDirectoryName(report.ReportPath);
-        if (!string.IsNullOrWhiteSpace(reportDirectory))
-        {
-            Directory.CreateDirectory(reportDirectory);
-        }
-
-        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(report.ReportPath, json, cancellationToken);
     }
 
     private async Task TryWriteAuditAsync(

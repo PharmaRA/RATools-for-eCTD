@@ -17,7 +17,6 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,
-        string reportContent,
         IReadOnlyCollection<EctdPublishedFile> publishedFiles,
         CancellationToken cancellationToken = default)
     {
@@ -27,7 +26,6 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         ArgumentException.ThrowIfNullOrWhiteSpace(reportFileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageFileName);
         ArgumentNullException.ThrowIfNull(generatedFiles);
-        ArgumentNullException.ThrowIfNull(reportContent);
         ArgumentNullException.ThrowIfNull(publishedFiles);
 
         var rootPath = string.IsNullOrWhiteSpace(outputDirectoryPath)
@@ -78,7 +76,6 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
         await File.WriteAllTextAsync(indexMd5Path, md5Content, cancellationToken);
 
         var reportPath = Path.Combine(reportDirectory, reportFileName);
-        await File.WriteAllTextAsync(reportPath, reportContent, cancellationToken);
 
         var packagePath = Path.Combine(packageDirectory, packageFileName);
         if (File.Exists(packagePath))

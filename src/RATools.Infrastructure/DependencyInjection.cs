@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
+        services.AddSingleton<IPublishArtifactStore, LocalPublishArtifactStore>();
         services.AddSingleton<IPublishJobQueue, ChannelPublishJobQueue>();
         services.AddHostedService<PublishJobBackgroundService>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();

@@ -41,7 +41,6 @@ public sealed class BackboneServiceTests
         Assert.Equal("C:/publish-root", fileWriter.OutputDirectoryPath);
         Assert.Equal("publish-report-0001.json", fileWriter.ReportFileName);
         Assert.Equal("0001.zip", fileWriter.PackageFileName);
-        Assert.Equal("{}", fileWriter.ReportContent);
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "index.xml" && x.Content == "<ich />");
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "m1/us/us-regional.xml" && x.Content == "<regional />");
         Assert.Equal(["index.xml", "m1/us/us-regional.xml"], validator.ValidatedRelativePaths);
@@ -159,8 +158,6 @@ public sealed class BackboneServiceTests
 
         public string? PackageFileName { get; private set; }
 
-        public string? ReportContent { get; private set; }
-
         public IReadOnlyCollection<BackboneGeneratedFile> GeneratedFiles { get; private set; } = [];
 
         public IReadOnlyCollection<EctdPublishedFile> PublishedFiles { get; private set; } = [];
@@ -173,7 +170,6 @@ public sealed class BackboneServiceTests
             IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
             string reportFileName,
             string packageFileName,
-            string reportContent,
             IReadOnlyCollection<EctdPublishedFile> publishedFiles,
             CancellationToken cancellationToken = default)
         {
@@ -188,7 +184,6 @@ public sealed class BackboneServiceTests
             OutputDirectoryPath = outputDirectoryPath;
             ReportFileName = reportFileName;
             PackageFileName = packageFileName;
-            ReportContent = reportContent;
             GeneratedFiles = generatedFiles;
             PublishedFiles = publishedFiles;
             return Task.FromResult(("C:/out/index.xml", "C:/out/report.json", "C:/out/package.zip"));

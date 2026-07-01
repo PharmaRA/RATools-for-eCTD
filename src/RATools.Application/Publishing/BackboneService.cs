@@ -41,7 +41,6 @@ public sealed class BackboneService(
             generatedFiles,
             request.ReportFileName,
             request.PackageFileName,
-            "{}",
             package.PublishedFiles,
             cancellationToken);
 

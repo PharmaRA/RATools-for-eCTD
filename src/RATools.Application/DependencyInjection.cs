@@ -38,6 +38,8 @@ public static class DependencyInjection
         services.AddSingleton<IEctdValidationEngine, EctdValidationEngine>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
         services.AddSingleton<PublishOutputVerifier>();
+        services.AddSingleton<PublishArtifactResolver>();
+        services.AddSingleton<PublishReportStore>();
         services.AddScoped<IPublishJobService, PublishJobService>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();
         services.AddScoped<IPublishReadinessService, PublishReadinessService>();

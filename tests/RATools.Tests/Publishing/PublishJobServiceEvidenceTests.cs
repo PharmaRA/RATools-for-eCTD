@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Dtos;
 using RATools.Application.Auditing.Requests;
@@ -11,6 +12,7 @@ using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
 using RATools.Domain.Publishing;
 using RATools.Infrastructure.Persistence.InMemory;
+using RATools.Infrastructure.Publishing;
 
 namespace RATools.Tests.Publishing;
 
@@ -28,7 +30,17 @@ public sealed class PublishJobServiceEvidenceTests
             var validation = new PassingValidationService();
             var backbone = new EvidenceBackboneService(root);
             var readiness = new PassingPublishReadinessService();
-            var service = new PublishJobService(repository, backbone, validation, readiness, new NoopAuditLogService(), new PublishOutputVerifier(), new FakePublishJobQueue());
+            var artifactStore = new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy());
+            var service = new PublishJobService(
+                repository,
+                backbone,
+                validation,
+                readiness,
+                new NoopAuditLogService(),
+                new PublishArtifactResolver(artifactStore),
+                new PublishReportStore(artifactStore),
+                new PublishOutputVerifier(),
+                new FakePublishJobQueue());
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 
@@ -69,6 +81,8 @@ public sealed class PublishJobServiceEvidenceTests
                 validation,
                 readiness,
                 new NoopAuditLogService(),
+                new PublishArtifactResolver(new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy())),
+                new PublishReportStore(new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy())),
                 new PublishOutputVerifier(),
                 new FakePublishJobQueue());
 
@@ -209,6 +223,13 @@ public sealed class PublishJobServiceEvidenceTests
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());
+    }
+
+    private sealed class AllowAllWorkspacePathPolicy : IWorkspacePathPolicy
+    {
+        public IReadOnlyCollection<string> GetAllowedRoots() => [];
+
+        public string EnsureAllowed(string path) => Path.GetFullPath(path);
     }
 
     private static ValidationReportDto BuildValidationReport(ValidateSequenceRequest request)

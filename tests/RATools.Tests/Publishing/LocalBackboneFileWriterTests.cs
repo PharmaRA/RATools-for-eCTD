@@ -46,7 +46,6 @@ public sealed class LocalBackboneFileWriterTests
                 generatedFiles,
                 "publish-report-0001.json",
                 "0001.zip",
-                "{}",
                 publishedFiles);
 
             var deliveryRoot = Path.Combine(root, "ANDA123456", "_jobs", jobId.ToString("N"), "0001");
@@ -64,7 +63,7 @@ public sealed class LocalBackboneFileWriterTests
             Assert.True(File.Exists(ichDtdPath));
             Assert.True(File.Exists(regionalDtdPath));
             Assert.True(File.Exists(indexMd5Path));
-            Assert.True(File.Exists(result.ReportPath));
+            Assert.False(File.Exists(result.ReportPath));
             Assert.True(File.Exists(result.PackagePath));
 
             var md5Manifest = await File.ReadAllTextAsync(indexMd5Path);
@@ -122,7 +121,6 @@ public sealed class LocalBackboneFileWriterTests
                 generatedFiles,
                 "publish-report-0001.json",
                 "0001.zip",
-                "{}",
                 publishedFiles));
 
             Assert.Equal(missingSourcePath, exception.FileName);

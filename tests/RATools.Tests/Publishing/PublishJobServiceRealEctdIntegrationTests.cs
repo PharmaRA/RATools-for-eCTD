@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Publishing;
+using RATools.Application.Abstractions.Security;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Dtos;
@@ -208,6 +209,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             new EctdXmlValidator(),
             standardsProfileProvider,
             new EctdValidationEngine(new FdaEctdRuleSetProvider([new FileNamingConventionRule()])));
+        var artifactStore = new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy());
 
         return new PublishJobService(
             publishJobRepository,
@@ -215,6 +217,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             validationService,
             publishReadinessService,
             auditLogService,
+            new PublishArtifactResolver(artifactStore),
+            new PublishReportStore(artifactStore),
             new PublishOutputVerifier(),
             new FakePublishJobQueue());
     }
@@ -239,5 +243,12 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
         public string ProfileName => SectionDictionaryProfiles.CanonicalUsProfileName;
 
         public ValidationMode Mode => ValidationMode.Relaxed;
+    }
+
+    private sealed class AllowAllWorkspacePathPolicy : IWorkspacePathPolicy
+    {
+        public IReadOnlyCollection<string> GetAllowedRoots() => [];
+
+        public string EnsureAllowed(string path) => Path.GetFullPath(path);
     }
 }

@@ -12,7 +12,6 @@ public interface IBackboneFileWriter
         IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,
-        string reportContent,
         IReadOnlyCollection<EctdPublishedFile> publishedFiles,
         CancellationToken cancellationToken = default);
 }
