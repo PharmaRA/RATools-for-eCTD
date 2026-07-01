@@ -268,6 +268,32 @@ describe('PathPicker form hosts', () => {
         })
       }
 
+      if (url === '/api/validation/publish-readiness') {
+        return Promise.resolve({
+          ok: true,
+          json: vi.fn().mockResolvedValue({
+            applicationId: 'app-1',
+            sequenceNumber: '0000',
+            isReady: true,
+            status: 'Ready',
+            blockingErrorCount: 0,
+            warningCount: 0,
+            validationReport: {
+              applicationId: 'app-1',
+              sequenceNumber: '0000',
+              validationProfile: 'US FDA eCTD 3.2.2',
+              isValid: true,
+              issues: [],
+              sectionMatches: [],
+              lifecycleMatches: [],
+            },
+            missingMetadataFields: [],
+            categorySummaries: [],
+            findings: [],
+          }),
+        })
+      }
+
       if (url === '/api/publish-jobs/execute') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
       }
