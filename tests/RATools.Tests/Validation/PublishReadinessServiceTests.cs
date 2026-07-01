@@ -8,9 +8,11 @@ using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
+using RATools.Application.Publishing.Validation.Pdf;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Requests;
+using RATools.Application.Validation.Rules.Pdf;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 
@@ -208,10 +210,75 @@ public sealed class PublishReadinessServiceTests
             && x.FindingCount == 1);
     }
 
+    [Fact]
+    public async Task GetAsync_ReturnsNotReadyWhenPdfComplianceRuleFindsEncryptedPdf()
+    {
+        var applicationId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var placementId = Guid.NewGuid();
+        var filePath = CreateTempFile();
+        var metadata = SequencePublishingMetadata.Create(
+            "anda",
+            "original-application",
+            "initial",
+            "Initial sequence",
+            "Acme Pharma",
+            "356h",
+            "Jane Regulatory",
+            "regulatory",
+            "301-555-0100",
+            "office",
+            "jane.regulatory@example.test");
+        var application = SubmissionApplication.Rehydrate(
+            applicationId,
+            "ANDA123456",
+            "US",
+            "Acme Pharma",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0001", "original-application", "Initial sequence", DateTime.UtcNow, metadata)],
+            Path.GetTempPath(),
+            EctdTemplateRegistry.DefaultTemplateKey);
+        var document = SubmissionDocument.Rehydrate(documentId, "encrypted.pdf", "application/pdf", 10, "sha-study", "md5-study", filePath, DateTime.UtcNow);
+        var placement = DocumentPlacement.Rehydrate(
+            placementId,
+            documentId,
+            applicationId,
+            "0001",
+            "m1.2",
+            DocumentPlacementOperation.New,
+            "Encrypted PDF",
+            null,
+            DateTime.UtcNow);
+        var pdfRule = new PdfComplianceRule(new FakePdfInspector(new PdfInspectionResult(
+            "1.7",
+            IsEncrypted: true,
+            HasSecurityRestrictions: false,
+            HasSearchableText: true,
+            AllFontsEmbedded: true,
+            [],
+            HasBookmarks: true,
+            [])));
+        var service = CreateService(application, [placement], [document], [new FileNamingConventionRule(), pdfRule]);
+
+        var report = await service.GetAsync(new ValidateSequenceRequest(applicationId, "0001"));
+
+        Assert.False(report.IsReady);
+        var finding = Assert.Single(report.Findings, x => x.Code == "PDF_ENCRYPTED");
+        Assert.Equal("ValidationCriteria", finding.Source);
+        Assert.Equal("Error", finding.Severity);
+        Assert.Equal("PdfCompliance", finding.Category);
+        Assert.Contains(report.CategorySummaries, x =>
+            x.Category == "PdfCompliance"
+            && x.BlockingErrorCount == 1
+            && x.WarningCount == 0
+            && x.FindingCount == 1);
+    }
+
     private static PublishReadinessService CreateService(
         SubmissionApplication? application,
         IReadOnlyCollection<DocumentPlacement> placements,
-        IReadOnlyCollection<SubmissionDocument> documents)
+        IReadOnlyCollection<SubmissionDocument> documents,
+        IReadOnlyCollection<IEctdValidationRule>? rules = null)
     {
         var applicationRepository = new StubApplicationRepository(application);
         var placementRepository = new StubDocumentPlacementRepository(placements);
@@ -237,7 +304,7 @@ public sealed class PublishReadinessServiceTests
             new UsRegionalXmlWriter(),
             new EctdXmlValidator(),
             standardsProfileProvider,
-            new EctdValidationEngine(new FdaEctdRuleSetProvider([new FileNamingConventionRule()])));
+            new EctdValidationEngine(new FdaEctdRuleSetProvider(rules ?? [new FileNamingConventionRule()])));
     }
 
     private static string CreateTempFile()
@@ -289,5 +356,11 @@ public sealed class PublishReadinessServiceTests
     {
         public string ProfileName => SectionDictionaryProfiles.CanonicalUsProfileName;
         public ValidationMode Mode => ValidationMode.Relaxed;
+    }
+
+    private sealed class FakePdfInspector(PdfInspectionResult result) : IPdfInspector
+    {
+        public PdfInspectionResult Inspect(Stream pdfStream, string relativeHref)
+            => result;
     }
 }

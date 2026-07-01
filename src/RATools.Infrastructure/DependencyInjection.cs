@@ -7,8 +7,10 @@ using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Applications;
 using RATools.Application.Publishing;
+using RATools.Application.Publishing.Validation.Pdf;
 using RATools.Application.Validation;
 using RATools.Infrastructure.Publishing;
+using RATools.Infrastructure.Publishing.Validation.Pdf;
 using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Security;
@@ -27,6 +29,7 @@ public static class DependencyInjection
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IPublishArtifactStore, LocalPublishArtifactStore>();
+        services.AddSingleton<IPdfInspector, PdfPigPdfInspector>();
         services.AddSingleton<IPublishJobQueue, ChannelPublishJobQueue>();
         services.AddHostedService<PublishJobBackgroundService>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();

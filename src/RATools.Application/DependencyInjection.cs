@@ -11,6 +11,7 @@ using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Rules;
+using RATools.Application.Validation.Rules.Pdf;
 
 namespace RATools.Application;
 
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IEctdPackageModelBuilder, EctdPackageModelBuilder>();
         services.AddSingleton<IStandardsProfileProvider, FdaEctd322StandardsProfileProvider>();
         services.AddSingleton<IEctdValidationRule, FileNamingConventionRule>();
+        services.AddSingleton<IEctdValidationRule, PdfComplianceRule>();
         services.AddSingleton<IEctdValidationRuleSetProvider, FdaEctdRuleSetProvider>();
         services.AddSingleton<IEctdValidationEngine, EctdValidationEngine>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
