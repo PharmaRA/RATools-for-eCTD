@@ -4,8 +4,10 @@ using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Dtos;
 using RATools.Application.Auditing.Requests;
+using RATools.Application.Publishing.EuRegional;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
 using RATools.Application.Publishing.Validation.Pdf;
@@ -274,6 +276,44 @@ public sealed class PublishReadinessServiceTests
             && x.FindingCount == 1);
     }
 
+    [Fact]
+    public async Task GetAsync_ReturnsReadyForEuTemplateWithoutUsRegionalMetadata()
+    {
+        var applicationId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var placementId = Guid.NewGuid();
+        var filePath = CreateTempFile();
+        var application = SubmissionApplication.Rehydrate(
+            applicationId,
+            "EU123456",
+            "EU",
+            "Acme Pharma",
+            DateTime.UtcNow,
+            [SubmissionSequence.Rehydrate("0001", "initial", "Initial sequence", DateTime.UtcNow)],
+            Path.GetTempPath(),
+            EctdTemplateRegistry.EuTemplateKey);
+        var document = SubmissionDocument.Rehydrate(documentId, "cover.pdf", "application/pdf", 10, "sha-cover", "md5-cover", filePath, DateTime.UtcNow);
+        var placement = DocumentPlacement.Rehydrate(
+            placementId,
+            documentId,
+            applicationId,
+            "0001",
+            "m1.2",
+            DocumentPlacementOperation.New,
+            "Cover Letter",
+            null,
+            DateTime.UtcNow);
+        var service = CreateService(application, [placement], [document]);
+
+        var report = await service.GetAsync(new ValidateSequenceRequest(applicationId, "0001"));
+
+        Assert.True(report.IsReady);
+        Assert.Equal("Ready", report.Status);
+        Assert.Empty(report.Findings);
+        Assert.Empty(report.MissingMetadataFields);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code.StartsWith("US_REGIONAL", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static PublishReadinessService CreateService(
         SubmissionApplication? application,
         IReadOnlyCollection<DocumentPlacement> placements,
@@ -290,7 +330,11 @@ public sealed class PublishReadinessServiceTests
             documentRepository,
             auditLogService,
             new RelaxedValidationProfileProvider());
-        var standardsProfileProvider = new FdaEctd322StandardsProfileProvider();
+        var standardsProfileProvider = new CompositeStandardsProfileProvider(
+        [
+            new FdaEctd322StandardsProfileProvider(),
+            new EuEctd322StandardsProfileProvider()
+        ]);
         var packageModelBuilder = new EctdPackageModelBuilder(
             applicationRepository,
             placementRepository,
@@ -301,10 +345,14 @@ public sealed class PublishReadinessServiceTests
             validationService,
             packageModelBuilder,
             new IchIndexXmlWriter(),
-            new UsRegionalXmlWriter(),
+            new RegionalBackboneWriterRegistry(
+            [
+                new UsRegionalBackboneWriter(new UsRegionalXmlWriter()),
+                new EuRegionalBackboneWriter(new EuRegionalXmlWriter())
+            ]),
             new EctdXmlValidator(),
             standardsProfileProvider,
-            new EctdValidationEngine(new FdaEctdRuleSetProvider(rules ?? [new FileNamingConventionRule()])));
+            new EctdValidationEngine(new RegionalEctdRuleSetProvider(rules ?? [new FileNamingConventionRule()])));
     }
 
     private static string CreateTempFile()

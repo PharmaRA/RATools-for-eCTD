@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RATools.Application;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Standards;
 
 namespace RATools.Tests.Publishing.Ich;
 
@@ -36,6 +37,23 @@ public sealed class IchIndexXmlWriterTests
         Assert.Equal("util/dtd/ich-ectd-3-2.dtd", result.Document.DocumentType?.SystemId);
         Assert.Contains("xmlns:ectd=\"http://www.ich.org/ectd\"", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("xmlns:xlink=\"http://www.w3c.org/1999/xlink\"", result.XmlContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Write_PreservesFdaIchXmlContract()
+    {
+        var writer = new IchIndexXmlWriter();
+        var package = CreatePackage(ichLeaves: [CreateLeaf("m3.2", "leaf-99999999999999999999999999999999", "quality.pdf")]);
+
+        var result = writer.Write(package);
+
+        Assert.Equal("index.xml", result.FileName);
+        Assert.Contains("<!DOCTYPE ectd:ectd", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("\"util/dtd/ich-ectd-3-2.dtd\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("xmlns:ectd=\"http://www.ich.org/ectd\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("dtd-version=\"3.2\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("checksum-type=\"md5\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("xlink:href=\"m3/2/quality.pdf\"", result.XmlContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -194,6 +212,7 @@ public sealed class IchIndexXmlWriterTests
             "FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3",
             "3.2.2",
             "3.3",
+            BackboneXmlProfiles.FdaEctd322UsRegional33,
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
             new EctdSequenceMetadata("0001", "original-application", null, "Initial sequence", "Acme Pharma", "356h"),
             new EctdUsRegionalMetadata(

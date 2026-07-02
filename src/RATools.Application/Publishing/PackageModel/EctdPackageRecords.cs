@@ -1,3 +1,5 @@
+using RATools.Application.Standards;
+
 namespace RATools.Application.Publishing.PackageModel;
 
 public sealed record EctdSequencePackage(
@@ -7,6 +9,7 @@ public sealed record EctdSequencePackage(
     string StandardsProfile,
     string IchEctdVersion,
     string UsRegionalModule1Version,
+    BackboneXmlProfile BackboneXml,
     EctdApplicationMetadata Application,
     EctdSequenceMetadata Sequence,
     EctdUsRegionalMetadata UsRegional,

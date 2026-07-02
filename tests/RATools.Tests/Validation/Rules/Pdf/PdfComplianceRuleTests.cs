@@ -165,6 +165,7 @@ public sealed class PdfComplianceRuleTests
             "US FDA eCTD 3.2.2",
             "3.2.2",
             "3.3",
+            BackboneXmlProfiles.FdaEctd322UsRegional33,
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-3.2.2", "anda"),
             new EctdSequenceMetadata("0000", "original-application", "initial", "Initial sequence", "Acme Pharma", "356h"),
             new EctdUsRegionalMetadata(

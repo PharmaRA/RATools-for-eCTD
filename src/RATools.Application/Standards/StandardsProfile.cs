@@ -10,4 +10,5 @@ public sealed record StandardsProfile(
     string TechnicalConformanceGuideVersion,
     string ValidationCriteriaVersion,
     IReadOnlyCollection<string> OfficialReferences,
-    IReadOnlyCollection<StandardsAsset> Assets);
+    IReadOnlyCollection<StandardsAsset> Assets,
+    BackboneXmlProfile? BackboneXml = null);

@@ -1,6 +1,7 @@
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
@@ -14,7 +15,7 @@ public sealed class PublishReadinessService(
     ISequenceValidationService validationService,
     IEctdPackageModelBuilder packageModelBuilder,
     IIchIndexXmlWriter ichIndexXmlWriter,
-    IUsRegionalXmlWriter usRegionalXmlWriter,
+    IRegionalBackboneWriterRegistry regionalBackboneWriterRegistry,
     IEctdXmlValidator ectdXmlValidator,
     IStandardsProfileProvider standardsProfileProvider,
     IEctdValidationEngine validationEngine) : IPublishReadinessService
@@ -41,16 +42,19 @@ public sealed class PublishReadinessService(
                 var package = await packageModelBuilder.BuildAsync(
                     new BuildEctdPackageRequest(request.ApplicationId, request.SequenceNumber),
                     cancellationToken);
+                var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
 
                 var ichResult = ichIndexXmlWriter.Write(package);
-                ectdXmlValidator.Validate(new BackboneGeneratedFile(ichResult.FileName, ichResult.XmlContent));
+                ectdXmlValidator.Validate(new BackboneGeneratedFile(ichResult.FileName, ichResult.XmlContent), profile);
 
-                var regionalResult = usRegionalXmlWriter.Write(package);
-                ectdXmlValidator.Validate(new BackboneGeneratedFile(regionalResult.RelativePath, regionalResult.XmlContent));
+                var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
+                foreach (var regionalFile in regionalBackboneWriter.WriteRegionalBackbones(package))
+                {
+                    ectdXmlValidator.Validate(regionalFile, profile);
+                }
 
                 // dry-run 构建与 DTD 校验通过后，运行验证准则规则引擎，
                 // 其分级 finding 并入 readiness finding 与分类统计。
-                var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
                 var ruleFindings = validationEngine.Evaluate(
                     new EctdValidationContext(profile, request, package, null));
                 findings.AddRange(ruleFindings);

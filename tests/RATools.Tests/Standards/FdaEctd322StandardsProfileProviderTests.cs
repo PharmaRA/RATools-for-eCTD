@@ -48,6 +48,28 @@ public sealed class FdaEctd322StandardsProfileProviderTests
     }
 
     [Fact]
+    public void GetProfile_IncludesFdaBackboneXmlContract()
+    {
+        var provider = new FdaEctd322StandardsProfileProvider();
+
+        var profile = provider.GetProfile(EctdTemplateRegistry.DefaultTemplateKey);
+        Assert.NotNull(profile.BackboneXml);
+        var backboneXml = profile.BackboneXml!;
+
+        Assert.Equal("ectd:ectd", backboneXml.Ich.DocumentTypeName);
+        Assert.Equal("ectd", backboneXml.Ich.RootElementName);
+        Assert.Equal("http://www.ich.org/ectd", backboneXml.Ich.Namespace);
+        Assert.Equal("3.2", backboneXml.Ich.DtdVersion);
+        Assert.Equal("util/dtd/ich-ectd-3-2.dtd", backboneXml.Ich.DtdSystemId);
+        Assert.Equal("fda-regional:fda-regional", backboneXml.Regional.DocumentTypeName);
+        Assert.Equal("fda-regional", backboneXml.Regional.RootElementName);
+        Assert.Equal("http://www.ich.org/fda", backboneXml.Regional.Namespace);
+        Assert.Equal("3.3", backboneXml.Regional.DtdVersion);
+        Assert.Equal("../../util/dtd/us-regional-v3-3.dtd", backboneXml.Regional.DtdSystemId);
+        Assert.Equal("m1/us/us-regional.xml", backboneXml.Regional.RelativePath);
+    }
+
+    [Fact]
     public void GetProfile_ThrowsForUnsupportedTemplate()
     {
         var provider = new FdaEctd322StandardsProfileProvider();

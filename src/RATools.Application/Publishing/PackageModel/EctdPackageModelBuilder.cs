@@ -72,6 +72,11 @@ public sealed class EctdPackageModelBuilder(
             profile.DisplayName,
             profile.IchEctdVersion,
             profile.UsRegionalModule1Version,
+            profile.BackboneXml ?? throw new EctdPackageStandardsProfileException(
+                request.ApplicationId,
+                request.SequenceNumber,
+                profile.TemplateKey,
+                "backbone XML metadata is missing"),
             applicationMetadata,
             sequenceMetadata,
             usRegionalMetadata,

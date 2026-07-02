@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RATools.Application;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
+using RATools.Application.Standards;
 
 namespace RATools.Tests.Publishing.UsRegional;
 
@@ -54,6 +55,26 @@ public sealed class UsRegionalXmlWriterTests
         Assert.Contains("<submission-id submission-type=\"original-application\">0001</submission-id>", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<sequence-number submission-sub-type=\"initial\">0001</sequence-number>", result.XmlContent, StringComparison.Ordinal);
         Assert.DoesNotContain("<m1-regional>", result.XmlContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Write_PreservesFdaRegionalXmlContract()
+    {
+        var writer = new UsRegionalXmlWriter();
+        var package = CreatePackage(module1Leaves:
+        [
+            CreateLeaf("m1.2", "leaf-99999999999999999999999999999999", "cover-letter.pdf")
+        ]);
+
+        var result = writer.Write(package);
+
+        Assert.Equal("m1/us/us-regional.xml", result.RelativePath);
+        Assert.Contains("<!DOCTYPE fda-regional:fda-regional", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("\"../../util/dtd/us-regional-v3-3.dtd\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("xmlns:fda-regional=\"http://www.ich.org/fda\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("dtd-version=\"3.3\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("checksum-type=\"md5\"", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("xlink:href=\"12-cover-letters/cover-letter.pdf\"", result.XmlContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,6 +268,7 @@ public sealed class UsRegionalXmlWriterTests
             "FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3",
             "3.2.2",
             "3.3",
+            BackboneXmlProfiles.FdaEctd322UsRegional33,
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
             new EctdSequenceMetadata("0001", "original-application", "initial", "Initial sequence", "Acme Pharma", "356h"),
             usRegional ?? CreateUsRegionalMetadata(),

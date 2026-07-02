@@ -5,20 +5,22 @@ namespace RATools.Application.Publishing.UsRegional;
 
 public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 {
-    private static readonly XNamespace FdaRegionalNamespace = "http://www.ich.org/fda";
     private static readonly XNamespace XlinkNamespace = "http://www.w3c.org/1999/xlink";
 
     public UsRegionalXmlWriteResult Write(EctdSequencePackage package)
     {
         ArgumentNullException.ThrowIfNull(package);
+        var xmlProfile = package.BackboneXml.Regional;
+        XNamespace regionalNamespace = xmlProfile.Namespace;
+        var relativePath = RequireRelativePath(package, xmlProfile.RelativePath);
         ValidateRequiredMetadata(package);
 
-        var root = new XElement(FdaRegionalNamespace + "fda-regional",
-            new XAttribute(XNamespace.Xmlns + "fda-regional", FdaRegionalNamespace.NamespaceName),
+        var root = new XElement(regionalNamespace + xmlProfile.RootElementName,
+            new XAttribute(XNamespace.Xmlns + "fda-regional", regionalNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
-            new XAttribute("dtd-version", "3.3"),
+            new XAttribute("dtd-version", xmlProfile.DtdVersion),
             BuildAdminElement(package));
-        var m1Regional = BuildM1RegionalElement(package);
+        var m1Regional = BuildM1RegionalElement(package, relativePath);
         if (m1Regional is not null)
         {
             root.Add(m1Regional);
@@ -26,12 +28,12 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
         var document = new XDocument(
             new XDeclaration("1.0", "utf-8", "yes"),
-            new XDocumentType("fda-regional:fda-regional", null, "../../util/dtd/us-regional-v3-3.dtd", null),
+            new XDocumentType(xmlProfile.DocumentTypeName, null, xmlProfile.DtdSystemId, null),
             root);
 
         return new UsRegionalXmlWriteResult(
             "us-regional.xml",
-            "m1/us/us-regional.xml",
+            relativePath,
             document,
             document.ToString(SaveOptions.DisableFormatting));
     }
@@ -57,7 +59,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             Require(package, nameof(metadata.FormType), metadata.FormType);
             submissionInformationChildren.Add(new XElement("form",
                 new XAttribute("form-type", metadata.FormType!),
-                formLeaves.Select(BuildLeafElement)));
+                formLeaves.Select(leaf => BuildLeafElement(leaf, "m1/us/us-regional.xml"))));
         }
 
         return new XElement("admin",
@@ -86,7 +88,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
                     new XElement("submission-information", submissionInformationChildren))));
     }
 
-    private static XElement? BuildM1RegionalElement(EctdSequencePackage package)
+    private static XElement? BuildM1RegionalElement(EctdSequencePackage package, string regionalRelativePath)
     {
         ValidateLeaves(package);
 
@@ -100,7 +102,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
                 StringComparer.OrdinalIgnoreCase);
 
         var childElements = UsRegionalM1V33.Root.Children
-            .Select(child => BuildSectionElement(child, leavesBySection))
+            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath))
             .Where(child => child is not null)
             .Cast<XElement>()
             .ToArray();
@@ -112,11 +114,12 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
     private static XElement? BuildSectionElement(
         UsRegionalSectionNode node,
-        IReadOnlyDictionary<string, EctdLeaf[]> leavesBySection)
+        IReadOnlyDictionary<string, EctdLeaf[]> leavesBySection,
+        string regionalRelativePath)
     {
         leavesBySection.TryGetValue(node.SectionPath, out var leaves);
         var childElements = node.Children
-            .Select(child => BuildSectionElement(child, leavesBySection))
+            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath))
             .Where(child => child is not null)
             .Cast<XElement>()
             .ToArray();
@@ -131,7 +134,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         {
             foreach (var leaf in leaves)
             {
-                element.Add(BuildLeafElement(leaf));
+                element.Add(BuildLeafElement(leaf, regionalRelativePath));
             }
         }
 
@@ -139,7 +142,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         return element;
     }
 
-    private static XElement BuildLeafElement(EctdLeaf leaf)
+    private static XElement BuildLeafElement(EctdLeaf leaf, string regionalRelativePath)
     {
         var attributes = new List<object>
         {
@@ -148,7 +151,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             new XAttribute("checksum", leaf.Md5),
             new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
-            new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href))
+            new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath))
         };
 
         if (leaf.Lifecycle is not null)
@@ -161,12 +164,29 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             new XElement("title", leaf.Title));
     }
 
-    private static string BuildRegionalHref(string sequenceRootHref)
+    private static string BuildRegionalHref(string sequenceRootHref, string regionalRelativePath)
     {
-        const string module1Prefix = "m1/us/";
+        var module1Prefix = GetDirectoryName(regionalRelativePath);
         return sequenceRootHref.StartsWith(module1Prefix, StringComparison.OrdinalIgnoreCase)
             ? sequenceRootHref[module1Prefix.Length..]
             : sequenceRootHref;
+    }
+
+    private static string GetDirectoryName(string relativePath)
+    {
+        var normalized = relativePath.Replace('\\', '/');
+        var slashIndex = normalized.LastIndexOf('/');
+        return slashIndex < 0 ? string.Empty : normalized[..(slashIndex + 1)];
+    }
+
+    private static string RequireRelativePath(EctdSequencePackage package, string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            throw new UsRegionalXmlMetadataException(package.ApplicationId, package.SequenceNumber, "RegionalRelativePath", "is required");
+        }
+
+        return relativePath;
     }
 
     private static string BuildModifiedFileHref(EctdLifecycleReference lifecycle)

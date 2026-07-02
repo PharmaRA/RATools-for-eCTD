@@ -24,6 +24,7 @@ public sealed class EctdPackageModelBuilderTests
             "FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3",
             "3.2.2",
             "3.3",
+            BackboneXmlProfiles.FdaEctd322UsRegional33,
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
             new EctdSequenceMetadata("0001", "original-application", null, "Initial sequence", "Acme Pharma", "356h"),
             new EctdUsRegionalMetadata(
@@ -483,7 +484,8 @@ public sealed class EctdPackageModelBuilderTests
                 "1.9",
                 "4.5",
                 [],
-                []);
+                [],
+                BackboneXmlProfiles.FdaEctd322UsRegional33);
         }
     }
 

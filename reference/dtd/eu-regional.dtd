@@ -1,0 +1,21 @@
+<!-- Minimal bundled EU regional DTD for the controlled multi-region architecture skeleton.
+     This is not a complete official EU eCTD Module 1 validation rule set. -->
+<!ELEMENT eu-regional:eu-regional (m1-eu-regional?)>
+<!ATTLIST eu-regional:eu-regional
+    xmlns:eu-regional CDATA #IMPLIED
+    xmlns:xlink CDATA #IMPLIED
+    dtd-version CDATA #REQUIRED>
+
+<!ELEMENT m1-eu-regional (leaf*)>
+
+<!ELEMENT leaf (title)>
+<!ATTLIST leaf
+    ID ID #REQUIRED
+    operation (new|replace|delete|append) #REQUIRED
+    checksum CDATA #REQUIRED
+    checksum-type CDATA #REQUIRED
+    xlink:type CDATA #REQUIRED
+    xlink:href CDATA #REQUIRED
+    modified-file CDATA #IMPLIED>
+
+<!ELEMENT title (#PCDATA)>

@@ -16,6 +16,18 @@ public sealed class EctdPackageSequenceNotFoundException(Guid applicationId, str
     public string SequenceNumber { get; } = sequenceNumber;
 }
 
+public sealed class EctdPackageStandardsProfileException(Guid applicationId, string sequenceNumber, string templateKey, string reason)
+    : EctdPackageException($"Standards profile '{templateKey}' for sequence {sequenceNumber} is invalid: {reason}.")
+{
+    public Guid ApplicationId { get; } = applicationId;
+
+    public string SequenceNumber { get; } = sequenceNumber;
+
+    public string TemplateKey { get; } = templateKey;
+
+    public string Reason { get; } = reason;
+}
+
 public sealed class EctdPackageDocumentNotFoundException(Guid applicationId, string sequenceNumber, Guid placementId, Guid documentId)
     : EctdPackageException($"Placement {placementId} in sequence {sequenceNumber} references missing document {documentId}.")
 {

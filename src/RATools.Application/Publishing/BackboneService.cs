@@ -2,8 +2,8 @@ using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.Requests;
-using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
 
 namespace RATools.Application.Publishing;
@@ -11,7 +11,7 @@ namespace RATools.Application.Publishing;
 public sealed class BackboneService(
     IEctdPackageModelBuilder packageModelBuilder,
     IIchIndexXmlWriter ichIndexXmlWriter,
-    IUsRegionalXmlWriter usRegionalXmlWriter,
+    IRegionalBackboneWriterRegistry regionalBackboneWriterRegistry,
     IEctdXmlValidator ectdXmlValidator,
     IBackboneFileWriter backboneFileWriter) : IBackboneService
 {
@@ -21,11 +21,12 @@ public sealed class BackboneService(
             new BuildEctdPackageRequest(request.ApplicationId, request.SequenceNumber),
             cancellationToken);
         var indexXml = ichIndexXmlWriter.Write(package);
-        var usRegionalXml = usRegionalXmlWriter.Write(package);
+        var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
+        var regionalFiles = regionalBackboneWriter.WriteRegionalBackbones(package);
         BackboneGeneratedFile[] generatedFiles =
         [
             new BackboneGeneratedFile(indexXml.FileName, indexXml.XmlContent),
-            new BackboneGeneratedFile(usRegionalXml.RelativePath, usRegionalXml.XmlContent)
+            .. regionalFiles
         ];
 
         foreach (var generatedFile in generatedFiles)

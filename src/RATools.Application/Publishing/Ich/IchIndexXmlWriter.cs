@@ -6,7 +6,6 @@ namespace RATools.Application.Publishing.Ich;
 
 public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
 {
-    private static readonly XNamespace EctdNamespace = "http://www.ich.org/ectd";
     private static readonly XNamespace XlinkNamespace = "http://www.w3c.org/1999/xlink";
     private static readonly SectionPathNode[] IchTopLevelNodes = FdaEctd322.Root.Children
         .Where(x => x.SectionPath is "m2" or "m3" or "m4" or "m5")
@@ -19,11 +18,13 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
     public IchIndexXmlWriteResult Write(EctdSequencePackage package)
     {
         ArgumentNullException.ThrowIfNull(package);
+        var xmlProfile = package.BackboneXml.Ich;
+        XNamespace ectdNamespace = xmlProfile.Namespace;
 
-        var root = new XElement(EctdNamespace + "ectd",
-            new XAttribute(XNamespace.Xmlns + "ectd", EctdNamespace.NamespaceName),
+        var root = new XElement(ectdNamespace + xmlProfile.RootElementName,
+            new XAttribute(XNamespace.Xmlns + "ectd", ectdNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
-            new XAttribute("dtd-version", "3.2"));
+            new XAttribute("dtd-version", xmlProfile.DtdVersion));
         ValidateLeaves(package);
 
         var leavesBySection = package.IchBackboneLeaves
@@ -45,7 +46,7 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
 
         var document = new XDocument(
             new XDeclaration("1.0", "utf-8", "yes"),
-            new XDocumentType("ectd:ectd", null, "util/dtd/ich-ectd-3-2.dtd", null),
+            new XDocumentType(xmlProfile.DocumentTypeName, null, xmlProfile.DtdSystemId, null),
             root);
 
         return new IchIndexXmlWriteResult("index.xml", document, document.ToString(SaveOptions.DisableFormatting));

@@ -4,8 +4,10 @@ using RATools.Application.Applications;
 using RATools.Application.Documents;
 using RATools.Application.EctdStructure;
 using RATools.Application.Publishing;
+using RATools.Application.Publishing.EuRegional;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
@@ -31,12 +33,23 @@ public static class DependencyInjection
         services.AddScoped<IBackboneService, BackboneService>();
         services.AddSingleton<IIchIndexXmlWriter, IchIndexXmlWriter>();
         services.AddSingleton<IUsRegionalXmlWriter, UsRegionalXmlWriter>();
+        services.AddSingleton<IEuRegionalXmlWriter, EuRegionalXmlWriter>();
+        services.AddSingleton<IRegionalBackboneWriter, UsRegionalBackboneWriter>();
+        services.AddSingleton<IRegionalBackboneWriter, EuRegionalBackboneWriter>();
+        services.AddSingleton<IRegionalBackboneWriterRegistry, RegionalBackboneWriterRegistry>();
         services.AddSingleton<IEctdXmlValidator, EctdXmlValidator>();
         services.AddScoped<IEctdPackageModelBuilder, EctdPackageModelBuilder>();
-        services.AddSingleton<IStandardsProfileProvider, FdaEctd322StandardsProfileProvider>();
+        services.AddSingleton<FdaEctd322StandardsProfileProvider>();
+        services.AddSingleton<EuEctd322StandardsProfileProvider>();
+        services.AddSingleton<IStandardsProfileProvider>(provider =>
+            new CompositeStandardsProfileProvider(
+            [
+                provider.GetRequiredService<FdaEctd322StandardsProfileProvider>(),
+                provider.GetRequiredService<EuEctd322StandardsProfileProvider>()
+            ]));
         services.AddSingleton<IEctdValidationRule, FileNamingConventionRule>();
         services.AddSingleton<IEctdValidationRule, PdfComplianceRule>();
-        services.AddSingleton<IEctdValidationRuleSetProvider, FdaEctdRuleSetProvider>();
+        services.AddSingleton<IEctdValidationRuleSetProvider, RegionalEctdRuleSetProvider>();
         services.AddSingleton<IEctdValidationEngine, EctdValidationEngine>();
         services.AddSingleton<IEctdWorkspacePathResolver, EctdWorkspacePathResolver>();
         services.AddSingleton<PublishOutputVerifier>();

@@ -3,9 +3,11 @@ using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.Requests;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
+using RATools.Application.Standards;
 
 namespace RATools.Tests.Publishing;
 
@@ -20,9 +22,10 @@ public sealed class BackboneServiceTests
         var packageBuilder = new RecordingPackageModelBuilder(package);
         var ichWriter = new RecordingIchIndexXmlWriter();
         var usRegionalWriter = new RecordingUsRegionalXmlWriter();
+        var regionalWriterRegistry = new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(usRegionalWriter)]);
         var validator = new RecordingEctdXmlValidator();
         var fileWriter = new RecordingBackboneFileWriter(validator);
-        var service = new BackboneService(packageBuilder, ichWriter, usRegionalWriter, validator, fileWriter);
+        var service = new BackboneService(packageBuilder, ichWriter, regionalWriterRegistry, validator, fileWriter);
 
         var result = await service.GenerateAsync(new GenerateBackboneRequest(
             applicationId,
@@ -76,6 +79,7 @@ public sealed class BackboneServiceTests
             "FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3",
             "3.2.2",
             "3.3",
+            BackboneXmlProfiles.FdaEctd322UsRegional33,
             new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
             new EctdSequenceMetadata("0001", "original-application", "initial", "Initial sequence", "Acme Pharma", "356h"),
             new EctdUsRegionalMetadata(
@@ -198,7 +202,7 @@ public sealed class BackboneServiceTests
 
         public List<bool> ValidatedBeforeWrite { get; } = [];
 
-        public void Validate(BackboneGeneratedFile file)
+        public void Validate(BackboneGeneratedFile file, StandardsProfile? standardsProfile = null)
         {
             ValidatedRelativePaths.Add(file.RelativePath);
             ValidatedBeforeWrite.Add(!FileWriterWasInvoked);

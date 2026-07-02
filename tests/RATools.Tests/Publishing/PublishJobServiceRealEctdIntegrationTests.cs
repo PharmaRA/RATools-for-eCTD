@@ -11,6 +11,7 @@ using RATools.Application.Publishing;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.Requests;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
@@ -189,10 +190,11 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             placementRepository,
             documentRepository,
             standardsProfileProvider);
+        var regionalWriterRegistry = new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(new UsRegionalXmlWriter())]);
         var backboneService = new BackboneService(
             packageModelBuilder,
             new IchIndexXmlWriter(),
-            new UsRegionalXmlWriter(),
+            regionalWriterRegistry,
             new EctdXmlValidator(),
             new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root })));
         var validationService = new SequenceValidationService(
@@ -205,7 +207,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             validationService,
             packageModelBuilder,
             new IchIndexXmlWriter(),
-            new UsRegionalXmlWriter(),
+            regionalWriterRegistry,
             new EctdXmlValidator(),
             standardsProfileProvider,
             new EctdValidationEngine(new FdaEctdRuleSetProvider([new FileNamingConventionRule()])));

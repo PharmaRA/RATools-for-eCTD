@@ -5,6 +5,7 @@ public sealed class EctdTemplateNotFoundException(string message) : Exception(me
 public static class EctdTemplateRegistry
 {
     public const string DefaultTemplateKey = "us-fda-ectd-3.2.2";
+    public const string EuTemplateKey = "eu-ectd-3.2.2";
 
     public static readonly EctdTemplateDefinition Default = new(
         DefaultTemplateKey,
@@ -15,7 +16,16 @@ public static class EctdTemplateRegistry
         "fda-ectd-3.2-manual",
         "3.2.2");
 
-    public static IReadOnlyCollection<EctdTemplateDefinition> All { get; } = [Default];
+    public static readonly EctdTemplateDefinition Eu = new(
+        EuTemplateKey,
+        "EU eCTD 3.2.2",
+        "EU",
+        "eCTD",
+        "3.2.2",
+        "eu-ectd-3.2.2",
+        "EU M1");
+
+    public static IReadOnlyCollection<EctdTemplateDefinition> All { get; } = [Default, Eu];
 
     public static EctdTemplateDefinition Resolve(string key)
     {
