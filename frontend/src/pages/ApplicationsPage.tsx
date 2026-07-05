@@ -8,6 +8,7 @@ import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemp
 import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
 import { type Application, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
+import { buildImportIssueColumns } from './importResultDisplay'
 import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
@@ -464,18 +465,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                   pagination={{ pageSize: 8 }}
                   rowKey={(_, index) => `issue-${index}`}
                   dataSource={importResult.issues}
-                  columns={[
-                    {
-                      title: 'Severity',
-                      dataIndex: 'severity',
-                      key: 'severity',
-                      width: 110,
-                      render: (value: string) => <Tag color={String(value).toLowerCase() === 'error' ? 'red' : 'gold'}>{value}</Tag>,
-                    },
-                    { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
-                    { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'sequenceNumber', width: 130, render: (value?: string | null) => value || '-' },
-                    { title: 'Message', dataIndex: 'message', key: 'message' },
-                  ]}
+                  columns={buildImportIssueColumns()}
                 />
               </div>
             )}

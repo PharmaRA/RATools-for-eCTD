@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildPublishReadinessCategoryColumns,
+  buildPublishReadinessSnapshotItems,
   formatMissingMetadataFields,
   formatReadinessFieldName,
   formatReadinessHistoryCountHint,
@@ -81,8 +83,33 @@ describe('publishReadinessDisplay', () => {
     expect(formatReadinessCount(undefined)).toBe('-')
   })
 
+  it('builds publish readiness snapshot description items', () => {
+    expect(buildPublishReadinessSnapshotItems({
+      status: '',
+      isReady: false,
+      blockingErrorCount: 2,
+      warningCount: null,
+      missingMetadataFields: ['Applicant', 'Submission Type'],
+    })).toEqual([
+      { key: 'readiness-status', label: 'Status', children: '-' },
+      { key: 'readiness-ready', label: 'Ready', children: 'No' },
+      { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: 2 },
+      { key: 'readiness-warnings', label: 'Warnings', children: '-' },
+      { key: 'readiness-missing-fields', label: 'Missing Metadata Fields', children: 'Applicant, Submission Type' },
+    ])
+  })
+
   it('uses category as the publish readiness category row key', () => {
     expect(getPublishReadinessCategoryKey({ category: 'Metadata' })).toBe('Metadata')
+  })
+
+  it('builds publish readiness category summary columns', () => {
+    expect(buildPublishReadinessCategoryColumns()).toEqual([
+      { title: 'Category', dataIndex: 'category', key: 'category' },
+      { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
+      { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
+      { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
+    ])
   })
 
   it('builds a stable publish readiness finding row key', () => {

@@ -5,26 +5,22 @@ import { CheckCircle, Download, XCircle } from 'lucide-react'
 import { apiFetch } from '../../apiClient'
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
-import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
-import { renderArtifactExistsStatus } from './artifactDisplay'
 import { getArtifactsFromResponse } from './packageReviewArtifacts'
 import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
 import {
+  buildPackageReviewChecklistColumns,
+  buildPackageReviewEvidenceFindingColumns,
+  buildPackageReviewReadinessFindingColumns,
+  buildPackageReviewRequiredArtifactColumns,
   buildPackageReviewRiskSummaryItems,
   formatPackageReviewHeaderSummary,
   formatPackageReviewWarningAlertDescription,
-  renderChecklistPassStatus,
-  renderEvidenceFindingSeverityStatus,
-  renderReadinessFindingSeverityStatus,
 } from './packageReviewDisplay'
 import { downloadJson } from './packageReviewDownload'
 import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
 import {
-  formatReadinessCount,
-  formatReadinessFieldName,
-  formatMissingMetadataFields,
-  formatReadinessReadyStatus,
-  formatReadinessStatus,
+  buildPublishReadinessCategoryColumns,
+  buildPublishReadinessSnapshotItems,
   getPublishReadinessCategoryKey,
   getPublishReadinessFindingKey,
 } from './publishReadinessDisplay'
@@ -223,11 +219,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             rowKey="key"
             pagination={false}
             size="small"
-            columns={[
-              { title: 'Check', dataIndex: 'check', key: 'check' },
-              { title: 'Status', dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
-              { title: 'Details', dataIndex: 'detail', key: 'detail' },
-            ]}
+            columns={buildPackageReviewChecklistColumns()}
           />
         </Card>
 
@@ -242,17 +234,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 bordered
                 size="small"
                 column={2}
-                items={[
-                  { key: 'readiness-status', label: 'Status', children: formatReadinessStatus(publishReadiness.status) },
-                  { key: 'readiness-ready', label: 'Ready', children: formatReadinessReadyStatus(publishReadiness.isReady) },
-                  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: formatReadinessCount(publishReadiness.blockingErrorCount) },
-                  { key: 'readiness-warnings', label: 'Warnings', children: formatReadinessCount(publishReadiness.warningCount) },
-                  {
-                    key: 'readiness-missing-fields',
-                    label: 'Missing Metadata Fields',
-                    children: formatMissingMetadataFields(publishReadiness.missingMetadataFields),
-                  },
-                ]}
+                items={buildPublishReadinessSnapshotItems(publishReadiness)}
               />
 
               <Table
@@ -261,12 +243,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 pagination={false}
                 size="small"
                 locale={{ emptyText: 'No readiness category summaries were recorded.' }}
-                columns={[
-                  { title: 'Category', dataIndex: 'category', key: 'category' },
-                  { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
-                  { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
-                  { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
-                ]}
+                columns={buildPublishReadinessCategoryColumns()}
               />
 
               <Table
@@ -275,13 +252,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 pagination={{ pageSize: 10 }}
                 size="small"
                 locale={{ emptyText: 'No publish readiness findings were recorded.' }}
-                columns={[
-                  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120, render: renderReadinessFindingSeverityStatus },
-                  { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
-                  { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
-                  { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: formatReadinessFieldName },
-                  { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction' },
-                ]}
+                columns={buildPackageReviewReadinessFindingColumns()}
               />
             </div>
           </Card>
@@ -301,12 +272,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               rowKey={(_, index) => `finding-${index}`}
               pagination={{ pageSize: 10 }}
               size="small"
-              columns={[
-                { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100, render: renderEvidenceFindingSeverityStatus },
-                { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
-                { title: 'Path', dataIndex: 'path', key: 'path', width: 260, render: formatOptionalText },
-                { title: 'Message', dataIndex: 'message', key: 'message' },
-              ]}
+              columns={buildPackageReviewEvidenceFindingColumns()}
             />
           ) : (
             <Alert type="success" showIcon title="No integrity findings were recorded." />
@@ -319,12 +285,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             rowKey="name"
             pagination={false}
             size="small"
-            columns={[
-              { title: 'Name', dataIndex: 'name', key: 'name', render: (name: string) => <b>{name}</b> },
-              { title: 'Status', dataIndex: 'exists', key: 'status', render: renderArtifactExistsStatus },
-              { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: formatOptionalBytes },
-              { title: 'Type', dataIndex: 'contentType', key: 'type', render: formatOptionalText },
-            ]}
+            columns={buildPackageReviewRequiredArtifactColumns()}
           />
         </Card>
       </div>

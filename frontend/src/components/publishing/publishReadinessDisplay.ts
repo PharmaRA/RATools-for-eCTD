@@ -48,6 +48,29 @@ export const formatReadinessFieldName = (fieldName?: string | null) => fieldName
 
 export const formatReadinessCount = (count?: number | null) => count ?? '-'
 
+type PublishReadinessSnapshot = {
+  status?: string | null
+  isReady?: boolean | null
+  blockingErrorCount?: number | null
+  warningCount?: number | null
+  missingMetadataFields?: string[] | null
+}
+
+export const buildPublishReadinessSnapshotItems = (readiness: PublishReadinessSnapshot) => [
+  { key: 'readiness-status', label: 'Status', children: formatReadinessStatus(readiness.status) },
+  { key: 'readiness-ready', label: 'Ready', children: formatReadinessReadyStatus(readiness.isReady) },
+  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: formatReadinessCount(readiness.blockingErrorCount) },
+  { key: 'readiness-warnings', label: 'Warnings', children: formatReadinessCount(readiness.warningCount) },
+  { key: 'readiness-missing-fields', label: 'Missing Metadata Fields', children: formatMissingMetadataFields(readiness.missingMetadataFields) },
+]
+
+export const buildPublishReadinessCategoryColumns = () => [
+  { title: 'Category', dataIndex: 'category', key: 'category' },
+  { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
+  { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
+  { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
+]
+
 type PublishReadinessCategoryRow = {
   category: string
 }

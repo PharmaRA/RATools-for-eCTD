@@ -3,18 +3,27 @@ import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs 
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { formatDate, formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
-import { renderArtifactExistsStatus } from './artifactDisplay'
 import {
   getReportErrorAlertMeta,
   toReportErrorState,
   type ReportErrorState,
 } from './reportErrors'
-import { formatReportCount, formatReportList, renderReportSeverityStatus, renderZipEntryPresentStatus } from './reportDisplay'
+import {
+  buildReportArtifactManifestColumns,
+  buildReportArtifactSummaryItems,
+  buildReportAuditSummaryItems,
+  buildReportIntegrityFindingColumns,
+  buildReportIntegritySummaryItems,
+  buildReportLifecycleMatchColumns,
+  buildReportLifecycleSummaryItems,
+  buildReportOverviewItems,
+  buildReportPublishReadinessCategoryColumns,
+  buildReportPublishReadinessFindingColumns,
+  buildReportValidationIssueColumns,
+} from './reportDisplay'
 import {
   formatReadinessCount,
-  formatReadinessFieldName,
   formatMissingMetadataFields,
   formatReadinessReadyStatus,
   formatReadinessStatus,
@@ -174,58 +183,49 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               Download JSON
             </Button>
           </div>
-          <Descriptions bordered size="small" column={2}>
-            <Descriptions.Item label="Profile">{report.validationProfile}</Descriptions.Item>
-            <Descriptions.Item label="Duration">{report.durationMs} ms</Descriptions.Item>
-            <Descriptions.Item label="Errors">{report.errorCount}</Descriptions.Item>
-            <Descriptions.Item label="Warnings">{report.warningCount}</Descriptions.Item>
-            <Descriptions.Item label="Lifecycle Issues">{lifecycleIssueCount}</Descriptions.Item>
-            <Descriptions.Item label="Integrity">{integrityState}</Descriptions.Item>
-          </Descriptions>
+          <Descriptions
+            bordered
+            size="small"
+            column={2}
+            items={buildReportOverviewItems(report, lifecycleIssueCount, integrityState)}
+          />
           <Row gutter={16}>
             <Col span={12}>
               <Card size="small" title="Integrity Summary">
-                <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Consistent">{integrityState}</Descriptions.Item>
-                  <Descriptions.Item label="Missing Files">{formatReportCount(report.integritySummary?.missingFilesCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Missing Zip Entries">{formatReportCount(report.integritySummary?.missingZipEntriesCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Mismatched Artifacts">{formatReportCount(report.integritySummary?.mismatchedArtifactsCount)}</Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  size="small"
+                  column={1}
+                  items={buildReportIntegritySummaryItems(report.integritySummary, integrityState)}
+                />
               </Card>
             </Col>
             <Col span={12}>
               <Card size="small" title="Artifact Summary">
-                <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="File Count">{formatReportCount(report.artifactSummary?.fileCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Total Size">{formatOptionalBytes(report.artifactSummary?.totalSizeBytes)}</Descriptions.Item>
-                  <Descriptions.Item label="Package Size">{formatOptionalBytes(report.artifactSummary?.packageSizeBytes)}</Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  size="small"
+                  column={1}
+                  items={buildReportArtifactSummaryItems(report.artifactSummary)}
+                />
               </Card>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
               <Card size="small" title="Audit Summary">
-                <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Publish Job Events">{formatReportCount(report.auditSummary?.publishJobEventCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Validation Events">{formatReportCount(report.auditSummary?.validationEventCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Latest Action">{report.auditSummary?.latestPublishJobAction ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Latest Event">{formatDate(report.auditSummary?.latestPublishJobEventUtc ?? undefined)}</Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  size="small"
+                  column={1}
+                  items={buildReportAuditSummaryItems(report.auditSummary)}
+                />
               </Card>
             </Col>
             <Col span={12}>
               <Card size="small" title="Lifecycle Summary">
-                <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Matched">{lifecycleSummary.matchedCount}</Descriptions.Item>
-                  <Descriptions.Item label="Issues">{lifecycleIssueCount}</Descriptions.Item>
-                  <Descriptions.Item label="Replace Missing">{lifecycleSummary.replaceTargetNotFoundCount}</Descriptions.Item>
-                  <Descriptions.Item label="Delete Missing">{lifecycleSummary.deleteTargetNotFoundCount}</Descriptions.Item>
-                  <Descriptions.Item label="Append Missing">{lifecycleSummary.appendTargetNotFoundCount}</Descriptions.Item>
-                  <Descriptions.Item label="Ambiguous">{lifecycleSummary.ambiguousCount}</Descriptions.Item>
-                  <Descriptions.Item label="Current Sequence">{lifecycleSummary.currentSequenceCount}</Descriptions.Item>
-                  <Descriptions.Item label="Warning Summary">{formatOptionalText(report.warningSummary)}</Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  size="small"
+                  column={1}
+                  items={buildReportLifecycleSummaryItems(lifecycleSummary, report.warningSummary)}
+                />
               </Card>
             </Col>
           </Row>
@@ -247,12 +247,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   pagination={false}
                   size="small"
                   locale={{ emptyText: 'No publish readiness category summaries were recorded.' }}
-                  columns={[
-                    { title: 'Category', dataIndex: 'category', width: 220 },
-                    { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
-                    { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
-                    { title: 'Findings', dataIndex: 'findingCount', width: 120 },
-                  ]}
+                  columns={buildReportPublishReadinessCategoryColumns()}
                 />
                 <Table
                   dataSource={publishReadiness.findings || []}
@@ -260,13 +255,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   pagination={{ pageSize: 10 }}
                   size="small"
                   locale={{ emptyText: 'No publish readiness findings were recorded.' }}
-                  columns={[
-                    { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
-                    { title: 'Code', dataIndex: 'code', width: 220 },
-                    { title: 'Category', dataIndex: 'category', width: 180 },
-                    { title: 'Field', dataIndex: 'fieldName', width: 180, render: formatReadinessFieldName },
-                    { title: 'Recommended Action', dataIndex: 'recommendedAction' },
-                  ]}
+                  columns={buildReportPublishReadinessFindingColumns()}
                 />
               </div>
             </Card>
@@ -279,19 +268,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                 label: `Lifecycle (${lifecycleMatches.length})`,
                 children: (
               <Table dataSource={lifecycleMatches} rowKey={(record, i) => `${record.documentId}-${i}`} pagination={{ pageSize: 10 }} size="small"
-                columns={[
-                  { title: 'Operation', dataIndex: 'operation', width: 120 },
-                  { title: 'Sequence', dataIndex: 'sequenceNumber', width: 100 },
-                  { title: 'CTD Section', dataIndex: 'ctdSection', width: 120 },
-                  { title: 'Document ID', dataIndex: 'documentId', width: 180 },
-                  { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
-                  { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
-                  { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', render: formatReportList, width: 220 },
-                  { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
-                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: formatReportList, width: 180 },
-                  { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', render: formatReportList, width: 240 },
-                  { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
-                ]}
+                columns={buildReportLifecycleMatchColumns()}
               />
                 ),
               },
@@ -300,11 +277,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                 label: `Validation Issues (${report.validationReport?.issues?.length || 0})`,
                 children: (
               <Table dataSource={report.validationReport?.issues || []} rowKey={(_, i) => i + ''} pagination={{ pageSize: 10 }} size="small"
-                columns={[
-                  { title: 'Severity', dataIndex: 'severity', render: renderReportSeverityStatus, width: 100 },
-                  { title: 'Code', dataIndex: 'code', width: 200 },
-                  { title: 'Message', dataIndex: 'message' },
-                ]}
+                columns={buildReportValidationIssueColumns()}
               />
                 ),
               },
@@ -316,24 +289,12 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                     <Card size="small" title="Integrity Findings">
                       <Table dataSource={report.integrityEvidence.findings || []} rowKey={(_, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
                         locale={{ emptyText: 'No integrity findings were recorded.' }}
-                        columns={[
-                          { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
-                          { title: 'Type', dataIndex: 'type', width: 200 },
-                          { title: 'Path', dataIndex: 'path', width: 260, render: formatOptionalText },
-                          { title: 'Message', dataIndex: 'message' },
-                        ]}
+                        columns={buildReportIntegrityFindingColumns()}
                       />
                     </Card>
                     <Card size="small" title="Artifact Manifest">
                       <Table dataSource={report.integrityEvidence.artifacts || []} rowKey={(_, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
-                        columns={[
-                          { title: 'Role', dataIndex: 'role', width: 140 },
-                          { title: 'Relative Path', dataIndex: 'relativePath', width: 260, render: formatOptionalText },
-                          { title: 'Exists', dataIndex: 'exists', width: 120, render: renderArtifactExistsStatus },
-                          { title: 'Size', dataIndex: 'sizeBytes', width: 120, render: formatOptionalBytes },
-                          { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150, render: renderZipEntryPresentStatus },
-                          { title: 'Source', dataIndex: 'source', width: 160 },
-                        ]}
+                        columns={buildReportArtifactManifestColumns()}
                       />
                     </Card>
                   </div>

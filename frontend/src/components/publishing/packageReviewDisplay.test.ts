@@ -2,6 +2,10 @@ import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildPackageReviewChecklistColumns,
+  buildPackageReviewEvidenceFindingColumns,
+  buildPackageReviewReadinessFindingColumns,
+  buildPackageReviewRequiredArtifactColumns,
   buildPackageReviewRiskSummaryItems,
   formatPackageReviewHeaderSummary,
   formatPackageReviewWarningAlertDescription,
@@ -83,6 +87,21 @@ describe('packageReviewDisplay', () => {
     expect((element as ReactElement<{ color: string; children: string }>).props.children).toBe(label)
   })
 
+  it('builds package review checklist columns', () => {
+    const columns = buildPackageReviewChecklistColumns()
+
+    expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
+      { title: 'Check', dataIndex: 'check', key: 'check', width: undefined },
+      { title: 'Status', dataIndex: 'pass', key: 'status', width: 120 },
+      { title: 'Details', dataIndex: 'detail', key: 'detail', width: undefined },
+    ])
+
+    const statusElement = (columns[1] as { render: (value: boolean) => unknown }).render(true)
+    expect(isValidElement(statusElement)).toBe(true)
+    expect((statusElement as ReactElement<{ color: string; children: string }>).props.color).toBe('green')
+    expect((statusElement as ReactElement<{ color: string; children: string }>).props.children).toBe('Pass')
+  })
+
   it.each([
     ['Error', 'red'],
     ['Warning', 'gold'],
@@ -94,6 +113,24 @@ describe('packageReviewDisplay', () => {
     expect((element as ReactElement<{ color: string; children: string }>).props.children).toBe(severity)
   })
 
+  it('builds package review readiness finding columns', () => {
+    const columns = buildPackageReviewReadinessFindingColumns()
+
+    expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
+      { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120 },
+      { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
+      { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
+      { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180 },
+      { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction', width: undefined },
+    ])
+
+    const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
+    expect(isValidElement(severityElement)).toBe(true)
+    expect((severityElement as ReactElement<{ color: string; children: string }>).props.color).toBe('gold')
+
+    expect((columns[3] as { render: (value?: string | null) => unknown }).render(null)).toBe('-')
+  })
+
   it.each([
     ['Error', 'red'],
     ['Warning', 'orange'],
@@ -103,5 +140,45 @@ describe('packageReviewDisplay', () => {
     expect(isValidElement(element)).toBe(true)
     expect((element as ReactElement<{ color: string; children: string }>).props.color).toBe(color)
     expect((element as ReactElement<{ color: string; children: string }>).props.children).toBe(severity)
+  })
+
+  it('builds package review evidence finding columns', () => {
+    const columns = buildPackageReviewEvidenceFindingColumns()
+
+    expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
+      { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100 },
+      { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
+      { title: 'Path', dataIndex: 'path', key: 'path', width: 260 },
+      { title: 'Message', dataIndex: 'message', key: 'message', width: undefined },
+    ])
+
+    const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
+    expect(isValidElement(severityElement)).toBe(true)
+    expect((severityElement as ReactElement<{ color: string; children: string }>).props.color).toBe('orange')
+
+    expect((columns[2] as { render: (value?: string | null) => unknown }).render(null)).toBe('-')
+  })
+
+  it('builds package review required artifact columns', () => {
+    const columns = buildPackageReviewRequiredArtifactColumns()
+
+    expect(columns.map(({ title, dataIndex, key }) => ({ title, dataIndex, key }))).toEqual([
+      { title: 'Name', dataIndex: 'name', key: 'name' },
+      { title: 'Status', dataIndex: 'exists', key: 'status' },
+      { title: 'Size', dataIndex: 'sizeBytes', key: 'size' },
+      { title: 'Type', dataIndex: 'contentType', key: 'type' },
+    ])
+
+    const nameElement = (columns[0] as { render: (value: string) => unknown }).render('PackageZip')
+    expect(isValidElement(nameElement)).toBe(true)
+    expect((nameElement as ReactElement<{ children: string }>).type).toBe('b')
+    expect((nameElement as ReactElement<{ children: string }>).props.children).toBe('PackageZip')
+
+    const statusElement = (columns[1] as { render: (value: boolean) => unknown }).render(true)
+    expect(isValidElement(statusElement)).toBe(true)
+    expect((statusElement as ReactElement<{ color: string; children: string }>).props.color).toBe('green')
+
+    expect((columns[2] as { render: (value?: number | null) => unknown }).render(1536)).toBe('1.5 KB')
+    expect((columns[3] as { render: (value?: string | null) => unknown }).render(null)).toBe('-')
   })
 })
