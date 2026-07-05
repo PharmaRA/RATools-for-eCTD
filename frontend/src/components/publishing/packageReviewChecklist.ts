@@ -18,6 +18,10 @@ export const formatPackageReviewChecklistCountDetail = (
   label: PackageReviewChecklistCountLabel,
 ) => (reportLoaded ? `${count ?? '-'} ${label}(s)` : 'Unavailable')
 
+export const isPackageReviewReadyForSubmission = (rows: readonly PackageReviewChecklistRow[]) => (
+  rows.every((row) => row.pass)
+)
+
 export const buildPackageReviewChecklistRows = ({
   report,
   reportLoaded,

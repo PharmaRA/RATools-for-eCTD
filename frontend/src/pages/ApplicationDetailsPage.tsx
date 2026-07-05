@@ -6,7 +6,8 @@ import { apiFetch } from '../apiClient'
 import { buildSequenceBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
 import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
-import { buildSequenceColumns } from './applicationDetailsDisplay'
+import { buildSequenceColumns, formatApplicationDetailsTitle, getApplicationSequences } from './applicationDetailsDisplay'
+import { buildBatchDeleteState } from './batchDeleteState'
 import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
@@ -50,10 +51,12 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
     setSelectedSequenceKeys([])
   }, [appId])
 
+  const appSequences = appData?.sequences
+
   useEffect(() => {
-    const validSequenceKeys = new Set((appData?.sequences || []).map((sequence) => String(sequence.sequenceNumber)))
+    const validSequenceKeys = new Set(getApplicationSequences({ sequences: appSequences }).map((sequence) => String(sequence.sequenceNumber)))
     setSelectedSequenceKeys((current) => keepKnownSelectionKeys(current, validSequenceKeys))
-  }, [appData?.sequences])
+  }, [appSequences])
 
   const handleCreateSequence = async () => {
     try {
@@ -144,9 +147,16 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   }
 
   const failedSequenceBatchResults = getFailedBatchDeleteResults(sequenceBatchSummary)
-  const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0
-  const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning
-  const appTitle = appData ? `${appData.applicationNumber} (${appData.sponsorName})` : appId
+  const {
+    hasSingleDeleteRunning: hasSingleSequenceDeleteRunning,
+    canStartBatchDelete,
+  } = buildBatchDeleteState({
+    selectedKeys: selectedSequenceKeys,
+    deletingKeys: deletingSequenceNumbers,
+    isBatchDeleteRunning: sequenceBatchDeleteDialog.running,
+  })
+  const appTitle = formatApplicationDetailsTitle(appData, appId)
+  const sequences = getApplicationSequences({ sequences: appSequences })
   const sequenceColumns = buildSequenceColumns({
     isBatchDeleteRunning: sequenceBatchDeleteDialog.running,
     deletingSequenceNumbers,
@@ -182,7 +192,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
           </div>
           <Table<SequenceSummary>
             loading={loading}
-            dataSource={appData?.sequences || []}
+            dataSource={sequences}
             rowKey="sequenceNumber"
             size="middle"
             rowSelection={{

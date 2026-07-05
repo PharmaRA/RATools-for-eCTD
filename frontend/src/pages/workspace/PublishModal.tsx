@@ -1,6 +1,7 @@
 import { Alert, Form, Input, Modal, Tag, type FormInstance } from 'antd'
 
 import { PathPicker } from '../../PathPicker'
+import { getPublishReadinessFindingSeverityTagColor } from '../../components/publishing/publishReadinessDisplay'
 import type { PrePublishChecklistSummary } from '../../prePublishChecklist'
 import type { PublishReadinessReport } from '../../validationActions'
 
@@ -68,7 +69,7 @@ export const PublishModal = ({
           <div className="rounded border border-gray-200 bg-white/70 p-3 text-sm" data-testid="publish-readiness-findings">
             {publishReadiness.findings.map((finding) => (
               <div key={`${finding.code}-${finding.fieldName || 'none'}`} className="mb-2 last:mb-0">
-                <Tag color={finding.severity.toLowerCase() === 'error' ? 'red' : 'gold'}>{finding.code}</Tag>
+                <Tag color={getPublishReadinessFindingSeverityTagColor(finding.severity)}>{finding.code}</Tag>
                 {finding.fieldName && <Tag color="blue">{finding.fieldName}</Tag>}
                 <span>{finding.recommendedAction}</span>
               </div>

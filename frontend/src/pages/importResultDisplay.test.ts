@@ -1,9 +1,52 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
-import { buildImportIssueColumns } from './importResultDisplay'
+import {
+  buildImportIssueColumns,
+  buildImportIssueSummaryItems,
+  getImportIssueSeverityDisplayMeta,
+  getImportResultIssues,
+} from './importResultDisplay'
 
 describe('importResultDisplay', () => {
+  it.each([
+    ['Error', { alertType: 'error', tagColor: 'red' }],
+    ['Warning', { alertType: 'warning', tagColor: 'gold' }],
+    ['Info', { alertType: 'warning', tagColor: 'gold' }],
+  ])('maps import issue severity %s to display meta', (severity, expected) => {
+    expect(getImportIssueSeverityDisplayMeta(severity)).toEqual(expected)
+  })
+
+  it('builds import issue summary items', () => {
+    expect(buildImportIssueSummaryItems({
+      totalIssueCount: 3,
+      warningCount: 2,
+      errorCount: 1,
+      lifecycleWarningCount: 0,
+    })).toEqual([
+      { key: 'total', color: 'blue', label: '3 total issues' },
+      { key: 'warnings', color: 'gold', label: '2 warnings' },
+      { key: 'errors', color: 'red', label: '1 errors' },
+      { key: 'lifecycle-target-warnings', color: 'green', label: '0 lifecycle target warnings' },
+    ])
+
+    expect(buildImportIssueSummaryItems({
+      totalIssueCount: 1,
+      warningCount: 1,
+      errorCount: 0,
+      lifecycleWarningCount: 1,
+    })[3].color).toBe('gold')
+  })
+
+  it('reads import issues from optional import result data', () => {
+    const issues = [{ severity: 'Warning', code: 'LIFECYCLE_TARGET', message: 'Review target' }]
+
+    expect(getImportResultIssues({ issues })).toBe(issues)
+    expect(getImportResultIssues({})).toEqual([])
+    expect(getImportResultIssues(null)).toEqual([])
+    expect(getImportResultIssues(undefined)).toEqual([])
+  })
+
   it('builds import issue columns', () => {
     const columns = buildImportIssueColumns()
 

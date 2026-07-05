@@ -11,8 +11,12 @@ import {
   formatReadinessReadyStatus,
   formatReadinessStatus,
   getPublishReadinessStatusTagProps,
+  getPublishReadinessFindingSeverityTagColor,
   getPublishReadinessCategoryKey,
   getPublishReadinessFindingKey,
+  getPublishReadinessFromReport,
+  getPublishReadinessCategorySummaries,
+  getPublishReadinessFindings,
 } from './publishReadinessDisplay'
 
 describe('publishReadinessDisplay', () => {
@@ -70,6 +74,14 @@ describe('publishReadinessDisplay', () => {
     })
   })
 
+  it.each([
+    ['Error', 'red'],
+    ['error', 'red'],
+    ['Warning', 'gold'],
+  ])('maps publish readiness finding severity %s to tag color', (severity, color) => {
+    expect(getPublishReadinessFindingSeverityTagColor(severity)).toBe(color)
+  })
+
   it('uses a dash when publish readiness finding field is missing', () => {
     expect(formatReadinessFieldName('Applicant')).toBe('Applicant')
     expect(formatReadinessFieldName(null)).toBe('-')
@@ -108,6 +120,31 @@ describe('publishReadinessDisplay', () => {
       children: 'None',
       span: 2,
     })
+  })
+
+  it('reads optional publish readiness category summaries and findings', () => {
+    const categorySummaries = [{ category: 'Metadata' }]
+    const findings = [{ code: 'MISSING_FIELD', fieldName: 'Applicant' }]
+
+    expect(getPublishReadinessCategorySummaries({ categorySummaries })).toBe(categorySummaries)
+    expect(getPublishReadinessCategorySummaries({})).toEqual([])
+    expect(getPublishReadinessCategorySummaries(null)).toEqual([])
+    expect(getPublishReadinessCategorySummaries(undefined)).toEqual([])
+
+    expect(getPublishReadinessFindings({ findings })).toBe(findings)
+    expect(getPublishReadinessFindings({})).toEqual([])
+    expect(getPublishReadinessFindings(null)).toEqual([])
+    expect(getPublishReadinessFindings(undefined)).toEqual([])
+  })
+
+  it('reads optional publish readiness from report data', () => {
+    const readiness = { isReady: true, status: 'Ready' }
+
+    expect(getPublishReadinessFromReport({ publishReadiness: readiness })).toBe(readiness)
+    expect(getPublishReadinessFromReport({ publishReadiness: null })).toBeNull()
+    expect(getPublishReadinessFromReport({})).toBeNull()
+    expect(getPublishReadinessFromReport(null)).toBeNull()
+    expect(getPublishReadinessFromReport(undefined)).toBeNull()
   })
 
   it('uses category as the publish readiness category row key', () => {

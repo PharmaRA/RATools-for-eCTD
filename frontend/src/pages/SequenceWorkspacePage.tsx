@@ -16,6 +16,7 @@ import {
 } from '../validationActions'
 import {
   buildPrePublishChecklistSummary,
+  buildPrePublishChecklistDisplay,
   getPublishReadinessValidationIssues,
 } from '../prePublishChecklist'
 import { splitFileName } from '../ectdFileTypes'
@@ -460,14 +461,9 @@ export const SequenceWorkspacePage = ({
     }
   }
 
-  const validationIssueCountText = validationSummary
-    ? `${validationSummary.blockingIssueCount} blocking | ${validationSummary.warningCount} ${validationSummary.warningCount === 1 ? 'warning' : 'warnings'}`
-    : ''
-  const validationStatusText = validationSummary
-    ? validationSummary.canProceed
-      ? 'Pre-publish checks passed'
-      : 'Pre-publish checks failed'
-    : ''
+  const validationDisplay = validationSummary ? buildPrePublishChecklistDisplay(validationSummary) : null
+  const validationIssueCountText = validationDisplay?.issueCountText || ''
+  const validationStatusText = validationDisplay?.statusText || ''
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-200">

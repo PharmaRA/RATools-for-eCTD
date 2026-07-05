@@ -9,6 +9,8 @@ import {
   buildPackageReviewRiskSummaryItems,
   formatPackageReviewHeaderSummary,
   formatPackageReviewWarningAlertDescription,
+  getPackageReviewIntegrityFindings,
+  getPackageReviewReadinessDisplayMeta,
   renderChecklistPassStatus,
   renderEvidenceFindingSeverityStatus,
   renderReadinessFindingSeverityStatus,
@@ -74,6 +76,24 @@ describe('packageReviewDisplay', () => {
     expect(formatPackageReviewWarningAlertDescription(null)).toBeNull()
     expect(formatPackageReviewWarningAlertDescription({ warningCount: 0 })).toBeNull()
     expect(formatPackageReviewWarningAlertDescription({ warningCount: 2 })).toBe('2 warning(s) remain for reviewer awareness.')
+  })
+
+  it('reads package review integrity findings only after report load', () => {
+    const findings = [{ type: 'MissingFile', severity: 'Error', message: 'Missing file' }]
+    const report = { integrityEvidence: { findings } }
+
+    expect(getPackageReviewIntegrityFindings(report, true)).toBe(findings)
+    expect(getPackageReviewIntegrityFindings(report, false)).toEqual([])
+    expect(getPackageReviewIntegrityFindings({ integrityEvidence: {} }, true)).toEqual([])
+    expect(getPackageReviewIntegrityFindings(null, true)).toEqual([])
+    expect(getPackageReviewIntegrityFindings(undefined, true)).toEqual([])
+  })
+
+  it.each([
+    [true, { title: 'Ready for Submission', iconClassName: 'text-green-500' }],
+    [false, { title: 'Not Ready for Submission', iconClassName: 'text-red-500' }],
+  ] as const)('builds package review readiness display meta for %s', (readyForSubmission, expected) => {
+    expect(getPackageReviewReadinessDisplayMeta(readyForSubmission)).toEqual(expected)
   })
 
   it.each([

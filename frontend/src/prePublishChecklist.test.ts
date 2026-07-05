@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   apiErrorCode,
   buildPrePublishChecklistSummary,
+  buildPrePublishChecklistDisplay,
   getPublishReadinessValidationIssues,
   normalizeValidationReport,
   summarizeSectionMatches,
@@ -196,6 +197,26 @@ describe('prePublishChecklist', () => {
     expect(summary.checklistRows.find((row) => row.key === 'section-paths')).toMatchObject({
       status: 'info',
       blocking: false,
+    })
+  })
+
+  it('builds validation summary display text from checklist counts', () => {
+    expect(buildPrePublishChecklistDisplay({
+      canProceed: true,
+      blockingIssueCount: 0,
+      warningCount: 1,
+    })).toEqual({
+      statusText: 'Pre-publish checks passed',
+      issueCountText: '0 blocking | 1 warning',
+    })
+
+    expect(buildPrePublishChecklistDisplay({
+      canProceed: false,
+      blockingIssueCount: 2,
+      warningCount: 3,
+    })).toEqual({
+      statusText: 'Pre-publish checks failed',
+      issueCountText: '2 blocking | 3 warnings',
     })
   })
 })

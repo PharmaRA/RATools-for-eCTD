@@ -3,8 +3,8 @@ import { Tag } from 'antd'
 
 import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
-import { formatReadinessFieldName } from './publishReadinessDisplay'
-import type { PackageReviewReport } from './packageReviewExport'
+import { formatReadinessFieldName, getPublishReadinessFindingSeverityTagColor } from './publishReadinessDisplay'
+import type { IntegrityFinding, PackageReviewReport } from './packageReviewExport'
 
 type PackageReviewHeaderReport = Pick<PackageReviewReport, 'sequenceNumber' | 'publishJob' | 'validationProfile'>
 
@@ -16,6 +16,8 @@ type PackageReviewRiskSummaryInput = {
 
 type PackageReviewWarningReport = Pick<PackageReviewReport, 'warningCount'>
 
+type PackageReviewIntegrityEvidenceReport = Pick<PackageReviewReport, 'integrityEvidence'>
+
 export const formatPackageReviewHeaderSummary = (report?: PackageReviewHeaderReport | null) => {
   return `Sequence ${formatOptionalText(report?.sequenceNumber)} | ${formatOptionalText(report?.publishJob?.status)} | ${formatOptionalText(report?.validationProfile)}`
 }
@@ -26,6 +28,17 @@ export const formatPackageReviewWarningAlertDescription = (report?: PackageRevie
   const warningCount = report?.warningCount ?? 0
   return warningCount > 0 ? `${warningCount} warning(s) remain for reviewer awareness.` : null
 }
+
+export const getPackageReviewReadinessDisplayMeta = (readyForSubmission: boolean) => (
+  readyForSubmission
+    ? { title: 'Ready for Submission', iconClassName: 'text-green-500' }
+    : { title: 'Not Ready for Submission', iconClassName: 'text-red-500' }
+)
+
+export const getPackageReviewIntegrityFindings = (
+  report: PackageReviewIntegrityEvidenceReport | null | undefined,
+  reportLoaded: boolean,
+): IntegrityFinding[] => reportLoaded ? report?.integrityEvidence?.findings || [] : []
 
 export const buildPackageReviewRiskSummaryItems = ({
   report,
@@ -61,12 +74,8 @@ export const buildPackageReviewRequiredArtifactColumns = () => [
   { title: 'Type', dataIndex: 'contentType', key: 'type', render: formatOptionalText },
 ]
 
-const renderSeverityStatus = (severity: string, warningColor: string) => {
-  return createElement(Tag, { color: severity === 'Error' ? 'red' : warningColor }, severity)
-}
-
 export const renderReadinessFindingSeverityStatus = (severity: string) => {
-  return renderSeverityStatus(severity, 'gold')
+  return createElement(Tag, { color: getPublishReadinessFindingSeverityTagColor(severity) }, severity)
 }
 
 export const buildPackageReviewReadinessFindingColumns = () => [
@@ -78,7 +87,7 @@ export const buildPackageReviewReadinessFindingColumns = () => [
 ]
 
 export const renderEvidenceFindingSeverityStatus = (severity: string) => {
-  return renderSeverityStatus(severity, 'orange')
+  return createElement(Tag, { color: severity === 'Error' ? 'red' : 'orange' }, severity)
 }
 
 export const buildPackageReviewEvidenceFindingColumns = () => [

@@ -5,8 +5,8 @@ import { apiFetch } from '../../apiClient'
 import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
-import { isReadinessSort, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
-import { buildPublishHistoryBrowserUrl, buildPublishHistoryRequestUrl, getPublishHistoryInitialQueryState, type PublishHistoryFilterValues } from './publishHistoryQueryState'
+import { sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
+import { buildPublishHistoryBrowserUrl, buildPublishHistoryRequestUrl, getPublishHistoryInitialQueryState, normalizePublishHistoryReadinessSort, type PublishHistoryFilterValues } from './publishHistoryQueryState'
 import {
   buildPublishHistoryLifecycleStatisticItems,
   buildPublishHistoryReadinessStatisticItems,
@@ -75,8 +75,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
 
   const applyFilters = () => {
     const values = form.getFieldsValue()
-    const selectedReadinessSort = values.readinessSort || null
-    const nextReadinessSort = isReadinessSort(selectedReadinessSort) ? selectedReadinessSort : null
+    const nextReadinessSort = normalizePublishHistoryReadinessSort(values.readinessSort)
     setReadinessSort(nextReadinessSort)
     replaceBrowserQuery(values, nextReadinessSort)
 

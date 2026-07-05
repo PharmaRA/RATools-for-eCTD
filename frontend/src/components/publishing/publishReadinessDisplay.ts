@@ -44,6 +44,10 @@ export const getPublishReadinessStatusTagProps = (readiness: PublishReadinessSta
   label: readiness.status || (readiness.isReady ? 'Ready' : 'Blocked'),
 })
 
+export const getPublishReadinessFindingSeverityTagColor = (severity: string) => {
+  return String(severity).toLowerCase() === 'error' ? 'red' : 'gold'
+}
+
 export const formatReadinessFieldName = (fieldName?: string | null) => fieldName || '-'
 
 export const formatReadinessCount = (count?: number | null) => count ?? '-'
@@ -91,6 +95,18 @@ type PublishReadinessFindingRow = {
   code: string
   fieldName?: string | null
 }
+
+export const getPublishReadinessCategorySummaries = <T extends PublishReadinessCategoryRow>(
+  readiness?: { categorySummaries?: T[] | null } | null,
+): T[] => readiness?.categorySummaries || []
+
+export const getPublishReadinessFindings = <T extends PublishReadinessFindingRow>(
+  readiness?: { findings?: T[] | null } | null,
+): T[] => readiness?.findings || []
+
+export const getPublishReadinessFromReport = <T>(
+  report?: { publishReadiness?: T | null } | null,
+): T | null => report?.publishReadiness || null
 
 export const getPublishReadinessCategoryKey = (row: PublishReadinessCategoryRow) => row.category
 

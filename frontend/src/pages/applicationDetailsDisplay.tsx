@@ -3,6 +3,19 @@ import { Trash2 } from 'lucide-react'
 
 import { type SequenceSummary } from './appShared'
 
+type ApplicationDetailsTitle = {
+  applicationNumber: string
+  sponsorName: string
+}
+
+export const formatApplicationDetailsTitle = (application: ApplicationDetailsTitle | null, fallbackAppId: string) => {
+  return application ? `${application.applicationNumber} (${application.sponsorName})` : fallbackAppId
+}
+
+export const getApplicationSequences = <T,>(
+  application?: { sequences?: T[] | null } | null,
+): T[] => application?.sequences || []
+
 type BuildSequenceColumnsOptions = {
   isBatchDeleteRunning: boolean
   deletingSequenceNumbers: ReadonlySet<string>

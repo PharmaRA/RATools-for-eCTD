@@ -13,19 +13,23 @@ type PublishHistoryRequestFilterValues = {
   readinessStatus?: string | null
 }
 
+export const normalizePublishHistoryReadinessSort = (value?: string | null): ReadinessSort | null => {
+  const sortableValue = value ?? null
+  return isReadinessSort(sortableValue) ? sortableValue : null
+}
+
 export const getPublishHistoryInitialQueryState = (search: string) => {
   const params = new URLSearchParams(search)
-  const readinessSort = params.get('publishReadinessSort')
-  const validatedReadinessSort = isReadinessSort(readinessSort) ? readinessSort : null
+  const readinessSort = normalizePublishHistoryReadinessSort(params.get('publishReadinessSort'))
 
   return {
     formValues: {
       sequenceNumber: params.get('publishSequenceNumber') || undefined,
       status: params.get('publishStatus') || undefined,
       readinessStatus: params.get('publishReadinessStatus') || undefined,
-      readinessSort: validatedReadinessSort || undefined,
+      readinessSort: readinessSort || undefined,
     },
-    readinessSort: validatedReadinessSort,
+    readinessSort,
   }
 }
 

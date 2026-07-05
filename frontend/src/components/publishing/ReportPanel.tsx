@@ -3,7 +3,7 @@ import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs 
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
+import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import {
   getReportErrorAlertMeta,
   toReportErrorState,
@@ -21,11 +21,19 @@ import {
   buildReportPublishReadinessCategoryColumns,
   buildReportPublishReadinessFindingColumns,
   buildReportValidationIssueColumns,
+  formatReportIntegrityState,
+  getReportIntegrityArtifacts,
+  getReportIntegrityFindings,
+  getReportValidationIssues,
+  getReportOutcomeDisplayMeta,
 } from './reportDisplay'
 import {
   buildPublishReadinessSnapshotItems,
   getPublishReadinessCategoryKey,
+  getPublishReadinessCategorySummaries,
+  getPublishReadinessFindings,
   getPublishReadinessFindingKey,
+  getPublishReadinessFromReport,
 } from './publishReadinessDisplay'
 
 type ValidationLifecycleMatch = {
@@ -156,11 +164,17 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
     return <Alert title={title} description={errorState.message} type={type} showIcon className="mt-4" />
   }
 
-  const lifecycleMatches: ValidationLifecycleMatch[] = report?.validationReport?.lifecycleMatches || []
+  const lifecycleMatches: ValidationLifecycleMatch[] = getLifecycleMatches(report)
   const lifecycleSummary = summarizeLifecycleMatches(lifecycleMatches)
   const lifecycleIssueCount = lifecycleSummary.issueCount
-  const integrityState = report?.integritySummary ? (report.integritySummary.isConsistent ? 'Consistent' : 'Inconsistent') : '-'
-  const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
+  const integrityState = formatReportIntegrityState(report?.integritySummary)
+  const publishReadiness = getPublishReadinessFromReport(report)
+  const publishReadinessCategorySummaries = getPublishReadinessCategorySummaries(publishReadiness)
+  const publishReadinessFindings = getPublishReadinessFindings(publishReadiness)
+  const validationIssues = getReportValidationIssues(report)
+  const integrityFindings = getReportIntegrityFindings(report)
+  const integrityArtifacts = getReportIntegrityArtifacts(report)
+  const reportOutcome = getReportOutcomeDisplayMeta(report?.succeeded)
 
   return (
     <Drawer title="Publish Report Details" placement="right" size={800} onClose={onClose} open={!!jobId}>
@@ -171,8 +185,8 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
           <div className="flex justify-between items-center bg-gray-50 p-4 rounded">
             <div>
               <h2 className="text-lg font-bold flex items-center gap-2 m-0">
-                {report.succeeded ? <CheckCircle className="text-green-500" /> : <XCircle className="text-red-500" />}
-                {report.succeeded ? 'Publish Succeeded' : 'Publish Failed'}
+                {report.succeeded ? <CheckCircle className={reportOutcome.iconClassName} /> : <XCircle className={reportOutcome.iconClassName} />}
+                {reportOutcome.title}
               </h2>
               <p className="text-gray-500 m-0 text-sm mt-1">{report.message}</p>
             </div>
@@ -236,7 +250,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   items={buildPublishReadinessSnapshotItems(publishReadiness, { missingMetadataFieldsSpan: 2 })}
                 />
                 <Table
-                  dataSource={publishReadiness.categorySummaries || []}
+                  dataSource={publishReadinessCategorySummaries}
                   rowKey={getPublishReadinessCategoryKey}
                   pagination={false}
                   size="small"
@@ -244,7 +258,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   columns={buildReportPublishReadinessCategoryColumns()}
                 />
                 <Table
-                  dataSource={publishReadiness.findings || []}
+                  dataSource={publishReadinessFindings}
                   rowKey={getPublishReadinessFindingKey}
                   pagination={{ pageSize: 10 }}
                   size="small"
@@ -268,11 +282,15 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               },
               {
                 key: 'issues',
-                label: `Validation Issues (${report.validationReport?.issues?.length || 0})`,
+                label: `Validation Issues (${validationIssues.length})`,
                 children: (
-              <Table dataSource={report.validationReport?.issues || []} rowKey={(_, i) => i + ''} pagination={{ pageSize: 10 }} size="small"
-                columns={buildReportValidationIssueColumns()}
-              />
+                  <Table
+                    dataSource={validationIssues}
+                    rowKey={(_, i) => i + ''}
+                    pagination={{ pageSize: 10 }}
+                    size="small"
+                    columns={buildReportValidationIssueColumns()}
+                  />
                 ),
               },
               {
@@ -281,13 +299,13 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                 children: report.integrityEvidence ? (
                   <div className="flex flex-col gap-4">
                     <Card size="small" title="Integrity Findings">
-                      <Table dataSource={report.integrityEvidence.findings || []} rowKey={(_, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
+                      <Table dataSource={integrityFindings} rowKey={(_, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
                         locale={{ emptyText: 'No integrity findings were recorded.' }}
                         columns={buildReportIntegrityFindingColumns()}
                       />
                     </Card>
                     <Card size="small" title="Artifact Manifest">
-                      <Table dataSource={report.integrityEvidence.artifacts || []} rowKey={(_, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
+                      <Table dataSource={integrityArtifacts} rowKey={(_, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
                         columns={buildReportArtifactManifestColumns()}
                       />
                     </Card>

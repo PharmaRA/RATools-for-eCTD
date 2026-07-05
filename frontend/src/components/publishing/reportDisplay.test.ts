@@ -13,6 +13,11 @@ import {
   buildReportPublishReadinessCategoryColumns,
   buildReportPublishReadinessFindingColumns,
   buildReportValidationIssueColumns,
+  getReportIntegrityArtifacts,
+  getReportIntegrityFindings,
+  getReportValidationIssues,
+  getReportOutcomeDisplayMeta,
+  formatReportIntegrityState,
   formatReportCount,
   formatReportList,
   renderReportSeverityStatus,
@@ -34,6 +39,52 @@ describe('reportDisplay', () => {
     expect(formatReportCount(0)).toBe(0)
     expect(formatReportCount(null)).toBe('-')
     expect(formatReportCount(undefined)).toBe('-')
+  })
+
+  it.each([
+    [true, { title: 'Publish Succeeded', iconClassName: 'text-green-500' }],
+    [false, { title: 'Publish Failed', iconClassName: 'text-red-500' }],
+    [undefined, { title: 'Publish Failed', iconClassName: 'text-red-500' }],
+  ] as const)('builds report outcome display meta for %s', (succeeded, expected) => {
+    expect(getReportOutcomeDisplayMeta(succeeded)).toEqual(expected)
+  })
+
+  it('reads validation issues from optional report data', () => {
+    const issues = [{ code: 'MISSING_LEAF', severity: 'Error', message: 'Missing leaf' }]
+
+    expect(getReportValidationIssues({ validationReport: { issues } })).toBe(issues)
+    expect(getReportValidationIssues({ validationReport: {} })).toEqual([])
+    expect(getReportValidationIssues({})).toEqual([])
+    expect(getReportValidationIssues(null)).toEqual([])
+    expect(getReportValidationIssues(undefined)).toEqual([])
+  })
+
+  it('reads integrity findings from optional report data', () => {
+    const findings = [{ type: 'MissingFile', severity: 'Error', message: 'Missing file' }]
+
+    expect(getReportIntegrityFindings({ integrityEvidence: { findings } })).toBe(findings)
+    expect(getReportIntegrityFindings({ integrityEvidence: {} })).toEqual([])
+    expect(getReportIntegrityFindings({})).toEqual([])
+    expect(getReportIntegrityFindings(null)).toEqual([])
+    expect(getReportIntegrityFindings(undefined)).toEqual([])
+  })
+
+  it('reads integrity artifacts from optional report data', () => {
+    const artifacts = [{ role: 'Package', relativePath: 'index.xml', exists: true }]
+
+    expect(getReportIntegrityArtifacts({ integrityEvidence: { artifacts } })).toBe(artifacts)
+    expect(getReportIntegrityArtifacts({ integrityEvidence: {} })).toEqual([])
+    expect(getReportIntegrityArtifacts({})).toEqual([])
+    expect(getReportIntegrityArtifacts(null)).toEqual([])
+    expect(getReportIntegrityArtifacts(undefined)).toEqual([])
+  })
+
+  it('formats report integrity state from the summary', () => {
+    expect(formatReportIntegrityState({ isConsistent: true })).toBe('Consistent')
+    expect(formatReportIntegrityState({ isConsistent: false })).toBe('Inconsistent')
+    expect(formatReportIntegrityState({})).toBe('Inconsistent')
+    expect(formatReportIntegrityState(null)).toBe('-')
+    expect(formatReportIntegrityState(undefined)).toBe('-')
   })
 
   it('builds report overview items', () => {

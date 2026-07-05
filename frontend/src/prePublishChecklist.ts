@@ -225,3 +225,13 @@ export const buildPrePublishChecklistSummary = (validationResult: ValidationRepo
 }
 
 export type PrePublishChecklistSummary = ReturnType<typeof buildPrePublishChecklistSummary>
+
+type PrePublishChecklistDisplaySummary = Pick<
+  PrePublishChecklistSummary,
+  'canProceed' | 'blockingIssueCount' | 'warningCount'
+>
+
+export const buildPrePublishChecklistDisplay = (summary: PrePublishChecklistDisplaySummary) => ({
+  statusText: summary.canProceed ? 'Pre-publish checks passed' : 'Pre-publish checks failed',
+  issueCountText: `${summary.blockingIssueCount} blocking | ${summary.warningCount} ${summary.warningCount === 1 ? 'warning' : 'warnings'}`,
+})

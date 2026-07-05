@@ -1,7 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { buildSequenceColumns } from './applicationDetailsDisplay'
+import { buildSequenceColumns, formatApplicationDetailsTitle, getApplicationSequences } from './applicationDetailsDisplay'
 
 type ColumnMetadata = {
   title?: string
@@ -25,6 +25,25 @@ const getActionButtons = (element: unknown) => (
 ).props.children
 
 describe('applicationDetailsDisplay', () => {
+  it('formats the application details title with an app id fallback', () => {
+    expect(formatApplicationDetailsTitle({
+      applicationNumber: 'NDA123456',
+      sponsorName: 'Acme Pharma',
+    }, 'app-1')).toBe('NDA123456 (Acme Pharma)')
+
+    expect(formatApplicationDetailsTitle(null, 'app-1')).toBe('app-1')
+  })
+
+  it('reads sequences from optional application details data', () => {
+    const sequences = [{ sequenceNumber: '0001' }]
+
+    expect(getApplicationSequences({ sequences })).toBe(sequences)
+    expect(getApplicationSequences({ sequences: null })).toEqual([])
+    expect(getApplicationSequences({})).toEqual([])
+    expect(getApplicationSequences(null)).toEqual([])
+    expect(getApplicationSequences(undefined)).toEqual([])
+  })
+
   it('builds sequence table columns', () => {
     const onOpenWorkspace = vi.fn()
     const onDeleteSequence = vi.fn()

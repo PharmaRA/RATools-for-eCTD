@@ -9,7 +9,13 @@ import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationR
 import { PathPicker } from '../PathPicker'
 import { type Application, getErrorMessage } from './appShared'
 import { buildApplicationColumns } from './applicationsDisplay'
-import { buildImportIssueColumns } from './importResultDisplay'
+import { buildBatchDeleteState } from './batchDeleteState'
+import {
+  buildImportIssueColumns,
+  buildImportIssueSummaryItems,
+  getImportIssueSeverityDisplayMeta,
+  getImportResultIssues,
+} from './importResultDisplay'
 import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
@@ -199,14 +205,26 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   }
 
   const failedAppBatchResults = getFailedBatchDeleteResults(appBatchSummary)
-  const hasSingleAppDeleteRunning = deletingAppIds.size > 0
-  const canStartAppBatchDelete = selectedAppKeys.length > 0 && !appBatchDeleteDialog.running && !hasSingleAppDeleteRunning
-  const importIssues = importResult?.issues || []
+  const {
+    hasSingleDeleteRunning: hasSingleAppDeleteRunning,
+    canStartBatchDelete: canStartAppBatchDelete,
+  } = buildBatchDeleteState({
+    selectedKeys: selectedAppKeys,
+    deletingKeys: deletingAppIds,
+    isBatchDeleteRunning: appBatchDeleteDialog.running,
+  })
+  const importIssues = getImportResultIssues(importResult)
   const importIssueSummary = summarizeImportIssues(importIssues)
   const importLifecycleIssues = importIssueSummary.lifecycleIssues
   const importOtherIssues = importIssueSummary.otherIssues
   const importWarningCount = importIssueSummary.warningCount
   const importErrorCount = importIssueSummary.errorCount
+  const importIssueSummaryItems = buildImportIssueSummaryItems({
+    totalIssueCount: importIssues.length,
+    warningCount: importWarningCount,
+    errorCount: importErrorCount,
+    lifecycleWarningCount: importLifecycleIssues.length,
+  })
 
   const columns = buildApplicationColumns({
     isBatchDeleteRunning: appBatchDeleteDialog.running,
@@ -379,10 +397,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
             </Row>
 
             <div data-testid="import-result-summary" className="flex flex-wrap gap-2">
-              <Tag color="blue">{importIssues.length} total issues</Tag>
-              <Tag color="gold">{importWarningCount} warnings</Tag>
-              <Tag color="red">{importErrorCount} errors</Tag>
-              <Tag color={importLifecycleIssues.length > 0 ? 'gold' : 'green'}>{importLifecycleIssues.length} lifecycle target warnings</Tag>
+              {importIssueSummaryItems.map((item) => (
+                <Tag key={item.key} color={item.color}>{item.label}</Tag>
+              ))}
             </div>
 
             <Card size="small" title="Lifecycle Targets Need Review" data-testid="import-result-lifecycle-issues">
@@ -413,26 +430,29 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                 <Alert type="success" showIcon title="No other import issues." />
               ) : (
                 <div className="flex flex-col gap-2">
-                  {importOtherIssues.map((issue, index) => (
-                    <Alert
-                      key={`other-import-issue-${index}`}
-                      type={String(issue.severity).toLowerCase() === 'error' ? 'error' : 'warning'}
-                      showIcon
-                      title={(
-                        <span>
-                          <Tag>{issue.sequenceNumber || '-'}</Tag>
-                          <Tag color={String(issue.severity).toLowerCase() === 'error' ? 'red' : 'gold'}>{issue.severity}</Tag>
-                          <Tag>{issue.code}</Tag>
-                          {issue.message}
-                        </span>
-                      )}
-                    />
-                  ))}
+                  {importOtherIssues.map((issue, index) => {
+                    const severityMeta = getImportIssueSeverityDisplayMeta(issue.severity)
+                    return (
+                      <Alert
+                        key={`other-import-issue-${index}`}
+                        type={severityMeta.alertType}
+                        showIcon
+                        title={(
+                          <span>
+                            <Tag>{issue.sequenceNumber || '-'}</Tag>
+                            <Tag color={severityMeta.tagColor}>{issue.severity}</Tag>
+                            <Tag>{issue.code}</Tag>
+                            {issue.message}
+                          </span>
+                        )}
+                      />
+                    )
+                  })}
                 </div>
               )}
             </Card>
 
-            {(importResult.issues || []).length === 0 ? (
+            {importIssues.length === 0 ? (
               <Alert type="success" showIcon title="Import finished without warnings or errors." />
             ) : (
               <div data-testid="import-result-all-issues" className="flex flex-col gap-2">
@@ -441,7 +461,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                   size="small"
                   pagination={{ pageSize: 8 }}
                   rowKey={(_, index) => `issue-${index}`}
-                  dataSource={importResult.issues}
+                  dataSource={importIssues}
                   columns={buildImportIssueColumns()}
                 />
               </div>

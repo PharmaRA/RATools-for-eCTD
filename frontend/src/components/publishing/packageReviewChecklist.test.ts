@@ -3,12 +3,27 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPackageReviewChecklistRows,
   formatPackageReviewChecklistCountDetail,
+  isPackageReviewReadyForSubmission,
 } from './packageReviewChecklist'
 
 describe('packageReviewChecklist', () => {
   it('formats checklist count details when report data is loaded', () => {
     expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe('2 error(s)')
     expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe('1 issue(s)')
+  })
+
+  it('checks whether every package review checklist row passes', () => {
+    expect(isPackageReviewReadyForSubmission([
+      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: 'Validation errors', pass: true, detail: '0 error(s)' },
+    ])).toBe(true)
+
+    expect(isPackageReviewReadyForSubmission([
+      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: 'Validation errors', pass: false, detail: '1 error(s)' },
+    ])).toBe(false)
+
+    expect(isPackageReviewReadyForSubmission([])).toBe(true)
   })
 
   it('builds passing checklist rows when report and required artifacts are ready', () => {

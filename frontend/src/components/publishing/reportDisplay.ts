@@ -9,6 +9,24 @@ export const formatReportList = (values?: unknown[]) => values?.length ? values.
 
 export const formatReportCount = (count?: number | null) => count ?? '-'
 
+export const getReportOutcomeDisplayMeta = (succeeded?: boolean) => (
+  succeeded
+    ? { title: 'Publish Succeeded', iconClassName: 'text-green-500' }
+    : { title: 'Publish Failed', iconClassName: 'text-red-500' }
+)
+
+export const getReportValidationIssues = <T>(
+  report?: { validationReport?: { issues?: T[] | null } | null } | null,
+): T[] => report?.validationReport?.issues || []
+
+export const getReportIntegrityFindings = <T>(
+  report?: { integrityEvidence?: { findings?: T[] | null } | null } | null,
+): T[] => report?.integrityEvidence?.findings || []
+
+export const getReportIntegrityArtifacts = <T>(
+  report?: { integrityEvidence?: { artifacts?: T[] | null } | null } | null,
+): T[] => report?.integrityEvidence?.artifacts || []
+
 type ReportOverview = {
   validationProfile?: string
   durationMs?: number
@@ -30,9 +48,15 @@ export const buildReportOverviewItems = (
 ]
 
 type ReportIntegritySummary = {
+  isConsistent?: boolean | null
   missingFilesCount?: number | null
   missingZipEntriesCount?: number | null
   mismatchedArtifactsCount?: number | null
+}
+
+export const formatReportIntegrityState = (summary: ReportIntegritySummary | null | undefined) => {
+  if (!summary) return '-'
+  return summary.isConsistent ? 'Consistent' : 'Inconsistent'
 }
 
 export const buildReportIntegritySummaryItems = (

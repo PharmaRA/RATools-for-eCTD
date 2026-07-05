@@ -4,9 +4,9 @@ import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
-import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
+import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import { getArtifactsFromResponse } from './packageReviewArtifacts'
-import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
+import { buildPackageReviewChecklistRows, isPackageReviewReadyForSubmission } from './packageReviewChecklist'
 import {
   buildPackageReviewChecklistColumns,
   buildPackageReviewEvidenceFindingColumns,
@@ -15,21 +15,25 @@ import {
   buildPackageReviewRiskSummaryItems,
   formatPackageReviewHeaderSummary,
   formatPackageReviewWarningAlertDescription,
+  getPackageReviewIntegrityFindings,
+  getPackageReviewReadinessDisplayMeta,
 } from './packageReviewDisplay'
 import { downloadJson } from './packageReviewDownload'
 import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
+import { buildPackageReviewPanelState } from './packageReviewPanelState'
 import {
   buildPublishReadinessCategoryColumns,
   buildPublishReadinessSnapshotItems,
   getPublishReadinessCategoryKey,
+  getPublishReadinessCategorySummaries,
+  getPublishReadinessFindings,
   getPublishReadinessFindingKey,
+  getPublishReadinessFromReport,
 } from './publishReadinessDisplay'
 import {
   buildPackageReviewExport,
-  type IntegrityFinding,
   type PackageReviewArtifact,
   type PackageReviewReport,
-  type PublishReadiness,
 } from './packageReviewExport'
 
 type PackageReviewPanelProps = {
@@ -98,8 +102,20 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     }
   }, [jobId])
 
-  const reportLoaded = !reportError && !!report
-  const lifecycleMatches = report?.validationReport?.lifecycleMatches || []
+  const {
+    reportLoaded,
+    reviewLoading,
+    reviewExportAvailable,
+  } = buildPackageReviewPanelState({
+    jobId,
+    loading,
+    report,
+    reportError,
+    artifacts,
+    artifactsLoaded,
+    artifactsError,
+  })
+  const lifecycleMatches = getLifecycleMatches(report)
   const lifecycleSummary = summarizeLifecycleMatches(lifecycleMatches)
   const lifecycleIssueCount = lifecycleSummary.issueCount
   const requiredArtifactSummary = summarizeRequiredArtifacts(artifacts, REQUIRED_ARTIFACTS)
@@ -117,14 +133,15 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     requiredArtifactCount: REQUIRED_ARTIFACTS.length,
   })
 
-  const readyForSubmission = checklistRows.every((row) => row.pass)
-  const findings: IntegrityFinding[] = reportLoaded ? report?.integrityEvidence?.findings || [] : []
+  const readyForSubmission = isPackageReviewReadyForSubmission(checklistRows)
+  const findings = getPackageReviewIntegrityFindings(report, reportLoaded)
   const requiredArtifactRows = requiredArtifactSummary.rows
-  const reviewLoading = loading || (!!jobId && !report && !reportError && artifacts.length === 0 && !artifactsError)
   const riskSummaryItems = buildPackageReviewRiskSummaryItems({ report, reportLoaded, lifecycleIssueCount })
-  const reviewExportAvailable = reportLoaded || artifactsLoaded
-  const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
+  const publishReadiness = getPublishReadinessFromReport(report)
+  const publishReadinessCategorySummaries = getPublishReadinessCategorySummaries(publishReadiness)
+  const publishReadinessFindings = getPublishReadinessFindings(publishReadiness)
   const warningAlertDescription = formatPackageReviewWarningAlertDescription(report)
+  const readinessDisplay = getPackageReviewReadinessDisplayMeta(readyForSubmission)
 
   const renderError = (error: Error | null) => error && (
     <Alert
@@ -169,8 +186,8 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
         <div className="flex justify-between items-center bg-gray-50 p-4 rounded">
           <div>
             <h2 className="text-lg font-bold flex items-center gap-2 m-0">
-              {readyForSubmission ? <CheckCircle className="text-green-500" /> : <XCircle className="text-red-500" />}
-              {readyForSubmission ? 'Ready for Submission' : 'Not Ready for Submission'}
+              {readyForSubmission ? <CheckCircle className={readinessDisplay.iconClassName} /> : <XCircle className={readinessDisplay.iconClassName} />}
+              {readinessDisplay.title}
             </h2>
             <p className="text-gray-500 m-0 text-sm mt-1">
               {formatPackageReviewHeaderSummary(report)}
@@ -238,7 +255,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               />
 
               <Table
-                dataSource={publishReadiness.categorySummaries || []}
+                dataSource={publishReadinessCategorySummaries}
                 rowKey={getPublishReadinessCategoryKey}
                 pagination={false}
                 size="small"
@@ -247,7 +264,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               />
 
               <Table
-                dataSource={publishReadiness.findings || []}
+                dataSource={publishReadinessFindings}
                 rowKey={getPublishReadinessFindingKey}
                 pagination={{ pageSize: 10 }}
                 size="small"

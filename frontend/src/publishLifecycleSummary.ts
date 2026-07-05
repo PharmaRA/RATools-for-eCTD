@@ -2,6 +2,12 @@ export type LifecycleMatchLike = {
   resultCode: string
 }
 
+type LifecycleReportLike<T extends LifecycleMatchLike = LifecycleMatchLike> = {
+  validationReport?: {
+    lifecycleMatches?: T[] | null
+  } | null
+}
+
 export type LifecycleSummary = {
   matchedCount: number
   replaceTargetNotFoundCount: number
@@ -11,6 +17,10 @@ export type LifecycleSummary = {
   currentSequenceCount: number
   issueCount: number
 }
+
+export const getLifecycleMatches = <T extends LifecycleMatchLike>(
+  report?: LifecycleReportLike<T> | null,
+): T[] => report?.validationReport?.lifecycleMatches || []
 
 export const summarizeLifecycleMatches = (matches: LifecycleMatchLike[]): LifecycleSummary => {
   const summary: LifecycleSummary = {

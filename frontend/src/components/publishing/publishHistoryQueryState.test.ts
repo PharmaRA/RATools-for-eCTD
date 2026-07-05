@@ -4,6 +4,7 @@ import {
   buildPublishHistoryBrowserUrl,
   buildPublishHistoryRequestUrl,
   getPublishHistoryInitialQueryState,
+  normalizePublishHistoryReadinessSort,
 } from './publishHistoryQueryState'
 
 describe('publishHistoryQueryState', () => {
@@ -71,5 +72,16 @@ describe('publishHistoryQueryState', () => {
       status: undefined,
       readinessStatus: null,
     })).toBe('/api/applications/app-1/publish-history?page=1&pageSize=20')
+  })
+
+  it.each([
+    ['blocked-first', 'blocked-first'],
+    ['ready-first', 'ready-first'],
+    ['default', null],
+    ['latest-first', null],
+    [null, null],
+    [undefined, null],
+  ])('normalizes readiness sort value %s', (value, expected) => {
+    expect(normalizePublishHistoryReadinessSort(value)).toBe(expected)
   })
 })
