@@ -1,8 +1,12 @@
-import { Alert, Button, Descriptions, Form, Input, Select, Space, Tag } from 'antd'
+import { Alert, Button, Descriptions, Form, Input, Select, Space } from 'antd'
 import type { FormInstance } from 'antd'
 import { Trash2 } from 'lucide-react'
 
 import type { DocumentPlacementRecord, DocumentRecord } from '../workspaceTree'
+import {
+  buildLeafPlacementDescriptionItems,
+  buildLeafPreviewDescriptionItems,
+} from './leafMetadataDisplay'
 import { buildLifecycleTargetLabel } from './lifecycleTargetLabels'
 import { buildPublishedHrefPreview } from './publishedHrefPreview'
 
@@ -64,12 +68,13 @@ export const LeafMetadataPanel = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <Descriptions size="small" bordered column={1} className="selection-details-descriptions">
-        <Descriptions.Item label="Placement ID">{placement.id}</Descriptions.Item>
-        <Descriptions.Item label="eCTD Section"><Tag>{placement.ctdSection}</Tag></Descriptions.Item>
-        <Descriptions.Item label="Operation"><Tag color="blue">{placement.operation}</Tag></Descriptions.Item>
-        <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{document.storagePath}</span></Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        bordered
+        column={1}
+        className="selection-details-descriptions"
+        items={buildLeafPlacementDescriptionItems(placement, document)}
+      />
 
       <div>
         <h3 className="text-base font-semibold m-0">Leaf Metadata</h3>
@@ -144,18 +149,23 @@ export const LeafMetadataPanel = ({
         </Form.Item>
       </Form>
 
-      <Descriptions title="Leaf Preview" size="small" bordered column={1} className="selection-details-descriptions">
-        <Descriptions.Item label="operation">{leafOperationPreview}</Descriptions.Item>
-        <Descriptions.Item label="title">{leafTitlePreview}</Descriptions.Item>
-        <Descriptions.Item label="xlink:href"><span className="text-xs break-all">{leafHrefPreview}</span></Descriptions.Item>
-        {isLifecycleOperation && <Descriptions.Item label="modified-file"><span className="text-xs break-all">{selectedLifecycleTargetHref}</span></Descriptions.Item>}
-        <Descriptions.Item label="Mime Type">{document.mediaType || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Checksum Type">md5</Descriptions.Item>
-        <Descriptions.Item label="Checksum"><span className="text-xs break-all">Computed at publish</span></Descriptions.Item>
-        <Descriptions.Item label="Source File Name">{document.fileName}</Descriptions.Item>
-        <Descriptions.Item label="Resulting File Name">{revisedFileName || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Storage Path"><span className="text-xs break-all">{document.storagePath}</span></Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        title="Leaf Preview"
+        size="small"
+        bordered
+        column={1}
+        className="selection-details-descriptions"
+        items={buildLeafPreviewDescriptionItems({
+          operation: leafOperationPreview,
+          title: leafTitlePreview,
+          href: leafHrefPreview,
+          modifiedFileHref: isLifecycleOperation ? selectedLifecycleTargetHref : null,
+          mediaType: document.mediaType,
+          sourceFileName: document.fileName,
+          revisedFileName,
+          storagePath: document.storagePath,
+        })}
+      />
 
       <Space>
         <Button

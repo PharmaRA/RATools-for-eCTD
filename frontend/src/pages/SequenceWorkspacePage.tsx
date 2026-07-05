@@ -34,6 +34,7 @@ import { LeafMetadataPanel } from './LeafMetadataPanel'
 import { getLifecycleTargetCandidates } from './workspace/lifecycleTargetCandidates'
 import { buildSequencePublishingMetadataUpdateRequest } from './workspace/publishingMetadataFormValues'
 import { PublishModal, type MetadataFormValues } from './workspace/PublishModal'
+import { buildSectionSelectionDescriptionItems } from './workspace/selectionDetailsDisplay'
 import { useWorkspaceDragDrop } from './workspace/useWorkspaceDragDrop'
 import { useWorkspaceData } from './workspace/useWorkspaceData'
 import {
@@ -537,12 +538,13 @@ export const SequenceWorkspacePage = ({
 
             {selectedNode?.nodeType === 'section' && (
               <div className="flex flex-col gap-4">
-                <Descriptions size="small" bordered column={1} className="selection-details-descriptions">
-                  <Descriptions.Item label="Section">{selectedNode.sectionPath}</Descriptions.Item>
-                  <Descriptions.Item label="Display">{selectedNode.title}</Descriptions.Item>
-                  <Descriptions.Item label="Leaf Node">{selectedNode.canDrop ? 'Yes' : 'No'}</Descriptions.Item>
-                  <Descriptions.Item label="Mapped Files">{selectedSectionChildrenCount}</Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  size="small"
+                  bordered
+                  column={1}
+                  className="selection-details-descriptions"
+                  items={buildSectionSelectionDescriptionItems(selectedNode, selectedSectionChildrenCount)}
+                />
 
                 <Alert
                   type="info"

@@ -1,57 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, message, type TableColumnsType } from 'antd'
+import { Button, Card, Col, Form, Input, Row, Select, Statistic, Table, message } from 'antd'
 
 import { apiFetch } from '../../apiClient'
-import { formatDate, getErrorMessage, getReportAvailabilityLabel, getStatusColor, type LifecycleSummary, type ReportAvailability } from '../../pages/appShared'
+import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
-import { formatReadinessHistoryCountHint, formatReadinessMissingMetadataHint, getPublishReadinessStatusTagProps } from './publishReadinessDisplay'
 import { isReadinessSort, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
+import { buildPublishHistoryBrowserUrl, buildPublishHistoryRequestUrl, getPublishHistoryInitialQueryState, type PublishHistoryFilterValues } from './publishHistoryQueryState'
 import {
   buildPublishHistoryLifecycleStatisticItems,
   buildPublishHistoryReadinessStatisticItems,
   buildPublishHistoryStatusStatisticItems,
-  buildPublishHistoryValidationSummaryItems,
-  formatArtifactFileCount,
-  formatArtifactPackageSize,
-  formatPublishHistoryLifecycleStatus,
 } from './publishHistoryDisplay'
+import { buildPublishHistoryColumns, type PublishHistoryEntry } from './publishHistoryTableDisplay'
 import { ReportPanel } from './ReportPanel'
-
-type PublishHistoryFilterValues = {
-  sequenceNumber?: string
-  status?: string
-  readinessStatus?: string
-  readinessSort?: ReadinessSort | 'default' | null
-}
-
-type PublishReadinessSummary = {
-  isReady?: boolean
-  status?: string
-  blockingErrorCount?: number
-  warningCount?: number
-  missingMetadataFields?: string[]
-}
-
-type ArtifactSummary = {
-  fileCount?: number | null
-  packageSizeBytes?: number | null
-}
-
-type PublishHistoryEntry = ReportAvailability & {
-  publishJobId: string
-  sequenceNumber: string
-  status: string
-  validationProfile?: string | null
-  errorCount?: number | null
-  warningCount?: number | null
-  warningSummary?: string | null
-  lifecycleSummary?: LifecycleSummary | null
-  artifactSummary?: ArtifactSummary | null
-  reportError?: string | null
-  createdUtc?: string | null
-  publishReadiness?: PublishReadinessSummary | null
-}
 
 type PublishHistoryResponse = {
   entries?: PublishHistoryEntry[]
@@ -71,24 +33,8 @@ type PublishHistoryResponse = {
   }
 }
 
-const getInitialQueryState = () => {
-  const params = new URLSearchParams(window.location.search)
-  const readinessSort = params.get('publishReadinessSort')
-  const validatedReadinessSort = isReadinessSort(readinessSort) ? readinessSort : null
-
-  return {
-    formValues: {
-      sequenceNumber: params.get('publishSequenceNumber') || undefined,
-      status: params.get('publishStatus') || undefined,
-      readinessStatus: params.get('publishReadinessStatus') || undefined,
-      readinessSort: validatedReadinessSort || undefined,
-    },
-    readinessSort: validatedReadinessSort,
-  }
-}
-
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
-  const [initialQueryState] = useState(getInitialQueryState)
+  const [initialQueryState] = useState(() => getPublishHistoryInitialQueryState(window.location.search))
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<PublishHistoryResponse | null>(null)
   const [selectedReviewJobId, setSelectedReviewJobId] = useState<string | null>(null)
@@ -100,31 +46,21 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [readinessSort, setReadinessSort] = useState<ReadinessSort | null>(initialQueryState.readinessSort)
 
   const replaceBrowserQuery = (values: PublishHistoryFilterValues, nextReadinessSort: ReadinessSort | null) => {
-    const params = new URLSearchParams(window.location.search)
-    params.delete('publishSequenceNumber')
-    params.delete('publishStatus')
-    params.delete('publishReadinessStatus')
-    params.delete('publishReadinessSort')
-
-    if (values.sequenceNumber) params.set('publishSequenceNumber', values.sequenceNumber)
-    if (values.status) params.set('publishStatus', values.status)
-    if (values.readinessStatus) params.set('publishReadinessStatus', values.readinessStatus)
-    if (nextReadinessSort) params.set('publishReadinessSort', nextReadinessSort)
-
-    const nextSearch = params.toString()
-    window.history.replaceState(null, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`)
+    window.history.replaceState(null, '', buildPublishHistoryBrowserUrl(
+      window.location.pathname,
+      window.location.search,
+      window.location.hash,
+      values,
+      nextReadinessSort,
+    ))
   }
 
   const fetchHistory = useCallback(async () => {
     setLoading(true)
     const values = form.getFieldsValue()
-    const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() })
-    if (values.sequenceNumber) params.append('sequenceNumber', values.sequenceNumber)
-    if (values.status) params.append('status', values.status)
-    if (values.readinessStatus) params.append('readinessStatus', values.readinessStatus)
 
     try {
-      const res = await apiFetch(`/api/applications/${appId}/publish-history?${params.toString()}`) as PublishHistoryResponse
+      const res = await apiFetch(buildPublishHistoryRequestUrl(appId, page, pageSize, values)) as PublishHistoryResponse
       setData(res)
     } catch (err) {
       message.error('Failed to load history: ' + getErrorMessage(err))
@@ -165,96 +101,15 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     fetchHistory()
   }
 
-  const renderReadiness = (readiness?: {
-    isReady?: boolean
-    status?: string
-    blockingErrorCount?: number
-    warningCount?: number
-    missingMetadataFields?: string[]
-  } | null) => {
-    if (!readiness) return '-'
-
-    const missingMetadataHint = formatReadinessMissingMetadataHint(readiness.missingMetadataFields)
-    const readinessCountHint = formatReadinessHistoryCountHint(readiness, missingMetadataHint)
-    const statusTag = getPublishReadinessStatusTagProps(readiness)
-
-    return (
-      <div>
-        <div>
-          <Tag color={statusTag.color}>{statusTag.label}</Tag>
-        </div>
-        {!readiness.isReady && missingMetadataHint && (
-          <div className="text-gray-500 text-xs">
-            {missingMetadataHint}
-          </div>
-        )}
-        {readinessCountHint && (
-          <div className="text-gray-500 text-xs">{readinessCountHint}</div>
-        )}
-      </div>
-    )
-  }
-
   const getSortedEntries = () => {
     return sortPublishHistoryEntries(data?.entries || [], readinessSort)
   }
 
-  const columns: TableColumnsType<PublishHistoryEntry> = [
-    { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Badge status={getStatusColor(s)} text={s} /> },
-    { title: 'Profile', dataIndex: 'validationProfile', key: 'profile' },
-    {
-      title: 'Validation', key: 'validation', width: 220,
-      render: (_, r) => (
-        <div>
-          {buildPublishHistoryValidationSummaryItems(r).map((item) => (
-            <div key={item.label}>{`${item.label}: ${item.value}`}</div>
-          ))}
-          {r.warningSummary && <div className="text-gray-500 text-xs">{r.warningSummary}</div>}
-        </div>
-      ),
-    },
-    {
-      title: 'Readiness', key: 'readiness', width: 180,
-      render: (_, r) => renderReadiness(r.publishReadiness),
-    },
-    {
-      title: 'Lifecycle', key: 'lifecycle', width: 160,
-      render: (_, r) => formatPublishHistoryLifecycleStatus(r.lifecycleSummary),
-    },
-    {
-      title: 'Artifacts', key: 'artifacts', width: 180,
-      render: (_, r) => {
-        const packageSize = formatArtifactPackageSize(r.artifactSummary)
-        return (
-          <div>
-            <div>{formatArtifactFileCount(r.artifactSummary?.fileCount)}</div>
-            {packageSize && <div className="text-gray-500 text-xs">{packageSize}</div>}
-          </div>
-        )
-      },
-    },
-    {
-      title: 'Report', key: 'report', width: 180,
-      render: (_, r) => (
-        <div>
-          <div>{getReportAvailabilityLabel(r)}</div>
-          {r.reportError && <div className="text-gray-500 text-xs">{r.reportError}</div>}
-        </div>
-      ),
-    },
-    { title: 'Created', dataIndex: 'createdUtc', key: 'created', render: formatDate },
-    {
-      title: 'Actions', key: 'actions', fixed: 'right' as const, width: 260,
-      render: (_, r) => (
-        <Space>
-          <Button size="small" type="primary" onClick={() => setSelectedReviewJobId(r.publishJobId)}>Review</Button>
-          <Button size="small" onClick={() => setSelectedReportJobId(r.publishJobId)}>Report</Button>
-          <Button size="small" type="primary" ghost onClick={() => setSelectedArtifactsJobId(r.publishJobId)}>Artifacts</Button>
-        </Space>
-      ),
-    },
-  ]
+  const columns = buildPublishHistoryColumns({
+    onOpenReview: setSelectedReviewJobId,
+    onOpenReport: setSelectedReportJobId,
+    onOpenArtifacts: setSelectedArtifactsJobId,
+  })
 
   return (
     <div className="flex flex-col gap-4">

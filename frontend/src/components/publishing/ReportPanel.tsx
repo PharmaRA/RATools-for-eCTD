@@ -23,10 +23,7 @@ import {
   buildReportValidationIssueColumns,
 } from './reportDisplay'
 import {
-  formatReadinessCount,
-  formatMissingMetadataFields,
-  formatReadinessReadyStatus,
-  formatReadinessStatus,
+  buildPublishReadinessSnapshotItems,
   getPublishReadinessCategoryKey,
   getPublishReadinessFindingKey,
 } from './publishReadinessDisplay'
@@ -232,15 +229,12 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
           {publishReadiness && (
             <Card size="small" title="Publish Readiness">
               <div className="flex flex-col gap-4">
-                <Descriptions bordered size="small" column={2}>
-                  <Descriptions.Item label="Status">{formatReadinessStatus(publishReadiness.status)}</Descriptions.Item>
-                  <Descriptions.Item label="Ready">{formatReadinessReadyStatus(publishReadiness.isReady)}</Descriptions.Item>
-                  <Descriptions.Item label="Blocking Errors">{formatReadinessCount(publishReadiness.blockingErrorCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Warnings">{formatReadinessCount(publishReadiness.warningCount)}</Descriptions.Item>
-                  <Descriptions.Item label="Missing Metadata Fields" span={2}>
-                    {formatMissingMetadataFields(publishReadiness.missingMetadataFields)}
-                  </Descriptions.Item>
-                </Descriptions>
+                <Descriptions
+                  bordered
+                  size="small"
+                  column={2}
+                  items={buildPublishReadinessSnapshotItems(publishReadiness, { missingMetadataFieldsSpan: 2 })}
+                />
                 <Table
                   dataSource={publishReadiness.categorySummaries || []}
                   rowKey={getPublishReadinessCategoryKey}

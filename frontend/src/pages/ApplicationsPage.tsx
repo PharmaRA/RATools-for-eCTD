@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message, type TableColumnsType } from 'antd'
+import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message } from 'antd'
 import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../apiClient'
@@ -7,7 +7,8 @@ import { buildApplicationBatchDeleteItems, getFailedBatchDeleteResults, performB
 import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
 import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
-import { type Application, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
+import { type Application, getErrorMessage } from './appShared'
+import { buildApplicationColumns } from './applicationsDisplay'
 import { buildImportIssueColumns } from './importResultDisplay'
 import { keepKnownSelectionKeys } from './selectionKeys'
 
@@ -207,36 +208,12 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   const importWarningCount = importIssueSummary.warningCount
   const importErrorCount = importIssueSummary.errorCount
 
-  const columns: TableColumnsType<Application> = [
-    { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },
-    { title: 'eCTD Template', key: 'ectdTemplate', render: (_, r) => <Tag color="blue">{getApplicationTemplateLabel(r)}</Tag> },
-    { title: 'Sponsor', dataIndex: 'sponsorName' },
-    { title: 'Created', dataIndex: 'createdUtc', render: formatDate },
-    { title: 'Sequences', key: 'sequences', render: (_, r) => r.sequences?.length || 0 },
-    {
-      title: 'Action', key: 'action', render: (_, r) => (
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            disabled={appBatchDeleteDialog.running}
-            onClick={() => onSelectApp(r.id)}
-          >
-            Manage App
-          </Button>
-          <Button
-            danger
-            size="small"
-            icon={<Trash2 size={14} />}
-            title="Delete App"
-            loading={deletingAppIds.has(r.id)}
-            disabled={deletingAppIds.has(r.id) || appBatchDeleteDialog.running}
-            onClick={() => openDeleteAppDialog(r.id)}
-          />
-        </Space>
-      ),
-    },
-  ]
+  const columns = buildApplicationColumns({
+    isBatchDeleteRunning: appBatchDeleteDialog.running,
+    deletingAppIds,
+    onSelectApp,
+    onDeleteApp: openDeleteAppDialog,
+  })
 
   return (
     <div className="bg-white p-6 rounded shadow-sm border border-gray-200">

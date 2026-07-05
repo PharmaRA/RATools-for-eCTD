@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message, type TableColumnsType } from 'antd'
+import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd'
 import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
 import { buildSequenceBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
 import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
+import { buildSequenceColumns } from './applicationDetailsDisplay'
 import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
@@ -146,30 +147,12 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0
   const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning
   const appTitle = appData ? `${appData.applicationNumber} (${appData.sponsorName})` : appId
-  const sequenceColumns: TableColumnsType<SequenceSummary> = [
-    { title: 'Sequence', dataIndex: 'sequenceNumber', render: (t) => <b>{t}</b> },
-    { title: 'Submission Type', dataIndex: 'submissionType' },
-    { title: 'Description', dataIndex: 'description' },
-    {
-      title: 'Actions', key: 'actions', render: (_, r) => (
-        <Space>
-          <Button type="link" size="small" disabled={sequenceBatchDeleteDialog.running} onClick={() => onOpenWorkspace(r.sequenceNumber)}>
-            Enter Workspace
-          </Button>
-          <Button
-            danger
-            type="text"
-            size="small"
-            icon={<Trash2 size={14} />}
-            title="Delete Sequence"
-            loading={deletingSequenceNumbers.has(r.sequenceNumber)}
-            disabled={deletingSequenceNumbers.has(r.sequenceNumber) || sequenceBatchDeleteDialog.running}
-            onClick={() => openDeleteSequenceDialog(r.sequenceNumber)}
-          />
-        </Space>
-      ),
-    },
-  ]
+  const sequenceColumns = buildSequenceColumns({
+    isBatchDeleteRunning: sequenceBatchDeleteDialog.running,
+    deletingSequenceNumbers,
+    onOpenWorkspace,
+    onDeleteSequence: openDeleteSequenceDialog,
+  })
   const tabItems = [
     {
       key: 'sequences',

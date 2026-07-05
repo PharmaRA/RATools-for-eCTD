@@ -99,6 +99,17 @@ describe('publishReadinessDisplay', () => {
     ])
   })
 
+  it('can span missing metadata fields across description columns', () => {
+    expect(buildPublishReadinessSnapshotItems({
+      missingMetadataFields: [],
+    }, { missingMetadataFieldsSpan: 2 })).toContainEqual({
+      key: 'readiness-missing-fields',
+      label: 'Missing Metadata Fields',
+      children: 'None',
+      span: 2,
+    })
+  })
+
   it('uses category as the publish readiness category row key', () => {
     expect(getPublishReadinessCategoryKey({ category: 'Metadata' })).toBe('Metadata')
   })

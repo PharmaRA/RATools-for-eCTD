@@ -56,12 +56,24 @@ type PublishReadinessSnapshot = {
   missingMetadataFields?: string[] | null
 }
 
-export const buildPublishReadinessSnapshotItems = (readiness: PublishReadinessSnapshot) => [
+type PublishReadinessSnapshotItemOptions = {
+  missingMetadataFieldsSpan?: number
+}
+
+export const buildPublishReadinessSnapshotItems = (
+  readiness: PublishReadinessSnapshot,
+  options: PublishReadinessSnapshotItemOptions = {},
+) => [
   { key: 'readiness-status', label: 'Status', children: formatReadinessStatus(readiness.status) },
   { key: 'readiness-ready', label: 'Ready', children: formatReadinessReadyStatus(readiness.isReady) },
   { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: formatReadinessCount(readiness.blockingErrorCount) },
   { key: 'readiness-warnings', label: 'Warnings', children: formatReadinessCount(readiness.warningCount) },
-  { key: 'readiness-missing-fields', label: 'Missing Metadata Fields', children: formatMissingMetadataFields(readiness.missingMetadataFields) },
+  {
+    key: 'readiness-missing-fields',
+    label: 'Missing Metadata Fields',
+    children: formatMissingMetadataFields(readiness.missingMetadataFields),
+    ...(options.missingMetadataFieldsSpan ? { span: options.missingMetadataFieldsSpan } : {}),
+  },
 ]
 
 export const buildPublishReadinessCategoryColumns = () => [
