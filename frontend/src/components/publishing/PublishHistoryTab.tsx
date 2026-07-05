@@ -2,10 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { Badge, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, message, type TableColumnsType } from 'antd'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes, formatDate, getErrorMessage, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor, type LifecycleSummary, type ReportAvailability } from '../../pages/appShared'
+import { formatDate, getErrorMessage, getReportAvailabilityLabel, getStatusColor, type LifecycleSummary, type ReportAvailability } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
+import { formatReadinessHistoryCountHint, formatReadinessMissingMetadataHint, getPublishReadinessStatusTagProps } from './publishReadinessDisplay'
 import { isReadinessSort, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
+import {
+  buildPublishHistoryLifecycleStatisticItems,
+  buildPublishHistoryReadinessStatisticItems,
+  buildPublishHistoryStatusStatisticItems,
+  buildPublishHistoryValidationSummaryItems,
+  formatArtifactFileCount,
+  formatArtifactPackageSize,
+  formatPublishHistoryLifecycleStatus,
+} from './publishHistoryDisplay'
 import { ReportPanel } from './ReportPanel'
 
 type PublishHistoryFilterValues = {
@@ -24,7 +34,7 @@ type PublishReadinessSummary = {
 }
 
 type ArtifactSummary = {
-  fileCount?: number
+  fileCount?: number | null
   packageSizeBytes?: number | null
 }
 
@@ -164,26 +174,22 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   } | null) => {
     if (!readiness) return '-'
 
-    const missingMetadataFields = readiness.missingMetadataFields || []
-    const primaryHint = missingMetadataFields[0]
-    const additionalCount = Math.max(0, missingMetadataFields.length - 1)
+    const missingMetadataHint = formatReadinessMissingMetadataHint(readiness.missingMetadataFields)
+    const readinessCountHint = formatReadinessHistoryCountHint(readiness, missingMetadataHint)
+    const statusTag = getPublishReadinessStatusTagProps(readiness)
 
     return (
       <div>
         <div>
-          <Tag color={readiness.isReady ? 'green' : 'red'}>{readiness.status || (readiness.isReady ? 'Ready' : 'Blocked')}</Tag>
+          <Tag color={statusTag.color}>{statusTag.label}</Tag>
         </div>
-        {!readiness.isReady && primaryHint && (
+        {!readiness.isReady && missingMetadataHint && (
           <div className="text-gray-500 text-xs">
-            {primaryHint}
-            {additionalCount > 0 ? ` +${additionalCount}` : ''}
+            {missingMetadataHint}
           </div>
         )}
-        {readiness.isReady && (readiness.warningCount || 0) > 0 && (
-          <div className="text-gray-500 text-xs">{`Warnings: ${readiness.warningCount}`}</div>
-        )}
-        {!readiness.isReady && !primaryHint && (readiness.blockingErrorCount || 0) > 0 && (
-          <div className="text-gray-500 text-xs">{`Blocking errors: ${readiness.blockingErrorCount}`}</div>
+        {readinessCountHint && (
+          <div className="text-gray-500 text-xs">{readinessCountHint}</div>
         )}
       </div>
     )
@@ -201,8 +207,9 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       title: 'Validation', key: 'validation', width: 220,
       render: (_, r) => (
         <div>
-          <div>{`Errors: ${r.errorCount ?? 0}`}</div>
-          <div>{`Warnings: ${r.warningCount ?? 0}`}</div>
+          {buildPublishHistoryValidationSummaryItems(r).map((item) => (
+            <div key={item.label}>{`${item.label}: ${item.value}`}</div>
+          ))}
           {r.warningSummary && <div className="text-gray-500 text-xs">{r.warningSummary}</div>}
         </div>
       ),
@@ -213,19 +220,19 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     },
     {
       title: 'Lifecycle', key: 'lifecycle', width: 160,
-      render: (_, r) => {
-        const issueCount = getLifecycleIssueCount(r.lifecycleSummary)
-        return issueCount === 0 ? 'All matched' : `${issueCount} issues`
-      },
+      render: (_, r) => formatPublishHistoryLifecycleStatus(r.lifecycleSummary),
     },
     {
       title: 'Artifacts', key: 'artifacts', width: 180,
-      render: (_, r) => (
-        <div>
-          <div>{r.artifactSummary ? `${r.artifactSummary.fileCount} files` : '-'}</div>
-          {r.artifactSummary && <div className="text-gray-500 text-xs">{formatBytes(r.artifactSummary.packageSizeBytes || 0)}</div>}
-        </div>
-      ),
+      render: (_, r) => {
+        const packageSize = formatArtifactPackageSize(r.artifactSummary)
+        return (
+          <div>
+            <div>{formatArtifactFileCount(r.artifactSummary?.fileCount)}</div>
+            {packageSize && <div className="text-gray-500 text-xs">{packageSize}</div>}
+          </div>
+        )
+      },
     },
     {
       title: 'Report', key: 'report', width: 180,
@@ -253,26 +260,35 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     <div className="flex flex-col gap-4">
       {data?.statusSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Completed Jobs" value={data.statusSummary.completedCount} styles={{ content: { color: '#3f8600' } }} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Failed Jobs" value={data.statusSummary.failedCount} styles={{ content: { color: '#cf1322' } }} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Running Jobs" value={data.statusSummary.runningCount} styles={{ content: { color: '#1677ff' } }} /></Card></Col>
+          {buildPublishHistoryStatusStatisticItems(data.statusSummary).map((item) => (
+            <Col span={8} key={item.title}>
+              <Card size="small" variant="outlined" className="shadow-sm">
+                <Statistic title={item.title} value={item.value} styles={{ content: { color: item.color } }} />
+              </Card>
+            </Col>
+          ))}
         </Row>
       )}
       {data?.readinessSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ready Sequences" value={data.readinessSummary.readyCount} styles={{ content: { color: '#3f8600' } }} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Blocked Sequences" value={data.readinessSummary.blockedCount} styles={{ content: { color: '#cf1322' } }} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Unknown Readiness" value={data.readinessSummary.unknownCount} styles={{ content: { color: '#595959' } }} /></Card></Col>
+          {buildPublishHistoryReadinessStatisticItems(data.readinessSummary).map((item) => (
+            <Col span={8} key={item.title}>
+              <Card size="small" variant="outlined" className="shadow-sm">
+                <Statistic title={item.title} value={item.value} styles={{ content: { color: item.color } }} />
+              </Card>
+            </Col>
+          ))}
         </Row>
       )}
       {data?.lifecycleSummary && (
         <Row gutter={16}>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Matched" value={data.lifecycleSummary.matchedCount ?? 0} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Replace Missing" value={data.lifecycleSummary.replaceTargetNotFoundCount ?? 0} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Delete Missing" value={data.lifecycleSummary.deleteTargetNotFoundCount ?? 0} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Append Missing" value={data.lifecycleSummary.appendTargetNotFoundCount ?? 0} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Ambiguous" value={data.lifecycleSummary.ambiguousCount ?? 0} /></Card></Col>
-          <Col span={8}><Card size="small" variant="outlined" className="shadow-sm"><Statistic title="Current Sequence" value={data.lifecycleSummary.currentSequenceCount ?? 0} /></Card></Col>
+          {buildPublishHistoryLifecycleStatisticItems(data.lifecycleSummary).map((item) => (
+            <Col span={8} key={item.title}>
+              <Card size="small" variant="outlined" className="shadow-sm">
+                <Statistic title={item.title} value={item.value} />
+              </Card>
+            </Col>
+          ))}
         </Row>
       )}
       <div className="bg-white p-4 rounded border border-gray-200">

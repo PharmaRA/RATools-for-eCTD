@@ -10,6 +10,14 @@ type PackageReviewChecklistInput = {
   requiredArtifactCount: number
 }
 
+type PackageReviewChecklistCountLabel = 'error' | 'issue'
+
+export const formatPackageReviewChecklistCountDetail = (
+  reportLoaded: boolean,
+  count: number | null | undefined,
+  label: PackageReviewChecklistCountLabel,
+) => (reportLoaded ? `${count ?? '-'} ${label}(s)` : 'Unavailable')
+
 export const buildPackageReviewChecklistRows = ({
   report,
   reportLoaded,
@@ -29,13 +37,13 @@ export const buildPackageReviewChecklistRows = ({
     key: 'validation-errors',
     check: 'Validation errors',
     pass: reportLoaded && (report?.errorCount ?? 1) === 0,
-    detail: reportLoaded ? `${report?.errorCount ?? '-'} error(s)` : 'Unavailable',
+    detail: formatPackageReviewChecklistCountDetail(reportLoaded, report?.errorCount, 'error'),
   },
   {
     key: 'lifecycle-issues',
     check: 'Lifecycle issues',
     pass: reportLoaded && lifecycleIssueCount === 0,
-    detail: reportLoaded ? `${lifecycleIssueCount} issue(s)` : 'Unavailable',
+    detail: formatPackageReviewChecklistCountDetail(reportLoaded, lifecycleIssueCount, 'issue'),
   },
   {
     key: 'integrity-consistent',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiRequestError } from '../../apiClient'
-import { getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
+import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
 
 describe('packageReviewErrors', () => {
   it('preserves Error instances when normalizing package review failures', () => {
@@ -28,5 +28,13 @@ describe('packageReviewErrors', () => {
 
   it('uses the generic package review title for non-API errors', () => {
     expect(getReviewErrorTitle(new Error('Failed'))).toBe('Unable to load package review data')
+  })
+
+  it('uses the error message as the package review description', () => {
+    expect(getReviewErrorDescription(new Error('Report failed'))).toBe('Report failed')
+  })
+
+  it('uses an empty package review description when no error is available', () => {
+    expect(getReviewErrorDescription(null)).toBe('')
   })
 })

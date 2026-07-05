@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs, Tag } from 'antd'
+import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes, formatDate } from '../../pages/appShared'
+import { formatDate, formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
+import { renderArtifactExistsStatus } from './artifactDisplay'
 import {
   getReportErrorAlertMeta,
   toReportErrorState,
   type ReportErrorState,
 } from './reportErrors'
+import { formatReportCount, formatReportList, renderReportSeverityStatus, renderZipEntryPresentStatus } from './reportDisplay'
 import {
+  formatReadinessCount,
+  formatReadinessFieldName,
   formatMissingMetadataFields,
+  formatReadinessReadyStatus,
+  formatReadinessStatus,
   getPublishReadinessCategoryKey,
   getPublishReadinessFindingKey,
 } from './publishReadinessDisplay'
@@ -87,16 +93,6 @@ type PublishReport = {
   }
   publishReadiness?: PublishReadiness | null
 }
-
-const formatList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
-
-const formatBooleanStatus = (value?: boolean | null) => {
-  if (value === true) return <Tag color="green">Present</Tag>
-  if (value === false) return <Tag color="red">Missing from zip</Tag>
-  return '-'
-}
-
-const formatExistsStatus = (exists?: boolean) => exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag>
 
 type PublishReadiness = {
   isReady?: boolean
@@ -191,18 +187,18 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               <Card size="small" title="Integrity Summary">
                 <Descriptions size="small" column={1}>
                   <Descriptions.Item label="Consistent">{integrityState}</Descriptions.Item>
-                  <Descriptions.Item label="Missing Files">{report.integritySummary?.missingFilesCount ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Missing Zip Entries">{report.integritySummary?.missingZipEntriesCount ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Mismatched Artifacts">{report.integritySummary?.mismatchedArtifactsCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Missing Files">{formatReportCount(report.integritySummary?.missingFilesCount)}</Descriptions.Item>
+                  <Descriptions.Item label="Missing Zip Entries">{formatReportCount(report.integritySummary?.missingZipEntriesCount)}</Descriptions.Item>
+                  <Descriptions.Item label="Mismatched Artifacts">{formatReportCount(report.integritySummary?.mismatchedArtifactsCount)}</Descriptions.Item>
                 </Descriptions>
               </Card>
             </Col>
             <Col span={12}>
               <Card size="small" title="Artifact Summary">
                 <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="File Count">{report.artifactSummary?.fileCount ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Total Size">{report.artifactSummary ? formatBytes(report.artifactSummary.totalSizeBytes || 0) : '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Package Size">{report.artifactSummary ? formatBytes(report.artifactSummary.packageSizeBytes || 0) : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="File Count">{formatReportCount(report.artifactSummary?.fileCount)}</Descriptions.Item>
+                  <Descriptions.Item label="Total Size">{formatOptionalBytes(report.artifactSummary?.totalSizeBytes)}</Descriptions.Item>
+                  <Descriptions.Item label="Package Size">{formatOptionalBytes(report.artifactSummary?.packageSizeBytes)}</Descriptions.Item>
                 </Descriptions>
               </Card>
             </Col>
@@ -211,8 +207,8 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             <Col span={12}>
               <Card size="small" title="Audit Summary">
                 <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="Publish Job Events">{report.auditSummary?.publishJobEventCount ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Validation Events">{report.auditSummary?.validationEventCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Publish Job Events">{formatReportCount(report.auditSummary?.publishJobEventCount)}</Descriptions.Item>
+                  <Descriptions.Item label="Validation Events">{formatReportCount(report.auditSummary?.validationEventCount)}</Descriptions.Item>
                   <Descriptions.Item label="Latest Action">{report.auditSummary?.latestPublishJobAction ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="Latest Event">{formatDate(report.auditSummary?.latestPublishJobEventUtc ?? undefined)}</Descriptions.Item>
                 </Descriptions>
@@ -228,7 +224,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   <Descriptions.Item label="Append Missing">{lifecycleSummary.appendTargetNotFoundCount}</Descriptions.Item>
                   <Descriptions.Item label="Ambiguous">{lifecycleSummary.ambiguousCount}</Descriptions.Item>
                   <Descriptions.Item label="Current Sequence">{lifecycleSummary.currentSequenceCount}</Descriptions.Item>
-                  <Descriptions.Item label="Warning Summary">{report.warningSummary || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Warning Summary">{formatOptionalText(report.warningSummary)}</Descriptions.Item>
                 </Descriptions>
               </Card>
             </Col>
@@ -237,10 +233,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             <Card size="small" title="Publish Readiness">
               <div className="flex flex-col gap-4">
                 <Descriptions bordered size="small" column={2}>
-                  <Descriptions.Item label="Status">{publishReadiness.status || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Ready">{publishReadiness.isReady ? 'Yes' : 'No'}</Descriptions.Item>
-                  <Descriptions.Item label="Blocking Errors">{publishReadiness.blockingErrorCount ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="Warnings">{publishReadiness.warningCount ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="Status">{formatReadinessStatus(publishReadiness.status)}</Descriptions.Item>
+                  <Descriptions.Item label="Ready">{formatReadinessReadyStatus(publishReadiness.isReady)}</Descriptions.Item>
+                  <Descriptions.Item label="Blocking Errors">{formatReadinessCount(publishReadiness.blockingErrorCount)}</Descriptions.Item>
+                  <Descriptions.Item label="Warnings">{formatReadinessCount(publishReadiness.warningCount)}</Descriptions.Item>
                   <Descriptions.Item label="Missing Metadata Fields" span={2}>
                     {formatMissingMetadataFields(publishReadiness.missingMetadataFields)}
                   </Descriptions.Item>
@@ -265,10 +261,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   size="small"
                   locale={{ emptyText: 'No publish readiness findings were recorded.' }}
                   columns={[
-                    { title: 'Severity', dataIndex: 'severity', width: 100, render: (value: string) => <Tag color={value === 'Error' ? 'red' : 'orange'}>{value}</Tag> },
+                    { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
                     { title: 'Code', dataIndex: 'code', width: 220 },
                     { title: 'Category', dataIndex: 'category', width: 180 },
-                    { title: 'Field', dataIndex: 'fieldName', width: 180, render: (value?: string | null) => value || '-' },
+                    { title: 'Field', dataIndex: 'fieldName', width: 180, render: formatReadinessFieldName },
                     { title: 'Recommended Action', dataIndex: 'recommendedAction' },
                   ]}
                 />
@@ -290,10 +286,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   { title: 'Document ID', dataIndex: 'documentId', width: 180 },
                   { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
                   { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
-                  { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', render: formatList, width: 220 },
+                  { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', render: formatReportList, width: 220 },
                   { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
-                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: formatList, width: 180 },
-                  { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', render: formatList, width: 240 },
+                  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: formatReportList, width: 180 },
+                  { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', render: formatReportList, width: 240 },
                   { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
                 ]}
               />
@@ -305,7 +301,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                 children: (
               <Table dataSource={report.validationReport?.issues || []} rowKey={(_, i) => i + ''} pagination={{ pageSize: 10 }} size="small"
                 columns={[
-                  { title: 'Severity', dataIndex: 'severity', render: (s: string) => <Tag color={s === 'Error' ? 'red' : 'orange'}>{s}</Tag>, width: 100 },
+                  { title: 'Severity', dataIndex: 'severity', render: renderReportSeverityStatus, width: 100 },
                   { title: 'Code', dataIndex: 'code', width: 200 },
                   { title: 'Message', dataIndex: 'message' },
                 ]}
@@ -321,9 +317,9 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                       <Table dataSource={report.integrityEvidence.findings || []} rowKey={(_, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
                         locale={{ emptyText: 'No integrity findings were recorded.' }}
                         columns={[
-                          { title: 'Severity', dataIndex: 'severity', width: 100, render: (value: string) => <Tag color={value === 'Error' ? 'red' : 'orange'}>{value}</Tag> },
+                          { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
                           { title: 'Type', dataIndex: 'type', width: 200 },
-                          { title: 'Path', dataIndex: 'path', width: 260, render: (value?: string | null) => value || '-' },
+                          { title: 'Path', dataIndex: 'path', width: 260, render: formatOptionalText },
                           { title: 'Message', dataIndex: 'message' },
                         ]}
                       />
@@ -332,10 +328,10 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                       <Table dataSource={report.integrityEvidence.artifacts || []} rowKey={(_, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
                         columns={[
                           { title: 'Role', dataIndex: 'role', width: 140 },
-                          { title: 'Relative Path', dataIndex: 'relativePath', width: 260, render: (value?: string | null) => value || '-' },
-                          { title: 'Exists', dataIndex: 'exists', width: 120, render: formatExistsStatus },
-                          { title: 'Size', dataIndex: 'sizeBytes', width: 120, render: (value: number) => formatBytes(value || 0) },
-                          { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150, render: formatBooleanStatus },
+                          { title: 'Relative Path', dataIndex: 'relativePath', width: 260, render: formatOptionalText },
+                          { title: 'Exists', dataIndex: 'exists', width: 120, render: renderArtifactExistsStatus },
+                          { title: 'Size', dataIndex: 'sizeBytes', width: 120, render: formatOptionalBytes },
+                          { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150, render: renderZipEntryPresentStatus },
                           { title: 'Source', dataIndex: 'source', width: 160 },
                         ]}
                       />

@@ -1,16 +1,30 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, Tag, message } from 'antd'
+import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, message } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
-import { formatBytes } from '../../pages/appShared'
+import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
+import { renderArtifactExistsStatus } from './artifactDisplay'
 import { getArtifactsFromResponse } from './packageReviewArtifacts'
 import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
-import { getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
 import {
+  buildPackageReviewRiskSummaryItems,
+  formatPackageReviewHeaderSummary,
+  formatPackageReviewWarningAlertDescription,
+  renderChecklistPassStatus,
+  renderEvidenceFindingSeverityStatus,
+  renderReadinessFindingSeverityStatus,
+} from './packageReviewDisplay'
+import { downloadJson } from './packageReviewDownload'
+import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
+import {
+  formatReadinessCount,
+  formatReadinessFieldName,
   formatMissingMetadataFields,
+  formatReadinessReadyStatus,
+  formatReadinessStatus,
   getPublishReadinessCategoryKey,
   getPublishReadinessFindingKey,
 } from './publishReadinessDisplay'
@@ -28,20 +42,6 @@ type PackageReviewPanelProps = {
 }
 
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
-
-const getErrorMessage = (error: Error | null) => error?.message || ''
-
-const downloadJson = (filename: string, value: unknown) => {
-  const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
 
 export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) => {
   const [loading, setLoading] = useState(false)
@@ -125,23 +125,17 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
   const findings: IntegrityFinding[] = reportLoaded ? report?.integrityEvidence?.findings || [] : []
   const requiredArtifactRows = requiredArtifactSummary.rows
   const reviewLoading = loading || (!!jobId && !report && !reportError && artifacts.length === 0 && !artifactsError)
-  const riskSummaryItems = [
-    { key: 'validation-errors', label: 'Validation Errors', children: report?.errorCount ?? '-' },
-    { key: 'warnings', label: 'Warnings', children: report?.warningCount ?? '-' },
-    { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: reportLoaded ? lifecycleIssueCount : '-' },
-    { key: 'missing-files', label: 'Missing Files', children: report?.integritySummary?.missingFilesCount ?? '-' },
-    { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: report?.integritySummary?.missingZipEntriesCount ?? '-' },
-    { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: report?.integritySummary?.mismatchedArtifactsCount ?? '-' },
-  ]
+  const riskSummaryItems = buildPackageReviewRiskSummaryItems({ report, reportLoaded, lifecycleIssueCount })
   const reviewExportAvailable = reportLoaded || artifactsLoaded
   const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
+  const warningAlertDescription = formatPackageReviewWarningAlertDescription(report)
 
   const renderError = (error: Error | null) => error && (
     <Alert
       type="warning"
       showIcon
       title={getReviewErrorTitle(error)}
-      description={getErrorMessage(error)}
+      description={getReviewErrorDescription(error)}
     />
   )
 
@@ -183,7 +177,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               {readyForSubmission ? 'Ready for Submission' : 'Not Ready for Submission'}
             </h2>
             <p className="text-gray-500 m-0 text-sm mt-1">
-              Sequence {report?.sequenceNumber ?? '-'} | {report?.publishJob?.status ?? '-'} | {report?.validationProfile ?? '-'}
+              {formatPackageReviewHeaderSummary(report)}
             </p>
           </div>
           <Space>
@@ -214,12 +208,12 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           </Space>
         </div>
 
-        {(report?.warningCount ?? 0) > 0 && (
+        {warningAlertDescription && (
           <Alert
             type="warning"
             showIcon
             title="Warnings do not block readiness"
-            description={`${report?.warningCount ?? 0} warning(s) remain for reviewer awareness.`}
+            description={warningAlertDescription}
           />
         )}
 
@@ -231,7 +225,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             size="small"
             columns={[
               { title: 'Check', dataIndex: 'check', key: 'check' },
-              { title: 'Status', dataIndex: 'pass', key: 'status', width: 120, render: (pass: boolean) => <Tag color={pass ? 'green' : 'red'}>{pass ? 'Pass' : 'Fail'}</Tag> },
+              { title: 'Status', dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
               { title: 'Details', dataIndex: 'detail', key: 'detail' },
             ]}
           />
@@ -249,10 +243,10 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 size="small"
                 column={2}
                 items={[
-                  { key: 'readiness-status', label: 'Status', children: publishReadiness.status || '-' },
-                  { key: 'readiness-ready', label: 'Ready', children: publishReadiness.isReady ? 'Yes' : 'No' },
-                  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: publishReadiness.blockingErrorCount ?? '-' },
-                  { key: 'readiness-warnings', label: 'Warnings', children: publishReadiness.warningCount ?? '-' },
+                  { key: 'readiness-status', label: 'Status', children: formatReadinessStatus(publishReadiness.status) },
+                  { key: 'readiness-ready', label: 'Ready', children: formatReadinessReadyStatus(publishReadiness.isReady) },
+                  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: formatReadinessCount(publishReadiness.blockingErrorCount) },
+                  { key: 'readiness-warnings', label: 'Warnings', children: formatReadinessCount(publishReadiness.warningCount) },
                   {
                     key: 'readiness-missing-fields',
                     label: 'Missing Metadata Fields',
@@ -282,10 +276,10 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 size="small"
                 locale={{ emptyText: 'No publish readiness findings were recorded.' }}
                 columns={[
-                  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120, render: (severity: string) => <Tag color={severity === 'Error' ? 'red' : 'gold'}>{severity}</Tag> },
+                  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120, render: renderReadinessFindingSeverityStatus },
                   { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
                   { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
-                  { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: (value?: string | null) => value || '-' },
+                  { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: formatReadinessFieldName },
                   { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction' },
                 ]}
               />
@@ -308,9 +302,9 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               pagination={{ pageSize: 10 }}
               size="small"
               columns={[
-                { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100, render: (severity: string) => <Tag color={severity === 'Error' ? 'red' : 'orange'}>{severity}</Tag> },
+                { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100, render: renderEvidenceFindingSeverityStatus },
                 { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
-                { title: 'Path', dataIndex: 'path', key: 'path', width: 260, render: (value?: string | null) => value || '-' },
+                { title: 'Path', dataIndex: 'path', key: 'path', width: 260, render: formatOptionalText },
                 { title: 'Message', dataIndex: 'message', key: 'message' },
               ]}
             />
@@ -327,9 +321,9 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             size="small"
             columns={[
               { title: 'Name', dataIndex: 'name', key: 'name', render: (name: string) => <b>{name}</b> },
-              { title: 'Status', dataIndex: 'exists', key: 'status', render: (exists?: boolean) => exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag> },
-              { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: (size?: number | null) => size == null ? '-' : formatBytes(size) },
-              { title: 'Type', dataIndex: 'contentType', key: 'type', render: (value?: string) => value || '-' },
+              { title: 'Status', dataIndex: 'exists', key: 'status', render: renderArtifactExistsStatus },
+              { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: formatOptionalBytes },
+              { title: 'Type', dataIndex: 'contentType', key: 'type', render: formatOptionalText },
             ]}
           />
         </Card>

@@ -29,6 +29,8 @@ export const formatDate = (dateStr?: string) => {
   return new Date(dateStr).toLocaleString()
 }
 
+export const formatOptionalText = (value?: string | null) => value || '-'
+
 export const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -36,6 +38,8 @@ export const formatBytes = (bytes: number) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
+
+export const formatOptionalBytes = (bytes?: number | null) => bytes == null ? '-' : formatBytes(bytes)
 
 export const getApplicationTemplateLabel = (application?: Pick<Application, 'ectdTemplateDisplayName' | 'ectdTemplateKey'> | null) => {
   return application?.ectdTemplateDisplayName || application?.ectdTemplateKey || 'Unknown Template'

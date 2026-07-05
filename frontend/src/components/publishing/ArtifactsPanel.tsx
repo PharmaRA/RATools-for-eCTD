@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Button, Drawer, Spin, Table, Tag, message } from 'antd'
+import { Button, Drawer, Spin, Table, message } from 'antd'
 import { Download } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
 import { formatBytes, getErrorMessage } from '../../pages/appShared'
+import { renderArtifactExistsStatus } from './artifactDisplay'
 
 type PublishArtifact = {
   name: string
@@ -44,7 +45,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
 
   const columns = [
     { title: 'Name', dataIndex: 'name', key: 'name', render: (t: string) => <b>{t}</b> },
-    { title: 'Status', dataIndex: 'exists', key: 'exists', render: (exists: boolean) => exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag> },
+    { title: 'Status', dataIndex: 'exists', key: 'exists', render: renderArtifactExistsStatus },
     { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: (s: number) => formatBytes(s) },
     { title: 'Type', dataIndex: 'contentType', key: 'type' },
     {

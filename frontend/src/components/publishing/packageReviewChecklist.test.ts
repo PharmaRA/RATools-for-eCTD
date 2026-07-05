@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
+import {
+  buildPackageReviewChecklistRows,
+  formatPackageReviewChecklistCountDetail,
+} from './packageReviewChecklist'
 
 describe('packageReviewChecklist', () => {
+  it('formats checklist count details when report data is loaded', () => {
+    expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe('2 error(s)')
+    expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe('1 issue(s)')
+  })
+
   it('builds passing checklist rows when report and required artifacts are ready', () => {
     expect(buildPackageReviewChecklistRows({
       reportLoaded: true,

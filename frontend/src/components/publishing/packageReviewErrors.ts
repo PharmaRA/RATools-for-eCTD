@@ -5,6 +5,8 @@ export const normalizePackageReviewError = (error: unknown) => {
   return new Error(String(error))
 }
 
+export const getReviewErrorDescription = (error: Error | null) => error?.message || ''
+
 export const getReviewErrorTitle = (error: Error) => {
   if (!(error instanceof ApiRequestError)) return 'Unable to load package review data'
 
