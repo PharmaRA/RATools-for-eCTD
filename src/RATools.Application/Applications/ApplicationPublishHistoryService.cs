@@ -11,6 +11,11 @@ public sealed class ApplicationPublishHistoryService(
     IApplicationRepository applicationRepository,
     IPublishJobRepository publishJobRepository) : IApplicationPublishHistoryService
 {
+    private static readonly JsonSerializerOptions ReportJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public async Task<ApplicationPublishHistoryDto?> GetAsync(
         Guid applicationId,
         ApplicationPublishHistoryQuery query,
@@ -80,17 +85,10 @@ public sealed class ApplicationPublishHistoryService(
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToArray();
-        var filteredStatuses = entries
-            .GroupBy(x => x.Status, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-        var statusSummary = new ApplicationPublishHistoryStatusSummaryDto(
-            filteredStatuses.GetValueOrDefault("Completed", 0),
-            filteredStatuses.GetValueOrDefault("Failed", 0),
-            filteredStatuses.GetValueOrDefault("Running", 0));
-        var readinessAggregate = new ApplicationPublishHistoryReadinessAggregateDto(
-            entries.Count(x => x.PublishReadiness?.Status.Equals("Ready", StringComparison.OrdinalIgnoreCase) == true),
-            entries.Count(x => x.PublishReadiness?.Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase) == true),
-            entries.Count(x => x.PublishReadiness is null));
+        var statusSummary = ApplicationPublishHistoryStatusSummary.Create(
+            entries.Select(x => x.Status));
+        var readinessAggregate = ApplicationPublishHistoryReadinessAggregate.Create(
+            entries.Select(x => x.PublishReadiness));
         var lifecycleSummary = BuildLifecycleSummary(lifecycleMatches);
 
         return new ApplicationPublishHistoryDto(
@@ -130,10 +128,7 @@ public sealed class ApplicationPublishHistoryService(
         try
         {
             var json = await File.ReadAllTextAsync(reportPath, cancellationToken);
-            var report = JsonSerializer.Deserialize<PublishExecutionReportDto>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var report = JsonSerializer.Deserialize<PublishExecutionReportDto>(json, ReportJsonOptions);
 
             return report is null
                 ? (null, true, false, "Report file could not be deserialized.")
@@ -146,15 +141,7 @@ public sealed class ApplicationPublishHistoryService(
     }
 
     private static ApplicationPublishHistoryLifecycleSummaryDto BuildLifecycleSummary(IReadOnlyCollection<ValidationLifecycleMatchDto> lifecycleMatches)
-    {
-        return new ApplicationPublishHistoryLifecycleSummaryDto(
-            lifecycleMatches.Count(x => x.ResultCode == "MATCHED"),
-            lifecycleMatches.Count(x => x.ResultCode == "REPLACE_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "DELETE_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "APPEND_TARGET_NOT_FOUND"),
-            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_AMBIGUOUS"),
-            lifecycleMatches.Count(x => x.ResultCode == "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"));
-    }
+        => ApplicationPublishHistoryLifecycleSummary.Create(lifecycleMatches);
 
     private static ApplicationPublishHistoryReadinessSummaryDto? BuildReadinessSummary(PublishReadinessReportDto? readiness)
     {

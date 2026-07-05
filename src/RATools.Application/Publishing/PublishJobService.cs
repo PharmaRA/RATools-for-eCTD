@@ -70,9 +70,7 @@ public sealed class PublishJobService(
         CancellationToken cancellationToken)
     {
         var jobDto = result.Job.ToDto();
-        var errorCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
-        var warningCount = result.ValidationReport.Issues.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
-        var warningSummary = BuildWarningSummary(result.ValidationReport);
+        var issueSummary = PublishValidationIssueReportSummary.Create(result.ValidationReport.Issues);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
 
         var report = new PublishExecutionReportDto(
@@ -89,9 +87,9 @@ public sealed class PublishJobService(
             result.PublishReadiness,
             null,
             auditSummary,
-            errorCount,
-            warningCount,
-            warningSummary,
+            issueSummary.ErrorCount,
+            issueSummary.WarningCount,
+            issueSummary.WarningSummary,
             result.Job.Status == PublishJobStatus.Completed,
             result.Message);
 
@@ -177,30 +175,6 @@ public sealed class PublishJobService(
             artifact.ContentType);
     }
 
-    private static string? BuildWarningSummary(ValidationReportDto validationReport)
-    {
-        var warningMessages = validationReport.Issues
-            .Where(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase))
-            .Select(x => $"{x.Code}: {x.Message}")
-            .ToArray();
-
-        if (warningMessages.Length == 0)
-        {
-            return null;
-        }
-
-        var shown = warningMessages.Take(3).ToArray();
-        var summary = string.Join(" | ", shown);
-
-        var remaining = warningMessages.Length - shown.Length;
-        if (remaining > 0)
-        {
-            summary = $"{summary} | +{remaining} more warning(s)";
-        }
-
-        return summary;
-    }
-
     private async Task<PublishAuditSummaryDto?> BuildAuditSummaryAsync(
         PublishJobDto publishJob,
         string sequenceNumber,
@@ -209,21 +183,7 @@ public sealed class PublishJobService(
         try
         {
             var allAuditLogs = await auditLogService.ListAsync(cancellationToken);
-
-            var publishJobEvents = allAuditLogs
-                .Where(x => x.EntityType == "PublishJob" && x.EntityId == publishJob.Id.ToString())
-                .OrderByDescending(x => x.CreatedUtc)
-                .ToArray();
-
-            var validationEvents = allAuditLogs
-                .Where(x => x.EntityType == "SequenceValidation" && x.EntityId == $"{publishJob.ApplicationId}:{sequenceNumber}")
-                .ToArray();
-
-            return new PublishAuditSummaryDto(
-                publishJobEvents.Length,
-                validationEvents.Length,
-                publishJobEvents.FirstOrDefault()?.Action,
-                publishJobEvents.FirstOrDefault()?.CreatedUtc);
+            return PublishAuditSummaryBuilder.Create(allAuditLogs, publishJob, sequenceNumber);
         }
         catch
         {

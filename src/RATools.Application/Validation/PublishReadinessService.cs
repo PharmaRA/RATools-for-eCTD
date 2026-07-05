@@ -176,9 +176,8 @@ public sealed class PublishReadinessService(
             }
         }
 
-        var blockingErrorCount = findings.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase));
-        var warningCount = findings.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
-        var isReady = blockingErrorCount == 0;
+        var findingSummary = PublishReadinessFindingSummary.Create(findings);
+        var isReady = findingSummary.BlockingErrorCount == 0;
         var missingMetadataFields = findings
             .Where(x => string.Equals(x.Code, "US_REGIONAL_METADATA_MISSING", StringComparison.OrdinalIgnoreCase))
             .Select(x => x.FieldName)
@@ -187,26 +186,17 @@ public sealed class PublishReadinessService(
             .Cast<string>()
             .OrderBy(x => x, StringComparer.Ordinal)
             .ToArray();
-        var categorySummaries = findings
-            .GroupBy(x => x.Category, StringComparer.OrdinalIgnoreCase)
-            .Select(group => new PublishReadinessCategorySummaryDto(
-                group.Key,
-                group.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase)),
-                group.Count(x => string.Equals(x.Severity, "Warning", StringComparison.OrdinalIgnoreCase)),
-                group.Count()))
-            .OrderBy(x => x.Category, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
 
         return new PublishReadinessReportDto(
             request.ApplicationId,
             request.SequenceNumber,
             isReady,
             isReady ? "Ready" : "Blocked",
-            blockingErrorCount,
-            warningCount,
+            findingSummary.BlockingErrorCount,
+            findingSummary.WarningCount,
             validationReport,
             missingMetadataFields,
-            categorySummaries,
+            findingSummary.CategorySummaries,
             findings);
     }
 

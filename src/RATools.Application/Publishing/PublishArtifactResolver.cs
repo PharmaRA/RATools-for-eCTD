@@ -10,17 +10,11 @@ public sealed class PublishArtifactResolver(IPublishArtifactStore artifactStore)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var outputPath = job.OutputPath;
-        var reportPath = outputPath is null
-            ? null
-            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
-
-        var artifacts = new List<PublishArtifactDto>
+        var artifacts = new List<PublishArtifactDto>();
+        foreach (var descriptor in PublishArtifactDescriptorCatalog.All)
         {
-            await BuildArtifactAsync("BackboneXml", "file", outputPath, cancellationToken),
-            await BuildArtifactAsync("PublishReport", "file", reportPath, cancellationToken),
-            await BuildArtifactAsync("PackageZip", "file", job.PackagePath, cancellationToken)
-        };
+            artifacts.Add(await BuildArtifactAsync(descriptor, job, cancellationToken));
+        }
 
         return new PublishArtifactsDto(job.Id, job.ApplicationId, job.SequenceNumber, artifacts);
     }
@@ -32,27 +26,10 @@ public sealed class PublishArtifactResolver(IPublishArtifactStore artifactStore)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var outputPath = job.OutputPath;
-        var reportPath = outputPath is null
+        var descriptor = PublishArtifactDescriptorCatalog.Find(artifactName);
+        return descriptor is null
             ? null
-            : PublishOutputNaming.BuildPublishReportPath(outputPath, job.SequenceNumber, job.Id);
-
-        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
-        {
-            return await BuildArtifactAsync("BackboneXml", "file", outputPath, cancellationToken);
-        }
-
-        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
-        {
-            return await BuildArtifactAsync("PublishReport", "file", reportPath, cancellationToken);
-        }
-
-        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
-        {
-            return await BuildArtifactAsync("PackageZip", "file", job.PackagePath, cancellationToken);
-        }
-
-        return null;
+            : await BuildArtifactAsync(descriptor, job, cancellationToken);
     }
 
     public async Task<PublishArtifactSummaryDto?> BuildArtifactSummaryAsync(
@@ -87,33 +64,19 @@ public sealed class PublishArtifactResolver(IPublishArtifactStore artifactStore)
     }
 
     private async Task<PublishArtifactDto> BuildArtifactAsync(
-        string name,
-        string type,
-        string? path,
+        PublishArtifactDescriptor descriptor,
+        PublishJob job,
         CancellationToken cancellationToken)
     {
+        var path = descriptor.ResolvePath(job);
         var exists = !string.IsNullOrWhiteSpace(path) && await artifactStore.ExistsAsync(path, cancellationToken);
         var sizeBytes = exists ? await artifactStore.GetSizeAsync(path!, cancellationToken) : 0;
-        return new PublishArtifactDto(name, type, path, exists, sizeBytes, GetContentType(name));
-    }
-
-    private static string GetContentType(string artifactName)
-    {
-        if (string.Equals(artifactName, "BackboneXml", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/xml";
-        }
-
-        if (string.Equals(artifactName, "PublishReport", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/json";
-        }
-
-        if (string.Equals(artifactName, "PackageZip", StringComparison.OrdinalIgnoreCase))
-        {
-            return "application/zip";
-        }
-
-        return "application/octet-stream";
+        return new PublishArtifactDto(
+            descriptor.Name,
+            descriptor.Type,
+            path,
+            exists,
+            sizeBytes,
+            descriptor.ContentType);
     }
 }

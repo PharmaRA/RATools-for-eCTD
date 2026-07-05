@@ -163,11 +163,11 @@ public sealed class DocumentService(
         }
 
         var allDocuments = await repository.ListAsync(cancellationToken);
-        var sharedPathCount = allDocuments.Count(x => x.Id != id && string.Equals(x.StoragePath, document.StoragePath, StringComparison.OrdinalIgnoreCase));
+        var sharedPathExists = allDocuments.Any(x => x.Id != id && string.Equals(x.StoragePath, document.StoragePath, StringComparison.OrdinalIgnoreCase));
 
         await repository.DeleteAsync(id, cancellationToken);
 
-        if (sharedPathCount == 0 && File.Exists(document.StoragePath))
+        if (!sharedPathExists && File.Exists(document.StoragePath))
         {
             File.Delete(document.StoragePath);
             await TryDeleteEmptyWorkspaceFoldersAsync(document.StoragePath, cancellationToken);

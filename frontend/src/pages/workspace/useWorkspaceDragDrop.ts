@@ -38,6 +38,21 @@ const getPlacementPayloadFromDataTransfer = (dataTransfer: DataTransfer) => {
   return tryParsePlacementDragPayload(dataTransfer.getData('text/plain'))
 }
 
+export const partitionDroppedFiles = (files: File[] | FileList) => {
+  const validFiles: File[] = []
+  const invalidFiles: File[] = []
+
+  for (const file of Array.from(files)) {
+    if (isAllowedEctdFileName(file.name)) {
+      validFiles.push(file)
+    } else {
+      invalidFiles.push(file)
+    }
+  }
+
+  return { validFiles, invalidFiles }
+}
+
 export const useWorkspaceDragDrop = ({
   placements,
   movePlacement,
@@ -66,9 +81,7 @@ export const useWorkspaceDragDrop = ({
   }, [draggingPlacementId, placements])
 
   const dropFiles = useCallback(async (files: File[] | FileList, targetNodeKey: string) => {
-    const droppedFiles = Array.from(files)
-    const validFiles = droppedFiles.filter((file) => isAllowedEctdFileName(file.name))
-    const invalidFiles = droppedFiles.filter((file) => !isAllowedEctdFileName(file.name))
+    const { validFiles, invalidFiles } = partitionDroppedFiles(files)
 
     if (invalidFiles.length > 0) {
       messageApi.error(`Unsupported file extension. Allowed: ${ectdAllowedExtensionsHint}. Skipped: ${invalidFiles.map((file) => file.name).join(', ')}`)

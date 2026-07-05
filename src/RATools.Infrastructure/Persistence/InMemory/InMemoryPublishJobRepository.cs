@@ -74,13 +74,14 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
         var pageItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        var statusCounts = PublishJobHistoryStatusCounts.Create(filtered);
 
         return Task.FromResult(new PublishJobHistoryQueryResult(
             pageItems,
-            filtered.Length,
-            filtered.Count(x => x.Status == PublishJobStatus.Completed),
-            filtered.Count(x => x.Status == PublishJobStatus.Failed),
-            filtered.Count(x => x.Status == PublishJobStatus.Running)));
+            statusCounts.Total,
+            statusCounts.Completed,
+            statusCounts.Failed,
+            statusCounts.Running));
     }
 
     public Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)

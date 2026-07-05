@@ -2,7 +2,7 @@ import { act, useEffect, type KeyboardEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useWorkspaceDragDrop } from './useWorkspaceDragDrop'
+import { partitionDroppedFiles, useWorkspaceDragDrop } from './useWorkspaceDragDrop'
 
 type DragDropResult = ReturnType<typeof useWorkspaceDragDrop>
 
@@ -44,6 +44,17 @@ const renderUseWorkspaceDragDrop = (options: Parameters<typeof useWorkspaceDragD
 describe('useWorkspaceDragDrop', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('partitions dropped files by supported eCTD extension', () => {
+    const validPdf = new File(['one'], 'one.pdf', { type: 'application/pdf' })
+    const validXml = new File(['two'], 'two.xml', { type: 'text/xml' })
+    const invalid = new File(['bad'], 'bad.exe', { type: 'application/octet-stream' })
+
+    const result = partitionDroppedFiles([validPdf, validXml, invalid])
+
+    expect(result.validFiles).toEqual([validPdf, validXml])
+    expect(result.invalidFiles).toEqual([invalid])
   })
 
   it('uploads all valid dropped files and reports invalid extensions', async () => {

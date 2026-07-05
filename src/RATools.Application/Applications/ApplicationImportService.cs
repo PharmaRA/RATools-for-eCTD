@@ -116,8 +116,7 @@ public sealed class ApplicationImportService(
         }
 
         var importedSequenceCount = application.Sequences.Count;
-        var skippedSequenceCount = issues.Count(x => x.Code == "SEQUENCE_INDEX_MISSING");
-        var failedSequenceCount = issues.Count(x => x.Severity == "Error");
+        var issueSummary = ApplicationImportIssueSummary.Create(issues);
 
         return new ApplicationImportResultDto(
             application.Id,
@@ -126,8 +125,8 @@ public sealed class ApplicationImportService(
             importedSequenceCount,
             importedDocuments.Count,
             importedPlacements.Count,
-            skippedSequenceCount,
-            failedSequenceCount,
+            issueSummary.SkippedSequenceCount,
+            issueSummary.FailedSequenceCount,
             issues);
     }
 

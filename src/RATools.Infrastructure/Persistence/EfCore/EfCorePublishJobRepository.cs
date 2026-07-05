@@ -96,10 +96,15 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             baseQuery = baseQuery.Where(x => x.CreatedUtc <= query.CreatedToUtc.Value);
         }
 
-        var totalCount = await baseQuery.CountAsync(cancellationToken);
-        var completedCount = await baseQuery.CountAsync(x => x.Status == PublishJobStatus.Completed.ToString(), cancellationToken);
-        var failedCount = await baseQuery.CountAsync(x => x.Status == PublishJobStatus.Failed.ToString(), cancellationToken);
-        var runningCount = await baseQuery.CountAsync(x => x.Status == PublishJobStatus.Running.ToString(), cancellationToken);
+        var countsByStatus = await baseQuery
+            .GroupBy(x => x.Status)
+            .Select(x => new { Status = x.Key, Count = x.Count() })
+            .ToArrayAsync(cancellationToken);
+        var totalCount = countsByStatus.Sum(x => x.Count);
+        var statusCounts = countsByStatus.ToDictionary(x => x.Status, x => x.Count, StringComparer.Ordinal);
+        var completedCount = statusCounts.GetValueOrDefault(PublishJobStatus.Completed.ToString(), 0);
+        var failedCount = statusCounts.GetValueOrDefault(PublishJobStatus.Failed.ToString(), 0);
+        var runningCount = statusCounts.GetValueOrDefault(PublishJobStatus.Running.ToString(), 0);
 
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
