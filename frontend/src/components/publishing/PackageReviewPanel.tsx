@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, Tag, message } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
-import { ApiRequestError, apiFetch } from '../../apiClient'
+import { apiFetch } from '../../apiClient'
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import { formatBytes } from '../../pages/appShared'
+import { getArtifactsFromResponse } from './packageReviewArtifacts'
+import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
+import { getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
+import {
+  formatMissingMetadataFields,
+  getPublishReadinessCategoryKey,
+  getPublishReadinessFindingKey,
+} from './publishReadinessDisplay'
 import {
   buildPackageReviewExport,
   type IntegrityFinding,
   type PackageReviewArtifact,
-  type PackageReviewChecklistRow,
   type PackageReviewReport,
   type PublishReadiness,
 } from './packageReviewExport'
@@ -21,40 +28,6 @@ type PackageReviewPanelProps = {
 }
 
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
-
-const isArtifact = (value: unknown): value is PackageReviewArtifact => {
-  return !!value && typeof value === 'object' && typeof (value as PackageReviewArtifact).name === 'string'
-}
-
-const toArtifactArray = (value: unknown) => Array.isArray(value) ? value.filter(isArtifact) : []
-
-const getArtifactsFromResponse = (value: unknown) => {
-  if (Array.isArray(value)) return toArtifactArray(value)
-  if (!value || typeof value !== 'object') return []
-  return toArtifactArray((value as { artifacts?: unknown }).artifacts)
-}
-
-const normalizeError = (error: unknown) => {
-  if (error instanceof Error) return error
-  return new Error(String(error))
-}
-
-const getReviewErrorTitle = (error: Error) => {
-  if (!(error instanceof ApiRequestError)) return 'Unable to load package review data'
-
-  switch (error.status) {
-    case 404:
-      return 'Report or artifacts were not found (404)'
-    case 409:
-      return 'Publish job is not ready (409)'
-    case 410:
-      return 'Publish data is unavailable (410)'
-    case 422:
-      return 'Publish report is corrupted (422)'
-    default:
-      return `Unable to load package review data (${error.status})`
-  }
-}
 
 const getErrorMessage = (error: Error | null) => error?.message || ''
 
@@ -111,14 +84,14 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
       if (reportResult.status === 'fulfilled') {
         setReport(reportResult.value as PackageReviewReport)
       } else {
-        setReportError(normalizeError(reportResult.reason))
+        setReportError(normalizePackageReviewError(reportResult.reason))
       }
 
       if (artifactsResult.status === 'fulfilled') {
         setArtifacts(getArtifactsFromResponse(artifactsResult.value))
         setArtifactsLoaded(true)
       } else {
-        setArtifactsError(normalizeError(artifactsResult.reason))
+        setArtifactsError(normalizePackageReviewError(artifactsResult.reason))
       }
 
       setLoading(false)
@@ -138,38 +111,15 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
   const packageZipExists = requiredArtifactSummary.existsByName.PackageZip
   const publishReportExists = requiredArtifactSummary.existsByName.PublishReport
 
-  const checklistRows: PackageReviewChecklistRow[] = [
-    {
-      key: 'publish-succeeded',
-      check: 'Publish succeeded',
-      pass: reportLoaded && report?.succeeded === true,
-      detail: report?.message || reportError?.message || 'Report unavailable.',
-    },
-    {
-      key: 'validation-errors',
-      check: 'Validation errors',
-      pass: reportLoaded && (report?.errorCount ?? 1) === 0,
-      detail: reportLoaded ? `${report?.errorCount ?? '-'} error(s)` : 'Unavailable',
-    },
-    {
-      key: 'lifecycle-issues',
-      check: 'Lifecycle issues',
-      pass: reportLoaded && lifecycleIssueCount === 0,
-      detail: reportLoaded ? `${lifecycleIssueCount} issue(s)` : 'Unavailable',
-    },
-    {
-      key: 'integrity-consistent',
-      check: 'Integrity consistent',
-      pass: reportLoaded && report?.integritySummary?.isConsistent === true,
-      detail: report?.integritySummary?.isConsistent === true ? 'Consistent' : 'Inconsistent or unavailable',
-    },
-    {
-      key: 'required-artifacts-present',
-      check: 'Required artifacts present',
-      pass: !artifactsError && presentArtifactCount === REQUIRED_ARTIFACTS.length,
-      detail: artifactsError?.message || `${presentArtifactCount}/${REQUIRED_ARTIFACTS.length} present`,
-    },
-  ]
+  const checklistRows = buildPackageReviewChecklistRows({
+    report,
+    reportLoaded,
+    reportError,
+    artifactsError,
+    lifecycleIssueCount,
+    presentArtifactCount,
+    requiredArtifactCount: REQUIRED_ARTIFACTS.length,
+  })
 
   const readyForSubmission = checklistRows.every((row) => row.pass)
   const findings: IntegrityFinding[] = reportLoaded ? report?.integrityEvidence?.findings || [] : []
@@ -306,16 +256,14 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                   {
                     key: 'readiness-missing-fields',
                     label: 'Missing Metadata Fields',
-                    children: (publishReadiness.missingMetadataFields || []).length > 0
-                      ? publishReadiness.missingMetadataFields!.join(', ')
-                      : 'None',
+                    children: formatMissingMetadataFields(publishReadiness.missingMetadataFields),
                   },
                 ]}
               />
 
               <Table
                 dataSource={publishReadiness.categorySummaries || []}
-                rowKey={(row) => row.category}
+                rowKey={getPublishReadinessCategoryKey}
                 pagination={false}
                 size="small"
                 locale={{ emptyText: 'No readiness category summaries were recorded.' }}
@@ -329,7 +277,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
               <Table
                 dataSource={publishReadiness.findings || []}
-                rowKey={(row, index) => `${row.code}-${row.fieldName || 'none'}-${index}`}
+                rowKey={getPublishReadinessFindingKey}
                 pagination={{ pageSize: 10 }}
                 size="small"
                 locale={{ emptyText: 'No publish readiness findings were recorded.' }}

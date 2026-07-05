@@ -3,8 +3,18 @@ import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs,
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
-import { formatBytes, formatDate, getErrorMessage } from '../../pages/appShared'
+import { formatBytes, formatDate } from '../../pages/appShared'
 import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
+import {
+  getReportErrorAlertMeta,
+  toReportErrorState,
+  type ReportErrorState,
+} from './reportErrors'
+import {
+  formatMissingMetadataFields,
+  getPublishReadinessCategoryKey,
+  getPublishReadinessFindingKey,
+} from './publishReadinessDisplay'
 
 type ValidationLifecycleMatch = {
   operation?: string | null
@@ -109,17 +119,9 @@ type PublishReadiness = {
   }>
 }
 
-const toReportError = (error: unknown) => {
-  const status = typeof (error as { status?: unknown })?.status === 'number'
-    ? (error as { status: number }).status
-    : 0
-
-  return { status, message: getErrorMessage(error) }
-}
-
 export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose: () => void }) => {
   const [loading, setLoading] = useState(false)
-  const [errorState, setErrorState] = useState<{ status: number, message: string } | null>(null)
+  const [errorState, setErrorState] = useState<ReportErrorState | null>(null)
   const [report, setReport] = useState<PublishReport | null>(null)
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
         const data = await apiFetch(`/api/publish-jobs/${jobId}/report`) as PublishReport
         if (active) setReport(data)
       } catch (err) {
-        if (active) setErrorState(toReportError(err))
+        if (active) setErrorState(toReportErrorState(err))
       } finally {
         if (active) setLoading(false)
       }
@@ -148,12 +150,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
 
   const renderError = () => {
     if (!errorState) return null
-    let title = '无法加载报告'
-    let type: 'error' | 'warning' | 'info' = 'error'
-    if (errorState.status === 404) { title = '报告不存在 (404)'; type = 'warning' }
-    if (errorState.status === 409) { title = '任务未完成 (409)'; type = 'info' }
-    if (errorState.status === 410) { title = '报告文件已缺失 (410)'; type = 'warning' }
-    if (errorState.status === 422) { title = '报告已损坏 (422)'; type = 'error' }
+    const { title, type } = getReportErrorAlertMeta(errorState.status)
     return <Alert title={title} description={errorState.message} type={type} showIcon className="mt-4" />
   }
 
@@ -245,14 +242,12 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   <Descriptions.Item label="Blocking Errors">{publishReadiness.blockingErrorCount ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="Warnings">{publishReadiness.warningCount ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="Missing Metadata Fields" span={2}>
-                    {(publishReadiness.missingMetadataFields || []).length > 0
-                      ? publishReadiness.missingMetadataFields!.join(', ')
-                      : 'None'}
+                    {formatMissingMetadataFields(publishReadiness.missingMetadataFields)}
                   </Descriptions.Item>
                 </Descriptions>
                 <Table
                   dataSource={publishReadiness.categorySummaries || []}
-                  rowKey={(row) => row.category}
+                  rowKey={getPublishReadinessCategoryKey}
                   pagination={false}
                   size="small"
                   locale={{ emptyText: 'No publish readiness category summaries were recorded.' }}
@@ -265,7 +260,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                 />
                 <Table
                   dataSource={publishReadiness.findings || []}
-                  rowKey={(row, index) => `${row.code}-${row.fieldName || 'none'}-${index}`}
+                  rowKey={getPublishReadinessFindingKey}
                   pagination={{ pageSize: 10 }}
                   size="small"
                   locale={{ emptyText: 'No publish readiness findings were recorded.' }}

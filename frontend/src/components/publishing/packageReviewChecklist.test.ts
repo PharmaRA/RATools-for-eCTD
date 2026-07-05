@@ -1,0 +1,46 @@
+import { describe, expect, it } from 'vitest'
+
+import { buildPackageReviewChecklistRows } from './packageReviewChecklist'
+
+describe('packageReviewChecklist', () => {
+  it('builds passing checklist rows when report and required artifacts are ready', () => {
+    expect(buildPackageReviewChecklistRows({
+      reportLoaded: true,
+      reportError: null,
+      artifactsError: null,
+      lifecycleIssueCount: 0,
+      presentArtifactCount: 3,
+      requiredArtifactCount: 3,
+      report: {
+        succeeded: true,
+        message: 'Published',
+        errorCount: 0,
+        integritySummary: { isConsistent: true },
+      },
+    })).toEqual([
+      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: 'Validation errors', pass: true, detail: '0 error(s)' },
+      { key: 'lifecycle-issues', check: 'Lifecycle issues', pass: true, detail: '0 issue(s)' },
+      { key: 'integrity-consistent', check: 'Integrity consistent', pass: true, detail: 'Consistent' },
+      { key: 'required-artifacts-present', check: 'Required artifacts present', pass: true, detail: '3/3 present' },
+    ])
+  })
+
+  it('builds failing checklist rows from missing report data and artifact errors', () => {
+    expect(buildPackageReviewChecklistRows({
+      reportLoaded: false,
+      report: null,
+      reportError: new Error('Report unavailable'),
+      artifactsError: new Error('Artifacts unavailable'),
+      lifecycleIssueCount: 2,
+      presentArtifactCount: 1,
+      requiredArtifactCount: 3,
+    })).toEqual([
+      { key: 'publish-succeeded', check: 'Publish succeeded', pass: false, detail: 'Report unavailable' },
+      { key: 'validation-errors', check: 'Validation errors', pass: false, detail: 'Unavailable' },
+      { key: 'lifecycle-issues', check: 'Lifecycle issues', pass: false, detail: 'Unavailable' },
+      { key: 'integrity-consistent', check: 'Integrity consistent', pass: false, detail: 'Inconsistent or unavailable' },
+      { key: 'required-artifacts-present', check: 'Required artifacts present', pass: false, detail: 'Artifacts unavailable' },
+    ])
+  })
+})
