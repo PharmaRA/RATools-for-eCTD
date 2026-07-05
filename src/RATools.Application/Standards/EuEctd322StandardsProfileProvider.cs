@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using RATools.Application.Applications.EctdTemplates;
 
 namespace RATools.Application.Standards;
@@ -7,13 +6,11 @@ public sealed class EuEctd322StandardsProfileProvider : IStandardsProfileProvide
 {
     private const string EmaEctdUrl = "https://esubmission.ema.europa.eu/ectd/";
     private const string IchSpecificationUrl = "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf";
-    private readonly string _assetRootPath;
+    private readonly BundledStandardsAssetResolver _assets;
 
     public EuEctd322StandardsProfileProvider(string? assetRootPath = null)
     {
-        _assetRootPath = string.IsNullOrWhiteSpace(assetRootPath)
-            ? AppContext.BaseDirectory
-            : assetRootPath;
+        _assets = new BundledStandardsAssetResolver(assetRootPath);
     }
 
     public StandardsProfile GetProfile(string templateKey)
@@ -34,7 +31,7 @@ public sealed class EuEctd322StandardsProfileProvider : IStandardsProfileProvide
             "EU",
             [EmaEctdUrl, IchSpecificationUrl],
             [
-                BuildAsset(
+                _assets.Build(
                     "ich-ectd-3-2-dtd",
                     "ICH eCTD DTD",
                     "DTD",
@@ -42,7 +39,7 @@ public sealed class EuEctd322StandardsProfileProvider : IStandardsProfileProvide
                     "reference/dtd/ich-ectd-3-2.dtd",
                     IchSpecificationUrl,
                     new DateOnly(2008, 7, 16)),
-                BuildAsset(
+                _assets.Build(
                     "eu-regional-dtd",
                     "EU Regional DTD",
                     "DTD",
@@ -54,31 +51,4 @@ public sealed class EuEctd322StandardsProfileProvider : IStandardsProfileProvide
             BackboneXmlProfiles.EuEctd322Regional);
     }
 
-    private StandardsAsset BuildAsset(
-        string key,
-        string displayName,
-        string category,
-        string version,
-        string localRelativePath,
-        string sourceUrl,
-        DateOnly? supportedFrom)
-    {
-        var path = ResolveLocalAssetPath(localRelativePath);
-        if (!File.Exists(path))
-        {
-            throw new StandardsAssetMissingException($"Bundled standards asset '{localRelativePath}' was not found at '{path}'.");
-        }
-
-        return new StandardsAsset(key, displayName, category, version, localRelativePath, sourceUrl, supportedFrom, ComputeSha256(path));
-    }
-
-    private string ResolveLocalAssetPath(string localRelativePath)
-        => Path.Combine(_assetRootPath, localRelativePath.Replace('/', Path.DirectorySeparatorChar));
-
-    private static string ComputeSha256(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var sha256 = SHA256.Create();
-        return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
-    }
 }

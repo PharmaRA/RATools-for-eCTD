@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
 
 namespace RATools.Application.Applications;
@@ -24,48 +25,23 @@ public sealed class ApplicationDeletionCoordinator(
             var allPlacements = await placementRepository.ListAsync(ct);
             var allDocuments = await documentRepository.ListAsync(ct);
             var allPublishJobs = await publishJobRepository.ListAsync(ct);
-            var inScopePlacements = allPlacements.Where(x => x.ApplicationId == application.Id).ToArray();
-            var survivingPlacements = allPlacements.Where(x => x.ApplicationId != application.Id).ToArray();
-            var inScopePublishJobs = allPublishJobs.Where(x => x.ApplicationId == application.Id).ToArray();
-
-            var inScopeDocumentIds = inScopePlacements
-                .Select(x => x.DocumentId)
-                .Distinct()
-                .ToHashSet();
-
-            var survivingDocumentIds = survivingPlacements
-                .Select(x => x.DocumentId)
-                .Distinct()
-                .ToHashSet();
+            var scope = ApplicationDeletionScope.ForApplication(application.Id, allPlacements, allPublishJobs);
 
             if (deleteMode == ApplicationDeleteMode.PurgeWorkspace)
             {
-                EnsureApplicationPurgeIsSafe(workspacePath, allDocuments, survivingDocumentIds);
+                EnsureApplicationPurgeIsSafe(workspacePath, allDocuments, scope.SurvivingDocumentIds);
                 EnsurePublishJobPurgeIsSafeForApplication(application.Id, workspacePath, allPublishJobs);
-
-                purgePaths.AddRange(allDocuments
-                    .Where(x => inScopeDocumentIds.Contains(x.Id))
-                    .Select(x => x.StoragePath)
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Cast<string>());
-                purgePaths.AddRange(inScopePublishJobs
-                    .SelectMany(x => new[] { x.OutputPath, x.PackagePath })
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Cast<string>());
+                purgePaths.AddRange(scope.CollectPurgePaths(allDocuments));
             }
 
-            var orphanedDocumentIds = inScopeDocumentIds
-                .Where(x => !survivingDocumentIds.Contains(x))
-                .ToArray();
-
-            foreach (var placement in inScopePlacements)
+            foreach (var placement in scope.InScopePlacements)
             {
                 await placementRepository.DeleteAsync(placement.Id, ct);
             }
 
             await publishJobRepository.DeleteByApplicationAsync(application.Id, ct);
 
-            foreach (var documentId in orphanedDocumentIds)
+            foreach (var documentId in scope.OrphanedDocumentIds)
             {
                 await documentRepository.DeleteAsync(documentId, ct);
             }
@@ -100,54 +76,23 @@ public sealed class ApplicationDeletionCoordinator(
             var allPlacements = await placementRepository.ListAsync(ct);
             var allDocuments = await documentRepository.ListAsync(ct);
             var allPublishJobs = await publishJobRepository.ListAsync(ct);
-            var inScopePlacements = allPlacements
-                .Where(x => x.ApplicationId == application.Id && string.Equals(x.SequenceNumber, sequenceNumber, StringComparison.Ordinal))
-                .ToArray();
-            var survivingPlacements = allPlacements
-                .Where(x => x.ApplicationId != application.Id || !string.Equals(x.SequenceNumber, sequenceNumber, StringComparison.Ordinal))
-                .ToArray();
-            var inScopePublishJobs = allPublishJobs
-                .Where(x => x.ApplicationId == application.Id && string.Equals(x.SequenceNumber, sequenceNumber, StringComparison.Ordinal))
-                .ToArray();
-
-            var inScopeDocumentIds = inScopePlacements
-                .Select(x => x.DocumentId)
-                .Distinct()
-                .ToHashSet();
-
-            var survivingDocumentIds = survivingPlacements
-                .Select(x => x.DocumentId)
-                .Distinct()
-                .ToHashSet();
+            var scope = ApplicationDeletionScope.ForSequence(application.Id, sequenceNumber, allPlacements, allPublishJobs);
 
             if (deleteMode == ApplicationDeleteMode.PurgeWorkspace)
             {
-                var sequenceWorkspacePath = EnsureSequencePurgeIsSafe(workspacePath, sequenceNumber, allDocuments, survivingDocumentIds);
+                var sequenceWorkspacePath = EnsureSequencePurgeIsSafe(workspacePath, sequenceNumber, allDocuments, scope.SurvivingDocumentIds);
                 EnsurePublishJobPurgeIsSafeForSequence(application.Id, sequenceNumber, sequenceWorkspacePath, allPublishJobs);
-
-                purgePaths.AddRange(allDocuments
-                    .Where(x => inScopeDocumentIds.Contains(x.Id))
-                    .Select(x => x.StoragePath)
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Cast<string>());
-                purgePaths.AddRange(inScopePublishJobs
-                    .SelectMany(x => new[] { x.OutputPath, x.PackagePath })
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Cast<string>());
+                purgePaths.AddRange(scope.CollectPurgePaths(allDocuments));
             }
 
-            var orphanedDocumentIds = inScopeDocumentIds
-                .Where(x => !survivingDocumentIds.Contains(x))
-                .ToArray();
-
-            foreach (var placement in inScopePlacements)
+            foreach (var placement in scope.InScopePlacements)
             {
                 await placementRepository.DeleteAsync(placement.Id, ct);
             }
 
             await publishJobRepository.DeleteBySequenceAsync(application.Id, sequenceNumber, ct);
 
-            foreach (var documentId in orphanedDocumentIds)
+            foreach (var documentId in scope.OrphanedDocumentIds)
             {
                 await documentRepository.DeleteAsync(documentId, ct);
             }
@@ -186,8 +131,8 @@ public sealed class ApplicationDeletionCoordinator(
         var conflict = allPublishJobs
             .Where(x => x.ApplicationId != applicationId)
             .FirstOrDefault(x =>
-                IsPathInsideScope(x.OutputPath, applicationWorkspacePath)
-                || IsPathInsideScope(x.PackagePath, applicationWorkspacePath));
+                WorkspacePathGuard.IsInsideScope(x.OutputPath, applicationWorkspacePath)
+                || WorkspacePathGuard.IsInsideScope(x.PackagePath, applicationWorkspacePath));
 
         if (conflict is not null)
         {
@@ -205,8 +150,8 @@ public sealed class ApplicationDeletionCoordinator(
         var conflict = allPublishJobs
             .Where(x => x.ApplicationId != applicationId || !string.Equals(x.SequenceNumber, sequenceNumber, StringComparison.Ordinal))
             .FirstOrDefault(x =>
-                IsPathInsideScope(x.OutputPath, sequenceWorkspacePath)
-                || IsPathInsideScope(x.PackagePath, sequenceWorkspacePath));
+                WorkspacePathGuard.IsInsideScope(x.OutputPath, sequenceWorkspacePath)
+                || WorkspacePathGuard.IsInsideScope(x.PackagePath, sequenceWorkspacePath));
 
         if (conflict is not null)
         {
@@ -228,7 +173,7 @@ public sealed class ApplicationDeletionCoordinator(
 
         var conflict = allDocuments
             .Where(x => survivingDocumentIds.Contains(x.Id))
-            .FirstOrDefault(x => IsPathInsideScope(x.StoragePath, applicationWorkspacePath));
+            .FirstOrDefault(x => WorkspacePathGuard.IsInsideScope(x.StoragePath, applicationWorkspacePath));
 
         if (conflict is not null)
         {
@@ -247,7 +192,7 @@ public sealed class ApplicationDeletionCoordinator(
 
         var conflict = allDocuments
             .Where(x => survivingDocumentIds.Contains(x.Id))
-            .FirstOrDefault(x => IsPathInsideScope(x.StoragePath, sequenceWorkspacePath));
+            .FirstOrDefault(x => WorkspacePathGuard.IsInsideScope(x.StoragePath, sequenceWorkspacePath));
 
         if (conflict is not null)
         {
@@ -266,10 +211,10 @@ public sealed class ApplicationDeletionCoordinator(
                 "Application workspace path is not fully qualified. Purge workspace is blocked for safety.");
         }
 
-        var root = Path.GetFullPath(applicationWorkspacePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var sequenceWorkspacePath = Path.GetFullPath(Path.Combine(root, sequenceNumber));
+        var root = WorkspacePathGuard.Normalize(applicationWorkspacePath);
+        var sequenceWorkspacePath = WorkspacePathGuard.Normalize(Path.Combine(root, sequenceNumber));
 
-        if (!IsPathInsideScope(sequenceWorkspacePath, root))
+        if (!WorkspacePathGuard.IsInsideScope(sequenceWorkspacePath, root))
         {
             throw new SequenceDeleteConflictException(
                 $"Sequence '{sequenceNumber}' escapes application workspace and cannot be purged safely.");
@@ -284,32 +229,13 @@ public sealed class ApplicationDeletionCoordinator(
         return sequenceWorkspacePath;
     }
 
-    private static bool IsPathInsideScope(string? path, string scopeRoot)
-    {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))
-        {
-            return false;
-        }
-
-        var normalizedRoot = Path.GetFullPath(scopeRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var normalizedPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        if (string.Equals(normalizedPath, normalizedRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var rootPrefix = normalizedRoot + Path.DirectorySeparatorChar;
-        return normalizedPath.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static void PurgeScopedPaths(IReadOnlyCollection<string> candidatePaths, string scopeRoot)
     {
         foreach (var candidatePath in candidatePaths
                      .Distinct(StringComparer.OrdinalIgnoreCase)
                      .OrderByDescending(x => x.Length))
         {
-            if (!IsPathInsideScope(candidatePath, scopeRoot))
+            if (!WorkspacePathGuard.IsInsideScope(candidatePath, scopeRoot))
             {
                 continue;
             }

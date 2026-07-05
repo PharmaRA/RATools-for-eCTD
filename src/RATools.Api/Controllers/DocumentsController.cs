@@ -10,8 +10,14 @@ namespace RATools.Api.Controllers;
 public sealed class DocumentsController(IDocumentService documentService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    public async Task<IActionResult> List([FromQuery] Guid? applicationId, [FromQuery] string? sequenceNumber, CancellationToken cancellationToken)
     {
+        if (applicationId.HasValue)
+        {
+            var scopedItems = await documentService.ListByApplicationAsync(applicationId.Value, sequenceNumber, cancellationToken);
+            return Ok(scopedItems);
+        }
+
         var items = await documentService.ListAsync(cancellationToken);
         return Ok(items);
     }

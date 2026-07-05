@@ -38,7 +38,7 @@ export const useWorkspaceData = ({
   const fetchPlacements = useCallback(async () => {
     setPlacementsError(null)
     try {
-      const res = await apiFetch('/api/document-placements')
+      const res = await apiFetch(`/api/document-placements?applicationId=${encodeURIComponent(appId)}`)
       const list = Array.isArray(res) ? res : (res.items || [])
       const applicationMapped = list.filter((placement: DocumentPlacementRecord) => placement.applicationId === appId)
       const mapped = list.filter((placement: DocumentPlacementRecord) => placement.applicationId === appId && placement.sequenceNumber === seqNumber)
@@ -53,14 +53,14 @@ export const useWorkspaceData = ({
   const fetchDocuments = useCallback(async () => {
     setDocumentsError(null)
     try {
-      const docs = await apiFetch('/api/documents') as DocumentRecord[]
+      const docs = await apiFetch(`/api/documents?applicationId=${encodeURIComponent(appId)}`) as DocumentRecord[]
       const mapped = Object.fromEntries((docs || []).map((doc) => [doc.id, doc]))
       setDocumentsById(mapped)
     } catch (error) {
       const message = getErrorMessage(error)
       setDocumentsError(message)
     }
-  }, [apiFetch])
+  }, [apiFetch, appId])
 
   const fetchEctdStructure = useCallback(async () => {
     setTreeLoading(true)

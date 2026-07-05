@@ -3,6 +3,7 @@ using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
 using RATools.Application.Validation;
+using RATools.Application.Workspaces;
 using RATools.Domain.Documents;
 
 namespace RATools.Application.Documents;
@@ -135,20 +136,16 @@ public sealed class DocumentPlacementService(
             throw new InvalidOperationException($"Document {document.Id} does not have a valid fully qualified storage path configured.");
         }
 
-        var fullStoragePath = Path.GetFullPath(document.StoragePath);
-        var workspaceRoot = Path.GetFullPath(application.WorkingDirectoryPath)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var workspacePrefix = workspaceRoot + Path.DirectorySeparatorChar;
+        var fullStoragePath = WorkspacePathGuard.Normalize(document.StoragePath);
+        var workspaceRoot = WorkspacePathGuard.Normalize(application.WorkingDirectoryPath);
 
-        if (!fullStoragePath.StartsWith(workspacePrefix, StringComparison.OrdinalIgnoreCase))
+        if (!WorkspacePathGuard.IsInsideScope(fullStoragePath, workspaceRoot))
         {
             throw new InvalidOperationException($"Document {document.Id} storage path is outside the application workspace.");
         }
 
-        var expectedSequenceRoot = Path.Combine(workspaceRoot, sequenceNumber)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
-
-        if (!fullStoragePath.StartsWith(expectedSequenceRoot, StringComparison.OrdinalIgnoreCase))
+        var expectedSequenceRoot = WorkspacePathGuard.Normalize(Path.Combine(workspaceRoot, sequenceNumber));
+        if (!WorkspacePathGuard.IsInsideScope(fullStoragePath, expectedSequenceRoot))
         {
             throw new InvalidOperationException($"Document {document.Id} storage path must remain under sequence {sequenceNumber}.");
         }
@@ -351,78 +348,19 @@ public sealed class DocumentPlacementService(
     {
         try
         {
-            var sequenceRoot = NormalizePath(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber));
-            var directoriesToPrune = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sequenceRoot = WorkspacePathGuard.Normalize(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber));
+            var sourceDirectory = Path.GetDirectoryName(WorkspacePathGuard.Normalize(sourceFilePath));
+            var canonicalSourceDirectory = string.IsNullOrWhiteSpace(oldRelativeFolderPath)
+                ? null
+                : Path.Combine(sequenceRoot, oldRelativeFolderPath);
 
-            var sourceDirectory = Path.GetDirectoryName(NormalizePath(sourceFilePath));
-            if (!string.IsNullOrWhiteSpace(sourceDirectory))
-            {
-                directoriesToPrune.Add(NormalizePath(sourceDirectory));
-            }
-
-            if (!string.IsNullOrWhiteSpace(oldRelativeFolderPath))
-            {
-                var canonicalSourceDirectory = NormalizePath(Path.Combine(sequenceRoot, oldRelativeFolderPath));
-                if (!string.Equals(canonicalSourceDirectory, sequenceRoot, StringComparison.OrdinalIgnoreCase)
-                    && IsPathInsideScope(canonicalSourceDirectory, sequenceRoot))
-                {
-                    directoriesToPrune.Add(canonicalSourceDirectory);
-                }
-            }
-
-            foreach (var directory in directoriesToPrune.OrderByDescending(x => x.Length))
-            {
-                TryDeleteEmptyFolderBranch(directory, sequenceRoot);
-            }
+            EmptyWorkspaceFolderPruner.TryPruneBranches([sourceDirectory, canonicalSourceDirectory], sequenceRoot);
         }
         catch
         {
             // Best-effort cleanup: section reassignment succeeds even if empty-folder pruning is blocked.
         }
     }
-
-    private static void TryDeleteEmptyFolderBranch(string startDirectory, string sequenceRoot)
-    {
-        var currentDirectory = startDirectory;
-
-        while (!string.IsNullOrWhiteSpace(currentDirectory))
-        {
-            var normalizedCurrentDirectory = NormalizePath(currentDirectory);
-            if (!IsPathInsideScope(normalizedCurrentDirectory, sequenceRoot)
-                || string.Equals(normalizedCurrentDirectory, sequenceRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                break;
-            }
-
-            if (!Directory.Exists(normalizedCurrentDirectory))
-            {
-                currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
-                continue;
-            }
-
-            if (Directory.EnumerateFileSystemEntries(normalizedCurrentDirectory).Any())
-            {
-                break;
-            }
-
-            Directory.Delete(normalizedCurrentDirectory, false);
-            currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
-        }
-    }
-
-    private static bool IsPathInsideScope(string path, string scopeRoot)
-    {
-        if (string.Equals(path, scopeRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var prefix = scopeRoot + Path.DirectorySeparatorChar;
-        return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string NormalizePath(string path)
-        => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
     public async Task<IReadOnlyCollection<DocumentPlacementDto>> ListAsync(CancellationToken cancellationToken = default)
     {

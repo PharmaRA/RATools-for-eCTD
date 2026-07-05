@@ -15,5 +15,10 @@ public interface IDocumentService
 
     Task<IReadOnlyCollection<DocumentDto>> ListAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<DocumentDto>> ListByApplicationAsync(
+        Guid applicationId,
+        string? sequenceNumber,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

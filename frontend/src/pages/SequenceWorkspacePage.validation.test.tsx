@@ -139,9 +139,13 @@ const clickLocateButton = (container: Element | null, index = 0) => {
   })
 }
 
+const isDocumentPlacementsQuery = (url: string) => url === '/api/document-placements' || url.startsWith('/api/document-placements?')
+
+const isDocumentsQuery = (url: string) => url === '/api/documents' || url.startsWith('/api/documents?')
+
 const stubWorkspaceFetch = () => {
   vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-    if (url === '/api/document-placements') {
+    if (isDocumentPlacementsQuery(url)) {
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
         {
           id: 'placement-1',
@@ -155,7 +159,7 @@ const stubWorkspaceFetch = () => {
       ]) })
     }
 
-    if (url === '/api/documents') {
+    if (isDocumentsQuery(url)) {
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
         {
           id: 'document-1',
@@ -307,11 +311,11 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
   it('renders visible workspace data load errors', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/document-placements') {
+      if (isDocumentPlacementsQuery(url)) {
         return Promise.reject(new Error('placements unavailable'))
       }
 
-      if (url === '/api/documents') {
+      if (isDocumentsQuery(url)) {
         return Promise.reject(new Error('documents unavailable'))
       }
 
@@ -383,11 +387,11 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
       }
 
-      if (url === '/api/document-placements') {
+      if (isDocumentPlacementsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
       }
 
-      if (url === '/api/documents') {
+      if (isDocumentsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
       }
 
@@ -1425,7 +1429,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('locates a lifecycle row document by document id and section when duplicate placements exist', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/document-placements') {
+      if (isDocumentPlacementsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'placement-1',
@@ -1448,7 +1452,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         ]) })
       }
 
-      if (url === '/api/documents') {
+      if (isDocumentsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'document-1',
@@ -1538,7 +1542,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('replaces the reserved section placeholder with a leaf metadata guide', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/document-placements') {
+      if (isDocumentPlacementsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'target-placement-1',
@@ -1561,7 +1565,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         ]) })
       }
 
-      if (url === '/api/documents') {
+      if (isDocumentsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'target-document-1',
@@ -1622,7 +1626,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('shows editable leaf metadata and preview for a selected mapped document', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/document-placements') {
+      if (isDocumentPlacementsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'target-placement-1',
@@ -1645,7 +1649,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         ]) })
       }
 
-      if (url === '/api/documents') {
+      if (isDocumentsQuery(url)) {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
           {
             id: 'target-document-1',

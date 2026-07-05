@@ -4,7 +4,7 @@ using RATools.Domain.Documents;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
-public sealed class EfCoreDocumentRepository(RAToolsDbContext dbContext) : IDocumentRepository
+public sealed class EfCoreDocumentRepository(RAToolsDbContext dbContext) : IDocumentRepository, IDocumentLookupRepository
 {
     public async Task AddAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
     {
@@ -55,6 +55,24 @@ public sealed class EfCoreDocumentRepository(RAToolsDbContext dbContext) : IDocu
     {
         var records = await dbContext.Documents
             .AsNoTracking()
+            .OrderBy(x => x.CreatedUtc)
+            .ToArrayAsync(cancellationToken);
+
+        return records.Select(x => x.ToDomain()).ToArray();
+    }
+
+    public async Task<IReadOnlyCollection<SubmissionDocument>> ListByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var records = await dbContext.Documents
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
             .OrderBy(x => x.CreatedUtc)
             .ToArrayAsync(cancellationToken);
 

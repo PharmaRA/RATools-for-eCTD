@@ -4,7 +4,7 @@ using RATools.Domain.Documents;
 
 namespace RATools.Infrastructure.Persistence.InMemory;
 
-public sealed class InMemoryDocumentRepository : IDocumentRepository
+public sealed class InMemoryDocumentRepository : IDocumentRepository, IDocumentLookupRepository
 {
     private readonly ConcurrentDictionary<Guid, SubmissionDocument> _items = new();
 
@@ -40,6 +40,19 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     public Task<IReadOnlyCollection<SubmissionDocument>> ListAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<SubmissionDocument> items = _items.Values
+            .OrderBy(x => x.CreatedUtc)
+            .ToArray();
+
+        return Task.FromResult(items);
+    }
+
+    public Task<IReadOnlyCollection<SubmissionDocument>> ListByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idSet = ids.ToHashSet();
+        IReadOnlyCollection<SubmissionDocument> items = _items.Values
+            .Where(x => idSet.Contains(x.Id))
             .OrderBy(x => x.CreatedUtc)
             .ToArray();
 

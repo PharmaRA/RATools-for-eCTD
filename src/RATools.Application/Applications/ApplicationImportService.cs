@@ -6,6 +6,7 @@ using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Documents;
+using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 
@@ -43,6 +44,7 @@ public sealed class ApplicationImportService(
         var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
         var importedPlacements = new List<DocumentPlacement>();
         var importedPlacementByHref = new Dictionary<string, DocumentPlacement>(StringComparer.Ordinal);
+        var fileHashes = new ImportFileHashCache();
 
         string[] sequenceDirectories;
         try
@@ -70,7 +72,7 @@ public sealed class ApplicationImportService(
                 continue;
             }
 
-            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, importedDocuments, importedPlacements, importedPlacementByHref, cancellationToken);
+            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedPlacementByHref, cancellationToken);
             if (parsed is not null)
             {
                 application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
@@ -134,6 +136,7 @@ public sealed class ApplicationImportService(
         string sequenceNumber,
         string indexXmlPath,
         IWorkspacePathPolicy workspacePathPolicy,
+        ImportFileHashCache fileHashes,
         Dictionary<string, SubmissionDocument> importedDocuments,
         List<DocumentPlacement> importedPlacements,
         Dictionary<string, DocumentPlacement> importedPlacementByHref,
@@ -156,7 +159,7 @@ public sealed class ApplicationImportService(
                 }
 
                 var resolvedPath = Path.GetFullPath(Path.Combine(sequenceRoot, href.Replace('/', Path.DirectorySeparatorChar)));
-                if (!IsPathInsideScope(resolvedPath, sequenceRoot))
+                if (!WorkspacePathGuard.IsInsideScope(resolvedPath, sequenceRoot))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_OUTSIDE_WORKSPACE", sequenceNumber, $"File '{href}' resolves outside the sequence workspace."));
                     return new SequenceImportResult(issues);
@@ -172,9 +175,9 @@ public sealed class ApplicationImportService(
                     return new SequenceImportResult(issues);
                 }
 
-                var checksum = leaf.Attribute("checksum")?.Value ?? ComputeMd5(resolvedPath);
-                var actualChecksum = ComputeMd5(resolvedPath);
-                if (!string.Equals(checksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                var hashes = await fileHashes.GetAsync(resolvedPath, cancellationToken);
+                var checksum = leaf.Attribute("checksum")?.Value ?? hashes.Md5;
+                if (!string.Equals(checksum, hashes.Md5, StringComparison.OrdinalIgnoreCase))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_CHECKSUM_MISMATCH", sequenceNumber, $"File '{href}' checksum does not match index.xml."));
                     return new SequenceImportResult(issues);
@@ -186,8 +189,8 @@ public sealed class ApplicationImportService(
                         Path.GetFileName(resolvedPath),
                         GuessMediaType(resolvedPath),
                         new FileInfo(resolvedPath).Length,
-                        ComputeSha256(resolvedPath),
-                        actualChecksum,
+                        hashes.Sha256,
+                        hashes.Md5,
                         resolvedPath);
 
                     importedDocuments[resolvedPath] = document;
@@ -248,18 +251,6 @@ public sealed class ApplicationImportService(
     }
 
     private static bool IsSequenceDirectory(string name) => name.Length == 4 && name.All(char.IsDigit);
-
-    private static bool IsPathInsideScope(string path, string scopeRoot)
-    {
-        var normalizedPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var normalizedScopeRoot = Path.GetFullPath(scopeRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (string.Equals(normalizedPath, normalizedScopeRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return normalizedPath.StartsWith(normalizedScopeRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-    }
 
     private static string ExtractSectionPath(string elementName)
     {
@@ -332,20 +323,6 @@ public sealed class ApplicationImportService(
         }
 
         return string.Compare(left, right, StringComparison.Ordinal);
-    }
-
-    private static string ComputeMd5(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
-    }
-
-    private static string ComputeSha256(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
     }
 
     private static string GuessMediaType(string path)

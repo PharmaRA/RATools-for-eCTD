@@ -84,9 +84,14 @@ public sealed class SequenceValidationService(
             }
         }
 
-        var documents = await documentRepository.ListAsync(cancellationToken);
-        var referencedDocumentIds = placements.Select(x => x.DocumentId).ToHashSet();
-        var referencedDocuments = documents.Where(x => referencedDocumentIds.Contains(x.Id)).ToArray();
+        var currentSequenceDocumentIds = placements.Select(x => x.DocumentId).ToHashSet();
+        var referencedDocumentIds = applicationPlacements
+            .Select(x => x.DocumentId)
+            .Concat(currentSequenceDocumentIds)
+            .Distinct()
+            .ToArray();
+        var documents = await documentRepository.ListByIdsPreferScopedAsync(referencedDocumentIds, cancellationToken);
+        var referencedDocuments = documents.Where(x => currentSequenceDocumentIds.Contains(x.Id)).ToArray();
 
         var duplicatePublishedPaths = referencedDocuments
             .GroupBy(document => PublishOutputNaming.BuildPublishedDocumentRelativePath(document, request.SequenceNumber), StringComparer.OrdinalIgnoreCase)

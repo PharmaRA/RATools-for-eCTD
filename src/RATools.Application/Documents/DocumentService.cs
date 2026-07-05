@@ -4,6 +4,7 @@ using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
 using RATools.Application.Validation;
+using RATools.Application.Workspaces;
 using RATools.Domain.Documents;
 
 namespace RATools.Application.Documents;
@@ -124,6 +125,29 @@ public sealed class DocumentService(
         return documents.Select(x => x.ToDto()).ToArray();
     }
 
+    public async Task<IReadOnlyCollection<DocumentDto>> ListByApplicationAsync(
+        Guid applicationId,
+        string? sequenceNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var placements = string.IsNullOrWhiteSpace(sequenceNumber)
+            ? await placementRepository.ListByApplicationAsync(applicationId, cancellationToken)
+            : await placementRepository.ListBySequenceAsync(applicationId, sequenceNumber.Trim(), cancellationToken);
+        var documentIds = placements
+            .Select(x => x.DocumentId)
+            .Distinct()
+            .ToArray();
+        var documents = await repository.ListByIdsPreferScopedAsync(documentIds, cancellationToken);
+        var documentById = documents
+            .GroupBy(x => x.Id)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        return documentIds
+            .Where(documentById.ContainsKey)
+            .Select(id => documentById[id].ToDto())
+            .ToArray();
+    }
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var document = await repository.GetAsync(id, cancellationToken);
@@ -170,27 +194,8 @@ public sealed class DocumentService(
                 return;
             }
 
-            var normalizedSequenceRoot = NormalizePath(sequenceRoot);
             var currentDirectory = Path.GetDirectoryName(Path.GetFullPath(deletedFilePath));
-
-            while (!string.IsNullOrWhiteSpace(currentDirectory))
-            {
-                var normalizedCurrentDirectory = NormalizePath(currentDirectory);
-                if (!IsPathInsideScope(normalizedCurrentDirectory, normalizedSequenceRoot)
-                    || string.Equals(normalizedCurrentDirectory, normalizedSequenceRoot, StringComparison.OrdinalIgnoreCase))
-                {
-                    break;
-                }
-
-                if (!Directory.Exists(normalizedCurrentDirectory)
-                    || Directory.EnumerateFileSystemEntries(normalizedCurrentDirectory).Any())
-                {
-                    break;
-                }
-
-                Directory.Delete(normalizedCurrentDirectory, false);
-                currentDirectory = Path.GetDirectoryName(normalizedCurrentDirectory);
-            }
+            EmptyWorkspaceFolderPruner.TryPruneBranches([currentDirectory], sequenceRoot);
         }
         catch
         {
@@ -205,7 +210,7 @@ public sealed class DocumentService(
             return null;
         }
 
-        var normalizedFilePath = NormalizePath(filePath);
+        var normalizedFilePath = WorkspacePathGuard.Normalize(filePath);
         var applications = await applicationRepository.ListAsync(cancellationToken);
 
         foreach (var application in applications)
@@ -215,11 +220,11 @@ public sealed class DocumentService(
                 continue;
             }
 
-            var applicationRoot = NormalizePath(application.WorkingDirectoryPath);
+            var applicationRoot = WorkspacePathGuard.Normalize(application.WorkingDirectoryPath);
             foreach (var sequence in application.Sequences)
             {
-                var sequenceRoot = NormalizePath(Path.Combine(applicationRoot, sequence.SequenceNumber));
-                if (IsPathInsideScope(normalizedFilePath, sequenceRoot))
+                var sequenceRoot = WorkspacePathGuard.Normalize(Path.Combine(applicationRoot, sequence.SequenceNumber));
+                if (WorkspacePathGuard.IsInsideScope(normalizedFilePath, sequenceRoot))
                 {
                     return sequenceRoot;
                 }
@@ -228,20 +233,6 @@ public sealed class DocumentService(
 
         return null;
     }
-
-    private static bool IsPathInsideScope(string path, string scopeRoot)
-    {
-        if (string.Equals(path, scopeRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var rootPrefix = scopeRoot + Path.DirectorySeparatorChar;
-        return path.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string NormalizePath(string path)
-        => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 }
 
 public sealed class DocumentSequenceUploadTargetNotFoundException(string message) : Exception(message);

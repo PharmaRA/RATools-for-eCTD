@@ -73,13 +73,13 @@ describe('useWorkspaceData', () => {
   it('loads placements, documents, structure, and derived tree data', async () => {
     const apiFetch = vi.fn()
       .mockImplementation((url: string) => {
-        if (url === '/api/document-placements') {
+        if (url === '/api/document-placements?applicationId=app-1') {
           return Promise.resolve([
             { id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New' },
           ])
         }
 
-        if (url === '/api/documents') {
+        if (url === '/api/documents?applicationId=app-1') {
           return Promise.resolve([
             { id: 'doc-1', fileName: 'cover.pdf', storagePath: '/tmp/cover.pdf' },
           ])
@@ -110,11 +110,11 @@ describe('useWorkspaceData', () => {
   it('stores visible placement and document load errors', async () => {
     const apiFetch = vi.fn()
       .mockImplementation((url: string) => {
-        if (url === '/api/document-placements') {
+        if (url === '/api/document-placements?applicationId=app-1') {
           return Promise.reject(new Error('placements unavailable'))
         }
 
-        if (url === '/api/documents') {
+        if (url === '/api/documents?applicationId=app-1') {
           return Promise.reject(new Error('documents unavailable'))
         }
 

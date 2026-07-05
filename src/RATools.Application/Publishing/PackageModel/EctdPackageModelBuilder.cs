@@ -57,7 +57,8 @@ public sealed class EctdPackageModelBuilder(
 
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
         var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
-        var documents = await documentRepository.ListAsync(cancellationToken);
+        var documentIds = applicationPlacements.Select(x => x.DocumentId).Distinct().ToArray();
+        var documents = await documentRepository.ListByIdsPreferScopedAsync(documentIds, cancellationToken);
         var documentById = documents.ToDictionary(x => x.Id, x => x);
         var placementById = applicationPlacements.ToDictionary(x => x.Id, x => x);
         var leaves = BuildLeaves(request.ApplicationId, request.SequenceNumber, placements, placementById, documentById);
