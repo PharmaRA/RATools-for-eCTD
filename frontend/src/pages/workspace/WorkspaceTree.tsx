@@ -3,7 +3,7 @@ import { CheckCircle, FileText, FolderOpen } from 'lucide-react'
 
 import { ectdAllowedExtensionsHint } from '../../ectdFileTypes'
 import { findWorkspaceTreeNode, type WorkspaceTreeNode } from '../../workspaceTree'
-import { getSectionAncestorKeys } from '../appShared'
+import { addSectionExpansionKeys } from '../appShared'
 import type { UseWorkspaceDragDropResult } from './useWorkspaceDragDrop'
 
 type WorkspaceTreeProps = {
@@ -55,7 +55,7 @@ export const WorkspaceTree = ({
           }
 
           onSelectNode(resolvedSelectedNode)
-          setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(resolvedSelectedNode.sectionPath)])))
+          setExpandedKeys((current) => addSectionExpansionKeys(current, resolvedSelectedNode.sectionPath))
         }}
         titleRender={(nodeData: WorkspaceTreeNode) => {
           const isSelected = selectedTreeKey === nodeData.key

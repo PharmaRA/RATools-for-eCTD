@@ -3,101 +3,27 @@ import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, Tag, mes
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../../apiClient'
+import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
+import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import { formatBytes } from '../../pages/appShared'
+import {
+  buildPackageReviewExport,
+  type IntegrityFinding,
+  type PackageReviewArtifact,
+  type PackageReviewChecklistRow,
+  type PackageReviewReport,
+  type PublishReadiness,
+} from './packageReviewExport'
 
 type PackageReviewPanelProps = {
   jobId: string | null
   onClose: () => void
 }
 
-type Artifact = {
-  name: string
-  exists?: boolean
-  sizeBytes?: number
-  contentType?: string
-  type?: string
-}
-
-type ChecklistRow = {
-  key: string
-  check: string
-  pass: boolean
-  detail: string
-}
-
-type ChecklistExportRow = {
-  key: string
-  check: string
-  status: 'Pass' | 'Fail'
-  detail: string
-}
-
-type ReviewExportError = {
-  message: string
-  status?: number
-}
-
-type PublishReadiness = {
-  isReady?: boolean
-  status?: string
-  blockingErrorCount?: number
-  warningCount?: number
-  missingMetadataFields?: string[]
-  categorySummaries?: Array<{
-    category: string
-    blockingErrorCount: number
-    warningCount: number
-    findingCount: number
-  }>
-  findings?: Array<{
-    severity: string
-    code: string
-    category: string
-    fieldName?: string | null
-    recommendedAction: string
-  }>
-}
-
-type ValidationLifecycleMatch = {
-  resultCode: string
-}
-
-type IntegrityFinding = {
-  severity: string
-  type: string
-  path?: string | null
-  message: string
-}
-
-type PackageReviewReport = {
-  succeeded?: boolean
-  message?: string
-  sequenceNumber?: string | null
-  validationProfile?: string | null
-  errorCount?: number | null
-  warningCount?: number | null
-  publishJob?: {
-    status?: string | null
-  }
-  validationReport?: {
-    lifecycleMatches?: ValidationLifecycleMatch[]
-  }
-  integritySummary?: {
-    isConsistent?: boolean
-    missingFilesCount?: number | null
-    missingZipEntriesCount?: number | null
-    mismatchedArtifactsCount?: number | null
-  }
-  integrityEvidence?: {
-    findings?: IntegrityFinding[]
-  }
-  publishReadiness?: PublishReadiness | null
-}
-
 const REQUIRED_ARTIFACTS = ['BackboneXml', 'PublishReport', 'PackageZip']
 
-const isArtifact = (value: unknown): value is Artifact => {
-  return !!value && typeof value === 'object' && typeof (value as Artifact).name === 'string'
+const isArtifact = (value: unknown): value is PackageReviewArtifact => {
+  return !!value && typeof value === 'object' && typeof (value as PackageReviewArtifact).name === 'string'
 }
 
 const toArtifactArray = (value: unknown) => Array.isArray(value) ? value.filter(isArtifact) : []
@@ -132,8 +58,6 @@ const getReviewErrorTitle = (error: Error) => {
 
 const getErrorMessage = (error: Error | null) => error?.message || ''
 
-const hasArtifact = (artifacts: Artifact[], name: string) => artifacts.some((artifact) => artifact.name === name && artifact.exists === true)
-
 const downloadJson = (filename: string, value: unknown) => {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -146,18 +70,10 @@ const downloadJson = (filename: string, value: unknown) => {
   URL.revokeObjectURL(url)
 }
 
-const buildErrorExport = (error: Error | null): ReviewExportError | undefined => {
-  if (!error) return undefined
-
-  return error instanceof ApiRequestError
-    ? { message: error.message, status: error.status }
-    : { message: error.message }
-}
-
 export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) => {
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState<PackageReviewReport | null>(null)
-  const [artifacts, setArtifacts] = useState<Artifact[]>([])
+  const [artifacts, setArtifacts] = useState<PackageReviewArtifact[]>([])
   const [artifactsLoaded, setArtifactsLoaded] = useState(false)
   const [reportError, setReportError] = useState<Error | null>(null)
   const [artifactsError, setArtifactsError] = useState<Error | null>(null)
@@ -215,12 +131,14 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
   const reportLoaded = !reportError && !!report
   const lifecycleMatches = report?.validationReport?.lifecycleMatches || []
-  const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
-  const presentArtifactCount = REQUIRED_ARTIFACTS.filter((name) => hasArtifact(artifacts, name)).length
-  const packageZipExists = hasArtifact(artifacts, 'PackageZip')
-  const publishReportExists = hasArtifact(artifacts, 'PublishReport')
+  const lifecycleSummary = summarizeLifecycleMatches(lifecycleMatches)
+  const lifecycleIssueCount = lifecycleSummary.issueCount
+  const requiredArtifactSummary = summarizeRequiredArtifacts(artifacts, REQUIRED_ARTIFACTS)
+  const presentArtifactCount = requiredArtifactSummary.presentCount
+  const packageZipExists = requiredArtifactSummary.existsByName.PackageZip
+  const publishReportExists = requiredArtifactSummary.existsByName.PublishReport
 
-  const checklistRows: ChecklistRow[] = [
+  const checklistRows: PackageReviewChecklistRow[] = [
     {
       key: 'publish-succeeded',
       check: 'Publish succeeded',
@@ -255,7 +173,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
   const readyForSubmission = checklistRows.every((row) => row.pass)
   const findings: IntegrityFinding[] = reportLoaded ? report?.integrityEvidence?.findings || [] : []
-  const requiredArtifactRows = REQUIRED_ARTIFACTS.map((name) => artifacts.find((artifact) => artifact.name === name) || { name, exists: false })
+  const requiredArtifactRows = requiredArtifactSummary.rows
   const reviewLoading = loading || (!!jobId && !report && !reportError && artifacts.length === 0 && !artifactsError)
   const riskSummaryItems = [
     { key: 'validation-errors', label: 'Validation Errors', children: report?.errorCount ?? '-' },
@@ -266,12 +184,6 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: report?.integritySummary?.mismatchedArtifactsCount ?? '-' },
   ]
   const reviewExportAvailable = reportLoaded || artifactsLoaded
-  const checklistExportRows: ChecklistExportRow[] = checklistRows.map((row) => ({
-    key: row.key,
-    check: row.check,
-    status: row.pass ? 'Pass' : 'Fail',
-    detail: row.detail,
-  }))
   const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
 
   const renderError = (error: Error | null) => error && (
@@ -287,53 +199,21 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
     if (!jobId || !reviewExportAvailable) return
 
     try {
-      const sequenceNumber = report?.sequenceNumber ?? null
-      const errors = {
-        report: buildErrorExport(reportError),
-        artifacts: buildErrorExport(artifactsError),
-      }
-      const exportObject = {
-        reportVersion: 'package-review-export-v1',
+      const exportReview = buildPackageReviewExport({
+        jobId,
         generatedAtUtc: new Date().toISOString(),
-        publishJobId: jobId,
-        sequenceNumber,
-        validationProfile: report?.validationProfile ?? null,
-        verdict: readyForSubmission ? 'ReadyForSubmission' : 'NotReadyForSubmission',
-        checklist: checklistExportRows,
-        riskSummary: {
-          validationErrors: report?.errorCount ?? null,
-          warnings: report?.warningCount ?? null,
-          lifecycleIssues: reportLoaded ? lifecycleIssueCount : null,
-          missingFiles: report?.integritySummary?.missingFilesCount ?? null,
-          missingZipEntries: report?.integritySummary?.missingZipEntriesCount ?? null,
-          mismatchedArtifacts: report?.integritySummary?.mismatchedArtifactsCount ?? null,
-        },
-        publishReadiness: publishReadiness ? {
-          isReady: publishReadiness.isReady ?? null,
-          status: publishReadiness.status ?? null,
-          blockingErrorCount: publishReadiness.blockingErrorCount ?? null,
-          warningCount: publishReadiness.warningCount ?? null,
-          missingMetadataFields: publishReadiness.missingMetadataFields || [],
-          categorySummaries: publishReadiness.categorySummaries || [],
-          findings: (publishReadiness.findings || []).map((finding) => ({
-            severity: finding.severity,
-            code: finding.code,
-            category: finding.category,
-            fieldName: finding.fieldName ?? null,
-            recommendedAction: finding.recommendedAction,
-          })),
-        } : null,
-        requiredArtifacts: requiredArtifactRows.map((artifact) => ({
-          name: artifact.name,
-          exists: artifact.exists === true,
-          sizeBytes: artifact.sizeBytes,
-          contentType: artifact.contentType,
-        })),
+        report,
+        reportLoaded,
+        readyForSubmission,
+        lifecycleIssueCount,
+        reportError,
+        artifactsError,
+        checklistRows,
+        requiredArtifactRows,
         integrityFindings: findings,
-        ...(errors.report || errors.artifacts ? { errors } : {}),
-      }
+      })
 
-      downloadJson(`package-review-${sequenceNumber || 'unknown'}-${jobId}.json`, exportObject)
+      downloadJson(exportReview.filename, exportReview.value)
     } catch {
       message.error('Failed to export package review.')
     }

@@ -31,6 +31,26 @@ export type BatchDeleteSummary = {
   results: BatchDeleteItemResult[];
 };
 
+export const getFailedBatchDeleteResults = (summary: BatchDeleteSummary | null | undefined) => {
+  return (summary?.results || []).filter((result) => result.outcome.kind === 'error');
+};
+
+export const buildApplicationBatchDeleteItems = (appIds: string[]): BatchDeleteItem[] => {
+  return appIds.map((appId) => ({
+    key: appId,
+    label: appId,
+    url: `/api/applications/${appId}`,
+  }));
+};
+
+export const buildSequenceBatchDeleteItems = (appId: string, sequenceNumbers: string[]): BatchDeleteItem[] => {
+  return sequenceNumbers.map((sequenceNumber) => ({
+    key: sequenceNumber,
+    label: sequenceNumber,
+    url: `/api/applications/${appId}/sequences/${sequenceNumber}`,
+  }));
+};
+
 const labels: Record<DeleteEntity, string> = {
   application: 'Application',
   sequence: 'Sequence',

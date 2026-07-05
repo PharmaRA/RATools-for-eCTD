@@ -3,11 +3,12 @@ import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space
 import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../apiClient'
-import { performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
+import { buildApplicationBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
-import { mapImportErrorToMessage, type ImportApplicationResult } from '../importActions'
+import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
 import { type Application, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
+import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
   const [loading, setLoading] = useState(false)
@@ -70,10 +71,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
 
   useEffect(() => {
     const validAppIds = new Set(apps.map((app) => app.id))
-    setSelectedAppKeys((current) => {
-      const next = current.filter((key) => validAppIds.has(key))
-      return next.length === current.length ? current : next
-    })
+    setSelectedAppKeys((current) => keepKnownSelectionKeys(current, validAppIds))
   }, [apps])
 
   const defaultTemplateKey = getDefaultEctdTemplateKey(ectdTemplates)
@@ -179,11 +177,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
 
     try {
       const mode = appBatchDeleteDialog.mode
-      const items = selectedAppKeys.map((appId) => ({
-        key: appId,
-        label: appId,
-        url: `/api/applications/${appId}`,
-      }))
+      const items = buildApplicationBatchDeleteItems(selectedAppKeys)
       const summary = await performBatchDelete('application', mode, items)
 
       setAppBatchSummary(summary)
@@ -202,15 +196,15 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
     await fetchApps()
   }
 
-  const failedAppBatchResults = (appBatchSummary?.results || []).filter((result) => result.outcome.kind === 'error')
+  const failedAppBatchResults = getFailedBatchDeleteResults(appBatchSummary)
   const hasSingleAppDeleteRunning = deletingAppIds.size > 0
   const canStartAppBatchDelete = selectedAppKeys.length > 0 && !appBatchDeleteDialog.running && !hasSingleAppDeleteRunning
   const importIssues = importResult?.issues || []
-  const lifecycleTargetIssueCodes = new Set(['LIFECYCLE_TARGET_MISSING', 'LIFECYCLE_TARGET_NOT_IMPORTED'])
-  const importLifecycleIssues = importIssues.filter((issue) => lifecycleTargetIssueCodes.has(issue.code))
-  const importOtherIssues = importIssues.filter((issue) => !lifecycleTargetIssueCodes.has(issue.code))
-  const importWarningCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'warning').length
-  const importErrorCount = importIssues.filter((issue) => String(issue.severity).toLowerCase() === 'error').length
+  const importIssueSummary = summarizeImportIssues(importIssues)
+  const importLifecycleIssues = importIssueSummary.lifecycleIssues
+  const importOtherIssues = importIssueSummary.otherIssues
+  const importWarningCount = importIssueSummary.warningCount
+  const importErrorCount = importIssueSummary.errorCount
 
   const columns: TableColumnsType<Application> = [
     { title: 'App Number', dataIndex: 'applicationNumber', render: (t: string) => <b>{t}</b> },

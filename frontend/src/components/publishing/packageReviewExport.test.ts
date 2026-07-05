@@ -1,0 +1,126 @@
+import { describe, expect, it } from 'vitest'
+
+import { ApiRequestError } from '../../apiClient'
+import { buildPackageReviewExport } from './packageReviewExport'
+
+describe('packageReviewExport', () => {
+  it('builds the review export payload and filename from loaded review data', () => {
+    const integrityFinding = {
+      severity: 'Error',
+      type: 'MissingFile',
+      path: 'm1/us/file.pdf',
+      message: 'File is missing',
+    }
+
+    const result = buildPackageReviewExport({
+      jobId: 'job-42',
+      generatedAtUtc: '2026-07-05T04:00:00.000Z',
+      reportLoaded: true,
+      readyForSubmission: false,
+      lifecycleIssueCount: 3,
+      reportError: new ApiRequestError(410, 'Report expired'),
+      artifactsError: new Error('Artifacts unavailable'),
+      checklistRows: [
+        { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
+        { key: 'validation-errors', check: 'Validation errors', pass: false, detail: '2 error(s)' },
+      ],
+      report: {
+        sequenceNumber: '0007',
+        validationProfile: 'FDA',
+        errorCount: 2,
+        warningCount: 1,
+        integritySummary: {
+          missingFilesCount: 4,
+          missingZipEntriesCount: 5,
+          mismatchedArtifactsCount: 6,
+        },
+        publishReadiness: {
+          isReady: false,
+          status: 'Blocked',
+          blockingErrorCount: 2,
+          warningCount: 1,
+          missingMetadataFields: ['applicationNumber'],
+          categorySummaries: [{ category: 'metadata', blockingErrorCount: 2, warningCount: 1, findingCount: 3 }],
+          findings: [{
+            severity: 'Error',
+            code: 'MISSING_METADATA',
+            category: 'metadata',
+            recommendedAction: 'Complete metadata',
+          }],
+        },
+      },
+      requiredArtifactRows: [
+        { name: 'BackboneXml', exists: true, sizeBytes: 123, contentType: 'application/xml' },
+        { name: 'PackageZip', exists: false },
+      ],
+      integrityFindings: [integrityFinding],
+    })
+
+    expect(result.filename).toBe('package-review-0007-job-42.json')
+    expect(result.value).toEqual({
+      reportVersion: 'package-review-export-v1',
+      generatedAtUtc: '2026-07-05T04:00:00.000Z',
+      publishJobId: 'job-42',
+      sequenceNumber: '0007',
+      validationProfile: 'FDA',
+      verdict: 'NotReadyForSubmission',
+      checklist: [
+        { key: 'publish-succeeded', check: 'Publish succeeded', status: 'Pass', detail: 'Published' },
+        { key: 'validation-errors', check: 'Validation errors', status: 'Fail', detail: '2 error(s)' },
+      ],
+      riskSummary: {
+        validationErrors: 2,
+        warnings: 1,
+        lifecycleIssues: 3,
+        missingFiles: 4,
+        missingZipEntries: 5,
+        mismatchedArtifacts: 6,
+      },
+      publishReadiness: {
+        isReady: false,
+        status: 'Blocked',
+        blockingErrorCount: 2,
+        warningCount: 1,
+        missingMetadataFields: ['applicationNumber'],
+        categorySummaries: [{ category: 'metadata', blockingErrorCount: 2, warningCount: 1, findingCount: 3 }],
+        findings: [{
+          severity: 'Error',
+          code: 'MISSING_METADATA',
+          category: 'metadata',
+          fieldName: null,
+          recommendedAction: 'Complete metadata',
+        }],
+      },
+      requiredArtifacts: [
+        { name: 'BackboneXml', exists: true, sizeBytes: 123, contentType: 'application/xml' },
+        { name: 'PackageZip', exists: false, sizeBytes: undefined, contentType: undefined },
+      ],
+      integrityFindings: [integrityFinding],
+      errors: {
+        report: { message: 'Report expired', status: 410 },
+        artifacts: { message: 'Artifacts unavailable' },
+      },
+    })
+  })
+
+  it('omits errors and uses the unknown sequence filename when review data is partial', () => {
+    const result = buildPackageReviewExport({
+      jobId: 'job-99',
+      generatedAtUtc: '2026-07-05T04:01:00.000Z',
+      report: null,
+      reportLoaded: false,
+      readyForSubmission: true,
+      lifecycleIssueCount: 7,
+      reportError: null,
+      artifactsError: null,
+      checklistRows: [],
+      requiredArtifactRows: [],
+      integrityFindings: [],
+    })
+
+    expect(result.filename).toBe('package-review-unknown-job-99.json')
+    expect(result.value).not.toHaveProperty('errors')
+    expect(result.value.riskSummary.lifecycleIssues).toBeNull()
+    expect(result.value.verdict).toBe('ReadyForSubmission')
+  })
+})

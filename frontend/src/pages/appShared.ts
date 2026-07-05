@@ -97,3 +97,7 @@ export const getSectionAncestorKeys = (sectionPath: string) => {
 
   return keys
 }
+
+export const addSectionExpansionKeys = (currentKeys: string[], sectionPath: string) => {
+  return Array.from(new Set([...currentKeys, ...getSectionAncestorKeys(sectionPath)]))
+}

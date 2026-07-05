@@ -3,9 +3,10 @@ import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, T
 import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { apiFetch } from '../apiClient'
-import { performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
+import { buildSequenceBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
 import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
+import { keepKnownSelectionKeys } from './selectionKeys'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
   const [appData, setAppData] = useState<Application | null>(null)
@@ -50,10 +51,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
 
   useEffect(() => {
     const validSequenceKeys = new Set((appData?.sequences || []).map((sequence) => String(sequence.sequenceNumber)))
-    setSelectedSequenceKeys((current) => {
-      const next = current.filter((key) => validSequenceKeys.has(key))
-      return next.length === current.length ? current : next
-    })
+    setSelectedSequenceKeys((current) => keepKnownSelectionKeys(current, validSequenceKeys))
   }, [appData?.sequences])
 
   const handleCreateSequence = async () => {
@@ -125,11 +123,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
 
     try {
       const mode = sequenceBatchDeleteDialog.mode
-      const items = selectedSequenceKeys.map((sequenceNumber) => ({
-        key: sequenceNumber,
-        label: sequenceNumber,
-        url: `/api/applications/${appId}/sequences/${sequenceNumber}`,
-      }))
+      const items = buildSequenceBatchDeleteItems(appId, selectedSequenceKeys)
       const summary = await performBatchDelete('sequence', mode, items)
 
       setSequenceBatchSummary(summary)
@@ -148,7 +142,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
     await fetchApp()
   }
 
-  const failedSequenceBatchResults = (sequenceBatchSummary?.results || []).filter((result) => result.outcome.kind === 'error')
+  const failedSequenceBatchResults = getFailedBatchDeleteResults(sequenceBatchSummary)
   const hasSingleSequenceDeleteRunning = deletingSequenceNumbers.size > 0
   const canStartBatchDelete = selectedSequenceKeys.length > 0 && !sequenceBatchDeleteDialog.running && !hasSingleSequenceDeleteRunning
   const appTitle = appData ? `${appData.applicationNumber} (${appData.sponsorName})` : appId

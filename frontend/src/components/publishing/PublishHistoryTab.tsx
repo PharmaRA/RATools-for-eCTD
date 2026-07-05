@@ -5,10 +5,8 @@ import { apiFetch } from '../../apiClient'
 import { formatBytes, formatDate, getErrorMessage, getLifecycleIssueCount, getReportAvailabilityLabel, getStatusColor, type LifecycleSummary, type ReportAvailability } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
+import { isReadinessSort, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
 import { ReportPanel } from './ReportPanel'
-
-const readinessSortOptions = ['blocked-first', 'ready-first'] as const
-type ReadinessSort = typeof readinessSortOptions[number]
 
 type PublishHistoryFilterValues = {
   sequenceNumber?: string
@@ -61,10 +59,6 @@ type PublishHistoryResponse = {
   lifecycleSummary?: LifecycleSummary & {
     matchedCount?: number
   }
-}
-
-const isReadinessSort = (value: string | null): value is ReadinessSort => {
-  return !!value && (readinessSortOptions as readonly string[]).includes(value)
 }
 
 const getInitialQueryState = () => {
@@ -195,29 +189,8 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     )
   }
 
-  const getReadinessSortRank = (readiness?: { status?: string } | null) => {
-    const status = readiness?.status?.toLowerCase()
-    if (status === 'blocked') return 0
-    if (!status || status === 'unknown') return 1
-    if (status === 'ready') return 2
-    return 3
-  }
-
   const getSortedEntries = () => {
-    const entries = [...(data?.entries || [])]
-    if (!readinessSort) return entries
-
-    return entries.sort((left, right) => {
-      const leftRank = getReadinessSortRank(left.publishReadiness)
-      const rightRank = getReadinessSortRank(right.publishReadiness)
-      if (leftRank === rightRank) return 0
-
-      if (readinessSort === 'blocked-first') {
-        return leftRank - rightRank
-      }
-
-      return rightRank - leftRank
-    })
+    return sortPublishHistoryEntries(data?.entries || [], readinessSort)
   }
 
   const columns: TableColumnsType<PublishHistoryEntry> = [

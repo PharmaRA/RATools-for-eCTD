@@ -2,7 +2,7 @@ import { act, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useWorkspaceData } from './useWorkspaceData'
+import { splitWorkspacePlacements, useWorkspaceData } from './useWorkspaceData'
 import type { apiFetch as defaultApiFetch } from '../../apiClient'
 
 type UseWorkspaceDataOptions = {
@@ -68,6 +68,21 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
 describe('useWorkspaceData', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('splits application and sequence placements together', () => {
+    const currentSequencePlacement = { id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New' }
+    const otherSequencePlacement = { id: 'placement-2', applicationId: 'app-1', sequenceNumber: '0001', documentId: 'doc-2', ctdSection: '1.3', operation: 'Replace' }
+    const otherApplicationPlacement = { id: 'placement-3', applicationId: 'app-2', sequenceNumber: '0000', documentId: 'doc-3', ctdSection: '1.4', operation: 'New' }
+
+    const result = splitWorkspacePlacements(
+      [currentSequencePlacement, otherSequencePlacement, otherApplicationPlacement],
+      'app-1',
+      '0000',
+    )
+
+    expect(result.applicationPlacements).toEqual([currentSequencePlacement, otherSequencePlacement])
+    expect(result.sequencePlacements).toEqual([currentSequencePlacement])
   })
 
   it('loads placements, documents, structure, and derived tree data', async () => {

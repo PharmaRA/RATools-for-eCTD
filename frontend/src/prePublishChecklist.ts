@@ -1,4 +1,6 @@
+import { summarizeLifecycleMatches } from './publishLifecycleSummary'
 import type {
+  PublishReadinessReport,
   ValidationIssue,
   ValidationLifecycleMatch,
   ValidationReport,
@@ -65,18 +67,94 @@ const isBlockingSectionIssue = (issue: ValidationIssue) => {
     || (Boolean(issue.sectionPath?.trim()) && code.includes('SECTION'))
 }
 
+export const summarizeValidationIssues = (issues: ValidationIssue[]) => {
+  const blockingIssues: ValidationIssue[] = []
+  const warningIssues: ValidationIssue[] = []
+  let hasApiError = false
+
+  for (const issue of issues) {
+    if (isErrorIssue(issue)) {
+      blockingIssues.push(issue)
+      if (stringEqualsIgnoreCase(issue.code, apiErrorCode)) {
+        hasApiError = true
+      }
+    } else {
+      warningIssues.push(issue)
+    }
+  }
+
+  return {
+    blockingIssues,
+    warningIssues,
+    hasApiError,
+  }
+}
+
+export const getPublishReadinessValidationIssues = (readiness: PublishReadinessReport) => {
+  const issues: ValidationIssue[] = []
+
+  for (const finding of readiness.findings) {
+    if (finding.severity.toLowerCase() !== 'error') {
+      continue
+    }
+
+    issues.push({
+      severity: finding.severity,
+      code: finding.code,
+      message: `[Publish readiness] ${finding.message}`,
+      sectionPath: finding.sectionPath,
+      documentId: finding.documentId,
+      placementId: finding.placementId,
+    })
+  }
+
+  return issues
+}
+
+export const summarizeSectionMatches = (sectionMatches: ValidationSectionMatch[]) => {
+  const sectionRows: ValidationSectionMatch[] = []
+  let invalidSectionCount = 0
+  let nonStandardSectionCount = 0
+
+  for (const match of sectionMatches) {
+    const isInvalid = !match.isValid
+    const isNonStandard = match.isValid && !match.isStandard
+
+    if (isInvalid) {
+      invalidSectionCount += 1
+    }
+
+    if (isNonStandard) {
+      nonStandardSectionCount += 1
+    }
+
+    if (isInvalid || isNonStandard) {
+      sectionRows.push(match)
+    }
+  }
+
+  return {
+    invalidSectionCount,
+    nonStandardSectionCount,
+    sectionRows,
+  }
+}
+
 export const buildPrePublishChecklistSummary = (validationResult: ValidationReport) => {
   const normalizedResult = normalizeValidationReport(validationResult)
   const issues = normalizedResult.issues
   const sectionMatches = normalizedResult.sectionMatches
   const lifecycleMatches = normalizedResult.lifecycleMatches
-  const blockingIssues = issues.filter(isErrorIssue)
-  const warningIssues = issues.filter((issue) => !isErrorIssue(issue))
-  const hasApiError = blockingIssues.some((issue) => stringEqualsIgnoreCase(issue.code, apiErrorCode))
-  const invalidSectionCount = sectionMatches.filter((match) => !match.isValid).length
-  const nonStandardSectionCount = sectionMatches.filter((match) => match.isValid && !match.isStandard).length
-  const lifecycleIssueCount = lifecycleMatches.filter((match) => match.resultCode !== 'MATCHED').length
-  const sectionRows = sectionMatches.filter((match) => !match.isValid || !match.isStandard)
+  const issueSummary = summarizeValidationIssues(issues)
+  const blockingIssues = issueSummary.blockingIssues
+  const warningIssues = issueSummary.warningIssues
+  const hasApiError = issueSummary.hasApiError
+  const sectionSummary = summarizeSectionMatches(sectionMatches)
+  const invalidSectionCount = sectionSummary.invalidSectionCount
+  const nonStandardSectionCount = sectionSummary.nonStandardSectionCount
+  const lifecycleSummary = summarizeLifecycleMatches(lifecycleMatches)
+  const lifecycleIssueCount = lifecycleSummary.issueCount
+  const sectionRows = sectionSummary.sectionRows
   const canProceed = !hasApiError && blockingIssues.length === 0
   const hasBlockingLifecycleIssue = blockingIssues.some((issue) => lifecycleMatches.some((match) => issue.code === match.resultCode)
     || issue.code.startsWith('LIFECYCLE_')

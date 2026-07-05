@@ -16,6 +16,32 @@ type UseWorkspaceDataOptions = {
   apiFetch?: typeof defaultApiFetch
 }
 
+export const splitWorkspacePlacements = (
+  placements: DocumentPlacementRecord[],
+  appId: string,
+  seqNumber: string,
+) => {
+  const applicationPlacements: DocumentPlacementRecord[] = []
+  const sequencePlacements: DocumentPlacementRecord[] = []
+
+  for (const placement of placements) {
+    if (placement.applicationId !== appId) {
+      continue
+    }
+
+    applicationPlacements.push(placement)
+
+    if (placement.sequenceNumber === seqNumber) {
+      sequencePlacements.push(placement)
+    }
+  }
+
+  return {
+    applicationPlacements,
+    sequencePlacements,
+  }
+}
+
 export const useWorkspaceData = ({
   appId,
   seqNumber,
@@ -40,10 +66,9 @@ export const useWorkspaceData = ({
     try {
       const res = await apiFetch(`/api/document-placements?applicationId=${encodeURIComponent(appId)}`)
       const list = Array.isArray(res) ? res : (res.items || [])
-      const applicationMapped = list.filter((placement: DocumentPlacementRecord) => placement.applicationId === appId)
-      const mapped = list.filter((placement: DocumentPlacementRecord) => placement.applicationId === appId && placement.sequenceNumber === seqNumber)
-      setApplicationPlacements(applicationMapped)
-      setPlacements(mapped)
+      const placementSummary = splitWorkspacePlacements(list, appId, seqNumber)
+      setApplicationPlacements(placementSummary.applicationPlacements)
+      setPlacements(placementSummary.sequencePlacements)
     } catch (error) {
       const message = getErrorMessage(error)
       setPlacementsError(message)

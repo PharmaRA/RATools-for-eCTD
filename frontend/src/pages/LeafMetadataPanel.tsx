@@ -3,23 +3,10 @@ import type { FormInstance } from 'antd'
 import { Trash2 } from 'lucide-react'
 
 import type { DocumentPlacementRecord, DocumentRecord } from '../workspaceTree'
+import { buildLifecycleTargetLabel } from './lifecycleTargetLabels'
+import { buildPublishedHrefPreview } from './publishedHrefPreview'
 
 const placementOperations = ['New', 'Replace', 'Delete', 'Append']
-
-const buildPublishedHrefPreview = (storagePath: string | undefined, sequenceNumber: string, fallbackFileName: string | undefined) => {
-  const fileName = fallbackFileName || '-'
-  if (!storagePath) {
-    return fileName
-  }
-
-  const segments = storagePath.split(/[\\/]+/).filter(Boolean)
-  const sequenceIndex = segments.map((segment) => segment.toLowerCase()).lastIndexOf(sequenceNumber.toLowerCase())
-  if (sequenceIndex >= 0 && sequenceIndex < segments.length - 1) {
-    return [...segments.slice(sequenceIndex + 1, -1), fileName].join('/')
-  }
-
-  return fileName || segments.at(-1) || '-'
-}
 
 type DocumentNameParts = {
   prefix: string
@@ -115,23 +102,17 @@ export const LeafMetadataPanel = ({
               <Select
                 allowClear
                 placeholder="Select historical leaf target"
-                options={lifecycleTargetCandidates.map((candidate) => {
-                  const targetDocument = documentsById[candidate.documentId]
-                  const title = candidate.title || targetDocument?.fileName || candidate.documentId
-                  return {
-                    value: candidate.id,
-                    label: `${candidate.sequenceNumber} | ${candidate.ctdSection} | ${title} | ${candidate.operation}`,
-                  }
-                })}
+                options={lifecycleTargetCandidates.map((candidate) => ({
+                  value: candidate.id,
+                  label: buildLifecycleTargetLabel(candidate, documentsById),
+                }))}
               />
             </Form.Item>
             {lifecycleTargetCandidates.length > 0 && (
               <div className="text-xs text-gray-500 -mt-3 mb-3">
-                Available Targets: {lifecycleTargetCandidates.map((candidate) => {
-                  const targetDocument = documentsById[candidate.documentId]
-                  const title = candidate.title || targetDocument?.fileName || candidate.documentId
-                  return `${candidate.sequenceNumber} | ${candidate.ctdSection} | ${title} | ${candidate.operation}`
-                }).join('; ')}
+                Available Targets: {lifecycleTargetCandidates
+                  .map((candidate) => buildLifecycleTargetLabel(candidate, documentsById))
+                  .join('; ')}
               </div>
             )}
           </>

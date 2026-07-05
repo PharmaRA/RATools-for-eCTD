@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiRequestError } from './apiClient';
-import { performBatchDelete, performDelete } from './deleteActions';
+import {
+  buildApplicationBatchDeleteItems,
+  buildSequenceBatchDeleteItems,
+  getFailedBatchDeleteResults,
+  performBatchDelete,
+  performDelete,
+} from './deleteActions';
 
 describe('deleteActions', () => {
   afterEach(() => {
@@ -232,5 +238,55 @@ describe('deleteActions', () => {
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/applications/app-1?deleteMode=purgeWorkspace', { method: 'DELETE' });
     expect(request).toHaveBeenNthCalledWith(2, '/api/applications/app-2?force=true&deleteMode=purgeWorkspace', { method: 'DELETE' });
+  });
+
+  it('builds application batch delete items from selected application keys', () => {
+    expect(buildApplicationBatchDeleteItems(['app-1', 'app-2'])).toEqual([
+      { key: 'app-1', label: 'app-1', url: '/api/applications/app-1' },
+      { key: 'app-2', label: 'app-2', url: '/api/applications/app-2' },
+    ]);
+  });
+
+  it('builds sequence batch delete items from selected sequence keys', () => {
+    expect(buildSequenceBatchDeleteItems('app-1', ['0001', '0002'])).toEqual([
+      { key: '0001', label: '0001', url: '/api/applications/app-1/sequences/0001' },
+      { key: '0002', label: '0002', url: '/api/applications/app-1/sequences/0002' },
+    ]);
+  });
+
+  it('extracts failed batch delete results from a summary', () => {
+    const failedResult = {
+      key: 's-2',
+      label: '0002',
+      outcome: {
+        kind: 'error' as const,
+        reason: 'conflict' as const,
+        message: 'Sequence 0002 is locked.',
+        shouldRefresh: true,
+      },
+    };
+
+    const results = getFailedBatchDeleteResults({
+      entity: 'sequence',
+      mode: 'databaseOnly',
+      total: 2,
+      successCount: 1,
+      failureCount: 1,
+      results: [
+        {
+          key: 's-1',
+          label: '0001',
+          outcome: {
+            kind: 'success',
+            reason: 'success',
+            message: 'Sequence deleted successfully.',
+            shouldRefresh: true,
+          },
+        },
+        failedResult,
+      ],
+    });
+
+    expect(results).toEqual([failedResult]);
   });
 });

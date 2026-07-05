@@ -16,6 +16,7 @@ import {
 } from '../validationActions'
 import {
   buildPrePublishChecklistSummary,
+  getPublishReadinessValidationIssues,
 } from '../prePublishChecklist'
 import { splitFileName } from '../ectdFileTypes'
 import {
@@ -28,24 +29,20 @@ import {
   findWorkspaceTreeNode,
   resolveUploadSection,
 } from '../workspaceTree'
-import { getErrorMessage, getSectionAncestorKeys } from './appShared'
+import { addSectionExpansionKeys, getErrorMessage } from './appShared'
 import { LeafMetadataPanel } from './LeafMetadataPanel'
+import { getLifecycleTargetCandidates } from './workspace/lifecycleTargetCandidates'
+import { buildSequencePublishingMetadataUpdateRequest } from './workspace/publishingMetadataFormValues'
 import { PublishModal, type MetadataFormValues } from './workspace/PublishModal'
 import { useWorkspaceDragDrop } from './workspace/useWorkspaceDragDrop'
 import { useWorkspaceData } from './workspace/useWorkspaceData'
+import {
+  hasValidationLocation,
+  resolveValidationLocation,
+  type ValidationLocation,
+} from './workspace/validationLocationResolver'
 import { ValidationSummaryPanel } from './workspace/ValidationSummaryPanel'
 import { WorkspaceTree } from './workspace/WorkspaceTree'
-
-const compareSequenceNumbers = (left: string, right: string) => {
-  const leftNumber = Number(left)
-  const rightNumber = Number(right)
-
-  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
-    return leftNumber - rightNumber
-  }
-
-  return left.localeCompare(right)
-}
 
 type SequenceWorkspacePageProps = {
   appId: string
@@ -56,12 +53,6 @@ type SequenceWorkspacePageProps = {
   getSequencePublishingMetadataProvider?: typeof getSequencePublishingMetadata
   updateSequencePublishingMetadataProvider?: typeof updateSequencePublishingMetadata
   createAndExecutePublishJobProvider?: typeof createAndExecutePublishJob
-}
-
-type ValidationLocation = {
-  placementId?: string | null
-  documentId?: string | null
-  sectionPath?: string | null
 }
 
 export const SequenceWorkspacePage = ({
@@ -147,57 +138,11 @@ export const SequenceWorkspacePage = ({
       return []
     }
 
-    return applicationPlacements
-      .filter((placement) => placement.applicationId === selectedPlacement.applicationId)
-      .filter((placement) => placement.ctdSection === selectedPlacement.ctdSection)
-      .filter((placement) => compareSequenceNumbers(placement.sequenceNumber, selectedPlacement.sequenceNumber) < 0)
-      .filter((placement) => Boolean(documentsById[placement.documentId]))
+    return getLifecycleTargetCandidates(applicationPlacements, selectedPlacement, documentsById)
   }, [applicationPlacements, documentsById, selectedPlacement])
 
-  const hasValidationLocation = (location: ValidationLocation) => Boolean(
-    location.placementId?.trim()
-    || location.documentId?.trim()
-    || location.sectionPath?.trim(),
-  )
-
-  const resolveValidationLocation = (location: ValidationLocation) => {
-    const placementId = location.placementId?.trim()
-    if (placementId) {
-      const key = `placement:${placementId}`
-      const node = findWorkspaceTreeNode(treeData, key)
-      if (node) {
-        return { key: node.key, sectionPath: node.sectionPath }
-      }
-    }
-
-    const documentId = location.documentId?.trim()
-    const sectionPath = location.sectionPath?.trim()
-    if (documentId) {
-      const placement = sectionPath
-        ? placements.find((item) => item.documentId === documentId && item.ctdSection === sectionPath)
-        : undefined
-      const fallbackPlacement = placement || placements.find((item) => item.documentId === documentId)
-      if (fallbackPlacement) {
-        const key = `placement:${fallbackPlacement.id}`
-        const node = findWorkspaceTreeNode(treeData, key)
-        if (node) {
-          return { key: node.key, sectionPath: node.sectionPath }
-        }
-      }
-    }
-
-    if (sectionPath) {
-      const node = findWorkspaceTreeNode(treeData, sectionPath)
-      if (node) {
-        return { key: node.key, sectionPath: node.sectionPath }
-      }
-    }
-
-    return null
-  }
-
   const locateValidationIssue = (location: ValidationLocation) => {
-    const resolvedLocation = resolveValidationLocation(location)
+    const resolvedLocation = resolveValidationLocation({ location, placements, treeData })
     if (!resolvedLocation) {
       message.warning('Could not locate this validation issue in the workspace tree.')
       return
@@ -205,11 +150,7 @@ export const SequenceWorkspacePage = ({
 
     setSelectedTreeKey(resolvedLocation.key)
     setSelectedSectionPath(resolvedLocation.sectionPath)
-    setExpandedKeys((current) => Array.from(new Set([
-      ...current,
-      ...getSectionAncestorKeys(resolvedLocation.sectionPath),
-      resolvedLocation.sectionPath,
-    ])))
+    setExpandedKeys((current) => addSectionExpansionKeys(current, resolvedLocation.sectionPath))
   }
 
   const validationSummary = useMemo(() => {
@@ -261,7 +202,7 @@ export const SequenceWorkspacePage = ({
         return
       }
 
-      setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(toSection)])))
+      setExpandedKeys((current) => addSectionExpansionKeys(current, toSection))
       setSelectedTreeKey(toSection)
       setSelectedSectionPath(toSection)
       await refreshWorkspaceData()
@@ -351,7 +292,7 @@ export const SequenceWorkspacePage = ({
 
     try {
       const targetSection = resolveUploadSection(targetNodeKey, selectedSectionPath)
-      setExpandedKeys((current) => Array.from(new Set([...current, ...getSectionAncestorKeys(targetSection)])))
+      setExpandedKeys((current) => addSectionExpansionKeys(current, targetSection))
       setSelectedTreeKey(targetSection)
       setSelectedSectionPath(targetSection)
 
@@ -439,16 +380,7 @@ export const SequenceWorkspacePage = ({
           isValid: false,
           issues: [
             ...validationResult.issues,
-            ...readiness.findings
-              .filter((finding) => finding.severity.toLowerCase() === 'error')
-              .map((finding) => ({
-                severity: finding.severity,
-                code: finding.code,
-                message: `[Publish readiness] ${finding.message}`,
-                sectionPath: finding.sectionPath,
-                documentId: finding.documentId,
-                placementId: finding.placementId,
-              })),
+            ...getPublishReadinessValidationIssues(readiness),
           ],
         })
         setPublishReadiness(null)
@@ -491,21 +423,11 @@ export const SequenceWorkspacePage = ({
 
       if (publishReadiness && !publishReadiness.isReady && publishReadiness.missingMetadataFields.length > 0) {
         const metadataValues = await publishMetadataForm.validateFields()
-        await updateSequencePublishingMetadataProvider({
-          applicationId: appId,
+        await updateSequencePublishingMetadataProvider(buildSequencePublishingMetadataUpdateRequest(
+          appId,
           sequenceNumber,
-          applicationType: String(metadataValues.applicationType || '').trim() || null,
-          submissionType: String(metadataValues.submissionType || '').trim(),
-          submissionSubtype: String(metadataValues.submissionSubtype || '').trim() || null,
-          sequenceDescription: String(metadataValues.sequenceDescription || '').trim(),
-          applicantName: String(metadataValues.applicantName || '').trim(),
-          formType: String(metadataValues.formType || '').trim() || null,
-          applicantContactName: String(metadataValues.applicantContactName || '').trim() || null,
-          applicantContactType: String(metadataValues.applicantContactType || '').trim() || null,
-          telephone: String(metadataValues.telephone || '').trim() || null,
-          telephoneNumberType: String(metadataValues.telephoneNumberType || '').trim() || null,
-          email: String(metadataValues.email || '').trim() || null,
-        })
+          metadataValues,
+        ))
         readinessToUse = await getPublishReadinessProvider({
           applicationId: appId,
           sequenceNumber,

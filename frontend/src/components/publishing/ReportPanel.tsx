@@ -4,6 +4,7 @@ import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { apiFetch } from '../../apiClient'
 import { formatBytes, formatDate, getErrorMessage } from '../../pages/appShared'
+import { summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 
 type ValidationLifecycleMatch = {
   operation?: string | null
@@ -76,17 +77,6 @@ type PublishReport = {
   }
   publishReadiness?: PublishReadiness | null
 }
-
-const buildLifecycleSummary = (matches: ValidationLifecycleMatch[]) => ({
-  matchedCount: matches.filter((match) => match.resultCode === 'MATCHED').length,
-  replaceTargetNotFoundCount: matches.filter((match) => match.resultCode === 'REPLACE_TARGET_NOT_FOUND').length,
-  deleteTargetNotFoundCount: matches.filter((match) => match.resultCode === 'DELETE_TARGET_NOT_FOUND').length,
-  appendTargetNotFoundCount: matches.filter((match) => match.resultCode === 'APPEND_TARGET_NOT_FOUND').length,
-  ambiguousCount: matches.filter((match) => match.resultCode === 'LIFECYCLE_TARGET_AMBIGUOUS').length,
-  currentSequenceCount: matches.filter((match) => match.resultCode === 'LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE').length,
-})
-
-const getLifecycleMatchIssueCount = (matches: ValidationLifecycleMatch[]) => matches.filter((match) => match.resultCode !== 'MATCHED').length
 
 const formatList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
 
@@ -168,8 +158,8 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
   }
 
   const lifecycleMatches: ValidationLifecycleMatch[] = report?.validationReport?.lifecycleMatches || []
-  const lifecycleSummary = buildLifecycleSummary(lifecycleMatches)
-  const lifecycleIssueCount = getLifecycleMatchIssueCount(lifecycleMatches)
+  const lifecycleSummary = summarizeLifecycleMatches(lifecycleMatches)
+  const lifecycleIssueCount = lifecycleSummary.issueCount
   const integrityState = report?.integritySummary ? (report.integritySummary.isConsistent ? 'Consistent' : 'Inconsistent') : '-'
   const publishReadiness = (report?.publishReadiness || null) as PublishReadiness | null
 

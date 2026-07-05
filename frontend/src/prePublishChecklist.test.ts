@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest'
 import {
   apiErrorCode,
   buildPrePublishChecklistSummary,
+  getPublishReadinessValidationIssues,
   normalizeValidationReport,
+  summarizeSectionMatches,
+  summarizeValidationIssues,
   validationApiProfile,
 } from './prePublishChecklist'
-import type { ValidationReport } from './validationActions'
+import type { PublishReadinessReport, ValidationReport } from './validationActions'
 
 const createReport = (overrides: Partial<ValidationReport> = {}): ValidationReport => ({
   applicationId: 'app-1',
@@ -19,7 +22,101 @@ const createReport = (overrides: Partial<ValidationReport> = {}): ValidationRepo
   ...overrides,
 })
 
+const createPublishReadiness = (overrides: Partial<PublishReadinessReport> = {}): PublishReadinessReport => ({
+  applicationId: 'app-1',
+  sequenceNumber: '0000',
+  isReady: false,
+  status: 'Blocked',
+  blockingErrorCount: 1,
+  warningCount: 1,
+  validationReport: createReport(),
+  missingMetadataFields: [],
+  categorySummaries: [],
+  findings: [],
+  ...overrides,
+})
+
 describe('prePublishChecklist', () => {
+  it('summarizes validation issues by severity and API availability together', () => {
+    const apiIssue = { severity: ' Error ', code: 'api_error', message: 'Unavailable' }
+    const blockingIssue = { severity: 'Error', code: 'BROKEN', message: 'Blocking' }
+    const warningIssue = { severity: 'Warning', code: 'WARN', message: 'Awareness' }
+
+    const summary = summarizeValidationIssues([apiIssue, blockingIssue, warningIssue])
+
+    expect(summary.blockingIssues).toEqual([apiIssue, blockingIssue])
+    expect(summary.warningIssues).toEqual([warningIssue])
+    expect(summary.hasApiError).toBe(true)
+  })
+
+  it('summarizes section match counts and visible rows together', () => {
+    const invalidMatch = {
+      sectionPath: '1.2',
+      matchedPrefix: null,
+      isValid: false,
+      isStandard: false,
+      reason: 'Unknown section',
+    }
+    const nonStandardMatch = {
+      sectionPath: '1.3',
+      matchedPrefix: '1',
+      isValid: true,
+      isStandard: false,
+      reason: 'Allowed custom section',
+    }
+    const standardMatch = {
+      sectionPath: '1.4',
+      matchedPrefix: '1',
+      isValid: true,
+      isStandard: true,
+      reason: 'Standard section',
+    }
+
+    const summary = summarizeSectionMatches([invalidMatch, nonStandardMatch, standardMatch])
+
+    expect(summary.invalidSectionCount).toBe(1)
+    expect(summary.nonStandardSectionCount).toBe(1)
+    expect(summary.sectionRows).toEqual([invalidMatch, nonStandardMatch])
+  })
+
+  it('maps blocking publish readiness findings into validation issues', () => {
+    const issues = getPublishReadinessValidationIssues(createPublishReadiness({
+      findings: [
+        {
+          source: 'publish-readiness',
+          severity: 'Error',
+          code: 'MISSING_LEAF_TITLE',
+          message: 'Leaf title is required.',
+          category: 'RegionalMetadata',
+          recommendedAction: 'Add the leaf title.',
+          fieldName: 'leafTitle',
+          sectionPath: '1.2',
+          documentId: 'doc-1',
+          placementId: 'placement-1',
+        },
+        {
+          source: 'publish-readiness',
+          severity: 'Warning',
+          code: 'REVIEW_HINT',
+          message: 'Reviewer awareness.',
+          category: 'RegionalMetadata',
+          recommendedAction: 'Review before publishing.',
+        },
+      ],
+    }))
+
+    expect(issues).toEqual([
+      {
+        severity: 'Error',
+        code: 'MISSING_LEAF_TITLE',
+        message: '[Publish readiness] Leaf title is required.',
+        sectionPath: '1.2',
+        documentId: 'doc-1',
+        placementId: 'placement-1',
+      },
+    ])
+  })
+
   it('fails closed when a validation report has unusable structure', () => {
     const report = {
       applicationId: 'app-1',

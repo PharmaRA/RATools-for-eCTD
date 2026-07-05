@@ -1,9 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { ApiRequestError } from './apiClient'
-import { importApplication, mapImportErrorToMessage } from './importActions'
+import { importApplication, mapImportErrorToMessage, summarizeImportIssues } from './importActions'
 
 describe('importActions', () => {
+  it('summarizes import issues by lifecycle target category and severity', () => {
+    const lifecycleMissingIssue = { severity: 'Warning', code: 'LIFECYCLE_TARGET_MISSING', sequenceNumber: '0002', message: 'Missing target' }
+    const lifecycleNotImportedIssue = { severity: ' warning ', code: 'LIFECYCLE_TARGET_NOT_IMPORTED', sequenceNumber: '0003', message: 'Not imported' }
+    const otherIssue = { severity: 'Error', code: 'SEQUENCE_INDEX_MISSING', sequenceNumber: '0004', message: 'Missing index' }
+
+    const summary = summarizeImportIssues([lifecycleMissingIssue, lifecycleNotImportedIssue, otherIssue])
+
+    expect(summary.lifecycleIssues).toEqual([lifecycleMissingIssue, lifecycleNotImportedIssue])
+    expect(summary.otherIssues).toEqual([otherIssue])
+    expect(summary.warningCount).toBe(2)
+    expect(summary.errorCount).toBe(1)
+  })
+
   it('submits import request and returns parsed result', async () => {
     const request = vi.fn().mockResolvedValue({
       applicationId: 'app-1',
