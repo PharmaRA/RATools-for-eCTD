@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { getPublishReadiness, validateSequence } from './validationActions'
+import {
+  buildPublishReadinessUrl,
+  buildValidateSequenceUrl,
+  getPublishReadiness,
+  validateSequence,
+} from './validationActions'
 
 describe('validationActions', () => {
+  it('builds validation endpoint URLs', () => {
+    expect(buildValidateSequenceUrl()).toBe('/api/validation/sequence')
+    expect(buildPublishReadinessUrl()).toBe('/api/validation/publish-readiness')
+  })
+
   it('validates a sequence and returns the backend validation report shape', async () => {
     const validationReport = {
       applicationId: '11111111-1111-1111-1111-111111111111',

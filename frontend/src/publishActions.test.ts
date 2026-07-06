@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { executePublishJob } from './publishActions'
+import {
+  buildPublishHistoryRequestUrl,
+  buildPublishJobArtifactDownloadUrl,
+  executePublishJob,
+  loadPublishHistory,
+  loadPublishJobArtifacts,
+  loadPublishJobReport,
+} from './publishActions'
 
 describe('publishActions', () => {
   it('executes a publish job using only application, sequence, and output directory', async () => {
@@ -24,5 +31,61 @@ describe('publishActions', () => {
         outputDirectoryPath: 'E:/exports/submission-a',
       }),
     })
+  })
+
+  it('loads a publish job report by job id', async () => {
+    const report = { succeeded: true }
+    const request = vi.fn().mockResolvedValueOnce(report)
+
+    const result = await loadPublishJobReport('job-1', request)
+
+    expect(request).toHaveBeenCalledWith('/api/publish-jobs/job-1/report')
+    expect(result).toEqual(report)
+  })
+
+  it('loads publish job artifacts by job id', async () => {
+    const artifacts = { artifacts: [{ name: 'PublishReport', exists: true }] }
+    const request = vi.fn().mockResolvedValueOnce(artifacts)
+
+    const result = await loadPublishJobArtifacts('job-1', request)
+
+    expect(request).toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts')
+    expect(result).toEqual(artifacts)
+  })
+
+  it('builds publish job artifact download urls', () => {
+    expect(buildPublishJobArtifactDownloadUrl('job-1', 'PublishReport'))
+      .toBe('/api/publish-jobs/job-1/artifacts/PublishReport/download')
+  })
+
+  it('builds a publish history request URL with pagination and filters', () => {
+    expect(buildPublishHistoryRequestUrl('app-1', 2, 50, {
+      sequenceNumber: '0002',
+      status: 'Completed',
+      readinessStatus: 'Ready',
+    })).toBe('/api/applications/app-1/publish-history?page=2&pageSize=50&sequenceNumber=0002&status=Completed&readinessStatus=Ready')
+  })
+
+  it('omits empty publish history request filters', () => {
+    expect(buildPublishHistoryRequestUrl('app-1', 1, 20, {
+      sequenceNumber: '',
+      status: undefined,
+      readinessStatus: null,
+    })).toBe('/api/applications/app-1/publish-history?page=1&pageSize=20')
+  })
+
+  it('loads publish history with pagination and filters', async () => {
+    const history = { entries: [], totalCount: 0 }
+    const request = vi.fn().mockResolvedValueOnce(history)
+
+    const result = await loadPublishHistory({
+      applicationId: 'app-1',
+      page: 1,
+      pageSize: 20,
+      filters: { readinessStatus: 'Blocked' },
+    }, request)
+
+    expect(request).toHaveBeenCalledWith('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')
+    expect(result).toEqual(history)
   })
 })

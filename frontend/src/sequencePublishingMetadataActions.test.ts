@@ -1,11 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildSequencePublishingMetadataUrl,
   getSequencePublishingMetadata,
   updateSequencePublishingMetadata,
 } from './sequencePublishingMetadataActions'
 
 describe('sequencePublishingMetadataActions', () => {
+  it('builds sequence publishing metadata URL', () => {
+    expect(buildSequencePublishingMetadataUrl('app-1', '0001'))
+      .toBe('/api/applications/app-1/sequences/0001/publishing-metadata')
+  })
+
   it('loads sequence publishing metadata', async () => {
     const response = {
       applicationId: 'app-1',

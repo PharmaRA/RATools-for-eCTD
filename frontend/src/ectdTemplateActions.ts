@@ -1,4 +1,4 @@
-import { apiFetch, buildJsonRequestInit } from './apiClient'
+import { apiFetch } from './apiClient'
 import { importApplication, type ImportApplicationRequest, type ImportApplicationResult } from './importActions'
 
 export type EctdTemplateOption = {
@@ -7,13 +7,6 @@ export type EctdTemplateOption = {
   region: string
   standardName?: string
   standardVersion?: string
-}
-
-export type CreateApplicationRequest = {
-  applicationNumber: string
-  ectdTemplateKey: string
-  sponsorName: string
-  workingDirectoryParentPath: string
 }
 
 export const loadEctdTemplates = async (
@@ -28,13 +21,6 @@ export const buildEctdTemplateSelectOptions = (templates: readonly EctdTemplateO
   value: template.key,
   label: template.displayName,
 }))
-
-export const createApplication = async (
-  request: CreateApplicationRequest,
-  executeRequest: typeof apiFetch = apiFetch,
-) => {
-  return executeRequest('/api/applications', buildJsonRequestInit('POST', request))
-}
 
 export const importApplicationWithTemplate = async (
   request: ImportApplicationRequest,

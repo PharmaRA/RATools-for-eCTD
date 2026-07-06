@@ -3,8 +3,11 @@ import { Tag } from 'antd'
 
 import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
+import { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
 import { formatReadinessFieldName, getPublishReadinessFindingSeverityTagColor } from './publishReadinessDisplay'
 import type { IntegrityFinding, PackageReviewReport } from './packageReviewExport'
+
+export { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
 
 type PackageReviewHeaderReport = Pick<PackageReviewReport, 'sequenceNumber' | 'publishJob' | 'validationProfile'>
 
@@ -93,10 +96,6 @@ export const buildPackageReviewReadinessFindingColumns = () => [
   { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: formatReadinessFieldName },
   { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction' },
 ]
-
-export const renderEvidenceFindingSeverityStatus = (severity: string) => {
-  return createElement(Tag, { color: severity === 'Error' ? 'red' : 'orange' }, severity)
-}
 
 export const buildPackageReviewEvidenceFindingColumns = () => [
   { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100, render: renderEvidenceFindingSeverityStatus },

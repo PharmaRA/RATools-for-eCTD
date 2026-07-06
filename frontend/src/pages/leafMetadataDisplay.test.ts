@@ -5,6 +5,7 @@ import {
   buildLeafPlacementDescriptionItems,
   buildLeafPlacementOperationOptions,
   buildLeafPreviewDescriptionItems,
+  formatLeafPreviewOptionalText,
 } from './leafMetadataDisplay'
 
 describe('leafMetadataDisplay', () => {
@@ -47,6 +48,13 @@ describe('leafMetadataDisplay', () => {
     expect(isValidElement(storagePath)).toBe(true)
     expect((storagePath as ReactElement<{ className: string; children: string }>).props.className).toBe('text-xs break-all')
     expect((storagePath as ReactElement<{ className: string; children: string }>).props.children).toBe('m3/32p1/file.pdf')
+  })
+
+  it('formats optional leaf preview text with a placeholder', () => {
+    expect(formatLeafPreviewOptionalText('application/pdf')).toBe('application/pdf')
+    expect(formatLeafPreviewOptionalText('')).toBe('-')
+    expect(formatLeafPreviewOptionalText(null)).toBe('-')
+    expect(formatLeafPreviewOptionalText(undefined)).toBe('-')
   })
 
   it('builds leaf preview description items', () => {

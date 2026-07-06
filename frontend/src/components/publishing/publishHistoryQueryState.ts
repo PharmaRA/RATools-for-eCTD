@@ -7,12 +7,6 @@ export type PublishHistoryFilterValues = {
   readinessSort?: ReadinessSort | 'default' | null
 }
 
-type PublishHistoryRequestFilterValues = {
-  sequenceNumber?: string | null
-  status?: string | null
-  readinessStatus?: string | null
-}
-
 export const normalizePublishHistoryReadinessSort = (value?: string | null): ReadinessSort | null => {
   const sortableValue = value ?? null
   return isReadinessSort(sortableValue) ? sortableValue : null
@@ -53,18 +47,4 @@ export const buildPublishHistoryBrowserUrl = (
 
   const nextSearch = params.toString()
   return `${pathname}${nextSearch ? `?${nextSearch}` : ''}${hash}`
-}
-
-export const buildPublishHistoryRequestUrl = (
-  appId: string,
-  page: number,
-  pageSize: number,
-  values: PublishHistoryRequestFilterValues,
-) => {
-  const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() })
-  if (values.sequenceNumber) params.append('sequenceNumber', values.sequenceNumber)
-  if (values.status) params.append('status', values.status)
-  if (values.readinessStatus) params.append('readinessStatus', values.readinessStatus)
-
-  return `/api/applications/${appId}/publish-history?${params.toString()}`
 }

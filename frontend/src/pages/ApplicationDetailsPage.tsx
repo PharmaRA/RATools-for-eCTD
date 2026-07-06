@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd'
 import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 
-import { apiFetch } from '../apiClient'
-import { buildSequenceBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
+import { loadApplications } from '../applicationActions'
+import { buildSequenceBatchDeleteItems, buildSequenceDeleteUrl, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
+import { createSequence } from '../sequenceActions'
 import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
 import { buildSequenceColumns, formatApplicationDetailsTitle, getApplicationSequences } from './applicationDetailsDisplay'
+import { buildBatchDeleteSummaryItems } from './batchDeleteDisplay'
 import { buildBatchDeleteState } from './batchDeleteState'
 import { buildSelectionKeySet, keepKnownSelectionKeys, normalizeSelectionKeys } from './selectionKeys'
 
@@ -33,7 +35,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const fetchApp = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/api/applications') as Application[]
+      const data = await loadApplications()
       const target = data.find((application) => application.id === appId)
       setAppData(target || null)
     } catch {
@@ -61,9 +63,12 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const handleCreateSequence = async () => {
     try {
       const values = await form.validateFields()
-      await apiFetch(`/api/applications/${appId}/sequences`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+      await createSequence({
+        applicationId: appId,
+        sequenceNumber: values.sequenceNumber,
+        submissionType: values.submissionType,
+        submissionSubType: values.submissionSubType,
+        description: values.description,
       })
       message.success('Sequence created successfully!')
       setSeqModalVisible(false)
@@ -76,7 +81,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
     setDeletingSequenceNumbers((current) => new Set(current).add(seqNumber))
 
     try {
-      const outcome = await performDelete('sequence', `/api/applications/${appId}/sequences/${seqNumber}`, mode)
+      const outcome = await performDelete('sequence', buildSequenceDeleteUrl(appId, seqNumber), mode)
 
       if (outcome.kind === 'success') {
         message.success(outcome.message)
@@ -146,6 +151,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
     await fetchApp()
   }
 
+  const sequenceBatchSummaryItems = buildBatchDeleteSummaryItems(sequenceBatchSummary)
   const failedSequenceBatchResults = getFailedBatchDeleteResults(sequenceBatchSummary)
   const {
     hasSingleDeleteRunning: hasSingleSequenceDeleteRunning,
@@ -342,8 +348,9 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
         onCancel={() => { void closeSequenceBatchSummary() }}
       >
         <div className="flex flex-col gap-3">
-          <div>成功: <Tag color="green">{sequenceBatchSummary?.successCount ?? 0}</Tag></div>
-          <div>失败: <Tag color="red">{sequenceBatchSummary?.failureCount ?? 0}</Tag></div>
+          {sequenceBatchSummaryItems.map((item) => (
+            <div key={item.key}>{item.label}: <Tag color={item.color}>{item.count}</Tag></div>
+          ))}
           {failedSequenceBatchResults.length > 0 && (
             <div className="flex flex-col gap-2">
               {failedSequenceBatchResults.map((result) => (

@@ -3,6 +3,7 @@ import { Tag } from 'antd'
 
 import { formatDate, formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
+import { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
 import { formatReadinessFieldName } from './publishReadinessDisplay'
 
 export const formatReportList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
@@ -139,9 +140,7 @@ export const buildReportLifecycleSummaryItems = (
   { key: 'warning-summary', label: 'Warning Summary', children: formatOptionalText(warningSummary) },
 ]
 
-export const renderReportSeverityStatus = (severity: string) => {
-  return createElement(Tag, { color: severity === 'Error' ? 'red' : 'orange' }, severity)
-}
+export const renderReportSeverityStatus = renderEvidenceFindingSeverityStatus
 
 export const buildReportValidationIssueColumns = () => [
   { title: 'Severity', dataIndex: 'severity', render: renderReportSeverityStatus, width: 100 },

@@ -13,6 +13,17 @@ export const getImportResultIssues = <T>(
   result?: { issues?: T[] | null } | null,
 ): T[] => result?.issues || []
 
+type ImportIssueTagSource = {
+  severity: string
+  code: string
+  sequenceNumber?: string | null
+}
+
+type BuildImportIssueTagItemsOptions = {
+  includeSeverity?: boolean
+  codeColor?: string
+}
+
 type ImportIssueSummaryCounts = {
   totalIssueCount: number
   warningCount: number
@@ -45,6 +56,19 @@ export const renderImportIssueSeverityTag = (value: string) => {
 }
 
 export const formatImportIssueSequenceNumber = (value?: string | null) => value || '-'
+
+export const buildImportIssueTagItems = (
+  issue: ImportIssueTagSource,
+  options: BuildImportIssueTagItemsOptions = {},
+) => [
+  { key: 'sequence', label: formatImportIssueSequenceNumber(issue.sequenceNumber) },
+  ...(
+    options.includeSeverity
+      ? [{ key: 'severity', label: issue.severity, color: getImportIssueSeverityDisplayMeta(issue.severity).tagColor }]
+      : []
+  ),
+  { key: 'code', label: issue.code, color: options.codeColor },
+]
 
 export const buildImportIssueColumns = () => [
   { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 110, render: renderImportIssueSeverityTag },

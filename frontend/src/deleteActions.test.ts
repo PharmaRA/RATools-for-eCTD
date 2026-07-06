@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError } from './apiClient';
 import {
   buildApplicationBatchDeleteItems,
+  buildApplicationDeleteUrl,
   buildDeleteRequestUrl,
   buildSequenceBatchDeleteItems,
+  buildSequenceDeleteUrl,
   getBatchDeleteResults,
   getFailedBatchDeleteResults,
   getSuccessfulBatchDeleteResults,
@@ -24,6 +26,14 @@ describe('deleteActions', () => {
     expect(buildDeleteRequestUrl('/api/applications/app-2?force=true', 'purgeWorkspace')).toBe(
       '/api/applications/app-2?force=true&deleteMode=purgeWorkspace',
     );
+  });
+
+  it('builds application delete URLs from application ids', () => {
+    expect(buildApplicationDeleteUrl('app-1')).toBe('/api/applications/app-1');
+  });
+
+  it('builds sequence delete URLs from application ids and sequence numbers', () => {
+    expect(buildSequenceDeleteUrl('app-1', '0001')).toBe('/api/applications/app-1/sequences/0001');
   });
 
   it('returns a success message for application deletion', async () => {

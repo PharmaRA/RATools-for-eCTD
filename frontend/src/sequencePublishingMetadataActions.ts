@@ -1,4 +1,5 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import { buildSequenceUrl } from './sequenceActions'
 
 export type SequencePublishingMetadataRequest = {
   applicationId: string
@@ -36,11 +37,15 @@ export type UpdateSequencePublishingMetadataRequest = SequencePublishingMetadata
   email?: string | null
 }
 
+export const buildSequencePublishingMetadataUrl = (applicationId: string, sequenceNumber: string) => {
+  return `${buildSequenceUrl(applicationId, sequenceNumber)}/publishing-metadata`
+}
+
 export const getSequencePublishingMetadata = async (
   request: SequencePublishingMetadataRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<SequencePublishingMetadata> => {
-  return executeRequest(`/api/applications/${request.applicationId}/sequences/${request.sequenceNumber}/publishing-metadata`)
+  return executeRequest(buildSequencePublishingMetadataUrl(request.applicationId, request.sequenceNumber))
 }
 
 export const updateSequencePublishingMetadata = async (
@@ -48,7 +53,7 @@ export const updateSequencePublishingMetadata = async (
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<SequencePublishingMetadata> => {
   return executeRequest(
-    `/api/applications/${request.applicationId}/sequences/${request.sequenceNumber}/publishing-metadata`,
+    buildSequencePublishingMetadataUrl(request.applicationId, request.sequenceNumber),
     buildJsonRequestInit('PUT', {
       applicationType: request.applicationType,
       submissionType: request.submissionType,

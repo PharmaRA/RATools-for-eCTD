@@ -2,17 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message } from 'antd'
 import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
 
-import { ApiRequestError, apiFetch } from '../apiClient'
-import { buildApplicationBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
-import { buildEctdTemplateSelectOptions, createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
+import { ApiRequestError } from '../apiClient'
+import { createApplication, loadApplications } from '../applicationActions'
+import { buildApplicationBatchDeleteItems, buildApplicationDeleteUrl, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
+import { buildEctdTemplateSelectOptions, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
 import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
 import { type Application, getErrorMessage } from './appShared'
 import { buildApplicationColumns } from './applicationsDisplay'
+import { buildBatchDeleteSummaryItems } from './batchDeleteDisplay'
 import { buildBatchDeleteState } from './batchDeleteState'
 import {
   buildImportIssueColumns,
   buildImportIssueSummaryItems,
+  buildImportIssueTagItems,
   getImportIssueSeverityDisplayMeta,
   getImportResultIssues,
 } from './importResultDisplay'
@@ -48,7 +51,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   const fetchApps = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/api/applications') as Application[]
+      const data = await loadApplications()
       setApps(data)
     } catch (err) {
       message.error('Failed to load apps: ' + getErrorMessage(err))
@@ -131,7 +134,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
     setDeletingAppIds((current) => new Set(current).add(id))
 
     try {
-      const outcome = await performDelete('application', `/api/applications/${id}`, mode)
+      const outcome = await performDelete('application', buildApplicationDeleteUrl(id), mode)
 
       if (outcome.kind === 'success') {
         message.success(outcome.message)
@@ -201,6 +204,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
     await fetchApps()
   }
 
+  const appBatchSummaryItems = buildBatchDeleteSummaryItems(appBatchSummary)
   const failedAppBatchResults = getFailedBatchDeleteResults(appBatchSummary)
   const {
     hasSingleDeleteRunning: hasSingleAppDeleteRunning,
@@ -411,8 +415,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                       showIcon
                       title={(
                         <span>
-                          <Tag>{issue.sequenceNumber || '-'}</Tag>
-                          <Tag color="gold">{issue.code}</Tag>
+                          {buildImportIssueTagItems(issue, { codeColor: 'gold' }).map((tag) => (
+                            <Tag key={tag.key} color={tag.color}>{tag.label}</Tag>
+                          ))}
                           {issue.message}
                         </span>
                       )}
@@ -436,9 +441,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
                         showIcon
                         title={(
                           <span>
-                            <Tag>{issue.sequenceNumber || '-'}</Tag>
-                            <Tag color={severityMeta.tagColor}>{issue.severity}</Tag>
-                            <Tag>{issue.code}</Tag>
+                            {buildImportIssueTagItems(issue, { includeSeverity: true }).map((tag) => (
+                              <Tag key={tag.key} color={tag.color}>{tag.label}</Tag>
+                            ))}
                             {issue.message}
                           </span>
                         )}
@@ -548,8 +553,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         onCancel={() => { void closeAppBatchSummary() }}
       >
         <div className="flex flex-col gap-3">
-          <div>成功: <Tag color="green">{appBatchSummary?.successCount ?? 0}</Tag></div>
-          <div>失败: <Tag color="red">{appBatchSummary?.failureCount ?? 0}</Tag></div>
+          {appBatchSummaryItems.map((item) => (
+            <div key={item.key}>{item.label}: <Tag color={item.color}>{item.count}</Tag></div>
+          ))}
           {failedAppBatchResults.length > 0 && (
             <div className="flex flex-col gap-2">
               {failedAppBatchResults.map((result) => (

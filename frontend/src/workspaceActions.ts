@@ -1,4 +1,6 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import type { EctdStructureResponse } from './pages/appShared'
+import type { DocumentPlacementRecord, DocumentRecord } from './workspaceTree'
 
 export const WORKSPACE_PLACEMENT_DRAG_MIME = 'application/x-ratools-placement'
 
@@ -25,6 +27,64 @@ export type RevisePlacementMetadataRequest = {
   operation: string
   fileNamePrefix: string
   lifecycleTargetPlacementId?: string | null
+}
+
+export type UploadDocumentToSectionRequest = {
+  applicationId: string
+  sequenceNumber: string
+  file: File
+  ctdSection: string
+}
+
+export const buildWorkspaceDataUrls = (appId: string) => {
+  const encodedAppId = encodeURIComponent(appId)
+
+  return {
+    placements: `/api/document-placements?applicationId=${encodedAppId}`,
+    documents: `/api/documents?applicationId=${encodedAppId}`,
+    ectdStructure: `/api/applications/${encodedAppId}/ectd-structure`,
+  }
+}
+
+export const loadWorkspacePlacements = async (
+  appId: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<DocumentPlacementRecord[] | { items?: DocumentPlacementRecord[] | null }> => {
+  return executeRequest(buildWorkspaceDataUrls(appId).placements)
+}
+
+export const loadWorkspaceDocuments = async (
+  appId: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<DocumentRecord[]> => {
+  return executeRequest(buildWorkspaceDataUrls(appId).documents)
+}
+
+export const loadWorkspaceEctdStructure = async (
+  appId: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<EctdStructureResponse> => {
+  return executeRequest(buildWorkspaceDataUrls(appId).ectdStructure)
+}
+
+const documentPlacementsUrl = '/api/document-placements'
+
+export const buildDocumentPlacementUrl = (placementId: string) => {
+  return `${documentPlacementsUrl}/${placementId}`
+}
+
+export const buildDocumentPlacementSectionUrl = (placementId: string) => {
+  return `${buildDocumentPlacementUrl(placementId)}/section`
+}
+
+export const buildDocumentPlacementMetadataUrl = (placementId: string) => {
+  return `${buildDocumentPlacementUrl(placementId)}/metadata`
+}
+
+export const buildDocumentUrl = (documentId: string) => `/api/documents/${documentId}`
+
+export const buildDocumentUploadUrl = (applicationId: string, sequenceNumber: string) => {
+  return `/api/applications/${applicationId}/sequences/${sequenceNumber}/documents/upload`
 }
 
 export class PlacementDeletePartialFailureError extends Error {
@@ -77,7 +137,7 @@ export const movePlacementToSection = async (
   }
 
   await executeRequest(
-    `/api/document-placements/${request.placementId}/section`,
+    buildDocumentPlacementSectionUrl(request.placementId),
     buildJsonRequestInit('PUT', { ctdSection: request.toSection }),
   )
 
@@ -88,10 +148,10 @@ export const deletePlacementWithDocument = async (
   request: DeletePlacementWithDocumentRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
-  await executeRequest(`/api/document-placements/${request.placementId}`, { method: 'DELETE' })
+  await executeRequest(buildDocumentPlacementUrl(request.placementId), { method: 'DELETE' })
 
   try {
-    await executeRequest(`/api/documents/${request.documentId}`, { method: 'DELETE' })
+    await executeRequest(buildDocumentUrl(request.documentId), { method: 'DELETE' })
   } catch (error) {
     throw new PlacementDeletePartialFailureError(
       `Placement ${request.placementId} was deleted, but failed to delete document ${request.documentId}.`,
@@ -105,12 +165,37 @@ export const revisePlacementMetadata = async (
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
   await executeRequest(
-    `/api/document-placements/${request.placementId}/metadata`,
+    buildDocumentPlacementMetadataUrl(request.placementId),
     buildJsonRequestInit('PUT', {
       title: request.title,
       operation: request.operation,
       fileNamePrefix: request.fileNamePrefix,
       lifecycleTargetPlacementId: request.lifecycleTargetPlacementId,
+    }),
+  )
+}
+
+export const uploadDocumentToSection = async (
+  request: UploadDocumentToSectionRequest,
+  executeRequest: typeof apiFetch = apiFetch,
+) => {
+  const formData = new FormData()
+  formData.append('file', request.file)
+  formData.append('CtdSection', request.ctdSection)
+
+  const document = await executeRequest(
+    buildDocumentUploadUrl(request.applicationId, request.sequenceNumber),
+    { method: 'POST', body: formData },
+  ) as { id: string }
+
+  await executeRequest(
+    documentPlacementsUrl,
+    buildJsonRequestInit('POST', {
+      applicationId: request.applicationId,
+      sequenceNumber: request.sequenceNumber,
+      documentId: document.id,
+      ctdSection: request.ctdSection,
+      operation: 'New',
     }),
   )
 }

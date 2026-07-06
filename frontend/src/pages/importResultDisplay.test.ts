@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildImportIssueColumns,
   buildImportIssueSummaryItems,
+  buildImportIssueTagItems,
   getImportLifecycleWarningSummaryColor,
   getImportIssueSeverityDisplayMeta,
   getImportResultIssues,
@@ -54,6 +55,25 @@ describe('importResultDisplay', () => {
     expect(getImportResultIssues({})).toEqual([])
     expect(getImportResultIssues(null)).toEqual([])
     expect(getImportResultIssues(undefined)).toEqual([])
+  })
+
+  it('builds import issue tag items for alert titles', () => {
+    const issue = {
+      severity: 'Error',
+      code: 'INVALID_XML',
+      sequenceNumber: null,
+    }
+
+    expect(buildImportIssueTagItems(issue, { codeColor: 'gold' })).toEqual([
+      { key: 'sequence', label: '-' },
+      { key: 'code', label: 'INVALID_XML', color: 'gold' },
+    ])
+
+    expect(buildImportIssueTagItems(issue, { includeSeverity: true })).toEqual([
+      { key: 'sequence', label: '-' },
+      { key: 'severity', label: 'Error', color: 'red' },
+      { key: 'code', label: 'INVALID_XML' },
+    ])
   })
 
   it('builds import issue columns', () => {

@@ -34,6 +34,8 @@ export const buildPublishHistoryValidationSummaryItems = (
   { label: 'Warnings', value: summary.warningCount ?? 0 },
 ]
 
+export const formatPublishHistoryStatisticValue = (value?: number | null) => value ?? undefined
+
 type PublishHistoryStatusSummary = {
   completedCount?: number | null
   failedCount?: number | null
@@ -43,9 +45,9 @@ type PublishHistoryStatusSummary = {
 export const buildPublishHistoryStatusStatisticItems = (
   summary: PublishHistoryStatusSummary,
 ) => [
-  { title: 'Completed Jobs', value: summary.completedCount ?? undefined, color: '#3f8600' },
-  { title: 'Failed Jobs', value: summary.failedCount ?? undefined, color: '#cf1322' },
-  { title: 'Running Jobs', value: summary.runningCount ?? undefined, color: '#1677ff' },
+  { title: 'Completed Jobs', value: formatPublishHistoryStatisticValue(summary.completedCount), color: '#3f8600' },
+  { title: 'Failed Jobs', value: formatPublishHistoryStatisticValue(summary.failedCount), color: '#cf1322' },
+  { title: 'Running Jobs', value: formatPublishHistoryStatisticValue(summary.runningCount), color: '#1677ff' },
 ]
 
 type PublishHistoryReadinessSummary = {
@@ -57,9 +59,9 @@ type PublishHistoryReadinessSummary = {
 export const buildPublishHistoryReadinessStatisticItems = (
   summary: PublishHistoryReadinessSummary,
 ) => [
-  { title: 'Ready Sequences', value: summary.readyCount ?? undefined, color: '#3f8600' },
-  { title: 'Blocked Sequences', value: summary.blockedCount ?? undefined, color: '#cf1322' },
-  { title: 'Unknown Readiness', value: summary.unknownCount ?? undefined, color: '#595959' },
+  { title: 'Ready Sequences', value: formatPublishHistoryStatisticValue(summary.readyCount), color: '#3f8600' },
+  { title: 'Blocked Sequences', value: formatPublishHistoryStatisticValue(summary.blockedCount), color: '#cf1322' },
+  { title: 'Unknown Readiness', value: formatPublishHistoryStatisticValue(summary.unknownCount), color: '#595959' },
 ]
 
 type PublishHistoryLifecycleStatisticSummary = {

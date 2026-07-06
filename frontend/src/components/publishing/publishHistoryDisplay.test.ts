@@ -8,6 +8,7 @@ import {
   buildPublishHistoryValidationSummaryItems,
   formatArtifactFileCount,
   formatArtifactPackageSize,
+  formatPublishHistoryStatisticValue,
   formatPublishHistoryLifecycleStatus,
 } from './publishHistoryDisplay'
 
@@ -36,6 +37,13 @@ describe('publishHistoryDisplay', () => {
       { label: 'Errors', value: 2 },
       { label: 'Warnings', value: 0 },
     ])
+  })
+
+  it('formats publish history statistic values for optional statistic cards', () => {
+    expect(formatPublishHistoryStatisticValue(0)).toBe(0)
+    expect(formatPublishHistoryStatisticValue(5)).toBe(5)
+    expect(formatPublishHistoryStatisticValue(null)).toBeUndefined()
+    expect(formatPublishHistoryStatisticValue(undefined)).toBeUndefined()
   })
 
   it('builds status statistic items with display colors', () => {

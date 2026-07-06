@@ -79,16 +79,20 @@ export type PublishReadinessReport = {
   findings: PublishReadinessFinding[]
 }
 
+export const buildValidateSequenceUrl = () => '/api/validation/sequence'
+
+export const buildPublishReadinessUrl = () => '/api/validation/publish-readiness'
+
 export const validateSequence = async (
   request: ValidateSequenceRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<ValidationReport> => {
-  return executeRequest('/api/validation/sequence', buildJsonRequestInit('POST', request))
+  return executeRequest(buildValidateSequenceUrl(), buildJsonRequestInit('POST', request))
 }
 
 export const getPublishReadiness = async (
   request: ValidateSequenceRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<PublishReadinessReport> => {
-  return executeRequest('/api/validation/publish-readiness', buildJsonRequestInit('POST', request))
+  return executeRequest(buildPublishReadinessUrl(), buildJsonRequestInit('POST', request))
 }

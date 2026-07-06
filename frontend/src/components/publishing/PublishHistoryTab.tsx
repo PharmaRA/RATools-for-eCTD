@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Col, Form, Input, Row, Select, Statistic, Table, message } from 'antd'
 
-import { apiFetch } from '../../apiClient'
 import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
+import { loadPublishHistory } from '../../publishActions'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
 import { getPublishHistoryEntriesFromResponse, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
-import { buildPublishHistoryBrowserUrl, buildPublishHistoryRequestUrl, getPublishHistoryInitialQueryState, normalizePublishHistoryReadinessSort, type PublishHistoryFilterValues } from './publishHistoryQueryState'
+import { buildPublishHistoryBrowserUrl, getPublishHistoryInitialQueryState, normalizePublishHistoryReadinessSort, type PublishHistoryFilterValues } from './publishHistoryQueryState'
 import {
   buildPublishHistoryLifecycleStatisticItems,
   buildPublishHistoryReadinessStatisticItems,
@@ -60,7 +60,12 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     const values = form.getFieldsValue()
 
     try {
-      const res = await apiFetch(buildPublishHistoryRequestUrl(appId, page, pageSize, values)) as PublishHistoryResponse
+      const res = await loadPublishHistory<PublishHistoryResponse>({
+        applicationId: appId,
+        page,
+        pageSize,
+        filters: values,
+      })
       setData(res)
     } catch (err) {
       message.error('Failed to load history: ' + getErrorMessage(err))

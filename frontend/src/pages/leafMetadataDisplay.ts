@@ -33,6 +33,8 @@ type LeafPreview = {
 
 const renderBreakAllText = (value: string) => createElement('span', { className: 'text-xs break-all' }, value)
 
+export const formatLeafPreviewOptionalText = (value?: string | null) => value || '-'
+
 export const buildLeafPreviewDescriptionItems = (preview: LeafPreview) => [
   { key: 'operation', label: 'operation', children: preview.operation },
   { key: 'title', label: 'title', children: preview.title },
@@ -40,10 +42,10 @@ export const buildLeafPreviewDescriptionItems = (preview: LeafPreview) => [
   ...(preview.modifiedFileHref
     ? [{ key: 'modified-file', label: 'modified-file', children: renderBreakAllText(preview.modifiedFileHref) }]
     : []),
-  { key: 'mime-type', label: 'Mime Type', children: preview.mediaType || '-' },
+  { key: 'mime-type', label: 'Mime Type', children: formatLeafPreviewOptionalText(preview.mediaType) },
   { key: 'checksum-type', label: 'Checksum Type', children: 'md5' },
   { key: 'checksum', label: 'Checksum', children: renderBreakAllText('Computed at publish') },
   { key: 'source-file-name', label: 'Source File Name', children: preview.sourceFileName },
-  { key: 'resulting-file-name', label: 'Resulting File Name', children: preview.revisedFileName || '-' },
+  { key: 'resulting-file-name', label: 'Resulting File Name', children: formatLeafPreviewOptionalText(preview.revisedFileName) },
   { key: 'storage-path', label: 'Storage Path', children: renderBreakAllText(preview.storagePath) },
 ]

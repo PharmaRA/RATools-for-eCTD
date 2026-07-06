@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildPublishHistoryBrowserUrl,
-  buildPublishHistoryRequestUrl,
   getPublishHistoryInitialQueryState,
   normalizePublishHistoryReadinessSort,
 } from './publishHistoryQueryState'
@@ -56,22 +55,6 @@ describe('publishHistoryQueryState', () => {
       {},
       null,
     )).toBe('/applications/app-1?tab=history')
-  })
-
-  it('builds a publish history request URL with pagination and filters', () => {
-    expect(buildPublishHistoryRequestUrl('app-1', 2, 50, {
-      sequenceNumber: '0002',
-      status: 'Completed',
-      readinessStatus: 'Ready',
-    })).toBe('/api/applications/app-1/publish-history?page=2&pageSize=50&sequenceNumber=0002&status=Completed&readinessStatus=Ready')
-  })
-
-  it('omits empty publish history request filters', () => {
-    expect(buildPublishHistoryRequestUrl('app-1', 1, 20, {
-      sequenceNumber: '',
-      status: undefined,
-      readinessStatus: null,
-    })).toBe('/api/applications/app-1/publish-history?page=1&pageSize=20')
   })
 
   it.each([

@@ -1,16 +1,75 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildDocumentPlacementMetadataUrl,
+  buildDocumentPlacementSectionUrl,
+  buildDocumentPlacementUrl,
+  buildDocumentUrl,
+  buildDocumentUploadUrl,
+  buildWorkspaceDataUrls,
   deletePlacementWithDocument,
+  loadWorkspaceDocuments,
+  loadWorkspaceEctdStructure,
+  loadWorkspacePlacements,
   movePlacementToSection,
   PlacementDeletePartialFailureError,
   revisePlacementMetadata,
   serializePlacementDragPayload,
   tryParsePlacementDragPayload,
+  uploadDocumentToSection,
 } from './workspaceActions'
 import { ApiRequestError } from './apiClient'
 
 describe('workspaceActions', () => {
+  it('builds workspace data URLs with encoded application ids', () => {
+    expect(buildWorkspaceDataUrls('app 1/2')).toEqual({
+      placements: '/api/document-placements?applicationId=app%201%2F2',
+      documents: '/api/documents?applicationId=app%201%2F2',
+      ectdStructure: '/api/applications/app%201%2F2/ectd-structure',
+    })
+  })
+
+  it('loads workspace placements for an application', async () => {
+    const placements = [{ id: 'placement-1' }]
+    const request = vi.fn().mockResolvedValue(placements)
+
+    const result = await loadWorkspacePlacements('app-1', request)
+
+    expect(request).toHaveBeenCalledWith('/api/document-placements?applicationId=app-1')
+    expect(result).toEqual(placements)
+  })
+
+  it('loads workspace documents for an application', async () => {
+    const documents = [{ id: 'document-1' }]
+    const request = vi.fn().mockResolvedValue(documents)
+
+    const result = await loadWorkspaceDocuments('app-1', request)
+
+    expect(request).toHaveBeenCalledWith('/api/documents?applicationId=app-1')
+    expect(result).toEqual(documents)
+  })
+
+  it('loads workspace eCTD structure for an application', async () => {
+    const structure = { roots: [] }
+    const request = vi.fn().mockResolvedValue(structure)
+
+    const result = await loadWorkspaceEctdStructure('app-1', request)
+
+    expect(request).toHaveBeenCalledWith('/api/applications/app-1/ectd-structure')
+    expect(result).toEqual(structure)
+  })
+
+  it('builds document placement mutation URLs', () => {
+    expect(buildDocumentPlacementUrl('placement-1')).toBe('/api/document-placements/placement-1')
+    expect(buildDocumentPlacementSectionUrl('placement-1')).toBe('/api/document-placements/placement-1/section')
+    expect(buildDocumentPlacementMetadataUrl('placement-1')).toBe('/api/document-placements/placement-1/metadata')
+  })
+
+  it('builds workspace document mutation URLs', () => {
+    expect(buildDocumentUrl('document-1')).toBe('/api/documents/document-1')
+    expect(buildDocumentUploadUrl('app-1', '0001')).toBe('/api/applications/app-1/sequences/0001/documents/upload')
+  })
+
   it('calls placement section update endpoint for move', async () => {
     const request = vi.fn().mockResolvedValue({})
 
@@ -79,6 +138,39 @@ describe('workspaceActions', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Updated title', operation: 'Replace', fileNamePrefix: 'updated-report', lifecycleTargetPlacementId: 'target-placement-1' }),
+    })
+  })
+
+  it('uploads a document file then maps it to the target section', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 'document-1' })
+      .mockResolvedValueOnce({})
+    const file = new File(['content'], 'leaf.pdf', { type: 'application/pdf' })
+
+    await uploadDocumentToSection({
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      file,
+      ctdSection: 'm1.2',
+    }, request)
+
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(request.mock.calls[0][0]).toBe('/api/applications/app-1/sequences/0001/documents/upload')
+    expect(request.mock.calls[0][1].method).toBe('POST')
+    const uploadBody = request.mock.calls[0][1].body as FormData
+    expect(uploadBody.get('file')).toBe(file)
+    expect(uploadBody.get('CtdSection')).toBe('m1.2')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/document-placements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        applicationId: 'app-1',
+        sequenceNumber: '0001',
+        documentId: 'document-1',
+        ctdSection: 'm1.2',
+        operation: 'New',
+      }),
     })
   })
 

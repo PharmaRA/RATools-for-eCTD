@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Tag, message } from 'antd'
 import { ArrowLeft, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
-import { apiFetch } from '../apiClient'
 import { createAndExecutePublishJob } from '../publishActions'
 import {
   getSequencePublishingMetadata,
@@ -25,6 +24,7 @@ import {
   movePlacementToSection,
   PlacementDeletePartialFailureError,
   revisePlacementMetadata,
+  uploadDocumentToSection,
 } from '../workspaceActions'
 import {
   findWorkspaceTreeNode,
@@ -298,21 +298,11 @@ export const SequenceWorkspacePage = ({
       setSelectedTreeKey(targetSection)
       setSelectedSectionPath(targetSection)
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('CtdSection', targetSection)
-      const docRes = await apiFetch(`/api/applications/${appId}/sequences/${seqNumber}/documents/upload`, { method: 'POST', body: formData })
-
-      await apiFetch('/api/document-placements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          applicationId: appId,
-          sequenceNumber: seqNumber,
-          documentId: docRes.id,
-          ctdSection: targetSection,
-          operation: 'New',
-        }),
+      await uploadDocumentToSection({
+        applicationId: appId,
+        sequenceNumber: seqNumber,
+        file,
+        ctdSection: targetSection,
       })
 
       message.success({ content: `${file.name} mapped to ${targetSection} and saved!`, key: 'uploading' })

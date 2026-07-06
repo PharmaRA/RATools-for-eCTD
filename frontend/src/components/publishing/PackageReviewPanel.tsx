@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, message } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
-import { apiFetch } from '../../apiClient'
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
+import { buildPublishJobArtifactDownloadUrl, loadPublishJobArtifacts, loadPublishJobReport } from '../../publishActions'
 import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import { getArtifactsFromResponse } from './packageReviewArtifacts'
 import { buildPackageReviewChecklistRows, isPackageReviewReadyForSubmission } from './packageReviewChecklist'
@@ -75,14 +75,14 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
       setArtifactsError(null)
 
       const [reportResult, artifactsResult] = await Promise.allSettled([
-        apiFetch(`/api/publish-jobs/${jobId}/report`),
-        apiFetch(`/api/publish-jobs/${jobId}/artifacts`),
+        loadPublishJobReport<PackageReviewReport>(jobId),
+        loadPublishJobArtifacts(jobId),
       ])
 
       if (!active) return
 
       if (reportResult.status === 'fulfilled') {
-        setReport(reportResult.value as PackageReviewReport)
+        setReport(reportResult.value)
       } else {
         setReportError(normalizePackageReviewError(reportResult.reason))
       }
@@ -204,7 +204,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             <Button
               type="primary"
               icon={<Download size={16} className="mr-1" />}
-              href={`/api/publish-jobs/${jobId}/artifacts/PackageZip/download`}
+              href={buildPublishJobArtifactDownloadUrl(jobId, 'PackageZip')}
               target="_blank"
               disabled={!packageZipExists}
             >
@@ -212,7 +212,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             </Button>
             <Button
               icon={<Download size={16} className="mr-1" />}
-              href={`/api/publish-jobs/${jobId}/artifacts/PublishReport/download`}
+              href={buildPublishJobArtifactDownloadUrl(jobId, 'PublishReport')}
               target="_blank"
               disabled={!publishReportExists}
             >

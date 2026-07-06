@@ -1,4 +1,6 @@
 import { apiFetch, ApiRequestError } from './apiClient';
+import { buildApplicationUrl } from './applicationActions';
+import { buildSequenceUrl } from './sequenceActions';
 
 export type DeleteEntity = 'application' | 'sequence';
 export type DeleteMode = 'databaseOnly' | 'purgeWorkspace';
@@ -49,11 +51,15 @@ export const getSuccessfulBatchDeleteResults = <TSource extends BatchDeleteResul
   return getBatchDeleteResults(summary).filter((result) => result.outcome.kind === 'success');
 };
 
+export const buildApplicationDeleteUrl = buildApplicationUrl;
+
+export const buildSequenceDeleteUrl = buildSequenceUrl;
+
 export const buildApplicationBatchDeleteItems = (appIds: string[]): BatchDeleteItem[] => {
   return appIds.map((appId) => ({
     key: appId,
     label: appId,
-    url: `/api/applications/${appId}`,
+    url: buildApplicationDeleteUrl(appId),
   }));
 };
 
@@ -61,7 +67,7 @@ export const buildSequenceBatchDeleteItems = (appId: string, sequenceNumbers: st
   return sequenceNumbers.map((sequenceNumber) => ({
     key: sequenceNumber,
     label: sequenceNumber,
-    url: `/api/applications/${appId}/sequences/${sequenceNumber}`,
+    url: buildSequenceDeleteUrl(appId, sequenceNumber),
   }));
 };
 

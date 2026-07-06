@@ -8,6 +8,7 @@ import {
   formatReadinessFieldName,
   formatReadinessHistoryCountHint,
   formatReadinessMissingMetadataHint,
+  formatReadinessOptionalText,
   formatReadinessWarningCountHint,
   formatReadinessCount,
   formatReadinessReadyStatus,
@@ -63,6 +64,13 @@ describe('publishReadinessDisplay', () => {
     expect(formatReadinessReadyStatus(true)).toBe('Yes')
     expect(formatReadinessReadyStatus(false)).toBe('No')
     expect(formatReadinessReadyStatus(undefined)).toBe('No')
+  })
+
+  it('formats optional readiness text with a dash placeholder', () => {
+    expect(formatReadinessOptionalText('Blocked')).toBe('Blocked')
+    expect(formatReadinessOptionalText('')).toBe('-')
+    expect(formatReadinessOptionalText(null)).toBe('-')
+    expect(formatReadinessOptionalText(undefined)).toBe('-')
   })
 
   it('uses a dash when publish readiness status is missing', () => {

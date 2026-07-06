@@ -48,7 +48,9 @@ export const formatReadinessHistoryCountHint = (
 
 export const formatReadinessReadyStatus = (isReady?: boolean | null) => isReady ? 'Yes' : 'No'
 
-export const formatReadinessStatus = (status?: string | null) => status || '-'
+export const formatReadinessOptionalText = (value?: string | null) => value || '-'
+
+export const formatReadinessStatus = (status?: string | null) => formatReadinessOptionalText(status)
 
 type PublishReadinessStatus = {
   isReady?: boolean | null
@@ -64,7 +66,7 @@ export const getPublishReadinessFindingSeverityTagColor = (severity: string) => 
   return String(severity).toLowerCase() === 'error' ? 'red' : 'gold'
 }
 
-export const formatReadinessFieldName = (fieldName?: string | null) => fieldName || '-'
+export const formatReadinessFieldName = (fieldName?: string | null) => formatReadinessOptionalText(fieldName)
 
 export const formatReadinessCount = (count?: number | null) => count ?? '-'
 

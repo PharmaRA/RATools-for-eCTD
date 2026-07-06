@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   buildEctdTemplateSelectOptions,
-  createApplication,
   getDefaultEctdTemplateKey,
   importApplicationWithTemplate,
   loadEctdTemplates,
@@ -50,28 +49,6 @@ describe('ectdTemplateActions', () => {
       { value: 'us-fda-ectd-3-2-2', label: 'US FDA eCTD 3.2.2' },
       { value: 'eu-ema-ectd-4-0', label: 'EU EMA eCTD 4.0' },
     ])
-  })
-
-  it('submits create requests with ectdTemplateKey', async () => {
-    const request = vi.fn().mockResolvedValue({ id: 'app-1' })
-
-    await createApplication({
-      applicationNumber: 'IND-NEW',
-      ectdTemplateKey: 'us-fda-ectd-3-2-2',
-      sponsorName: 'Demo Sponsor',
-      workingDirectoryParentPath: 'D:\\work',
-    }, request)
-
-    expect(request).toHaveBeenCalledWith('/api/applications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        applicationNumber: 'IND-NEW',
-        ectdTemplateKey: 'us-fda-ectd-3-2-2',
-        sponsorName: 'Demo Sponsor',
-        workingDirectoryParentPath: 'D:\\work',
-      }),
-    })
   })
 
   it('submits import requests with ectdTemplateKey', async () => {

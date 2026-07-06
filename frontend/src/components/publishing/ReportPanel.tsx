@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
-import { apiFetch } from '../../apiClient'
+import { buildPublishJobArtifactDownloadUrl, loadPublishJobReport } from '../../publishActions'
 import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import {
   getReportErrorAlertMeta,
@@ -144,7 +144,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
       setErrorState(null)
       setReport(null)
       try {
-        const data = await apiFetch(`/api/publish-jobs/${jobId}/report`) as PublishReport
+        const data = await loadPublishJobReport<PublishReport>(jobId)
         if (active) setReport(data)
       } catch (err) {
         if (active) setErrorState(toReportErrorState(err))
@@ -190,7 +190,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </h2>
               <p className="text-gray-500 m-0 text-sm mt-1">{report.message}</p>
             </div>
-            <Button type="primary" icon={<Download size={16} className="mr-1" />} href={`/api/publish-jobs/${jobId}/artifacts/PublishReport/download`} target="_blank">
+            <Button type="primary" icon={<Download size={16} className="mr-1" />} href={buildPublishJobArtifactDownloadUrl(jobId, 'PublishReport')} target="_blank">
               Download JSON
             </Button>
           </div>

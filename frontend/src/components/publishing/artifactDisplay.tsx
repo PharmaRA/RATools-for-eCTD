@@ -2,6 +2,7 @@ import { Button, Tag } from 'antd'
 import { Download } from 'lucide-react'
 
 import { formatBytes } from '../../pages/appShared'
+import { buildPublishJobArtifactDownloadUrl } from '../../publishActions'
 
 type PublishArtifactRow = {
   name: string
@@ -29,7 +30,7 @@ export const buildArtifactColumns = (jobId: string | null) => [
         <Button
           type="link"
           icon={<Download size={14} className="mr-1" />}
-          href={`/api/publish-jobs/${jobId}/artifacts/${record.name}/download`}
+          href={buildPublishJobArtifactDownloadUrl(jobId, record.name)}
           target="_blank"
           download
         >

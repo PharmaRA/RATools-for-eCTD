@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  buildWorkspaceDataUrls,
   buildWorkspaceExpandedKeys,
   buildWorkspaceDocumentsById,
   getWorkspaceEctdRootsFromResponse,
@@ -12,6 +11,7 @@ import {
   useWorkspaceData,
 } from './useWorkspaceData'
 import type { apiFetch as defaultApiFetch } from '../../apiClient'
+import { buildWorkspaceDataUrls } from '../../workspaceActions'
 
 type UseWorkspaceDataOptions = {
   appId: string

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Drawer, Spin, Table, message } from 'antd'
 
-import { apiFetch } from '../../apiClient'
 import { getErrorMessage } from '../../pages/appShared'
+import { loadPublishJobArtifacts } from '../../publishActions'
 import { buildArtifactColumns, getPublishArtifactsFromResponse } from './artifactDisplay'
 
 type PublishArtifact = {
@@ -28,7 +28,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
     void Promise.resolve().then(async () => {
       setLoading(true)
       try {
-        const data = await apiFetch(`/api/publish-jobs/${jobId}/artifacts`) as PublishArtifactsResponse
+        const data = await loadPublishJobArtifacts<PublishArtifactsResponse>(jobId)
         if (active) setArtifacts(getPublishArtifactsFromResponse(data))
       } catch (error) {
         if (active) message.error('Failed to load artifacts: ' + getErrorMessage(error))
