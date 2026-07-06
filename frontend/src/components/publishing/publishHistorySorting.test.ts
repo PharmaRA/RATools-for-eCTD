@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isReadinessSort, sortPublishHistoryEntries } from './publishHistorySorting'
+import { getPublishHistoryEntriesFromResponse, isReadinessSort, sortPublishHistoryEntries } from './publishHistorySorting'
 
 const entry = (id: string, status?: string | null) => ({
   publishJobId: id,
@@ -8,6 +8,15 @@ const entry = (id: string, status?: string | null) => ({
 })
 
 describe('publishHistorySorting', () => {
+  it('reads publish history entries from optional response data', () => {
+    const entries = [entry('ready', 'Ready')]
+
+    expect(getPublishHistoryEntriesFromResponse({ entries })).toBe(entries)
+    expect(getPublishHistoryEntriesFromResponse({})).toEqual([])
+    expect(getPublishHistoryEntriesFromResponse(null)).toEqual([])
+    expect(getPublishHistoryEntriesFromResponse(undefined)).toEqual([])
+  })
+
   it('sorts entries by readiness priority without mutating the source list', () => {
     const entries = [
       entry('ready', 'Ready'),

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildEctdTemplateSelectOptions,
   createApplication,
   getDefaultEctdTemplateKey,
   importApplicationWithTemplate,
@@ -39,6 +40,16 @@ describe('ectdTemplateActions', () => {
 
   it('returns undefined when there are no templates to preselect', () => {
     expect(getDefaultEctdTemplateKey([])).toBeUndefined()
+  })
+
+  it('builds select options from eCTD templates', () => {
+    expect(buildEctdTemplateSelectOptions([
+      { key: 'us-fda-ectd-3-2-2', displayName: 'US FDA eCTD 3.2.2', region: 'US' },
+      { key: 'eu-ema-ectd-4-0', displayName: 'EU EMA eCTD 4.0', region: 'EU' },
+    ])).toEqual([
+      { value: 'us-fda-ectd-3-2-2', label: 'US FDA eCTD 3.2.2' },
+      { value: 'eu-ema-ectd-4-0', label: 'EU EMA eCTD 4.0' },
+    ])
   })
 
   it('submits create requests with ectdTemplateKey', async () => {

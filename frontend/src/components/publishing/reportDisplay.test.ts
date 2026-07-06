@@ -6,7 +6,9 @@ import {
   buildReportArtifactSummaryItems,
   buildReportAuditSummaryItems,
   buildReportIntegrityFindingColumns,
+  buildReportIntegrityIssueSummaryItems,
   buildReportIntegritySummaryItems,
+  buildReportLifecycleIssueSummaryItems,
   buildReportLifecycleMatchColumns,
   buildReportLifecycleSummaryItems,
   buildReportOverviewItems,
@@ -116,6 +118,18 @@ describe('reportDisplay', () => {
     ])
   })
 
+  it('builds report integrity issue summary items', () => {
+    expect(buildReportIntegrityIssueSummaryItems({
+      missingFilesCount: 1,
+      missingZipEntriesCount: 0,
+      mismatchedArtifactsCount: null,
+    })).toEqual([
+      { key: 'missing-files', label: 'Missing Files', children: 1 },
+      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
+      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+    ])
+  })
+
   it('builds report artifact summary items', () => {
     expect(buildReportArtifactSummaryItems({
       fileCount: 3,
@@ -162,6 +176,24 @@ describe('reportDisplay', () => {
       { key: 'ambiguous', label: 'Ambiguous', children: 0 },
       { key: 'current-sequence', label: 'Current Sequence', children: 5 },
       { key: 'warning-summary', label: 'Warning Summary', children: '-' },
+    ])
+  })
+
+  it('builds report lifecycle issue summary items', () => {
+    expect(buildReportLifecycleIssueSummaryItems({
+      replaceTargetNotFoundCount: 1,
+      deleteTargetNotFoundCount: 2,
+      appendTargetNotFoundCount: 3,
+      ambiguousCount: 0,
+      currentSequenceCount: 5,
+      issueCount: 9,
+    })).toEqual([
+      { key: 'issues', label: 'Issues', children: 9 },
+      { key: 'replace-missing', label: 'Replace Missing', children: 1 },
+      { key: 'delete-missing', label: 'Delete Missing', children: 2 },
+      { key: 'append-missing', label: 'Append Missing', children: 3 },
+      { key: 'ambiguous', label: 'Ambiguous', children: 0 },
+      { key: 'current-sequence', label: 'Current Sequence', children: 5 },
     ])
   })
 

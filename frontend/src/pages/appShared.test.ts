@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { addSectionExpansionKeys, formatOptionalBytes, formatOptionalText } from './appShared'
+import {
+  addSectionExpansionKeys,
+  formatOptionalBytes,
+  formatOptionalText,
+  getLifecycleIssueCountValues,
+} from './appShared'
 
 describe('appShared tree helpers', () => {
   it('adds section ancestors without duplicating existing expanded keys', () => {
@@ -23,5 +28,20 @@ describe('appShared display helpers', () => {
     expect(formatOptionalBytes(1536)).toBe('1.5 KB')
     expect(formatOptionalBytes(null)).toBe('-')
     expect(formatOptionalBytes(undefined)).toBe('-')
+  })
+})
+
+describe('appShared lifecycle helpers', () => {
+  it('reads lifecycle issue count values with zero defaults', () => {
+    expect(getLifecycleIssueCountValues({
+      replaceTargetNotFoundCount: 2,
+      deleteTargetNotFoundCount: null,
+      appendTargetNotFoundCount: 3,
+      ambiguousCount: undefined,
+      currentSequenceCount: 1,
+    })).toEqual([2, 0, 3, 0, 1])
+
+    expect(getLifecycleIssueCountValues(null)).toEqual([0, 0, 0, 0, 0])
+    expect(getLifecycleIssueCountValues(undefined)).toEqual([0, 0, 0, 0, 0])
   })
 })

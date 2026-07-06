@@ -2,7 +2,14 @@ import { act, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { splitWorkspacePlacements, useWorkspaceData } from './useWorkspaceData'
+import {
+  buildWorkspaceExpandedKeys,
+  buildWorkspaceDocumentsById,
+  getWorkspaceEctdRootsFromResponse,
+  getWorkspacePlacementsFromResponse,
+  splitWorkspacePlacements,
+  useWorkspaceData,
+} from './useWorkspaceData'
 import type { apiFetch as defaultApiFetch } from '../../apiClient'
 
 type UseWorkspaceDataOptions = {
@@ -68,6 +75,52 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
 describe('useWorkspaceData', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('reads workspace placements from list or paged response data', () => {
+    const placements = [
+      { id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New' },
+    ]
+
+    expect(getWorkspacePlacementsFromResponse(placements)).toBe(placements)
+    expect(getWorkspacePlacementsFromResponse({ items: placements })).toBe(placements)
+    expect(getWorkspacePlacementsFromResponse({})).toEqual([])
+    expect(getWorkspacePlacementsFromResponse(null)).toEqual([])
+    expect(getWorkspacePlacementsFromResponse(undefined)).toEqual([])
+  })
+
+  it('builds workspace documents by id from optional document data', () => {
+    const docs = [
+      { id: 'doc-1', fileName: 'cover.pdf', storagePath: '/tmp/cover.pdf' },
+      { id: 'doc-2', fileName: 'summary.pdf', storagePath: '/tmp/summary.pdf' },
+    ]
+
+    expect(buildWorkspaceDocumentsById(docs)).toEqual({
+      'doc-1': docs[0],
+      'doc-2': docs[1],
+    })
+    expect(buildWorkspaceDocumentsById(null)).toEqual({})
+    expect(buildWorkspaceDocumentsById(undefined)).toEqual({})
+  })
+
+  it('reads workspace eCTD roots from optional structure data', () => {
+    const roots = [
+      { elementName: 'm1', sectionPath: '1.2', displayName: 'Cover', sourceProfile: 'FDA', children: [] },
+    ]
+
+    expect(getWorkspaceEctdRootsFromResponse({ roots })).toBe(roots)
+    expect(getWorkspaceEctdRootsFromResponse({})).toEqual([])
+    expect(getWorkspaceEctdRootsFromResponse(null)).toEqual([])
+    expect(getWorkspaceEctdRootsFromResponse(undefined)).toEqual([])
+  })
+
+  it('builds expanded keys from workspace eCTD roots', () => {
+    expect(buildWorkspaceExpandedKeys([
+      { elementName: 'm1', sectionPath: '1.2', displayName: 'Cover', sourceProfile: 'FDA', children: [] },
+      { elementName: 'm2', sectionPath: '2.3', displayName: 'Quality', sourceProfile: 'FDA', children: [] },
+    ])).toEqual(['1.2', '2.3'])
+
+    expect(buildWorkspaceExpandedKeys([])).toEqual([])
   })
 
   it('splits application and sequence placements together', () => {

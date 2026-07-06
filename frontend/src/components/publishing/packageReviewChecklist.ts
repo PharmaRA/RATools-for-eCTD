@@ -11,12 +11,28 @@ type PackageReviewChecklistInput = {
 }
 
 type PackageReviewChecklistCountLabel = 'error' | 'issue'
+type PackageReviewIntegritySummary = NonNullable<PackageReviewReport['integritySummary']>
 
 export const formatPackageReviewChecklistCountDetail = (
   reportLoaded: boolean,
   count: number | null | undefined,
   label: PackageReviewChecklistCountLabel,
 ) => (reportLoaded ? `${count ?? '-'} ${label}(s)` : 'Unavailable')
+
+export const formatPackageReviewPublishDetail = (
+  reportMessage: string | null | undefined,
+  reportError: Error | null,
+) => reportMessage || reportError?.message || 'Report unavailable.'
+
+export const formatPackageReviewIntegrityDetail = (
+  integritySummary?: PackageReviewIntegritySummary | null,
+) => integritySummary?.isConsistent === true ? 'Consistent' : 'Inconsistent or unavailable'
+
+export const formatPackageReviewRequiredArtifactsDetail = (
+  artifactsError: Error | null,
+  presentArtifactCount: number,
+  requiredArtifactCount: number,
+) => artifactsError?.message || `${presentArtifactCount}/${requiredArtifactCount} present`
 
 export const isPackageReviewReadyForSubmission = (rows: readonly PackageReviewChecklistRow[]) => (
   rows.every((row) => row.pass)
@@ -35,7 +51,7 @@ export const buildPackageReviewChecklistRows = ({
     key: 'publish-succeeded',
     check: 'Publish succeeded',
     pass: reportLoaded && report?.succeeded === true,
-    detail: report?.message || reportError?.message || 'Report unavailable.',
+    detail: formatPackageReviewPublishDetail(report?.message, reportError),
   },
   {
     key: 'validation-errors',
@@ -53,12 +69,12 @@ export const buildPackageReviewChecklistRows = ({
     key: 'integrity-consistent',
     check: 'Integrity consistent',
     pass: reportLoaded && report?.integritySummary?.isConsistent === true,
-    detail: report?.integritySummary?.isConsistent === true ? 'Consistent' : 'Inconsistent or unavailable',
+    detail: formatPackageReviewIntegrityDetail(report?.integritySummary),
   },
   {
     key: 'required-artifacts-present',
     check: 'Required artifacts present',
     pass: !artifactsError && presentArtifactCount === requiredArtifactCount,
-    detail: artifactsError?.message || `${presentArtifactCount}/${requiredArtifactCount} present`,
+    detail: formatPackageReviewRequiredArtifactsDetail(artifactsError, presentArtifactCount, requiredArtifactCount),
   },
 ]

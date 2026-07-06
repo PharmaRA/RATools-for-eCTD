@@ -3,10 +3,20 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildLeafPlacementDescriptionItems,
+  buildLeafPlacementOperationOptions,
   buildLeafPreviewDescriptionItems,
 } from './leafMetadataDisplay'
 
 describe('leafMetadataDisplay', () => {
+  it('builds leaf placement operation select options', () => {
+    expect(buildLeafPlacementOperationOptions()).toEqual([
+      { value: 'New', label: 'New' },
+      { value: 'Replace', label: 'Replace' },
+      { value: 'Delete', label: 'Delete' },
+      { value: 'Append', label: 'Append' },
+    ])
+  })
+
   it('builds leaf placement description items', () => {
     const items = buildLeafPlacementDescriptionItems({
       id: 'placement-1',

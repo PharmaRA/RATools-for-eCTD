@@ -4,9 +4,11 @@ import {
   buildPublishReadinessCategoryColumns,
   buildPublishReadinessSnapshotItems,
   formatMissingMetadataFields,
+  formatReadinessBlockingErrorCountHint,
   formatReadinessFieldName,
   formatReadinessHistoryCountHint,
   formatReadinessMissingMetadataHint,
+  formatReadinessWarningCountHint,
   formatReadinessCount,
   formatReadinessReadyStatus,
   formatReadinessStatus,
@@ -41,6 +43,20 @@ describe('publishReadinessDisplay', () => {
     expect(formatReadinessHistoryCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('Blocking errors: 3')
     expect(formatReadinessHistoryCountHint({ isReady: false, blockingErrorCount: 3 }, 'Applicant')).toBeNull()
     expect(formatReadinessHistoryCountHint({ isReady: true, warningCount: 0 }, null)).toBeNull()
+  })
+
+  it('formats readiness warning count hints only for ready rows with warnings', () => {
+    expect(formatReadinessWarningCountHint({ isReady: true, warningCount: 2 })).toBe('Warnings: 2')
+    expect(formatReadinessWarningCountHint({ isReady: true, warningCount: 0 })).toBeNull()
+    expect(formatReadinessWarningCountHint({ isReady: false, warningCount: 2 })).toBeNull()
+    expect(formatReadinessWarningCountHint({ isReady: true, warningCount: null })).toBeNull()
+  })
+
+  it('formats readiness blocking error count hints only for blocked rows without metadata hints', () => {
+    expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('Blocking errors: 3')
+    expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 3 }, 'Applicant')).toBeNull()
+    expect(formatReadinessBlockingErrorCountHint({ isReady: true, blockingErrorCount: 3 }, null)).toBeNull()
+    expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 0 }, null)).toBeNull()
   })
 
   it('formats publish readiness ready status', () => {

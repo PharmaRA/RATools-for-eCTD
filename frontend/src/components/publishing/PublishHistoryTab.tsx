@@ -5,7 +5,7 @@ import { apiFetch } from '../../apiClient'
 import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
-import { sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
+import { getPublishHistoryEntriesFromResponse, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
 import { buildPublishHistoryBrowserUrl, buildPublishHistoryRequestUrl, getPublishHistoryInitialQueryState, normalizePublishHistoryReadinessSort, type PublishHistoryFilterValues } from './publishHistoryQueryState'
 import {
   buildPublishHistoryLifecycleStatisticItems,
@@ -101,7 +101,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   }
 
   const getSortedEntries = () => {
-    return sortPublishHistoryEntries(data?.entries || [], readinessSort)
+    return sortPublishHistoryEntries(getPublishHistoryEntriesFromResponse(data), readinessSort)
   }
 
   const columns = buildPublishHistoryColumns({

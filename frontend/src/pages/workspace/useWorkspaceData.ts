@@ -42,6 +42,22 @@ export const splitWorkspacePlacements = (
   }
 }
 
+export const getWorkspacePlacementsFromResponse = <T,>(
+  response?: T[] | { items?: T[] | null } | null,
+): T[] => Array.isArray(response) ? response : response?.items || []
+
+export const buildWorkspaceDocumentsById = (
+  docs?: DocumentRecord[] | null,
+): Record<string, DocumentRecord> => Object.fromEntries((docs || []).map((doc) => [doc.id, doc]))
+
+export const getWorkspaceEctdRootsFromResponse = (
+  response?: { roots?: EctdStructureNode[] | null } | null,
+): EctdStructureNode[] => response?.roots || []
+
+export const buildWorkspaceExpandedKeys = (
+  roots: readonly EctdStructureNode[],
+): string[] => roots.map((node) => node.sectionPath)
+
 export const useWorkspaceData = ({
   appId,
   seqNumber,
@@ -65,7 +81,9 @@ export const useWorkspaceData = ({
     setPlacementsError(null)
     try {
       const res = await apiFetch(`/api/document-placements?applicationId=${encodeURIComponent(appId)}`)
-      const list = Array.isArray(res) ? res : (res.items || [])
+      const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(
+        res as DocumentPlacementRecord[] | { items?: DocumentPlacementRecord[] | null },
+      )
       const placementSummary = splitWorkspacePlacements(list, appId, seqNumber)
       setApplicationPlacements(placementSummary.applicationPlacements)
       setPlacements(placementSummary.sequencePlacements)
@@ -79,7 +97,7 @@ export const useWorkspaceData = ({
     setDocumentsError(null)
     try {
       const docs = await apiFetch(`/api/documents?applicationId=${encodeURIComponent(appId)}`) as DocumentRecord[]
-      const mapped = Object.fromEntries((docs || []).map((doc) => [doc.id, doc]))
+      const mapped = buildWorkspaceDocumentsById(docs)
       setDocumentsById(mapped)
     } catch (error) {
       const message = getErrorMessage(error)
@@ -92,9 +110,9 @@ export const useWorkspaceData = ({
     setTreeError(null)
     try {
       const response = await apiFetch(`/api/applications/${appId}/ectd-structure`) as EctdStructureResponse
-      const roots = response.roots || []
+      const roots = getWorkspaceEctdRootsFromResponse(response)
       setEctdRoots(roots)
-      setExpandedKeys(roots.map((node) => node.sectionPath))
+      setExpandedKeys(buildWorkspaceExpandedKeys(roots))
     } catch (error) {
       setTreeError(getErrorMessage(error, 'Failed to load eCTD structure'))
       setEctdRoots([])

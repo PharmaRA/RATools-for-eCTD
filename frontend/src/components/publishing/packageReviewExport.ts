@@ -27,6 +27,15 @@ type ReviewExportError = {
   status?: number
 }
 
+export const buildPackageReviewChecklistExportRows = (
+  checklistRows: readonly PackageReviewChecklistRow[],
+): ChecklistExportRow[] => checklistRows.map((row) => ({
+  key: row.key,
+  check: row.check,
+  status: row.pass ? 'Pass' : 'Fail',
+  detail: row.detail,
+}))
+
 export type PublishReadiness = {
   isReady?: boolean
   status?: string
@@ -91,7 +100,7 @@ type PackageReviewExportRequiredArtifact = {
   contentType?: string
 }
 
-type PackageReviewExportErrors = {
+export type PackageReviewExportErrors = {
   report?: ReviewExportError
   artifacts?: ReviewExportError
 }
@@ -137,6 +146,42 @@ export type PackageReviewExportValue = {
   errors?: PackageReviewExportErrors
 }
 
+type PublishReadinessFindingExports = NonNullable<PackageReviewExportValue['publishReadiness']>['findings']
+
+export const buildPublishReadinessMissingMetadataFieldExports = (
+  publishReadiness?: Pick<PublishReadiness, 'missingMetadataFields'> | null,
+): string[] => publishReadiness?.missingMetadataFields || []
+
+export const buildPublishReadinessCategorySummaryExports = (
+  publishReadiness?: Pick<PublishReadiness, 'categorySummaries'> | null,
+): NonNullable<PublishReadiness['categorySummaries']> => publishReadiness?.categorySummaries || []
+
+export const buildPublishReadinessFindingExports = (
+  publishReadiness?: Pick<PublishReadiness, 'findings'> | null,
+): PublishReadinessFindingExports => (publishReadiness?.findings || []).map((finding) => ({
+  severity: finding.severity,
+  code: finding.code,
+  category: finding.category,
+  fieldName: finding.fieldName ?? null,
+  recommendedAction: finding.recommendedAction,
+}))
+
+type PackageReviewRequiredArtifactExports = PackageReviewExportValue['requiredArtifacts']
+
+export const buildPackageReviewRequiredArtifactExportRows = (
+  requiredArtifactRows: readonly PackageReviewExportRequiredArtifact[],
+): PackageReviewRequiredArtifactExports => requiredArtifactRows.map((artifact) => ({
+  name: artifact.name,
+  exists: artifact.exists === true,
+  sizeBytes: artifact.sizeBytes,
+  contentType: artifact.contentType,
+}))
+
+export const buildPackageReviewExportFilename = (
+  sequenceNumber: string | null | undefined,
+  jobId: string,
+) => `package-review-${sequenceNumber || 'unknown'}-${jobId}.json`
+
 type PackageReviewExportInput = {
   jobId: string
   generatedAtUtc: string
@@ -151,12 +196,58 @@ type PackageReviewExportInput = {
   integrityFindings: IntegrityFinding[]
 }
 
+type PackageReviewRiskSummaryExportInput = Pick<PackageReviewExportInput, 'report' | 'reportLoaded' | 'lifecycleIssueCount'>
+
+type PackageReviewIntegritySummary = NonNullable<PackageReviewReport['integritySummary']>
+type PackageReviewIntegrityRiskSummaryExport = Pick<
+  PackageReviewExportValue['riskSummary'],
+  'missingFiles' | 'missingZipEntries' | 'mismatchedArtifacts'
+>
+
+export const buildPackageReviewIntegrityRiskSummaryExport = (
+  summary?: PackageReviewIntegritySummary | null,
+): PackageReviewIntegrityRiskSummaryExport => ({
+  missingFiles: summary?.missingFilesCount ?? null,
+  missingZipEntries: summary?.missingZipEntriesCount ?? null,
+  mismatchedArtifacts: summary?.mismatchedArtifactsCount ?? null,
+})
+
+export const buildPackageReviewRiskSummaryExport = ({
+  report,
+  reportLoaded,
+  lifecycleIssueCount,
+}: PackageReviewRiskSummaryExportInput): PackageReviewExportValue['riskSummary'] => ({
+  validationErrors: report?.errorCount ?? null,
+  warnings: report?.warningCount ?? null,
+  lifecycleIssues: reportLoaded ? lifecycleIssueCount : null,
+  ...buildPackageReviewIntegrityRiskSummaryExport(report?.integritySummary),
+})
+
 const buildErrorExport = (error: Error | null): ReviewExportError | undefined => {
   if (!error) return undefined
 
   return error instanceof ApiRequestError
     ? { message: error.message, status: error.status }
     : { message: error.message }
+}
+
+export const buildPackageReviewExportErrors = ({
+  reportError,
+  artifactsError,
+}: Pick<PackageReviewExportInput, 'reportError' | 'artifactsError'>): PackageReviewExportErrors | undefined => {
+  const errors: PackageReviewExportErrors = {}
+  const reportExportError = buildErrorExport(reportError)
+  const artifactsExportError = buildErrorExport(artifactsError)
+
+  if (reportExportError) {
+    errors.report = reportExportError
+  }
+
+  if (artifactsExportError) {
+    errors.artifacts = artifactsExportError
+  }
+
+  return Object.keys(errors).length > 0 ? errors : undefined
 }
 
 const buildPublishReadinessExport = (publishReadiness: PublishReadiness | null | undefined): PackageReviewExportValue['publishReadiness'] => {
@@ -167,15 +258,9 @@ const buildPublishReadinessExport = (publishReadiness: PublishReadiness | null |
     status: publishReadiness.status ?? null,
     blockingErrorCount: publishReadiness.blockingErrorCount ?? null,
     warningCount: publishReadiness.warningCount ?? null,
-    missingMetadataFields: publishReadiness.missingMetadataFields || [],
-    categorySummaries: publishReadiness.categorySummaries || [],
-    findings: (publishReadiness.findings || []).map((finding) => ({
-      severity: finding.severity,
-      code: finding.code,
-      category: finding.category,
-      fieldName: finding.fieldName ?? null,
-      recommendedAction: finding.recommendedAction,
-    })),
+    missingMetadataFields: buildPublishReadinessMissingMetadataFieldExports(publishReadiness),
+    categorySummaries: buildPublishReadinessCategorySummaryExports(publishReadiness),
+    findings: buildPublishReadinessFindingExports(publishReadiness),
   }
 }
 
@@ -193,17 +278,7 @@ export const buildPackageReviewExport = ({
   integrityFindings,
 }: PackageReviewExportInput) => {
   const sequenceNumber = report?.sequenceNumber ?? null
-  const errors: PackageReviewExportErrors = {}
-  const reportExportError = buildErrorExport(reportError)
-  const artifactsExportError = buildErrorExport(artifactsError)
-
-  if (reportExportError) {
-    errors.report = reportExportError
-  }
-
-  if (artifactsExportError) {
-    errors.artifacts = artifactsExportError
-  }
+  const errors = buildPackageReviewExportErrors({ reportError, artifactsError })
 
   const value: PackageReviewExportValue = {
     reportVersion: 'package-review-export-v1',
@@ -212,36 +287,19 @@ export const buildPackageReviewExport = ({
     sequenceNumber,
     validationProfile: report?.validationProfile ?? null,
     verdict: readyForSubmission ? 'ReadyForSubmission' : 'NotReadyForSubmission',
-    checklist: checklistRows.map((row) => ({
-      key: row.key,
-      check: row.check,
-      status: row.pass ? 'Pass' : 'Fail',
-      detail: row.detail,
-    })),
-    riskSummary: {
-      validationErrors: report?.errorCount ?? null,
-      warnings: report?.warningCount ?? null,
-      lifecycleIssues: reportLoaded ? lifecycleIssueCount : null,
-      missingFiles: report?.integritySummary?.missingFilesCount ?? null,
-      missingZipEntries: report?.integritySummary?.missingZipEntriesCount ?? null,
-      mismatchedArtifacts: report?.integritySummary?.mismatchedArtifactsCount ?? null,
-    },
+    checklist: buildPackageReviewChecklistExportRows(checklistRows),
+    riskSummary: buildPackageReviewRiskSummaryExport({ report, reportLoaded, lifecycleIssueCount }),
     publishReadiness: buildPublishReadinessExport(report?.publishReadiness),
-    requiredArtifacts: requiredArtifactRows.map((artifact) => ({
-      name: artifact.name,
-      exists: artifact.exists === true,
-      sizeBytes: artifact.sizeBytes,
-      contentType: artifact.contentType,
-    })),
+    requiredArtifacts: buildPackageReviewRequiredArtifactExportRows(requiredArtifactRows),
     integrityFindings,
   }
 
-  if (Object.keys(errors).length > 0) {
+  if (errors) {
     value.errors = errors
   }
 
   return {
-    filename: `package-review-${sequenceNumber || 'unknown'}-${jobId}.json`,
+    filename: buildPackageReviewExportFilename(sequenceNumber, jobId),
     value,
   }
 }

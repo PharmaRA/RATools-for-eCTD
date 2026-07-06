@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { attachDocumentNodes, findWorkspaceTreeNode, mapSectionTreeData, resolveUploadSection } from './workspaceTree'
+import {
+  attachDocumentNodes,
+  buildPlacementsBySection,
+  findWorkspaceTreeNode,
+  mapSectionTreeData,
+  resolveUploadSection,
+} from './workspaceTree'
 
 describe('workspaceTree', () => {
   it('keeps the top-level module title without duplicating the module number', () => {
@@ -95,6 +101,42 @@ describe('workspaceTree', () => {
     expect(result[0]).toMatchObject({
       sectionPath: 'm1.2.3',
       title: '1.2.3 Labeling',
+    })
+  })
+
+  it('groups document placements by eCTD section', () => {
+    const firstPlacement = {
+      id: 'placement-1',
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      documentId: 'doc-1',
+      ctdSection: 'm1.2.3',
+      operation: 'New',
+    }
+    const secondPlacement = {
+      id: 'placement-2',
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      documentId: 'doc-2',
+      ctdSection: 'm1.2.3',
+      operation: 'Replace',
+    }
+    const thirdPlacement = {
+      id: 'placement-3',
+      applicationId: 'app-1',
+      sequenceNumber: '0001',
+      documentId: 'doc-3',
+      ctdSection: 'm2.3',
+      operation: 'New',
+    }
+
+    expect(buildPlacementsBySection([
+      firstPlacement,
+      thirdPlacement,
+      secondPlacement,
+    ])).toEqual({
+      'm1.2.3': [firstPlacement, secondPlacement],
+      'm2.3': [thirdPlacement],
     })
   })
 

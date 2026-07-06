@@ -20,6 +20,10 @@ type ImportIssueSummaryCounts = {
   lifecycleWarningCount: number
 }
 
+export const getImportLifecycleWarningSummaryColor = (lifecycleWarningCount: number) => (
+  lifecycleWarningCount > 0 ? 'gold' : 'green'
+)
+
 export const buildImportIssueSummaryItems = ({
   totalIssueCount,
   warningCount,
@@ -31,7 +35,7 @@ export const buildImportIssueSummaryItems = ({
   { key: 'errors', color: 'red', label: `${errorCount} errors` },
   {
     key: 'lifecycle-target-warnings',
-    color: lifecycleWarningCount > 0 ? 'gold' : 'green',
+    color: getImportLifecycleWarningSummaryColor(lifecycleWarningCount),
     label: `${lifecycleWarningCount} lifecycle target warnings`,
   },
 ]

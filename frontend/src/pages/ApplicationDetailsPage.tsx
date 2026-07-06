@@ -8,7 +8,7 @@ import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
 import { type Application, type SequenceSummary, formatDate, getApplicationTemplateLabel, getErrorMessage } from './appShared'
 import { buildSequenceColumns, formatApplicationDetailsTitle, getApplicationSequences } from './applicationDetailsDisplay'
 import { buildBatchDeleteState } from './batchDeleteState'
-import { keepKnownSelectionKeys } from './selectionKeys'
+import { buildSelectionKeySet, keepKnownSelectionKeys, normalizeSelectionKeys } from './selectionKeys'
 
 export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { appId: string, onBack: () => void, onOpenWorkspace: (seq: string) => void }) => {
   const [appData, setAppData] = useState<Application | null>(null)
@@ -54,7 +54,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const appSequences = appData?.sequences
 
   useEffect(() => {
-    const validSequenceKeys = new Set(getApplicationSequences({ sequences: appSequences }).map((sequence) => String(sequence.sequenceNumber)))
+    const validSequenceKeys = buildSelectionKeySet(getApplicationSequences({ sequences: appSequences }), (sequence) => sequence.sequenceNumber)
     setSelectedSequenceKeys((current) => keepKnownSelectionKeys(current, validSequenceKeys))
   }, [appSequences])
 
@@ -197,7 +197,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             size="middle"
             rowSelection={{
               selectedRowKeys: selectedSequenceKeys,
-              onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(nextSelectedRowKeys.map((key) => String(key))),
+              onChange: (nextSelectedRowKeys) => setSelectedSequenceKeys(normalizeSelectionKeys(nextSelectedRowKeys)),
               getCheckboxProps: (record) => ({
                 disabled: sequenceBatchDeleteDialog.running || deletingSequenceNumbers.has(String(record.sequenceNumber)),
               }),

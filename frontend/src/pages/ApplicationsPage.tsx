@@ -4,7 +4,7 @@ import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { ApiRequestError, apiFetch } from '../apiClient'
 import { buildApplicationBatchDeleteItems, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
-import { createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
+import { buildEctdTemplateSelectOptions, createApplication, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
 import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
 import { PathPicker } from '../PathPicker'
 import { type Application, getErrorMessage } from './appShared'
@@ -16,7 +16,7 @@ import {
   getImportIssueSeverityDisplayMeta,
   getImportResultIssues,
 } from './importResultDisplay'
-import { keepKnownSelectionKeys } from './selectionKeys'
+import { buildSelectionKeySet, keepKnownSelectionKeys, normalizeSelectionKeys } from './selectionKeys'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
   const [loading, setLoading] = useState(false)
@@ -78,15 +78,12 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   }, [])
 
   useEffect(() => {
-    const validAppIds = new Set(apps.map((app) => app.id))
+    const validAppIds = buildSelectionKeySet(apps, (app) => app.id)
     setSelectedAppKeys((current) => keepKnownSelectionKeys(current, validAppIds))
   }, [apps])
 
   const defaultTemplateKey = getDefaultEctdTemplateKey(ectdTemplates)
-  const ectdTemplateOptions = ectdTemplates.map((template) => ({
-    value: template.key,
-    label: template.displayName,
-  }))
+  const ectdTemplateOptions = buildEctdTemplateSelectOptions(ectdTemplates)
 
   const handleCreateApp = async () => {
     try {
@@ -281,7 +278,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         rowKey="id"
         rowSelection={{
           selectedRowKeys: selectedAppKeys,
-          onChange: (nextSelectedRowKeys) => setSelectedAppKeys(nextSelectedRowKeys.map((key) => String(key))),
+          onChange: (nextSelectedRowKeys) => setSelectedAppKeys(normalizeSelectionKeys(nextSelectedRowKeys)),
           getCheckboxProps: (record) => ({
             disabled: appBatchDeleteDialog.running || deletingAppIds.has(String(record.id)),
           }),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildPublishHistoryLifecycleIssueStatisticItems,
   buildPublishHistoryLifecycleStatisticItems,
   buildPublishHistoryReadinessStatisticItems,
   buildPublishHistoryStatusStatisticItems,
@@ -71,6 +72,22 @@ describe('publishHistoryDisplay', () => {
       currentSequenceCount: 5,
     })).toEqual([
       { title: 'Matched', value: 4 },
+      { title: 'Replace Missing', value: 0 },
+      { title: 'Delete Missing', value: 2 },
+      { title: 'Append Missing', value: 0 },
+      { title: 'Ambiguous', value: 1 },
+      { title: 'Current Sequence', value: 5 },
+    ])
+  })
+
+  it('builds lifecycle issue statistic items with zero fallbacks', () => {
+    expect(buildPublishHistoryLifecycleIssueStatisticItems({
+      replaceTargetNotFoundCount: null,
+      deleteTargetNotFoundCount: 2,
+      appendTargetNotFoundCount: undefined,
+      ambiguousCount: 1,
+      currentSequenceCount: 5,
+    })).toEqual([
       { title: 'Replace Missing', value: 0 },
       { title: 'Delete Missing', value: 2 },
       { title: 'Append Missing', value: 0 },

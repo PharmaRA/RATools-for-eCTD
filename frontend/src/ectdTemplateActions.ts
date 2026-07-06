@@ -24,6 +24,11 @@ export const loadEctdTemplates = async (
 
 export const getDefaultEctdTemplateKey = (templates: EctdTemplateOption[]) => templates[0]?.key
 
+export const buildEctdTemplateSelectOptions = (templates: readonly EctdTemplateOption[]) => templates.map((template) => ({
+  value: template.key,
+  label: template.displayName,
+}))
+
 export const createApplication = async (
   request: CreateApplicationRequest,
   executeRequest: typeof apiFetch = apiFetch,

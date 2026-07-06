@@ -14,6 +14,8 @@ type PackageReviewRiskSummaryInput = {
   lifecycleIssueCount: number
 }
 
+type PackageReviewIntegrityRiskSummary = NonNullable<PackageReviewReport['integritySummary']>
+
 type PackageReviewWarningReport = Pick<PackageReviewReport, 'warningCount'>
 
 type PackageReviewIntegrityEvidenceReport = Pick<PackageReviewReport, 'integrityEvidence'>
@@ -40,6 +42,14 @@ export const getPackageReviewIntegrityFindings = (
   reportLoaded: boolean,
 ): IntegrityFinding[] => reportLoaded ? report?.integrityEvidence?.findings || [] : []
 
+export const buildPackageReviewIntegrityRiskSummaryItems = (
+  summary?: PackageReviewIntegrityRiskSummary | null,
+) => [
+  { key: 'missing-files', label: 'Missing Files', children: formatPackageReviewRiskCount(summary?.missingFilesCount) },
+  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatPackageReviewRiskCount(summary?.missingZipEntriesCount) },
+  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatPackageReviewRiskCount(summary?.mismatchedArtifactsCount) },
+]
+
 export const buildPackageReviewRiskSummaryItems = ({
   report,
   reportLoaded,
@@ -51,9 +61,7 @@ export const buildPackageReviewRiskSummaryItems = ({
     { key: 'validation-errors', label: 'Validation Errors', children: formatPackageReviewRiskCount(loadedReport?.errorCount) },
     { key: 'warnings', label: 'Warnings', children: formatPackageReviewRiskCount(loadedReport?.warningCount) },
     { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: reportLoaded ? lifecycleIssueCount : '-' },
-    { key: 'missing-files', label: 'Missing Files', children: formatPackageReviewRiskCount(loadedReport?.integritySummary?.missingFilesCount) },
-    { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatPackageReviewRiskCount(loadedReport?.integritySummary?.missingZipEntriesCount) },
-    { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatPackageReviewRiskCount(loadedReport?.integritySummary?.mismatchedArtifactsCount) },
+    ...buildPackageReviewIntegrityRiskSummaryItems(loadedReport?.integritySummary),
   ]
 }
 

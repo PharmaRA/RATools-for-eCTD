@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPackageReviewChecklistRows,
   formatPackageReviewChecklistCountDetail,
+  formatPackageReviewIntegrityDetail,
+  formatPackageReviewPublishDetail,
+  formatPackageReviewRequiredArtifactsDetail,
   isPackageReviewReadyForSubmission,
 } from './packageReviewChecklist'
 
@@ -10,6 +13,24 @@ describe('packageReviewChecklist', () => {
   it('formats checklist count details when report data is loaded', () => {
     expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe('2 error(s)')
     expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe('1 issue(s)')
+  })
+
+  it('formats required artifact details with error precedence', () => {
+    expect(formatPackageReviewRequiredArtifactsDetail(null, 2, 3)).toBe('2/3 present')
+    expect(formatPackageReviewRequiredArtifactsDetail(new Error('Artifacts unavailable'), 2, 3))
+      .toBe('Artifacts unavailable')
+  })
+
+  it('formats publish details with report message and error fallbacks', () => {
+    expect(formatPackageReviewPublishDetail('Published', new Error('Report unavailable'))).toBe('Published')
+    expect(formatPackageReviewPublishDetail('', new Error('Report unavailable'))).toBe('Report unavailable')
+    expect(formatPackageReviewPublishDetail(undefined, null)).toBe('Report unavailable.')
+  })
+
+  it('formats integrity details from consistency evidence', () => {
+    expect(formatPackageReviewIntegrityDetail({ isConsistent: true })).toBe('Consistent')
+    expect(formatPackageReviewIntegrityDetail({ isConsistent: false })).toBe('Inconsistent or unavailable')
+    expect(formatPackageReviewIntegrityDetail(undefined)).toBe('Inconsistent or unavailable')
   })
 
   it('checks whether every package review checklist row passes', () => {

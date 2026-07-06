@@ -11,10 +11,14 @@ export type RequiredArtifactSummary = {
   rows: PackageReviewArtifactLike[]
 }
 
-export const summarizeRequiredArtifacts = <TArtifact extends PackageReviewArtifactLike>(
+export type PackageReviewArtifactIndex<TArtifact extends PackageReviewArtifactLike> = {
+  firstArtifactByName: Map<string, TArtifact>
+  existingNames: Set<string>
+}
+
+export const buildPackageReviewArtifactIndex = <TArtifact extends PackageReviewArtifactLike>(
   artifacts: TArtifact[],
-  requiredNames: string[],
-): RequiredArtifactSummary => {
+): PackageReviewArtifactIndex<TArtifact> => {
   const firstArtifactByName = new Map<string, TArtifact>()
   const existingNames = new Set<string>()
 
@@ -28,6 +32,17 @@ export const summarizeRequiredArtifacts = <TArtifact extends PackageReviewArtifa
     }
   }
 
+  return {
+    firstArtifactByName,
+    existingNames,
+  }
+}
+
+export const summarizeRequiredArtifacts = <TArtifact extends PackageReviewArtifactLike>(
+  artifacts: TArtifact[],
+  requiredNames: string[],
+): RequiredArtifactSummary => {
+  const { firstArtifactByName, existingNames } = buildPackageReviewArtifactIndex(artifacts)
   const existsByName: Record<string, boolean> = {}
   let presentCount = 0
   const rows = requiredNames.map((name) => {

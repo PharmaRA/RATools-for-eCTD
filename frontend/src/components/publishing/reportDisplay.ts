@@ -54,19 +54,30 @@ type ReportIntegritySummary = {
   mismatchedArtifactsCount?: number | null
 }
 
+type ReportIntegrityIssueSummary = Pick<
+  ReportIntegritySummary,
+  'missingFilesCount' | 'missingZipEntriesCount' | 'mismatchedArtifactsCount'
+>
+
 export const formatReportIntegrityState = (summary: ReportIntegritySummary | null | undefined) => {
   if (!summary) return '-'
   return summary.isConsistent ? 'Consistent' : 'Inconsistent'
 }
+
+export const buildReportIntegrityIssueSummaryItems = (
+  summary: ReportIntegrityIssueSummary | null | undefined,
+) => [
+  { key: 'missing-files', label: 'Missing Files', children: formatReportCount(summary?.missingFilesCount) },
+  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatReportCount(summary?.missingZipEntriesCount) },
+  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatReportCount(summary?.mismatchedArtifactsCount) },
+]
 
 export const buildReportIntegritySummaryItems = (
   summary: ReportIntegritySummary | null | undefined,
   integrityState: string,
 ) => [
   { key: 'consistent', label: 'Consistent', children: integrityState },
-  { key: 'missing-files', label: 'Missing Files', children: formatReportCount(summary?.missingFilesCount) },
-  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatReportCount(summary?.missingZipEntriesCount) },
-  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatReportCount(summary?.mismatchedArtifactsCount) },
+  ...buildReportIntegrityIssueSummaryItems(summary),
 ]
 
 type ReportArtifactSummary = {
@@ -95,8 +106,7 @@ export const buildReportAuditSummaryItems = (summary: ReportAuditSummary | null 
   { key: 'latest-event', label: 'Latest Event', children: formatDate(summary?.latestPublishJobEventUtc ?? undefined) },
 ]
 
-type ReportLifecycleSummary = {
-  matchedCount: number
+type ReportLifecycleIssueSummary = {
   issueCount: number
   replaceTargetNotFoundCount: number
   deleteTargetNotFoundCount: number
@@ -105,17 +115,27 @@ type ReportLifecycleSummary = {
   currentSequenceCount: number
 }
 
-export const buildReportLifecycleSummaryItems = (
-  summary: ReportLifecycleSummary,
-  warningSummary?: string | null,
+type ReportLifecycleSummary = ReportLifecycleIssueSummary & {
+  matchedCount: number
+}
+
+export const buildReportLifecycleIssueSummaryItems = (
+  summary: ReportLifecycleIssueSummary,
 ) => [
-  { key: 'matched', label: 'Matched', children: summary.matchedCount },
   { key: 'issues', label: 'Issues', children: summary.issueCount },
   { key: 'replace-missing', label: 'Replace Missing', children: summary.replaceTargetNotFoundCount },
   { key: 'delete-missing', label: 'Delete Missing', children: summary.deleteTargetNotFoundCount },
   { key: 'append-missing', label: 'Append Missing', children: summary.appendTargetNotFoundCount },
   { key: 'ambiguous', label: 'Ambiguous', children: summary.ambiguousCount },
   { key: 'current-sequence', label: 'Current Sequence', children: summary.currentSequenceCount },
+]
+
+export const buildReportLifecycleSummaryItems = (
+  summary: ReportLifecycleSummary,
+  warningSummary?: string | null,
+) => [
+  { key: 'matched', label: 'Matched', children: summary.matchedCount },
+  ...buildReportLifecycleIssueSummaryItems(summary),
   { key: 'warning-summary', label: 'Warning Summary', children: formatOptionalText(warningSummary) },
 ]
 

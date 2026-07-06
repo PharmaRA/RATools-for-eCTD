@@ -15,19 +15,35 @@ type PublishReadinessHistoryCountHint = {
   warningCount?: number | null
 }
 
-export const formatReadinessHistoryCountHint = (
-  readiness: PublishReadinessHistoryCountHint,
-  missingMetadataHint?: string | null,
+export const formatReadinessWarningCountHint = (
+  readiness: Pick<PublishReadinessHistoryCountHint, 'isReady' | 'warningCount'>,
 ) => {
   if (readiness.isReady && (readiness.warningCount ?? 0) > 0) {
     return `Warnings: ${readiness.warningCount}`
   }
 
+  return null
+}
+
+export const formatReadinessBlockingErrorCountHint = (
+  readiness: Pick<PublishReadinessHistoryCountHint, 'isReady' | 'blockingErrorCount'>,
+  missingMetadataHint?: string | null,
+) => {
   if (!readiness.isReady && !missingMetadataHint && (readiness.blockingErrorCount ?? 0) > 0) {
     return `Blocking errors: ${readiness.blockingErrorCount}`
   }
 
   return null
+}
+
+export const formatReadinessHistoryCountHint = (
+  readiness: PublishReadinessHistoryCountHint,
+  missingMetadataHint?: string | null,
+) => {
+  const warningHint = formatReadinessWarningCountHint(readiness)
+  if (warningHint) return warningHint
+
+  return formatReadinessBlockingErrorCountHint(readiness, missingMetadataHint)
 }
 
 export const formatReadinessReadyStatus = (isReady?: boolean | null) => isReady ? 'Yes' : 'No'

@@ -31,8 +31,22 @@ export type BatchDeleteSummary = {
   results: BatchDeleteItemResult[];
 };
 
-export const getFailedBatchDeleteResults = (summary: BatchDeleteSummary | null | undefined) => {
-  return (summary?.results || []).filter((result) => result.outcome.kind === 'error');
+type BatchDeleteResultsSource = Pick<BatchDeleteSummary, 'results'>;
+
+export const getBatchDeleteResults = <TSource extends BatchDeleteResultsSource>(
+  summary: TSource | null | undefined,
+): BatchDeleteItemResult[] => summary?.results || [];
+
+export const getFailedBatchDeleteResults = <TSource extends BatchDeleteResultsSource>(
+  summary: TSource | null | undefined,
+) => {
+  return getBatchDeleteResults(summary).filter((result) => result.outcome.kind === 'error');
+};
+
+export const getSuccessfulBatchDeleteResults = <TSource extends BatchDeleteResultsSource>(
+  summary: TSource | null | undefined,
+) => {
+  return getBatchDeleteResults(summary).filter((result) => result.outcome.kind === 'success');
 };
 
 export const buildApplicationBatchDeleteItems = (appIds: string[]): BatchDeleteItem[] => {
@@ -123,7 +137,7 @@ export const performBatchDelete = async (
     onProgress?.(result);
   }
 
-  const successCount = results.filter((result) => result.outcome.kind === 'success').length;
+  const successCount = getSuccessfulBatchDeleteResults({ results }).length;
 
   return {
     entity,

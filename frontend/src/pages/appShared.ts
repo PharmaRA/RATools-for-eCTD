@@ -65,13 +65,16 @@ export type LifecycleSummary = {
   currentSequenceCount?: number | null
 }
 
+export const getLifecycleIssueCountValues = (summary?: LifecycleSummary | null) => [
+  summary?.replaceTargetNotFoundCount || 0,
+  summary?.deleteTargetNotFoundCount || 0,
+  summary?.appendTargetNotFoundCount || 0,
+  summary?.ambiguousCount || 0,
+  summary?.currentSequenceCount || 0,
+]
+
 export const getLifecycleIssueCount = (summary?: LifecycleSummary | null) => {
-  if (!summary) return 0
-  return (summary.replaceTargetNotFoundCount || 0)
-    + (summary.deleteTargetNotFoundCount || 0)
-    + (summary.appendTargetNotFoundCount || 0)
-    + (summary.ambiguousCount || 0)
-    + (summary.currentSequenceCount || 0)
+  return getLifecycleIssueCountValues(summary).reduce((total, count) => total + count, 0)
 }
 
 export type ReportAvailability = {

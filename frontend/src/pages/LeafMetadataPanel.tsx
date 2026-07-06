@@ -5,12 +5,11 @@ import { Trash2 } from 'lucide-react'
 import type { DocumentPlacementRecord, DocumentRecord } from '../workspaceTree'
 import {
   buildLeafPlacementDescriptionItems,
+  buildLeafPlacementOperationOptions,
   buildLeafPreviewDescriptionItems,
 } from './leafMetadataDisplay'
-import { buildLifecycleTargetLabel } from './lifecycleTargetLabels'
+import { buildLifecycleTargetListText, buildLifecycleTargetOptions } from './lifecycleTargetLabels'
 import { buildPublishedHrefPreview } from './publishedHrefPreview'
-
-const placementOperations = ['New', 'Replace', 'Delete', 'Append']
 
 type DocumentNameParts = {
   prefix: string
@@ -87,7 +86,7 @@ export const LeafMetadataPanel = ({
         </Form.Item>
         <Form.Item name="operation" label="Operation" rules={[{ required: true, message: 'Operation is required.' }]}>
           <Select
-            options={placementOperations.map((operation) => ({ value: operation, label: operation }))}
+            options={buildLeafPlacementOperationOptions()}
           />
         </Form.Item>
         {isLifecycleOperation && (
@@ -107,17 +106,12 @@ export const LeafMetadataPanel = ({
               <Select
                 allowClear
                 placeholder="Select historical leaf target"
-                options={lifecycleTargetCandidates.map((candidate) => ({
-                  value: candidate.id,
-                  label: buildLifecycleTargetLabel(candidate, documentsById),
-                }))}
+                options={buildLifecycleTargetOptions(lifecycleTargetCandidates, documentsById)}
               />
             </Form.Item>
             {lifecycleTargetCandidates.length > 0 && (
               <div className="text-xs text-gray-500 -mt-3 mb-3">
-                Available Targets: {lifecycleTargetCandidates
-                  .map((candidate) => buildLifecycleTargetLabel(candidate, documentsById))
-                  .join('; ')}
+                Available Targets: {buildLifecycleTargetListText(lifecycleTargetCandidates, documentsById)}
               </div>
             )}
           </>

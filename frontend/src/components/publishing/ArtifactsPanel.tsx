@@ -3,7 +3,7 @@ import { Drawer, Spin, Table, message } from 'antd'
 
 import { apiFetch } from '../../apiClient'
 import { getErrorMessage } from '../../pages/appShared'
-import { buildArtifactColumns } from './artifactDisplay'
+import { buildArtifactColumns, getPublishArtifactsFromResponse } from './artifactDisplay'
 
 type PublishArtifact = {
   name: string
@@ -29,7 +29,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
       setLoading(true)
       try {
         const data = await apiFetch(`/api/publish-jobs/${jobId}/artifacts`) as PublishArtifactsResponse
-        if (active) setArtifacts(data.artifacts || [])
+        if (active) setArtifacts(getPublishArtifactsFromResponse(data))
       } catch (error) {
         if (active) message.error('Failed to load artifacts: ' + getErrorMessage(error))
       } finally {

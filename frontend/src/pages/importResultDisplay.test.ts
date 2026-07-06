@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildImportIssueColumns,
   buildImportIssueSummaryItems,
+  getImportLifecycleWarningSummaryColor,
   getImportIssueSeverityDisplayMeta,
   getImportResultIssues,
 } from './importResultDisplay'
@@ -36,6 +37,14 @@ describe('importResultDisplay', () => {
       errorCount: 0,
       lifecycleWarningCount: 1,
     })[3].color).toBe('gold')
+  })
+
+  it.each([
+    [0, 'green'],
+    [1, 'gold'],
+    [3, 'gold'],
+  ] as const)('maps %s lifecycle warnings to summary color %s', (warningCount, expectedColor) => {
+    expect(getImportLifecycleWarningSummaryColor(warningCount)).toBe(expectedColor)
   })
 
   it('reads import issues from optional import result data', () => {

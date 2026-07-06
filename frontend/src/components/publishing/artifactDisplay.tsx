@@ -8,6 +8,10 @@ type PublishArtifactRow = {
   exists: boolean
 }
 
+export const getPublishArtifactsFromResponse = <T,>(
+  response?: { artifacts?: T[] | null } | null,
+): T[] => response?.artifacts || []
+
 export const renderArtifactExistsStatus = (exists?: boolean | null) => (
   exists ? <Tag color="green">Exists</Tag> : <Tag color="red">Missing</Tag>
 )

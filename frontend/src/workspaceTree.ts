@@ -150,19 +150,23 @@ export const mapSectionTreeData = (nodes: EctdStructureNode[]): WorkspaceTreeNod
     }))
 }
 
+export const buildPlacementsBySection = (
+  placements: DocumentPlacementRecord[],
+): Record<string, DocumentPlacementRecord[]> => placements.reduce<Record<string, DocumentPlacementRecord[]>>((accumulator, placement) => {
+  if (!accumulator[placement.ctdSection]) {
+    accumulator[placement.ctdSection] = []
+  }
+
+  accumulator[placement.ctdSection].push(placement)
+  return accumulator
+}, {})
+
 export const attachDocumentNodes = (
   nodes: WorkspaceTreeNode[],
   placements: DocumentPlacementRecord[],
   documentsById: Record<string, DocumentRecord>,
 ): WorkspaceTreeNode[] => {
-  const placementsBySection = placements.reduce<Record<string, DocumentPlacementRecord[]>>((accumulator, placement) => {
-    if (!accumulator[placement.ctdSection]) {
-      accumulator[placement.ctdSection] = []
-    }
-
-    accumulator[placement.ctdSection].push(placement)
-    return accumulator
-  }, {})
+  const placementsBySection = buildPlacementsBySection(placements)
 
   const attach = (treeNodes: WorkspaceTreeNode[]): WorkspaceTreeNode[] => {
     return treeNodes.map((node) => {

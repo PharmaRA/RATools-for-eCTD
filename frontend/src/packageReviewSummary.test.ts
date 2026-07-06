@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { summarizeRequiredArtifacts } from './packageReviewSummary'
+import { buildPackageReviewArtifactIndex, summarizeRequiredArtifacts } from './packageReviewSummary'
 
 describe('summarizeRequiredArtifacts', () => {
+  it('indexes first artifact rows and existing artifact names', () => {
+    const firstPackageZip = { name: 'PackageZip', exists: false, sizeBytes: 200 }
+    const existingPackageZip = { name: 'PackageZip', exists: true, sizeBytes: 300 }
+
+    const index = buildPackageReviewArtifactIndex([
+      firstPackageZip,
+      existingPackageZip,
+      { name: 'BackboneXml', exists: true, sizeBytes: 100 },
+    ])
+
+    expect(index.firstArtifactByName.get('PackageZip')).toBe(firstPackageZip)
+    expect(index.firstArtifactByName.get('BackboneXml')).toEqual({ name: 'BackboneXml', exists: true, sizeBytes: 100 })
+    expect(index.existingNames).toEqual(new Set(['PackageZip', 'BackboneXml']))
+  })
+
   it('summarizes required artifact presence and display rows together', () => {
     const summary = summarizeRequiredArtifacts(
       [

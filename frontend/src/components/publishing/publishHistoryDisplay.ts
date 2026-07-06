@@ -1,4 +1,9 @@
-import { formatOptionalBytes, getLifecycleIssueCount, type LifecycleSummary } from '../../pages/appShared'
+import {
+  formatOptionalBytes,
+  getLifecycleIssueCount,
+  getLifecycleIssueCountValues,
+  type LifecycleSummary,
+} from '../../pages/appShared'
 
 export const formatArtifactFileCount = (fileCount?: number | null) => {
   return fileCount == null ? '-' : `${fileCount} files`
@@ -66,13 +71,29 @@ type PublishHistoryLifecycleStatisticSummary = {
   currentSequenceCount?: number | null
 }
 
+export const buildPublishHistoryLifecycleIssueStatisticItems = (
+  summary: PublishHistoryLifecycleStatisticSummary,
+) => {
+  const [
+    replaceTargetNotFoundCount,
+    deleteTargetNotFoundCount,
+    appendTargetNotFoundCount,
+    ambiguousCount,
+    currentSequenceCount,
+  ] = getLifecycleIssueCountValues(summary)
+
+  return [
+    { title: 'Replace Missing', value: replaceTargetNotFoundCount },
+    { title: 'Delete Missing', value: deleteTargetNotFoundCount },
+    { title: 'Append Missing', value: appendTargetNotFoundCount },
+    { title: 'Ambiguous', value: ambiguousCount },
+    { title: 'Current Sequence', value: currentSequenceCount },
+  ]
+}
+
 export const buildPublishHistoryLifecycleStatisticItems = (
   summary: PublishHistoryLifecycleStatisticSummary,
 ) => [
   { title: 'Matched', value: summary.matchedCount ?? 0 },
-  { title: 'Replace Missing', value: summary.replaceTargetNotFoundCount ?? 0 },
-  { title: 'Delete Missing', value: summary.deleteTargetNotFoundCount ?? 0 },
-  { title: 'Append Missing', value: summary.appendTargetNotFoundCount ?? 0 },
-  { title: 'Ambiguous', value: summary.ambiguousCount ?? 0 },
-  { title: 'Current Sequence', value: summary.currentSequenceCount ?? 0 },
+  ...buildPublishHistoryLifecycleIssueStatisticItems(summary),
 ]

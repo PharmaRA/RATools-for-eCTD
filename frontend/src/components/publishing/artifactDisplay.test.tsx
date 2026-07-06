@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildArtifactColumns,
+  getPublishArtifactsFromResponse,
   renderArtifactExistsStatus,
 } from './artifactDisplay'
 
@@ -17,6 +18,15 @@ describe('artifactDisplay', () => {
     expect(isValidElement(element)).toBe(true)
     expect((element as ReactElement<{ color: string; children: string }>).props.color).toBe(color)
     expect((element as ReactElement<{ color: string; children: string }>).props.children).toBe(label)
+  })
+
+  it('reads publish artifacts from optional response data', () => {
+    const artifacts = [{ name: 'PublishReport', exists: true }]
+
+    expect(getPublishArtifactsFromResponse({ artifacts })).toBe(artifacts)
+    expect(getPublishArtifactsFromResponse({})).toEqual([])
+    expect(getPublishArtifactsFromResponse(null)).toEqual([])
+    expect(getPublishArtifactsFromResponse(undefined)).toEqual([])
   })
 
   it('builds artifact table columns', () => {

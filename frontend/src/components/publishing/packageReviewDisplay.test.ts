@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPackageReviewChecklistColumns,
   buildPackageReviewEvidenceFindingColumns,
+  buildPackageReviewIntegrityRiskSummaryItems,
   buildPackageReviewReadinessFindingColumns,
   buildPackageReviewRequiredArtifactColumns,
   buildPackageReviewRiskSummaryItems,
@@ -68,6 +69,18 @@ describe('packageReviewDisplay', () => {
       { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: '-' },
       { key: 'missing-files', label: 'Missing Files', children: '-' },
       { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: '-' },
+      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+    ])
+  })
+
+  it('builds package review integrity risk summary items', () => {
+    expect(buildPackageReviewIntegrityRiskSummaryItems({
+      missingFilesCount: 1,
+      missingZipEntriesCount: 0,
+      mismatchedArtifactsCount: null,
+    })).toEqual([
+      { key: 'missing-files', label: 'Missing Files', children: 1 },
+      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
       { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
     ])
   })

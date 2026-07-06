@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildPublishedHrefPreview } from './publishedHrefPreview'
+import { buildPublishedHrefPreview, findPublishedSequenceSegmentIndex } from './publishedHrefPreview'
 
 describe('buildPublishedHrefPreview', () => {
+  it('finds the last matching sequence segment case-insensitively', () => {
+    expect(findPublishedSequenceSegmentIndex(['repo', '0001', 'archive', '0001', 'm1'], '0001')).toBe(3)
+    expect(findPublishedSequenceSegmentIndex(['repo', 'ABCD', 'm1'], 'abcd')).toBe(1)
+    expect(findPublishedSequenceSegmentIndex(['repo', '0002', 'm1'], '0001')).toBe(-1)
+  })
+
   it('uses the fallback file name when storage path is missing', () => {
     expect(buildPublishedHrefPreview(undefined, '0001', 'protocol.pdf')).toBe('protocol.pdf')
     expect(buildPublishedHrefPreview('', '0001', undefined)).toBe('-')

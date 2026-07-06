@@ -4,7 +4,9 @@ import { ApiRequestError } from './apiClient';
 import {
   buildApplicationBatchDeleteItems,
   buildSequenceBatchDeleteItems,
+  getBatchDeleteResults,
   getFailedBatchDeleteResults,
+  getSuccessfulBatchDeleteResults,
   performBatchDelete,
   performDelete,
 } from './deleteActions';
@@ -254,6 +256,30 @@ describe('deleteActions', () => {
     ]);
   });
 
+  it('reads batch delete results from optional summaries', () => {
+    const summaryResults = [{
+      key: 's-1',
+      label: '0001',
+      outcome: {
+        kind: 'success' as const,
+        reason: 'success' as const,
+        message: 'Sequence deleted successfully.',
+        shouldRefresh: true,
+      },
+    }];
+
+    expect(getBatchDeleteResults({
+      entity: 'sequence',
+      mode: 'databaseOnly',
+      total: 1,
+      successCount: 1,
+      failureCount: 0,
+      results: summaryResults,
+    })).toBe(summaryResults);
+    expect(getBatchDeleteResults(null)).toEqual([]);
+    expect(getBatchDeleteResults(undefined)).toEqual([]);
+  });
+
   it('extracts failed batch delete results from a summary', () => {
     const failedResult = {
       key: 's-2',
@@ -288,5 +314,42 @@ describe('deleteActions', () => {
     });
 
     expect(results).toEqual([failedResult]);
+  });
+
+  it('extracts successful batch delete results from a summary', () => {
+    const successfulResult = {
+      key: 's-1',
+      label: '0001',
+      outcome: {
+        kind: 'success' as const,
+        reason: 'success' as const,
+        message: 'Sequence deleted successfully.',
+        shouldRefresh: true,
+      },
+    };
+
+    const results = getSuccessfulBatchDeleteResults({
+      entity: 'sequence',
+      mode: 'databaseOnly',
+      total: 2,
+      successCount: 1,
+      failureCount: 1,
+      results: [
+        successfulResult,
+        {
+          key: 's-2',
+          label: '0002',
+          outcome: {
+            kind: 'error',
+            reason: 'conflict',
+            message: 'Sequence 0002 is locked.',
+            shouldRefresh: true,
+          },
+        },
+      ],
+    });
+
+    expect(results).toEqual([successfulResult]);
+    expect(getSuccessfulBatchDeleteResults(null)).toEqual([]);
   });
 });

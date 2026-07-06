@@ -3,6 +3,13 @@ import { Tag } from 'antd'
 
 import type { DocumentPlacementRecord, DocumentRecord } from '../workspaceTree'
 
+const leafPlacementOperations = ['New', 'Replace', 'Delete', 'Append'] as const
+
+export const buildLeafPlacementOperationOptions = () => leafPlacementOperations.map((operation) => ({
+  value: operation,
+  label: operation,
+}))
+
 export const buildLeafPlacementDescriptionItems = (
   placement: Pick<DocumentPlacementRecord, 'id' | 'ctdSection' | 'operation'>,
   document: Pick<DocumentRecord, 'storagePath'>,

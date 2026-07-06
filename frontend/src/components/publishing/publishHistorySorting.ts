@@ -2,6 +2,10 @@ export const readinessSortOptions = ['blocked-first', 'ready-first'] as const
 
 export type ReadinessSort = typeof readinessSortOptions[number]
 
+export const getPublishHistoryEntriesFromResponse = <TEntry>(
+  response?: { entries?: TEntry[] | null } | null,
+): TEntry[] => response?.entries || []
+
 type PublishHistorySortableEntry = {
   publishReadiness?: {
     status?: string | null
