@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient'
+import { apiFetch, buildJsonRequestInit } from './apiClient'
 
 export const WORKSPACE_PLACEMENT_DRAG_MIME = 'application/x-ratools-placement'
 
@@ -76,11 +76,10 @@ export const movePlacementToSection = async (
     return false
   }
 
-  await executeRequest(`/api/document-placements/${request.placementId}/section`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ctdSection: request.toSection }),
-  })
+  await executeRequest(
+    `/api/document-placements/${request.placementId}/section`,
+    buildJsonRequestInit('PUT', { ctdSection: request.toSection }),
+  )
 
   return true
 }
@@ -105,14 +104,13 @@ export const revisePlacementMetadata = async (
   request: RevisePlacementMetadataRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
-  await executeRequest(`/api/document-placements/${request.placementId}/metadata`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  await executeRequest(
+    `/api/document-placements/${request.placementId}/metadata`,
+    buildJsonRequestInit('PUT', {
       title: request.title,
       operation: request.operation,
       fileNamePrefix: request.fileNamePrefix,
       lifecycleTargetPlacementId: request.lifecycleTargetPlacementId,
     }),
-  })
+  )
 }

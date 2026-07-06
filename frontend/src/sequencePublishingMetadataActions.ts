@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient'
+import { apiFetch, buildJsonRequestInit } from './apiClient'
 
 export type SequencePublishingMetadataRequest = {
   applicationId: string
@@ -47,10 +47,9 @@ export const updateSequencePublishingMetadata = async (
   request: UpdateSequencePublishingMetadataRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<SequencePublishingMetadata> => {
-  return executeRequest(`/api/applications/${request.applicationId}/sequences/${request.sequenceNumber}/publishing-metadata`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  return executeRequest(
+    `/api/applications/${request.applicationId}/sequences/${request.sequenceNumber}/publishing-metadata`,
+    buildJsonRequestInit('PUT', {
       applicationType: request.applicationType,
       submissionType: request.submissionType,
       submissionSubtype: request.submissionSubtype,
@@ -63,5 +62,5 @@ export const updateSequencePublishingMetadata = async (
       telephoneNumberType: request.telephoneNumberType,
       email: request.email,
     }),
-  })
+  )
 }

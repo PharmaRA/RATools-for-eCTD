@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient'
+import { apiFetch, buildJsonRequestInit } from './apiClient'
 
 export type ValidateSequenceRequest = {
   applicationId: string
@@ -83,20 +83,12 @@ export const validateSequence = async (
   request: ValidateSequenceRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<ValidationReport> => {
-  return executeRequest('/api/validation/sequence', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
+  return executeRequest('/api/validation/sequence', buildJsonRequestInit('POST', request))
 }
 
 export const getPublishReadiness = async (
   request: ValidateSequenceRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<PublishReadinessReport> => {
-  return executeRequest('/api/validation/publish-readiness', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
+  return executeRequest('/api/validation/publish-readiness', buildJsonRequestInit('POST', request))
 }

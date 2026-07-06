@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  buildWorkspaceDataUrls,
   buildWorkspaceExpandedKeys,
   buildWorkspaceDocumentsById,
   getWorkspaceEctdRootsFromResponse,
@@ -75,6 +76,14 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
 describe('useWorkspaceData', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('builds workspace data URLs with encoded application ids', () => {
+    expect(buildWorkspaceDataUrls('app 1/2')).toEqual({
+      placements: '/api/document-placements?applicationId=app%201%2F2',
+      documents: '/api/documents?applicationId=app%201%2F2',
+      ectdStructure: '/api/applications/app%201%2F2/ectd-structure',
+    })
   })
 
   it('reads workspace placements from list or paged response data', () => {

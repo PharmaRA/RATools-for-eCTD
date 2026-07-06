@@ -1,4 +1,4 @@
-import { apiFetch } from './apiClient'
+import { apiFetch, buildJsonRequestInit } from './apiClient'
 import { importApplication, type ImportApplicationRequest, type ImportApplicationResult } from './importActions'
 
 export type EctdTemplateOption = {
@@ -33,11 +33,7 @@ export const createApplication = async (
   request: CreateApplicationRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
-  return executeRequest('/api/applications', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
+  return executeRequest('/api/applications', buildJsonRequestInit('POST', request))
 }
 
 export const importApplicationWithTemplate = async (

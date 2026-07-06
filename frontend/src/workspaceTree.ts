@@ -47,6 +47,27 @@ export type WorkspaceTreeNode =
       children: []
     }
 
+export type WorkspaceTreeNodeTitleParts = {
+  text: string
+  prefix: string | null
+  label: string
+}
+
+export type WorkspaceTreeNodeDropCapabilities = {
+  isSection: boolean
+  acceptsPlacementDrop: boolean
+  acceptsFileDrop: boolean
+  canDrop: boolean
+}
+
+type WorkspaceTreeNodeClassNameInput = {
+  nodeType: WorkspaceTreeNode['nodeType']
+  canDrop: boolean
+  isHovered: boolean
+  isSelected: boolean
+  isDragging: boolean
+}
+
 type SegmentType = 'module' | 'number' | 'text'
 
 const compareSectionPaths = (left: string, right: string) => {
@@ -207,6 +228,49 @@ export const findWorkspaceTreeNode = (
 
   return undefined
 }
+
+export const getWorkspaceTreeNodeTitleParts = (
+  node: WorkspaceTreeNode,
+): WorkspaceTreeNodeTitleParts => {
+  const text = String(node.title ?? '')
+  const titleMatch = node.nodeType === 'section' ? /^([0-9]+(?:\.[0-9A-Z]+)*)\s+(.+)$/.exec(text) : null
+
+  return {
+    text,
+    prefix: titleMatch ? titleMatch[1] : null,
+    label: titleMatch ? titleMatch[2] : text,
+  }
+}
+
+export const getWorkspaceTreeNodeDropCapabilities = (
+  node: WorkspaceTreeNode,
+  draggingPlacementId: string | null,
+): WorkspaceTreeNodeDropCapabilities => {
+  const isSection = node.nodeType === 'section'
+  const acceptsFileDrop = isSection && node.canDrop
+
+  return {
+    isSection,
+    acceptsPlacementDrop: isSection,
+    acceptsFileDrop,
+    canDrop: acceptsFileDrop || (isSection && draggingPlacementId !== null),
+  }
+}
+
+export const buildWorkspaceTreeNodeClassName = ({
+  nodeType,
+  canDrop,
+  isHovered,
+  isSelected,
+  isDragging,
+}: WorkspaceTreeNodeClassNameInput) => [
+  'ectd-tree-node',
+  `ectd-tree-node--${nodeType}`,
+  canDrop ? 'ectd-tree-node--droppable' : null,
+  isHovered ? 'ectd-tree-node--hover' : null,
+  isSelected ? 'ectd-tree-node--selected' : null,
+  isDragging ? 'ectd-tree-node--dragging' : null,
+].filter(Boolean).join(' ')
 
 export const resolveUploadSection = (
   targetSectionPath: string | null | undefined,

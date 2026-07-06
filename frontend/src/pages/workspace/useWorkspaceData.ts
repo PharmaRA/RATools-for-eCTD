@@ -16,6 +16,16 @@ type UseWorkspaceDataOptions = {
   apiFetch?: typeof defaultApiFetch
 }
 
+export const buildWorkspaceDataUrls = (appId: string) => {
+  const encodedAppId = encodeURIComponent(appId)
+
+  return {
+    placements: `/api/document-placements?applicationId=${encodedAppId}`,
+    documents: `/api/documents?applicationId=${encodedAppId}`,
+    ectdStructure: `/api/applications/${encodedAppId}/ectd-structure`,
+  }
+}
+
 export const splitWorkspacePlacements = (
   placements: DocumentPlacementRecord[],
   appId: string,
@@ -73,6 +83,8 @@ export const useWorkspaceData = ({
   const [ectdRoots, setEctdRoots] = useState<EctdStructureNode[]>([])
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
 
+  const workspaceDataUrls = useMemo(() => buildWorkspaceDataUrls(appId), [appId])
+
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById)
   }, [documentsById, ectdRoots, placements])
@@ -80,7 +92,7 @@ export const useWorkspaceData = ({
   const fetchPlacements = useCallback(async () => {
     setPlacementsError(null)
     try {
-      const res = await apiFetch(`/api/document-placements?applicationId=${encodeURIComponent(appId)}`)
+      const res = await apiFetch(workspaceDataUrls.placements)
       const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(
         res as DocumentPlacementRecord[] | { items?: DocumentPlacementRecord[] | null },
       )
@@ -91,25 +103,25 @@ export const useWorkspaceData = ({
       const message = getErrorMessage(error)
       setPlacementsError(message)
     }
-  }, [apiFetch, appId, seqNumber])
+  }, [apiFetch, appId, seqNumber, workspaceDataUrls])
 
   const fetchDocuments = useCallback(async () => {
     setDocumentsError(null)
     try {
-      const docs = await apiFetch(`/api/documents?applicationId=${encodeURIComponent(appId)}`) as DocumentRecord[]
+      const docs = await apiFetch(workspaceDataUrls.documents) as DocumentRecord[]
       const mapped = buildWorkspaceDocumentsById(docs)
       setDocumentsById(mapped)
     } catch (error) {
       const message = getErrorMessage(error)
       setDocumentsError(message)
     }
-  }, [apiFetch, appId])
+  }, [apiFetch, workspaceDataUrls])
 
   const fetchEctdStructure = useCallback(async () => {
     setTreeLoading(true)
     setTreeError(null)
     try {
-      const response = await apiFetch(`/api/applications/${appId}/ectd-structure`) as EctdStructureResponse
+      const response = await apiFetch(workspaceDataUrls.ectdStructure) as EctdStructureResponse
       const roots = getWorkspaceEctdRootsFromResponse(response)
       setEctdRoots(roots)
       setExpandedKeys(buildWorkspaceExpandedKeys(roots))
@@ -120,7 +132,7 @@ export const useWorkspaceData = ({
     } finally {
       setTreeLoading(false)
     }
-  }, [apiFetch, appId])
+  }, [apiFetch, workspaceDataUrls])
 
   useEffect(() => {
     void Promise.resolve().then(async () => {

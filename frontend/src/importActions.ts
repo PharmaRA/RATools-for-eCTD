@@ -1,4 +1,4 @@
-import { ApiRequestError, apiFetch } from './apiClient'
+import { ApiRequestError, apiFetch, buildJsonRequestInit } from './apiClient'
 
 export type ImportApplicationRequest = {
   workingDirectoryPath: string
@@ -62,11 +62,7 @@ export const importApplication = async (
   request: ImportApplicationRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<ImportApplicationResult> => {
-  return executeRequest('/api/applications/import', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
+  return executeRequest('/api/applications/import', buildJsonRequestInit('POST', request))
 }
 
 export const mapImportErrorToMessage = (error: unknown) => {

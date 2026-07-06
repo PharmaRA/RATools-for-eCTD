@@ -53,6 +53,20 @@ export const partitionDroppedFiles = (files: File[] | FileList) => {
   return { validFiles, invalidFiles }
 }
 
+export const buildPlacementDragPayloadFromTreeNode = (
+  nodeData: WorkspaceTreeNode,
+): PlacementDragPayload | null => {
+  if (nodeData.nodeType !== 'document') {
+    return null
+  }
+
+  return {
+    placementId: nodeData.placementId,
+    documentId: nodeData.documentId,
+    sectionPath: nodeData.sectionPath,
+  }
+}
+
 export const useWorkspaceDragDrop = ({
   placements,
   movePlacement,
@@ -93,19 +107,16 @@ export const useWorkspaceDragDrop = ({
   }, [messageApi, uploadFile])
 
   const handleDragStart = useCallback((nodeData: WorkspaceTreeNode, dataTransfer: DataTransfer) => {
-    if (nodeData.nodeType !== 'document') {
+    const payload = buildPlacementDragPayloadFromTreeNode(nodeData)
+    if (!payload) {
       return
     }
 
-    setDraggingPlacementId(nodeData.placementId)
+    setDraggingPlacementId(payload.placementId)
     dataTransfer.effectAllowed = 'move'
-    const payload = serializePlacementDragPayload({
-      placementId: nodeData.placementId,
-      documentId: nodeData.documentId,
-      sectionPath: nodeData.sectionPath,
-    })
-    dataTransfer.setData(WORKSPACE_PLACEMENT_DRAG_MIME, payload)
-    dataTransfer.setData('text/plain', payload)
+    const serializedPayload = serializePlacementDragPayload(payload)
+    dataTransfer.setData(WORKSPACE_PLACEMENT_DRAG_MIME, serializedPayload)
+    dataTransfer.setData('text/plain', serializedPayload)
   }, [])
 
   const handleDragEnd = useCallback(() => {
@@ -192,14 +203,10 @@ export const useWorkspaceDragDrop = ({
     event.preventDefault()
     event.stopPropagation()
 
-    if (nodeData.nodeType === 'document') {
-      const payload = {
-        placementId: nodeData.placementId,
-        documentId: nodeData.documentId,
-        sectionPath: nodeData.sectionPath,
-      }
-      setKeyboardPlacementPayload(payload)
-      setDraggingPlacementId(nodeData.placementId)
+    const selectedPayload = buildPlacementDragPayloadFromTreeNode(nodeData)
+    if (selectedPayload) {
+      setKeyboardPlacementPayload(selectedPayload)
+      setDraggingPlacementId(selectedPayload.placementId)
       return
     }
 

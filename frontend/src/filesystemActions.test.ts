@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { listDirectories, resolveDirectory } from './filesystemActions'
+import { buildDirectoryListingUrl, listDirectories, resolveDirectory } from './filesystemActions'
 
 describe('filesystemActions', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('builds directory listing URLs from optional paths', () => {
+    expect(buildDirectoryListingUrl()).toBe('/api/filesystem/directories')
+    expect(buildDirectoryListingUrl('')).toBe('/api/filesystem/directories')
+    expect(buildDirectoryListingUrl('C:/working/root')).toBe('/api/filesystem/directories?path=C%3A%2Fworking%2Froot')
   })
 
   it('lists directories without a path query parameter', async () => {

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError } from './apiClient';
 import {
   buildApplicationBatchDeleteItems,
+  buildDeleteRequestUrl,
   buildSequenceBatchDeleteItems,
   getBatchDeleteResults,
   getFailedBatchDeleteResults,
@@ -14,6 +15,15 @@ import {
 describe('deleteActions', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('builds delete request URLs with delete mode query parameters', () => {
+    expect(buildDeleteRequestUrl('/api/applications/app-1', 'databaseOnly')).toBe(
+      '/api/applications/app-1?deleteMode=databaseOnly',
+    );
+    expect(buildDeleteRequestUrl('/api/applications/app-2?force=true', 'purgeWorkspace')).toBe(
+      '/api/applications/app-2?force=true&deleteMode=purgeWorkspace',
+    );
   });
 
   it('returns a success message for application deletion', async () => {

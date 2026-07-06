@@ -2,7 +2,13 @@ import { Alert, Card, Spin, Tag, Tree } from 'antd'
 import { CheckCircle, FileText, FolderOpen } from 'lucide-react'
 
 import { ectdAllowedExtensionsHint } from '../../ectdFileTypes'
-import { findWorkspaceTreeNode, type WorkspaceTreeNode } from '../../workspaceTree'
+import {
+  buildWorkspaceTreeNodeClassName,
+  findWorkspaceTreeNode,
+  getWorkspaceTreeNodeDropCapabilities,
+  getWorkspaceTreeNodeTitleParts,
+  type WorkspaceTreeNode,
+} from '../../workspaceTree'
 import { addSectionExpansionKeys } from '../appShared'
 import type { UseWorkspaceDragDropResult } from './useWorkspaceDragDrop'
 
@@ -60,15 +66,14 @@ export const WorkspaceTree = ({
         titleRender={(nodeData: WorkspaceTreeNode) => {
           const isSelected = selectedTreeKey === nodeData.key
           const isHovered = dragDrop.dragOverNode === nodeData.key
-          const isSection = nodeData.nodeType === 'section'
-          const acceptsPlacementDrop = isSection
-          const acceptsFileDrop = isSection && nodeData.canDrop
-          const canDrop = acceptsFileDrop || (isSection && dragDrop.draggingPlacementId !== null)
+          const {
+            isSection,
+            acceptsPlacementDrop,
+            acceptsFileDrop,
+            canDrop,
+          } = getWorkspaceTreeNodeDropCapabilities(nodeData, dragDrop.draggingPlacementId)
           const isBusy = loading || treeLoading
-          const titleText = String(nodeData.title ?? '')
-          const titleMatch = isSection ? /^([0-9]+(?:\.[0-9A-Z]+)*)\s+(.+)$/.exec(titleText) : null
-          const titlePrefix = titleMatch ? titleMatch[1] : null
-          const titleLabel = titleMatch ? titleMatch[2] : titleText
+          const { text: titleText, prefix: titlePrefix, label: titleLabel } = getWorkspaceTreeNodeTitleParts(nodeData)
 
           return (
             <div
@@ -90,7 +95,13 @@ export const WorkspaceTree = ({
               onKeyDown={(e) => {
                 void dragDrop.handleNodeKeyDown(e, nodeData, acceptsPlacementDrop)
               }}
-              className={`ectd-tree-node ${isSection ? 'ectd-tree-node--section' : 'ectd-tree-node--document'} ${canDrop ? 'ectd-tree-node--droppable' : ''} ${isHovered ? 'ectd-tree-node--hover' : ''} ${isSelected ? 'ectd-tree-node--selected' : ''} ${nodeData.nodeType === 'document' && dragDrop.draggingPlacementId === nodeData.placementId ? 'ectd-tree-node--dragging' : ''}`}
+              className={buildWorkspaceTreeNodeClassName({
+                nodeType: nodeData.nodeType,
+                canDrop,
+                isHovered,
+                isSelected,
+                isDragging: nodeData.nodeType === 'document' && dragDrop.draggingPlacementId === nodeData.placementId,
+              })}
             >
               <div className="ectd-tree-node__main">
                 <span className="ectd-tree-node__icon">
@@ -100,11 +111,11 @@ export const WorkspaceTree = ({
                   <div className="ectd-tree-node__labelRow">
                     {titlePrefix && <span className="ectd-tree-node__prefix">{titlePrefix}</span>}
                     <span className="ectd-tree-node__label">{titleLabel}</span>
-                    {!isSection && <Tag className="ectd-tree-node__tag" color="blue">{nodeData.operation}</Tag>}
+                    {nodeData.nodeType === 'document' && <Tag className="ectd-tree-node__tag" color="blue">{nodeData.operation}</Tag>}
                   </div>
                 </div>
               </div>
-              {isSection && nodeData.hasPlacement && <CheckCircle size={14} className="ectd-tree-node__status" />}
+              {nodeData.nodeType === 'section' && nodeData.hasPlacement && <CheckCircle size={14} className="ectd-tree-node__status" />}
             </div>
           )
         }}

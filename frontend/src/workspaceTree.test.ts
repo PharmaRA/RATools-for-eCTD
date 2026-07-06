@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   attachDocumentNodes,
+  buildWorkspaceTreeNodeClassName,
   buildPlacementsBySection,
   findWorkspaceTreeNode,
+  getWorkspaceTreeNodeDropCapabilities,
+  getWorkspaceTreeNodeTitleParts,
   mapSectionTreeData,
   resolveUploadSection,
 } from './workspaceTree'
@@ -102,6 +105,120 @@ describe('workspaceTree', () => {
       sectionPath: 'm1.2.3',
       title: '1.2.3 Labeling',
     })
+  })
+
+  it('splits section tree titles into display prefix and label parts', () => {
+    expect(getWorkspaceTreeNodeTitleParts({
+      nodeType: 'section',
+      key: 'm1.2.3',
+      sectionPath: 'm1.2.3',
+      title: '1.2.3 Labeling',
+      canDrop: true,
+      hasPlacement: false,
+      children: [],
+    })).toEqual({
+      text: '1.2.3 Labeling',
+      prefix: '1.2.3',
+      label: 'Labeling',
+    })
+
+    expect(getWorkspaceTreeNodeTitleParts({
+      nodeType: 'section',
+      key: 'm1',
+      sectionPath: 'm1',
+      title: 'Module 1',
+      canDrop: false,
+      hasPlacement: false,
+      children: [],
+    })).toEqual({
+      text: 'Module 1',
+      prefix: null,
+      label: 'Module 1',
+    })
+
+    expect(getWorkspaceTreeNodeTitleParts({
+      nodeType: 'document',
+      key: 'placement:1',
+      sectionPath: 'm1.2.3',
+      placementId: 'placement-1',
+      documentId: 'doc-1',
+      title: '1.2.3-labeling.pdf',
+      operation: 'New',
+      children: [],
+    })).toEqual({
+      text: '1.2.3-labeling.pdf',
+      prefix: null,
+      label: '1.2.3-labeling.pdf',
+    })
+  })
+
+  it('resolves workspace tree node drop capabilities', () => {
+    const leafSection = {
+      nodeType: 'section' as const,
+      key: 'm1.2.3',
+      sectionPath: 'm1.2.3',
+      title: '1.2.3 Labeling',
+      canDrop: true,
+      hasPlacement: false,
+      children: [],
+    }
+    const branchSection = {
+      ...leafSection,
+      key: 'm1.2',
+      sectionPath: 'm1.2',
+      title: '1.2 Administrative information',
+      canDrop: false,
+    }
+    const documentNode = {
+      nodeType: 'document' as const,
+      key: 'placement:1',
+      sectionPath: 'm1.2.3',
+      placementId: 'placement-1',
+      documentId: 'doc-1',
+      title: 'labeling.pdf',
+      operation: 'New',
+      children: [] as [],
+    }
+
+    expect(getWorkspaceTreeNodeDropCapabilities(leafSection, null)).toEqual({
+      isSection: true,
+      acceptsPlacementDrop: true,
+      acceptsFileDrop: true,
+      canDrop: true,
+    })
+    expect(getWorkspaceTreeNodeDropCapabilities(branchSection, null)).toEqual({
+      isSection: true,
+      acceptsPlacementDrop: true,
+      acceptsFileDrop: false,
+      canDrop: false,
+    })
+    expect(getWorkspaceTreeNodeDropCapabilities(branchSection, 'placement-1')).toMatchObject({
+      canDrop: true,
+    })
+    expect(getWorkspaceTreeNodeDropCapabilities(documentNode, 'placement-1')).toEqual({
+      isSection: false,
+      acceptsPlacementDrop: false,
+      acceptsFileDrop: false,
+      canDrop: false,
+    })
+  })
+
+  it('builds workspace tree node class names from display state', () => {
+    expect(buildWorkspaceTreeNodeClassName({
+      nodeType: 'section',
+      canDrop: true,
+      isHovered: true,
+      isSelected: true,
+      isDragging: false,
+    })).toBe('ectd-tree-node ectd-tree-node--section ectd-tree-node--droppable ectd-tree-node--hover ectd-tree-node--selected')
+
+    expect(buildWorkspaceTreeNodeClassName({
+      nodeType: 'document',
+      canDrop: false,
+      isHovered: false,
+      isSelected: false,
+      isDragging: true,
+    })).toBe('ectd-tree-node ectd-tree-node--document ectd-tree-node--dragging')
   })
 
   it('groups document placements by eCTD section', () => {

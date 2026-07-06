@@ -78,6 +78,10 @@ const getNotFoundMessage = (entity: DeleteEntity, message: string) => {
   return message || `${labels[entity]} was not found.`;
 };
 
+export const buildDeleteRequestUrl = (url: string, deleteMode: DeleteMode) => {
+  return `${url}${url.includes('?') ? '&' : '?'}deleteMode=${encodeURIComponent(deleteMode)}`;
+};
+
 export const performDelete = async (
   entity: DeleteEntity,
   url: string,
@@ -85,8 +89,7 @@ export const performDelete = async (
   request: typeof apiFetch = apiFetch,
 ): Promise<DeleteOutcome> => {
   try {
-    const requestUrl = `${url}${url.includes('?') ? '&' : '?'}deleteMode=${encodeURIComponent(deleteMode)}`;
-    await request(requestUrl, { method: 'DELETE' });
+    await request(buildDeleteRequestUrl(url, deleteMode), { method: 'DELETE' });
 
     return {
       kind: 'success',

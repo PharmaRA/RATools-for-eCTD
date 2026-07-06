@@ -2,7 +2,11 @@ import { act, useEffect, type KeyboardEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { partitionDroppedFiles, useWorkspaceDragDrop } from './useWorkspaceDragDrop'
+import {
+  buildPlacementDragPayloadFromTreeNode,
+  partitionDroppedFiles,
+  useWorkspaceDragDrop,
+} from './useWorkspaceDragDrop'
 
 type DragDropResult = ReturnType<typeof useWorkspaceDragDrop>
 
@@ -55,6 +59,33 @@ describe('useWorkspaceDragDrop', () => {
 
     expect(result.validFiles).toEqual([validPdf, validXml])
     expect(result.invalidFiles).toEqual([invalid])
+  })
+
+  it('builds placement drag payloads from document tree nodes', () => {
+    expect(buildPlacementDragPayloadFromTreeNode({
+      nodeType: 'document',
+      key: 'placement:placement-1',
+      placementId: 'placement-1',
+      documentId: 'doc-1',
+      sectionPath: '1.2',
+      title: 'cover.pdf',
+      operation: 'New',
+      children: [],
+    })).toEqual({
+      placementId: 'placement-1',
+      documentId: 'doc-1',
+      sectionPath: '1.2',
+    })
+
+    expect(buildPlacementDragPayloadFromTreeNode({
+      nodeType: 'section',
+      key: '1.2',
+      sectionPath: '1.2',
+      title: '1.2 Cover',
+      canDrop: true,
+      hasPlacement: false,
+      children: [],
+    })).toBeNull()
   })
 
   it('uploads all valid dropped files and reports invalid extensions', async () => {

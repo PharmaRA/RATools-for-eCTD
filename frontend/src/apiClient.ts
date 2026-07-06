@@ -58,6 +58,12 @@ const buildHeaders = (init?: RequestInit) => {
   return headers;
 };
 
+export const buildJsonRequestInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+
 export const apiFetch = async (url: string, options?: RequestInit) => {
   const res = await fetch(url, { ...options, headers: buildHeaders(options) });
 

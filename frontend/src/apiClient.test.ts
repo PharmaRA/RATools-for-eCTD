@@ -1,11 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiRequestError, apiFetch } from './apiClient';
+import { ApiRequestError, apiFetch, buildJsonRequestInit } from './apiClient';
 
 describe('apiClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+  });
+
+  it('builds JSON request init objects', () => {
+    expect(buildJsonRequestInit('PUT', { title: 'Updated title' })).toEqual({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Updated title' }),
+    });
   });
 
   it('returns parsed JSON when the response succeeds', async () => {
