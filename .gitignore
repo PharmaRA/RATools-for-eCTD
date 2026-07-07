@@ -24,10 +24,9 @@ obj/
 /.worktrees/
 /worktrees/
 
-# Untracked source directories (managed separately)
+# Local planning/reference directories
 /docs/superpowers/
 /docs/2026-*
-/tests/
 /reference/
 /tools/
 /scripts/tests/
