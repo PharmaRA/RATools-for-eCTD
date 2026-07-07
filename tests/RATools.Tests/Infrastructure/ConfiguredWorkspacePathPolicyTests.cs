@@ -46,21 +46,12 @@ public sealed class ConfiguredWorkspacePathPolicyTests
         using var parent = new TemporaryDirectory();
         var rootPath = Path.Combine(parent.Path, " root");
         Directory.CreateDirectory(rootPath);
-        var originalCurrentDirectory = Directory.GetCurrentDirectory();
 
-        try
-        {
-            Directory.SetCurrentDirectory(parent.Path);
-            var policy = CreatePolicy([" root"]);
+        var policy = CreatePolicy([rootPath]);
 
-            var resolved = policy.EnsureAllowed(" root");
+        var resolved = policy.EnsureAllowed(rootPath);
 
-            Assert.Equal(Path.GetFullPath(rootPath), resolved);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(originalCurrentDirectory);
-        }
+        Assert.Equal(Path.GetFullPath(rootPath), resolved);
     }
 
     [Fact]

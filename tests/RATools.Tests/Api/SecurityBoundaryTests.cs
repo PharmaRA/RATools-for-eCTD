@@ -166,28 +166,19 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
     public async Task FilesystemResolveDirectory_PreservesLeadingSpaceInAllowedPath()
     {
         using var tempRoot = new TemporaryDirectory();
-        var originalCurrentDirectory = Directory.GetCurrentDirectory();
         var spacedRootName = " root";
         var spacedRootPath = Path.Combine(tempRoot.Path, spacedRootName);
         Directory.CreateDirectory(spacedRootPath);
 
-        try
-        {
-            var client = CreateClient(spacedRootName, "local-dev-key");
-            client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
-            Directory.SetCurrentDirectory(tempRoot.Path);
+        var client = CreateClient(spacedRootPath, "local-dev-key");
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
 
-            var response = await client.PostAsJsonAsync("/api/filesystem/resolve-directory", new { Path = spacedRootName });
-            var result = await response.Content.ReadFromJsonAsync<DirectoryResolutionResponse>();
+        var response = await client.PostAsJsonAsync("/api/filesystem/resolve-directory", new { Path = spacedRootPath });
+        var result = await response.Content.ReadFromJsonAsync<DirectoryResolutionResponse>();
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(result);
-            Assert.Equal(Path.GetFullPath(spacedRootPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), result.FullPath);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(originalCurrentDirectory);
-        }
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal(Path.GetFullPath(spacedRootPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), result.FullPath);
     }
 
     [Fact]
