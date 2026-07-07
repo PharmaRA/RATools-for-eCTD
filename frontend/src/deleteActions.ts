@@ -55,20 +55,23 @@ export const buildApplicationDeleteUrl = buildApplicationUrl;
 
 export const buildSequenceDeleteUrl = buildSequenceUrl;
 
-export const buildApplicationBatchDeleteItems = (appIds: string[]): BatchDeleteItem[] => {
-  return appIds.map((appId) => ({
-    key: appId,
-    label: appId,
-    url: buildApplicationDeleteUrl(appId),
+export const buildBatchDeleteItems = (
+  keys: string[],
+  buildUrl: (key: string) => string,
+): BatchDeleteItem[] => {
+  return keys.map((key) => ({
+    key,
+    label: key,
+    url: buildUrl(key),
   }));
 };
 
+export const buildApplicationBatchDeleteItems = (appIds: string[]): BatchDeleteItem[] => {
+  return buildBatchDeleteItems(appIds, buildApplicationDeleteUrl);
+};
+
 export const buildSequenceBatchDeleteItems = (appId: string, sequenceNumbers: string[]): BatchDeleteItem[] => {
-  return sequenceNumbers.map((sequenceNumber) => ({
-    key: sequenceNumber,
-    label: sequenceNumber,
-    url: buildSequenceDeleteUrl(appId, sequenceNumber),
-  }));
+  return buildBatchDeleteItems(sequenceNumbers, (sequenceNumber) => buildSequenceDeleteUrl(appId, sequenceNumber));
 };
 
 const labels: Record<DeleteEntity, string> = {
@@ -88,6 +91,27 @@ export const buildDeleteRequestUrl = (url: string, deleteMode: DeleteMode) => {
   return `${url}${url.includes('?') ? '&' : '?'}deleteMode=${encodeURIComponent(deleteMode)}`;
 };
 
+export const mapDeleteErrorToOutcome = (entity: DeleteEntity, error: unknown): DeleteOutcome => {
+  const status = error instanceof ApiRequestError ? error.status : undefined;
+  const rawMessage = error instanceof Error ? error.message : 'Unexpected error.';
+
+  if (status === 404 || status === 409) {
+    return {
+      kind: 'error',
+      reason: status === 404 ? 'not_found' : 'conflict',
+      message: status === 404 ? getNotFoundMessage(entity, rawMessage) : rawMessage,
+      shouldRefresh: true,
+    };
+  }
+
+  return {
+    kind: 'error',
+    reason: 'unexpected_error',
+    message: `Failed to delete ${entity}: ${rawMessage}`,
+    shouldRefresh: false,
+  };
+};
+
 export const performDelete = async (
   entity: DeleteEntity,
   url: string,
@@ -104,24 +128,7 @@ export const performDelete = async (
       shouldRefresh: true,
     };
   } catch (error) {
-    const status = error instanceof ApiRequestError ? error.status : undefined;
-    const rawMessage = error instanceof Error ? error.message : 'Unexpected error.';
-
-    if (status === 404 || status === 409) {
-      return {
-        kind: 'error',
-        reason: status === 404 ? 'not_found' : 'conflict',
-        message: status === 404 ? getNotFoundMessage(entity, rawMessage) : rawMessage,
-        shouldRefresh: true,
-      };
-    }
-
-    return {
-      kind: 'error',
-      reason: 'unexpected_error',
-      message: `Failed to delete ${entity}: ${rawMessage}`,
-      shouldRefresh: false,
-    };
+    return mapDeleteErrorToOutcome(entity, error);
   }
 };
 

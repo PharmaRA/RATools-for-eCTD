@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildExecutePublishJobUrl,
   buildPublishHistoryRequestUrl,
+  buildPublishJobArtifactsUrl,
   buildPublishJobArtifactDownloadUrl,
+  buildPublishJobReportUrl,
+  buildPublishJobsUrl,
+  buildPublishJobUrl,
   executePublishJob,
   loadPublishHistory,
   loadPublishJobArtifacts,
@@ -10,6 +15,14 @@ import {
 } from './publishActions'
 
 describe('publishActions', () => {
+  it('builds publish job endpoint URLs', () => {
+    expect(buildPublishJobsUrl()).toBe('/api/publish-jobs')
+    expect(buildExecutePublishJobUrl()).toBe('/api/publish-jobs/execute')
+    expect(buildPublishJobUrl('job-1')).toBe('/api/publish-jobs/job-1')
+    expect(buildPublishJobReportUrl('job-1')).toBe('/api/publish-jobs/job-1/report')
+    expect(buildPublishJobArtifactsUrl('job-1')).toBe('/api/publish-jobs/job-1/artifacts')
+  })
+
   it('executes a publish job using only application, sequence, and output directory', async () => {
     const request = vi
       .fn()

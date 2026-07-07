@@ -9,10 +9,12 @@ export type EctdTemplateOption = {
   standardVersion?: string
 }
 
+export const buildEctdTemplatesUrl = () => '/api/ectd-templates'
+
 export const loadEctdTemplates = async (
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<EctdTemplateOption[]> => {
-  return executeRequest('/api/ectd-templates')
+  return executeRequest(buildEctdTemplatesUrl())
 }
 
 export const getDefaultEctdTemplateKey = (templates: EctdTemplateOption[]) => templates[0]?.key

@@ -1,14 +1,24 @@
-import { createElement } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { Tag } from 'antd'
 
-import { formatDate, formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
+import {
+  buildLifecycleIssueCountItems,
+  formatDate,
+  formatOptionalBytes,
+  formatOptionalCount,
+  formatOptionalList,
+  formatOptionalText,
+  getOptionalArray,
+} from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
+import { buildEvidenceFindingColumns } from './evidenceFindingDisplay'
 import { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
-import { formatReadinessFieldName } from './publishReadinessDisplay'
+import { buildPublishReadinessCategoryColumns, buildPublishReadinessFindingColumns } from './publishReadinessDisplay'
+import { buildIntegrityRiskSummaryItems } from './riskSummaryDisplay'
 
-export const formatReportList = (values?: unknown[]) => values?.length ? values.join(', ') : '-'
+export const formatReportList = (values?: unknown[]) => formatOptionalList(values)
 
-export const formatReportCount = (count?: number | null) => count ?? '-'
+export const formatReportCount = formatOptionalCount
 
 export const getReportOutcomeDisplayMeta = (succeeded?: boolean) => (
   succeeded
@@ -18,15 +28,15 @@ export const getReportOutcomeDisplayMeta = (succeeded?: boolean) => (
 
 export const getReportValidationIssues = <T>(
   report?: { validationReport?: { issues?: T[] | null } | null } | null,
-): T[] => report?.validationReport?.issues || []
+): T[] => getOptionalArray(report?.validationReport?.issues)
 
 export const getReportIntegrityFindings = <T>(
   report?: { integrityEvidence?: { findings?: T[] | null } | null } | null,
-): T[] => report?.integrityEvidence?.findings || []
+): T[] => getOptionalArray(report?.integrityEvidence?.findings)
 
 export const getReportIntegrityArtifacts = <T>(
   report?: { integrityEvidence?: { artifacts?: T[] | null } | null } | null,
-): T[] => report?.integrityEvidence?.artifacts || []
+): T[] => getOptionalArray(report?.integrityEvidence?.artifacts)
 
 type ReportOverview = {
   validationProfile?: string
@@ -48,6 +58,21 @@ export const buildReportOverviewItems = (
   { key: 'integrity', label: 'Integrity', children: integrityState },
 ]
 
+type ReportSummaryItemDefinition<TSummary> = {
+  key: string
+  label: string
+  children: (summary: TSummary) => ReactNode
+}
+
+export const buildReportSummaryItems = <TSummary>(
+  summary: TSummary,
+  definitions: readonly ReportSummaryItemDefinition<TSummary>[],
+) => definitions.map(({ key, label, children }) => ({
+  key,
+  label,
+  children: children(summary),
+}))
+
 type ReportIntegritySummary = {
   isConsistent?: boolean | null
   missingFilesCount?: number | null
@@ -55,23 +80,12 @@ type ReportIntegritySummary = {
   mismatchedArtifactsCount?: number | null
 }
 
-type ReportIntegrityIssueSummary = Pick<
-  ReportIntegritySummary,
-  'missingFilesCount' | 'missingZipEntriesCount' | 'mismatchedArtifactsCount'
->
-
 export const formatReportIntegrityState = (summary: ReportIntegritySummary | null | undefined) => {
   if (!summary) return '-'
   return summary.isConsistent ? 'Consistent' : 'Inconsistent'
 }
 
-export const buildReportIntegrityIssueSummaryItems = (
-  summary: ReportIntegrityIssueSummary | null | undefined,
-) => [
-  { key: 'missing-files', label: 'Missing Files', children: formatReportCount(summary?.missingFilesCount) },
-  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatReportCount(summary?.missingZipEntriesCount) },
-  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatReportCount(summary?.mismatchedArtifactsCount) },
-]
+export const buildReportIntegrityIssueSummaryItems = buildIntegrityRiskSummaryItems
 
 export const buildReportIntegritySummaryItems = (
   summary: ReportIntegritySummary | null | undefined,
@@ -87,11 +101,13 @@ type ReportArtifactSummary = {
   packageSizeBytes?: number | null
 }
 
-export const buildReportArtifactSummaryItems = (summary: ReportArtifactSummary | null | undefined) => [
-  { key: 'file-count', label: 'File Count', children: formatReportCount(summary?.fileCount) },
-  { key: 'total-size', label: 'Total Size', children: formatOptionalBytes(summary?.totalSizeBytes) },
-  { key: 'package-size', label: 'Package Size', children: formatOptionalBytes(summary?.packageSizeBytes) },
-]
+export const buildReportArtifactSummaryItems = (
+  summary: ReportArtifactSummary | null | undefined,
+) => buildReportSummaryItems(summary, [
+  { key: 'file-count', label: 'File Count', children: (item) => formatReportCount(item?.fileCount) },
+  { key: 'total-size', label: 'Total Size', children: (item) => formatOptionalBytes(item?.totalSizeBytes) },
+  { key: 'package-size', label: 'Package Size', children: (item) => formatOptionalBytes(item?.packageSizeBytes) },
+])
 
 type ReportAuditSummary = {
   publishJobEventCount?: number | null
@@ -100,12 +116,14 @@ type ReportAuditSummary = {
   latestPublishJobEventUtc?: string | null
 }
 
-export const buildReportAuditSummaryItems = (summary: ReportAuditSummary | null | undefined) => [
-  { key: 'publish-job-events', label: 'Publish Job Events', children: formatReportCount(summary?.publishJobEventCount) },
-  { key: 'validation-events', label: 'Validation Events', children: formatReportCount(summary?.validationEventCount) },
-  { key: 'latest-action', label: 'Latest Action', children: summary?.latestPublishJobAction ?? '-' },
-  { key: 'latest-event', label: 'Latest Event', children: formatDate(summary?.latestPublishJobEventUtc ?? undefined) },
-]
+export const buildReportAuditSummaryItems = (
+  summary: ReportAuditSummary | null | undefined,
+) => buildReportSummaryItems(summary, [
+  { key: 'publish-job-events', label: 'Publish Job Events', children: (item) => formatReportCount(item?.publishJobEventCount) },
+  { key: 'validation-events', label: 'Validation Events', children: (item) => formatReportCount(item?.validationEventCount) },
+  { key: 'latest-action', label: 'Latest Action', children: (item) => item?.latestPublishJobAction ?? '-' },
+  { key: 'latest-event', label: 'Latest Event', children: (item) => formatDate(item?.latestPublishJobEventUtc ?? undefined) },
+])
 
 type ReportLifecycleIssueSummary = {
   issueCount: number
@@ -122,14 +140,14 @@ type ReportLifecycleSummary = ReportLifecycleIssueSummary & {
 
 export const buildReportLifecycleIssueSummaryItems = (
   summary: ReportLifecycleIssueSummary,
-) => [
-  { key: 'issues', label: 'Issues', children: summary.issueCount },
-  { key: 'replace-missing', label: 'Replace Missing', children: summary.replaceTargetNotFoundCount },
-  { key: 'delete-missing', label: 'Delete Missing', children: summary.deleteTargetNotFoundCount },
-  { key: 'append-missing', label: 'Append Missing', children: summary.appendTargetNotFoundCount },
-  { key: 'ambiguous', label: 'Ambiguous', children: summary.ambiguousCount },
-  { key: 'current-sequence', label: 'Current Sequence', children: summary.currentSequenceCount },
-]
+) => buildReportSummaryItems(summary, [
+  { key: 'issues', label: 'Issues', children: (item) => item.issueCount },
+  ...buildLifecycleIssueCountItems(summary).map(({ key, label, value }) => ({
+    key,
+    label,
+    children: () => value,
+  })),
+])
 
 export const buildReportLifecycleSummaryItems = (
   summary: ReportLifecycleSummary,
@@ -148,12 +166,7 @@ export const buildReportValidationIssueColumns = () => [
   { title: 'Message', dataIndex: 'message' },
 ]
 
-export const buildReportIntegrityFindingColumns = () => [
-  { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
-  { title: 'Type', dataIndex: 'type', width: 200 },
-  { title: 'Path', dataIndex: 'path', width: 260, render: formatOptionalText },
-  { title: 'Message', dataIndex: 'message' },
-]
+export const buildReportIntegrityFindingColumns = () => buildEvidenceFindingColumns({ includeKeys: false })
 
 export const buildReportArtifactManifestColumns = () => [
   { title: 'Role', dataIndex: 'role', width: 140 },
@@ -178,20 +191,14 @@ export const buildReportLifecycleMatchColumns = () => [
   { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
 ]
 
-export const buildReportPublishReadinessCategoryColumns = () => [
-  { title: 'Category', dataIndex: 'category', width: 220 },
-  { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
-  { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
-  { title: 'Findings', dataIndex: 'findingCount', width: 120 },
-]
+export const buildReportPublishReadinessCategoryColumns = () => (
+  buildPublishReadinessCategoryColumns({ categoryWidth: 220, includeKeys: false })
+)
 
-export const buildReportPublishReadinessFindingColumns = () => [
-  { title: 'Severity', dataIndex: 'severity', width: 100, render: renderReportSeverityStatus },
-  { title: 'Code', dataIndex: 'code', width: 220 },
-  { title: 'Category', dataIndex: 'category', width: 180 },
-  { title: 'Field', dataIndex: 'fieldName', width: 180, render: formatReadinessFieldName },
-  { title: 'Recommended Action', dataIndex: 'recommendedAction' },
-]
+export const buildReportPublishReadinessFindingColumns = () => buildPublishReadinessFindingColumns({
+  severityRenderer: renderReportSeverityStatus,
+  includeKeys: false,
+})
 
 export const renderZipEntryPresentStatus = (present?: boolean | null) => {
   if (present === true) return createElement(Tag, { color: 'green' }, 'Present')

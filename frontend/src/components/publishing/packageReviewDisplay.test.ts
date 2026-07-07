@@ -2,6 +2,7 @@ import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildIntegrityRiskSummaryItems,
   buildPackageReviewChecklistColumns,
   buildPackageReviewEvidenceFindingColumns,
   buildPackageReviewIntegrityRiskSummaryItems,
@@ -82,6 +83,18 @@ describe('packageReviewDisplay', () => {
       { key: 'missing-files', label: 'Missing Files', children: 1 },
       { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
       { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+    ])
+  })
+
+  it('builds shared integrity risk summary items', () => {
+    expect(buildIntegrityRiskSummaryItems({
+      missingFilesCount: 2,
+      missingZipEntriesCount: null,
+      mismatchedArtifactsCount: 0,
+    })).toEqual([
+      { key: 'missing-files', label: 'Missing Files', children: 2 },
+      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: '-' },
+      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: 0 },
     ])
   })
 

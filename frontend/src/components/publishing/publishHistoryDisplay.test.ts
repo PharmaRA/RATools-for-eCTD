@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import { buildLifecycleIssueCountItems } from '../../pages/appShared'
 import {
   buildPublishHistoryLifecycleIssueStatisticItems,
   buildPublishHistoryLifecycleStatisticItems,
   buildPublishHistoryReadinessStatisticItems,
+  buildPublishHistoryStatisticItems,
   buildPublishHistoryStatusStatisticItems,
   buildPublishHistoryValidationSummaryItems,
   formatArtifactFileCount,
@@ -44,6 +46,19 @@ describe('publishHistoryDisplay', () => {
     expect(formatPublishHistoryStatisticValue(5)).toBe(5)
     expect(formatPublishHistoryStatisticValue(null)).toBeUndefined()
     expect(formatPublishHistoryStatisticValue(undefined)).toBeUndefined()
+  })
+
+  it('builds statistic items from summary keys and display definitions', () => {
+    expect(buildPublishHistoryStatisticItems(
+      { completedCount: 3, failedCount: null },
+      [
+        { title: 'Completed Jobs', valueKey: 'completedCount', color: '#3f8600' },
+        { title: 'Failed Jobs', valueKey: 'failedCount', color: '#cf1322' },
+      ],
+    )).toEqual([
+      { title: 'Completed Jobs', value: 3, color: '#3f8600' },
+      { title: 'Failed Jobs', value: undefined, color: '#cf1322' },
+    ])
   })
 
   it('builds status statistic items with display colors', () => {
@@ -89,19 +104,35 @@ describe('publishHistoryDisplay', () => {
   })
 
   it('builds lifecycle issue statistic items with zero fallbacks', () => {
-    expect(buildPublishHistoryLifecycleIssueStatisticItems({
+    const summary = {
       replaceTargetNotFoundCount: null,
       deleteTargetNotFoundCount: 2,
       appendTargetNotFoundCount: undefined,
       ambiguousCount: 1,
       currentSequenceCount: 5,
-    })).toEqual([
+    }
+
+    expect(buildPublishHistoryLifecycleIssueStatisticItems(summary)).toEqual([
       { title: 'Replace Missing', value: 0 },
       { title: 'Delete Missing', value: 2 },
       { title: 'Append Missing', value: 0 },
       { title: 'Ambiguous', value: 1 },
       { title: 'Current Sequence', value: 5 },
     ])
+  })
+
+  it('builds lifecycle issue statistic items from shared lifecycle issue counts', () => {
+    const summary = {
+      replaceTargetNotFoundCount: 1,
+      deleteTargetNotFoundCount: 2,
+      appendTargetNotFoundCount: 3,
+      ambiguousCount: 4,
+      currentSequenceCount: 5,
+    }
+
+    expect(buildPublishHistoryLifecycleIssueStatisticItems(summary)).toEqual(
+      buildLifecycleIssueCountItems(summary).map(({ label, value }) => ({ title: label, value })),
+    )
   })
 
   it('formats lifecycle status text for history rows', () => {

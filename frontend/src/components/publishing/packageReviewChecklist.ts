@@ -38,6 +38,18 @@ export const isPackageReviewReadyForSubmission = (rows: readonly PackageReviewCh
   rows.every((row) => row.pass)
 )
 
+export const buildPackageReviewChecklistRow = (
+  key: string,
+  check: string,
+  pass: boolean,
+  detail: string,
+): PackageReviewChecklistRow => ({
+  key,
+  check,
+  pass,
+  detail,
+})
+
 export const buildPackageReviewChecklistRows = ({
   report,
   reportLoaded,
@@ -47,34 +59,34 @@ export const buildPackageReviewChecklistRows = ({
   presentArtifactCount,
   requiredArtifactCount,
 }: PackageReviewChecklistInput): PackageReviewChecklistRow[] => [
-  {
-    key: 'publish-succeeded',
-    check: 'Publish succeeded',
-    pass: reportLoaded && report?.succeeded === true,
-    detail: formatPackageReviewPublishDetail(report?.message, reportError),
-  },
-  {
-    key: 'validation-errors',
-    check: 'Validation errors',
-    pass: reportLoaded && (report?.errorCount ?? 1) === 0,
-    detail: formatPackageReviewChecklistCountDetail(reportLoaded, report?.errorCount, 'error'),
-  },
-  {
-    key: 'lifecycle-issues',
-    check: 'Lifecycle issues',
-    pass: reportLoaded && lifecycleIssueCount === 0,
-    detail: formatPackageReviewChecklistCountDetail(reportLoaded, lifecycleIssueCount, 'issue'),
-  },
-  {
-    key: 'integrity-consistent',
-    check: 'Integrity consistent',
-    pass: reportLoaded && report?.integritySummary?.isConsistent === true,
-    detail: formatPackageReviewIntegrityDetail(report?.integritySummary),
-  },
-  {
-    key: 'required-artifacts-present',
-    check: 'Required artifacts present',
-    pass: !artifactsError && presentArtifactCount === requiredArtifactCount,
-    detail: formatPackageReviewRequiredArtifactsDetail(artifactsError, presentArtifactCount, requiredArtifactCount),
-  },
+  buildPackageReviewChecklistRow(
+    'publish-succeeded',
+    'Publish succeeded',
+    reportLoaded && report?.succeeded === true,
+    formatPackageReviewPublishDetail(report?.message, reportError),
+  ),
+  buildPackageReviewChecklistRow(
+    'validation-errors',
+    'Validation errors',
+    reportLoaded && (report?.errorCount ?? 1) === 0,
+    formatPackageReviewChecklistCountDetail(reportLoaded, report?.errorCount, 'error'),
+  ),
+  buildPackageReviewChecklistRow(
+    'lifecycle-issues',
+    'Lifecycle issues',
+    reportLoaded && lifecycleIssueCount === 0,
+    formatPackageReviewChecklistCountDetail(reportLoaded, lifecycleIssueCount, 'issue'),
+  ),
+  buildPackageReviewChecklistRow(
+    'integrity-consistent',
+    'Integrity consistent',
+    reportLoaded && report?.integritySummary?.isConsistent === true,
+    formatPackageReviewIntegrityDetail(report?.integritySummary),
+  ),
+  buildPackageReviewChecklistRow(
+    'required-artifacts-present',
+    'Required artifacts present',
+    !artifactsError && presentArtifactCount === requiredArtifactCount,
+    formatPackageReviewRequiredArtifactsDetail(artifactsError, presentArtifactCount, requiredArtifactCount),
+  ),
 ]

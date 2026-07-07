@@ -1,5 +1,15 @@
+import type { ReactNode } from 'react'
+
+import {
+  formatOptionalCount,
+  formatOptionalList,
+  formatOptionalText,
+  getErrorSeverityTagColor,
+  getOptionalArray,
+} from '../../pages/appShared'
+
 export const formatMissingMetadataFields = (fields?: string[] | null) => {
-  return fields?.length ? fields.join(', ') : 'None'
+  return formatOptionalList(fields, 'None')
 }
 
 export const formatReadinessMissingMetadataHint = (fields?: string[] | null) => {
@@ -48,7 +58,7 @@ export const formatReadinessHistoryCountHint = (
 
 export const formatReadinessReadyStatus = (isReady?: boolean | null) => isReady ? 'Yes' : 'No'
 
-export const formatReadinessOptionalText = (value?: string | null) => value || '-'
+export const formatReadinessOptionalText = formatOptionalText
 
 export const formatReadinessStatus = (status?: string | null) => formatReadinessOptionalText(status)
 
@@ -62,13 +72,11 @@ export const getPublishReadinessStatusTagProps = (readiness: PublishReadinessSta
   label: readiness.status || (readiness.isReady ? 'Ready' : 'Blocked'),
 })
 
-export const getPublishReadinessFindingSeverityTagColor = (severity: string) => {
-  return String(severity).toLowerCase() === 'error' ? 'red' : 'gold'
-}
+export const getPublishReadinessFindingSeverityTagColor = getErrorSeverityTagColor
 
 export const formatReadinessFieldName = (fieldName?: string | null) => formatReadinessOptionalText(fieldName)
 
-export const formatReadinessCount = (count?: number | null) => count ?? '-'
+export const formatReadinessCount = formatOptionalCount
 
 type PublishReadinessSnapshot = {
   status?: string | null
@@ -98,11 +106,66 @@ export const buildPublishReadinessSnapshotItems = (
   },
 ]
 
-export const buildPublishReadinessCategoryColumns = () => [
-  { title: 'Category', dataIndex: 'category', key: 'category' },
-  { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
-  { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
-  { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
+type PublishReadinessCategoryColumnOptions = {
+  categoryWidth?: number
+  includeKeys?: boolean
+}
+
+const buildPublishReadinessCategoryColumn = (
+  title: string,
+  dataIndex: string,
+  width: number | undefined,
+  includeKeys: boolean,
+) => ({
+  title,
+  dataIndex,
+  ...(includeKeys ? { key: dataIndex } : {}),
+  ...(width ? { width } : {}),
+})
+
+export const buildPublishReadinessCategoryColumns = (
+  options: PublishReadinessCategoryColumnOptions = {},
+) => {
+  const includeKeys = options.includeKeys ?? true
+
+  return [
+    buildPublishReadinessCategoryColumn('Category', 'category', options.categoryWidth, includeKeys),
+    buildPublishReadinessCategoryColumn('Blocking Errors', 'blockingErrorCount', 140, includeKeys),
+    buildPublishReadinessCategoryColumn('Warnings', 'warningCount', 120, includeKeys),
+    buildPublishReadinessCategoryColumn('Findings', 'findingCount', 120, includeKeys),
+  ]
+}
+
+type PublishReadinessFindingColumnOptions = {
+  severityRenderer: (value: string) => ReactNode
+  severityWidth?: number
+  includeKeys?: boolean
+}
+
+const buildPublishReadinessFindingColumn = (
+  title: string,
+  dataIndex: string,
+  width: number | undefined,
+  includeKeys: boolean,
+  render?: (value: string) => ReactNode,
+) => ({
+  title,
+  dataIndex,
+  ...(includeKeys ? { key: dataIndex } : {}),
+  ...(width ? { width } : {}),
+  ...(render ? { render } : {}),
+})
+
+export const buildPublishReadinessFindingColumns = ({
+  severityRenderer,
+  severityWidth = 100,
+  includeKeys = true,
+}: PublishReadinessFindingColumnOptions) => [
+  buildPublishReadinessFindingColumn('Severity', 'severity', severityWidth, includeKeys, severityRenderer),
+  buildPublishReadinessFindingColumn('Code', 'code', 220, includeKeys),
+  buildPublishReadinessFindingColumn('Category', 'category', 180, includeKeys),
+  buildPublishReadinessFindingColumn('Field', 'fieldName', 180, includeKeys, formatReadinessFieldName),
+  buildPublishReadinessFindingColumn('Recommended Action', 'recommendedAction', undefined, includeKeys),
 ]
 
 type PublishReadinessCategoryRow = {
@@ -116,11 +179,11 @@ type PublishReadinessFindingRow = {
 
 export const getPublishReadinessCategorySummaries = <T extends PublishReadinessCategoryRow>(
   readiness?: { categorySummaries?: T[] | null } | null,
-): T[] => readiness?.categorySummaries || []
+): T[] => getOptionalArray(readiness?.categorySummaries)
 
 export const getPublishReadinessFindings = <T extends PublishReadinessFindingRow>(
   readiness?: { findings?: T[] | null } | null,
-): T[] => readiness?.findings || []
+): T[] => getOptionalArray(readiness?.findings)
 
 export const getPublishReadinessFromReport = <T>(
   report?: { publishReadiness?: T | null } | null,

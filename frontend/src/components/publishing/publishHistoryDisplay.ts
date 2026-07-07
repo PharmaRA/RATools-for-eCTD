@@ -1,7 +1,7 @@
 import {
+  buildLifecycleIssueCountItems,
   formatOptionalBytes,
   getLifecycleIssueCount,
-  getLifecycleIssueCountValues,
   type LifecycleSummary,
 } from '../../pages/appShared'
 
@@ -36,6 +36,21 @@ export const buildPublishHistoryValidationSummaryItems = (
 
 export const formatPublishHistoryStatisticValue = (value?: number | null) => value ?? undefined
 
+type PublishHistoryStatisticDefinition<TSummary> = {
+  title: string
+  valueKey: keyof TSummary
+  color: string
+}
+
+export const buildPublishHistoryStatisticItems = <TSummary extends object>(
+  summary: TSummary,
+  definitions: readonly PublishHistoryStatisticDefinition<TSummary>[],
+) => definitions.map(({ title, valueKey, color }) => ({
+  title,
+  value: formatPublishHistoryStatisticValue(summary[valueKey] as number | null | undefined),
+  color,
+}))
+
 type PublishHistoryStatusSummary = {
   completedCount?: number | null
   failedCount?: number | null
@@ -44,11 +59,11 @@ type PublishHistoryStatusSummary = {
 
 export const buildPublishHistoryStatusStatisticItems = (
   summary: PublishHistoryStatusSummary,
-) => [
-  { title: 'Completed Jobs', value: formatPublishHistoryStatisticValue(summary.completedCount), color: '#3f8600' },
-  { title: 'Failed Jobs', value: formatPublishHistoryStatisticValue(summary.failedCount), color: '#cf1322' },
-  { title: 'Running Jobs', value: formatPublishHistoryStatisticValue(summary.runningCount), color: '#1677ff' },
-]
+) => buildPublishHistoryStatisticItems(summary, [
+  { title: 'Completed Jobs', valueKey: 'completedCount', color: '#3f8600' },
+  { title: 'Failed Jobs', valueKey: 'failedCount', color: '#cf1322' },
+  { title: 'Running Jobs', valueKey: 'runningCount', color: '#1677ff' },
+])
 
 type PublishHistoryReadinessSummary = {
   readyCount?: number | null
@@ -58,11 +73,11 @@ type PublishHistoryReadinessSummary = {
 
 export const buildPublishHistoryReadinessStatisticItems = (
   summary: PublishHistoryReadinessSummary,
-) => [
-  { title: 'Ready Sequences', value: formatPublishHistoryStatisticValue(summary.readyCount), color: '#3f8600' },
-  { title: 'Blocked Sequences', value: formatPublishHistoryStatisticValue(summary.blockedCount), color: '#cf1322' },
-  { title: 'Unknown Readiness', value: formatPublishHistoryStatisticValue(summary.unknownCount), color: '#595959' },
-]
+) => buildPublishHistoryStatisticItems(summary, [
+  { title: 'Ready Sequences', valueKey: 'readyCount', color: '#3f8600' },
+  { title: 'Blocked Sequences', valueKey: 'blockedCount', color: '#cf1322' },
+  { title: 'Unknown Readiness', valueKey: 'unknownCount', color: '#595959' },
+])
 
 type PublishHistoryLifecycleStatisticSummary = {
   matchedCount?: number | null
@@ -75,23 +90,7 @@ type PublishHistoryLifecycleStatisticSummary = {
 
 export const buildPublishHistoryLifecycleIssueStatisticItems = (
   summary: PublishHistoryLifecycleStatisticSummary,
-) => {
-  const [
-    replaceTargetNotFoundCount,
-    deleteTargetNotFoundCount,
-    appendTargetNotFoundCount,
-    ambiguousCount,
-    currentSequenceCount,
-  ] = getLifecycleIssueCountValues(summary)
-
-  return [
-    { title: 'Replace Missing', value: replaceTargetNotFoundCount },
-    { title: 'Delete Missing', value: deleteTargetNotFoundCount },
-    { title: 'Append Missing', value: appendTargetNotFoundCount },
-    { title: 'Ambiguous', value: ambiguousCount },
-    { title: 'Current Sequence', value: currentSequenceCount },
-  ]
-}
+) => buildLifecycleIssueCountItems(summary).map(({ label, value }) => ({ title: label, value }))
 
 export const buildPublishHistoryLifecycleStatisticItems = (
   summary: PublishHistoryLifecycleStatisticSummary,

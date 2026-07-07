@@ -61,10 +61,19 @@ export const normalizeValidationReport = (validationResult: ValidationReport): N
   }
 }
 
-const isBlockingSectionIssue = (issue: ValidationIssue) => {
+export const isBlockingSectionIssue = (issue: ValidationIssue) => {
   const code = String(issue.code || '').trim().toUpperCase()
   return blockingSectionIssueCodes.has(code)
     || (Boolean(issue.sectionPath?.trim()) && code.includes('SECTION'))
+}
+
+export const isBlockingLifecycleIssue = (
+  issue: ValidationIssue,
+  lifecycleMatches: ValidationLifecycleMatch[],
+) => {
+  return lifecycleMatches.some((match) => issue.code === match.resultCode)
+    || issue.code.startsWith('LIFECYCLE_')
+    || issue.code.endsWith('_TARGET_NOT_FOUND')
 }
 
 export const summarizeValidationIssues = (issues: ValidationIssue[]) => {
@@ -156,9 +165,7 @@ export const buildPrePublishChecklistSummary = (validationResult: ValidationRepo
   const lifecycleIssueCount = lifecycleSummary.issueCount
   const sectionRows = sectionSummary.sectionRows
   const canProceed = !hasApiError && blockingIssues.length === 0
-  const hasBlockingLifecycleIssue = blockingIssues.some((issue) => lifecycleMatches.some((match) => issue.code === match.resultCode)
-    || issue.code.startsWith('LIFECYCLE_')
-    || issue.code.endsWith('_TARGET_NOT_FOUND'))
+  const hasBlockingLifecycleIssue = blockingIssues.some((issue) => isBlockingLifecycleIssue(issue, lifecycleMatches))
   const hasBlockingSectionIssue = blockingIssues.some(isBlockingSectionIssue)
   const checklistRows: PrePublishChecklistRow[] = [
     {

@@ -1,11 +1,13 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { formatOptionalText } from './appShared'
 import {
   buildLeafPlacementDescriptionItems,
   buildLeafPlacementOperationOptions,
   buildLeafPreviewDescriptionItems,
   formatLeafPreviewOptionalText,
+  renderLeafBreakAllText,
 } from './leafMetadataDisplay'
 
 describe('leafMetadataDisplay', () => {
@@ -55,6 +57,18 @@ describe('leafMetadataDisplay', () => {
     expect(formatLeafPreviewOptionalText('')).toBe('-')
     expect(formatLeafPreviewOptionalText(null)).toBe('-')
     expect(formatLeafPreviewOptionalText(undefined)).toBe('-')
+  })
+
+  it('shares the optional text formatter for leaf preview text', () => {
+    expect(formatLeafPreviewOptionalText).toBe(formatOptionalText)
+  })
+
+  it('renders long leaf metadata text with break-all styling', () => {
+    const element = renderLeafBreakAllText('m3/us/0001/file.pdf')
+
+    expect(isValidElement(element)).toBe(true)
+    expect((element as ReactElement<{ className: string; children?: string }>).props.className).toBe('text-xs break-all')
+    expect((element as ReactElement<{ className: string; children?: string }>).props.children).toBe('m3/us/0001/file.pdf')
   })
 
   it('builds leaf preview description items', () => {

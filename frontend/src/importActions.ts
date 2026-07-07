@@ -1,4 +1,5 @@
 import { ApiRequestError, apiFetch, buildJsonRequestInit } from './apiClient'
+import { buildApplicationsUrl } from './applicationActions'
 
 export type ImportApplicationRequest = {
   workingDirectoryPath: string
@@ -27,6 +28,12 @@ export type ImportApplicationResult = {
 
 const lifecycleTargetIssueCodes = new Set(['LIFECYCLE_TARGET_MISSING', 'LIFECYCLE_TARGET_NOT_IMPORTED'])
 
+export const normalizeImportIssueSeverity = (severity: string) => String(severity).trim().toLowerCase()
+
+export const isLifecycleTargetImportIssue = (issue: ImportApplicationIssue) => (
+  lifecycleTargetIssueCodes.has(issue.code)
+)
+
 export const summarizeImportIssues = (issues: ImportApplicationIssue[]) => {
   const lifecycleIssues: ImportApplicationIssue[] = []
   const otherIssues: ImportApplicationIssue[] = []
@@ -34,7 +41,7 @@ export const summarizeImportIssues = (issues: ImportApplicationIssue[]) => {
   let errorCount = 0
 
   for (const issue of issues) {
-    const severity = String(issue.severity).trim().toLowerCase()
+    const severity = normalizeImportIssueSeverity(issue.severity)
     if (severity === 'warning') {
       warningCount += 1
     }
@@ -43,7 +50,7 @@ export const summarizeImportIssues = (issues: ImportApplicationIssue[]) => {
       errorCount += 1
     }
 
-    if (lifecycleTargetIssueCodes.has(issue.code)) {
+    if (isLifecycleTargetImportIssue(issue)) {
       lifecycleIssues.push(issue)
     } else {
       otherIssues.push(issue)
@@ -58,11 +65,13 @@ export const summarizeImportIssues = (issues: ImportApplicationIssue[]) => {
   }
 }
 
+export const buildImportApplicationUrl = () => `${buildApplicationsUrl()}/import`
+
 export const importApplication = async (
   request: ImportApplicationRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<ImportApplicationResult> => {
-  return executeRequest('/api/applications/import', buildJsonRequestInit('POST', request))
+  return executeRequest(buildImportApplicationUrl(), buildJsonRequestInit('POST', request))
 }
 
 export const mapImportErrorToMessage = (error: unknown) => {

@@ -20,16 +20,20 @@ export type DirectoryResolutionResult = {
   isAccessible: boolean
 }
 
+export const buildFilesystemDirectoriesUrl = () => '/api/filesystem/directories'
+
 export const buildDirectoryListingUrl = (path?: string) => (
-  path ? `/api/filesystem/directories?path=${encodeURIComponent(path)}` : '/api/filesystem/directories'
+  path ? `${buildFilesystemDirectoriesUrl()}?path=${encodeURIComponent(path)}` : buildFilesystemDirectoriesUrl()
 )
+
+export const buildResolveDirectoryUrl = () => '/api/filesystem/resolve-directory'
 
 export const listDirectories = async (path?: string, executeRequest: typeof apiFetch = apiFetch) => {
   return executeRequest(buildDirectoryListingUrl(path))
 }
 
 export const resolveDirectory = async (path: string, executeRequest: typeof apiFetch = apiFetch) => {
-  return executeRequest('/api/filesystem/resolve-directory', buildJsonRequestInit('POST', { path }))
+  return executeRequest(buildResolveDirectoryUrl(), buildJsonRequestInit('POST', { path }))
 }
 
 export const filesystemActions = {

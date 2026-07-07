@@ -31,6 +31,14 @@ export const formatDate = (dateStr?: string) => {
 
 export const formatOptionalText = (value?: string | null) => value || '-'
 
+export const formatOptionalCount = (count?: number | null) => count ?? '-'
+
+export const formatOptionalList = (values?: unknown[] | null, fallback = '-') => (
+  values?.length ? values.join(', ') : fallback
+)
+
+export const getOptionalArray = <T>(values?: T[] | null): T[] => values || []
+
 export const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -40,6 +48,10 @@ export const formatBytes = (bytes: number) => {
 }
 
 export const formatOptionalBytes = (bytes?: number | null) => bytes == null ? '-' : formatBytes(bytes)
+
+export const getErrorSeverityTagColor = (severity: string) => (
+  String(severity).toLowerCase() === 'error' ? 'red' : 'gold'
+)
 
 export const getApplicationTemplateLabel = (application?: Pick<Application, 'ectdTemplateDisplayName' | 'ectdTemplateKey'> | null) => {
   return application?.ectdTemplateDisplayName || application?.ectdTemplateKey || 'Unknown Template'
@@ -65,13 +77,31 @@ export type LifecycleSummary = {
   currentSequenceCount?: number | null
 }
 
-export const getLifecycleIssueCountValues = (summary?: LifecycleSummary | null) => [
-  summary?.replaceTargetNotFoundCount || 0,
-  summary?.deleteTargetNotFoundCount || 0,
-  summary?.appendTargetNotFoundCount || 0,
-  summary?.ambiguousCount || 0,
-  summary?.currentSequenceCount || 0,
+type LifecycleIssueCountValueKey = keyof LifecycleSummary
+
+const lifecycleIssueCountItemDefinitions: {
+  key: string
+  label: string
+  valueKey: LifecycleIssueCountValueKey
+}[] = [
+  { key: 'replace-missing', label: 'Replace Missing', valueKey: 'replaceTargetNotFoundCount' },
+  { key: 'delete-missing', label: 'Delete Missing', valueKey: 'deleteTargetNotFoundCount' },
+  { key: 'append-missing', label: 'Append Missing', valueKey: 'appendTargetNotFoundCount' },
+  { key: 'ambiguous', label: 'Ambiguous', valueKey: 'ambiguousCount' },
+  { key: 'current-sequence', label: 'Current Sequence', valueKey: 'currentSequenceCount' },
 ]
+
+export const buildLifecycleIssueCountItems = (summary?: LifecycleSummary | null) => (
+  lifecycleIssueCountItemDefinitions.map(({ key, label, valueKey }) => ({
+    key,
+    label,
+    value: summary?.[valueKey] || 0,
+  }))
+)
+
+export const getLifecycleIssueCountValues = (summary?: LifecycleSummary | null) => (
+  buildLifecycleIssueCountItems(summary).map(({ value }) => value)
+)
 
 export const getLifecycleIssueCount = (summary?: LifecycleSummary | null) => {
   return getLifecycleIssueCountValues(summary).reduce((total, count) => total + count, 0)

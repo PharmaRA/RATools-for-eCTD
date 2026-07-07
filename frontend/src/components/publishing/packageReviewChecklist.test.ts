@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildPackageReviewChecklistRow,
   buildPackageReviewChecklistRows,
   formatPackageReviewChecklistCountDetail,
   formatPackageReviewIntegrityDetail,
@@ -10,6 +11,20 @@ import {
 } from './packageReviewChecklist'
 
 describe('packageReviewChecklist', () => {
+  it('builds package review checklist rows from row fields', () => {
+    expect(buildPackageReviewChecklistRow(
+      'publish-succeeded',
+      'Publish succeeded',
+      true,
+      'Published',
+    )).toEqual({
+      key: 'publish-succeeded',
+      check: 'Publish succeeded',
+      pass: true,
+      detail: 'Published',
+    })
+  })
+
   it('formats checklist count details when report data is loaded', () => {
     expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe('2 error(s)')
     expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe('1 issue(s)')

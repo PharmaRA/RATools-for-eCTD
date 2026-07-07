@@ -16,7 +16,7 @@ export const isReadinessSort = (value: string | null): value is ReadinessSort =>
   return !!value && (readinessSortOptions as readonly string[]).includes(value)
 }
 
-const getReadinessSortRank = (readiness?: { status?: string | null } | null) => {
+export const getReadinessSortRank = (readiness?: { status?: string | null } | null) => {
   const status = readiness?.status?.toLowerCase()
   if (status === 'blocked') return 0
   if (!status || status === 'unknown') return 1

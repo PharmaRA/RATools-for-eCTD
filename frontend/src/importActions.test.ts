@@ -1,9 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { ApiRequestError } from './apiClient'
-import { importApplication, mapImportErrorToMessage, summarizeImportIssues } from './importActions'
+import {
+  buildImportApplicationUrl,
+  importApplication,
+  isLifecycleTargetImportIssue,
+  mapImportErrorToMessage,
+  normalizeImportIssueSeverity,
+  summarizeImportIssues,
+} from './importActions'
 
 describe('importActions', () => {
+  it('builds application import endpoint URL', () => {
+    expect(buildImportApplicationUrl()).toBe('/api/applications/import')
+  })
+
   it('summarizes import issues by lifecycle target category and severity', () => {
     const lifecycleMissingIssue = { severity: 'Warning', code: 'LIFECYCLE_TARGET_MISSING', sequenceNumber: '0002', message: 'Missing target' }
     const lifecycleNotImportedIssue = { severity: ' warning ', code: 'LIFECYCLE_TARGET_NOT_IMPORTED', sequenceNumber: '0003', message: 'Not imported' }
@@ -15,6 +26,24 @@ describe('importActions', () => {
     expect(summary.otherIssues).toEqual([otherIssue])
     expect(summary.warningCount).toBe(2)
     expect(summary.errorCount).toBe(1)
+  })
+
+  it('classifies import issue severity and lifecycle target issues', () => {
+    expect(normalizeImportIssueSeverity(' warning ')).toBe('warning')
+    expect(normalizeImportIssueSeverity('Error')).toBe('error')
+    expect(normalizeImportIssueSeverity('Info')).toBe('info')
+    expect(isLifecycleTargetImportIssue({
+      severity: 'Warning',
+      code: 'LIFECYCLE_TARGET_NOT_IMPORTED',
+      sequenceNumber: '0003',
+      message: 'Not imported',
+    })).toBe(true)
+    expect(isLifecycleTargetImportIssue({
+      severity: 'Error',
+      code: 'SEQUENCE_INDEX_MISSING',
+      sequenceNumber: '0004',
+      message: 'Missing index',
+    })).toBe(false)
   })
 
   it('submits import request and returns parsed result', async () => {

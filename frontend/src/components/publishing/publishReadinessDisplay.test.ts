@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { formatOptionalText, getErrorSeverityTagColor } from '../../pages/appShared'
 import {
   buildPublishReadinessCategoryColumns,
+  buildPublishReadinessFindingColumns,
   buildPublishReadinessSnapshotItems,
   formatMissingMetadataFields,
   formatReadinessBlockingErrorCountHint,
@@ -73,6 +75,10 @@ describe('publishReadinessDisplay', () => {
     expect(formatReadinessOptionalText(undefined)).toBe('-')
   })
 
+  it('shares the optional text formatter for readiness text', () => {
+    expect(formatReadinessOptionalText).toBe(formatOptionalText)
+  })
+
   it('uses a dash when publish readiness status is missing', () => {
     expect(formatReadinessStatus('Blocked')).toBe('Blocked')
     expect(formatReadinessStatus('')).toBe('-')
@@ -104,6 +110,11 @@ describe('publishReadinessDisplay', () => {
     ['Warning', 'gold'],
   ])('maps publish readiness finding severity %s to tag color', (severity, color) => {
     expect(getPublishReadinessFindingSeverityTagColor(severity)).toBe(color)
+  })
+
+  it('shares the error severity tag color for readiness finding severity', () => {
+    expect(getPublishReadinessFindingSeverityTagColor('error')).toBe(getErrorSeverityTagColor('error'))
+    expect(getPublishReadinessFindingSeverityTagColor('Warning')).toBe(getErrorSeverityTagColor('Warning'))
   })
 
   it('uses a dash when publish readiness finding field is missing', () => {
@@ -182,6 +193,33 @@ describe('publishReadinessDisplay', () => {
       { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
       { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
     ])
+  })
+
+  it('can build report publish readiness category summary columns', () => {
+    expect(buildPublishReadinessCategoryColumns({ categoryWidth: 220, includeKeys: false })).toEqual([
+      { title: 'Category', dataIndex: 'category', width: 220 },
+      { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
+      { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
+      { title: 'Findings', dataIndex: 'findingCount', width: 120 },
+    ])
+  })
+
+  it('can build report publish readiness finding columns', () => {
+    const columns = buildPublishReadinessFindingColumns({
+      severityRenderer: (value: string) => `Severity: ${value}`,
+      includeKeys: false,
+    })
+
+    expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
+      { title: 'Severity', dataIndex: 'severity', width: 100 },
+      { title: 'Code', dataIndex: 'code', width: 220 },
+      { title: 'Category', dataIndex: 'category', width: 180 },
+      { title: 'Field', dataIndex: 'fieldName', width: 180 },
+      { title: 'Recommended Action', dataIndex: 'recommendedAction', width: undefined },
+    ])
+
+    expect((columns[0] as { render: (value: string) => unknown }).render('Error')).toBe('Severity: Error')
+    expect((columns[3] as { render: (value?: string | null) => unknown }).render(null)).toBe('-')
   })
 
   it('builds a stable publish readiness finding row key', () => {

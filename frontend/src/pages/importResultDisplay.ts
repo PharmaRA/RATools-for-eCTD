@@ -1,11 +1,13 @@
 import { createElement } from 'react'
 import { Tag } from 'antd'
 
+import { formatOptionalText, getErrorSeverityTagColor } from './appShared'
+
 export const getImportIssueSeverityDisplayMeta = (value: string) => {
   const isError = String(value).toLowerCase() === 'error'
   return {
     alertType: isError ? 'error' : 'warning',
-    tagColor: isError ? 'red' : 'gold',
+    tagColor: getErrorSeverityTagColor(value),
   } as const
 }
 
@@ -35,27 +37,35 @@ export const getImportLifecycleWarningSummaryColor = (lifecycleWarningCount: num
   lifecycleWarningCount > 0 ? 'gold' : 'green'
 )
 
+export const buildImportIssueSummaryItem = (
+  key: string,
+  count: number,
+  label: string,
+  color: string,
+) => ({ key, color, label: `${count} ${label}` })
+
 export const buildImportIssueSummaryItems = ({
   totalIssueCount,
   warningCount,
   errorCount,
   lifecycleWarningCount,
 }: ImportIssueSummaryCounts) => [
-  { key: 'total', color: 'blue', label: `${totalIssueCount} total issues` },
-  { key: 'warnings', color: 'gold', label: `${warningCount} warnings` },
-  { key: 'errors', color: 'red', label: `${errorCount} errors` },
-  {
-    key: 'lifecycle-target-warnings',
-    color: getImportLifecycleWarningSummaryColor(lifecycleWarningCount),
-    label: `${lifecycleWarningCount} lifecycle target warnings`,
-  },
+  buildImportIssueSummaryItem('total', totalIssueCount, 'total issues', 'blue'),
+  buildImportIssueSummaryItem('warnings', warningCount, 'warnings', 'gold'),
+  buildImportIssueSummaryItem('errors', errorCount, 'errors', 'red'),
+  buildImportIssueSummaryItem(
+    'lifecycle-target-warnings',
+    lifecycleWarningCount,
+    'lifecycle target warnings',
+    getImportLifecycleWarningSummaryColor(lifecycleWarningCount),
+  ),
 ]
 
 export const renderImportIssueSeverityTag = (value: string) => {
   return createElement(Tag, { color: getImportIssueSeverityDisplayMeta(value).tagColor }, value)
 }
 
-export const formatImportIssueSequenceNumber = (value?: string | null) => value || '-'
+export const formatImportIssueSequenceNumber = formatOptionalText
 
 export const buildImportIssueTagItems = (
   issue: ImportIssueTagSource,

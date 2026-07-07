@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiRequestError } from './apiClient';
 import {
+  buildBatchDeleteItems,
   buildApplicationBatchDeleteItems,
   buildApplicationDeleteUrl,
   buildDeleteRequestUrl,
@@ -10,6 +11,7 @@ import {
   getBatchDeleteResults,
   getFailedBatchDeleteResults,
   getSuccessfulBatchDeleteResults,
+  mapDeleteErrorToOutcome,
   performBatchDelete,
   performDelete,
 } from './deleteActions';
@@ -94,6 +96,27 @@ describe('deleteActions', () => {
       reason: 'not_found',
       message: 'Sequence was not found.',
       shouldRefresh: true,
+    });
+  });
+
+  it('maps delete errors to refresh behavior and user messages', () => {
+    expect(mapDeleteErrorToOutcome('application', new ApiRequestError(404, 'HTTP Error 404'))).toEqual({
+      kind: 'error',
+      reason: 'not_found',
+      message: 'Application was not found.',
+      shouldRefresh: true,
+    });
+    expect(mapDeleteErrorToOutcome('sequence', new ApiRequestError(409, 'Sequence 0002 is locked.'))).toEqual({
+      kind: 'error',
+      reason: 'conflict',
+      message: 'Sequence 0002 is locked.',
+      shouldRefresh: true,
+    });
+    expect(mapDeleteErrorToOutcome('sequence', new Error('Network unavailable'))).toEqual({
+      kind: 'error',
+      reason: 'unexpected_error',
+      message: 'Failed to delete sequence: Network unavailable',
+      shouldRefresh: false,
     });
   });
 
@@ -260,6 +283,13 @@ describe('deleteActions', () => {
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/applications/app-1?deleteMode=purgeWorkspace', { method: 'DELETE' });
     expect(request).toHaveBeenNthCalledWith(2, '/api/applications/app-2?force=true&deleteMode=purgeWorkspace', { method: 'DELETE' });
+  });
+
+  it('builds batch delete items from keys and URL builders', () => {
+    expect(buildBatchDeleteItems(['alpha', 'beta'], (key) => `/api/resources/${key}`)).toEqual([
+      { key: 'alpha', label: 'alpha', url: '/api/resources/alpha' },
+      { key: 'beta', label: 'beta', url: '/api/resources/beta' },
+    ]);
   });
 
   it('builds application batch delete items from selected application keys', () => {

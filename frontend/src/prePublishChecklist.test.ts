@@ -5,6 +5,8 @@ import {
   buildPrePublishChecklistSummary,
   buildPrePublishChecklistDisplay,
   getPublishReadinessValidationIssues,
+  isBlockingLifecycleIssue,
+  isBlockingSectionIssue,
   normalizeValidationReport,
   summarizeSectionMatches,
   summarizeValidationIssues,
@@ -179,6 +181,44 @@ describe('prePublishChecklist', () => {
       status: 'fail',
       blocking: true,
     })
+  })
+
+  it('classifies blocking lifecycle and section issues', () => {
+    const lifecycleMatches = [{
+      operation: 'Replace',
+      sequenceNumber: '0000',
+      ctdSection: '1.2',
+      documentId: 'doc-1',
+      resultCode: 'REPLACE_TARGET_NOT_FOUND',
+      matchStrategy: 'by-file-name',
+      attemptedStrategies: ['by-file-name'],
+      historicalMatchCount: 0,
+      historicalSequenceNumbers: [],
+      historicalPlacementIds: [],
+      historicalFinalState: 'Missing',
+    }]
+
+    expect(isBlockingLifecycleIssue(
+      { severity: 'Error', code: 'REPLACE_TARGET_NOT_FOUND', message: 'Missing target' },
+      lifecycleMatches,
+    )).toBe(true)
+    expect(isBlockingLifecycleIssue(
+      { severity: 'Error', code: 'LIFECYCLE_TARGET_MISSING', message: 'Missing target' },
+      [],
+    )).toBe(true)
+    expect(isBlockingLifecycleIssue(
+      { severity: 'Error', code: 'BROKEN', message: 'Blocking' },
+      lifecycleMatches,
+    )).toBe(false)
+
+    expect(isBlockingSectionIssue({ severity: 'Error', code: 'invalid_section_path', message: 'Bad section' })).toBe(true)
+    expect(isBlockingSectionIssue({
+      severity: 'Error',
+      code: 'CUSTOM_SECTION_ERROR',
+      message: 'Bad section',
+      sectionPath: '1.2',
+    })).toBe(true)
+    expect(isBlockingSectionIssue({ severity: 'Error', code: 'BROKEN', message: 'Blocking' })).toBe(false)
   })
 
   it('keeps non-standard section matches informational unless backed by blocking issues', () => {

@@ -1,4 +1,5 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import { buildApplicationUrl } from './applicationActions'
 
 export type ExecutePublishJobRequest = {
   applicationId: string
@@ -31,21 +32,27 @@ export const executePublishJob = async (
 
   // 发布在后端后台执行：该端点返回 202 与作业（含 id/status），
   // 结果通过 History 标签页轮询作业状态与报告获取。
-  return executeRequest('/api/publish-jobs/execute', buildJsonRequestInit('POST', body))
+  return executeRequest(buildExecutePublishJobUrl(), buildJsonRequestInit('POST', body))
 }
 
 export type CreateAndExecutePublishJobRequest = ExecutePublishJobRequest
 
 export const createAndExecutePublishJob = executePublishJob
 
-export const buildPublishJobReportUrl = (jobId: string) => `/api/publish-jobs/${jobId}/report`
+export const buildPublishJobsUrl = () => '/api/publish-jobs'
 
-export const buildPublishJobArtifactsUrl = (jobId: string) => `/api/publish-jobs/${jobId}/artifacts`
+export const buildExecutePublishJobUrl = () => `${buildPublishJobsUrl()}/execute`
+
+export const buildPublishJobUrl = (jobId: string) => `${buildPublishJobsUrl()}/${jobId}`
+
+export const buildPublishJobReportUrl = (jobId: string) => `${buildPublishJobUrl(jobId)}/report`
+
+export const buildPublishJobArtifactsUrl = (jobId: string) => `${buildPublishJobUrl(jobId)}/artifacts`
 
 export const buildPublishJobArtifactDownloadUrl = (
   jobId: string | null,
   artifactName: string,
-) => `/api/publish-jobs/${jobId}/artifacts/${artifactName}/download`
+) => `${buildPublishJobArtifactsUrl(String(jobId))}/${artifactName}/download`
 
 export const loadPublishJobReport = async <T = unknown>(
   jobId: string,
@@ -72,7 +79,7 @@ export const buildPublishHistoryRequestUrl = (
   if (values.status) params.append('status', values.status)
   if (values.readinessStatus) params.append('readinessStatus', values.readinessStatus)
 
-  return `/api/applications/${appId}/publish-history?${params.toString()}`
+  return `${buildApplicationUrl(appId)}/publish-history?${params.toString()}`
 }
 
 export const loadPublishHistory = async <T = unknown>(

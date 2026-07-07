@@ -1,4 +1,5 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import { buildApplicationUrl } from './applicationActions'
 import type { EctdStructureResponse } from './pages/appShared'
 import type { DocumentPlacementRecord, DocumentRecord } from './workspaceTree'
 
@@ -36,13 +37,31 @@ export type UploadDocumentToSectionRequest = {
   ctdSection: string
 }
 
-export const buildWorkspaceDataUrls = (appId: string) => {
-  const encodedAppId = encodeURIComponent(appId)
+const buildApplicationScopedCollectionUrl = (baseUrl: string, applicationId?: string) => {
+  if (applicationId === undefined) {
+    return baseUrl
+  }
 
+  return `${baseUrl}?applicationId=${encodeURIComponent(applicationId)}`
+}
+
+export const buildDocumentPlacementsUrl = (applicationId?: string) => {
+  return buildApplicationScopedCollectionUrl('/api/document-placements', applicationId)
+}
+
+export const buildDocumentsUrl = (applicationId?: string) => {
+  return buildApplicationScopedCollectionUrl('/api/documents', applicationId)
+}
+
+export const buildWorkspaceEctdStructureUrl = (applicationId: string) => {
+  return `${buildApplicationUrl(encodeURIComponent(applicationId))}/ectd-structure`
+}
+
+export const buildWorkspaceDataUrls = (appId: string) => {
   return {
-    placements: `/api/document-placements?applicationId=${encodedAppId}`,
-    documents: `/api/documents?applicationId=${encodedAppId}`,
-    ectdStructure: `/api/applications/${encodedAppId}/ectd-structure`,
+    placements: buildDocumentPlacementsUrl(appId),
+    documents: buildDocumentsUrl(appId),
+    ectdStructure: buildWorkspaceEctdStructureUrl(appId),
   }
 }
 
@@ -67,10 +86,8 @@ export const loadWorkspaceEctdStructure = async (
   return executeRequest(buildWorkspaceDataUrls(appId).ectdStructure)
 }
 
-const documentPlacementsUrl = '/api/document-placements'
-
 export const buildDocumentPlacementUrl = (placementId: string) => {
-  return `${documentPlacementsUrl}/${placementId}`
+  return `${buildDocumentPlacementsUrl()}/${placementId}`
 }
 
 export const buildDocumentPlacementSectionUrl = (placementId: string) => {
@@ -81,7 +98,7 @@ export const buildDocumentPlacementMetadataUrl = (placementId: string) => {
   return `${buildDocumentPlacementUrl(placementId)}/metadata`
 }
 
-export const buildDocumentUrl = (documentId: string) => `/api/documents/${documentId}`
+export const buildDocumentUrl = (documentId: string) => `${buildDocumentsUrl()}/${documentId}`
 
 export const buildDocumentUploadUrl = (applicationId: string, sequenceNumber: string) => {
   return `/api/applications/${applicationId}/sequences/${sequenceNumber}/documents/upload`
@@ -189,7 +206,7 @@ export const uploadDocumentToSection = async (
   ) as { id: string }
 
   await executeRequest(
-    documentPlacementsUrl,
+    buildDocumentPlacementsUrl(),
     buildJsonRequestInit('POST', {
       applicationId: request.applicationId,
       sequenceNumber: request.sequenceNumber,

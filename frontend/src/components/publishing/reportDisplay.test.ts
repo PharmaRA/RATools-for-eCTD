@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { buildLifecycleIssueCountItems } from '../../pages/appShared'
 import {
   buildReportArtifactManifestColumns,
   buildReportArtifactSummaryItems,
@@ -14,6 +15,7 @@ import {
   buildReportOverviewItems,
   buildReportPublishReadinessCategoryColumns,
   buildReportPublishReadinessFindingColumns,
+  buildReportSummaryItems,
   buildReportValidationIssueColumns,
   getReportIntegrityArtifacts,
   getReportIntegrityFindings,
@@ -105,6 +107,19 @@ describe('reportDisplay', () => {
     ])
   })
 
+  it('builds report summary items from display definitions', () => {
+    expect(buildReportSummaryItems(
+      { fileCount: 3, packageSizeBytes: null },
+      [
+        { key: 'file-count', label: 'File Count', children: (summary) => formatReportCount(summary.fileCount) },
+        { key: 'package-size', label: 'Package Size', children: (summary) => formatReportCount(summary.packageSizeBytes) },
+      ],
+    )).toEqual([
+      { key: 'file-count', label: 'File Count', children: 3 },
+      { key: 'package-size', label: 'Package Size', children: '-' },
+    ])
+  })
+
   it('builds report integrity summary items', () => {
     expect(buildReportIntegritySummaryItems({
       missingFilesCount: 1,
@@ -180,14 +195,16 @@ describe('reportDisplay', () => {
   })
 
   it('builds report lifecycle issue summary items', () => {
-    expect(buildReportLifecycleIssueSummaryItems({
+    const summary = {
       replaceTargetNotFoundCount: 1,
       deleteTargetNotFoundCount: 2,
       appendTargetNotFoundCount: 3,
       ambiguousCount: 0,
       currentSequenceCount: 5,
       issueCount: 9,
-    })).toEqual([
+    }
+
+    expect(buildReportLifecycleIssueSummaryItems(summary)).toEqual([
       { key: 'issues', label: 'Issues', children: 9 },
       { key: 'replace-missing', label: 'Replace Missing', children: 1 },
       { key: 'delete-missing', label: 'Delete Missing', children: 2 },
@@ -195,6 +212,21 @@ describe('reportDisplay', () => {
       { key: 'ambiguous', label: 'Ambiguous', children: 0 },
       { key: 'current-sequence', label: 'Current Sequence', children: 5 },
     ])
+  })
+
+  it('builds report lifecycle issue summary items from shared lifecycle issue counts', () => {
+    const summary = {
+      replaceTargetNotFoundCount: 1,
+      deleteTargetNotFoundCount: 2,
+      appendTargetNotFoundCount: 3,
+      ambiguousCount: 4,
+      currentSequenceCount: 5,
+      issueCount: 15,
+    }
+
+    expect(buildReportLifecycleIssueSummaryItems(summary).slice(1)).toEqual(
+      buildLifecycleIssueCountItems(summary).map(({ key, label, value }) => ({ key, label, children: value })),
+    )
   })
 
   it.each([

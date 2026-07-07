@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { getPublishHistoryEntriesFromResponse, isReadinessSort, sortPublishHistoryEntries } from './publishHistorySorting'
+import {
+  getPublishHistoryEntriesFromResponse,
+  getReadinessSortRank,
+  isReadinessSort,
+  sortPublishHistoryEntries,
+} from './publishHistorySorting'
 
 const entry = (id: string, status?: string | null) => ({
   publishJobId: id,
@@ -41,6 +46,14 @@ describe('publishHistorySorting', () => {
       'blocked',
     ])
     expect(entries.map((item) => item.publishJobId)).toEqual(['ready', 'custom', 'blocked', 'unknown', 'missing'])
+  })
+
+  it('ranks readiness status values for sorting', () => {
+    expect(getReadinessSortRank({ status: 'Blocked' })).toBe(0)
+    expect(getReadinessSortRank({ status: 'Unknown' })).toBe(1)
+    expect(getReadinessSortRank(null)).toBe(1)
+    expect(getReadinessSortRank({ status: 'Ready' })).toBe(2)
+    expect(getReadinessSortRank({ status: 'Reviewing' })).toBe(3)
   })
 
   it('accepts only known readiness sort options', () => {

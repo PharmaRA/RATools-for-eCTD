@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildEctdTemplatesUrl,
   buildEctdTemplateSelectOptions,
   getDefaultEctdTemplateKey,
   importApplicationWithTemplate,
@@ -9,6 +10,10 @@ import {
 } from './ectdTemplateActions'
 
 describe('ectdTemplateActions', () => {
+  it('builds eCTD template endpoint URL', () => {
+    expect(buildEctdTemplatesUrl()).toBe('/api/ectd-templates')
+  })
+
   it('loads available eCTD templates from the API', async () => {
     const request = vi.fn().mockResolvedValue([
       {

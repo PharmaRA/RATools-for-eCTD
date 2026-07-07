@@ -3,11 +3,16 @@ import { Tag } from 'antd'
 
 import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
-import { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
-import { formatReadinessFieldName, getPublishReadinessFindingSeverityTagColor } from './publishReadinessDisplay'
+import { buildEvidenceFindingColumns } from './evidenceFindingDisplay'
+import { buildPublishReadinessFindingColumns, getPublishReadinessFindingSeverityTagColor } from './publishReadinessDisplay'
+import { buildIntegrityRiskSummaryItems, formatRiskSummaryCount } from './riskSummaryDisplay'
 import type { IntegrityFinding, PackageReviewReport } from './packageReviewExport'
 
 export { renderEvidenceFindingSeverityStatus } from './findingSeverityDisplay'
+export {
+  buildIntegrityRiskSummaryItems,
+  buildIntegrityRiskSummaryItems as buildPackageReviewIntegrityRiskSummaryItems,
+} from './riskSummaryDisplay'
 
 type PackageReviewHeaderReport = Pick<PackageReviewReport, 'sequenceNumber' | 'publishJob' | 'validationProfile'>
 
@@ -17,8 +22,6 @@ type PackageReviewRiskSummaryInput = {
   lifecycleIssueCount: number
 }
 
-type PackageReviewIntegrityRiskSummary = NonNullable<PackageReviewReport['integritySummary']>
-
 type PackageReviewWarningReport = Pick<PackageReviewReport, 'warningCount'>
 
 type PackageReviewIntegrityEvidenceReport = Pick<PackageReviewReport, 'integrityEvidence'>
@@ -26,8 +29,6 @@ type PackageReviewIntegrityEvidenceReport = Pick<PackageReviewReport, 'integrity
 export const formatPackageReviewHeaderSummary = (report?: PackageReviewHeaderReport | null) => {
   return `Sequence ${formatOptionalText(report?.sequenceNumber)} | ${formatOptionalText(report?.publishJob?.status)} | ${formatOptionalText(report?.validationProfile)}`
 }
-
-const formatPackageReviewRiskCount = (count?: number | null) => count ?? '-'
 
 export const formatPackageReviewWarningAlertDescription = (report?: PackageReviewWarningReport | null) => {
   const warningCount = report?.warningCount ?? 0
@@ -45,14 +46,6 @@ export const getPackageReviewIntegrityFindings = (
   reportLoaded: boolean,
 ): IntegrityFinding[] => reportLoaded ? report?.integrityEvidence?.findings || [] : []
 
-export const buildPackageReviewIntegrityRiskSummaryItems = (
-  summary?: PackageReviewIntegrityRiskSummary | null,
-) => [
-  { key: 'missing-files', label: 'Missing Files', children: formatPackageReviewRiskCount(summary?.missingFilesCount) },
-  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatPackageReviewRiskCount(summary?.missingZipEntriesCount) },
-  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatPackageReviewRiskCount(summary?.mismatchedArtifactsCount) },
-]
-
 export const buildPackageReviewRiskSummaryItems = ({
   report,
   reportLoaded,
@@ -61,10 +54,10 @@ export const buildPackageReviewRiskSummaryItems = ({
   const loadedReport = reportLoaded ? report : null
 
   return [
-    { key: 'validation-errors', label: 'Validation Errors', children: formatPackageReviewRiskCount(loadedReport?.errorCount) },
-    { key: 'warnings', label: 'Warnings', children: formatPackageReviewRiskCount(loadedReport?.warningCount) },
+    { key: 'validation-errors', label: 'Validation Errors', children: formatRiskSummaryCount(loadedReport?.errorCount) },
+    { key: 'warnings', label: 'Warnings', children: formatRiskSummaryCount(loadedReport?.warningCount) },
     { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: reportLoaded ? lifecycleIssueCount : '-' },
-    ...buildPackageReviewIntegrityRiskSummaryItems(loadedReport?.integritySummary),
+    ...buildIntegrityRiskSummaryItems(loadedReport?.integritySummary),
   ]
 }
 
@@ -89,17 +82,9 @@ export const renderReadinessFindingSeverityStatus = (severity: string) => {
   return createElement(Tag, { color: getPublishReadinessFindingSeverityTagColor(severity) }, severity)
 }
 
-export const buildPackageReviewReadinessFindingColumns = () => [
-  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120, render: renderReadinessFindingSeverityStatus },
-  { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
-  { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
-  { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180, render: formatReadinessFieldName },
-  { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction' },
-]
+export const buildPackageReviewReadinessFindingColumns = () => buildPublishReadinessFindingColumns({
+  severityRenderer: renderReadinessFindingSeverityStatus,
+  severityWidth: 120,
+})
 
-export const buildPackageReviewEvidenceFindingColumns = () => [
-  { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100, render: renderEvidenceFindingSeverityStatus },
-  { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
-  { title: 'Path', dataIndex: 'path', key: 'path', width: 260, render: formatOptionalText },
-  { title: 'Message', dataIndex: 'message', key: 'message' },
-]
+export const buildPackageReviewEvidenceFindingColumns = () => buildEvidenceFindingColumns({ typeWidth: 180 })

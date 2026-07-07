@@ -1,10 +1,13 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { formatOptionalText, getErrorSeverityTagColor } from './appShared'
 import {
   buildImportIssueColumns,
+  buildImportIssueSummaryItem,
   buildImportIssueSummaryItems,
   buildImportIssueTagItems,
+  formatImportIssueSequenceNumber,
   getImportLifecycleWarningSummaryColor,
   getImportIssueSeverityDisplayMeta,
   getImportResultIssues,
@@ -17,6 +20,11 @@ describe('importResultDisplay', () => {
     ['Info', { alertType: 'warning', tagColor: 'gold' }],
   ])('maps import issue severity %s to display meta', (severity, expected) => {
     expect(getImportIssueSeverityDisplayMeta(severity)).toEqual(expected)
+  })
+
+  it('shares the error severity tag color for import issue severity meta', () => {
+    expect(getImportIssueSeverityDisplayMeta('error').tagColor).toBe(getErrorSeverityTagColor('error'))
+    expect(getImportIssueSeverityDisplayMeta('Warning').tagColor).toBe(getErrorSeverityTagColor('Warning'))
   })
 
   it('builds import issue summary items', () => {
@@ -38,6 +46,14 @@ describe('importResultDisplay', () => {
       errorCount: 0,
       lifecycleWarningCount: 1,
     })[3].color).toBe('gold')
+  })
+
+  it('builds a single import issue summary item', () => {
+    expect(buildImportIssueSummaryItem('warnings', 2, 'warnings', 'gold')).toEqual({
+      key: 'warnings',
+      color: 'gold',
+      label: '2 warnings',
+    })
   })
 
   it.each([
@@ -74,6 +90,10 @@ describe('importResultDisplay', () => {
       { key: 'severity', label: 'Error', color: 'red' },
       { key: 'code', label: 'INVALID_XML' },
     ])
+  })
+
+  it('shares the optional text formatter for import issue sequence numbers', () => {
+    expect(formatImportIssueSequenceNumber).toBe(formatOptionalText)
   })
 
   it('builds import issue columns', () => {

@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  buildDocumentPlacementsUrl,
   buildDocumentPlacementMetadataUrl,
   buildDocumentPlacementSectionUrl,
   buildDocumentPlacementUrl,
+  buildDocumentsUrl,
   buildDocumentUrl,
   buildDocumentUploadUrl,
+  buildWorkspaceEctdStructureUrl,
   buildWorkspaceDataUrls,
   deletePlacementWithDocument,
   loadWorkspaceDocuments,
@@ -21,6 +24,14 @@ import {
 import { ApiRequestError } from './apiClient'
 
 describe('workspaceActions', () => {
+  it('builds workspace collection and structure URLs', () => {
+    expect(buildDocumentPlacementsUrl()).toBe('/api/document-placements')
+    expect(buildDocumentPlacementsUrl('app 1/2')).toBe('/api/document-placements?applicationId=app%201%2F2')
+    expect(buildDocumentsUrl()).toBe('/api/documents')
+    expect(buildDocumentsUrl('app 1/2')).toBe('/api/documents?applicationId=app%201%2F2')
+    expect(buildWorkspaceEctdStructureUrl('app 1/2')).toBe('/api/applications/app%201%2F2/ectd-structure')
+  })
+
   it('builds workspace data URLs with encoded application ids', () => {
     expect(buildWorkspaceDataUrls('app 1/2')).toEqual({
       placements: '/api/document-placements?applicationId=app%201%2F2',
