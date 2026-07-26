@@ -137,8 +137,14 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
             new XAttribute("checksum", leaf.Md5),
             new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
-            new XAttribute(XlinkNamespace + "href", leaf.Href)
         };
+
+        // delete leaf 不交付新文件：省略 xlink:href（DTD 中为 #IMPLIED），
+        // 仅靠 modified-file 指向被删的历史 leaf。
+        if (!IsDeleteOperation(leaf))
+        {
+            attributes.Add(new XAttribute(XlinkNamespace + "href", leaf.Href));
+        }
 
         if (leaf.Lifecycle is not null)
         {
@@ -149,6 +155,9 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
             attributes,
             new XElement("title", leaf.Title));
     }
+
+    private static bool IsDeleteOperation(EctdLeaf leaf)
+        => string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase);
 
     private sealed record IndexedLeaf(EctdLeaf Leaf, int Index);
 

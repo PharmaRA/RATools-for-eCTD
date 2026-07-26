@@ -155,6 +155,31 @@ public sealed class IchIndexXmlWriterTests
     }
 
     [Fact]
+    public void Write_OmitsHrefForDeleteLeafButKeepsModifiedFile()
+    {
+        // delete leaf 无新文件交付：xlink:href 必须省略（DTD #IMPLIED），
+        // modified-file 指向被删的历史 leaf。
+        var writer = new IchIndexXmlWriter();
+        var lifecycle = new EctdLifecycleReference(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "0000",
+            "m3/32-body-of-data/old.pdf");
+        var package = CreatePackage(ichLeaves:
+        [
+            CreateLeaf("m3.2", "leaf-55555555555555555555555555555555", "old.pdf", operation: "delete", lifecycle: lifecycle)
+        ]);
+
+        var result = writer.Write(package);
+        var leaf = result.Document.Descendants("leaf").Single();
+
+        Assert.Equal("delete", leaf.Attribute("operation")?.Value);
+        Assert.Null(leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink")));
+        // ICH writer 原样透传 builder 计算的 modified-file 相对路径。
+        Assert.Equal("m3/32-body-of-data/old.pdf", leaf.Attribute("modified-file")?.Value);
+    }
+
+    [Fact]
     public void Write_ThrowsForUnknownIchSection()
     {
         var writer = new IchIndexXmlWriter();

@@ -53,13 +53,23 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
             throw new EuRegionalXmlWriterException($"Unable to generate EU regional XML: leaf '{leaf.LeafId}' is not a Module 1 leaf.");
         }
 
-        return new XElement("leaf",
+        var attributes = new List<object>
+        {
             new XAttribute("ID", leaf.LeafId),
             new XAttribute("operation", leaf.Operation),
             new XAttribute("checksum", leaf.Md5),
             new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
-            new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath)),
+        };
+
+        // delete leaf 不交付新文件：省略 xlink:href（DTD #IMPLIED）。
+        if (!string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase))
+        {
+            attributes.Add(new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath)));
+        }
+
+        return new XElement("leaf",
+            attributes,
             new XElement("title", leaf.Title));
     }
 

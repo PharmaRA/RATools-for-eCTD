@@ -329,6 +329,30 @@ public sealed class EctdPackageModelBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_ExcludesDeleteLeafFilesFromPublishedFiles()
+    {
+        // delete leaf 只声明操作，不交付新文件；把被删文件复制进新序列包
+        // 会被官方验证器判为未引用的孤儿文件。
+        var applicationId = Guid.Parse("dededede-dede-dede-dede-dededededede");
+        var application = CreateApplication(applicationId, "0000", "0001");
+        var historicalDocument = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000007"), "obsolete.pdf", "C:/workspace/ANDA123456/0000/m1/us/obsolete.pdf", 40, "sha-obsolete");
+        var keptDocument = CreateDocument(Guid.Parse("aaaaaaaa-0000-0000-0000-000000000008"), "kept.pdf", "C:/workspace/ANDA123456/0001/m1/us/kept.pdf", 50, "sha-kept");
+        var historicalPlacementId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000007");
+        var historicalPlacement = DocumentPlacement.Rehydrate(historicalPlacementId, historicalDocument.Id, applicationId, "0000", "m1.1", DocumentPlacementOperation.New, "Obsolete", null, DateTime.UtcNow);
+        var deletePlacement = DocumentPlacement.Rehydrate(Guid.Parse("bbbbbbbb-0000-0000-0000-000000000008"), historicalDocument.Id, applicationId, "0001", "m1.1", DocumentPlacementOperation.Delete, "Delete obsolete", historicalPlacementId, DateTime.UtcNow.AddDays(1));
+        var keptPlacement = DocumentPlacement.Rehydrate(Guid.Parse("bbbbbbbb-0000-0000-0000-000000000009"), keptDocument.Id, applicationId, "0001", "m1.2", DocumentPlacementOperation.New, "Kept", null, DateTime.UtcNow.AddDays(1));
+        var builder = CreateBuilder(application, [historicalPlacement, deletePlacement, keptPlacement], [historicalDocument, keptDocument]);
+
+        var package = await builder.BuildAsync(new BuildEctdPackageRequest(applicationId, "0001"));
+
+        var deleteLeaf = Assert.Single(package.Module1Leaves, x => x.Operation == "delete");
+        Assert.NotNull(deleteLeaf.Lifecycle);
+        // 交付文件只含 kept.pdf；被删文件不复制进包。
+        var publishedFile = Assert.Single(package.PublishedFiles);
+        Assert.Equal(keptDocument.Id, publishedFile.DocumentId);
+    }
+
+    [Fact]
     public async Task BuildAsync_ThrowsWhenLifecycleTargetIsMissing()
     {
         var applicationId = Guid.Parse("99999999-9999-9999-9999-999999999999");

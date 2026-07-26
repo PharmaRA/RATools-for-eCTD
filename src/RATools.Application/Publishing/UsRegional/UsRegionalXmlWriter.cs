@@ -151,8 +151,13 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             new XAttribute("checksum", leaf.Md5),
             new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
-            new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath))
         };
+
+        // delete leaf 不交付新文件：省略 xlink:href（DTD #IMPLIED），仅保留 modified-file。
+        if (!string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase))
+        {
+            attributes.Add(new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath)));
+        }
 
         if (leaf.Lifecycle is not null)
         {

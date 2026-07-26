@@ -284,7 +284,10 @@ public sealed class EctdPackageModelBuilder(
 
     private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(IReadOnlyCollection<EctdLeaf> leaves)
     {
+        // delete leaf 只声明生命周期操作，不交付新文件：把被删文件复制进新序列
+        // 交付包违反 eCTD 惯例（官方验证器将其视为未引用的孤儿文件）。
         return leaves
+            .Where(x => !string.Equals(x.Operation, "delete", StringComparison.OrdinalIgnoreCase))
             .GroupBy(x => x.DocumentId)
             .Select(x => x.First())
             .Select(x => new EctdPublishedFile(x.DocumentId, x.SourcePath, x.Href, x.FileName, x.FileSize, x.Sha256, x.Md5))
