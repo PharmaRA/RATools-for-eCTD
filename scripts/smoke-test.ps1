@@ -172,10 +172,12 @@ function New-SmokePdf {
     [System.IO.File]::WriteAllText($Path, $builder.ToString(), [System.Text.Encoding]::ASCII)
 }
 
-$sampleFilePath = Join-Path $env:TEMP "ratools-smoke-sample.pdf"
-$duplicateSampleDirectory = Join-Path $env:TEMP ("ratools-smoke-" + [guid]::NewGuid().ToString("N"))
+# 跨平台临时目录：Linux 的 pwsh 没有 $env:TEMP，回退到 GetTempPath()（/tmp）。
+$tempRoot = if ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+$sampleFilePath = Join-Path $tempRoot "ratools-smoke-sample.pdf"
+$duplicateSampleDirectory = Join-Path $tempRoot ("ratools-smoke-" + [guid]::NewGuid().ToString("N"))
 $duplicateSampleFilePath = Join-Path $duplicateSampleDirectory "ratools-smoke-sample.pdf"
-$applicationWorkspaceParentPath = Join-Path $env:TEMP ("ratools-workspace-" + [guid]::NewGuid().ToString("N"))
+$applicationWorkspaceParentPath = Join-Path $tempRoot ("ratools-workspace-" + [guid]::NewGuid().ToString("N"))
 $downloadedZipPath = $null
 
 New-SmokePdf -Path $sampleFilePath -Text "SMOKE TEST DOCUMENT"
@@ -413,7 +415,7 @@ try {
     Write-Step "Downloading persisted publish report"
     $downloadedReportContent = Invoke-TextGet -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/artifacts/PublishReport/download"
 
-    $downloadedZipPath = Join-Path $env:TEMP "ratools-smoke-$($publishJob.id)-package.zip"
+    $downloadedZipPath = Join-Path $tempRoot "ratools-smoke-$($publishJob.id)-package.zip"
     Write-Step "Downloading package zip"
     Download-File -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/artifacts/PackageZip/download" -DestinationPath $downloadedZipPath
 
