@@ -20,10 +20,18 @@ export type LoadPublishHistoryRequest = {
   filters: PublishHistoryRequestFilterValues
 }
 
+export type ExecutedPublishJob = {
+  id: string
+  status: string
+  failureReason?: string | null
+  outputPath?: string | null
+  packagePath?: string | null
+}
+
 export const executePublishJob = async (
   request: ExecutePublishJobRequest,
   executeRequest: typeof apiFetch = apiFetch,
-) => {
+): Promise<ExecutedPublishJob> => {
   const body = {
     applicationId: request.applicationId,
     sequenceNumber: request.sequenceNumber,
@@ -31,7 +39,7 @@ export const executePublishJob = async (
   }
 
   // 发布在后端后台执行：该端点返回 202 与作业（含 id/status），
-  // 结果通过 History 标签页轮询作业状态与报告获取。
+  // 调用方用返回的 id 轮询 GET /api/publish-jobs/{id} 获取进度与结果。
   return executeRequest(buildExecutePublishJobUrl(), buildJsonRequestInit('POST', body))
 }
 

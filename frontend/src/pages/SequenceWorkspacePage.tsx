@@ -32,6 +32,8 @@ import {
 } from '../workspaceTree'
 import { addSectionExpansionKeys, getErrorMessage } from './appShared'
 import { LeafMetadataPanel } from './LeafMetadataPanel'
+import { PublishProgressCard } from './workspace/PublishProgressCard'
+import { usePublishJobPolling } from './workspace/usePublishJobPolling'
 import { getLifecycleTargetCandidates } from './workspace/lifecycleTargetCandidates'
 import { buildSequencePublishingMetadataUpdateRequest } from './workspace/publishingMetadataFormValues'
 import { PublishModal, type MetadataFormValues } from './workspace/PublishModal'
@@ -97,6 +99,13 @@ export const SequenceWorkspacePage = ({
   const revisedOperation = Form.useWatch('operation', metadataForm)
   const revisedLifecycleTargetPlacementId = Form.useWatch('lifecycleTargetPlacementId', metadataForm)
   const [publishReadiness, setPublishReadiness] = useState<PublishReadinessReport | null>(null)
+  const {
+    job: polledPublishJob,
+    isPolling: isPublishPolling,
+    error: publishPollingError,
+    startPolling: startPublishPolling,
+    stopPolling: stopPublishPolling,
+  } = usePublishJobPolling()
 
   const selectedNode = useMemo(
     () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
@@ -432,18 +441,21 @@ export const SequenceWorkspacePage = ({
         }
       }
 
-      await createAndExecutePublishJobProvider({
+      const startedJob = await createAndExecutePublishJobProvider({
         applicationId: appId,
         sequenceNumber,
         outputDirectoryPath: String(publishValues.outputDirectoryPath || '').trim(),
       })
 
-      message.success('发布任务已成功启动！请在“发布历史”页签查看结果。')
+      message.success('发布任务已启动，正在跟踪进度…')
       setIsPublishModalOpen(false)
       publishForm.resetFields()
       publishMetadataForm.resetFields()
       setPublishReadiness(null)
-      onBack()
+      // 就地轮询进度，不再把用户抛回详情页自行寻找结果。
+      if (startedJob?.id) {
+        startPublishPolling(String(startedJob.id))
+      }
     } catch (err) {
       message.error('发布失败：' + getErrorMessage(err))
     } finally {
@@ -480,6 +492,13 @@ export const SequenceWorkspacePage = ({
         publishMetadataForm={publishMetadataForm}
         onOk={triggerPublish}
         onCancel={handlePublishModalCancel}
+      />
+
+      <PublishProgressCard
+        job={polledPublishJob}
+        isPolling={isPublishPolling}
+        error={publishPollingError}
+        onDismiss={stopPublishPolling}
       />
 
       {validationSummary && (
