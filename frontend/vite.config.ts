@@ -5,6 +5,34 @@ import type { InlineConfig } from 'vitest/node'
 
 const config = {
   plugins: [react()],
+  build: {
+    // antd 单库压缩后约 320kB（gzip），是不可再拆的固有体积；vendor 已合理分包，
+    // 故上调告警阈值以消除这条对本项目无意义的构建噪音。
+    chunkSizeWarningLimit: 1100,
+    rollupOptions: {
+      output: {
+        // 把体积最大的第三方库拆成独立 vendor chunk：antd 被三个页面共享，
+        // 单独分包后浏览器可长期缓存，也消除了此前 >500kB 的单包构建告警。
+        // Vite 8（rolldown）要求 manualChunks 为函数形式。
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/antd/') || id.includes('node_modules/rc-')) {
+            return 'antd'
+          }
+          if (
+            id.includes('node_modules/react/')
+            || id.includes('node_modules/react-dom/')
+            || id.includes('node_modules/react-router')
+          ) {
+            return 'react'
+          }
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'icons'
+          }
+          return undefined
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: './src/testSetup.ts'
