@@ -59,6 +59,10 @@ public sealed class HealthCheckTests(WebApplicationFactory<Program> factory)
     {
         return _factory.WithWebHostBuilder(builder =>
             {
+                // Program.cs 在服务注册阶段（Build 之前）就读取 Persistence:Provider 决定
+                // 是否注册数据库健康检查；ConfigureAppConfiguration 的覆盖值那时尚未合并，
+                // 必须用 UseSetting 走宿主配置才能在注册阶段生效（与 PublishReadinessApiTests 一致）。
+                builder.UseSetting("Persistence:Provider", "InMemory");
                 builder.ConfigureAppConfiguration((_, configBuilder) =>
                 {
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
