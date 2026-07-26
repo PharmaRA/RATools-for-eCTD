@@ -1,0 +1,81 @@
+name: Smoke
+
+# 端到端冒烟：真实 PostgreSQL + 后台 API + scripts/smoke-test.ps1 全流程
+# （建应用/序列、上传、重分配、验证、发布、报告/产物/历史、审计、故障注入）。
+# push master 与手动触发都跑——这是唯一覆盖"真实 PG + 全链路"的自动化关卡。
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  smoke:
+    name: End-to-end smoke test (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ratools
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ratools"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      ApiKey: smoke-ci-key
+      # smoke-test.ps1 在 $env:TEMP（ubuntu 上为 /tmp）下创建应用工作区与样本文件，
+      # API 的白名单必须允许该根目录。
+      WorkspaceRoot: /tmp
+      PublishRoot: ${{ github.workspace }}/smoke-publish
+      UploadRoot: ${{ github.workspace }}/smoke-uploads
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Prepare publish directories
+        run: mkdir -p "$PublishRoot" "$UploadRoot"
+
+      - name: Start API
+        run: |
+          dotnet run --project src/RATools.Api/RATools.Api.csproj --configuration Release &
+          echo "API_PID=$!" >> "$GITHUB_ENV"
+        env:
+          ASPNETCORE_URLS: http://localhost:5000
+          ASPNETCORE_ENVIRONMENT: Production
+          Persistence__Provider: PostgreSql
+          ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=postgres
+          Security__ApiKey: ${{ env.ApiKey }}
+          Security__AllowedWorkspaceRoots__0: ${{ env.WorkspaceRoot }}
+          Security__AllowedWorkspaceRoots__1: ${{ env.PublishRoot }}
+          Security__AllowDestructiveOperations: 'false'
+          FileStorage__RootPath: ${{ env.UploadRoot }}
+          BackboneOutput__RootPath: ${{ env.PublishRoot }}
+          Swagger__Enabled: 'false'
+
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/health > /dev/null; then
+              echo "API is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready in time." >&2
+          exit 1
+
+      - name: Run smoke test
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 -BaseUrl http://localhost:5000 -ApiKey $env:ApiKey
+
+      - name: Stop API
+        if: always()
+        run: kill "$API_PID" || true

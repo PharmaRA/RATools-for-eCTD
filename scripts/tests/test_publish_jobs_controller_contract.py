@@ -53,12 +53,16 @@ def main() -> None:
     ), "POST /api/publish-jobs must not advertise the execute/report response contract"
 
     assert (
-        '[ProducesResponseType(typeof(PublishExecutionReportDto), StatusCodes.Status200OK)]'
+        '[ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status202Accepted)]'
         in execute_attributes
-    ), "POST /api/publish-jobs/execute must document the create+execute+return-report contract"
+    ), "POST /api/publish-jobs/execute must document the async enqueue contract (202 Accepted + PublishJobDto)"
+
+    assert (
+        "PublishExecutionReportDto" not in execute_attributes
+    ), "POST /api/publish-jobs/execute runs in the background; it must not advertise a synchronous report response"
 
     create_example = http_example_block(http_examples, "Create publish job")
-    execute_example = http_example_block(http_examples, "Execute publish and return unified report")
+    execute_example = http_example_block(http_examples, "Execute publish in the background")
 
     assert (
         "# Response: 201 Created PublishJobDto" in create_example
@@ -69,8 +73,8 @@ def main() -> None:
     ), "RATools.Api.http must not imply POST /api/publish-jobs returns the execution report contract"
 
     assert (
-        "# Response: 200 OK PublishExecutionReportDto" in execute_example
-    ), "RATools.Api.http must clarify that POST /api/publish-jobs/execute returns PublishExecutionReportDto"
+        "# Response: 202 Accepted PublishJobDto" in execute_example
+    ), "RATools.Api.http must clarify that POST /api/publish-jobs/execute returns 202 with the queued PublishJobDto"
 
     assert (
         "POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`"
@@ -78,9 +82,9 @@ def main() -> None:
     ), "README must clarify that POST /api/publish-jobs creates a job resource"
 
     assert (
-        "POST /api/publish-jobs/execute` creates and executes a publish job and returns `200 OK` with `PublishExecutionReportDto`"
+        "POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`"
         in readme
-    ), "README must clarify that POST /api/publish-jobs/execute creates+executes and returns the execution report"
+    ), "README must clarify that POST /api/publish-jobs/execute enqueues background execution"
 
 
 if __name__ == "__main__":

@@ -176,9 +176,9 @@ Content-Type: application/json
   "sequenceNumber": "0000"
 }
 
-### Execute publish and return unified report
+### Execute publish in the background
 # @name executePublishJob
-# Response: 200 OK PublishExecutionReportDto
+# Response: 202 Accepted PublishJobDto
 POST {{host}}/api/publish-jobs/execute
 Content-Type: application/json
 
@@ -196,13 +196,13 @@ GET {{host}}/api/publish-jobs
 GET {{host}}/api/publish-jobs/{{createPublishJob.response.body.$.id}}
 
 ### Get persisted publish report by job id
-GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/report
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}/report
 
 ### List artifacts by job id
-GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/artifacts
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}/artifacts
 
 ### Download persisted publish report
-GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.publishJob.id}}/artifacts/PublishReport/download
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}/artifacts/PublishReport/download
 
 ### Publish job should return completed status with outputPath and packagePath when generation succeeds
 

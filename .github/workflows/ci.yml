@@ -35,6 +35,11 @@ jobs:
       - name: Test
         run: dotnet test tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=backend.trx" --results-directory ./TestResults
 
+      # 契约测试：守护 PublishJobsController 特性、RATools.Api.http 与 README 三方一致，
+      # 防止端点契约与文档静默漂移（此前该脚本从未在 CI 执行，文档已漂移过一次）。
+      - name: Publish jobs contract test
+        run: python3 scripts/tests/test_publish_jobs_controller_contract.py
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

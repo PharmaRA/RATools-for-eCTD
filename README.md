@@ -161,6 +161,12 @@ The smoke test covers application and sequence creation, document upload, canoni
 
 ## API Examples
 
+Publish job endpoints follow a create-vs-execute split:
+
+- `POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`.
+- `POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`;
+  poll `GET /api/publish-jobs/{id}` for status and fetch `/report` and `/artifacts` once completed.
+
 Use `RATools.Api.http` for local HTTP examples. New application and import requests use `ectdTemplateKey`:
 
 ```json
