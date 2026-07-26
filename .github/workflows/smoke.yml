@@ -43,9 +43,13 @@ jobs:
       - name: Prepare publish directories
         run: mkdir -p "$PublishRoot" "$UploadRoot"
 
+      # 冷 runner 上 dotnet run 的隐式 restore+build 可能超过健康等待窗口；预先构建。
+      - name: Build API
+        run: dotnet build src/RATools.Api/RATools.Api.csproj --configuration Release
+
       - name: Start API
         run: |
-          dotnet run --project src/RATools.Api/RATools.Api.csproj --configuration Release &
+          dotnet run --project src/RATools.Api/RATools.Api.csproj --configuration Release --no-build > api.log 2>&1 &
           echo "API_PID=$!" >> "$GITHUB_ENV"
         env:
           ASPNETCORE_URLS: http://localhost:5000
@@ -55,6 +59,8 @@ jobs:
           Security__ApiKey: ${{ env.ApiKey }}
           Security__AllowedWorkspaceRoots__0: ${{ env.WorkspaceRoot }}
           Security__AllowedWorkspaceRoots__1: ${{ env.PublishRoot }}
+          # 启动校验要求 FileStorage:RootPath 也在白名单内（Phase 1 的快速失败）。
+          Security__AllowedWorkspaceRoots__2: ${{ env.UploadRoot }}
           Security__AllowDestructiveOperations: 'false'
           FileStorage__RootPath: ${{ env.UploadRoot }}
           BackboneOutput__RootPath: ${{ env.PublishRoot }}
@@ -62,7 +68,7 @@ jobs:
 
       - name: Wait for /health
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if curl -sf http://localhost:5000/health > /dev/null; then
               echo "API is ready."
               exit 0
@@ -70,11 +76,17 @@ jobs:
             sleep 2
           done
           echo "API did not become ready in time." >&2
+          echo "--- api.log ---"
+          cat api.log || true
           exit 1
 
       - name: Run smoke test
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -BaseUrl http://localhost:5000 -ApiKey $env:ApiKey
+
+      - name: Show API log on failure
+        if: failure()
+        run: cat api.log || true
 
       - name: Stop API
         if: always()
