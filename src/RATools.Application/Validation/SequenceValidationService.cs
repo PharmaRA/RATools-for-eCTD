@@ -62,6 +62,36 @@ public sealed class SequenceValidationService(
                 $"Sequence {request.SequenceNumber} is not the latest sequence ({latestSequenceNumber}) for this application."));
         }
 
+        // 官方验证准则：序列号必须是 4 位数字（此前唯一的格式检查埋在 import 侧）。
+        if (!IsFourDigitSequenceNumber(request.SequenceNumber))
+        {
+            issues.Add(new ValidationIssueDto(
+                "Error",
+                "SEQUENCE_NUMBER_FORMAT_INVALID",
+                $"Sequence number '{request.SequenceNumber}' is not a four-digit eCTD sequence number."));
+        }
+
+        // 序列号跳号提示：编号不连续通常意味着遗漏或删错序列，官方受理系统会问询。
+        if (validationMode == ValidationMode.Strict)
+        {
+            var numericSequences = application.Sequences
+                .Select(x => x.SequenceNumber)
+                .Where(IsFourDigitSequenceNumber)
+                .Select(int.Parse)
+                .OrderBy(x => x)
+                .ToArray();
+            for (var index = 1; index < numericSequences.Length; index += 1)
+            {
+                if (numericSequences[index] - numericSequences[index - 1] > 1)
+                {
+                    issues.Add(new ValidationIssueDto(
+                        "Warning",
+                        "SEQUENCE_GAP_DETECTED",
+                        $"Application sequences jump from {numericSequences[index - 1]:0000} to {numericSequences[index]:0000}; confirm the gap is intentional."));
+                }
+            }
+        }
+
         var placements = await placementRepository.ListBySequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
         var applicationPlacements = await placementRepository.ListByApplicationAsync(request.ApplicationId, cancellationToken);
         if (placements.Count == 0)
@@ -313,6 +343,9 @@ public sealed class SequenceValidationService(
             PublishPipelineLog.ValidationAuditWriteFailed(logger, exception, report.ApplicationId, report.SequenceNumber);
         }
     }
+
+    private static bool IsFourDigitSequenceNumber(string sequenceNumber)
+        => sequenceNumber.Length == 4 && sequenceNumber.All(char.IsAsciiDigit);
 
     private static bool IsSupportedOperation(DocumentPlacementOperation operation)
     {

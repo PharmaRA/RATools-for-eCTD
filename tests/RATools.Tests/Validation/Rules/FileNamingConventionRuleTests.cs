@@ -39,6 +39,32 @@ public sealed class FileNamingConventionRuleTests
     }
 
     [Fact]
+    public void Evaluate_ReportsFileNameLongerThan64Characters()
+    {
+        var rule = new FileNamingConventionRule();
+        // 65 字符文件名（61 个 'a' + ".pdf"），字符集合法但超 FDA 64 字符上限。
+        var longFileName = $"{new string('a', 61)}.pdf";
+        var package = CreatePackage(CreateLeaf(fileName: longFileName, href: $"m5/{longFileName}"));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("FDA-NAMING-1", finding.RuleId);
+        Assert.Contains("64-character", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Evaluate_AcceptsFileNameAtExactly64Characters()
+    {
+        var rule = new FileNamingConventionRule();
+        var boundaryFileName = $"{new string('a', 60)}.pdf";
+        var package = CreatePackage(CreateLeaf(fileName: boundaryFileName, href: $"m5/{boundaryFileName}"));
+
+        var findings = rule.Evaluate(CreateContext(package)).ToArray();
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void Evaluate_ReturnsNoFindingsForLowercaseHyphenatedPdf()
     {
         var rule = new FileNamingConventionRule();

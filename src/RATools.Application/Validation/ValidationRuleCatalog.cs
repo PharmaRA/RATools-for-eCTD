@@ -22,6 +22,8 @@ public static class ValidationRuleCatalog
             ["APP_NOT_FOUND"] = new("SequenceContent", "Verify the application id and reload before publishing."),
             ["SEQ_NOT_FOUND"] = new("SequenceContent", "Create the sequence or correct the sequence number before publishing."),
             ["SEQUENCE_NOT_LATEST"] = new("SequenceContent", "Publish the latest sequence, or confirm intentionally republishing an earlier one."),
+            ["SEQUENCE_NUMBER_FORMAT_INVALID"] = new("SequenceContent", "Use a four-digit numeric sequence number (for example 0000)."),
+            ["SEQUENCE_GAP_DETECTED"] = new("SequenceContent", "Confirm the sequence numbering gap is intentional before submission."),
             ["NO_PLACEMENTS"] = new("SequenceContent", "Add at least one document placement to the sequence before publishing."),
 
             // 文档清单
