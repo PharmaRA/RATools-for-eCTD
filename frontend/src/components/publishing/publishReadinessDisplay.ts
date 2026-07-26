@@ -9,7 +9,7 @@ import {
 } from '../../pages/appShared'
 
 export const formatMissingMetadataFields = (fields?: string[] | null) => {
-  return formatOptionalList(fields, 'None')
+  return formatOptionalList(fields, '无')
 }
 
 export const formatReadinessMissingMetadataHint = (fields?: string[] | null) => {
@@ -29,7 +29,7 @@ export const formatReadinessWarningCountHint = (
   readiness: Pick<PublishReadinessHistoryCountHint, 'isReady' | 'warningCount'>,
 ) => {
   if (readiness.isReady && (readiness.warningCount ?? 0) > 0) {
-    return `Warnings: ${readiness.warningCount}`
+    return `警告：${readiness.warningCount}`
   }
 
   return null
@@ -40,7 +40,7 @@ export const formatReadinessBlockingErrorCountHint = (
   missingMetadataHint?: string | null,
 ) => {
   if (!readiness.isReady && !missingMetadataHint && (readiness.blockingErrorCount ?? 0) > 0) {
-    return `Blocking errors: ${readiness.blockingErrorCount}`
+    return `阻断性错误：${readiness.blockingErrorCount}`
   }
 
   return null
@@ -56,7 +56,7 @@ export const formatReadinessHistoryCountHint = (
   return formatReadinessBlockingErrorCountHint(readiness, missingMetadataHint)
 }
 
-export const formatReadinessReadyStatus = (isReady?: boolean | null) => isReady ? 'Yes' : 'No'
+export const formatReadinessReadyStatus = (isReady?: boolean | null) => isReady ? '是' : '否'
 
 export const formatReadinessOptionalText = formatOptionalText
 
@@ -69,7 +69,7 @@ type PublishReadinessStatus = {
 
 export const getPublishReadinessStatusTagProps = (readiness: PublishReadinessStatus) => ({
   color: readiness.isReady ? 'green' : 'red',
-  label: readiness.status || (readiness.isReady ? 'Ready' : 'Blocked'),
+  label: readiness.status || (readiness.isReady ? '就绪' : '受阻'),
 })
 
 export const getPublishReadinessFindingSeverityTagColor = getErrorSeverityTagColor
@@ -94,13 +94,13 @@ export const buildPublishReadinessSnapshotItems = (
   readiness: PublishReadinessSnapshot,
   options: PublishReadinessSnapshotItemOptions = {},
 ) => [
-  { key: 'readiness-status', label: 'Status', children: formatReadinessStatus(readiness.status) },
-  { key: 'readiness-ready', label: 'Ready', children: formatReadinessReadyStatus(readiness.isReady) },
-  { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: formatReadinessCount(readiness.blockingErrorCount) },
-  { key: 'readiness-warnings', label: 'Warnings', children: formatReadinessCount(readiness.warningCount) },
+  { key: 'readiness-status', label: '状态', children: formatReadinessStatus(readiness.status) },
+  { key: 'readiness-ready', label: '就绪', children: formatReadinessReadyStatus(readiness.isReady) },
+  { key: 'readiness-blocking-errors', label: '阻断性错误', children: formatReadinessCount(readiness.blockingErrorCount) },
+  { key: 'readiness-warnings', label: '警告', children: formatReadinessCount(readiness.warningCount) },
   {
     key: 'readiness-missing-fields',
-    label: 'Missing Metadata Fields',
+    label: '缺失的元数据字段',
     children: formatMissingMetadataFields(readiness.missingMetadataFields),
     ...(options.missingMetadataFieldsSpan ? { span: options.missingMetadataFieldsSpan } : {}),
   },
@@ -129,10 +129,10 @@ export const buildPublishReadinessCategoryColumns = (
   const includeKeys = options.includeKeys ?? true
 
   return [
-    buildPublishReadinessCategoryColumn('Category', 'category', options.categoryWidth, includeKeys),
-    buildPublishReadinessCategoryColumn('Blocking Errors', 'blockingErrorCount', 140, includeKeys),
-    buildPublishReadinessCategoryColumn('Warnings', 'warningCount', 120, includeKeys),
-    buildPublishReadinessCategoryColumn('Findings', 'findingCount', 120, includeKeys),
+    buildPublishReadinessCategoryColumn('类别', 'category', options.categoryWidth, includeKeys),
+    buildPublishReadinessCategoryColumn('阻断性错误', 'blockingErrorCount', 140, includeKeys),
+    buildPublishReadinessCategoryColumn('警告', 'warningCount', 120, includeKeys),
+    buildPublishReadinessCategoryColumn('发现项', 'findingCount', 120, includeKeys),
   ]
 }
 
@@ -161,11 +161,11 @@ export const buildPublishReadinessFindingColumns = ({
   severityWidth = 100,
   includeKeys = true,
 }: PublishReadinessFindingColumnOptions) => [
-  buildPublishReadinessFindingColumn('Severity', 'severity', severityWidth, includeKeys, severityRenderer),
-  buildPublishReadinessFindingColumn('Code', 'code', 220, includeKeys),
-  buildPublishReadinessFindingColumn('Category', 'category', 180, includeKeys),
-  buildPublishReadinessFindingColumn('Field', 'fieldName', 180, includeKeys, formatReadinessFieldName),
-  buildPublishReadinessFindingColumn('Recommended Action', 'recommendedAction', undefined, includeKeys),
+  buildPublishReadinessFindingColumn('严重级别', 'severity', severityWidth, includeKeys, severityRenderer),
+  buildPublishReadinessFindingColumn('代码', 'code', 220, includeKeys),
+  buildPublishReadinessFindingColumn('类别', 'category', 180, includeKeys),
+  buildPublishReadinessFindingColumn('字段', 'fieldName', 180, includeKeys, formatReadinessFieldName),
+  buildPublishReadinessFindingColumn('建议措施', 'recommendedAction', undefined, includeKeys),
 ]
 
 type PublishReadinessCategoryRow = {

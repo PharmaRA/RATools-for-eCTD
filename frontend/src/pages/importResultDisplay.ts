@@ -50,13 +50,13 @@ export const buildImportIssueSummaryItems = ({
   errorCount,
   lifecycleWarningCount,
 }: ImportIssueSummaryCounts) => [
-  buildImportIssueSummaryItem('total', totalIssueCount, 'total issues', 'blue'),
-  buildImportIssueSummaryItem('warnings', warningCount, 'warnings', 'gold'),
-  buildImportIssueSummaryItem('errors', errorCount, 'errors', 'red'),
+  buildImportIssueSummaryItem('total', totalIssueCount, '条问题总数', 'blue'),
+  buildImportIssueSummaryItem('warnings', warningCount, '条警告', 'gold'),
+  buildImportIssueSummaryItem('errors', errorCount, '条错误', 'red'),
   buildImportIssueSummaryItem(
     'lifecycle-target-warnings',
     lifecycleWarningCount,
-    'lifecycle target warnings',
+    '条生命周期目标警告',
     getImportLifecycleWarningSummaryColor(lifecycleWarningCount),
   ),
 ]

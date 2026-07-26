@@ -8,18 +8,18 @@ export const normalizePackageReviewError = (error: unknown) => {
 export const getReviewErrorDescription = (error: Error | null) => error?.message || ''
 
 export const getReviewErrorTitle = (error: Error) => {
-  if (!(error instanceof ApiRequestError)) return 'Unable to load package review data'
+  if (!(error instanceof ApiRequestError)) return '无法加载包审阅数据'
 
   switch (error.status) {
     case 404:
-      return 'Report or artifacts were not found (404)'
+      return '未找到报告或产物 (404)'
     case 409:
-      return 'Publish job is not ready (409)'
+      return '发布任务尚未就绪 (409)'
     case 410:
-      return 'Publish data is unavailable (410)'
+      return '发布数据不可用 (410)'
     case 422:
-      return 'Publish report is corrupted (422)'
+      return '发布报告已损坏 (422)'
     default:
-      return `Unable to load package review data (${error.status})`
+      return `无法加载包审阅数据 (${error.status})`
   }
 }

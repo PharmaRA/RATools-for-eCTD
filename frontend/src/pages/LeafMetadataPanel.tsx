@@ -76,15 +76,15 @@ export const LeafMetadataPanel = ({
       />
 
       <div>
-        <h3 className="text-base font-semibold m-0">Leaf Metadata</h3>
+        <h3 className="text-base font-semibold m-0">叶节点元数据</h3>
         <p className="text-xs text-gray-500 m-0">Edit the metadata that will be emitted on this document's backbone leaf.</p>
       </div>
 
       <Form form={form} layout="vertical" requiredMark={false}>
-        <Form.Item name="title" label="Leaf Title">
-          <Input maxLength={255} placeholder="Optional title" />
+        <Form.Item name="title" label="叶节点标题">
+          <Input maxLength={255} placeholder="可选标题" />
         </Form.Item>
-        <Form.Item name="operation" label="Operation" rules={[{ required: true, message: 'Operation is required.' }]}>
+        <Form.Item name="operation" label="操作类型" rules={[{ required: true, message: '操作类型为必填项。' }]}>
           <Select
             options={buildLeafPlacementOperationOptions()}
           />
@@ -94,7 +94,7 @@ export const LeafMetadataPanel = ({
             type="warning"
             showIcon
             className="mb-3"
-            title="Lifecycle operation"
+            title="生命周期操作"
             description={lifecycleTargetCandidates.length === 0
               ? 'No historical leaf targets are available in this CTD section. Validation will report an error until a valid target exists.'
               : 'Select the historical leaf that this lifecycle operation modifies. Validation will report an error if no valid target is selected.'}
@@ -102,40 +102,40 @@ export const LeafMetadataPanel = ({
         )}
         {isLifecycleOperation && (
           <>
-            <Form.Item name="lifecycleTargetPlacementId" label="Lifecycle Target">
+            <Form.Item name="lifecycleTargetPlacementId" label="生命周期目标">
               <Select
                 allowClear
-                placeholder="Select historical leaf target"
+                placeholder="选择历史叶节点目标"
                 options={buildLifecycleTargetOptions(lifecycleTargetCandidates, documentsById)}
               />
             </Form.Item>
             {lifecycleTargetCandidates.length > 0 && (
               <div className="text-xs text-gray-500 -mt-3 mb-3">
-                Available Targets: {buildLifecycleTargetListText(lifecycleTargetCandidates, documentsById)}
+                可选目标： {buildLifecycleTargetListText(lifecycleTargetCandidates, documentsById)}
               </div>
             )}
           </>
         )}
         <Form.Item
           name="fileNamePrefix"
-          label="File Prefix"
+          label="文件名前缀"
           rules={[
-            { required: true, message: 'File prefix is required.' },
+            { required: true, message: '文件名前缀为必填项。' },
             {
               validator: (_, value) => (
                 String(value || '').trim().length > 0
                   ? Promise.resolve()
-                  : Promise.reject(new Error('File prefix cannot be empty.'))
+                  : Promise.reject(new Error('文件名前缀不能为空。'))
               ),
             },
           ]}
         >
           <Input maxLength={255} placeholder="example-file-name" />
         </Form.Item>
-        <Form.Item label="Extension">
-          <Input value={documentNameParts.extension || '(no extension)'} readOnly />
+        <Form.Item label="扩展名">
+          <Input value={documentNameParts.extension || '（无扩展名）'} readOnly />
         </Form.Item>
-        <Form.Item label="Resulting File Name">
+        <Form.Item label="生成文件名">
           <Input
             value={revisedFileName}
             readOnly
@@ -144,7 +144,7 @@ export const LeafMetadataPanel = ({
       </Form>
 
       <Descriptions
-        title="Leaf Preview"
+        title="叶节点预览"
         size="small"
         bordered
         column={1}
@@ -168,7 +168,7 @@ export const LeafMetadataPanel = ({
           disabled={loading || isDeleting || isMoving}
           onClick={onSave}
         >
-          Save Leaf Metadata
+          保存叶节点元数据
         </Button>
         <Button
           danger
@@ -181,7 +181,7 @@ export const LeafMetadataPanel = ({
         </Button>
       </Space>
 
-      <p className="text-xs text-gray-500">Delete removes mapping and physical file. Editing leaf metadata can change the placement operation, backbone title, and file prefix; extension remains unchanged.</p>
+      <p className="text-xs text-gray-500">删除会移除映射并删除物理文件。编辑叶节点元数据可修改映射的操作类型、骨架标题与文件名前缀；扩展名保持不变。</p>
     </div>
   )
 }

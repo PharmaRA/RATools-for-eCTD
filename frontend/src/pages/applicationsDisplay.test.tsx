@@ -49,12 +49,12 @@ describe('applicationsDisplay', () => {
     })
 
     expect(columns.map(getColumnMetadata)).toEqual([
-      { title: 'App Number', dataIndex: 'applicationNumber', key: undefined },
-      { title: 'eCTD Template', dataIndex: undefined, key: 'ectdTemplate' },
-      { title: 'Sponsor', dataIndex: 'sponsorName', key: undefined },
-      { title: 'Created', dataIndex: 'createdUtc', key: undefined },
-      { title: 'Sequences', dataIndex: undefined, key: 'sequences' },
-      { title: 'Action', dataIndex: undefined, key: 'action' },
+      { title: '申请编号', dataIndex: 'applicationNumber', key: undefined },
+      { title: 'eCTD 模板', dataIndex: undefined, key: 'ectdTemplate' },
+      { title: '申办方', dataIndex: 'sponsorName', key: undefined },
+      { title: '创建时间', dataIndex: 'createdUtc', key: undefined },
+      { title: '序列数', dataIndex: undefined, key: 'sequences' },
+      { title: '操作', dataIndex: undefined, key: 'action' },
     ])
 
     const appNumberElement = (columns[0] as { render: (value: string) => unknown }).render('NDA123456')

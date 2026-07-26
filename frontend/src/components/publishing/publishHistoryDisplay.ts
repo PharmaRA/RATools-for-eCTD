@@ -19,7 +19,7 @@ export const formatArtifactPackageSize = (summary?: ArtifactPackageSummary | nul
 
 export const formatPublishHistoryLifecycleStatus = (summary?: LifecycleSummary | null) => {
   const issueCount = getLifecycleIssueCount(summary)
-  return issueCount === 0 ? 'All matched' : `${issueCount} issues`
+  return issueCount === 0 ? '全部匹配' : `${issueCount} 个问题`
 }
 
 type PublishHistoryValidationSummary = {
@@ -30,8 +30,8 @@ type PublishHistoryValidationSummary = {
 export const buildPublishHistoryValidationSummaryItems = (
   summary: PublishHistoryValidationSummary,
 ) => [
-  { label: 'Errors', value: summary.errorCount ?? 0 },
-  { label: 'Warnings', value: summary.warningCount ?? 0 },
+  { label: '错误', value: summary.errorCount ?? 0 },
+  { label: '警告', value: summary.warningCount ?? 0 },
 ]
 
 export const formatPublishHistoryStatisticValue = (value?: number | null) => value ?? undefined
@@ -60,9 +60,9 @@ type PublishHistoryStatusSummary = {
 export const buildPublishHistoryStatusStatisticItems = (
   summary: PublishHistoryStatusSummary,
 ) => buildPublishHistoryStatisticItems(summary, [
-  { title: 'Completed Jobs', valueKey: 'completedCount', color: '#3f8600' },
-  { title: 'Failed Jobs', valueKey: 'failedCount', color: '#cf1322' },
-  { title: 'Running Jobs', valueKey: 'runningCount', color: '#1677ff' },
+  { title: '已完成任务', valueKey: 'completedCount', color: '#3f8600' },
+  { title: '失败任务', valueKey: 'failedCount', color: '#cf1322' },
+  { title: '运行中任务', valueKey: 'runningCount', color: '#1677ff' },
 ])
 
 type PublishHistoryReadinessSummary = {
@@ -74,9 +74,9 @@ type PublishHistoryReadinessSummary = {
 export const buildPublishHistoryReadinessStatisticItems = (
   summary: PublishHistoryReadinessSummary,
 ) => buildPublishHistoryStatisticItems(summary, [
-  { title: 'Ready Sequences', valueKey: 'readyCount', color: '#3f8600' },
-  { title: 'Blocked Sequences', valueKey: 'blockedCount', color: '#cf1322' },
-  { title: 'Unknown Readiness', valueKey: 'unknownCount', color: '#595959' },
+  { title: '就绪序列', valueKey: 'readyCount', color: '#3f8600' },
+  { title: '受阻序列', valueKey: 'blockedCount', color: '#cf1322' },
+  { title: '就绪度未知', valueKey: 'unknownCount', color: '#595959' },
 ])
 
 type PublishHistoryLifecycleStatisticSummary = {
@@ -95,6 +95,6 @@ export const buildPublishHistoryLifecycleIssueStatisticItems = (
 export const buildPublishHistoryLifecycleStatisticItems = (
   summary: PublishHistoryLifecycleStatisticSummary,
 ) => [
-  { title: 'Matched', value: summary.matchedCount ?? 0 },
+  { title: '已匹配', value: summary.matchedCount ?? 0 },
   ...buildPublishHistoryLifecycleIssueStatisticItems(summary),
 ]

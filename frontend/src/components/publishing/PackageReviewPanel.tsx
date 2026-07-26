@@ -172,12 +172,12 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
 
       downloadJson(exportReview.filename, exportReview.value)
     } catch {
-      message.error('Failed to export package review.')
+      message.error('导出包审阅失败。')
     }
   }
 
   return (
-    <Drawer title="Package Review" placement="right" size={900} onClose={onClose} open={!!jobId}>
+    <Drawer title="包审阅" placement="right" size={900} onClose={onClose} open={!!jobId}>
       {reviewLoading ? <Spin className="w-full mt-10 flex justify-center" /> : (
       <div className="flex flex-col gap-4">
         {renderError(reportError)}
@@ -199,7 +199,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               onClick={handleDownloadReviewJson}
               disabled={!reviewExportAvailable}
             >
-              Download Review JSON
+              下载审阅 JSON
             </Button>
             <Button
               type="primary"
@@ -208,7 +208,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               target="_blank"
               disabled={!packageZipExists}
             >
-              Download Package
+              下载包
             </Button>
             <Button
               icon={<Download size={16} className="mr-1" />}
@@ -216,7 +216,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               target="_blank"
               disabled={!publishReportExists}
             >
-              Download Report
+              下载报告
             </Button>
           </Space>
         </div>
@@ -225,12 +225,12 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           <Alert
             type="warning"
             showIcon
-            title="Warnings do not block readiness"
+            title="警告不影响就绪度"
             description={warningAlertDescription}
           />
         )}
 
-        <Card size="small" title="Submission Readiness Checklist">
+        <Card size="small" title="提交就绪检查清单">
           <Table
             dataSource={checklistRows}
             rowKey="key"
@@ -240,12 +240,12 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
           />
         </Card>
 
-        <Card size="small" title="Risk Summary">
+        <Card size="small" title="风险摘要">
           <Descriptions bordered size="small" column={2} items={riskSummaryItems} />
         </Card>
 
         {publishReadiness && (
-          <Card size="small" title="Publish Readiness Snapshot">
+          <Card size="small" title="发布就绪度快照">
             <div className="flex flex-col gap-3">
               <Descriptions
                 bordered
@@ -259,7 +259,7 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 rowKey={getPublishReadinessCategoryKey}
                 pagination={false}
                 size="small"
-                locale={{ emptyText: 'No readiness category summaries were recorded.' }}
+                locale={{ emptyText: '未记录任何就绪度类别摘要。' }}
                 columns={buildPublishReadinessCategoryColumns()}
               />
 
@@ -268,20 +268,20 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
                 rowKey={getPublishReadinessFindingKey}
                 pagination={{ pageSize: 10 }}
                 size="small"
-                locale={{ emptyText: 'No publish readiness findings were recorded.' }}
+                locale={{ emptyText: '未记录任何发布就绪度发现项。' }}
                 columns={buildPackageReviewReadinessFindingColumns()}
               />
             </div>
           </Card>
         )}
 
-        <Card size="small" title="Evidence Preview">
+        <Card size="small" title="证据预览">
           {!reportLoaded ? (
               <Alert
                 type="warning"
                 showIcon
-                title="Integrity evidence unavailable."
-                description="Load the publish report to review recorded integrity evidence."
+                title="完整性证据不可用。"
+                description="请加载发布报告以查看已记录的完整性证据。"
               />
           ) : findings.length > 0 ? (
             <Table
@@ -292,11 +292,11 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
               columns={buildPackageReviewEvidenceFindingColumns()}
             />
           ) : (
-            <Alert type="success" showIcon title="No integrity findings were recorded." />
+            <Alert type="success" showIcon title="未记录任何完整性发现项。" />
           )}
         </Card>
 
-        <Card size="small" title="Required Artifacts">
+        <Card size="small" title="必需产物">
           <Table
             dataSource={requiredArtifactRows}
             rowKey="name"

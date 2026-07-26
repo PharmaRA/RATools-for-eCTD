@@ -24,7 +24,7 @@ export type NormalizedValidationReport = {
 
 export const validationApiProfile = 'Validation API'
 export const apiErrorCode = 'API_ERROR'
-const structurallyUnusableReportMessage = 'Validation service returned an unusable report.'
+const structurallyUnusableReportMessage = '校验服务返回了无法使用的报告。'
 export const blockingSectionIssueCodes = new Set(['INVALID_SECTION_PATH', 'SECTION_MISSING'])
 
 const stringEqualsIgnoreCase = (left: string | null | undefined, right: string) => {
@@ -110,7 +110,7 @@ export const getPublishReadinessValidationIssues = (readiness: PublishReadinessR
     issues.push({
       severity: finding.severity,
       code: finding.code,
-      message: `[Publish readiness] ${finding.message}`,
+      message: `[发布就绪度] ${finding.message}`,
       sectionPath: finding.sectionPath,
       documentId: finding.documentId,
       placementId: finding.placementId,
@@ -170,43 +170,43 @@ export const buildPrePublishChecklistSummary = (validationResult: ValidationRepo
   const checklistRows: PrePublishChecklistRow[] = [
     {
       key: 'api-reachable',
-      label: 'Validation API reachable',
+      label: '校验 API 可访问',
       status: hasApiError ? 'fail' : 'pass',
-      detail: hasApiError ? 'Validation service did not return a usable report.' : 'Validation API returned a report.',
+      detail: hasApiError ? '校验服务未返回可用的报告。' : '校验 API 已返回报告。',
       blocking: true,
     },
     {
       key: 'blocking-errors',
-      label: 'No blocking validation errors',
+      label: '无受阻校验错误',
       status: blockingIssues.length === 0 ? 'pass' : 'fail',
-      detail: `${blockingIssues.length} blocking error(s)`,
+      detail: `${blockingIssues.length} 个受阻错误`,
       blocking: true,
     },
     {
       key: 'lifecycle-targets',
-      label: 'Lifecycle targets resolved',
+      label: '生命周期目标已解析',
       status: lifecycleIssueCount === 0 ? 'pass' : hasBlockingLifecycleIssue ? 'fail' : 'info',
       detail: lifecycleMatches.length === 0
-        ? 'No lifecycle operations were checked.'
-        : `${lifecycleIssueCount} lifecycle issue(s)`,
+        ? '未检查任何生命周期操作。'
+        : `${lifecycleIssueCount} 个生命周期问题`,
       blocking: lifecycleIssueCount > 0 && hasBlockingLifecycleIssue,
     },
     {
       key: 'section-paths',
-      label: 'Section paths acceptable',
+      label: '章节路径可接受',
       status: hasBlockingSectionIssue
         ? 'fail'
         : invalidSectionCount > 0 || nonStandardSectionCount > 0
           ? 'info'
           : 'pass',
-      detail: `${invalidSectionCount} invalid | ${nonStandardSectionCount} non-standard`,
+      detail: `${invalidSectionCount} 个无效 | ${nonStandardSectionCount} 个非标准`,
       blocking: hasBlockingSectionIssue,
     },
     {
       key: 'warnings-reviewed',
-      label: 'Warnings reviewed',
+      label: '警告已审阅',
       status: warningIssues.length === 0 ? 'pass' : 'info',
-      detail: `${warningIssues.length} warning(s) for reviewer awareness`,
+      detail: `${warningIssues.length} 个警告供审阅者知悉`,
       blocking: false,
     },
   ]
@@ -239,6 +239,6 @@ type PrePublishChecklistDisplaySummary = Pick<
 >
 
 export const buildPrePublishChecklistDisplay = (summary: PrePublishChecklistDisplaySummary) => ({
-  statusText: summary.canProceed ? 'Pre-publish checks passed' : 'Pre-publish checks failed',
-  issueCountText: `${summary.blockingIssueCount} blocking | ${summary.warningCount} ${summary.warningCount === 1 ? 'warning' : 'warnings'}`,
+  statusText: summary.canProceed ? '发布前检查已通过' : '发布前检查未通过',
+  issueCountText: `${summary.blockingIssueCount} 个阻断 | ${summary.warningCount} 个警告`,
 })

@@ -8,8 +8,8 @@ export const buildSectionSelectionDescriptionItems = (
   section: SectionSelection,
   mappedFileCount: number,
 ) => [
-  { key: 'section', label: 'Section', children: section.sectionPath },
-  { key: 'display', label: 'Display', children: section.title },
-  { key: 'leaf-node', label: 'Leaf Node', children: section.canDrop ? 'Yes' : 'No' },
-  { key: 'mapped-files', label: 'Mapped Files', children: mappedFileCount },
+  { key: 'section', label: '章节', children: section.sectionPath },
+  { key: 'display', label: '显示名称', children: section.title },
+  { key: 'leaf-node', label: '叶节点', children: section.canDrop ? '是' : '否' },
+  { key: 'mapped-files', label: '已映射文件', children: mappedFileCount },
 ]

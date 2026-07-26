@@ -137,7 +137,7 @@ describe('prePublishChecklist', () => {
     expect(normalized.issues).toContainEqual({
       severity: 'Error',
       code: apiErrorCode,
-      message: 'Validation service returned an unusable report.',
+      message: '校验服务返回了无法使用的报告。',
     })
   })
 

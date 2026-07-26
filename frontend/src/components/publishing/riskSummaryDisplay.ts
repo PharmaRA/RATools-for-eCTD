@@ -11,7 +11,7 @@ export const formatRiskSummaryCount = formatOptionalCount
 export const buildIntegrityRiskSummaryItems = (
   summary?: IntegrityRiskSummary | null,
 ) => [
-  { key: 'missing-files', label: 'Missing Files', children: formatRiskSummaryCount(summary?.missingFilesCount) },
-  { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: formatRiskSummaryCount(summary?.missingZipEntriesCount) },
-  { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: formatRiskSummaryCount(summary?.mismatchedArtifactsCount) },
+  { key: 'missing-files', label: '缺失文件', children: formatRiskSummaryCount(summary?.missingFilesCount) },
+  { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: formatRiskSummaryCount(summary?.missingZipEntriesCount) },
+  { key: 'mismatched-artifacts', label: '不匹配的产物', children: formatRiskSummaryCount(summary?.mismatchedArtifactsCount) },
 ]

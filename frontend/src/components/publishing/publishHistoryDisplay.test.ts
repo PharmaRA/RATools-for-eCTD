@@ -36,8 +36,8 @@ describe('publishHistoryDisplay', () => {
       errorCount: 2,
       warningCount: null,
     })).toEqual([
-      { label: 'Errors', value: 2 },
-      { label: 'Warnings', value: 0 },
+      { label: '错误', value: 2 },
+      { label: '警告', value: 0 },
     ])
   })
 
@@ -52,12 +52,12 @@ describe('publishHistoryDisplay', () => {
     expect(buildPublishHistoryStatisticItems(
       { completedCount: 3, failedCount: null },
       [
-        { title: 'Completed Jobs', valueKey: 'completedCount', color: '#3f8600' },
-        { title: 'Failed Jobs', valueKey: 'failedCount', color: '#cf1322' },
+        { title: '已完成任务', valueKey: 'completedCount', color: '#3f8600' },
+        { title: '失败任务', valueKey: 'failedCount', color: '#cf1322' },
       ],
     )).toEqual([
-      { title: 'Completed Jobs', value: 3, color: '#3f8600' },
-      { title: 'Failed Jobs', value: undefined, color: '#cf1322' },
+      { title: '已完成任务', value: 3, color: '#3f8600' },
+      { title: '失败任务', value: undefined, color: '#cf1322' },
     ])
   })
 
@@ -67,9 +67,9 @@ describe('publishHistoryDisplay', () => {
       failedCount: null,
       runningCount: 2,
     })).toEqual([
-      { title: 'Completed Jobs', value: 3, color: '#3f8600' },
-      { title: 'Failed Jobs', value: undefined, color: '#cf1322' },
-      { title: 'Running Jobs', value: 2, color: '#1677ff' },
+      { title: '已完成任务', value: 3, color: '#3f8600' },
+      { title: '失败任务', value: undefined, color: '#cf1322' },
+      { title: '运行中任务', value: 2, color: '#1677ff' },
     ])
   })
 
@@ -79,9 +79,9 @@ describe('publishHistoryDisplay', () => {
       blockedCount: null,
       unknownCount: 1,
     })).toEqual([
-      { title: 'Ready Sequences', value: 4, color: '#3f8600' },
-      { title: 'Blocked Sequences', value: undefined, color: '#cf1322' },
-      { title: 'Unknown Readiness', value: 1, color: '#595959' },
+      { title: '就绪序列', value: 4, color: '#3f8600' },
+      { title: '受阻序列', value: undefined, color: '#cf1322' },
+      { title: '就绪度未知', value: 1, color: '#595959' },
     ])
   })
 
@@ -94,12 +94,12 @@ describe('publishHistoryDisplay', () => {
       ambiguousCount: 1,
       currentSequenceCount: 5,
     })).toEqual([
-      { title: 'Matched', value: 4 },
-      { title: 'Replace Missing', value: 0 },
-      { title: 'Delete Missing', value: 2 },
-      { title: 'Append Missing', value: 0 },
-      { title: 'Ambiguous', value: 1 },
-      { title: 'Current Sequence', value: 5 },
+      { title: '已匹配', value: 4 },
+      { title: '替换目标缺失', value: 0 },
+      { title: '删除目标缺失', value: 2 },
+      { title: '追加目标缺失', value: 0 },
+      { title: '存在歧义', value: 1 },
+      { title: '当前序列', value: 5 },
     ])
   })
 
@@ -113,11 +113,11 @@ describe('publishHistoryDisplay', () => {
     }
 
     expect(buildPublishHistoryLifecycleIssueStatisticItems(summary)).toEqual([
-      { title: 'Replace Missing', value: 0 },
-      { title: 'Delete Missing', value: 2 },
-      { title: 'Append Missing', value: 0 },
-      { title: 'Ambiguous', value: 1 },
-      { title: 'Current Sequence', value: 5 },
+      { title: '替换目标缺失', value: 0 },
+      { title: '删除目标缺失', value: 2 },
+      { title: '追加目标缺失', value: 0 },
+      { title: '存在歧义', value: 1 },
+      { title: '当前序列', value: 5 },
     ])
   })
 
@@ -136,10 +136,10 @@ describe('publishHistoryDisplay', () => {
   })
 
   it('formats lifecycle status text for history rows', () => {
-    expect(formatPublishHistoryLifecycleStatus(null)).toBe('All matched')
+    expect(formatPublishHistoryLifecycleStatus(null)).toBe('全部匹配')
     expect(formatPublishHistoryLifecycleStatus({
       replaceTargetNotFoundCount: 1,
       deleteTargetNotFoundCount: 2,
-    })).toBe('3 issues')
+    })).toBe('3 个问题')
   })
 })

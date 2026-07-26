@@ -82,11 +82,11 @@ export const buildPublishHistoryColumns = ({
   onOpenReport,
   onOpenArtifacts,
 }: BuildPublishHistoryColumnsOptions): TableColumnsType<PublishHistoryEntry> => [
-  { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq' },
-  { title: 'Status', dataIndex: 'status', key: 'status', render: (status: string) => <Badge status={getStatusColor(status)} text={status} /> },
-  { title: 'Profile', dataIndex: 'validationProfile', key: 'profile' },
+  { title: '序列', dataIndex: 'sequenceNumber', key: 'seq' },
+  { title: '状态', dataIndex: 'status', key: 'status', render: (status: string) => <Badge status={getStatusColor(status)} text={status} /> },
+  { title: '配置', dataIndex: 'validationProfile', key: 'profile' },
   {
-    title: 'Validation',
+    title: '校验',
     key: 'validation',
     width: 220,
     render: (_, record) => (
@@ -99,19 +99,19 @@ export const buildPublishHistoryColumns = ({
     ),
   },
   {
-    title: 'Readiness',
+    title: '就绪度',
     key: 'readiness',
     width: 180,
     render: (_, record) => renderReadiness(record.publishReadiness),
   },
   {
-    title: 'Lifecycle',
+    title: '生命周期',
     key: 'lifecycle',
     width: 160,
     render: (_, record) => formatPublishHistoryLifecycleStatus(record.lifecycleSummary),
   },
   {
-    title: 'Artifacts',
+    title: '产物',
     key: 'artifacts',
     width: 180,
     render: (_, record) => {

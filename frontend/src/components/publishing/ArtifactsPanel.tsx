@@ -31,7 +31,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
         const data = await loadPublishJobArtifacts<PublishArtifactsResponse>(jobId)
         if (active) setArtifacts(getPublishArtifactsFromResponse(data))
       } catch (error) {
-        if (active) message.error('Failed to load artifacts: ' + getErrorMessage(error))
+        if (active) message.error('加载产物失败：' + getErrorMessage(error))
       } finally {
         if (active) setLoading(false)
       }
@@ -43,7 +43,7 @@ export const ArtifactsPanel = ({ jobId, onClose }: { jobId: string | null, onClo
   }, [jobId])
 
   return (
-    <Drawer title="Publish Artifacts" placement="right" size={600} onClose={onClose} open={!!jobId}>
+    <Drawer title="发布产物" placement="right" size={600} onClose={onClose} open={!!jobId}>
       {loading ? <Spin className="w-full mt-10 flex justify-center" /> : <Table dataSource={artifacts} columns={buildArtifactColumns(jobId)} rowKey="name" pagination={false} size="small" />}
     </Drawer>
   )

@@ -27,18 +27,18 @@ type PackageReviewWarningReport = Pick<PackageReviewReport, 'warningCount'>
 type PackageReviewIntegrityEvidenceReport = Pick<PackageReviewReport, 'integrityEvidence'>
 
 export const formatPackageReviewHeaderSummary = (report?: PackageReviewHeaderReport | null) => {
-  return `Sequence ${formatOptionalText(report?.sequenceNumber)} | ${formatOptionalText(report?.publishJob?.status)} | ${formatOptionalText(report?.validationProfile)}`
+  return `序列 ${formatOptionalText(report?.sequenceNumber)} | ${formatOptionalText(report?.publishJob?.status)} | ${formatOptionalText(report?.validationProfile)}`
 }
 
 export const formatPackageReviewWarningAlertDescription = (report?: PackageReviewWarningReport | null) => {
   const warningCount = report?.warningCount ?? 0
-  return warningCount > 0 ? `${warningCount} warning(s) remain for reviewer awareness.` : null
+  return warningCount > 0 ? `仍有 ${warningCount} 个警告需要审阅人关注。` : null
 }
 
 export const getPackageReviewReadinessDisplayMeta = (readyForSubmission: boolean) => (
   readyForSubmission
-    ? { title: 'Ready for Submission', iconClassName: 'text-green-500' }
-    : { title: 'Not Ready for Submission', iconClassName: 'text-red-500' }
+    ? { title: '可提交', iconClassName: 'text-green-500' }
+    : { title: '不可提交', iconClassName: 'text-red-500' }
 )
 
 export const getPackageReviewIntegrityFindings = (
@@ -54,28 +54,28 @@ export const buildPackageReviewRiskSummaryItems = ({
   const loadedReport = reportLoaded ? report : null
 
   return [
-    { key: 'validation-errors', label: 'Validation Errors', children: formatRiskSummaryCount(loadedReport?.errorCount) },
-    { key: 'warnings', label: 'Warnings', children: formatRiskSummaryCount(loadedReport?.warningCount) },
-    { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: reportLoaded ? lifecycleIssueCount : '-' },
+    { key: 'validation-errors', label: '校验错误', children: formatRiskSummaryCount(loadedReport?.errorCount) },
+    { key: 'warnings', label: '警告', children: formatRiskSummaryCount(loadedReport?.warningCount) },
+    { key: 'lifecycle-issues', label: '生命周期问题', children: reportLoaded ? lifecycleIssueCount : '-' },
     ...buildIntegrityRiskSummaryItems(loadedReport?.integritySummary),
   ]
 }
 
 export const renderChecklistPassStatus = (pass: boolean) => {
-  return createElement(Tag, { color: pass ? 'green' : 'red' }, pass ? 'Pass' : 'Fail')
+  return createElement(Tag, { color: pass ? 'green' : 'red' }, pass ? '通过' : '未通过')
 }
 
 export const buildPackageReviewChecklistColumns = () => [
-  { title: 'Check', dataIndex: 'check', key: 'check' },
-  { title: 'Status', dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
-  { title: 'Details', dataIndex: 'detail', key: 'detail' },
+  { title: '检查项', dataIndex: 'check', key: 'check' },
+  { title: '状态', dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
+  { title: '详情', dataIndex: 'detail', key: 'detail' },
 ]
 
 export const buildPackageReviewRequiredArtifactColumns = () => [
-  { title: 'Name', dataIndex: 'name', key: 'name', render: (name: string) => createElement('b', null, name) },
-  { title: 'Status', dataIndex: 'exists', key: 'status', render: renderArtifactExistsStatus },
-  { title: 'Size', dataIndex: 'sizeBytes', key: 'size', render: formatOptionalBytes },
-  { title: 'Type', dataIndex: 'contentType', key: 'type', render: formatOptionalText },
+  { title: '名称', dataIndex: 'name', key: 'name', render: (name: string) => createElement('b', null, name) },
+  { title: '状态', dataIndex: 'exists', key: 'status', render: renderArtifactExistsStatus },
+  { title: '大小', dataIndex: 'sizeBytes', key: 'size', render: formatOptionalBytes },
+  { title: '类型', dataIndex: 'contentType', key: 'type', render: formatOptionalText },
 ]
 
 export const renderReadinessFindingSeverityStatus = (severity: string) => {

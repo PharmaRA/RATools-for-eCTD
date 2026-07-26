@@ -8,10 +8,10 @@ describe('evidenceFindingDisplay', () => {
     const columns = buildEvidenceFindingColumns({ typeWidth: 180 })
 
     expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100 },
-      { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
-      { title: 'Path', dataIndex: 'path', key: 'path', width: 260 },
-      { title: 'Message', dataIndex: 'message', key: 'message', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', key: 'severity', width: 100 },
+      { title: '类型', dataIndex: 'type', key: 'type', width: 180 },
+      { title: '路径', dataIndex: 'path', key: 'path', width: 260 },
+      { title: '消息', dataIndex: 'message', key: 'message', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
@@ -25,10 +25,10 @@ describe('evidenceFindingDisplay', () => {
     const columns = buildEvidenceFindingColumns({ includeKeys: false })
 
     expect(columns).toEqual([
-      { title: 'Severity', dataIndex: 'severity', width: 100, render: expect.any(Function) },
-      { title: 'Type', dataIndex: 'type', width: 200 },
-      { title: 'Path', dataIndex: 'path', width: 260, render: expect.any(Function) },
-      { title: 'Message', dataIndex: 'message' },
+      { title: '严重级别', dataIndex: 'severity', width: 100, render: expect.any(Function) },
+      { title: '类型', dataIndex: 'type', width: 200 },
+      { title: '路径', dataIndex: 'path', width: 260, render: expect.any(Function) },
+      { title: '消息', dataIndex: 'message' },
     ])
   })
 })

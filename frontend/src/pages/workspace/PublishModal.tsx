@@ -41,7 +41,7 @@ export const PublishModal = ({
   onCancel,
 }: PublishModalProps) => (
   <Modal
-    title="Publish Sequence"
+    title="发布序列"
     open={open}
     onCancel={onCancel}
     onOk={onOk}
@@ -54,8 +54,8 @@ export const PublishModal = ({
           type="success"
           showIcon
           className="mb-3"
-          title="Pre-publish checks passed"
-          description={`Pre-publish checks passed. ${validationSummary.warningCount} warning(s) remain for reviewer awareness.`}
+          title="发布前检查已通过"
+          description={`发布前检查已通过。仍有 ${validationSummary.warningCount} 个警告供审阅者知悉。`}
         />
       )}
       {publishReadiness && !publishReadiness.isReady && (publishReadiness.missingMetadataFields?.length || 0) > 0 && (
@@ -63,8 +63,8 @@ export const PublishModal = ({
           <Alert
             type="warning"
             showIcon
-            title="Publish readiness is blocked"
-            description="Complete the required publishing metadata fields below. The publish action will save them and rerun readiness before execution."
+            title="发布就绪度受阻"
+            description="请补全下方必填的发布元数据字段。执行发布时会先保存这些字段并重新评估就绪度。"
           />
           <div className="rounded border border-gray-200 bg-white/70 p-3 text-sm" data-testid="publish-readiness-findings">
             {publishReadiness.findings.map((finding) => (
@@ -76,37 +76,37 @@ export const PublishModal = ({
             ))}
           </div>
           <Form form={publishMetadataForm} layout="vertical" requiredMark={false} component={false}>
-            <Form.Item name="applicationType" label="Application Type" rules={[{ required: true, message: 'Application type is required.' }]}>
-              <Input placeholder="e.g. IND" />
+            <Form.Item name="applicationType" label="申请类型" rules={[{ required: true, message: '申请类型为必填项。' }]}>
+              <Input placeholder="例如 IND" />
             </Form.Item>
-            <Form.Item name="submissionType" label="Submission Type" rules={[{ required: true, message: 'Submission type is required.' }]}>
-              <Input placeholder="e.g. original-application" />
+            <Form.Item name="submissionType" label="提交类型" rules={[{ required: true, message: '提交类型为必填项。' }]}>
+              <Input placeholder="例如 original-application" />
             </Form.Item>
-            <Form.Item name="submissionSubtype" label="Submission Subtype" rules={[{ required: true, message: 'Submission subtype is required.' }]}>
-              <Input placeholder="e.g. initial" />
+            <Form.Item name="submissionSubtype" label="提交子类型" rules={[{ required: true, message: '提交子类型为必填项。' }]}>
+              <Input placeholder="例如 initial" />
             </Form.Item>
-            <Form.Item name="sequenceDescription" label="Sequence Description" rules={[{ required: true, message: 'Sequence description is required.' }]}>
+            <Form.Item name="sequenceDescription" label="序列描述" rules={[{ required: true, message: '序列描述为必填项。' }]}>
               <Input.TextArea rows={2} />
             </Form.Item>
-            <Form.Item name="applicantName" label="Applicant Name" rules={[{ required: true, message: 'Applicant name is required.' }]}>
-              <Input placeholder="e.g. Acme Pharma" />
+            <Form.Item name="applicantName" label="申请人名称" rules={[{ required: true, message: '申请人名称为必填项。' }]}>
+              <Input placeholder="例如 Acme Pharma" />
             </Form.Item>
-            <Form.Item name="formType" label="Form Type">
-              <Input placeholder="e.g. 356h" />
+            <Form.Item name="formType" label="表单类型">
+              <Input placeholder="例如 356h" />
             </Form.Item>
-            <Form.Item name="applicantContactName" label="Applicant Contact Name" rules={[{ required: true, message: 'Applicant contact name is required.' }]}>
+            <Form.Item name="applicantContactName" label="申请人联系人姓名" rules={[{ required: true, message: '申请人联系人姓名为必填项。' }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="applicantContactType" label="Applicant Contact Type" rules={[{ required: true, message: 'Applicant contact type is required.' }]}>
-              <Input placeholder="e.g. regulatory" />
+            <Form.Item name="applicantContactType" label="申请人联系人类型" rules={[{ required: true, message: '申请人联系人类型为必填项。' }]}>
+              <Input placeholder="例如 regulatory" />
             </Form.Item>
-            <Form.Item name="telephone" label="Telephone" rules={[{ required: true, message: 'Telephone is required.' }]}>
+            <Form.Item name="telephone" label="电话" rules={[{ required: true, message: '电话为必填项。' }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="telephoneNumberType" label="Telephone Number Type" rules={[{ required: true, message: 'Telephone number type is required.' }]}>
-              <Input placeholder="e.g. office" />
+            <Form.Item name="telephoneNumberType" label="电话号码类型" rules={[{ required: true, message: '电话号码类型为必填项。' }]}>
+              <Input placeholder="例如 office" />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required.' }]}>
+            <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '邮箱为必填项。' }]}>
               <Input type="email" />
             </Form.Item>
           </Form>

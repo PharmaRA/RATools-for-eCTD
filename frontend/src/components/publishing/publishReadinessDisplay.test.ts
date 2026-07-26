@@ -30,8 +30,8 @@ describe('publishReadinessDisplay', () => {
   })
 
   it('uses None when no metadata fields are missing', () => {
-    expect(formatMissingMetadataFields([])).toBe('None')
-    expect(formatMissingMetadataFields(undefined)).toBe('None')
+    expect(formatMissingMetadataFields([])).toBe('无')
+    expect(formatMissingMetadataFields(undefined)).toBe('无')
   })
 
   it('formats the primary missing metadata hint for history rows', () => {
@@ -42,34 +42,34 @@ describe('publishReadinessDisplay', () => {
   })
 
   it('formats readiness history count hints after metadata hints are handled', () => {
-    expect(formatReadinessHistoryCountHint({ isReady: true, warningCount: 2 }, null)).toBe('Warnings: 2')
-    expect(formatReadinessHistoryCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('Blocking errors: 3')
+    expect(formatReadinessHistoryCountHint({ isReady: true, warningCount: 2 }, null)).toBe('警告：2')
+    expect(formatReadinessHistoryCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('阻断性错误：3')
     expect(formatReadinessHistoryCountHint({ isReady: false, blockingErrorCount: 3 }, 'Applicant')).toBeNull()
     expect(formatReadinessHistoryCountHint({ isReady: true, warningCount: 0 }, null)).toBeNull()
   })
 
   it('formats readiness warning count hints only for ready rows with warnings', () => {
-    expect(formatReadinessWarningCountHint({ isReady: true, warningCount: 2 })).toBe('Warnings: 2')
+    expect(formatReadinessWarningCountHint({ isReady: true, warningCount: 2 })).toBe('警告：2')
     expect(formatReadinessWarningCountHint({ isReady: true, warningCount: 0 })).toBeNull()
     expect(formatReadinessWarningCountHint({ isReady: false, warningCount: 2 })).toBeNull()
     expect(formatReadinessWarningCountHint({ isReady: true, warningCount: null })).toBeNull()
   })
 
   it('formats readiness blocking error count hints only for blocked rows without metadata hints', () => {
-    expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('Blocking errors: 3')
+    expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 3 }, null)).toBe('阻断性错误：3')
     expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 3 }, 'Applicant')).toBeNull()
     expect(formatReadinessBlockingErrorCountHint({ isReady: true, blockingErrorCount: 3 }, null)).toBeNull()
     expect(formatReadinessBlockingErrorCountHint({ isReady: false, blockingErrorCount: 0 }, null)).toBeNull()
   })
 
   it('formats publish readiness ready status', () => {
-    expect(formatReadinessReadyStatus(true)).toBe('Yes')
-    expect(formatReadinessReadyStatus(false)).toBe('No')
-    expect(formatReadinessReadyStatus(undefined)).toBe('No')
+    expect(formatReadinessReadyStatus(true)).toBe('是')
+    expect(formatReadinessReadyStatus(false)).toBe('否')
+    expect(formatReadinessReadyStatus(undefined)).toBe('否')
   })
 
   it('formats optional readiness text with a dash placeholder', () => {
-    expect(formatReadinessOptionalText('Blocked')).toBe('Blocked')
+    expect(formatReadinessOptionalText('受阻')).toBe('受阻')
     expect(formatReadinessOptionalText('')).toBe('-')
     expect(formatReadinessOptionalText(null)).toBe('-')
     expect(formatReadinessOptionalText(undefined)).toBe('-')
@@ -80,27 +80,27 @@ describe('publishReadinessDisplay', () => {
   })
 
   it('uses a dash when publish readiness status is missing', () => {
-    expect(formatReadinessStatus('Blocked')).toBe('Blocked')
+    expect(formatReadinessStatus('受阻')).toBe('受阻')
     expect(formatReadinessStatus('')).toBe('-')
     expect(formatReadinessStatus(undefined)).toBe('-')
   })
 
   it('builds history readiness status tag props with status fallbacks', () => {
-    expect(getPublishReadinessStatusTagProps({ isReady: true, status: 'Ready' })).toEqual({
+    expect(getPublishReadinessStatusTagProps({ isReady: true, status: '就绪' })).toEqual({
       color: 'green',
-      label: 'Ready',
+      label: '就绪',
     })
     expect(getPublishReadinessStatusTagProps({ isReady: true, status: '' })).toEqual({
       color: 'green',
-      label: 'Ready',
+      label: '就绪',
     })
-    expect(getPublishReadinessStatusTagProps({ isReady: false, status: 'Blocked' })).toEqual({
+    expect(getPublishReadinessStatusTagProps({ isReady: false, status: '受阻' })).toEqual({
       color: 'red',
-      label: 'Blocked',
+      label: '受阻',
     })
     expect(getPublishReadinessStatusTagProps({ isReady: false, status: '' })).toEqual({
       color: 'red',
-      label: 'Blocked',
+      label: '受阻',
     })
   })
 
@@ -138,11 +138,11 @@ describe('publishReadinessDisplay', () => {
       warningCount: null,
       missingMetadataFields: ['Applicant', 'Submission Type'],
     })).toEqual([
-      { key: 'readiness-status', label: 'Status', children: '-' },
-      { key: 'readiness-ready', label: 'Ready', children: 'No' },
-      { key: 'readiness-blocking-errors', label: 'Blocking Errors', children: 2 },
-      { key: 'readiness-warnings', label: 'Warnings', children: '-' },
-      { key: 'readiness-missing-fields', label: 'Missing Metadata Fields', children: 'Applicant, Submission Type' },
+      { key: 'readiness-status', label: '状态', children: '-' },
+      { key: 'readiness-ready', label: '就绪', children: '否' },
+      { key: 'readiness-blocking-errors', label: '阻断性错误', children: 2 },
+      { key: 'readiness-warnings', label: '警告', children: '-' },
+      { key: 'readiness-missing-fields', label: '缺失的元数据字段', children: 'Applicant, Submission Type' },
     ])
   })
 
@@ -151,8 +151,8 @@ describe('publishReadinessDisplay', () => {
       missingMetadataFields: [],
     }, { missingMetadataFieldsSpan: 2 })).toContainEqual({
       key: 'readiness-missing-fields',
-      label: 'Missing Metadata Fields',
-      children: 'None',
+      label: '缺失的元数据字段',
+      children: '无',
       span: 2,
     })
   })
@@ -173,7 +173,7 @@ describe('publishReadinessDisplay', () => {
   })
 
   it('reads optional publish readiness from report data', () => {
-    const readiness = { isReady: true, status: 'Ready' }
+    const readiness = { isReady: true, status: '就绪' }
 
     expect(getPublishReadinessFromReport({ publishReadiness: readiness })).toBe(readiness)
     expect(getPublishReadinessFromReport({ publishReadiness: null })).toBeNull()
@@ -188,19 +188,19 @@ describe('publishReadinessDisplay', () => {
 
   it('builds publish readiness category summary columns', () => {
     expect(buildPublishReadinessCategoryColumns()).toEqual([
-      { title: 'Category', dataIndex: 'category', key: 'category' },
-      { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
-      { title: 'Warnings', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
-      { title: 'Findings', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
+      { title: '类别', dataIndex: 'category', key: 'category' },
+      { title: '阻断性错误', dataIndex: 'blockingErrorCount', key: 'blockingErrorCount', width: 140 },
+      { title: '警告', dataIndex: 'warningCount', key: 'warningCount', width: 120 },
+      { title: '发现项', dataIndex: 'findingCount', key: 'findingCount', width: 120 },
     ])
   })
 
   it('can build report publish readiness category summary columns', () => {
     expect(buildPublishReadinessCategoryColumns({ categoryWidth: 220, includeKeys: false })).toEqual([
-      { title: 'Category', dataIndex: 'category', width: 220 },
-      { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
-      { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
-      { title: 'Findings', dataIndex: 'findingCount', width: 120 },
+      { title: '类别', dataIndex: 'category', width: 220 },
+      { title: '阻断性错误', dataIndex: 'blockingErrorCount', width: 140 },
+      { title: '警告', dataIndex: 'warningCount', width: 120 },
+      { title: '发现项', dataIndex: 'findingCount', width: 120 },
     ])
   })
 
@@ -211,11 +211,11 @@ describe('publishReadinessDisplay', () => {
     })
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', width: 100 },
-      { title: 'Code', dataIndex: 'code', width: 220 },
-      { title: 'Category', dataIndex: 'category', width: 180 },
-      { title: 'Field', dataIndex: 'fieldName', width: 180 },
-      { title: 'Recommended Action', dataIndex: 'recommendedAction', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', width: 100 },
+      { title: '代码', dataIndex: 'code', width: 220 },
+      { title: '类别', dataIndex: 'category', width: 180 },
+      { title: '字段', dataIndex: 'fieldName', width: 180 },
+      { title: '建议措施', dataIndex: 'recommendedAction', width: undefined },
     ])
 
     expect((columns[0] as { render: (value: string) => unknown }).render('Error')).toBe('Severity: Error')

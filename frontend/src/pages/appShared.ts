@@ -54,7 +54,7 @@ export const getErrorSeverityTagColor = (severity: string) => (
 )
 
 export const getApplicationTemplateLabel = (application?: Pick<Application, 'ectdTemplateDisplayName' | 'ectdTemplateKey'> | null) => {
-  return application?.ectdTemplateDisplayName || application?.ectdTemplateKey || 'Unknown Template'
+  return application?.ectdTemplateDisplayName || application?.ectdTemplateKey || '未知模板'
 }
 
 export type StatusColor = 'success' | 'error' | 'processing' | 'default'
@@ -84,11 +84,11 @@ const lifecycleIssueCountItemDefinitions: {
   label: string
   valueKey: LifecycleIssueCountValueKey
 }[] = [
-  { key: 'replace-missing', label: 'Replace Missing', valueKey: 'replaceTargetNotFoundCount' },
-  { key: 'delete-missing', label: 'Delete Missing', valueKey: 'deleteTargetNotFoundCount' },
-  { key: 'append-missing', label: 'Append Missing', valueKey: 'appendTargetNotFoundCount' },
-  { key: 'ambiguous', label: 'Ambiguous', valueKey: 'ambiguousCount' },
-  { key: 'current-sequence', label: 'Current Sequence', valueKey: 'currentSequenceCount' },
+  { key: 'replace-missing', label: '替换目标缺失', valueKey: 'replaceTargetNotFoundCount' },
+  { key: 'delete-missing', label: '删除目标缺失', valueKey: 'deleteTargetNotFoundCount' },
+  { key: 'append-missing', label: '追加目标缺失', valueKey: 'appendTargetNotFoundCount' },
+  { key: 'ambiguous', label: '存在歧义', valueKey: 'ambiguousCount' },
+  { key: 'current-sequence', label: '当前序列', valueKey: 'currentSequenceCount' },
 ]
 
 export const buildLifecycleIssueCountItems = (summary?: LifecycleSummary | null) => (
@@ -113,12 +113,12 @@ export type ReportAvailability = {
 }
 
 export const getReportAvailabilityLabel = (entry: ReportAvailability) => {
-  if (!entry?.reportAvailable) return 'Missing'
-  if (!entry?.reportReadable) return 'Unreadable'
-  return 'Available'
+  if (!entry?.reportAvailable) return '缺失'
+  if (!entry?.reportReadable) return '不可读'
+  return '可用'
 }
 
-export const getErrorMessage = (error: unknown, fallback = 'Unknown error') => {
+export const getErrorMessage = (error: unknown, fallback = '未知错误') => {
   if (error instanceof Error && error.message) return error.message
   if (typeof error === 'string' && error.trim().length > 0) return error
   return fallback

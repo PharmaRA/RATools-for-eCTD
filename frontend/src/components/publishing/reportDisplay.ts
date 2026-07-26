@@ -22,8 +22,8 @@ export const formatReportCount = formatOptionalCount
 
 export const getReportOutcomeDisplayMeta = (succeeded?: boolean) => (
   succeeded
-    ? { title: 'Publish Succeeded', iconClassName: 'text-green-500' }
-    : { title: 'Publish Failed', iconClassName: 'text-red-500' }
+    ? { title: '发布成功', iconClassName: 'text-green-500' }
+    : { title: '发布失败', iconClassName: 'text-red-500' }
 )
 
 export const getReportValidationIssues = <T>(
@@ -50,12 +50,12 @@ export const buildReportOverviewItems = (
   lifecycleIssueCount: number,
   integrityState: string,
 ) => [
-  { key: 'profile', label: 'Profile', children: report.validationProfile },
-  { key: 'duration', label: 'Duration', children: `${report.durationMs} ms` },
-  { key: 'errors', label: 'Errors', children: report.errorCount },
-  { key: 'warnings', label: 'Warnings', children: report.warningCount },
-  { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: lifecycleIssueCount },
-  { key: 'integrity', label: 'Integrity', children: integrityState },
+  { key: 'profile', label: '配置', children: report.validationProfile },
+  { key: 'duration', label: '耗时', children: `${report.durationMs} ms` },
+  { key: 'errors', label: '错误', children: report.errorCount },
+  { key: 'warnings', label: '警告', children: report.warningCount },
+  { key: 'lifecycle-issues', label: '生命周期问题', children: lifecycleIssueCount },
+  { key: 'integrity', label: '完整性', children: integrityState },
 ]
 
 type ReportSummaryItemDefinition<TSummary> = {
@@ -82,7 +82,7 @@ type ReportIntegritySummary = {
 
 export const formatReportIntegrityState = (summary: ReportIntegritySummary | null | undefined) => {
   if (!summary) return '-'
-  return summary.isConsistent ? 'Consistent' : 'Inconsistent'
+  return summary.isConsistent ? '一致' : '不一致'
 }
 
 export const buildReportIntegrityIssueSummaryItems = buildIntegrityRiskSummaryItems
@@ -91,7 +91,7 @@ export const buildReportIntegritySummaryItems = (
   summary: ReportIntegritySummary | null | undefined,
   integrityState: string,
 ) => [
-  { key: 'consistent', label: 'Consistent', children: integrityState },
+  { key: 'consistent', label: '一致', children: integrityState },
   ...buildReportIntegrityIssueSummaryItems(summary),
 ]
 
@@ -104,9 +104,9 @@ type ReportArtifactSummary = {
 export const buildReportArtifactSummaryItems = (
   summary: ReportArtifactSummary | null | undefined,
 ) => buildReportSummaryItems(summary, [
-  { key: 'file-count', label: 'File Count', children: (item) => formatReportCount(item?.fileCount) },
-  { key: 'total-size', label: 'Total Size', children: (item) => formatOptionalBytes(item?.totalSizeBytes) },
-  { key: 'package-size', label: 'Package Size', children: (item) => formatOptionalBytes(item?.packageSizeBytes) },
+  { key: 'file-count', label: '文件数', children: (item) => formatReportCount(item?.fileCount) },
+  { key: 'total-size', label: '总大小', children: (item) => formatOptionalBytes(item?.totalSizeBytes) },
+  { key: 'package-size', label: '包大小', children: (item) => formatOptionalBytes(item?.packageSizeBytes) },
 ])
 
 type ReportAuditSummary = {
@@ -119,10 +119,10 @@ type ReportAuditSummary = {
 export const buildReportAuditSummaryItems = (
   summary: ReportAuditSummary | null | undefined,
 ) => buildReportSummaryItems(summary, [
-  { key: 'publish-job-events', label: 'Publish Job Events', children: (item) => formatReportCount(item?.publishJobEventCount) },
-  { key: 'validation-events', label: 'Validation Events', children: (item) => formatReportCount(item?.validationEventCount) },
-  { key: 'latest-action', label: 'Latest Action', children: (item) => item?.latestPublishJobAction ?? '-' },
-  { key: 'latest-event', label: 'Latest Event', children: (item) => formatDate(item?.latestPublishJobEventUtc ?? undefined) },
+  { key: 'publish-job-events', label: '发布任务事件数', children: (item) => formatReportCount(item?.publishJobEventCount) },
+  { key: 'validation-events', label: '校验事件数', children: (item) => formatReportCount(item?.validationEventCount) },
+  { key: 'latest-action', label: '最近操作', children: (item) => item?.latestPublishJobAction ?? '-' },
+  { key: 'latest-event', label: '最近事件', children: (item) => formatDate(item?.latestPublishJobEventUtc ?? undefined) },
 ])
 
 type ReportLifecycleIssueSummary = {
@@ -141,7 +141,7 @@ type ReportLifecycleSummary = ReportLifecycleIssueSummary & {
 export const buildReportLifecycleIssueSummaryItems = (
   summary: ReportLifecycleIssueSummary,
 ) => buildReportSummaryItems(summary, [
-  { key: 'issues', label: 'Issues', children: (item) => item.issueCount },
+  { key: 'issues', label: '问题', children: (item) => item.issueCount },
   ...buildLifecycleIssueCountItems(summary).map(({ key, label, value }) => ({
     key,
     label,
@@ -153,42 +153,42 @@ export const buildReportLifecycleSummaryItems = (
   summary: ReportLifecycleSummary,
   warningSummary?: string | null,
 ) => [
-  { key: 'matched', label: 'Matched', children: summary.matchedCount },
+  { key: 'matched', label: '已匹配', children: summary.matchedCount },
   ...buildReportLifecycleIssueSummaryItems(summary),
-  { key: 'warning-summary', label: 'Warning Summary', children: formatOptionalText(warningSummary) },
+  { key: 'warning-summary', label: '警告摘要', children: formatOptionalText(warningSummary) },
 ]
 
 export const renderReportSeverityStatus = renderEvidenceFindingSeverityStatus
 
 export const buildReportValidationIssueColumns = () => [
-  { title: 'Severity', dataIndex: 'severity', render: renderReportSeverityStatus, width: 100 },
-  { title: 'Code', dataIndex: 'code', width: 200 },
-  { title: 'Message', dataIndex: 'message' },
+  { title: '严重级别', dataIndex: 'severity', render: renderReportSeverityStatus, width: 100 },
+  { title: '代码', dataIndex: 'code', width: 200 },
+  { title: '消息', dataIndex: 'message' },
 ]
 
 export const buildReportIntegrityFindingColumns = () => buildEvidenceFindingColumns({ includeKeys: false })
 
 export const buildReportArtifactManifestColumns = () => [
-  { title: 'Role', dataIndex: 'role', width: 140 },
-  { title: 'Relative Path', dataIndex: 'relativePath', width: 260, render: formatOptionalText },
-  { title: 'Exists', dataIndex: 'exists', width: 120, render: renderArtifactExistsStatus },
-  { title: 'Size', dataIndex: 'sizeBytes', width: 120, render: formatOptionalBytes },
-  { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150, render: renderZipEntryPresentStatus },
-  { title: 'Source', dataIndex: 'source', width: 160 },
+  { title: '角色', dataIndex: 'role', width: 140 },
+  { title: '相对路径', dataIndex: 'relativePath', width: 260, render: formatOptionalText },
+  { title: '存在', dataIndex: 'exists', width: 120, render: renderArtifactExistsStatus },
+  { title: '大小', dataIndex: 'sizeBytes', width: 120, render: formatOptionalBytes },
+  { title: 'Zip 条目', dataIndex: 'zipEntryPresent', width: 150, render: renderZipEntryPresentStatus },
+  { title: '来源', dataIndex: 'source', width: 160 },
 ]
 
 export const buildReportLifecycleMatchColumns = () => [
-  { title: 'Operation', dataIndex: 'operation', width: 120 },
-  { title: 'Sequence', dataIndex: 'sequenceNumber', width: 100 },
-  { title: 'CTD Section', dataIndex: 'ctdSection', width: 120 },
-  { title: 'Document ID', dataIndex: 'documentId', width: 180 },
-  { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
-  { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
-  { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', render: formatReportList, width: 220 },
-  { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
-  { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', render: formatReportList, width: 180 },
-  { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', render: formatReportList, width: 240 },
-  { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
+  { title: '操作类型', dataIndex: 'operation', width: 120 },
+  { title: '序列', dataIndex: 'sequenceNumber', width: 100 },
+  { title: 'CTD 章节', dataIndex: 'ctdSection', width: 120 },
+  { title: '文档 ID', dataIndex: 'documentId', width: 180 },
+  { title: '结果代码', dataIndex: 'resultCode', width: 240 },
+  { title: '匹配策略', dataIndex: 'matchStrategy', width: 180 },
+  { title: '尝试的策略', dataIndex: 'attemptedStrategies', render: formatReportList, width: 220 },
+  { title: '历史匹配数', dataIndex: 'historicalMatchCount', width: 140 },
+  { title: '历史序列', dataIndex: 'historicalSequenceNumbers', render: formatReportList, width: 180 },
+  { title: '历史放置 ID', dataIndex: 'historicalPlacementIds', render: formatReportList, width: 240 },
+  { title: '最终状态', dataIndex: 'historicalFinalState', width: 140 },
 ]
 
 export const buildReportPublishReadinessCategoryColumns = () => (
@@ -201,7 +201,7 @@ export const buildReportPublishReadinessFindingColumns = () => buildPublishReadi
 })
 
 export const renderZipEntryPresentStatus = (present?: boolean | null) => {
-  if (present === true) return createElement(Tag, { color: 'green' }, 'Present')
-  if (present === false) return createElement(Tag, { color: 'red' }, 'Missing from zip')
+  if (present === true) return createElement(Tag, { color: 'green' }, '存在')
+  if (present === false) return createElement(Tag, { color: 'red' }, 'Zip 中缺失')
   return '-'
 }

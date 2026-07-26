@@ -32,8 +32,8 @@ export const buildEvidenceFindingColumns = ({
   typeWidth = 200,
   pathWidth = 260,
 }: EvidenceFindingColumnOptions = {}) => [
-  buildEvidenceFindingColumn('Severity', 'severity', severityWidth, includeKeys, severityRenderer),
-  buildEvidenceFindingColumn('Type', 'type', typeWidth, includeKeys),
-  buildEvidenceFindingColumn('Path', 'path', pathWidth, includeKeys, formatOptionalText),
-  buildEvidenceFindingColumn('Message', 'message', undefined, includeKeys),
+  buildEvidenceFindingColumn('严重级别', 'severity', severityWidth, includeKeys, severityRenderer),
+  buildEvidenceFindingColumn('类型', 'type', typeWidth, includeKeys),
+  buildEvidenceFindingColumn('路径', 'path', pathWidth, includeKeys, formatOptionalText),
+  buildEvidenceFindingColumn('消息', 'message', undefined, includeKeys),
 ]

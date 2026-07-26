@@ -146,7 +146,7 @@ export const SequenceWorkspacePage = ({
   const locateValidationIssue = (location: ValidationLocation) => {
     const resolvedLocation = resolveValidationLocation({ location, placements, treeData })
     if (!resolvedLocation) {
-      message.warning('Could not locate this validation issue in the workspace tree.')
+      message.warning('无法在工作区树中定位该校验问题。')
       return
     }
 
@@ -200,7 +200,7 @@ export const SequenceWorkspacePage = ({
       const moved = await movePlacementToSection({ placementId, fromSection, toSection })
 
       if (!moved) {
-        message.info('Document is already mapped to this section.')
+        message.info('该文档已映射到此章节。')
         return
       }
 
@@ -208,9 +208,9 @@ export const SequenceWorkspacePage = ({
       setSelectedTreeKey(toSection)
       setSelectedSectionPath(toSection)
       await refreshWorkspaceData()
-      message.success('Document moved to target section.')
+      message.success('文档已移动到目标章节。')
     } catch (error) {
-      message.error(`Failed to move document: ${getErrorMessage(error)}`)
+      message.error(`移动文档失败：${getErrorMessage(error)}`)
     } finally {
       setMovingPlacementIds((current) => {
         const next = new Set(current)
@@ -227,12 +227,12 @@ export const SequenceWorkspacePage = ({
     try {
       await deletePlacementWithDocument({ placementId, documentId })
       await refreshWorkspaceData()
-      message.success('Document mapping and physical file deleted.')
+      message.success('文档映射与物理文件已删除。')
     } catch (error) {
       if (error instanceof PlacementDeletePartialFailureError) {
-        message.error(`Mapping deleted, but document/file delete failed: ${error.message}`)
+        message.error(`映射已删除，但文档/文件删除失败：${error.message}`)
       } else {
-        message.error(`Failed to delete mapped document: ${getErrorMessage(error)}`)
+        message.error(`删除已映射文档失败：${getErrorMessage(error)}`)
       }
     } finally {
       setDeletingPlacementIds((current) => {
@@ -246,11 +246,11 @@ export const SequenceWorkspacePage = ({
 
   const confirmDeletePlacement = (placementId: string, documentId: string) => {
     Modal.confirm({
-      title: 'Delete mapped document',
-      content: 'This will remove mapping and delete the physical file from workspace. Continue?',
-      okText: 'Delete',
+      title: '删除已映射文档',
+      content: '此操作将移除映射并从工作区删除物理文件。是否继续？',
+      okText: '删除',
       okButtonProps: { danger: true },
-      cancelText: 'Cancel',
+      cancelText: '取消',
       onOk: async () => {
         await handleDeletePlacementWithFile(placementId, documentId)
       },
@@ -279,9 +279,9 @@ export const SequenceWorkspacePage = ({
           : values.lifecycleTargetPlacementId || null,
       })
       await refreshWorkspaceData()
-      message.success('File metadata revision saved.')
+      message.success('文件元数据修订已保存。')
     } catch (error) {
-      message.error(`Failed to save metadata revision: ${getErrorMessage(error)}`)
+      message.error(`保存元数据修订失败：${getErrorMessage(error)}`)
     } finally {
       setSavingRevisionPlacementId(null)
       setLoading(false)
@@ -290,7 +290,7 @@ export const SequenceWorkspacePage = ({
 
   const handleDirectDrop = async (file: File, targetNodeKey: string) => {
     setLoading(true)
-    message.loading({ content: `Processing ${file.name}...`, key: 'uploading' })
+    message.loading({ content: `正在处理 ${file.name}...`, key: 'uploading' })
 
     try {
       const targetSection = resolveUploadSection(targetNodeKey, selectedSectionPath)
@@ -305,10 +305,10 @@ export const SequenceWorkspacePage = ({
         ctdSection: targetSection,
       })
 
-      message.success({ content: `${file.name} mapped to ${targetSection} and saved!`, key: 'uploading' })
+      message.success({ content: `${file.name} 已映射到 ${targetSection} 并保存！`, key: 'uploading' })
       await refreshWorkspaceData()
     } catch (err) {
-      message.error({ content: `Failed: ${getErrorMessage(err)}`, key: 'uploading' })
+      message.error({ content: `失败：${getErrorMessage(err)}`, key: 'uploading' })
     } finally {
       setLoading(false)
     }
@@ -388,7 +388,7 @@ export const SequenceWorkspacePage = ({
       setValidationResult({
         applicationId: appId,
         sequenceNumber: String(seqNumber).trim(),
-        validationProfile: 'Validation API',
+        validationProfile: '校验 API',
         isValid: false,
         issues: [{ severity: 'Error', code: 'API_ERROR', message: errorMessage }],
         sectionMatches: [],
@@ -427,7 +427,7 @@ export const SequenceWorkspacePage = ({
         setPublishReadiness(readinessToUse)
 
         if (!readinessToUse.isReady) {
-          message.error('Publish readiness is still blocked. Resolve the remaining findings before publishing.')
+          message.error('发布就绪度仍处于受阻状态。请先解决剩余发现项后再发布。')
           return
         }
       }
@@ -438,14 +438,14 @@ export const SequenceWorkspacePage = ({
         outputDirectoryPath: String(publishValues.outputDirectoryPath || '').trim(),
       })
 
-      message.success('Publish job initiated successfully! Check History tab for results.')
+      message.success('发布任务已成功启动！请在“发布历史”页签查看结果。')
       setIsPublishModalOpen(false)
       publishForm.resetFields()
       publishMetadataForm.resetFields()
       setPublishReadiness(null)
       onBack()
     } catch (err) {
-      message.error('Publish failed: ' + getErrorMessage(err))
+      message.error('发布失败：' + getErrorMessage(err))
     } finally {
       setPublishing(false)
     }
@@ -458,16 +458,16 @@ export const SequenceWorkspacePage = ({
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-200">
         <div className="flex items-center gap-4">
-          <Button icon={<ArrowLeft size={16} />} onClick={onBack}>Back to Details</Button>
+          <Button icon={<ArrowLeft size={16} />} onClick={onBack}>返回详情</Button>
           <div>
-            <h2 className="m-0 text-xl font-bold">Sequence Workspace: <Tag color="blue">{seqNumber}</Tag></h2>
+            <h2 className="m-0 text-xl font-bold">序列工作区：<Tag color="blue">{seqNumber}</Tag></h2>
             <p className="m-0 text-gray-500 text-sm flex items-center gap-1">
-              <Save size={14} /> Changes are saved automatically upon document drop.
+              <Save size={14} /> 文档拖入后将自动保存。
             </p>
           </div>
         </div>
         <Button type="primary" icon={<PlayCircle size={16} className="mr-1" />} loading={publishing} onClick={openPublishModal}>
-          Publish Sequence
+          发布序列
         </Button>
       </div>
 
@@ -492,8 +492,8 @@ export const SequenceWorkspacePage = ({
         />
       )}
 
-      {placementsError && <Alert type="error" showIcon title="Failed to load workspace placements" description={placementsError} />}
-      {documentsError && <Alert type="error" showIcon title="Failed to load workspace documents" description={documentsError} />}
+      {placementsError && <Alert type="error" showIcon title="加载工作区映射失败" description={placementsError} />}
+      {documentsError && <Alert type="error" showIcon title="加载工作区文档失败" description={documentsError} />}
 
       <Row gutter={16}>
         <Col span={12}>
@@ -514,11 +514,11 @@ export const SequenceWorkspacePage = ({
         </Col>
 
         <Col span={12}>
-          <Card title="Selection Details" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
+          <Card title="选中项详情" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
             {!selectedNode && (
               <div className="text-center text-gray-400 mt-20">
                 <FolderOpen size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Select a section or mapped file from the left tree.</p>
+                <p>请从左侧树中选择章节或已映射文件。</p>
               </div>
             )}
 
@@ -535,17 +535,17 @@ export const SequenceWorkspacePage = ({
                 <Alert
                   type="info"
                   showIcon
-                  title="Leaf Metadata Guide"
+                  title="叶节点元数据指南"
                   description={(
                     <div className="flex flex-col gap-1 text-sm">
-                      <div>Mapped Leaves: <b>{selectedSectionChildrenCount}</b></div>
-                      <div>Drop files on leaf sections, then select a mapped leaf to edit its title, operation, and file naming metadata.</div>
-                      {!selectedNode.canDrop && <div>This section has child sections, so files should be mapped to a leaf child section.</div>}
+                      <div>已映射叶节点：<b>{selectedSectionChildrenCount}</b></div>
+                      <div>将文件拖放到叶级章节，然后选择已映射的叶节点以编辑其标题、操作类型与文件命名元数据。</div>
+                      {!selectedNode.canDrop && <div>该章节包含子章节，文件应映射到叶级子章节。</div>}
                     </div>
                   )}
                 />
 
-                <p className="text-xs text-gray-500">Tip: Drop files on leaf sections. Drag file nodes between sections to move them.</p>
+                <p className="text-xs text-gray-500">提示：将文件拖放到叶级章节；在章节之间拖动文件节点可移动它们。</p>
               </div>
             )}
 

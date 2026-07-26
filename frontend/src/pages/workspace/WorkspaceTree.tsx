@@ -36,7 +36,7 @@ export const WorkspaceTree = ({
   dragDrop,
 }: WorkspaceTreeProps) => (
   <Card title="eCTD Structure (Drag & Drop files here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
-    {treeError && <Alert type="error" showIcon className="mb-3" title="Failed to load eCTD structure" description={treeError} />}
+    {treeError && <Alert type="error" showIcon className="mb-3" title="加载 eCTD 结构失败" description={treeError} />}
     <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it. Allowed extensions: {ectdAllowedExtensionsHint}</p>
     <Spin spinning={loading || treeLoading}>
       <Tree

@@ -29,11 +29,11 @@ export const buildSequenceColumns = ({
   onOpenWorkspace,
   onDeleteSequence,
 }: BuildSequenceColumnsOptions): TableColumnsType<SequenceSummary> => [
-  { title: 'Sequence', dataIndex: 'sequenceNumber', render: (value) => <b>{value}</b> },
-  { title: 'Submission Type', dataIndex: 'submissionType' },
-  { title: 'Description', dataIndex: 'description' },
+  { title: '序列', dataIndex: 'sequenceNumber', render: (value) => <b>{value}</b> },
+  { title: '递交类型', dataIndex: 'submissionType' },
+  { title: '描述', dataIndex: 'description' },
   {
-    title: 'Actions',
+    title: '操作',
     key: 'actions',
     render: (_, record) => {
       const isSequenceDeleteRunning = deletingSequenceNumbers.has(record.sequenceNumber)
@@ -41,14 +41,14 @@ export const buildSequenceColumns = ({
       return (
         <Space>
           <Button type="link" size="small" disabled={isBatchDeleteRunning} onClick={() => onOpenWorkspace(record.sequenceNumber)}>
-            Enter Workspace
+            进入工作区
           </Button>
           <Button
             danger
             type="text"
             size="small"
             icon={<Trash2 size={14} />}
-            title="Delete Sequence"
+            title="删除序列"
             loading={isSequenceDeleteRunning}
             disabled={isSequenceDeleteRunning || isBatchDeleteRunning}
             onClick={() => onDeleteSequence(record.sequenceNumber)}

@@ -129,7 +129,7 @@ const expectValidationSummaryField = (field: string) => {
 }
 
 const getLocateButtons = (container: Element | null) => Array.from(container?.querySelectorAll('button') || [])
-  .filter((button) => button.textContent?.includes('Locate')) as HTMLButtonElement[]
+  .filter((button) => button.textContent?.includes('定位')) as HTMLButtonElement[]
 
 const clickLocateButton = (container: Element | null, index = 0) => {
   const button = getLocateButtons(container).at(index)
@@ -245,7 +245,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledWith({
@@ -257,27 +257,27 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('success')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
     expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
-    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks passed')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 个阻断')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 个警告')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('否')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('发布前检查已通过')
     const checklistSummary = expectValidationSummaryField('checklist')
-    expect(checklistSummary.textContent).toContain('Pre-publish Checklist')
-    expect(checklistSummary.textContent).toContain('Validation API reachable')
-    expect(checklistSummary.textContent).toContain('No blocking validation errors')
-    expect(checklistSummary.textContent).toContain('Lifecycle targets resolved')
-    expect(checklistSummary.textContent).toContain('Section paths acceptable')
-    expect(checklistSummary.textContent).toContain('Warnings reviewed')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('No blocking validation errors found.')
-    expect(expectValidationSummaryField('warnings').textContent).toContain('No validation warnings found.')
-    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('No lifecycle operations were checked.')
-    expect(getValidationSummaryField('sections')?.textContent).toContain('1 checked | 0 invalid | 0 non-standard')
-    expect(getValidationSummaryField('sections')?.textContent).toContain('All checked sections are valid standard matches.')
+    expect(checklistSummary.textContent).toContain('发布前检查清单')
+    expect(checklistSummary.textContent).toContain('校验 API 可访问')
+    expect(checklistSummary.textContent).toContain('无受阻校验错误')
+    expect(checklistSummary.textContent).toContain('生命周期目标已解析')
+    expect(checklistSummary.textContent).toContain('章节路径可接受')
+    expect(checklistSummary.textContent).toContain('警告已审阅')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('未发现阻断性校验错误。')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('未发现校验警告。')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('未检查任何生命周期操作。')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('已检查 1 个 | 0 个无效 | 0 个非标准')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('所有已检查章节均为有效的标准匹配。')
     const modal = document.querySelector('.ant-modal')
     expect(modal).toBeTruthy()
-    expect(modal?.textContent).toContain('Pre-publish checks passed. 0 warning(s) remain for reviewer awareness.')
+    expect(modal?.textContent).toContain('仍有 0 个警告')
 
     const input = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
     expect(input).toBeTruthy()
@@ -341,9 +341,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Failed to load workspace placements')
+    expect(document.body.textContent).toContain('加载工作区映射失败')
     expect(document.body.textContent).toContain('placements unavailable')
-    expect(document.body.textContent).toContain('Failed to load workspace documents')
+    expect(document.body.textContent).toContain('加载工作区文档失败')
     expect(document.body.textContent).toContain('documents unavailable')
 
     unmount()
@@ -492,7 +492,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledWith({
@@ -504,19 +504,19 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('error')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
     expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 blocking')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
-    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 个阻断')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 个警告')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('否')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('发布前检查未通过')
     const checklistSummary = expectValidationSummaryField('checklist')
-    expect(checklistSummary.textContent).toContain('No blocking validation errors')
-    expect(checklistSummary.textContent).toContain('1 blocking error(s)')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Blocking Issues')
+    expect(checklistSummary.textContent).toContain('无受阻校验错误')
+    expect(checklistSummary.textContent).toContain('1 个受阻错误')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('阻断性问题')
     expect(getValidationSummaryField('issues')?.textContent).toContain('MISSING_DOCUMENT')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Module 3 document is required.')
-    expect(expectValidationSummaryField('warnings').textContent).toContain('No validation warnings found.')
+    expect(expectValidationSummaryField('warnings').textContent).toContain('未发现校验警告。')
 
     unmount()
   })
@@ -637,7 +637,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledWith({
@@ -656,7 +656,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     const modal = document.querySelector('.ant-modal')
     expect(modal).toBeTruthy()
-    expect(modal?.textContent).toContain('Publish readiness is blocked')
+    expect(modal?.textContent).toContain('发布就绪度受阻')
     expect(modal?.textContent).toContain('ApplicantContactName')
     expect(modal?.textContent).toContain('Populate the required US Regional publishing metadata field before publishing.')
     expect(getInputByLabel('Applicant Contact Name').value).toBe('')
@@ -764,7 +764,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(getPublishReadinessProvider).toHaveBeenCalledWith({
@@ -772,8 +772,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
       sequenceNumber: '0001',
     })
     expect(document.querySelector('.ant-modal')).toBeFalsy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Publish readiness')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('发布就绪度')
     expect(getValidationSummaryField('issues')?.textContent).toContain('US_REGIONAL_SECTION_UNSUPPORTED')
 
     unmount()
@@ -810,19 +810,19 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const modal = document.querySelector('.ant-modal')
     expect(modal).toBeTruthy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 warning')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 个阻断')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 个警告')
     const checklistSummary = expectValidationSummaryField('checklist')
-    expect(checklistSummary.textContent).toContain('Warnings reviewed')
-    expect(checklistSummary.textContent).toContain('1 warning(s) for reviewer awareness')
+    expect(checklistSummary.textContent).toContain('警告已审阅')
+    expect(checklistSummary.textContent).toContain('1 个警告供审阅者知悉')
     expect(expectValidationSummaryField('warnings').textContent).toContain('TITLE_FALLBACK_USED')
-    expect(modal?.textContent).toContain('Pre-publish checks passed. 1 warning(s) remain for reviewer awareness.')
+    expect(modal?.textContent).toContain('仍有 1 个警告')
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
 
     unmount()
@@ -859,20 +859,20 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const modal = document.querySelector('.ant-modal')
     expect(modal).toBeTruthy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 blocking')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 warning')
-    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('No')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 个阻断')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 个警告')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('否')
     const apiChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-api-reachable"]')
-    expect(apiChecklistRow?.textContent).toContain('Validation API reachable')
-    expect(apiChecklistRow?.textContent).toContain('Pass')
-    expect(apiChecklistRow?.textContent).toContain('Validation API returned a report')
-    expect(apiChecklistRow?.textContent).not.toContain('Fail')
+    expect(apiChecklistRow?.textContent).toContain('校验 API 可访问')
+    expect(apiChecklistRow?.textContent).toContain('通过')
+    expect(apiChecklistRow?.textContent).toContain('校验 API 已返回报告')
+    expect(apiChecklistRow?.textContent).not.toContain('未通过')
     const warningsSummary = expectValidationSummaryField('warnings')
     expect(warningsSummary.textContent).toContain('API_ERROR')
     expect(warningsSummary.textContent).toContain('API warning for reviewer awareness.')
@@ -913,14 +913,14 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const modal = document.querySelector('.ant-modal')
     expect(modal).toBeTruthy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
-    expect(expectValidationSummaryField('checklist').textContent).toContain('0 invalid | 1 non-standard')
-    expect(getValidationSummaryField('sections')?.textContent).toContain('Non-standard')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
+    expect(expectValidationSummaryField('checklist').textContent).toContain('0 个无效 | 1 个非标准')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('非标准')
     expect(getValidationSummaryField('sections')?.textContent).toContain('m3.2.p')
     expect(expectValidationSummaryField('warnings').textContent).toContain('NON_STANDARD_SECTION_PATTERN')
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
@@ -943,7 +943,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledWith({
@@ -955,15 +955,15 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('error')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
-    expect(getValidationSummaryField('profile')?.textContent).toContain('Validation API')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 blocking')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
+    expect(getValidationSummaryField('profile')?.textContent).toContain('校验 API')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 个阻断')
     expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
-    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('Yes')
-    expect(getValidationSummaryField('status-label')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('是')
+    expect(getValidationSummaryField('status-label')?.textContent).toContain('发布前检查未通过')
     const checklistSummary = expectValidationSummaryField('checklist')
-    expect(checklistSummary.textContent).toContain('Validation API reachable')
-    expect(checklistSummary.textContent).toContain('Validation service did not return a usable report.')
+    expect(checklistSummary.textContent).toContain('校验 API 可访问')
+    expect(checklistSummary.textContent).toContain('校验服务未返回可用的报告。')
     expect(getValidationSummaryField('issues')?.textContent).toContain('API_ERROR')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Validation service unavailable.')
 
@@ -985,7 +985,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledWith({
@@ -997,11 +997,11 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     const validationSummary = getValidationSummary()
     expect(validationSummary).toBeTruthy()
     expect(validationSummary?.getAttribute('data-severity')).toBe('error')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
-    expect(getValidationSummaryField('profile')?.textContent).toContain('Validation API')
-    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('Yes')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
+    expect(getValidationSummaryField('profile')?.textContent).toContain('校验 API')
+    expect(getValidationSummaryField('has-api-error')?.textContent).toContain('是')
     expect(getValidationSummaryField('issues')?.textContent).toContain('API_ERROR')
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Validation service returned an unusable report.')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('校验服务返回了无法使用的报告。')
 
     unmount()
   })
@@ -1031,16 +1031,16 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
     expect(document.querySelector('.ant-modal')).toBeFalsy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
     expect(getValidationSummaryField('profile')?.textContent).toContain('US FDA eCTD 3.2.2')
     const issuesArea = expectValidationSummaryField('issues')
     expect(issuesArea.textContent).toContain('API_ERROR')
-    expect(issuesArea.textContent).toContain('Validation service returned an unusable report.')
+    expect(issuesArea.textContent).toContain('校验服务返回了无法使用的报告。')
 
     unmount()
   })
@@ -1074,17 +1074,17 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
     expect(document.querySelector('.ant-modal')).toBeFalsy()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
     expect(getValidationSummaryField('issues')?.textContent).toContain('SECTION_MISSING')
     const sectionChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-section-paths"]')
-    expect(sectionChecklistRow?.textContent).toContain('Section paths acceptable')
-    expect(sectionChecklistRow?.textContent).toContain('Fail')
-    expect(sectionChecklistRow?.textContent).toContain('0 invalid | 0 non-standard')
+    expect(sectionChecklistRow?.textContent).toContain('章节路径可接受')
+    expect(sectionChecklistRow?.textContent).toContain('未通过')
+    expect(sectionChecklistRow?.textContent).toContain('0 个无效 | 0 个非标准')
 
     unmount()
   })
@@ -1128,18 +1128,18 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(document.querySelector('.ant-modal')).toBeTruthy()
 
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(validateSequenceProvider).toHaveBeenCalledTimes(2)
     expect(document.querySelector('.ant-modal')).toBeFalsy()
     expect(createAndExecutePublishJobProvider).not.toHaveBeenCalled()
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks failed')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
     expect(expectValidationSummaryField('issues').textContent).toContain('STALE_EXPORT_BLOCKED')
 
     unmount()
@@ -1188,7 +1188,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
 
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     expect(getValidationSummary()).toBeTruthy()
@@ -1198,24 +1198,24 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(getValidationSummaryField('lifecycle')).toBeTruthy()
     expect(getValidationSummaryField('sections')).toBeTruthy()
 
-    expect(getValidationSummaryField('issues')?.textContent).toContain('Blocking Issues')
+    expect(getValidationSummaryField('issues')?.textContent).toContain('阻断性问题')
     expect(getValidationSummaryField('issues')?.textContent).toContain('LIFECYCLE_TARGET_INVALID')
     expect(getValidationSummaryField('issues')?.textContent).toContain('Replace target must be from an earlier sequence.')
 
     const warningsSummary = expectValidationSummaryField('warnings')
-    expect(warningsSummary.textContent).toContain('Warnings')
+    expect(warningsSummary.textContent).toContain('警告')
     expect(warningsSummary.textContent).toContain('SECTION_NON_STANDARD')
     expect(warningsSummary.textContent).toContain('Section uses a non-standard profile match.')
 
-    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Lifecycle Targets')
+    expect(getValidationSummaryField('lifecycle')?.textContent).toContain('生命周期目标')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('Replace')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('m3.2.p')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('INVALID_TARGET')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('ExplicitPlacementId')
     expect(getValidationSummaryField('lifecycle')?.textContent).toContain('0001')
 
-    expect(getValidationSummaryField('sections')?.textContent).toContain('Section Matches')
-    expect(getValidationSummaryField('sections')?.textContent).toContain('1 invalid')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('章节匹配')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('1 个无效')
     expect(getValidationSummaryField('sections')?.textContent).toContain('1 non-standard')
     expect(getValidationSummaryField('sections')?.textContent).toContain('m9.9')
     expect(getValidationSummaryField('sections')?.textContent).toContain('Unknown section.')
@@ -1260,7 +1260,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     await flushPromises()
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const issuesArea = getValidationSummaryField('issues')
@@ -1269,9 +1269,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     clickLocateButton(issuesArea)
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Leaf Metadata')
+    expect(document.body.textContent).toContain('叶节点元数据')
     expect(document.body.textContent).toContain('protocol.pdf')
-    expect(document.body.textContent).toContain('Operation')
+    expect(document.body.textContent).toContain('操作类型')
 
     unmount()
   })
@@ -1308,9 +1308,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
     clickAnyByText('Forms')
     await flushPromises()
-    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+    expect(document.body.textContent).toContain('叶节点元数据指南')
 
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const issuesArea = getValidationSummaryField('issues')
@@ -1320,8 +1320,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
 
     expect(message.warning).toHaveBeenCalledWith('Could not locate this validation issue in the workspace tree.')
-    expect(document.body.textContent).toContain('Leaf Metadata Guide')
-    expect(document.body.textContent).not.toContain('Leaf Metadata\nOperation')
+    expect(document.body.textContent).toContain('叶节点元数据指南')
+    expect(document.body.textContent).not.toContain('叶节点元数据\n操作类型')
 
     unmount()
   })
@@ -1351,22 +1351,22 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     await flushPromises()
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const sectionChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-section-paths"]')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
-    expect(sectionChecklistRow?.textContent).toContain('Section paths acceptable')
-    expect(sectionChecklistRow?.textContent).toContain('Awareness')
-    expect(sectionChecklistRow?.textContent).toContain('Non-blocking')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
+    expect(sectionChecklistRow?.textContent).toContain('章节路径可接受')
+    expect(sectionChecklistRow?.textContent).toContain('需知悉')
+    expect(sectionChecklistRow?.textContent).toContain('非阻断')
 
     clickLocateButton(getValidationSummaryField('sections'))
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Section')
+    expect(document.body.textContent).toContain('章节')
     expect(document.body.textContent).toContain('m1.1')
-    expect(document.body.textContent).toContain('Display')
-    expect(document.body.textContent).toContain('Leaf Metadata Guide')
+    expect(document.body.textContent).toContain('显示名称')
+    expect(document.body.textContent).toContain('叶节点元数据指南')
 
     unmount()
   })
@@ -1408,21 +1408,21 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     await flushPromises()
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     const lifecycleChecklistRow = document.querySelector('[data-testid="validation-summary-checklist-lifecycle-targets"]')
-    expect(getValidationSummaryField('title')?.textContent).toContain('Pre-publish checks passed')
-    expect(lifecycleChecklistRow?.textContent).toContain('Lifecycle targets resolved')
-    expect(lifecycleChecklistRow?.textContent).toContain('Awareness')
-    expect(lifecycleChecklistRow?.textContent).toContain('Non-blocking')
+    expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查已通过')
+    expect(lifecycleChecklistRow?.textContent).toContain('生命周期目标已解析')
+    expect(lifecycleChecklistRow?.textContent).toContain('需知悉')
+    expect(lifecycleChecklistRow?.textContent).toContain('非阻断')
 
     clickLocateButton(getValidationSummaryField('lifecycle'))
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Leaf Metadata')
+    expect(document.body.textContent).toContain('叶节点元数据')
     expect(document.body.textContent).toContain('protocol.pdf')
-    expect(document.body.textContent).toContain('Operation')
+    expect(document.body.textContent).toContain('操作类型')
 
     unmount()
   })
@@ -1525,13 +1525,13 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     await flushPromises()
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
     await flushPromises()
 
     clickLocateButton(getValidationSummaryField('lifecycle'))
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Placement ID')
+    expect(document.body.textContent).toContain('映射 ID')
     expect(document.body.textContent).toContain('placement-2')
     expect(document.body.textContent).toContain('m1.2')
     expect(getInputByLabel('Leaf Title').value).toBe('Cover Leaf')
@@ -1617,8 +1617,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
 
     expect(document.body.textContent).not.toContain('Leaf Element Data Entry (Reserved)')
-    expect(document.body.textContent).toContain('Leaf Metadata Guide')
-    expect(document.body.textContent).toContain('Mapped Leaves')
+    expect(document.body.textContent).toContain('叶节点元数据指南')
+    expect(document.body.textContent).toContain('已映射叶节点')
     expect(document.body.textContent).toContain('1')
 
     unmount()
@@ -1700,17 +1700,17 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     clickAnyByText('protocol.pdf')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Leaf Metadata')
-    expect(document.body.textContent).toContain('Operation')
+    expect(document.body.textContent).toContain('叶节点元数据')
+    expect(document.body.textContent).toContain('操作类型')
     expect(document.body.textContent).toContain('xlink:href')
-    expect(document.body.textContent).toContain('Mime Type')
-    expect(document.body.textContent).toContain('Checksum')
+    expect(document.body.textContent).toContain('MIME 类型')
+    expect(document.body.textContent).toContain('校验和')
     expect(document.body.textContent).toContain('md5')
-    expect(document.body.textContent).toContain('Computed at publish')
-    expect(document.body.textContent).toContain('Lifecycle Target')
+    expect(document.body.textContent).toContain('发布时计算')
+    expect(document.body.textContent).toContain('生命周期目标')
     expect(document.body.textContent).toContain('0000 | m1.1 | Historical Leaf | New')
     expect(document.body.textContent).toContain('modified-file')
-    expect(document.body.textContent).toContain('Save Leaf Metadata')
+    expect(document.body.textContent).toContain('保存叶节点元数据')
 
     act(() => {
       setInputValue(getInputByLabel('File Prefix'), 'updated-protocol')

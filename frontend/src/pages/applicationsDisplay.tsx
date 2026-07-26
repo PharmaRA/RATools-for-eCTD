@@ -16,13 +16,13 @@ export const buildApplicationColumns = ({
   onSelectApp,
   onDeleteApp,
 }: BuildApplicationColumnsOptions): TableColumnsType<Application> => [
-  { title: 'App Number', dataIndex: 'applicationNumber', render: (value: string) => <b>{value}</b> },
-  { title: 'eCTD Template', key: 'ectdTemplate', render: (_, record) => <Tag color="blue">{getApplicationTemplateLabel(record)}</Tag> },
-  { title: 'Sponsor', dataIndex: 'sponsorName' },
-  { title: 'Created', dataIndex: 'createdUtc', render: formatDate },
-  { title: 'Sequences', key: 'sequences', render: (_, record) => record.sequences?.length || 0 },
+  { title: '申请编号', dataIndex: 'applicationNumber', render: (value: string) => <b>{value}</b> },
+  { title: 'eCTD 模板', key: 'ectdTemplate', render: (_, record) => <Tag color="blue">{getApplicationTemplateLabel(record)}</Tag> },
+  { title: '申办方', dataIndex: 'sponsorName' },
+  { title: '创建时间', dataIndex: 'createdUtc', render: formatDate },
+  { title: '序列数', key: 'sequences', render: (_, record) => record.sequences?.length || 0 },
   {
-    title: 'Action',
+    title: '操作',
     key: 'action',
     render: (_, record) => {
       const isAppDeleteRunning = deletingAppIds.has(record.id)
@@ -35,13 +35,13 @@ export const buildApplicationColumns = ({
             disabled={isBatchDeleteRunning}
             onClick={() => onSelectApp(record.id)}
           >
-            Manage App
+            管理
           </Button>
           <Button
             danger
             size="small"
             icon={<Trash2 size={14} />}
-            title="Delete App"
+            title="删除申请"
             loading={isAppDeleteRunning}
             disabled={isAppDeleteRunning || isBatchDeleteRunning}
             onClick={() => onDeleteApp(record.id)}

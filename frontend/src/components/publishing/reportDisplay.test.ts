@@ -46,9 +46,9 @@ describe('reportDisplay', () => {
   })
 
   it.each([
-    [true, { title: 'Publish Succeeded', iconClassName: 'text-green-500' }],
-    [false, { title: 'Publish Failed', iconClassName: 'text-red-500' }],
-    [undefined, { title: 'Publish Failed', iconClassName: 'text-red-500' }],
+    [true, { title: '发布成功', iconClassName: 'text-green-500' }],
+    [false, { title: '发布失败', iconClassName: 'text-red-500' }],
+    [undefined, { title: '发布失败', iconClassName: 'text-red-500' }],
   ] as const)('builds report outcome display meta for %s', (succeeded, expected) => {
     expect(getReportOutcomeDisplayMeta(succeeded)).toEqual(expected)
   })
@@ -84,9 +84,9 @@ describe('reportDisplay', () => {
   })
 
   it('formats report integrity state from the summary', () => {
-    expect(formatReportIntegrityState({ isConsistent: true })).toBe('Consistent')
-    expect(formatReportIntegrityState({ isConsistent: false })).toBe('Inconsistent')
-    expect(formatReportIntegrityState({})).toBe('Inconsistent')
+    expect(formatReportIntegrityState({ isConsistent: true })).toBe('一致')
+    expect(formatReportIntegrityState({ isConsistent: false })).toBe('不一致')
+    expect(formatReportIntegrityState({})).toBe('不一致')
     expect(formatReportIntegrityState(null)).toBe('-')
     expect(formatReportIntegrityState(undefined)).toBe('-')
   })
@@ -97,13 +97,13 @@ describe('reportDisplay', () => {
       durationMs: 42,
       errorCount: 1,
       warningCount: 2,
-    }, 3, 'Consistent')).toEqual([
-      { key: 'profile', label: 'Profile', children: 'Strict' },
-      { key: 'duration', label: 'Duration', children: '42 ms' },
-      { key: 'errors', label: 'Errors', children: 1 },
-      { key: 'warnings', label: 'Warnings', children: 2 },
-      { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: 3 },
-      { key: 'integrity', label: 'Integrity', children: 'Consistent' },
+    }, 3, '一致')).toEqual([
+      { key: 'profile', label: '配置', children: 'Strict' },
+      { key: 'duration', label: '耗时', children: '42 ms' },
+      { key: 'errors', label: '错误', children: 1 },
+      { key: 'warnings', label: '警告', children: 2 },
+      { key: 'lifecycle-issues', label: '生命周期问题', children: 3 },
+      { key: 'integrity', label: '完整性', children: '一致' },
     ])
   })
 
@@ -111,12 +111,12 @@ describe('reportDisplay', () => {
     expect(buildReportSummaryItems(
       { fileCount: 3, packageSizeBytes: null },
       [
-        { key: 'file-count', label: 'File Count', children: (summary) => formatReportCount(summary.fileCount) },
-        { key: 'package-size', label: 'Package Size', children: (summary) => formatReportCount(summary.packageSizeBytes) },
+        { key: 'file-count', label: '文件数', children: (summary) => formatReportCount(summary.fileCount) },
+        { key: 'package-size', label: '包大小', children: (summary) => formatReportCount(summary.packageSizeBytes) },
       ],
     )).toEqual([
-      { key: 'file-count', label: 'File Count', children: 3 },
-      { key: 'package-size', label: 'Package Size', children: '-' },
+      { key: 'file-count', label: '文件数', children: 3 },
+      { key: 'package-size', label: '包大小', children: '-' },
     ])
   })
 
@@ -125,11 +125,11 @@ describe('reportDisplay', () => {
       missingFilesCount: 1,
       missingZipEntriesCount: 0,
       mismatchedArtifactsCount: null,
-    }, 'Inconsistent')).toEqual([
-      { key: 'consistent', label: 'Consistent', children: 'Inconsistent' },
-      { key: 'missing-files', label: 'Missing Files', children: 1 },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+    }, '不一致')).toEqual([
+      { key: 'consistent', label: '一致', children: '不一致' },
+      { key: 'missing-files', label: '缺失文件', children: 1 },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: 0 },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: '-' },
     ])
   })
 
@@ -139,9 +139,9 @@ describe('reportDisplay', () => {
       missingZipEntriesCount: 0,
       mismatchedArtifactsCount: null,
     })).toEqual([
-      { key: 'missing-files', label: 'Missing Files', children: 1 },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+      { key: 'missing-files', label: '缺失文件', children: 1 },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: 0 },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: '-' },
     ])
   })
 
@@ -151,9 +151,9 @@ describe('reportDisplay', () => {
       totalSizeBytes: 1536,
       packageSizeBytes: null,
     })).toEqual([
-      { key: 'file-count', label: 'File Count', children: 3 },
-      { key: 'total-size', label: 'Total Size', children: '1.5 KB' },
-      { key: 'package-size', label: 'Package Size', children: '-' },
+      { key: 'file-count', label: '文件数', children: 3 },
+      { key: 'total-size', label: '总大小', children: '1.5 KB' },
+      { key: 'package-size', label: '包大小', children: '-' },
     ])
   })
 
@@ -166,10 +166,10 @@ describe('reportDisplay', () => {
       latestPublishJobAction: null,
       latestPublishJobEventUtc: latestEvent,
     })).toEqual([
-      { key: 'publish-job-events', label: 'Publish Job Events', children: 0 },
-      { key: 'validation-events', label: 'Validation Events', children: 2 },
-      { key: 'latest-action', label: 'Latest Action', children: '-' },
-      { key: 'latest-event', label: 'Latest Event', children: new Date(latestEvent).toLocaleString() },
+      { key: 'publish-job-events', label: '发布任务事件数', children: 0 },
+      { key: 'validation-events', label: '校验事件数', children: 2 },
+      { key: 'latest-action', label: '最近操作', children: '-' },
+      { key: 'latest-event', label: '最近事件', children: new Date(latestEvent).toLocaleString() },
     ])
   })
 
@@ -183,14 +183,14 @@ describe('reportDisplay', () => {
       currentSequenceCount: 5,
       issueCount: 9,
     }, '')).toEqual([
-      { key: 'matched', label: 'Matched', children: 4 },
-      { key: 'issues', label: 'Issues', children: 9 },
-      { key: 'replace-missing', label: 'Replace Missing', children: 1 },
-      { key: 'delete-missing', label: 'Delete Missing', children: 2 },
-      { key: 'append-missing', label: 'Append Missing', children: 3 },
-      { key: 'ambiguous', label: 'Ambiguous', children: 0 },
-      { key: 'current-sequence', label: 'Current Sequence', children: 5 },
-      { key: 'warning-summary', label: 'Warning Summary', children: '-' },
+      { key: 'matched', label: '已匹配', children: 4 },
+      { key: 'issues', label: '问题', children: 9 },
+      { key: 'replace-missing', label: '替换目标缺失', children: 1 },
+      { key: 'delete-missing', label: '删除目标缺失', children: 2 },
+      { key: 'append-missing', label: '追加目标缺失', children: 3 },
+      { key: 'ambiguous', label: '存在歧义', children: 0 },
+      { key: 'current-sequence', label: '当前序列', children: 5 },
+      { key: 'warning-summary', label: '警告摘要', children: '-' },
     ])
   })
 
@@ -205,12 +205,12 @@ describe('reportDisplay', () => {
     }
 
     expect(buildReportLifecycleIssueSummaryItems(summary)).toEqual([
-      { key: 'issues', label: 'Issues', children: 9 },
-      { key: 'replace-missing', label: 'Replace Missing', children: 1 },
-      { key: 'delete-missing', label: 'Delete Missing', children: 2 },
-      { key: 'append-missing', label: 'Append Missing', children: 3 },
-      { key: 'ambiguous', label: 'Ambiguous', children: 0 },
-      { key: 'current-sequence', label: 'Current Sequence', children: 5 },
+      { key: 'issues', label: '问题', children: 9 },
+      { key: 'replace-missing', label: '替换目标缺失', children: 1 },
+      { key: 'delete-missing', label: '删除目标缺失', children: 2 },
+      { key: 'append-missing', label: '追加目标缺失', children: 3 },
+      { key: 'ambiguous', label: '存在歧义', children: 0 },
+      { key: 'current-sequence', label: '当前序列', children: 5 },
     ])
   })
 
@@ -244,9 +244,9 @@ describe('reportDisplay', () => {
     const columns = buildReportValidationIssueColumns()
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', width: 100 },
-      { title: 'Code', dataIndex: 'code', width: 200 },
-      { title: 'Message', dataIndex: 'message', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', width: 100 },
+      { title: '代码', dataIndex: 'code', width: 200 },
+      { title: '消息', dataIndex: 'message', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
@@ -258,10 +258,10 @@ describe('reportDisplay', () => {
     const columns = buildReportIntegrityFindingColumns()
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', width: 100 },
-      { title: 'Type', dataIndex: 'type', width: 200 },
-      { title: 'Path', dataIndex: 'path', width: 260 },
-      { title: 'Message', dataIndex: 'message', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', width: 100 },
+      { title: '类型', dataIndex: 'type', width: 200 },
+      { title: '路径', dataIndex: 'path', width: 260 },
+      { title: '消息', dataIndex: 'message', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
@@ -275,12 +275,12 @@ describe('reportDisplay', () => {
     const columns = buildReportArtifactManifestColumns()
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Role', dataIndex: 'role', width: 140 },
-      { title: 'Relative Path', dataIndex: 'relativePath', width: 260 },
-      { title: 'Exists', dataIndex: 'exists', width: 120 },
-      { title: 'Size', dataIndex: 'sizeBytes', width: 120 },
-      { title: 'Zip Entry', dataIndex: 'zipEntryPresent', width: 150 },
-      { title: 'Source', dataIndex: 'source', width: 160 },
+      { title: '角色', dataIndex: 'role', width: 140 },
+      { title: '相对路径', dataIndex: 'relativePath', width: 260 },
+      { title: '存在', dataIndex: 'exists', width: 120 },
+      { title: '大小', dataIndex: 'sizeBytes', width: 120 },
+      { title: 'Zip 条目', dataIndex: 'zipEntryPresent', width: 150 },
+      { title: '来源', dataIndex: 'source', width: 160 },
     ])
 
     expect((columns[1] as { render: (value?: string | null) => unknown }).render(null)).toBe('-')
@@ -300,17 +300,17 @@ describe('reportDisplay', () => {
     const columns = buildReportLifecycleMatchColumns()
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Operation', dataIndex: 'operation', width: 120 },
-      { title: 'Sequence', dataIndex: 'sequenceNumber', width: 100 },
-      { title: 'CTD Section', dataIndex: 'ctdSection', width: 120 },
-      { title: 'Document ID', dataIndex: 'documentId', width: 180 },
-      { title: 'Result Code', dataIndex: 'resultCode', width: 240 },
-      { title: 'Match Strategy', dataIndex: 'matchStrategy', width: 180 },
-      { title: 'Attempted Strategies', dataIndex: 'attemptedStrategies', width: 220 },
-      { title: 'Historical Matches', dataIndex: 'historicalMatchCount', width: 140 },
-      { title: 'Historical Sequences', dataIndex: 'historicalSequenceNumbers', width: 180 },
-      { title: 'Historical Placement IDs', dataIndex: 'historicalPlacementIds', width: 240 },
-      { title: 'Final State', dataIndex: 'historicalFinalState', width: 140 },
+      { title: '操作类型', dataIndex: 'operation', width: 120 },
+      { title: '序列', dataIndex: 'sequenceNumber', width: 100 },
+      { title: 'CTD 章节', dataIndex: 'ctdSection', width: 120 },
+      { title: '文档 ID', dataIndex: 'documentId', width: 180 },
+      { title: '结果代码', dataIndex: 'resultCode', width: 240 },
+      { title: '匹配策略', dataIndex: 'matchStrategy', width: 180 },
+      { title: '尝试的策略', dataIndex: 'attemptedStrategies', width: 220 },
+      { title: '历史匹配数', dataIndex: 'historicalMatchCount', width: 140 },
+      { title: '历史序列', dataIndex: 'historicalSequenceNumbers', width: 180 },
+      { title: '历史放置 ID', dataIndex: 'historicalPlacementIds', width: 240 },
+      { title: '最终状态', dataIndex: 'historicalFinalState', width: 140 },
     ])
 
     expect((columns[6] as { render: (value?: string[] | null) => unknown }).render(['exact', 'fallback'])).toBe('exact, fallback')
@@ -322,10 +322,10 @@ describe('reportDisplay', () => {
     const columns = buildReportPublishReadinessCategoryColumns()
 
     expect(columns).toEqual([
-      { title: 'Category', dataIndex: 'category', width: 220 },
-      { title: 'Blocking Errors', dataIndex: 'blockingErrorCount', width: 140 },
-      { title: 'Warnings', dataIndex: 'warningCount', width: 120 },
-      { title: 'Findings', dataIndex: 'findingCount', width: 120 },
+      { title: '类别', dataIndex: 'category', width: 220 },
+      { title: '阻断性错误', dataIndex: 'blockingErrorCount', width: 140 },
+      { title: '警告', dataIndex: 'warningCount', width: 120 },
+      { title: '发现项', dataIndex: 'findingCount', width: 120 },
     ])
   })
 
@@ -333,11 +333,11 @@ describe('reportDisplay', () => {
     const columns = buildReportPublishReadinessFindingColumns()
 
     expect(columns.map(({ title, dataIndex, width }) => ({ title, dataIndex, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', width: 100 },
-      { title: 'Code', dataIndex: 'code', width: 220 },
-      { title: 'Category', dataIndex: 'category', width: 180 },
-      { title: 'Field', dataIndex: 'fieldName', width: 180 },
-      { title: 'Recommended Action', dataIndex: 'recommendedAction', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', width: 100 },
+      { title: '代码', dataIndex: 'code', width: 220 },
+      { title: '类别', dataIndex: 'category', width: 180 },
+      { title: '字段', dataIndex: 'fieldName', width: 180 },
+      { title: '建议措施', dataIndex: 'recommendedAction', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Error')
@@ -348,8 +348,8 @@ describe('reportDisplay', () => {
   })
 
   it.each([
-    [true, 'green', 'Present'],
-    [false, 'red', 'Missing from zip'],
+    [true, 'green', '存在'],
+    [false, 'red', 'Zip 中缺失'],
   ] as const)('renders zip entry present status %s', (present, color, label) => {
     const element = renderZipEntryPresentStatus(present)
 

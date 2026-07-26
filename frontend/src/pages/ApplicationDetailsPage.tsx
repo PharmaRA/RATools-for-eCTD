@@ -39,7 +39,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
       const target = data.find((application) => application.id === appId)
       setAppData(target || null)
     } catch {
-      message.error('Failed to load application details.')
+      message.error('加载申请详情失败。')
     } finally {
       setLoading(false)
     }
@@ -70,11 +70,11 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
         submissionSubType: values.submissionSubType,
         description: values.description,
       })
-      message.success('Sequence created successfully!')
+      message.success('序列创建成功！')
       setSeqModalVisible(false)
       form.resetFields()
       fetchApp()
-    } catch (e) { message.error('Failed to create sequence: ' + getErrorMessage(e)) }
+    } catch (e) { message.error('创建序列失败：' + getErrorMessage(e)) }
   }
 
   const handleDeleteSequence = async (seqNumber: string, mode: DeleteMode) => {
@@ -172,7 +172,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const tabItems = [
     {
       key: 'sequences',
-      label: 'Sequences',
+      label: '序列',
       children: (
         <>
           <div className="mb-4 flex justify-end">
@@ -189,10 +189,10 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
                   setSequenceBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false })
                 }}
               >
-                Batch Delete
+                批量删除
               </Button>
               <Button type="primary" icon={<Plus size={16} className="mr-1" />} onClick={() => setSeqModalVisible(true)}>
-                New Sequence
+                新建序列
               </Button>
             </Space>
           </div>
@@ -218,7 +218,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
     },
     {
       key: 'history',
-      label: 'Publish History',
+      label: '发布历史',
       children: <PublishHistoryTab appId={appId} />,
     },
   ]
@@ -226,7 +226,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-        <Button icon={<ArrowLeft size={16} />} onClick={onBack} disabled={sequenceBatchDeleteDialog.running}>Back to Applications</Button>
+        <Button icon={<ArrowLeft size={16} />} onClick={onBack} disabled={sequenceBatchDeleteDialog.running}>返回申请列表</Button>
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <h2 className="m-0 text-xl font-bold">{appTitle}</h2>
@@ -235,7 +235,7 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
             <Tag color="blue">{getApplicationTemplateLabel(appData)}</Tag>
             <span className="text-gray-500 text-sm border-r pr-2">Created: {formatDate(appData?.createdUtc ?? undefined)}</span>
             {appData?.workingDirectoryPath && (
-              <Tooltip title="Physical Working Directory Path">
+              <Tooltip title="物理工作目录路径">
                 <span className="text-gray-600 text-sm flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded font-mono">
                   <HardDrive size={14} className="text-blue-500" />
                   {appData.workingDirectoryPath}
@@ -250,19 +250,19 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
         <Tabs defaultActiveKey="sequences" items={tabItems} />
       </div>
 
-      <Modal title="Create New Sequence" open={seqModalVisible} onOk={handleCreateSequence} onCancel={() => setSeqModalVisible(false)} destroyOnHidden>
+      <Modal title="新建序列" open={seqModalVisible} onOk={handleCreateSequence} onCancel={() => setSeqModalVisible(false)} destroyOnHidden>
         <Form form={form} layout="vertical">
-          <Form.Item name="sequenceNumber" label="Sequence Number" initialValue="0000" rules={[{ required: true }]}>
+          <Form.Item name="sequenceNumber" label="序列号" initialValue="0000" rules={[{ required: true }]}>
             <Input placeholder="0000" />
           </Form.Item>
-          <Form.Item name="submissionType" label="Submission Type" initialValue="Original Application" rules={[{ required: true }]}>
+          <Form.Item name="submissionType" label="提交类型" initialValue="Original Application" rules={[{ required: true }]}>
             <Select options={[{ value: 'Original Application', label: 'Original Application' }, { value: 'Supplemental Application', label: 'Supplemental Application' }, { value: 'Amendment', label: 'Amendment' }]} />
           </Form.Item>
-          <Form.Item name="submissionSubType" label="Submission Sub-Type" initialValue="Presubmission">
+          <Form.Item name="submissionSubType" label="提交子类型" initialValue="Presubmission">
             <Input />
           </Form.Item>
-          <Form.Item name="description" label="Description" rules={[{ required: true }, { min: 2, max: 512 }]}>
-            <Input.TextArea placeholder="e.g. Initial eCTD Submission" rows={3} />
+          <Form.Item name="description" label="描述" rules={[{ required: true }, { min: 2, max: 512 }]}>
+            <Input.TextArea placeholder="例如：初始 eCTD 提交" rows={3} />
           </Form.Item>
         </Form>
       </Modal>

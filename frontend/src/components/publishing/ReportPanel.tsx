@@ -177,7 +177,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
   const reportOutcome = getReportOutcomeDisplayMeta(report?.succeeded)
 
   return (
-    <Drawer title="Publish Report Details" placement="right" size={800} onClose={onClose} open={!!jobId}>
+    <Drawer title="发布报告详情" placement="right" size={800} onClose={onClose} open={!!jobId}>
       {loading && <Spin className="w-full mt-10 flex justify-center" />}
       {renderError()}
       {report && (
@@ -191,7 +191,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               <p className="text-gray-500 m-0 text-sm mt-1">{report.message}</p>
             </div>
             <Button type="primary" icon={<Download size={16} className="mr-1" />} href={buildPublishJobArtifactDownloadUrl(jobId, 'PublishReport')} target="_blank">
-              Download JSON
+              下载 JSON
             </Button>
           </div>
           <Descriptions
@@ -202,7 +202,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
           />
           <Row gutter={16}>
             <Col span={12}>
-              <Card size="small" title="Integrity Summary">
+              <Card size="small" title="完整性摘要">
                 <Descriptions
                   size="small"
                   column={1}
@@ -211,7 +211,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </Card>
             </Col>
             <Col span={12}>
-              <Card size="small" title="Artifact Summary">
+              <Card size="small" title="产物摘要">
                 <Descriptions
                   size="small"
                   column={1}
@@ -222,7 +222,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Card size="small" title="Audit Summary">
+              <Card size="small" title="审计摘要">
                 <Descriptions
                   size="small"
                   column={1}
@@ -231,7 +231,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </Card>
             </Col>
             <Col span={12}>
-              <Card size="small" title="Lifecycle Summary">
+              <Card size="small" title="生命周期摘要">
                 <Descriptions
                   size="small"
                   column={1}
@@ -241,7 +241,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             </Col>
           </Row>
           {publishReadiness && (
-            <Card size="small" title="Publish Readiness">
+            <Card size="small" title="发布就绪度">
               <div className="flex flex-col gap-4">
                 <Descriptions
                   bordered
@@ -254,7 +254,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   rowKey={getPublishReadinessCategoryKey}
                   pagination={false}
                   size="small"
-                  locale={{ emptyText: 'No publish readiness category summaries were recorded.' }}
+                  locale={{ emptyText: '未记录任何发布就绪度类别摘要。' }}
                   columns={buildReportPublishReadinessCategoryColumns()}
                 />
                 <Table

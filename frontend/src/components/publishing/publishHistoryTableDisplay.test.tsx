@@ -62,14 +62,14 @@ describe('publishHistoryTableDisplay', () => {
     })
 
     expect(columns.map(getColumnMetadata)).toEqual([
-      { title: 'Sequence', dataIndex: 'sequenceNumber', key: 'seq', width: undefined },
-      { title: 'Status', dataIndex: 'status', key: 'status', width: undefined },
-      { title: 'Profile', dataIndex: 'validationProfile', key: 'profile', width: undefined },
-      { title: 'Validation', dataIndex: undefined, key: 'validation', width: 220 },
-      { title: 'Readiness', dataIndex: undefined, key: 'readiness', width: 180 },
-      { title: 'Lifecycle', dataIndex: undefined, key: 'lifecycle', width: 160 },
-      { title: 'Artifacts', dataIndex: undefined, key: 'artifacts', width: 180 },
-      { title: 'Report', dataIndex: undefined, key: 'report', width: 180 },
+      { title: '序列', dataIndex: 'sequenceNumber', key: 'seq', width: undefined },
+      { title: '状态', dataIndex: 'status', key: 'status', width: undefined },
+      { title: '配置', dataIndex: 'validationProfile', key: 'profile', width: undefined },
+      { title: '校验', dataIndex: undefined, key: 'validation', width: 220 },
+      { title: '就绪度', dataIndex: undefined, key: 'readiness', width: 180 },
+      { title: '生命周期', dataIndex: undefined, key: 'lifecycle', width: 160 },
+      { title: '产物', dataIndex: undefined, key: 'artifacts', width: 180 },
+      { title: '报告', dataIndex: undefined, key: 'report', width: 180 },
       { title: 'Created', dataIndex: 'createdUtc', key: 'created', width: undefined },
       { title: 'Actions', dataIndex: undefined, key: 'actions', width: 260 },
     ])

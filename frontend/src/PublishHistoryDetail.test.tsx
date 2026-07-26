@@ -188,7 +188,7 @@ const getPublishHistorySequenceOrder = () => {
   const tables = Array.from(document.querySelectorAll('.ant-table'))
   const table = tables.find((candidate) => {
     const headers = Array.from(candidate.querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
-    return headers.includes('Sequence') && headers.includes('Readiness') && headers.includes('Actions')
+    return headers.includes('Sequence') && headers.includes('就绪度') && headers.includes('Actions')
   })
   expect(table).toBeTruthy()
   return Array.from(table!.querySelectorAll('tbody tr.ant-table-row')).map((row) => normalizeText(row.querySelector('td')?.textContent))
@@ -403,7 +403,7 @@ const publishReportResponse = {
         historicalMatchCount: 0,
         historicalSequenceNumbers: [],
         historicalPlacementIds: [],
-        historicalFinalState: 'Missing',
+        historicalFinalState: '缺失',
       },
       {
         operation: 'Append',
@@ -416,7 +416,7 @@ const publishReportResponse = {
         historicalMatchCount: 0,
         historicalSequenceNumbers: [],
         historicalPlacementIds: [],
-        historicalFinalState: 'Missing',
+        historicalFinalState: '缺失',
       },
       {
         operation: 'Delete',
@@ -429,7 +429,7 @@ const publishReportResponse = {
         historicalMatchCount: 0,
         historicalSequenceNumbers: [],
         historicalPlacementIds: [],
-        historicalFinalState: 'Missing',
+        historicalFinalState: '缺失',
       },
       {
         operation: 'Replace',
@@ -602,24 +602,24 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Matched')
-    expect(document.body.textContent).toContain('Replace Missing')
-    expect(document.body.textContent).toContain('Append Missing')
+    expect(document.body.textContent).toContain('已匹配')
+    expect(document.body.textContent).toContain('替换目标缺失')
+    expect(document.body.textContent).toContain('追加目标缺失')
     expect(document.body.textContent).toContain('Validation')
     expect(document.body.textContent).toContain('Errors: 1')
     expect(document.body.textContent).toContain('Warnings: 2')
     expect(document.body.textContent).toContain('Leaf title missing in one section')
-    expect(document.body.textContent).toContain('Readiness')
+    expect(document.body.textContent).toContain('就绪度')
     expect(document.body.textContent).toContain('Blocked')
     expect(document.body.textContent).toContain('ApplicantContactName')
-    expect(document.body.textContent).toContain('Artifacts')
+    expect(document.body.textContent).toContain('产物')
     expect(document.body.textContent).toContain('7 files')
     expect(document.body.textContent).toContain('Report')
-    expect(document.body.textContent).toContain('Available')
+    expect(document.body.textContent).toContain('可用')
     expect(document.body.textContent).toContain('Ready Sequences')
     expect(document.body.textContent).toContain('Blocked Sequences')
     expect(document.body.textContent).toContain('Unknown Readiness')
@@ -661,42 +661,42 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await clickButtonByText('Report')
     await flushPromises()
 
     expect(document.body.textContent).toContain('Publish Succeeded')
     expect(document.body.textContent).toContain('Publish completed successfully.')
-    expect(document.body.textContent).toContain('Profile')
+    expect(document.body.textContent).toContain('配置')
     expect(document.body.textContent).toContain('US FDA eCTD 3.2.2')
-    expect(document.body.textContent).toContain('Duration')
+    expect(document.body.textContent).toContain('耗时')
     expect(document.body.textContent).toContain('1534 ms')
-    expect(document.body.textContent).toContain('Errors')
+    expect(document.body.textContent).toContain('错误')
     expect(document.body.textContent).toContain('Warnings')
-    expect(document.body.textContent).toContain('Lifecycle Issues')
-    expectDescriptionItem('Lifecycle Issues', '6')
-    expect(document.body.textContent).toContain('Integrity')
-    expectDescriptionItem('Integrity', 'Inconsistent')
-    expect(document.body.textContent).toContain('Replace Missing')
-    expectDescriptionItem('Matched', '1')
-    expectDescriptionItem('Replace Missing', '1')
-    expectDescriptionItem('Delete Missing', '1')
-    expectDescriptionItem('Append Missing', '1')
-    expectDescriptionItem('Ambiguous', '1')
-    expectDescriptionItem('Current Sequence', '1')
-    expect(document.body.textContent).toContain('Delete Missing')
-    expect(document.body.textContent).toContain('Append Missing')
-    expect(document.body.textContent).toContain('Ambiguous')
-    expect(document.body.textContent).toContain('Current Sequence')
+    expect(document.body.textContent).toContain('生命周期问题')
+    expectDescriptionItem('生命周期问题', '6')
+    expect(document.body.textContent).toContain('完整性')
+    expectDescriptionItem('完整性', '不一致')
+    expect(document.body.textContent).toContain('替换目标缺失')
+    expectDescriptionItem('已匹配', '1')
+    expectDescriptionItem('替换目标缺失', '1')
+    expectDescriptionItem('删除目标缺失', '1')
+    expectDescriptionItem('追加目标缺失', '1')
+    expectDescriptionItem('存在歧义', '1')
+    expectDescriptionItem('当前序列', '1')
+    expect(document.body.textContent).toContain('删除目标缺失')
+    expect(document.body.textContent).toContain('追加目标缺失')
+    expect(document.body.textContent).toContain('存在歧义')
+    expect(document.body.textContent).toContain('当前序列')
     expect(document.body.textContent).toContain('Integrity Summary')
-    expect(document.body.textContent).toContain('Consistent')
-    expect(document.body.textContent).toContain('Missing Files')
-    expect(document.body.textContent).toContain('Mismatched Artifacts')
+    expect(document.body.textContent).toContain('一致')
+    expect(document.body.textContent).toContain('缺失文件')
+    expect(document.body.textContent).toContain('不匹配的产物')
     expect(document.body.textContent).toContain('Artifact Summary')
-    expect(document.body.textContent).toContain('Package Size')
+    expect(document.body.textContent).toContain('包大小')
     expect(document.body.textContent).toContain('Audit Summary')
-    expect(document.body.textContent).toContain('Latest Action')
+    expect(document.body.textContent).toContain('最近操作')
     expect(document.body.textContent).toContain('Publish Readiness')
     expect(document.body.textContent).toContain('Blocked')
     expect(document.body.textContent).toContain('ApplicantContactName')
@@ -722,7 +722,7 @@ describe('Publish history detail frontend', () => {
     expectLifecycleCell('doc-2', 'Historical Matches', '0')
     expectLifecycleCell('doc-2', 'Historical Sequences', '-')
     expectLifecycleCell('doc-2', 'Historical Placement IDs', '-')
-    expectLifecycleCell('doc-2', 'Final State', 'Missing')
+    expectLifecycleCell('doc-2', 'Final State', '缺失')
     expectLifecycleCell('doc-3', 'Operation', 'Replace')
     expectLifecycleCell('doc-3', 'Sequence', '0001')
     expectLifecycleCell('doc-3', 'CTD Section', '1.4.1')
@@ -733,16 +733,16 @@ describe('Publish history detail frontend', () => {
     expectLifecycleCell('doc-3', 'Historical Sequences', '0000, 0001')
     expectLifecycleCell('doc-3', 'Historical Placement IDs', 'placement-1, placement-2')
     expectLifecycleCell('doc-3', 'Final State', 'Current')
-    await clickByText('Evidence')
-    expect(document.body.textContent).toContain('Integrity Findings')
+    await clickByText('证据')
+    expect(document.body.textContent).toContain('完整性发现')
     expect(document.body.textContent).toContain('MissingZipEntry')
     expect(document.body.textContent).toContain('m1/us/11-forms/leaf.pdf')
     expect(document.body.textContent).toContain('Output file is missing from package zip.')
-    expect(document.body.textContent).toContain('Artifact Manifest')
+    expect(document.body.textContent).toContain('产物清单')
     expect(document.body.textContent).toContain('BackboneXml')
     expect(document.body.textContent).toContain('OutputFile')
     expect(document.body.textContent).toContain('2 KB')
-    expect(document.body.textContent).toContain('Missing from zip')
+    expect(document.body.textContent).toContain('Zip 中缺失')
 
     unmount()
   })
@@ -786,17 +786,17 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
     expect(fetchMock).toHaveBeenCalledWith('/api/publish-jobs/job-1/report', expect.anything())
     expect(fetchMock).toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts', expect.anything())
 
     for (const text of [
-      'Package Review',
-      'Not Ready for Submission',
+      '包审阅',
+      '不可提交',
       'Submission Readiness Checklist',
       'Publish Readiness Snapshot',
       'ApplicantContactName',
@@ -813,19 +813,19 @@ describe('Publish history detail frontend', () => {
       'BackboneXml',
       'PublishReport',
       'PackageZip',
-      'Download Review JSON',
+      '下载审阅 JSON',
       'Download Package',
       'Download Report',
     ]) {
       expect(document.body.textContent).toContain(text)
     }
-    expectReviewChecklistRow('Publish succeeded', 'Pass')
-    expectReviewChecklistRow('Validation errors', 'Fail')
-    expectReviewChecklistRow('Lifecycle issues', 'Fail')
-    expectReviewChecklistRow('Integrity consistent', 'Fail')
-    expectReviewChecklistRow('Required artifacts present', 'Pass')
+    expectReviewChecklistRow('Publish succeeded', '通过')
+    expectReviewChecklistRow('Validation errors', '未通过')
+    expectReviewChecklistRow('Lifecycle issues', '未通过')
+    expectReviewChecklistRow('Integrity consistent', '未通过')
+    expectReviewChecklistRow('Required artifacts present', '通过')
     const { createdBlobs, clickedDownloads } = setupDownloadCapture()
-    await clickButtonByText('Download Review JSON')
+    await clickButtonByText('下载审阅 JSON')
 
     expect(createdBlobs).toHaveLength(1)
     expect(clickedDownloads).toEqual(['package-review-0001-job-1.json'])
@@ -884,11 +884,11 @@ describe('Publish history detail frontend', () => {
     })
     expect(exportJson.generatedAtUtc).toEqual(expect.any(String))
     expect(exportJson.checklist).toEqual([
-      { key: 'publish-succeeded', check: 'Publish succeeded', status: 'Pass', detail: 'Publish completed successfully.' },
-      { key: 'validation-errors', check: 'Validation errors', status: 'Fail', detail: '1 error(s)' },
-      { key: 'lifecycle-issues', check: 'Lifecycle issues', status: 'Fail', detail: '6 issue(s)' },
-      { key: 'integrity-consistent', check: 'Integrity consistent', status: 'Fail', detail: 'Inconsistent or unavailable' },
-      { key: 'required-artifacts-present', check: 'Required artifacts present', status: 'Pass', detail: '3/3 present' },
+      { key: 'publish-succeeded', check: 'Publish succeeded', status: '通过', detail: 'Publish completed successfully.' },
+      { key: 'validation-errors', check: 'Validation errors', status: '未通过', detail: '1 error(s)' },
+      { key: 'lifecycle-issues', check: 'Lifecycle issues', status: '未通过', detail: '6 issue(s)' },
+      { key: 'integrity-consistent', check: 'Integrity consistent', status: '未通过', detail: 'Inconsistent or unavailable' },
+      { key: 'required-artifacts-present', check: 'Required artifacts present', status: '通过', detail: '3/3 present' },
     ])
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PackageZip/download', expect.anything())
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PublishReport/download', expect.anything())
@@ -927,8 +927,8 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await selectOptionByInputId('readinessStatus', 'Blocked')
     await clickButtonByText('Filter')
     await flushPromises()
@@ -988,8 +988,8 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await selectOptionByInputId('readinessSort', 'Blocked first')
     await clickButtonByText('Filter')
     await flushPromises()
@@ -1029,8 +1029,8 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await selectOptionByInputId('readinessSort', 'Ready first')
     await clickButtonByText('Filter')
     await flushPromises()
@@ -1071,7 +1071,7 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp('/applications/app-1?publishReadinessStatus=Blocked&publishReadinessSort=ready-first')
 
     await flushPromises()
-    await clickByText('Publish History')
+    await clickByText('发布历史')
     await flushPromises()
 
     expect(
@@ -1129,22 +1129,22 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Ready for Submission')
+    expect(document.body.textContent).toContain('可提交')
     expect(document.body.textContent).toContain('Warnings do not block readiness')
     expect(document.body.textContent).toContain('Publish Readiness Snapshot')
     expect(document.body.textContent).toContain('Ready')
     expect(document.body.textContent).toContain('TITLE_FALLBACK_USED')
     expect(document.body.textContent).toContain('No integrity findings were recorded')
-    expectReviewChecklistRow('Publish succeeded', 'Pass')
-    expectReviewChecklistRow('Validation errors', 'Pass')
-    expectReviewChecklistRow('Lifecycle issues', 'Pass')
-    expectReviewChecklistRow('Integrity consistent', 'Pass')
-    expectReviewChecklistRow('Required artifacts present', 'Pass')
+    expectReviewChecklistRow('Publish succeeded', '通过')
+    expectReviewChecklistRow('Validation errors', '通过')
+    expectReviewChecklistRow('Lifecycle issues', '通过')
+    expectReviewChecklistRow('Integrity consistent', '通过')
+    expectReviewChecklistRow('Required artifacts present', '通过')
 
     unmount()
   })
@@ -1187,20 +1187,20 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Package Review')
-    expect(document.body.textContent).toContain('Not Ready for Submission')
-    expect(document.body.textContent).toContain('Artifacts unavailable.')
+    expect(document.body.textContent).toContain('包审阅')
+    expect(document.body.textContent).toContain('不可提交')
+    expect(document.body.textContent).toContain('产物不可用 (410)')
     expect(document.body.textContent).toContain('Required artifacts present')
-    expectReviewChecklistRow('Required artifacts present', 'Fail')
+    expectReviewChecklistRow('Required artifacts present', '未通过')
     expectControlDisabled('Download Package')
     expectControlDisabled('Download Report')
     const { createdBlobs, clickedDownloads } = setupDownloadCapture()
-    await clickButtonByText('Download Review JSON')
+    await clickButtonByText('下载审阅 JSON')
 
     expect(createdBlobs).toHaveLength(1)
     expect(clickedDownloads).toEqual(['package-review-0001-job-1.json'])
@@ -1260,17 +1260,17 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
     const { createdBlobs } = setupDownloadCapture()
 
-    expect(document.body.textContent).toContain('Package Review')
-    expect(document.body.textContent).toContain('Publish report is corrupted.')
-    expect(document.body.textContent).toContain('Artifacts unavailable.')
-    expectControlDisabled('Download Review JSON')
+    expect(document.body.textContent).toContain('包审阅')
+    expect(document.body.textContent).toContain('发布报告已损坏 (422)')
+    expect(document.body.textContent).toContain('产物不可用 (410)')
+    expectControlDisabled('下载审阅 JSON')
     expect(createdBlobs).toHaveLength(0)
 
     unmount()
@@ -1314,13 +1314,13 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
     const { createdBlobs, clickedDownloads } = setupDownloadCapture()
-    await clickButtonByText('Download Review JSON')
+    await clickButtonByText('下载审阅 JSON')
 
     expect(createdBlobs).toHaveLength(1)
     expect(clickedDownloads).toEqual(['package-review-unknown-job-1.json'])
@@ -1394,15 +1394,15 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
-    await clickButtonByText('Review')
+    await clickByText('管理')
+    await clickByText('发布历史')
+    await clickButtonByText('审阅')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Package Review')
-    expect(document.body.textContent).toContain('Not Ready for Submission')
+    expect(document.body.textContent).toContain('包审阅')
+    expect(document.body.textContent).toContain('不可提交')
     expect(document.body.textContent).toContain('Required Artifacts')
-    expectReviewChecklistRow('Required artifacts present', 'Fail')
+    expectReviewChecklistRow('Required artifacts present', '未通过')
     expectControlDisabled('Download Package')
 
     unmount()
@@ -1447,11 +1447,11 @@ describe('Publish history detail frontend', () => {
     const { unmount } = renderApp()
 
     await flushPromises()
-    await clickByText('Manage App')
-    await clickByText('Publish History')
+    await clickByText('管理')
+    await clickByText('发布历史')
     await clickButtonByText('Report')
     await flushPromises()
-    await clickByText('Evidence')
+    await clickByText('证据')
 
     expect(document.body.textContent).toContain('No detailed integrity evidence was recorded for this report.')
 

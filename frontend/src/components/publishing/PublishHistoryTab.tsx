@@ -152,29 +152,29 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       )}
       <div className="bg-white p-4 rounded border border-gray-200">
         <Form form={form} layout="inline" onFinish={applyFilters} className="mb-4" initialValues={initialQueryState.formValues}>
-          <Form.Item name="sequenceNumber" label="Sequence"><Input placeholder="e.g. 0000" allowClear className="w-32" /></Form.Item>
-          <Form.Item name="status" label="Status">
-            <Select placeholder="All" allowClear className="w-32">
-              <Select.Option value="Completed">Completed</Select.Option>
-              <Select.Option value="Failed">Failed</Select.Option>
-              <Select.Option value="Running">Running</Select.Option>
+          <Form.Item name="sequenceNumber" label="序列"><Input placeholder="例如 0000" allowClear className="w-32" /></Form.Item>
+          <Form.Item name="status" label="状态">
+            <Select placeholder="全部" allowClear className="w-32">
+              <Select.Option value="Completed">已完成</Select.Option>
+              <Select.Option value="Failed">失败</Select.Option>
+              <Select.Option value="Running">运行中</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="readinessStatus" label="Readiness">
-            <Select placeholder="All" allowClear className="w-36">
-              <Select.Option value="Ready">Ready</Select.Option>
-              <Select.Option value="Blocked">Blocked</Select.Option>
-              <Select.Option value="Unknown">Unknown</Select.Option>
+          <Form.Item name="readinessStatus" label="就绪度">
+            <Select placeholder="全部" allowClear className="w-36">
+              <Select.Option value="Ready">就绪</Select.Option>
+              <Select.Option value="Blocked">受阻</Select.Option>
+              <Select.Option value="Unknown">未知</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="readinessSort" label="Sort">
-            <Select placeholder="Default" allowClear className="w-40">
-              <Select.Option value="default">Default</Select.Option>
-              <Select.Option value="blocked-first">Blocked first</Select.Option>
-              <Select.Option value="ready-first">Ready first</Select.Option>
+          <Form.Item name="readinessSort" label="排序">
+            <Select placeholder="默认" allowClear className="w-40">
+              <Select.Option value="default">默认</Select.Option>
+              <Select.Option value="blocked-first">受阻优先</Select.Option>
+              <Select.Option value="ready-first">就绪优先</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item><Button type="primary" htmlType="submit">Filter</Button><Button className="ml-2" onClick={resetFilters}>Reset</Button></Form.Item>
+          <Form.Item><Button type="primary" htmlType="submit">筛选</Button><Button className="ml-2" onClick={resetFilters}>重置</Button></Form.Item>
         </Form>
         <Table<PublishHistoryEntry> loading={loading} dataSource={getSortedEntries()} columns={columns} rowKey="publishJobId" size="small"
           pagination={{ current: page, pageSize, total: data?.totalCount || 0, showSizeChanger: true, onChange: (p, ps) => { setPage(p); setPageSize(ps) } }}

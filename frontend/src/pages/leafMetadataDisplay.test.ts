@@ -13,10 +13,10 @@ import {
 describe('leafMetadataDisplay', () => {
   it('builds leaf placement operation select options', () => {
     expect(buildLeafPlacementOperationOptions()).toEqual([
-      { value: 'New', label: 'New' },
-      { value: 'Replace', label: 'Replace' },
-      { value: 'Delete', label: 'Delete' },
-      { value: 'Append', label: 'Append' },
+      { value: 'New', label: '新建' },
+      { value: 'Replace', label: '替换' },
+      { value: 'Delete', label: '删除' },
+      { value: 'Append', label: '追加' },
     ])
   })
 
@@ -29,12 +29,12 @@ describe('leafMetadataDisplay', () => {
       storagePath: 'm3/32p1/file.pdf',
     })
 
-    expect(items[0]).toEqual({ key: 'placement-id', label: 'Placement ID', children: 'placement-1' })
+    expect(items[0]).toEqual({ key: 'placement-id', label: '映射 ID', children: 'placement-1' })
     expect(items.map(({ key, label }) => ({ key, label }))).toEqual([
-      { key: 'placement-id', label: 'Placement ID' },
-      { key: 'ectd-section', label: 'eCTD Section' },
-      { key: 'operation', label: 'Operation' },
-      { key: 'storage-path', label: 'Storage Path' },
+      { key: 'placement-id', label: '映射 ID' },
+      { key: 'ectd-section', label: 'eCTD 章节' },
+      { key: 'operation', label: '操作类型' },
+      { key: 'storage-path', label: '存储路径' },
     ])
 
     const sectionTag = items[1].children
@@ -88,17 +88,17 @@ describe('leafMetadataDisplay', () => {
       { key: 'title', label: 'title' },
       { key: 'href', label: 'xlink:href' },
       { key: 'modified-file', label: 'modified-file' },
-      { key: 'mime-type', label: 'Mime Type' },
-      { key: 'checksum-type', label: 'Checksum Type' },
-      { key: 'checksum', label: 'Checksum' },
-      { key: 'source-file-name', label: 'Source File Name' },
-      { key: 'resulting-file-name', label: 'Resulting File Name' },
-      { key: 'storage-path', label: 'Storage Path' },
+      { key: 'mime-type', label: 'MIME 类型' },
+      { key: 'checksum-type', label: '校验和类型' },
+      { key: 'checksum', label: '校验和' },
+      { key: 'source-file-name', label: '源文件名' },
+      { key: 'resulting-file-name', label: '生成文件名' },
+      { key: 'storage-path', label: '存储路径' },
     ])
     expect(items[0]).toEqual({ key: 'operation', label: 'operation', children: 'Replace' })
-    expect(items[4]).toEqual({ key: 'mime-type', label: 'Mime Type', children: '-' })
-    expect(items[5]).toEqual({ key: 'checksum-type', label: 'Checksum Type', children: 'md5' })
-    expect(items[8]).toEqual({ key: 'resulting-file-name', label: 'Resulting File Name', children: '-' })
+    expect(items[4]).toEqual({ key: 'mime-type', label: 'MIME 类型', children: '-' })
+    expect(items[5]).toEqual({ key: 'checksum-type', label: '校验和类型', children: 'md5' })
+    expect(items[8]).toEqual({ key: 'resulting-file-name', label: '生成文件名', children: '-' })
 
     for (const item of [items[2], items[3], items[6], items[9]]) {
       expect(isValidElement(item.children)).toBe(true)

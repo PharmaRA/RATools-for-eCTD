@@ -24,16 +24,16 @@ describe('packageReviewDisplay', () => {
       sequenceNumber: '0001',
       publishJob: { status: 'Completed' },
       validationProfile: 'FDA',
-    })).toBe('Sequence 0001 | Completed | FDA')
+    })).toBe('序列 0001 | Completed | FDA')
   })
 
   it('uses dashes for missing package review header fields', () => {
-    expect(formatPackageReviewHeaderSummary(null)).toBe('Sequence - | - | -')
+    expect(formatPackageReviewHeaderSummary(null)).toBe('序列 - | - | -')
     expect(formatPackageReviewHeaderSummary({
       sequenceNumber: '',
       publishJob: { status: '' },
       validationProfile: undefined,
-    })).toBe('Sequence - | - | -')
+    })).toBe('序列 - | - | -')
   })
 
   it('builds package review risk summary items from report counts', () => {
@@ -50,12 +50,12 @@ describe('packageReviewDisplay', () => {
         },
       },
     })).toEqual([
-      { key: 'validation-errors', label: 'Validation Errors', children: 0 },
-      { key: 'warnings', label: 'Warnings', children: 3 },
-      { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: 2 },
-      { key: 'missing-files', label: 'Missing Files', children: 1 },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: 4 },
+      { key: 'validation-errors', label: '校验错误', children: 0 },
+      { key: 'warnings', label: '警告', children: 3 },
+      { key: 'lifecycle-issues', label: '生命周期问题', children: 2 },
+      { key: 'missing-files', label: '缺失文件', children: 1 },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: 0 },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: 4 },
     ])
   })
 
@@ -65,12 +65,12 @@ describe('packageReviewDisplay', () => {
       lifecycleIssueCount: 2,
       report: null,
     })).toEqual([
-      { key: 'validation-errors', label: 'Validation Errors', children: '-' },
-      { key: 'warnings', label: 'Warnings', children: '-' },
-      { key: 'lifecycle-issues', label: 'Lifecycle Issues', children: '-' },
-      { key: 'missing-files', label: 'Missing Files', children: '-' },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: '-' },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+      { key: 'validation-errors', label: '校验错误', children: '-' },
+      { key: 'warnings', label: '警告', children: '-' },
+      { key: 'lifecycle-issues', label: '生命周期问题', children: '-' },
+      { key: 'missing-files', label: '缺失文件', children: '-' },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: '-' },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: '-' },
     ])
   })
 
@@ -80,9 +80,9 @@ describe('packageReviewDisplay', () => {
       missingZipEntriesCount: 0,
       mismatchedArtifactsCount: null,
     })).toEqual([
-      { key: 'missing-files', label: 'Missing Files', children: 1 },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: 0 },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: '-' },
+      { key: 'missing-files', label: '缺失文件', children: 1 },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: 0 },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: '-' },
     ])
   })
 
@@ -92,16 +92,16 @@ describe('packageReviewDisplay', () => {
       missingZipEntriesCount: null,
       mismatchedArtifactsCount: 0,
     })).toEqual([
-      { key: 'missing-files', label: 'Missing Files', children: 2 },
-      { key: 'missing-zip-entries', label: 'Missing Zip Entries', children: '-' },
-      { key: 'mismatched-artifacts', label: 'Mismatched Artifacts', children: 0 },
+      { key: 'missing-files', label: '缺失文件', children: 2 },
+      { key: 'missing-zip-entries', label: '缺失 Zip 条目', children: '-' },
+      { key: 'mismatched-artifacts', label: '不匹配的产物', children: 0 },
     ])
   })
 
   it('formats package review warning alert descriptions when warnings remain', () => {
     expect(formatPackageReviewWarningAlertDescription(null)).toBeNull()
     expect(formatPackageReviewWarningAlertDescription({ warningCount: 0 })).toBeNull()
-    expect(formatPackageReviewWarningAlertDescription({ warningCount: 2 })).toBe('2 warning(s) remain for reviewer awareness.')
+    expect(formatPackageReviewWarningAlertDescription({ warningCount: 2 })).toBe('仍有 2 个警告需要审阅人关注。')
   })
 
   it('reads package review integrity findings only after report load', () => {
@@ -116,8 +116,8 @@ describe('packageReviewDisplay', () => {
   })
 
   it.each([
-    [true, { title: 'Ready for Submission', iconClassName: 'text-green-500' }],
-    [false, { title: 'Not Ready for Submission', iconClassName: 'text-red-500' }],
+    [true, { title: '可提交', iconClassName: 'text-green-500' }],
+    [false, { title: '不可提交', iconClassName: 'text-red-500' }],
   ] as const)('builds package review readiness display meta for %s', (readyForSubmission, expected) => {
     expect(getPackageReviewReadinessDisplayMeta(readyForSubmission)).toEqual(expected)
   })
@@ -137,15 +137,15 @@ describe('packageReviewDisplay', () => {
     const columns = buildPackageReviewChecklistColumns()
 
     expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
-      { title: 'Check', dataIndex: 'check', key: 'check', width: undefined },
-      { title: 'Status', dataIndex: 'pass', key: 'status', width: 120 },
+      { title: '检查项', dataIndex: 'check', key: 'check', width: undefined },
+      { title: '状态', dataIndex: 'pass', key: 'status', width: 120 },
       { title: 'Details', dataIndex: 'detail', key: 'detail', width: undefined },
     ])
 
     const statusElement = (columns[1] as { render: (value: boolean) => unknown }).render(true)
     expect(isValidElement(statusElement)).toBe(true)
     expect((statusElement as ReactElement<{ color: string; children: string }>).props.color).toBe('green')
-    expect((statusElement as ReactElement<{ color: string; children: string }>).props.children).toBe('Pass')
+    expect((statusElement as ReactElement<{ color: string; children: string }>).props.children).toBe('通过')
   })
 
   it.each([
@@ -163,11 +163,11 @@ describe('packageReviewDisplay', () => {
     const columns = buildPackageReviewReadinessFindingColumns()
 
     expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 120 },
-      { title: 'Code', dataIndex: 'code', key: 'code', width: 220 },
-      { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
-      { title: 'Field', dataIndex: 'fieldName', key: 'fieldName', width: 180 },
-      { title: 'Recommended Action', dataIndex: 'recommendedAction', key: 'recommendedAction', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', key: 'severity', width: 120 },
+      { title: '代码', dataIndex: 'code', key: 'code', width: 220 },
+      { title: '类别', dataIndex: 'category', key: 'category', width: 180 },
+      { title: '字段', dataIndex: 'fieldName', key: 'fieldName', width: 180 },
+      { title: '建议措施', dataIndex: 'recommendedAction', key: 'recommendedAction', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
@@ -192,10 +192,10 @@ describe('packageReviewDisplay', () => {
     const columns = buildPackageReviewEvidenceFindingColumns()
 
     expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
-      { title: 'Severity', dataIndex: 'severity', key: 'severity', width: 100 },
-      { title: 'Type', dataIndex: 'type', key: 'type', width: 180 },
-      { title: 'Path', dataIndex: 'path', key: 'path', width: 260 },
-      { title: 'Message', dataIndex: 'message', key: 'message', width: undefined },
+      { title: '严重级别', dataIndex: 'severity', key: 'severity', width: 100 },
+      { title: '类型', dataIndex: 'type', key: 'type', width: 180 },
+      { title: '路径', dataIndex: 'path', key: 'path', width: 260 },
+      { title: '消息', dataIndex: 'message', key: 'message', width: undefined },
     ])
 
     const severityElement = (columns[0] as { render: (value: string) => unknown }).render('Warning')
@@ -209,10 +209,10 @@ describe('packageReviewDisplay', () => {
     const columns = buildPackageReviewRequiredArtifactColumns()
 
     expect(columns.map(({ title, dataIndex, key }) => ({ title, dataIndex, key }))).toEqual([
-      { title: 'Name', dataIndex: 'name', key: 'name' },
-      { title: 'Status', dataIndex: 'exists', key: 'status' },
-      { title: 'Size', dataIndex: 'sizeBytes', key: 'size' },
-      { title: 'Type', dataIndex: 'contentType', key: 'type' },
+      { title: '名称', dataIndex: 'name', key: 'name' },
+      { title: '状态', dataIndex: 'exists', key: 'status' },
+      { title: '大小', dataIndex: 'sizeBytes', key: 'size' },
+      { title: '类型', dataIndex: 'contentType', key: 'type' },
     ])
 
     const nameElement = (columns[0] as { render: (value: string) => unknown }).render('PackageZip')

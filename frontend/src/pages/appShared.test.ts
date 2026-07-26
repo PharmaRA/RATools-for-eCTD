@@ -78,11 +78,11 @@ describe('appShared lifecycle helpers', () => {
       ambiguousCount: undefined,
       currentSequenceCount: 1,
     })).toEqual([
-      { key: 'replace-missing', label: 'Replace Missing', value: 2 },
-      { key: 'delete-missing', label: 'Delete Missing', value: 0 },
-      { key: 'append-missing', label: 'Append Missing', value: 3 },
-      { key: 'ambiguous', label: 'Ambiguous', value: 0 },
-      { key: 'current-sequence', label: 'Current Sequence', value: 1 },
+      { key: 'replace-missing', label: '替换目标缺失', value: 2 },
+      { key: 'delete-missing', label: '删除目标缺失', value: 0 },
+      { key: 'append-missing', label: '追加目标缺失', value: 3 },
+      { key: 'ambiguous', label: '存在歧义', value: 0 },
+      { key: 'current-sequence', label: '当前序列', value: 1 },
     ])
   })
 
