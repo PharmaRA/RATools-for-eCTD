@@ -25,7 +25,8 @@ public sealed class BackboneServiceTests
         var regionalWriterRegistry = new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(usRegionalWriter)]);
         var validator = new RecordingEctdXmlValidator();
         var fileWriter = new RecordingBackboneFileWriter(validator);
-        var service = new BackboneService(packageBuilder, ichWriter, regionalWriterRegistry, validator, fileWriter);
+        var standardsProfileProvider = new FdaEctd322StandardsProfileProvider();
+        var service = new BackboneService(packageBuilder, ichWriter, regionalWriterRegistry, validator, standardsProfileProvider, fileWriter);
 
         var result = await service.GenerateAsync(new GenerateBackboneRequest(
             applicationId,
@@ -48,6 +49,9 @@ public sealed class BackboneServiceTests
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "m1/us/us-regional.xml" && x.Content == "<regional />");
         Assert.Equal(["index.xml", "m1/us/us-regional.xml"], validator.ValidatedRelativePaths);
         Assert.Equal(2, validator.ValidatedBeforeWrite.Count(x => x));
+        // 每次校验都必须携带 standards profile：不传时 DTD 白名单回退到 ICH/US 静态列表，
+        // EU 发布会在此处失败（readiness 与 publish 行为分歧的根因）。
+        Assert.All(validator.ValidatedProfiles, Assert.NotNull);
         Assert.Same(package.PublishedFiles, fileWriter.PublishedFiles);
         Assert.Equal(applicationId, result.ApplicationId);
         Assert.Equal("0001", result.SequenceNumber);
@@ -80,7 +84,7 @@ public sealed class BackboneServiceTests
             "3.2.2",
             "3.3",
             BackboneXmlProfiles.FdaEctd322UsRegional33,
-            new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-322", "anda"),
+            new EctdApplicationMetadata("ANDA123456", "Acme Pharma", "US", "us-fda-ectd-3.2.2", "anda"),
             new EctdSequenceMetadata("0001", "original-application", "initial", "Initial sequence", "Acme Pharma", "356h"),
             new EctdUsRegionalMetadata(
                 "ANDA123456",
@@ -202,10 +206,13 @@ public sealed class BackboneServiceTests
 
         public List<bool> ValidatedBeforeWrite { get; } = [];
 
+        public List<StandardsProfile?> ValidatedProfiles { get; } = [];
+
         public void Validate(BackboneGeneratedFile file, StandardsProfile? standardsProfile = null)
         {
             ValidatedRelativePaths.Add(file.RelativePath);
             ValidatedBeforeWrite.Add(!FileWriterWasInvoked);
+            ValidatedProfiles.Add(standardsProfile);
         }
     }
 }
