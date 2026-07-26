@@ -5,9 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 const flushPromises = async () => {
-  await act(async () => {
-    await Promise.resolve()
-  })
+  // 路由懒加载后首次渲染需等待动态 import + Suspense 重渲染，
+  // 多跑几个宏任务节拍确保链式异步（加载→挂载→数据请求）都落地。
+  for (let tick = 0; tick < 5; tick += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+  }
 }
 
 const waitForElement = async (getElement: () => HTMLElement | undefined, label: string) => {

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Form, Input, Modal, Radio, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd'
 import { ArrowLeft, HardDrive, Plus, Trash2 } from 'lucide-react'
 
-import { loadApplications } from '../applicationActions'
+import { loadApplication } from '../applicationActions'
+import { ApiRequestError } from '../apiClient'
 import { buildSequenceBatchDeleteItems, buildSequenceDeleteUrl, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { PublishHistoryTab } from '../components/publishing/PublishHistoryTab'
 import { createSequence } from '../sequenceActions'
@@ -35,11 +36,15 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
   const fetchApp = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await loadApplications()
-      const target = data.find((application) => application.id === appId)
-      setAppData(target || null)
-    } catch {
-      message.error('加载申请详情失败。')
+      // 直查单个申请：详情页此前拉全量列表再前端 find，数据量增长后既慢又浪费。
+      const data = await loadApplication(appId)
+      setAppData(data)
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 404) {
+        setAppData(null)
+      } else {
+        message.error('加载申请详情失败。')
+      }
     } finally {
       setLoading(false)
     }

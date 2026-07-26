@@ -18,6 +18,13 @@ export const loadApplications = async (
   return executeRequest(buildApplicationsUrl())
 }
 
+export const loadApplication = async (
+  applicationId: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<Application> => {
+  return executeRequest(buildApplicationUrl(applicationId))
+}
+
 export const createApplication = async (
   request: CreateApplicationRequest,
   executeRequest: typeof apiFetch = apiFetch,

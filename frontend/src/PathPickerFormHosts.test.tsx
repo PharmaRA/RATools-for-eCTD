@@ -21,9 +21,13 @@ import App from './App'
 import { messages } from './i18n/messages'
 
 const flushPromises = async () => {
-  await act(async () => {
-    await Promise.resolve()
-  })
+  // 路由懒加载后首次渲染需等待动态 import + Suspense 重渲染，
+  // 多跑几个宏任务节拍确保链式异步（加载→挂载→数据请求）都落地。
+  for (let tick = 0; tick < 5; tick += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+  }
 }
 
 const waitFor = async (assertion: () => void) => {
@@ -65,8 +69,17 @@ const renderApp = () => {
   }
 }
 
-const clickByText = (text: string) => {
-  const element = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes(text)) as HTMLButtonElement | undefined
+const clickByText = async (text: string) => {
+  // 懒加载路由下按钮出现的时机取决于动态 import 完成，带重试等待。
+  let element: HTMLButtonElement | undefined
+  for (let attempt = 0; attempt < 40 && !element; attempt += 1) {
+    element = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes(text)) as HTMLButtonElement | undefined
+    if (!element) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      })
+    }
+  }
   expect(element).toBeTruthy()
   act(() => {
     element!.click()
@@ -128,7 +141,7 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    clickByText('New Application')
+    await clickByText('New Application')
 
     const applicationNumberInput = getInputByPlaceholder('e.g. NDA123456')
     const sponsorInput = getInputByPlaceholder('e.g. Acme Pharma Ltd.')
@@ -193,7 +206,7 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    clickByText('Import Application')
+    await clickByText('Import Application')
 
     const pathInput = getInputByPlaceholder('e.g. C:/eCTD/workspaces/NDA123456')
     const sponsorInput = getInputByPlaceholder('e.g. Demo Sponsor')
@@ -254,6 +267,20 @@ describe('PathPicker form hosts', () => {
         ]) })
       }
 
+      if (url === '/api/applications/app-1') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+            id: 'app-1',
+            applicationNumber: 'APP-1',
+            sponsorName: 'Sponsor',
+            ectdTemplateKey: 'us-fda-ectd-3.2.2',
+            ectdTemplateDisplayName: 'US FDA eCTD 3.2.2',
+            createdUtc: '2024-01-01T00:00:00Z',
+            sequences: [
+              { sequenceNumber: '0000', submissionType: 'Original Application', description: 'Desc' },
+            ],
+          }) })
+      }
+
       if (url === '/api/validation/sequence') {
         return Promise.resolve({
           ok: true,
@@ -306,11 +333,11 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    clickByText('管理')
+    await clickByText('管理')
     await flushPromises()
-    clickByText('进入工作区')
+    await clickByText('进入工作区')
     await flushPromises()
-    clickByText('发布序列')
+    await clickByText('发布序列')
 
     await waitFor(() => {
       getInputByPlaceholder('e.g. C:/eCTD/exports')

@@ -1,8 +1,20 @@
+import { Suspense, lazy } from 'react'
+import { Spin } from 'antd'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 
-import { ApplicationDetailsPage } from './pages/ApplicationDetailsPage'
-import { ApplicationsPage } from './pages/ApplicationsPage'
-import { SequenceWorkspacePage } from './pages/SequenceWorkspacePage'
+// 路由级代码分割：三个页面按需加载，避免全部打进首屏 chunk。
+const ApplicationsPage = lazy(() =>
+  import('./pages/ApplicationsPage').then((module) => ({ default: module.ApplicationsPage })))
+const ApplicationDetailsPage = lazy(() =>
+  import('./pages/ApplicationDetailsPage').then((module) => ({ default: module.ApplicationDetailsPage })))
+const SequenceWorkspacePage = lazy(() =>
+  import('./pages/SequenceWorkspacePage').then((module) => ({ default: module.SequenceWorkspacePage })))
+
+const RouteFallback = () => (
+  <div className="flex justify-center py-16" role="status" aria-live="polite">
+    <Spin />
+  </div>
+)
 
 const ApplicationsRoute = () => {
   const navigate = useNavigate()
@@ -50,11 +62,13 @@ const SequenceWorkspaceRoute = () => {
 
 export const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<ApplicationsRoute />} />
-      <Route path="/applications/:applicationId" element={<ApplicationDetailsRoute />} />
-      <Route path="/applications/:applicationId/sequences/:sequenceNumber/workspace" element={<SequenceWorkspaceRoute />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/" element={<ApplicationsRoute />} />
+        <Route path="/applications/:applicationId" element={<ApplicationDetailsRoute />} />
+        <Route path="/applications/:applicationId/sequences/:sequenceNumber/workspace" element={<SequenceWorkspaceRoute />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
