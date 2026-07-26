@@ -20,7 +20,7 @@ const mapDirectoryResolutionError = (caught: unknown) => {
     return 'Cannot reach the API server. If you are running locally, make sure the backend is running at http://localhost:5000.'
   }
 
-  return caught instanceof Error ? caught.message : 'Failed to resolve directory'
+  return caught instanceof Error ? caught.message : '目录解析失败'
 }
 
 export const PathPicker = ({ value, onChange, placeholder, provider = defaultProvider }: PathPickerProps) => {
@@ -97,9 +97,9 @@ export const PathPicker = ({ value, onChange, placeholder, provider = defaultPro
           void normalizeTypedPath(event.target.value)
         }}
       />
-      <Button onClick={() => setBrowseOpen(true)}>Browse</Button>
+      <Button onClick={() => setBrowseOpen(true)}>浏览</Button>
 
-      {error && <Alert type="error" showIcon message="Directory path could not be resolved" description={error} />}
+      {error && <Alert type="error" showIcon message="无法解析目录路径" description={error} />}
 
       <DirectoryBrowserModal
         open={browseOpen}

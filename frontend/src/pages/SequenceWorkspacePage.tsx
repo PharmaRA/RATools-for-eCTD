@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Tag, message } from 'antd'
 import { ArrowLeft, FolderOpen, PlayCircle, Save } from 'lucide-react'
 
@@ -92,6 +92,7 @@ export const SequenceWorkspacePage = ({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
   const [validationResult, setValidationResult] = useState<ValidationReport | null>(null)
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [metadataForm] = Form.useForm()
   const [publishForm] = Form.useForm()
   const [publishMetadataForm] = Form.useForm<MetadataFormValues>()
@@ -563,6 +564,33 @@ export const SequenceWorkspacePage = ({
                     </div>
                   )}
                 />
+
+                {selectedNode.canDrop && (
+                  // 键盘/辅助技术兜底：拖拽之外提供标准文件选择入口。
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      data-testid="section-file-input"
+                      aria-label={`上传文件到 ${selectedNode.sectionPath || selectedNode.key}`}
+                      onChange={(event) => {
+                        const files = event.target.files
+                        if (files && files.length > 0) {
+                          void dragDrop.dropFiles(files, selectedNode.key)
+                        }
+                        event.target.value = ''
+                      }}
+                    />
+                    <Button
+                      icon={<FolderOpen size={14} className="mr-1" />}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      选择文件上传到此章节
+                    </Button>
+                  </div>
+                )}
 
                 <p className="text-xs text-gray-500">提示：将文件拖放到叶级章节；在章节之间拖动文件节点可移动它们。</p>
               </div>

@@ -68,7 +68,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       })
       setData(res)
     } catch (err) {
-      message.error('Failed to load history: ' + getErrorMessage(err))
+      message.error('加载发布历史失败：' + getErrorMessage(err))
     } finally {
       setLoading(false)
     }

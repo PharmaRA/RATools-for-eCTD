@@ -35,9 +35,9 @@ export const WorkspaceTree = ({
   onSelectNode,
   dragDrop,
 }: WorkspaceTreeProps) => (
-  <Card title="eCTD Structure (Drag & Drop files here)" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
+  <Card title="eCTD 结构（拖放文件到此处）" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
     {treeError && <Alert type="error" showIcon className="mb-3" title="加载 eCTD 结构失败" description={treeError} />}
-    <p className="mb-2 text-xs text-gray-500">Tip: Drag a mapped file node to a section node to move it. Allowed extensions: {ectdAllowedExtensionsHint}</p>
+    <p className="mb-2 text-xs text-gray-500">提示：将已映射的文件节点拖到章节节点即可移动。允许的扩展名： {ectdAllowedExtensionsHint}</p>
     <Spin spinning={loading || treeLoading}>
       <Tree
         className="ectd-tree"

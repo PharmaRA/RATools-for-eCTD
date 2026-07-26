@@ -98,7 +98,7 @@ export const useWorkspaceDragDrop = ({
     const { validFiles, invalidFiles } = partitionDroppedFiles(files)
 
     if (invalidFiles.length > 0) {
-      messageApi.error(`Unsupported file extension. Allowed: ${ectdAllowedExtensionsHint}. Skipped: ${invalidFiles.map((file) => file.name).join(', ')}`)
+      messageApi.error(`不支持的文件扩展名。允许：${ectdAllowedExtensionsHint}。已跳过：${invalidFiles.map((file) => file.name).join('、')}`)
     }
 
     for (const file of validFiles) {
@@ -167,7 +167,7 @@ export const useWorkspaceDragDrop = ({
 
     if (internalPayload) {
       if (!acceptsPlacementDrop) {
-        messageApi.warning('Move documents onto a section node.')
+        messageApi.warning('请将文档移动到章节节点上。')
         return
       }
 
@@ -183,8 +183,8 @@ export const useWorkspaceDragDrop = ({
 
     if (!acceptsFileDrop) {
       messageApi.warning(nodeData.nodeType === 'document'
-        ? 'Drop files on a section, not a document.'
-        : 'Only leaf sections accept dropped files.')
+        ? '请将文件拖放到章节上，而不是文档上。'
+        : '只有叶级章节可接收拖放文件。')
       return
     }
 
@@ -216,7 +216,7 @@ export const useWorkspaceDragDrop = ({
     }
 
     if (!acceptsPlacementDrop) {
-      messageApi.warning('Move documents onto a section node.')
+      messageApi.warning('请将文档移动到章节节点上。')
       return
     }
 

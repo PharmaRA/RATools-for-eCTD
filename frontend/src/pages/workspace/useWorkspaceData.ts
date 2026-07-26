@@ -117,7 +117,7 @@ export const useWorkspaceData = ({
       setEctdRoots(roots)
       setExpandedKeys(buildWorkspaceExpandedKeys(roots))
     } catch (error) {
-      setTreeError(getErrorMessage(error, 'Failed to load eCTD structure'))
+      setTreeError(getErrorMessage(error, '加载 eCTD 结构失败'))
       setEctdRoots([])
       setExpandedKeys([])
     } finally {

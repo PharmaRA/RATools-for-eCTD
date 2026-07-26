@@ -54,7 +54,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       const data = await loadApplications()
       setApps(data)
     } catch (err) {
-      message.error('Failed to load apps: ' + getErrorMessage(err))
+      message.error('加载申请列表失败：' + getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -71,7 +71,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         const templates = await loadEctdTemplates()
         setEctdTemplates(templates)
       } catch (err) {
-        message.error('Failed to load eCTD templates: ' + getErrorMessage(err))
+        message.error('加载 eCTD 模板失败：' + getErrorMessage(err))
       } finally {
         setTemplatesLoading(false)
       }
@@ -97,11 +97,11 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         sponsorName: values.sponsorName,
         workingDirectoryParentPath: values.workingDirectoryParentPath,
       })
-      message.success('Application created with Workspace!')
+      message.success('申请与工作区已创建！')
       setAppModalVisible(false)
       form.resetFields()
       fetchApps()
-    } catch (e) { message.error('Failed to create application: ' + getErrorMessage(e)) }
+    } catch (e) { message.error('创建申请失败：' + getErrorMessage(e)) }
   }
 
   const handleImportApplication = async () => {
@@ -120,7 +120,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       setImportModalVisible(false)
       importForm.resetFields()
       await fetchApps()
-      message.success(`Application ${result.applicationNumber} imported.`)
+      message.success(`申请 ${result.applicationNumber} 已导入。`)
     } catch (error) {
       if (error instanceof ApiRequestError || error instanceof Error) {
         message.error(mapImportErrorToMessage(error))
@@ -237,7 +237,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
   return (
     <div className="bg-white p-6 rounded shadow-sm border border-gray-200">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold m-0 text-gray-800">Applications</h2>
+        <h2 className="text-xl font-bold m-0 text-gray-800">申请列表</h2>
         <Space>
           <Button
             danger
@@ -251,7 +251,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               setAppBatchDeleteDialog({ open: true, mode: 'databaseOnly', running: false })
             }}
           >
-            Batch Delete
+            批量删除
           </Button>
           <Button
             type="primary"
@@ -261,7 +261,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               setAppModalVisible(true)
             }}
           >
-            New Application
+            新建申请
           </Button>
           <Button
             icon={<HardDrive size={16} className="mr-1" />}
@@ -270,9 +270,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               setImportModalVisible(true)
             }}
           >
-            Import Application
+            导入申请
           </Button>
-          <Button onClick={fetchApps} loading={loading}>Refresh</Button>
+          <Button onClick={fetchApps} loading={loading}>刷新</Button>
         </Space>
       </div>
       <Table<Application>
@@ -293,38 +293,38 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         }}
       />
 
-      <Modal title="Create New Application" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnHidden width={600}>
+      <Modal title="新建申请" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnHidden width={600}>
         <Form form={form} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="applicationNumber" label="Application Number" rules={[{ required: true }]}>
+              <Form.Item name="applicationNumber" label="申请编号" rules={[{ required: true }]}>
                 <Input placeholder="e.g. NDA123456" />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="ectdTemplateKey"
-                label="eCTD Template"
-                rules={[{ required: true, message: 'Please select an eCTD template.' }]}
+                label="eCTD 模板"
+                rules={[{ required: true, message: '请选择 eCTD 模板。' }]}
               >
-                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="Select an eCTD template" />
+                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="请选择 eCTD 模板" />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="sponsorName" label="Sponsor Name" rules={[{ required: true }]}>
+          <Form.Item name="sponsorName" label="申办方名称" rules={[{ required: true }]}>
             <Input placeholder="e.g. Acme Pharma Ltd." />
           </Form.Item>
           <Form.Item
             name="workingDirectoryParentPath"
             label={(
               <span className="flex items-center gap-1">
-                Workspace Parent Directory
-                <Tooltip title="The physical folder path on the server where this application's folder will be assembled.">
+                工作区父目录
+                <Tooltip title="服务器上用于组装此申请文件夹的物理路径。">
                   <Activity size={14} className="text-gray-400 cursor-help" />
                 </Tooltip>
               </span>
             )}
-            rules={[{ required: true, message: 'Please specify the working directory parent path.' }]}
+            rules={[{ required: true, message: '请指定工作目录父路径。' }]}
           >
             <PathPicker placeholder="e.g. C:/eCTD/workspaces" />
           </Form.Item>
@@ -332,12 +332,12 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       </Modal>
 
       <Modal
-        title="Import Application"
+        title="导入申请"
         open={importModalVisible}
         onOk={() => { void handleImportApplication() }}
         onCancel={() => setImportModalVisible(false)}
-        okText="Import"
-        cancelText="Cancel"
+        okText="导入"
+        cancelText="取消"
         confirmLoading={importingApplication}
         destroyOnHidden
         width={680}
@@ -345,19 +345,19 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         <Form form={importForm} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
           <Form.Item
             name="workingDirectoryPath"
-            label="Working Directory Path"
-            rules={[{ required: true, message: 'Please input working directory path.' }]}
+            label="工作目录路径"
+            rules={[{ required: true, message: '请输入工作目录路径。' }]}
           >
             <PathPicker placeholder="e.g. C:/eCTD/workspaces/NDA123456" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="ectdTemplateKey" label="eCTD Template" rules={[{ required: true, message: 'Please select an eCTD template.' }]}>
-                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="Select an eCTD template" />
+              <Form.Item name="ectdTemplateKey" label="eCTD 模板" rules={[{ required: true, message: '请选择 eCTD 模板。' }]}>
+                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="请选择 eCTD 模板" />
               </Form.Item>
             </Col>
             <Col span={16}>
-              <Form.Item name="sponsorName" label="Sponsor Name" rules={[{ required: true, message: 'Please input sponsor name.' }]}>
+              <Form.Item name="sponsorName" label="申办方名称" rules={[{ required: true, message: '请输入申办方名称。' }]}>
                 <Input placeholder="e.g. Demo Sponsor" />
               </Form.Item>
             </Col>
@@ -365,15 +365,15 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
           <Alert
             type="info"
             showIcon
-            title="The import reads sequences from the application workspace directory and parses each sequence index.xml."
+            title="导入将从申请工作区目录读取序列，并解析每个序列的 index.xml。"
           />
         </Form>
       </Modal>
 
       <Modal
-        title="Import Result"
+        title="导入结果"
         open={importResultVisible}
-        okText="Close"
+        okText="关闭"
         cancelButtonProps={{ style: { display: 'none' } }}
         onOk={() => {
           setImportResultVisible(false)
@@ -388,13 +388,13 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         {importResult && (
           <div className="flex flex-col gap-4">
             <Row gutter={12}>
-              <Col span={8}><Card size="small"><Statistic title="Imported Sequences" value={importResult.importedSequenceCount} /></Card></Col>
-              <Col span={8}><Card size="small"><Statistic title="Imported Documents" value={importResult.importedDocumentCount} /></Card></Col>
-              <Col span={8}><Card size="small"><Statistic title="Imported Placements" value={importResult.importedPlacementCount} /></Card></Col>
+              <Col span={8}><Card size="small"><Statistic title="已导入序列" value={importResult.importedSequenceCount} /></Card></Col>
+              <Col span={8}><Card size="small"><Statistic title="已导入文档" value={importResult.importedDocumentCount} /></Card></Col>
+              <Col span={8}><Card size="small"><Statistic title="已导入放置" value={importResult.importedPlacementCount} /></Card></Col>
             </Row>
             <Row gutter={12}>
-              <Col span={12}><Card size="small"><Statistic title="Skipped Sequences" value={importResult.skippedSequenceCount} /></Card></Col>
-              <Col span={12}><Card size="small"><Statistic title="Failed Sequences" value={importResult.failedSequenceCount} /></Card></Col>
+              <Col span={12}><Card size="small"><Statistic title="已跳过序列" value={importResult.skippedSequenceCount} /></Card></Col>
+              <Col span={12}><Card size="small"><Statistic title="失败序列" value={importResult.failedSequenceCount} /></Card></Col>
             </Row>
 
             <div data-testid="import-result-summary" className="flex flex-wrap gap-2">
@@ -403,9 +403,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               ))}
             </div>
 
-            <Card size="small" title="Lifecycle Targets Need Review" data-testid="import-result-lifecycle-issues">
+            <Card size="small" title="生命周期目标需审阅" data-testid="import-result-lifecycle-issues">
               {importLifecycleIssues.length === 0 ? (
-                <Alert type="success" showIcon title="No lifecycle target warnings." />
+                <Alert type="success" showIcon title="没有生命周期目标警告。" />
               ) : (
                 <div className="flex flex-col gap-2">
                   {importLifecycleIssues.map((issue, index) => (
@@ -427,9 +427,9 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
               )}
             </Card>
 
-            <Card size="small" title="Other Import Issues" data-testid="import-result-other-issues">
+            <Card size="small" title="其他导入问题" data-testid="import-result-other-issues">
               {importOtherIssues.length === 0 ? (
-                <Alert type="success" showIcon title="No other import issues." />
+                <Alert type="success" showIcon title="没有其他导入问题。" />
               ) : (
                 <div className="flex flex-col gap-2">
                   {importOtherIssues.map((issue, index) => {
@@ -455,10 +455,10 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
             </Card>
 
             {importIssues.length === 0 ? (
-              <Alert type="success" showIcon title="Import finished without warnings or errors." />
+              <Alert type="success" showIcon title="导入完成，无警告或错误。" />
             ) : (
               <div data-testid="import-result-all-issues" className="flex flex-col gap-2">
-                <div className="font-semibold">All Import Issues</div>
+                <div className="font-semibold">全部导入问题</div>
                 <Table
                   size="small"
                   pagination={{ pageSize: 8 }}
@@ -473,7 +473,7 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
       </Modal>
 
       <Modal
-        title="删除 Application"
+        title="删除申请"
         open={appDeleteDialog.open}
         okText="确认删除"
         cancelText="取消"

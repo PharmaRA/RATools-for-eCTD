@@ -114,8 +114,8 @@ export const PublishModal = ({
       )}
       <Form.Item
         name="outputDirectoryPath"
-        label="Export Directory"
-        rules={[{ required: true, message: 'Export directory is required.' }]}
+        label="导出目录"
+        rules={[{ required: true, message: '导出目录为必填项。' }]}
       >
         <PathPicker placeholder="e.g. C:/eCTD/exports" />
       </Form.Item>

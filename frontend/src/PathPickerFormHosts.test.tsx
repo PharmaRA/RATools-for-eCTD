@@ -141,7 +141,7 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    await clickByText('New Application')
+    await clickByText('新建申请')
 
     const applicationNumberInput = getInputByPlaceholder('e.g. NDA123456')
     const sponsorInput = getInputByPlaceholder('e.g. Acme Pharma Ltd.')
@@ -206,7 +206,7 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    await clickByText('Import Application')
+    await clickByText('导入申请')
 
     const pathInput = getInputByPlaceholder('e.g. C:/eCTD/workspaces/NDA123456')
     const sponsorInput = getInputByPlaceholder('e.g. Demo Sponsor')
@@ -233,13 +233,13 @@ describe('PathPicker form hosts', () => {
     expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`3 ${messages.importResult.warningLabel}`)
     expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`0 ${messages.importResult.errorLabel}`)
     expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`2 ${messages.importResult.lifecycleWarningLabel}`)
-    expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('Lifecycle Targets Need Review')
+    expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('生命周期目标需审阅')
     expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_MISSING')
     expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_NOT_IMPORTED')
-    expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).toContain('Other Import Issues')
+    expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).toContain('其他导入问题')
     expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).toContain('SEQUENCE_INDEX_MISSING')
     expect(document.querySelector('[data-testid="import-result-other-issues"]')?.textContent).not.toContain('LIFECYCLE_TARGET_MISSING')
-    expect(document.querySelector('[data-testid="import-result-all-issues"]')?.textContent).toContain('All Import Issues')
+    expect(document.querySelector('[data-testid="import-result-all-issues"]')?.textContent).toContain('全部导入问题')
     expect(document.querySelector('[data-testid="import-result-all-issues"]')?.textContent).toContain('modified-file was not imported.')
 
     unmount()

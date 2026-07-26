@@ -120,43 +120,43 @@ export const DirectoryBrowserModal = ({
   return (
     <Modal
       open={open}
-      title="Choose Directory"
+      title="选择目录"
       onCancel={onCancel}
       footer={(
         <Space>
-          <Button onClick={onCancel}>Cancel</Button>
+          <Button onClick={onCancel}>取消</Button>
           <Button type="primary" onClick={() => onSelect(currentPath)} disabled={loading || !!error || !currentPath}>
-            Select This Directory
+            选择此目录
           </Button>
         </Space>
       )}
       destroyOnHidden
     >
       <div className="flex flex-col gap-4">
-        {loading && <Spin tip="Loading directories..." />}
+        {loading && <Spin tip="正在加载目录…" />}
 
-        {error && <Alert type="error" showIcon message="Failed to load directories" description={error} />}
+        {error && <Alert type="error" showIcon message="加载目录失败" description={error} />}
 
         {!error && result && (
           <div className="flex flex-col gap-3">
             <div>
-              <div className="text-xs uppercase text-gray-500">Current path</div>
+              <div className="text-xs uppercase text-gray-500">当前路径</div>
               <div className="font-medium break-all">{result.currentPath ?? currentPath}</div>
             </div>
 
             <div>
-              <div className="text-xs uppercase text-gray-500">Parent</div>
+              <div className="text-xs uppercase text-gray-500">上一级</div>
               {result.parentPath ? (
                 <Button type="link" className="px-0" onClick={handleParentClick}>
                   {result.parentPath}
                 </Button>
               ) : (
-                <div className="text-gray-400">No parent directory</div>
+                <div className="text-gray-400">没有上一级目录</div>
               )}
             </div>
 
             <div>
-              <div className="text-xs uppercase text-gray-500 mb-2">Subdirectories</div>
+              <div className="text-xs uppercase text-gray-500 mb-2">子目录</div>
               {result.directories.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {result.directories.map((entry) => (
@@ -171,7 +171,7 @@ export const DirectoryBrowserModal = ({
                   ))}
                 </div>
               ) : (
-                <div className="text-gray-400">No child directories</div>
+                <div className="text-gray-400">没有子目录</div>
               )}
             </div>
           </div>

@@ -86,9 +86,9 @@ describe('DirectoryBrowserModal', () => {
 
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Current path')
+    expect(document.body.textContent).toContain('当前路径')
     expect(document.body.textContent).toContain('C:/working/root')
-    expect(document.body.textContent).toContain('Parent')
+    expect(document.body.textContent).toContain('上一级')
     expect(document.body.textContent).toContain('alpha')
     expect(document.body.textContent).toContain('beta')
 
@@ -159,7 +159,7 @@ describe('DirectoryBrowserModal', () => {
 
     await flushPromises()
 
-    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Select This Directory')) as HTMLButtonElement | undefined
+    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('选择此目录')) as HTMLButtonElement | undefined
     expect(selectButton).toBeTruthy()
 
     act(() => {
@@ -186,7 +186,7 @@ describe('DirectoryBrowserModal', () => {
       provider,
     })
 
-    expect(document.body.textContent).toContain('Loading')
+    expect(document.body.textContent).toContain('正在加载目录')
 
     deferred.reject(new Error('filesystem unavailable'))
     await flushPromises()
@@ -277,7 +277,7 @@ describe('DirectoryBrowserModal', () => {
 
     await flushPromises()
 
-    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Select This Directory')) as HTMLButtonElement | undefined
+    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('选择此目录')) as HTMLButtonElement | undefined
     expect(selectButton).toBeTruthy()
     expect(selectButton!.disabled).toBe(true)
 

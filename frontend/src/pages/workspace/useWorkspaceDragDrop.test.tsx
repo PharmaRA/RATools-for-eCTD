@@ -113,7 +113,7 @@ describe('useWorkspaceDragDrop', () => {
     expect(uploadFile).toHaveBeenCalledTimes(2)
     expect(uploadFile).toHaveBeenNthCalledWith(1, files[0], '1.2')
     expect(uploadFile).toHaveBeenNthCalledWith(2, files[1], '1.2')
-    expect(messageApi.error).toHaveBeenCalledWith(expect.stringContaining('Unsupported file extension'))
+    expect(messageApi.error).toHaveBeenCalledWith(expect.stringContaining('不支持的文件扩展名'))
     expect(messageApi.error).toHaveBeenCalledWith(expect.stringContaining('bad.exe'))
     hook.unmount()
   })

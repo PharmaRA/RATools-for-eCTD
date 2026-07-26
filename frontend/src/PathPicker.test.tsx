@@ -143,7 +143,7 @@ describe('PathPicker', () => {
 
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Directory path could not be resolved')
+    expect(document.body.textContent).toContain('无法解析目录路径')
     expect(document.body.textContent).toContain('Directory not found')
 
     unmount()
@@ -170,7 +170,7 @@ describe('PathPicker', () => {
 
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Directory path could not be resolved')
+    expect(document.body.textContent).toContain('无法解析目录路径')
     expect(document.body.textContent).toContain('Cannot reach the API server. If you are running locally, make sure the backend is running at http://localhost:5000.')
 
     unmount()
@@ -192,7 +192,7 @@ describe('PathPicker', () => {
       provider,
     })
 
-    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Browse')) as HTMLButtonElement | undefined
+    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.replace(/\s+/g, '').includes('浏览')) as HTMLButtonElement | undefined
     expect(browseButton).toBeTruthy()
 
     act(() => {
@@ -202,7 +202,7 @@ describe('PathPicker', () => {
     await flushPromises()
 
     expect(provider.listDirectories).toHaveBeenCalledWith('C:/working/root')
-    expect(document.body.textContent).toContain('Choose Directory')
+    expect(document.body.textContent).toContain('选择目录')
 
     unmount()
   })
@@ -232,7 +232,7 @@ describe('PathPicker', () => {
       provider,
     })
 
-    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Browse')) as HTMLButtonElement | undefined
+    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.replace(/\s+/g, '').includes('浏览')) as HTMLButtonElement | undefined
 
     act(() => {
       browseButton!.click()
@@ -248,7 +248,7 @@ describe('PathPicker', () => {
 
     await flushPromises()
 
-    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Select This Directory')) as HTMLButtonElement | undefined
+    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('选择此目录')) as HTMLButtonElement | undefined
 
     act(() => {
       selectButton!.click()
@@ -293,7 +293,7 @@ describe('PathPicker', () => {
       input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
     })
 
-    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Browse')) as HTMLButtonElement | undefined
+    const browseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.replace(/\s+/g, '').includes('浏览')) as HTMLButtonElement | undefined
     act(() => {
       browseButton!.click()
     })
@@ -307,7 +307,7 @@ describe('PathPicker', () => {
 
     await flushPromises()
 
-    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('Select This Directory')) as HTMLButtonElement | undefined
+    const selectButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes('选择此目录')) as HTMLButtonElement | undefined
     act(() => {
       selectButton!.click()
     })
