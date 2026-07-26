@@ -120,6 +120,48 @@ public sealed class PdfComplianceRuleTests
     }
 
     [Fact]
+    public void Evaluate_ReportsUnverifiedFontEmbeddingAsLowSeverity()
+    {
+        // 无法判定（null）≠ 未嵌入（false）：发 Low 级提示供人工核实，而非 High 级阻断。
+        using var fixture = TempPdfFixture.Create("unknown-fonts.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(new PdfInspectionResult(
+            "1.7",
+            IsEncrypted: false,
+            HasSecurityRestrictions: false,
+            HasSearchableText: true,
+            AllFontsEmbedded: null,
+            [],
+            HasBookmarks: true,
+            [])));
+        var package = CreatePackage(CreateLeaf("unknown-fonts.pdf", "m5/unknown-fonts.pdf", fixture.Path));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("PDF_FONT_EMBEDDING_UNVERIFIED", finding.RuleId);
+        Assert.Equal(EctdValidationSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void Evaluate_DoesNotReportSecurityRestrictionWhenStateIsUnknown()
+    {
+        using var fixture = TempPdfFixture.Create("unknown-security.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(new PdfInspectionResult(
+            "1.7",
+            IsEncrypted: false,
+            HasSecurityRestrictions: null,
+            HasSearchableText: true,
+            AllFontsEmbedded: true,
+            [],
+            HasBookmarks: true,
+            [])));
+        var package = CreatePackage(CreateLeaf("unknown-security.pdf", "m5/unknown-security.pdf", fixture.Path));
+
+        var findings = rule.Evaluate(CreateContext(package)).ToArray();
+
+        Assert.DoesNotContain(findings, x => x.RuleId == "PDF_SECURITY_RESTRICTED");
+    }
+
+    [Fact]
     public void Evaluate_ReturnsNoFindingsForCompliantPdf()
     {
         using var fixture = TempPdfFixture.Create("clean.pdf");

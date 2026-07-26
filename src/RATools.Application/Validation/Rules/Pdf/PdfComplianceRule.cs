@@ -32,7 +32,7 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
-                result = new PdfInspectionResult(null, false, false, false, true, [], false, [], exception.Message);
+                result = new PdfInspectionResult(null, false, null, false, null, [], false, [], exception.Message);
             }
 
             foreach (var finding in EvaluateLeaf(leaf, result, publishedHrefs))
@@ -78,7 +78,7 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 "Remove encryption or password protection from the PDF before publishing.");
         }
 
-        if (result.HasSecurityRestrictions)
+        if (result.HasSecurityRestrictions == true)
         {
             yield return Finding(
                 "PDF_SECURITY_RESTRICTED",
@@ -98,7 +98,7 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 "Run OCR or replace the scanned image PDF with a searchable text PDF.");
         }
 
-        if (!result.AllFontsEmbedded)
+        if (result.AllFontsEmbedded == false)
         {
             var fonts = result.NonEmbeddedFonts.Count == 0
                 ? "unknown fonts"
@@ -109,6 +109,17 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 leaf,
                 $"PDF '{leaf.FileName}' has non-embedded fonts: {fonts}.",
                 "Embed all fonts before publishing the PDF.");
+        }
+        else if (result.AllFontsEmbedded is null)
+        {
+            // 无法判定 ≠ 合规：字体嵌入是 eCTD 强制项，检查器判定失败时
+            // 发出可见的低危提示，交由审阅人自行核实，而不是静默放行。
+            yield return Finding(
+                "PDF_FONT_EMBEDDING_UNVERIFIED",
+                EctdValidationSeverity.Low,
+                leaf,
+                $"PDF '{leaf.FileName}' font embedding could not be verified automatically.",
+                "Manually confirm that all fonts are embedded before submission.");
         }
 
         if (!result.HasBookmarks)
