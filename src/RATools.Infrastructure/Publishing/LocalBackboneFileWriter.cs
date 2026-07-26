@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing;
@@ -7,8 +8,22 @@ using RATools.Application.Publishing.PackageModel;
 
 namespace RATools.Infrastructure.Publishing;
 
-public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> options) : IBackboneFileWriter
+public sealed partial class LocalBackboneFileWriter(
+    IOptions<BackboneOutputOptions> options,
+    ILogger<LocalBackboneFileWriter> logger) : IBackboneFileWriter
 {
+    [LoggerMessage(EventId = 4001, Level = LogLevel.Information,
+        Message = "Pruned stale publish job run '{StaleJobDirectory}' (retention: {RetainJobRuns}).")]
+    private static partial void LogJobRunPruned(ILogger logger, string staleJobDirectory, int retainJobRuns);
+
+    [LoggerMessage(EventId = 4002, Level = LogLevel.Warning,
+        Message = "Failed to prune stale publish job run '{StaleJobDirectory}'; publish output retention continues.")]
+    private static partial void LogJobRunPruneFailed(ILogger logger, Exception exception, string staleJobDirectory);
+
+    [LoggerMessage(EventId = 4003, Level = LogLevel.Warning,
+        Message = "Skipped pruning '{StaleJobDirectory}' because it is a reparse point.")]
+    private static partial void LogJobRunPruneSkippedReparsePoint(ILogger logger, string staleJobDirectory);
+
     public async Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
         string applicationNumber,
         string sequenceNumber,
@@ -85,8 +100,64 @@ public sealed class LocalBackboneFileWriter(IOptions<BackboneOutputOptions> opti
 
         ZipFile.CreateFromDirectory(deliveryRoot, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
 
+        PruneOldJobRuns(applicationRoot, jobIdSegment);
+
         var fullPath = ResolveDeliveryPath(deliveryRoot, "index.xml");
         return (fullPath, reportPath, packagePath);
+    }
+
+    /// <summary>
+    /// 保留策略：每次发布在 _jobs/{jobId} 下产生一份完整交付副本，从不清理会线性
+    /// 吃满磁盘。发布成功后按 LastWriteTimeUtc 保留最近 N 份，只动 _jobs（工作副本），
+    /// _artifacts 与 _packages 是交付物不清理。清理失败绝不让已成功的发布变失败。
+    /// </summary>
+    private void PruneOldJobRuns(string applicationRoot, string currentJobIdSegment)
+    {
+        var retainJobRuns = options.Value.RetainJobRuns;
+        if (retainJobRuns <= 0)
+        {
+            return;
+        }
+
+        var jobsRoot = Path.GetFullPath(Path.Combine(applicationRoot, "_jobs"));
+        if (!Directory.Exists(jobsRoot))
+        {
+            return;
+        }
+
+        var allowedPrefix = jobsRoot + Path.DirectorySeparatorChar;
+        var staleDirectories = new DirectoryInfo(jobsRoot)
+            .GetDirectories()
+            .OrderByDescending(directory => directory.LastWriteTimeUtc)
+            .Skip(retainJobRuns)
+            .Where(directory => !string.Equals(directory.Name, currentJobIdSegment, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var staleDirectory in staleDirectories)
+        {
+            try
+            {
+                // 结构性防线：只删除 _jobs 的直接子目录；拒绝 reparse point，
+                // 防止 junction/symlink 把递归删除引到 _jobs 之外。
+                var fullPath = Path.GetFullPath(staleDirectory.FullName);
+                if (!fullPath.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if ((staleDirectory.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+                {
+                    LogJobRunPruneSkippedReparsePoint(logger, fullPath);
+                    continue;
+                }
+
+                Directory.Delete(fullPath, recursive: true);
+                LogJobRunPruned(logger, fullPath, retainJobRuns);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                LogJobRunPruneFailed(logger, exception, staleDirectory.FullName);
+            }
+        }
     }
 
     private static string ResolveDeliveryPath(string deliveryRoot, string relativePath)

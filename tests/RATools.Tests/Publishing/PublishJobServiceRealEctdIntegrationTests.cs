@@ -197,7 +197,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             new IchIndexXmlWriter(),
             regionalWriterRegistry,
             new EctdXmlValidator(),
-            new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root })));
+            new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root }), NullLogger<LocalBackboneFileWriter>.Instance));
         var validationService = new SequenceValidationService(
             applicationRepository,
             placementRepository,
