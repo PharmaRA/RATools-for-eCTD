@@ -25,6 +25,35 @@ RATools-for-eCTD is an eCTD publishing system for regulatory submission workflow
 - Publish history filtering, pagination, report retrieval, artifact listing, and artifact download.
 - Audit log capture for validation and publish events.
 
+## Capability Matrix
+
+Support maturity is tracked per region and capability. "Production-ready" means the
+path is exercised by the smoke test and covered by regression tests against the
+official DTDs. "Controlled skeleton" means the architecture, wiring, and readiness
+dry-run exist and are tested, but the feature is intentionally minimal and not a
+complete official regulatory rule set.
+
+| Capability | US FDA eCTD 3.2.2 (`us-fda-ectd-3.2.2`) | EU eCTD 3.2.2 (`eu-ectd-3.2.2`) |
+| --- | --- | --- |
+| Application / sequence lifecycle | Production-ready | Production-ready |
+| Workspace import | Production-ready | Production-ready |
+| Document upload / placement | Production-ready | Production-ready |
+| Sequence validation (sections, lifecycle, readiness) | Production-ready | Production-ready |
+| ICH M2–M5 backbone (`index.xml`) | Production-ready | Production-ready (shared writer) |
+| Regional Module 1 backbone | Production-ready (`us-regional.xml`) | Controlled skeleton (`eu-regional.xml`, bundled placeholder DTD) |
+| Publish job execution + artifacts | Production-ready | Controlled skeleton (readiness dry-run) |
+| PDF compliance rules | Production-ready (rule engine) | Shared rules apply |
+| Publish history / audit | Production-ready | Production-ready |
+
+Notes:
+
+- EU support is an intentionally narrow second region added to prove the multi-region
+  architecture. The bundled `reference/dtd/eu-regional.dtd` is a test/architecture
+  placeholder, not the full official EU Module 1 validation rule set.
+- PDF compliance runs through the shared eCTD validation rule engine
+  (`IEctdValidationRule`), so region-specific PDF policies can be layered on later
+  without bespoke checks in the readiness service.
+
 ## Local Run
 
 Start PostgreSQL:
