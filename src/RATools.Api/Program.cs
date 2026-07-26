@@ -43,12 +43,18 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.AuthenticationSc
         {
             options.ApiKey = builder.Configuration.GetValue<string>("Security:ApiKey") ?? string.Empty;
         });
+// purge（递归删除工作区）的最小防护：此前 HighRiskFilesystemAccess 与 FallbackPolicy
+// 完全等价（都只要求认证），持有 API Key 即可删除整个工作区目录。在不引入用户/角色
+// 体系的前提下（认证增强已决策暂缓），用显式配置开关把破坏性操作默认关死：
+// 生产默认 false，需要 purge 时显式开启 Security:AllowDestructiveOperations。
+var allowDestructiveOperations = builder.Configuration.GetValue("Security:AllowDestructiveOperations", false);
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(SecurityPolicyNames.HighRiskFilesystemAccess, policy =>
     {
         policy.AuthenticationSchemes.Add(ApiKeyAuthenticationDefaults.AuthenticationScheme);
         policy.RequireAuthenticatedUser();
+        policy.RequireAssertion(_ => allowDestructiveOperations);
     });
     options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(ApiKeyAuthenticationDefaults.AuthenticationScheme)
         .RequireAuthenticatedUser()

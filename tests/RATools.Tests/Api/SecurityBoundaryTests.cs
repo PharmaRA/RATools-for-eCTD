@@ -272,6 +272,48 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
     }
 
     [Fact]
+    public async Task DeleteApplication_ReturnsUnauthorized_WhenPurgeIsRequestedWithValidKeyButDestructiveOperationsDisabled()
+    {
+        // 默认 Security:AllowDestructiveOperations=false：即使 API Key 正确，
+        // purge 也必须被拒——这是 purge 与普通读写的唯一权限差别。
+        using var tempRoot = new TemporaryDirectory();
+        var client = CreateClient(tempRoot.Path, "local-dev-key");
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
+        var id = Guid.NewGuid();
+
+        var response = await client.DeleteAsync($"/api/applications/{id}?deleteMode=PurgeWorkspace");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteApplication_ReachesService_WhenPurgeIsRequestedAndDestructiveOperationsEnabled()
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var client = CreateClient(tempRoot.Path, "local-dev-key", allowDestructiveOperations: true);
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
+        var id = Guid.NewGuid();
+
+        var response = await client.DeleteAsync($"/api/applications/{id}?deleteMode=PurgeWorkspace");
+
+        // 授权通过后到达服务层；随机 id 不存在 → 404（而非 401）。
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteApplication_DatabaseOnlyStillWorks_WhenDestructiveOperationsDisabled()
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var client = CreateClient(tempRoot.Path, "local-dev-key");
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
+        var id = Guid.NewGuid();
+
+        var response = await client.DeleteAsync($"/api/applications/{id}?deleteMode=DatabaseOnly");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteApplication_ReturnsUnauthorized_WhenDatabaseOnlyApiKeyIsMissing()
     {
         using var tempRoot = new TemporaryDirectory();
@@ -295,10 +337,15 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private HttpClient CreateClient(string allowedRoot, string apiKey)
+    private HttpClient CreateClient(string allowedRoot, string apiKey, bool allowDestructiveOperations = false)
     {
         return _factory.WithWebHostBuilder(builder =>
             {
+                // AllowDestructiveOperations 与 Persistence:Provider 都在服务注册阶段被读取，
+                // ConfigureAppConfiguration 的覆盖那时尚未合并，必须走 UseSetting。
+                // （Provider 不走 UseSetting 时会注册 Npgsql，开发机上恰好有本地 PG 会假绿，CI 上 500。）
+                builder.UseSetting("Security:AllowDestructiveOperations", allowDestructiveOperations ? "true" : "false");
+                builder.UseSetting("Persistence:Provider", "InMemory");
                 builder.ConfigureAppConfiguration((_, configBuilder) =>
                 {
                     configBuilder.Sources.Clear();
