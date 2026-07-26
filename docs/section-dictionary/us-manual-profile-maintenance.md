@@ -13,10 +13,14 @@
 Run all commands before merge:
 
 ```bash
-dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "SectionDictionaryTests|SequenceValidationServiceTests|EctdStructureServiceTests|FdaEctd322ProfileGuardTests|EctdStructureControllerTests"
+dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "SectionProfileGuardTests|SequenceValidationLifecycleTargetTests|SequenceNumberValidationTests"
 ```
 
-Expected outcome: all listed tests pass and `FdaEctd322ProfileGuardTests` has no skipped tests.
+Expected outcome: every listed class matches at least one executed test and all pass.
+`SectionProfileGuardTests` is the profile's structural guard (metadata completeness,
+module coverage, element-name uniqueness, canonical folder anchoring for both the
+US and EU dictionaries); if you rename it, update this checklist in the same commit —
+a filter that matches zero tests exits green and silently voids this gate.
 
 ## Commit Message Checklist
 - Why this profile update is required.
