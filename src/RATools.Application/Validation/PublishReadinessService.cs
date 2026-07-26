@@ -202,43 +202,15 @@ public sealed class PublishReadinessService(
 
     private static PublishReadinessFindingDto MapValidationFinding(ValidationIssueDto issue)
     {
-        var category = issue.Code switch
-        {
-            "NO_PLACEMENTS" => "SequenceContent",
-            "FILE_MISSING" => "DocumentInventory",
-            "DOCUMENT_NOT_FOUND" => "DocumentInventory",
-            "INVALID_SECTION_PATH" => "SectionMapping",
-            "DUPLICATE_PUBLISHED_DOCUMENT_PATH" => "DocumentInventory",
-            "REPLACE_TARGET_NOT_FOUND" => "Lifecycle",
-            "DELETE_TARGET_NOT_FOUND" => "Lifecycle",
-            "APPEND_TARGET_NOT_FOUND" => "Lifecycle",
-            "LIFECYCLE_TARGET_INVALID" => "Lifecycle",
-            "UNSUPPORTED_OPERATION_VALUE" => "Lifecycle",
-            _ => "Validation"
-        };
-
-        var recommendedAction = issue.Code switch
-        {
-            "NO_PLACEMENTS" => "Add at least one document placement to the sequence before publishing.",
-            "FILE_MISSING" => "Restore the missing file on disk or update the document storage path before publishing.",
-            "DOCUMENT_NOT_FOUND" => "Restore the missing document record or remove the broken placement before publishing.",
-            "INVALID_SECTION_PATH" => "Correct the CTD section path so it matches the supported standards profile before publishing.",
-            "DUPLICATE_PUBLISHED_DOCUMENT_PATH" => "Rename or relocate documents so each published path is unique before publishing.",
-            "REPLACE_TARGET_NOT_FOUND" => "Select a valid historical replace target before publishing.",
-            "DELETE_TARGET_NOT_FOUND" => "Select a valid historical delete target before publishing.",
-            "APPEND_TARGET_NOT_FOUND" => "Select a valid historical append target before publishing.",
-            "LIFECYCLE_TARGET_INVALID" => "Select a valid historical lifecycle target in the same section before publishing.",
-            "UNSUPPORTED_OPERATION_VALUE" => "Change the placement operation to a supported eCTD lifecycle action before publishing.",
-            _ => "Resolve the validation issue before publishing."
-        };
+        var metadata = ValidationRuleCatalog.Resolve(issue.Code);
 
         return new PublishReadinessFindingDto(
             "Validation",
             issue.Severity,
             issue.Code,
             issue.Message,
-            category,
-            recommendedAction,
+            metadata.Category,
+            metadata.RecommendedAction,
             null,
             issue.SectionPath,
             issue.DocumentId,
