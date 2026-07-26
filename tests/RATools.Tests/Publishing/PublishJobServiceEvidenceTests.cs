@@ -13,6 +13,7 @@ using RATools.Application.Validation.Requests;
 using RATools.Domain.Publishing;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RATools.Tests.Publishing;
 
@@ -40,7 +41,8 @@ public sealed class PublishJobServiceEvidenceTests
                 new PublishArtifactResolver(artifactStore),
                 new PublishReportStore(artifactStore),
                 new PublishOutputVerifier(),
-                new FakePublishJobQueue());
+                new FakePublishJobQueue(),
+                NullLogger<PublishJobService>.Instance);
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 
@@ -84,7 +86,8 @@ public sealed class PublishJobServiceEvidenceTests
                 new PublishArtifactResolver(new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy())),
                 new PublishReportStore(new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy())),
                 new PublishOutputVerifier(),
-                new FakePublishJobQueue());
+                new FakePublishJobQueue(),
+                NullLogger<PublishJobService>.Instance);
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
 

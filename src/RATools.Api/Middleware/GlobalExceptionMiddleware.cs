@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace RATools.Api.Middleware;
 
-public sealed class GlobalExceptionMiddleware
+public sealed partial class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
@@ -13,6 +13,10 @@ public sealed class GlobalExceptionMiddleware
         _logger = logger;
     }
 
+    [LoggerMessage(EventId = 5001, Level = LogLevel.Error,
+        Message = "Unhandled exception while processing request {TraceId}")]
+    private static partial void LogUnhandledException(ILogger logger, Exception exception, string traceId);
+
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -22,7 +26,7 @@ public sealed class GlobalExceptionMiddleware
         catch (Exception ex)
         {
             var traceId = context.TraceIdentifier;
-            _logger.LogError(ex, "Unhandled exception while processing request {TraceId}", traceId);
+            LogUnhandledException(_logger, ex, traceId);
 
             if (context.Response.HasStarted)
             {

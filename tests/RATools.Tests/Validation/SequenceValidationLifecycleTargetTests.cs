@@ -7,6 +7,7 @@ using RATools.Application.Validation;
 using RATools.Application.Validation.Requests;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RATools.Tests.Validation;
 
@@ -62,7 +63,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([historicalPlacement, currentPlacement]),
             new StubDocumentRepository(documents),
             new StubAuditLogService(),
-            new StubValidationProfileProvider());
+            new StubValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0001"));
 
@@ -104,7 +106,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([placement]),
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
-            new StubValidationProfileProvider());
+            new StubValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -145,7 +148,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([placement]),
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
-            new StubValidationProfileProvider());
+            new StubValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0001"));
 
@@ -166,7 +170,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([]),
             new StubDocumentRepository([]),
             new StubAuditLogService(),
-            new StubValidationProfileProvider());
+            new StubValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -218,7 +223,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([firstPlacement, secondPlacement]),
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
-            new StrictValidationProfileProvider());
+            new StrictValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -273,7 +279,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentPlacementRepository([firstPlacement, secondPlacement]),
             new StubDocumentRepository([firstDocument, secondDocument]),
             new StubAuditLogService(),
-            new StubValidationProfileProvider());
+            new StubValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 

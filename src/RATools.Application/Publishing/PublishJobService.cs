@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
 using RATools.Application.Validation;
@@ -20,7 +21,8 @@ public sealed class PublishJobService(
     PublishArtifactResolver artifactResolver,
     PublishReportStore reportStore,
     PublishOutputVerifier publishOutputVerifier,
-    IPublishJobQueue publishJobQueue) : IPublishJobService
+    IPublishJobQueue publishJobQueue,
+    ILogger<PublishJobService> logger) : IPublishJobService
 {
     private const string PublishExecutionReportVersion = "1.1";
 
@@ -185,8 +187,9 @@ public sealed class PublishJobService(
             var allAuditLogs = await auditLogService.ListAsync(cancellationToken);
             return PublishAuditSummaryBuilder.Create(allAuditLogs, publishJob, sequenceNumber);
         }
-        catch
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            PublishPipelineLog.AuditSummaryFailed(logger, exception, publishJob.Id);
             return null;
         }
     }
@@ -209,6 +212,7 @@ public sealed class PublishJobService(
 
         var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
         await repository.AddAsync(job, cancellationToken);
+        PublishPipelineLog.JobCreated(logger, job.Id, request.ApplicationId, request.SequenceNumber);
         await TryWriteAuditAsync(
             entityType: "PublishJob",
             entityId: job.Id.ToString(),
@@ -226,7 +230,8 @@ public sealed class PublishJobService(
     {
         ValidationReportDto? validationReport = null;
         PublishReadinessReportDto? publishReadiness = null;
-        string? reportPath = null;        try
+        string? reportPath = null;
+        try
         {
             validationReport = await validationService.ValidateAsync(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
@@ -235,6 +240,10 @@ public sealed class PublishJobService(
             if (!validationReport.IsValid)
             {
                 var failureMessage = string.Join(" | ", validationReport.Issues.Select(x => $"{x.Code}: {x.Message}"));
+                PublishPipelineLog.ValidationFailed(
+                    logger,
+                    job.Id,
+                    validationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase)));
                 job.MarkFailed(failureMessage);
                 await repository.UpdateAsync(job, cancellationToken);
                 await TryWriteAuditAsync(
@@ -263,6 +272,7 @@ public sealed class PublishJobService(
                     readinessFailureMessage = "Publish readiness check failed.";
                 }
 
+                PublishPipelineLog.ReadinessBlocked(logger, job.Id, publishReadiness.BlockingErrorCount);
                 job.MarkFailed(readinessFailureMessage);
                 await repository.UpdateAsync(job, cancellationToken);
                 await TryWriteAuditAsync(
@@ -276,6 +286,7 @@ public sealed class PublishJobService(
 
             job.MarkRunning();
             await repository.UpdateAsync(job, cancellationToken);
+            PublishPipelineLog.ExecutionStarted(logger, job.Id);
             await TryWriteAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
@@ -295,6 +306,7 @@ public sealed class PublishJobService(
             reportPath = generated.ReportPath;
 
             job.MarkCompleted(generated.FilePath, generated.PackagePath);
+            PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
             await TryWriteAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
@@ -307,6 +319,7 @@ public sealed class PublishJobService(
         }
         catch (Exception exception)
         {
+            PublishPipelineLog.ExecutionFailed(logger, exception, job.Id);
             job.MarkFailed(exception.Message);
             await TryWriteAuditAsync(
                 entityType: "PublishJob",
@@ -365,9 +378,10 @@ public sealed class PublishJobService(
                 new CreateAuditLogRequest(entityType, entityId, action, "system", details),
                 cancellationToken);
         }
-        catch
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // Audit logging must not block publish execution.
+            // 审计写入不阻断发布，但缺失必须留痕——对监管提交系统，静默丢审计是合规风险。
+            PublishPipelineLog.AuditWriteFailed(logger, exception, entityType, entityId, action);
         }
     }
 

@@ -24,6 +24,7 @@ using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RATools.Tests.Publishing;
 
@@ -202,7 +203,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             placementRepository,
             documentRepository,
             auditLogService,
-            new RelaxedValidationProfileProvider());
+            new RelaxedValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
         var publishReadinessService = new PublishReadinessService(
             validationService,
             packageModelBuilder,
@@ -222,7 +224,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             new PublishArtifactResolver(artifactStore),
             new PublishReportStore(artifactStore),
             new PublishOutputVerifier(),
-            new FakePublishJobQueue());
+            new FakePublishJobQueue(),
+                NullLogger<PublishJobService>.Instance);
     }
 
     private sealed class RecordingAuditLogService : IAuditLogService

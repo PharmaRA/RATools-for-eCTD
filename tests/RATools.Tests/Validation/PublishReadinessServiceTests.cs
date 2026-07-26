@@ -17,6 +17,7 @@ using RATools.Application.Validation.Requests;
 using RATools.Application.Validation.Rules.Pdf;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RATools.Tests.Validation;
 
@@ -329,7 +330,8 @@ public sealed class PublishReadinessServiceTests
             placementRepository,
             documentRepository,
             auditLogService,
-            new RelaxedValidationProfileProvider());
+            new RelaxedValidationProfileProvider(),
+            NullLogger<SequenceValidationService>.Instance);
         var standardsProfileProvider = new CompositeStandardsProfileProvider(
         [
             new FdaEctd322StandardsProfileProvider(),

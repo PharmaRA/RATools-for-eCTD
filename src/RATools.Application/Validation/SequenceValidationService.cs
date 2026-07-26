@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
@@ -15,7 +16,8 @@ public sealed class SequenceValidationService(
     IDocumentPlacementRepository placementRepository,
     IDocumentRepository documentRepository,
     IAuditLogService auditLogService,
-    IValidationProfileProvider validationProfileProvider) : ISequenceValidationService
+    IValidationProfileProvider validationProfileProvider,
+    ILogger<SequenceValidationService> logger) : ISequenceValidationService
 {
     public async Task<ValidationReportDto> ValidateAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
@@ -305,9 +307,10 @@ public sealed class SequenceValidationService(
                     details),
                 cancellationToken);
         }
-        catch
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // Audit logging must not block validation.
+            // 审计写入不阻断验证，但缺失必须留痕。
+            PublishPipelineLog.ValidationAuditWriteFailed(logger, exception, report.ApplicationId, report.SequenceNumber);
         }
     }
 

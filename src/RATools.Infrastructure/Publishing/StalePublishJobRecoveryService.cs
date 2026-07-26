@@ -15,13 +15,21 @@ namespace RATools.Infrastructure.Publishing;
 /// 把所有遗留活动作业标记为 Failed 并写审计。此时进程内队列必为空，因此数据库中的
 /// 活动作业只可能来自上一个进程，回收不会误伤本进程作业。
 /// </summary>
-public sealed class StalePublishJobRecoveryService(
+public sealed partial class StalePublishJobRecoveryService(
     IServiceScopeFactory scopeFactory,
     IConfiguration configuration,
     ILogger<StalePublishJobRecoveryService> logger) : IHostedService
 {
     private const string RecoveryFailureReason =
         "Recovered at startup: the process restarted while this job was queued or executing, so its in-process queue entry was lost.";
+
+    [LoggerMessage(EventId = 3001, Level = LogLevel.Warning,
+        Message = "Failed to write the startup-recovery audit entry for publish job {JobId}; the job itself was recovered.")]
+    private static partial void LogRecoveryAuditWriteFailed(ILogger logger, Exception exception, Guid jobId);
+
+    [LoggerMessage(EventId = 3002, Level = LogLevel.Warning,
+        Message = "Recovered {Count} stale publish job(s) left in Pending/Running state by a previous process.")]
+    private static partial void LogStaleJobsRecovered(ILogger logger, int count);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -62,16 +70,11 @@ public sealed class StalePublishJobRecoveryService(
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                logger.LogWarning(
-                    exception,
-                    "Failed to write the startup-recovery audit entry for publish job {JobId}; the job itself was recovered.",
-                    job.Id);
+                LogRecoveryAuditWriteFailed(logger, exception, job.Id);
             }
         }
 
-        logger.LogWarning(
-            "Recovered {Count} stale publish job(s) left in Pending/Running state by a previous process.",
-            staleJobs.Count);
+        LogStaleJobsRecovered(logger, staleJobs.Count);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

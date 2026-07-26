@@ -11,6 +11,19 @@ using RATools.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 非开发环境输出单行 JSON 日志（含 scope），便于日志系统采集与检索；
+// 开发环境保留默认控制台格式以便人读。
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.UseUtcTimestamp = true;
+        options.TimestampFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z' ";
+    });
+}
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 

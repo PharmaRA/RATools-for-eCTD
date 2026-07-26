@@ -10,12 +10,16 @@ namespace RATools.Infrastructure.Publishing;
 /// 运行发布流程，避免请求结束后 scoped DbContext 被释放。单个作业设有执行超时，
 /// 超时则由 ExecuteQueuedAsync 内的状态机将作业标记为 Failed。
 /// </summary>
-public sealed class PublishJobBackgroundService(
+public sealed partial class PublishJobBackgroundService(
     IPublishJobQueue queue,
     IServiceScopeFactory scopeFactory,
     ILogger<PublishJobBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan ExecutionTimeout = TimeSpan.FromMinutes(15);
+
+    [LoggerMessage(EventId = 2001, Level = LogLevel.Error,
+        Message = "Background publish job {JobId} failed.")]
+    private static partial void LogBackgroundJobFailed(ILogger logger, Exception exception, Guid jobId);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -51,7 +55,7 @@ public sealed class PublishJobBackgroundService(
         {
             // ExecuteQueuedAsync 的内部 catch 已将作业标记为 Failed 并写审计；
             // 这里仅记录，避免后台循环因单个作业异常而中断。
-            logger.LogError(exception, "Background publish job {JobId} failed.", queued.JobId);
+            LogBackgroundJobFailed(logger, exception, queued.JobId);
         }
     }
 }
