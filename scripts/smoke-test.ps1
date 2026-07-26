@@ -1,6 +1,9 @@
-param(
+﻿param(
     [string]$BaseUrl = "http://localhost:5000",
     [string]$ApiKey = "dev-api-key-do-not-use-in-production",
+    # 发布输出目录：必须落在 API 的 Security:AllowedWorkspaceRoots 白名单内。
+    # 默认放在应用工作区父目录下（该目录本就在白名单内）。
+    [string]$PublishOutputPath = "",
     [switch]$KeepSampleFile,
     [switch]$SkipAuditCheck,
     [switch]$CleanPublishOutput,
@@ -120,20 +123,64 @@ function Invoke-FileUpload {
     }
 }
 
+# 生成最小但真实合规的 PDF：可解析版本头、可搜索文本、Type3 自包含字体（满足
+# 字体嵌入检查）、书签。旧样本是纯文本伪 PDF，诚实化后的 PDF 检查器会以
+# PDF_PARSE_FAILED 正确阻断发布。
+function New-SmokePdf {
+    param(
+        [string]$Path,
+        [string]$Text
+    )
+
+    $glyph = "750 0 0 0 750 750 d1`n0 0 750 750 re f"
+    $content = "BT /F1 24 Tf 72 700 Td ($Text) Tj ET"
+    # 覆盖 ASCII 32(空格)-90(Z)：空格也要在 Widths/Encoding 内，否则 PdfPig 解析报错。
+    $charCodes = 32..90
+    $charNames = ($charCodes | ForEach-Object { "/c$_" })
+    $widths = (@("750") * $charCodes.Count) -join " "
+    $charProcs = ($charNames | ForEach-Object { "$_ 10 0 R" }) -join " "
+    $differences = $charNames -join " "
+
+    $objects = @(
+        "<< /Type /Catalog /Pages 2 0 R /Outlines 6 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        "<< /Type /Font /Subtype /Type3 /Name /F1 /FontBBox [0 0 750 750] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs 8 0 R /Encoding 9 0 R /FirstChar 32 /LastChar 90 /Widths [$widths] >>",
+        "<< /Length $($content.Length) >>`nstream`n$content`nendstream",
+        "<< /Type /Outlines /First 7 0 R /Last 7 0 R /Count 1 >>",
+        "<< /Title (Smoke Bookmark) /Parent 6 0 R /Dest [3 0 R /Fit] >>",
+        "<< $charProcs >>",
+        "<< /Type /Encoding /Differences [32 $differences] >>",
+        "<< /Length $($glyph.Length) >>`nstream`n$glyph`nendstream"
+    )
+
+    $builder = New-Object System.Text.StringBuilder
+    [void]$builder.Append("%PDF-1.4`n")
+    $offsets = @()
+    for ($index = 0; $index -lt $objects.Count; $index += 1) {
+        $offsets += $builder.Length
+        [void]$builder.Append("$($index + 1) 0 obj`n$($objects[$index])`nendobj`n")
+    }
+
+    $xrefOffset = $builder.Length
+    [void]$builder.Append("xref`n0 $($objects.Count + 1)`n0000000000 65535 f `n")
+    foreach ($offset in $offsets) {
+        [void]$builder.Append(("{0:D10} 00000 n `n" -f $offset))
+    }
+    [void]$builder.Append("trailer`n<< /Size $($objects.Count + 1) /Root 1 0 R >>`nstartxref`n$xrefOffset`n%%EOF`n")
+
+    [System.IO.File]::WriteAllText($Path, $builder.ToString(), [System.Text.Encoding]::ASCII)
+}
+
 $sampleFilePath = Join-Path $env:TEMP "ratools-smoke-sample.pdf"
 $duplicateSampleDirectory = Join-Path $env:TEMP ("ratools-smoke-" + [guid]::NewGuid().ToString("N"))
 $duplicateSampleFilePath = Join-Path $duplicateSampleDirectory "ratools-smoke-sample.pdf"
 $applicationWorkspaceParentPath = Join-Path $env:TEMP ("ratools-workspace-" + [guid]::NewGuid().ToString("N"))
 $downloadedZipPath = $null
-$sampleContent = @(
-    "RATools smoke test file"
-    "Generated: $(Get-Date -Format o)"
-    "This file is used to verify upload, placement, validation, and publish flow."
-) -join [Environment]::NewLine
 
-Set-Content -Path $sampleFilePath -Value $sampleContent -Encoding UTF8
+New-SmokePdf -Path $sampleFilePath -Text "SMOKE TEST DOCUMENT"
 New-Item -ItemType Directory -Path $duplicateSampleDirectory -Force | Out-Null
-Set-Content -Path $duplicateSampleFilePath -Value ($sampleContent + [Environment]::NewLine + "duplicate") -Encoding UTF8
+New-SmokePdf -Path $duplicateSampleFilePath -Text "SMOKE TEST DUPLICATE"
 New-Item -ItemType Directory -Path $applicationWorkspaceParentPath -Force | Out-Null
 
 try {
@@ -156,7 +203,7 @@ try {
     Write-Step "Creating application"
     $application = Invoke-JsonPost -Url "$BaseUrl/api/applications" -Body @{
         applicationNumber = "IND-$suffix"
-        region = "US"
+        ectdTemplateKey = "us-fda-ectd-3.2.2"
         sponsorName = "Smoke Test Sponsor"
         workingDirectoryParentPath = $applicationWorkspaceParentPath
     }
@@ -246,8 +293,8 @@ try {
 
     if (-not $InjectWarnings) {
         $originalDocumentPath = $document.storagePath
-        $reassignedSection = "m5.3.5.1"
-        $expectedReassignedDirectory = Join-Path $sequenceWorkspaceResolvedPath (Join-Path "m5" (Join-Path "53-clinical-study-reports" (Join-Path "535-reports-of-efficacy-and-safety-studies" "5351-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication")))
+        $reassignedSection = "m5.3.7"
+        $expectedReassignedDirectory = Join-Path $sequenceWorkspaceResolvedPath (Join-Path "m5" (Join-Path "53-clinical-study-reports" "537-case-report-forms-and-individual-patient-listings"))
 
         Write-Step "Reassigning document placement to canonical clinical section"
         $placement = Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/document-placements/$($placement.id)/section" -Headers $ApiHeaders -ContentType "application/json" -Body (@{ ctdSection = $reassignedSection } | ConvertTo-Json)
@@ -288,7 +335,7 @@ try {
         sequenceNumber = "0000"
     }
 
-    $matchedSection = $validation.sectionMatches | Where-Object { $_.sectionPath -eq "m5.3.5.1" -or $_.sectionPath -eq "m3.p.s.1" } | Select-Object -First 1
+    $matchedSection = $validation.sectionMatches | Where-Object { $_.sectionPath -eq "m5.3.7" -or $_.sectionPath -eq "m3.p.s.1" } | Select-Object -First 1
     if (-not $matchedSection) {
         throw "Validation report did not include sectionMatches for the current placement path."
     }
@@ -297,18 +344,44 @@ try {
         throw "Default smoke test scenario should not produce lifecycle matches, but $($validation.lifecycleMatches.Count) were returned."
     }
 
-    if (-not $InjectWarnings -and $matchedSection.matchedPrefix -ne "m5.3.5.1") {
-        throw "Validation report matchedPrefix '$($matchedSection.matchedPrefix)' did not match expected 'm5.3.5.1'."
+    if (-not $InjectWarnings -and $matchedSection.matchedPrefix -ne "m5.3.7") {
+        throw "Validation report matchedPrefix '$($matchedSection.matchedPrefix)' did not match expected 'm5.3.7'."
     }
 
+    Write-Step "Populating US Regional publishing metadata"
+    # US Regional backbone 生成要求联系人元数据（readiness/publish 会正确阻断缺失项）。
+    Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/applications/$($application.id)/sequences/0000/publishing-metadata" -Headers $ApiHeaders -ContentType "application/json" -Body (@{
+        applicationType = "ind"
+        submissionType = "original-application"
+        submissionSubtype = "initial"
+        sequenceDescription = "Smoke test submission"
+        applicantName = "Smoke Test Sponsor"
+        formType = "1571"
+        applicantContactName = "Smoke Contact"
+        applicantContactType = "regulatory"
+        telephone = "301-555-0100"
+        telephoneNumberType = "office"
+        email = "smoke@example.test"
+    } | ConvertTo-Json) | Out-Null
+
     Write-Step "Executing publish job"
+    if ([string]::IsNullOrWhiteSpace($PublishOutputPath)) {
+        $PublishOutputPath = Join-Path $applicationWorkspaceParentPath "publish-output"
+    }
+    New-Item -ItemType Directory -Path $PublishOutputPath -Force | Out-Null
     $acceptedJob = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs/execute" -Body @{
         applicationId = $application.id
         sequenceNumber = "0000"
+        outputDirectoryPath = $PublishOutputPath
     }
 
     Write-Step "Waiting for background publish job to complete"
     $publishJob = Wait-ForPublishJob -BaseUrl $BaseUrl -JobId $acceptedJob.id
+
+    # 失败的作业也会到达终态；不断言 Completed 会把失败静默吞掉继续读报告。
+    if ($publishJob.status -ne "Completed") {
+        throw "Publish job $($publishJob.id) ended as '$($publishJob.status)': $($publishJob.failureReason)"
+    }
 
     if ($CorruptReportAfterPublish) {
         Write-Step "Corrupting persisted publish report"
@@ -509,18 +582,36 @@ try {
     }
 
     $indexXmlContent = Get-Content -Path $publishJob.outputPath -Raw
-    $expectedDocumentHref = "documents/$($document.id.Replace('-', ''))_$($document.fileName)"
+    # href 规则与 PublishOutputNaming 一致：storagePath 中序列号段之后的相对路径（'/' 分隔）。
+    function Get-ExpectedHref {
+        param([string]$StoragePath, [string]$SequenceNumber)
+        $segments = $StoragePath -split '[\/]' | Where-Object { $_ -ne '' }
+        $sequenceIndex = [Array]::LastIndexOf($segments, $SequenceNumber)
+        if ($sequenceIndex -ge 0 -and $sequenceIndex -lt ($segments.Count - 1)) {
+            return ($segments[($sequenceIndex + 1)..($segments.Count - 1)] -join '/')
+        }
+        return [System.IO.Path]::GetFileName($StoragePath)
+    }
+
+    $expectedDocumentHref = Get-ExpectedHref -StoragePath $document.storagePath -SequenceNumber "0000"
     if ($indexXmlContent -notmatch [regex]::Escape($expectedDocumentHref)) {
         throw "Generated index.xml does not contain the expected unique document href '$expectedDocumentHref'."
     }
 
-    $expectedDuplicateDocumentHref = "documents/$($duplicateDocument.id.Replace('-', ''))_$($duplicateDocument.fileName)"
-    if ($indexXmlContent -notmatch [regex]::Escape($expectedDuplicateDocumentHref)) {
-        throw "Generated index.xml does not contain the expected unique duplicate document href '$expectedDuplicateDocumentHref'."
+    # 重复文档的 placement 在 m1（区域 backbone）：href 写入 us-regional.xml 而非 index.xml
+    # （index.xml 只承载 ICH M2-M5 leaves）。区域 href 相对 us-regional.xml 所在目录。
+    $regionalXmlPath = Join-Path (Split-Path $publishJob.outputPath -Parent) (Join-Path "m1" (Join-Path "us" "us-regional.xml"))
+    if (-not (Test-Path $regionalXmlPath)) {
+        throw "Generated us-regional.xml was not found at '$regionalXmlPath'."
+    }
+    $regionalXmlContent = Get-Content -Path $regionalXmlPath -Raw
+    $duplicateStoredFileName = [System.IO.Path]::GetFileName($duplicateDocument.storagePath)
+    if ($regionalXmlContent -notmatch [regex]::Escape($duplicateStoredFileName)) {
+        throw "Generated us-regional.xml does not reference the duplicate document file '$duplicateStoredFileName'."
     }
 
-    if ($indexXmlContent -notmatch 'dtd-version="3\.2\.2"') {
-        throw "Generated index.xml does not declare the expected dtd-version=3.2.2 metadata."
+    if ($indexXmlContent -notmatch 'dtd-version="3\.2"') {
+        throw "Generated index.xml does not declare the expected dtd-version=3.2 metadata."
     }
 
     if ($indexXmlContent -notmatch 'xlink:type="simple"') {
