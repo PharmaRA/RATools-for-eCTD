@@ -5,17 +5,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 const flushPromises = async () => {
-  // 路由懒加载后首次渲染需等待动态 import + Suspense 重渲染，
-  // 多跑几个宏任务节拍确保链式异步（加载→挂载→数据请求）都落地。
+  // 路由懒加载后首次渲染需等待动态 import + Suspense 重渲染。
+  // CI 的 Linux runner 上动态 import 需要真实 I/O 时间，0ms 定时器链不够，
+  // 每个节拍给 5ms 真实延迟（本地几乎无感，CI 上足以完成模块加载）。
   for (let tick = 0; tick < 5; tick += 1) {
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 5))
     })
   }
 }
 
 const waitForElement = async (getElement: () => HTMLElement | undefined, label: string) => {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
     await flushPromises()
     const element = getElement()
     if (element) return element

@@ -25,7 +25,7 @@ const flushPromises = async () => {
   // 多跑几个宏任务节拍确保链式异步（加载→挂载→数据请求）都落地。
   for (let tick = 0; tick < 5; tick += 1) {
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 5))
     })
   }
 }
