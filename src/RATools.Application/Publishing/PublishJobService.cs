@@ -184,8 +184,14 @@ public sealed class PublishJobService(
     {
         try
         {
-            var allAuditLogs = await auditLogService.ListAsync(cancellationToken);
-            return PublishAuditSummaryBuilder.Create(allAuditLogs, publishJob, sequenceNumber);
+            // 只取当前作业与当前序列的审计条目；审计表只增，全表拉取会随时间线性劣化。
+            var relatedAuditLogs = await auditLogService.ListByEntitiesAsync(
+                [
+                    ("PublishJob", publishJob.Id.ToString()),
+                    ("SequenceValidation", $"{publishJob.ApplicationId}:{sequenceNumber}"),
+                ],
+                cancellationToken);
+            return PublishAuditSummaryBuilder.Create(relatedAuditLogs, publishJob, sequenceNumber);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

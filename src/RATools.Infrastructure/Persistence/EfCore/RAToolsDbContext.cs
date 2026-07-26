@@ -127,6 +127,10 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.Actor).HasMaxLength(128).IsRequired();
             entity.Property(x => x.Details).HasMaxLength(2048);
             entity.Property(x => x.CreatedUtc).IsRequired();
+            // 审计表只增不删：时间倒序列表与按实体过滤是仅有的两种读路径，
+            // 无索引时二者都随表体积线性劣化（发布流程每次都会查审计摘要）。
+            entity.HasIndex(x => x.CreatedUtc).IsDescending();
+            entity.HasIndex(x => new { x.EntityType, x.EntityId });
         });
     }
 }

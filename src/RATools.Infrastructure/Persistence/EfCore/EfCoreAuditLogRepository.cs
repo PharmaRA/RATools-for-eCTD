@@ -21,6 +21,30 @@ public sealed class EfCoreAuditLogRepository(RAToolsDbContext dbContext) : IAudi
 
         return records.Select(x => x.ToDomain()).ToArray();
     }
+
+    public async Task<IReadOnlyCollection<AuditLogEntry>> ListByEntitiesAsync(
+        IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+        CancellationToken cancellationToken = default)
+    {
+        if (entities.Count == 0)
+        {
+            return [];
+        }
+
+        // 组合键无法直接翻译成 SQL IN；按 EntityId 走索引取候选，再在内存中核对配对。
+        var entityIds = entities.Select(x => x.EntityId).Distinct(StringComparer.Ordinal).ToArray();
+        var candidates = await dbContext.AuditLogs
+            .AsNoTracking()
+            .Where(x => entityIds.Contains(x.EntityId))
+            .OrderByDescending(x => x.CreatedUtc)
+            .ToArrayAsync(cancellationToken);
+
+        var wanted = entities.ToHashSet();
+        return candidates
+            .Where(x => wanted.Contains((x.EntityType, x.EntityId)))
+            .Select(x => x.ToDomain())
+            .ToArray();
+    }
 }
 
 internal static class AuditLogRecordMapping

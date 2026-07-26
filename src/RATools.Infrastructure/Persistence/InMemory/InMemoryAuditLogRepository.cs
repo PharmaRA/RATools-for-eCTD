@@ -22,4 +22,17 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 
         return Task.FromResult(items);
     }
+
+    public Task<IReadOnlyCollection<AuditLogEntry>> ListByEntitiesAsync(
+        IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+        CancellationToken cancellationToken = default)
+    {
+        var wanted = entities.ToHashSet();
+        IReadOnlyCollection<AuditLogEntry> items = _items.Values
+            .Where(x => wanted.Contains((x.EntityType, x.EntityId)))
+            .OrderByDescending(x => x.CreatedUtc)
+            .ToArray();
+
+        return Task.FromResult(items);
+    }
 }

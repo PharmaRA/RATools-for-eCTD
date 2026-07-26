@@ -226,6 +226,11 @@ public sealed class PublishJobServiceEvidenceTests
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());
+
+        public Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
+            IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());
     }
 
     private sealed class AllowAllWorkspacePathPolicy : IWorkspacePathPolicy

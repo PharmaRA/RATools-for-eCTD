@@ -21,6 +21,14 @@ public sealed class AuditLogService(IAuditLogRepository repository) : IAuditLogS
         var items = await repository.ListAsync(cancellationToken);
         return items.Select(x => x.ToDto()).ToArray();
     }
+
+    public async Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
+        IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await repository.ListByEntitiesAsync(entities, cancellationToken);
+        return items.Select(x => x.ToDto()).ToArray();
+    }
 }
 
 internal static class AuditLogMapping

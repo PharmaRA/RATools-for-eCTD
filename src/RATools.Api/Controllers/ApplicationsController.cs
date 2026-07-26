@@ -44,9 +44,11 @@ public sealed class ApplicationsController(
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
+        // 上限防资源耗尽：pageSize 无界时单请求可拉全表。
+        var clampedPageSize = Math.Clamp(pageSize, 1, 200);
         var history = await publishHistoryService.GetAsync(
             id,
-            new ApplicationPublishHistoryQuery(sequenceNumber, page, pageSize, status, createdFromUtc, createdToUtc, readinessStatus),
+            new ApplicationPublishHistoryQuery(sequenceNumber, page, clampedPageSize, status, createdFromUtc, createdToUtc, readinessStatus),
             cancellationToken);
         return history is null ? NotFound() : Ok(history);
     }

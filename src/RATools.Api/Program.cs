@@ -24,6 +24,15 @@ if (!builder.Environment.IsDevelopment())
     });
 }
 
+// 请求体上限：上传是流式处理，但无显式上限时仅靠 ASP.NET Core 默认值（30MB），
+// 且该默认会随宿主/反代配置漂移。eCTD 单文件按 FDA 建议以 500MB 为界，可配置。
+var maxUploadBytes = builder.Configuration.GetValue("FileStorage:MaxUploadBytes", 524_288_000L);
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxUploadBytes);
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxUploadBytes;
+});
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 

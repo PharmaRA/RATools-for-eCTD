@@ -400,6 +400,10 @@ public sealed class PublishReadinessServiceTests
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>([]);
+
+        public Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
+            IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+            CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<AuditLogDto>>([]);
     }
 
     private sealed class RelaxedValidationProfileProvider : IValidationProfileProvider

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RATools.Infrastructure.Persistence.EfCore;
@@ -11,9 +12,11 @@ using RATools.Infrastructure.Persistence.EfCore;
 namespace RATools.Infrastructure.Persistence.EfCore.Migrations
 {
     [DbContext(typeof(RAToolsDbContext))]
-    partial class RAToolsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726102743_AddAuditLogIndexes")]
+    partial class AddAuditLogIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

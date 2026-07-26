@@ -331,6 +331,10 @@ public sealed class SequenceValidationLifecycleTargetTests
         public Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new AuditLogDto(Guid.NewGuid(), request.EntityType, request.EntityId, request.Action, request.Actor, request.Details, DateTime.UtcNow));
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<AuditLogDto>>([]);
+
+        public Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
+            IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+            CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<AuditLogDto>>([]);
     }
 
     private sealed class StubValidationProfileProvider : IValidationProfileProvider

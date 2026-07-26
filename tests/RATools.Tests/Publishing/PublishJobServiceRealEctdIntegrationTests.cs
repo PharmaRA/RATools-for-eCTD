@@ -241,6 +241,15 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(_entries.ToArray());
+
+        public Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
+            IReadOnlyCollection<(string EntityType, string EntityId)> entities,
+            CancellationToken cancellationToken = default)
+        {
+            var wanted = entities.ToHashSet();
+            return Task.FromResult<IReadOnlyCollection<AuditLogDto>>(
+                _entries.Where(x => wanted.Contains((x.EntityType, x.EntityId))).ToArray());
+        }
     }
 
     private sealed class RelaxedValidationProfileProvider : IValidationProfileProvider
