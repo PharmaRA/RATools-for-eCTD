@@ -199,9 +199,12 @@ public sealed class PublishJobServiceEvidenceTests
             var backbonePath = Path.Combine(outputDir, "index.xml");
             var reportPath = Path.Combine(reportDir, request.ReportFileName);
             var packagePath = Path.Combine(packageDir, request.PackageFileName);
+            // backbone 必须引用交付的 leaf.txt，否则会被孤儿文件反向扫描（正确地）标记。
             var xml = """
                 <?xml version="1.0" encoding="utf-8"?>
-                <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3.org/1999/xlink" />
+                <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3.org/1999/xlink">
+                  <ectd:leaf xlink:href="leaf.txt" />
+                </ectd:ectd>
                 """;
 
             await File.WriteAllTextAsync(backbonePath, xml, cancellationToken);

@@ -214,12 +214,239 @@ public sealed class PublishOutputVerifierTests
         }
     }
 
+    [Fact]
+    public async Task VerifyAsync_ReportsChecksumMismatchAgainstDeclaredMd5()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var leafPath = Path.Combine(outputDir, "m1", "leaf.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(leafPath, "actual payload");
+            await File.WriteAllTextAsync(backbonePath, BackboneXmlWithChecksum("m1/leaf.pdf", new string('0', 32)));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.False(result.Summary.IsConsistent);
+            Assert.Contains(result.Evidence.Findings, x => x.Type == "ChecksumMismatch" && x.Path == "m1/leaf.pdf");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_AcceptsMatchingDeclaredMd5()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var leafPath = Path.Combine(outputDir, "m1", "leaf.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(leafPath, "actual payload");
+            var actualMd5 = ComputeMd5(leafPath);
+            await File.WriteAllTextAsync(backbonePath, BackboneXmlWithChecksum("m1/leaf.pdf", actualMd5));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.True(result.Summary.IsConsistent);
+            Assert.DoesNotContain(result.Evidence.Findings, x => x.Type == "ChecksumMismatch");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_FlagsOrphanFilesNotReferencedByAnyBackbone()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var referencedPath = Path.Combine(outputDir, "m1", "leaf.pdf");
+            var orphanPath = Path.Combine(outputDir, "m1", "orphan.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(referencedPath, "leaf");
+            await File.WriteAllTextAsync(orphanPath, "orphan");
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("m1/leaf.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            // 孤儿是 Warning 级：不破坏 isConsistent，但必须可见。
+            Assert.True(result.Summary.IsConsistent);
+            var orphanFinding = Assert.Single(result.Evidence.Findings, x => x.Type == "OrphanFile");
+            Assert.Equal("Warning", orphanFinding.Severity);
+            Assert.Equal("m1/orphan.pdf", orphanFinding.Path);
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_TreatsRegionalBackboneReferencesAsNonOrphans()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1", "us", "11-forms"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var regionalPath = Path.Combine(outputDir, "m1", "us", "us-regional.xml");
+            var formPath = Path.Combine(outputDir, "m1", "us", "11-forms", "form.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(formPath, "form");
+            // form.pdf 只被区域 backbone 引用（href 相对 m1/us/），index.xml 不引用它。
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("m1/us/us-regional.xml"));
+            await File.WriteAllTextAsync(regionalPath, BackboneXml("11-forms/form.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.DoesNotContain(result.Evidence.Findings, x => x.Type == "OrphanFile");
+            Assert.DoesNotContain(result.Evidence.Findings, x => x.Type == "MissingReferencedFile");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_ReportsMissingDtdAssetReferencedByDoctype()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(outputDir);
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            var xml = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+                <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3.org/1999/xlink" />
+                """;
+            await File.WriteAllTextAsync(backbonePath, xml);
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.False(result.Summary.IsConsistent);
+            Assert.Contains(result.Evidence.Findings, x => x.Type == "MissingDtdAsset" && x.Path == "util/dtd/ich-ectd-3-2.dtd");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_ReportsIndexMd5Mismatch()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(outputDir);
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("index.xml"));
+            await File.WriteAllTextAsync(Path.Combine(outputDir, "index-md5.txt"), $"{new string('f', 32)}  index.xml\n");
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.False(result.Summary.IsConsistent);
+            Assert.Contains(result.Evidence.Findings, x => x.Type == "IndexMd5Mismatch");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_IgnoresCrossSequenceReferencesOutsidePackageRoot()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(outputDir);
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            // modified-file 风格的跨序列引用（../0000/…）逃出包根，不属于本包核验范围。
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("../0000/m1/old.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            Assert.True(result.Summary.IsConsistent);
+            Assert.DoesNotContain(result.Evidence.Findings, x => x.Type == "MissingReferencedFile");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), $"publish-evidence-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         return root;
     }
+
+    private static string ComputeMd5(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
+    }
+
+    private static string BackboneXmlWithChecksum(string href, string md5) => $"""
+        <?xml version="1.0" encoding="utf-8"?>
+        <ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <ectd:leaf xlink:href="{href}" checksum="{md5}" checksum-type="md5" />
+        </ectd:ectd>
+        """;
 
     private static string BackboneXml(string href) => $"""
         <?xml version="1.0" encoding="utf-8"?>
