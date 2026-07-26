@@ -139,6 +139,8 @@ public sealed class DocumentPlacementServiceTests
 
         public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<PublishJob>>([]);
 
+        public Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<PublishJob>>([]);
+
         public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
             => Task.FromResult(new PublishJobHistoryQueryResult([], 0, 0, 0, 0));
     }

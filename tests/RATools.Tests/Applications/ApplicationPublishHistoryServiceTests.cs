@@ -264,6 +264,10 @@ public sealed class ApplicationPublishHistoryServiceTests
         public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(publishJobs);
 
+        public Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<PublishJob>>(
+                publishJobs.Where(x => x.Status is PublishJobStatus.Pending or PublishJobStatus.Running).ToArray());
+
         public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
         {
             var filtered = publishJobs

@@ -70,6 +70,19 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         return records.Select(x => x.ToDomain()).ToArray();
     }
 
+    public async Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default)
+    {
+        var pendingStatus = PublishJobStatus.Pending.ToString();
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var records = await dbContext.PublishJobs
+            .AsNoTracking()
+            .Where(x => x.Status == pendingStatus || x.Status == runningStatus)
+            .OrderBy(x => x.CreatedUtc)
+            .ToArrayAsync(cancellationToken);
+
+        return records.Select(x => x.ToDomain()).ToArray();
+    }
+
     public async Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
     {
         var baseQuery = dbContext.PublishJobs

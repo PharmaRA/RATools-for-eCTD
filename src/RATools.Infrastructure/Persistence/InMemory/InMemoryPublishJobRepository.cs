@@ -60,6 +60,16 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         return Task.FromResult(items);
     }
 
+    public Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<PublishJob> items = _items.Values
+            .Where(x => IsActiveStatus(x.Status))
+            .OrderBy(x => x.CreatedUtc)
+            .ToArray();
+
+        return Task.FromResult(items);
+    }
+
     public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
     {
         var filtered = _items.Values
