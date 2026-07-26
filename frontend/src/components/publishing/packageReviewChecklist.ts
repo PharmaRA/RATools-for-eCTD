@@ -1,3 +1,4 @@
+import { messages } from '../../i18n/messages'
 import type { PackageReviewChecklistRow, PackageReviewReport } from './packageReviewExport'
 
 type PackageReviewChecklistInput = {
@@ -14,30 +15,33 @@ type PackageReviewChecklistCountLabel = 'error' | 'issue'
 type PackageReviewIntegritySummary = NonNullable<PackageReviewReport['integritySummary']>
 
 const packageReviewChecklistCountLabels: Record<PackageReviewChecklistCountLabel, string> = {
-  error: '个错误',
-  issue: '个问题',
+  error: messages.packageReview.errorCountLabel,
+  issue: messages.packageReview.issueCountLabel,
 }
 
 export const formatPackageReviewChecklistCountDetail = (
   reportLoaded: boolean,
   count: number | null | undefined,
   label: PackageReviewChecklistCountLabel,
-) => (reportLoaded ? `${count ?? '-'} ${packageReviewChecklistCountLabels[label]}` : '不可用')
+) => (reportLoaded ? `${count ?? '-'} ${packageReviewChecklistCountLabels[label]}` : messages.common.unavailable)
 
 export const formatPackageReviewPublishDetail = (
   reportMessage: string | null | undefined,
   reportError: Error | null,
-) => reportMessage || reportError?.message || '报告不可用。'
+) => reportMessage || reportError?.message || messages.packageReview.reportUnavailable
 
 export const formatPackageReviewIntegrityDetail = (
   integritySummary?: PackageReviewIntegritySummary | null,
-) => integritySummary?.isConsistent === true ? '一致' : '不一致或不可用'
+) => integritySummary?.isConsistent === true
+  ? messages.packageReview.integrityConsistent
+  : messages.packageReview.integrityInconsistent
 
 export const formatPackageReviewRequiredArtifactsDetail = (
   artifactsError: Error | null,
   presentArtifactCount: number,
   requiredArtifactCount: number,
-) => artifactsError?.message || `${presentArtifactCount}/${requiredArtifactCount} 已就绪`
+) => artifactsError?.message
+  || `${presentArtifactCount}/${requiredArtifactCount} ${messages.packageReview.artifactsReadySuffix}`
 
 export const isPackageReviewReadyForSubmission = (rows: readonly PackageReviewChecklistRow[]) => (
   rows.every((row) => row.pass)
@@ -66,31 +70,31 @@ export const buildPackageReviewChecklistRows = ({
 }: PackageReviewChecklistInput): PackageReviewChecklistRow[] => [
   buildPackageReviewChecklistRow(
     'publish-succeeded',
-    '发布成功',
+    messages.packageReview.checkPublishSucceeded,
     reportLoaded && report?.succeeded === true,
     formatPackageReviewPublishDetail(report?.message, reportError),
   ),
   buildPackageReviewChecklistRow(
     'validation-errors',
-    '校验错误',
+    messages.packageReview.checkValidationErrors,
     reportLoaded && (report?.errorCount ?? 1) === 0,
     formatPackageReviewChecklistCountDetail(reportLoaded, report?.errorCount, 'error'),
   ),
   buildPackageReviewChecklistRow(
     'lifecycle-issues',
-    '生命周期问题',
+    messages.packageReview.checkLifecycleIssues,
     reportLoaded && lifecycleIssueCount === 0,
     formatPackageReviewChecklistCountDetail(reportLoaded, lifecycleIssueCount, 'issue'),
   ),
   buildPackageReviewChecklistRow(
     'integrity-consistent',
-    '完整性一致',
+    messages.packageReview.checkIntegrityConsistent,
     reportLoaded && report?.integritySummary?.isConsistent === true,
     formatPackageReviewIntegrityDetail(report?.integritySummary),
   ),
   buildPackageReviewChecklistRow(
     'required-artifacts-present',
-    '必需产物齐全',
+    messages.packageReview.checkRequiredArtifacts,
     !artifactsError && presentArtifactCount === requiredArtifactCount,
     formatPackageReviewRequiredArtifactsDetail(artifactsError, presentArtifactCount, requiredArtifactCount),
   ),

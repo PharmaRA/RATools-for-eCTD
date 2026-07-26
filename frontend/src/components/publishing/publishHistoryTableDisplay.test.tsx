@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { messages } from '../../i18n/messages'
 import {
   buildPublishHistoryColumns,
   type PublishHistoryEntry,
@@ -69,9 +70,9 @@ describe('publishHistoryTableDisplay', () => {
       { title: '就绪度', dataIndex: undefined, key: 'readiness', width: 180 },
       { title: '生命周期', dataIndex: undefined, key: 'lifecycle', width: 160 },
       { title: '产物', dataIndex: undefined, key: 'artifacts', width: 180 },
-      { title: '报告', dataIndex: undefined, key: 'report', width: 180 },
-      { title: 'Created', dataIndex: 'createdUtc', key: 'created', width: undefined },
-      { title: 'Actions', dataIndex: undefined, key: 'actions', width: 260 },
+      { title: messages.publishHistory.columnReport, dataIndex: undefined, key: 'report', width: 180 },
+      { title: messages.publishHistory.columnCreated, dataIndex: 'createdUtc', key: 'created', width: undefined },
+      { title: messages.publishHistory.columnActions, dataIndex: undefined, key: 'actions', width: 260 },
     ])
 
     const statusElement = (columns[1] as { render: (value: string) => unknown }).render('Completed')
@@ -83,7 +84,8 @@ describe('publishHistoryTableDisplay', () => {
       .render(null, entry)
     expect(isValidElement(readinessElement)).toBe(true)
 
-    expect((columns[5] as { render: (_: unknown, record: PublishHistoryEntry) => unknown }).render(null, entry)).toBe('1 issues')
+    expect((columns[5] as { render: (_: unknown, record: PublishHistoryEntry) => unknown }).render(null, entry))
+      .toBe(`1 ${messages.publishHistory.lifecycleIssueLabel}`)
 
     const actionsElement = (columns[9] as { render: (_: unknown, record: PublishHistoryEntry) => unknown })
       .render(null, entry)

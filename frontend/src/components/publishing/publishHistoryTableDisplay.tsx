@@ -1,5 +1,6 @@
 import { Badge, Button, Space, Tag, type TableColumnsType } from 'antd'
 
+import { messages } from '../../i18n/messages'
 import {
   formatDate,
   getReportAvailabilityLabel,
@@ -125,7 +126,7 @@ export const buildPublishHistoryColumns = ({
     },
   },
   {
-    title: 'Report',
+    title: messages.publishHistory.columnReport,
     key: 'report',
     width: 180,
     render: (_, record) => (
@@ -135,17 +136,17 @@ export const buildPublishHistoryColumns = ({
       </div>
     ),
   },
-  { title: 'Created', dataIndex: 'createdUtc', key: 'created', render: formatDate },
+  { title: messages.publishHistory.columnCreated, dataIndex: 'createdUtc', key: 'created', render: formatDate },
   {
-    title: 'Actions',
+    title: messages.publishHistory.columnActions,
     key: 'actions',
     fixed: 'right' as const,
     width: 260,
     render: (_, record) => (
       <Space>
-        <Button size="small" type="primary" onClick={() => onOpenReview(record.publishJobId)}>Review</Button>
-        <Button size="small" onClick={() => onOpenReport(record.publishJobId)}>Report</Button>
-        <Button size="small" type="primary" ghost onClick={() => onOpenArtifacts(record.publishJobId)}>Artifacts</Button>
+        <Button size="small" type="primary" onClick={() => onOpenReview(record.publishJobId)}>审阅</Button>
+        <Button size="small" onClick={() => onOpenReport(record.publishJobId)}>报告</Button>
+        <Button size="small" type="primary" ghost onClick={() => onOpenArtifacts(record.publishJobId)}>产物</Button>
       </Space>
     ),
   },

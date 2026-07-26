@@ -1,3 +1,4 @@
+import { messages } from './i18n/messages'
 import { summarizeLifecycleMatches } from './publishLifecycleSummary'
 import type {
   PublishReadinessReport,
@@ -22,7 +23,7 @@ export type NormalizedValidationReport = {
   lifecycleMatches: ValidationLifecycleMatch[]
 }
 
-export const validationApiProfile = 'Validation API'
+export const validationApiProfile = messages.prePublish.validationApiProfile
 export const apiErrorCode = 'API_ERROR'
 const structurallyUnusableReportMessage = '校验服务返回了无法使用的报告。'
 export const blockingSectionIssueCodes = new Set(['INVALID_SECTION_PATH', 'SECTION_MISSING'])
@@ -110,7 +111,7 @@ export const getPublishReadinessValidationIssues = (readiness: PublishReadinessR
     issues.push({
       severity: finding.severity,
       code: finding.code,
-      message: `[发布就绪度] ${finding.message}`,
+      message: `${messages.prePublish.readinessPrefix} ${finding.message}`,
       sectionPath: finding.sectionPath,
       documentId: finding.documentId,
       placementId: finding.placementId,
@@ -239,6 +240,6 @@ type PrePublishChecklistDisplaySummary = Pick<
 >
 
 export const buildPrePublishChecklistDisplay = (summary: PrePublishChecklistDisplaySummary) => ({
-  statusText: summary.canProceed ? '发布前检查已通过' : '发布前检查未通过',
-  issueCountText: `${summary.blockingIssueCount} 个阻断 | ${summary.warningCount} 个警告`,
+  statusText: summary.canProceed ? messages.prePublish.passed : messages.prePublish.failed,
+  issueCountText: `${summary.blockingIssueCount} ${messages.prePublish.blockingLabel} | ${summary.warningCount} ${messages.prePublish.warningLabel}`,
 })

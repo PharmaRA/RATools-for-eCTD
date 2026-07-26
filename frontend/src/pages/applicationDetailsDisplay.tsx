@@ -1,6 +1,7 @@
 import { Button, Space, type TableColumnsType } from 'antd'
 import { Trash2 } from 'lucide-react'
 
+import { messages } from '../i18n/messages'
 import { type SequenceSummary } from './appShared'
 
 type ApplicationDetailsTitle = {
@@ -29,11 +30,11 @@ export const buildSequenceColumns = ({
   onOpenWorkspace,
   onDeleteSequence,
 }: BuildSequenceColumnsOptions): TableColumnsType<SequenceSummary> => [
-  { title: '序列', dataIndex: 'sequenceNumber', render: (value) => <b>{value}</b> },
-  { title: '递交类型', dataIndex: 'submissionType' },
-  { title: '描述', dataIndex: 'description' },
+  { title: messages.applicationDetails.columnSequence, dataIndex: 'sequenceNumber', render: (value) => <b>{value}</b> },
+  { title: messages.applicationDetails.columnSubmissionType, dataIndex: 'submissionType' },
+  { title: messages.applicationDetails.columnDescription, dataIndex: 'description' },
   {
-    title: '操作',
+    title: messages.applicationDetails.columnActions,
     key: 'actions',
     render: (_, record) => {
       const isSequenceDeleteRunning = deletingSequenceNumbers.has(record.sequenceNumber)

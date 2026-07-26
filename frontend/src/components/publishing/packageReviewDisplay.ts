@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { Tag } from 'antd'
 
+import { messages } from '../../i18n/messages'
 import { formatOptionalBytes, formatOptionalText } from '../../pages/appShared'
 import { renderArtifactExistsStatus } from './artifactDisplay'
 import { buildEvidenceFindingColumns } from './evidenceFindingDisplay'
@@ -62,13 +63,17 @@ export const buildPackageReviewRiskSummaryItems = ({
 }
 
 export const renderChecklistPassStatus = (pass: boolean) => {
-  return createElement(Tag, { color: pass ? 'green' : 'red' }, pass ? '通过' : '未通过')
+  return createElement(
+    Tag,
+    { color: pass ? 'green' : 'red' },
+    pass ? messages.packageReview.passTag : messages.packageReview.failTag,
+  )
 }
 
 export const buildPackageReviewChecklistColumns = () => [
-  { title: '检查项', dataIndex: 'check', key: 'check' },
-  { title: '状态', dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
-  { title: '详情', dataIndex: 'detail', key: 'detail' },
+  { title: messages.packageReview.columnCheck, dataIndex: 'check', key: 'check' },
+  { title: messages.packageReview.columnStatus, dataIndex: 'pass', key: 'status', width: 120, render: renderChecklistPassStatus },
+  { title: messages.packageReview.columnDetail, dataIndex: 'detail', key: 'detail' },
 ]
 
 export const buildPackageReviewRequiredArtifactColumns = () => [

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiRequestError } from '../../apiClient'
+import { messages } from '../../i18n/messages'
 import { getReportErrorAlertMeta, toReportErrorState } from './reportErrors'
 
 describe('reportErrors', () => {
@@ -14,7 +15,7 @@ describe('reportErrors', () => {
   it('uses status 0 and a fallback message for unknown report load errors', () => {
     expect(toReportErrorState(null)).toEqual({
       status: 0,
-      message: 'Unknown error',
+      message: messages.common.unknownError,
     })
   })
 

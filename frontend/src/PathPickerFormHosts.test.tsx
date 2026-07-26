@@ -18,6 +18,7 @@ vi.mock('antd', async (importOriginal) => {
 })
 
 import App from './App'
+import { messages } from './i18n/messages'
 
 const flushPromises = async () => {
   await act(async () => {
@@ -215,10 +216,10 @@ describe('PathPicker form hosts', () => {
       workingDirectoryPath: 'D:/workspace/import',
       sponsorName: 'Imported Sponsor',
     })
-    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('3 total issues')
-    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('3 warnings')
-    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('0 errors')
-    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain('2 lifecycle target warnings')
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`3 ${messages.importResult.totalLabel}`)
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`3 ${messages.importResult.warningLabel}`)
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`0 ${messages.importResult.errorLabel}`)
+    expect(document.querySelector('[data-testid="import-result-summary"]')?.textContent).toContain(`2 ${messages.importResult.lifecycleWarningLabel}`)
     expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('Lifecycle Targets Need Review')
     expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_MISSING')
     expect(document.querySelector('[data-testid="import-result-lifecycle-issues"]')?.textContent).toContain('LIFECYCLE_TARGET_NOT_IMPORTED')
@@ -305,11 +306,11 @@ describe('PathPicker form hosts', () => {
 
     await flushPromises()
 
-    clickByText('Manage App')
+    clickByText('管理')
     await flushPromises()
-    clickByText('Enter Workspace')
+    clickByText('进入工作区')
     await flushPromises()
-    clickByText('Publish Sequence')
+    clickByText('发布序列')
 
     await waitFor(() => {
       getInputByPlaceholder('e.g. C:/eCTD/exports')

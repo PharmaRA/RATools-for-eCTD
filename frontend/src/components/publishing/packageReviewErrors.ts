@@ -1,4 +1,5 @@
 import { ApiRequestError } from '../../apiClient'
+import { messages } from '../../i18n/messages'
 
 export const normalizePackageReviewError = (error: unknown) => {
   if (error instanceof Error) return error
@@ -8,18 +9,18 @@ export const normalizePackageReviewError = (error: unknown) => {
 export const getReviewErrorDescription = (error: Error | null) => error?.message || ''
 
 export const getReviewErrorTitle = (error: Error) => {
-  if (!(error instanceof ApiRequestError)) return '无法加载包审阅数据'
+  if (!(error instanceof ApiRequestError)) return messages.packageReview.loadErrorGeneric
 
   switch (error.status) {
     case 404:
-      return '未找到报告或产物 (404)'
+      return messages.packageReview.loadErrorNotFound
     case 409:
-      return '发布任务尚未就绪 (409)'
+      return messages.packageReview.loadErrorNotReady
     case 410:
-      return '发布数据不可用 (410)'
+      return messages.packageReview.loadErrorGone
     case 422:
-      return '发布报告已损坏 (422)'
+      return messages.packageReview.loadErrorCorrupted
     default:
-      return `无法加载包审阅数据 (${error.status})`
+      return `${messages.packageReview.loadErrorGeneric} (${error.status})`
   }
 }

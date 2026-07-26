@@ -1,3 +1,4 @@
+import { messages } from '../i18n/messages'
 import type { EctdStructureNode } from '../workspaceTree'
 
 export interface SequenceSummary {
@@ -118,7 +119,7 @@ export const getReportAvailabilityLabel = (entry: ReportAvailability) => {
   return '可用'
 }
 
-export const getErrorMessage = (error: unknown, fallback = '未知错误') => {
+export const getErrorMessage = (error: unknown, fallback: string = messages.common.unknownError) => {
   if (error instanceof Error && error.message) return error.message
   if (typeof error === 'string' && error.trim().length > 0) return error
   return fallback

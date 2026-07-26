@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { messages } from '../../i18n/messages'
 import {
   buildArtifactColumns,
   getPublishArtifactsFromResponse,
@@ -9,9 +10,9 @@ import {
 
 describe('artifactDisplay', () => {
   it.each([
-    [true, 'green', 'Exists'],
-    [false, 'red', 'Missing'],
-    [undefined, 'red', 'Missing'],
+    [true, 'green', messages.artifact.exists],
+    [false, 'red', messages.artifact.missing],
+    [undefined, 'red', messages.artifact.missing],
   ] as const)('renders artifact exists status %s', (exists, color, label) => {
     const element = renderArtifactExistsStatus(exists)
 
@@ -33,11 +34,11 @@ describe('artifactDisplay', () => {
     const columns = buildArtifactColumns('job-1')
 
     expect(columns.map(({ title, dataIndex, key }) => ({ title, dataIndex, key }))).toEqual([
-      { title: 'Name', dataIndex: 'name', key: 'name' },
-      { title: 'Status', dataIndex: 'exists', key: 'exists' },
-      { title: 'Size', dataIndex: 'sizeBytes', key: 'size' },
-      { title: 'Type', dataIndex: 'contentType', key: 'type' },
-      { title: 'Action', dataIndex: undefined, key: 'action' },
+      { title: messages.artifact.columnName, dataIndex: 'name', key: 'name' },
+      { title: messages.artifact.columnStatus, dataIndex: 'exists', key: 'exists' },
+      { title: messages.artifact.columnSize, dataIndex: 'sizeBytes', key: 'size' },
+      { title: messages.artifact.columnType, dataIndex: 'contentType', key: 'type' },
+      { title: messages.artifact.columnAction, dataIndex: undefined, key: 'action' },
     ])
 
     const nameElement = (columns[0] as { render: (value: string) => unknown }).render('BackboneXml')
@@ -58,6 +59,6 @@ describe('artifactDisplay', () => {
       .render(null, { name: 'PackageZip', exists: false })
     expect(isValidElement(unavailableElement)).toBe(true)
     expect((unavailableElement as ReactElement<{ className: string; children: string }>).props.className).toBe('text-gray-400')
-    expect((unavailableElement as ReactElement<{ className: string; children: string }>).props.children).toBe('Unavailable')
+    expect((unavailableElement as ReactElement<{ className: string; children: string }>).props.children).toBe(messages.common.unavailable)
   })
 })

@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { messages } from '../i18n/messages'
 import { buildSequenceColumns, formatApplicationDetailsTitle, getApplicationSequences } from './applicationDetailsDisplay'
 
 type ColumnMetadata = {
@@ -55,10 +56,10 @@ describe('applicationDetailsDisplay', () => {
     })
 
     expect(columns.map(getColumnMetadata)).toEqual([
-      { title: 'Sequence', dataIndex: 'sequenceNumber', key: undefined },
-      { title: 'Submission Type', dataIndex: 'submissionType', key: undefined },
-      { title: 'Description', dataIndex: 'description', key: undefined },
-      { title: 'Actions', dataIndex: undefined, key: 'actions' },
+      { title: messages.applicationDetails.columnSequence, dataIndex: 'sequenceNumber', key: undefined },
+      { title: messages.applicationDetails.columnSubmissionType, dataIndex: 'submissionType', key: undefined },
+      { title: messages.applicationDetails.columnDescription, dataIndex: 'description', key: undefined },
+      { title: messages.applicationDetails.columnActions, dataIndex: undefined, key: 'actions' },
     ])
 
     const sequenceElement = (columns[0] as { render: (value: string) => unknown }).render('0001')

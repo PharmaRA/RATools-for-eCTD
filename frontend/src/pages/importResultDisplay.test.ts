@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { messages } from '../i18n/messages'
 import { formatOptionalText, getErrorSeverityTagColor } from './appShared'
 import {
   buildImportIssueColumns,
@@ -34,10 +35,10 @@ describe('importResultDisplay', () => {
       errorCount: 1,
       lifecycleWarningCount: 0,
     })).toEqual([
-      { key: 'total', color: 'blue', label: '3 total issues' },
-      { key: 'warnings', color: 'gold', label: '2 warnings' },
-      { key: 'errors', color: 'red', label: '1 errors' },
-      { key: 'lifecycle-target-warnings', color: 'green', label: '0 lifecycle target warnings' },
+      { key: 'total', color: 'blue', label: `3 ${messages.importResult.totalLabel}` },
+      { key: 'warnings', color: 'gold', label: `2 ${messages.importResult.warningLabel}` },
+      { key: 'errors', color: 'red', label: `1 ${messages.importResult.errorLabel}` },
+      { key: 'lifecycle-target-warnings', color: 'green', label: `0 ${messages.importResult.lifecycleWarningLabel}` },
     ])
 
     expect(buildImportIssueSummaryItems({

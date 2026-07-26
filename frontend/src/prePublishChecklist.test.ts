@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { messages } from './i18n/messages'
 import {
   apiErrorCode,
   buildPrePublishChecklistSummary,
@@ -112,7 +113,7 @@ describe('prePublishChecklist', () => {
       {
         severity: 'Error',
         code: 'MISSING_LEAF_TITLE',
-        message: '[Publish readiness] Leaf title is required.',
+        message: `${messages.prePublish.readinessPrefix} Leaf title is required.`,
         sectionPath: '1.2',
         documentId: 'doc-1',
         placementId: 'placement-1',
@@ -246,8 +247,8 @@ describe('prePublishChecklist', () => {
       blockingIssueCount: 0,
       warningCount: 1,
     })).toEqual({
-      statusText: 'Pre-publish checks passed',
-      issueCountText: '0 blocking | 1 warning',
+      statusText: messages.prePublish.passed,
+      issueCountText: `0 ${messages.prePublish.blockingLabel} | 1 ${messages.prePublish.warningLabel}`,
     })
 
     expect(buildPrePublishChecklistDisplay({
@@ -255,8 +256,8 @@ describe('prePublishChecklist', () => {
       blockingIssueCount: 2,
       warningCount: 3,
     })).toEqual({
-      statusText: 'Pre-publish checks failed',
-      issueCountText: '2 blocking | 3 warnings',
+      statusText: messages.prePublish.failed,
+      issueCountText: `2 ${messages.prePublish.blockingLabel} | 3 ${messages.prePublish.warningLabel}`,
     })
   })
 })

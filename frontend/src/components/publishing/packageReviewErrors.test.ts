@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiRequestError } from '../../apiClient'
+import { messages } from '../../i18n/messages'
 import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
 
 describe('packageReviewErrors', () => {
@@ -17,17 +18,17 @@ describe('packageReviewErrors', () => {
   })
 
   it.each([
-    [404, 'Report or artifacts were not found (404)'],
-    [409, 'Publish job is not ready (409)'],
-    [410, 'Publish data is unavailable (410)'],
-    [422, 'Publish report is corrupted (422)'],
-    [500, 'Unable to load package review data (500)'],
+    [404, messages.packageReview.loadErrorNotFound],
+    [409, messages.packageReview.loadErrorNotReady],
+    [410, messages.packageReview.loadErrorGone],
+    [422, messages.packageReview.loadErrorCorrupted],
+    [500, `${messages.packageReview.loadErrorGeneric} (500)`],
   ])('maps API status %s to a package review title', (status, title) => {
     expect(getReviewErrorTitle(new ApiRequestError(status, 'Failed'))).toBe(title)
   })
 
   it('uses the generic package review title for non-API errors', () => {
-    expect(getReviewErrorTitle(new Error('Failed'))).toBe('Unable to load package review data')
+    expect(getReviewErrorTitle(new Error('Failed'))).toBe(messages.packageReview.loadErrorGeneric)
   })
 
   it('uses the error message as the package review description', () => {

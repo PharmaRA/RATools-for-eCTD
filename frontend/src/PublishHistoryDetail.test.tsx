@@ -144,7 +144,7 @@ const getLifecycleTable = () => {
   const tables = Array.from(document.querySelectorAll('.ant-table'))
   const table = tables.find((candidate) => {
     const headers = Array.from(candidate.querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
-    return headers.includes('Document ID') && headers.includes('Attempted Strategies')
+    return headers.includes('文档 ID') && headers.includes('尝试的策略')
   })
   expect(table).toBeTruthy()
   return table as HTMLElement
@@ -159,7 +159,7 @@ const getLifecycleColumnIndex = (columnTitle: string) => {
 
 const getLifecycleRowByDocumentId = (documentId: string) => {
   const table = getLifecycleTable()
-  const documentIdIndex = getLifecycleColumnIndex('Document ID')
+  const documentIdIndex = getLifecycleColumnIndex('文档 ID')
   const row = Array.from(table.querySelectorAll('tbody tr.ant-table-row')).find((candidate) => {
     const cells = Array.from(candidate.querySelectorAll('td')).map((cell) => normalizeText(cell.textContent))
     return cells[documentIdIndex] === documentId
@@ -176,7 +176,7 @@ const expectLifecycleCell = (documentId: string, columnTitle: string, expectedVa
 }
 
 const expectReviewChecklistRow = (label: string, expectedStatus: string) => {
-  const checklistCard = Array.from(document.querySelectorAll('.ant-card')).find((candidate) => normalizeText(candidate.textContent).includes('Submission Readiness Checklist'))
+  const checklistCard = Array.from(document.querySelectorAll('.ant-card')).find((candidate) => normalizeText(candidate.textContent).includes('提交就绪检查清单'))
   expect(checklistCard).toBeTruthy()
   const row = Array.from(checklistCard!.querySelectorAll('tbody tr')).find((candidate) => normalizeText(candidate.textContent).includes(label))
   expect(row).toBeTruthy()
@@ -188,7 +188,7 @@ const getPublishHistorySequenceOrder = () => {
   const tables = Array.from(document.querySelectorAll('.ant-table'))
   const table = tables.find((candidate) => {
     const headers = Array.from(candidate.querySelectorAll('thead th')).map((header) => normalizeText(header.textContent))
-    return headers.includes('Sequence') && headers.includes('就绪度') && headers.includes('Actions')
+    return headers.includes('序列') && headers.includes('就绪度') && headers.includes('操作')
   })
   expect(table).toBeTruthy()
   return Array.from(table!.querySelectorAll('tbody tr.ant-table-row')).map((row) => normalizeText(row.querySelector('td')?.textContent))
@@ -609,20 +609,20 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('已匹配')
     expect(document.body.textContent).toContain('替换目标缺失')
     expect(document.body.textContent).toContain('追加目标缺失')
-    expect(document.body.textContent).toContain('Validation')
-    expect(document.body.textContent).toContain('Errors: 1')
-    expect(document.body.textContent).toContain('Warnings: 2')
+    expect(document.body.textContent).toContain('校验')
+    expect(document.body.textContent).toContain('错误: 1')
+    expect(document.body.textContent).toContain('警告: 2')
     expect(document.body.textContent).toContain('Leaf title missing in one section')
     expect(document.body.textContent).toContain('就绪度')
     expect(document.body.textContent).toContain('Blocked')
     expect(document.body.textContent).toContain('ApplicantContactName')
     expect(document.body.textContent).toContain('产物')
     expect(document.body.textContent).toContain('7 files')
-    expect(document.body.textContent).toContain('Report')
+    expect(document.body.textContent).toContain('报告')
     expect(document.body.textContent).toContain('可用')
-    expect(document.body.textContent).toContain('Ready Sequences')
-    expect(document.body.textContent).toContain('Blocked Sequences')
-    expect(document.body.textContent).toContain('Unknown Readiness')
+    expect(document.body.textContent).toContain('就绪序列')
+    expect(document.body.textContent).toContain('受阻序列')
+    expect(document.body.textContent).toContain('就绪度未知')
 
     unmount()
   })
@@ -663,17 +663,17 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
     await clickByText('管理')
     await clickByText('发布历史')
-    await clickButtonByText('Report')
+    await clickButtonByText('报告')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Publish Succeeded')
+    expect(document.body.textContent).toContain('发布成功')
     expect(document.body.textContent).toContain('Publish completed successfully.')
     expect(document.body.textContent).toContain('配置')
     expect(document.body.textContent).toContain('US FDA eCTD 3.2.2')
     expect(document.body.textContent).toContain('耗时')
     expect(document.body.textContent).toContain('1534 ms')
     expect(document.body.textContent).toContain('错误')
-    expect(document.body.textContent).toContain('Warnings')
+    expect(document.body.textContent).toContain('警告')
     expect(document.body.textContent).toContain('生命周期问题')
     expectDescriptionItem('生命周期问题', '6')
     expect(document.body.textContent).toContain('完整性')
@@ -689,50 +689,50 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('追加目标缺失')
     expect(document.body.textContent).toContain('存在歧义')
     expect(document.body.textContent).toContain('当前序列')
-    expect(document.body.textContent).toContain('Integrity Summary')
+    expect(document.body.textContent).toContain('完整性摘要')
     expect(document.body.textContent).toContain('一致')
     expect(document.body.textContent).toContain('缺失文件')
     expect(document.body.textContent).toContain('不匹配的产物')
-    expect(document.body.textContent).toContain('Artifact Summary')
+    expect(document.body.textContent).toContain('产物摘要')
     expect(document.body.textContent).toContain('包大小')
-    expect(document.body.textContent).toContain('Audit Summary')
+    expect(document.body.textContent).toContain('审计摘要')
     expect(document.body.textContent).toContain('最近操作')
-    expect(document.body.textContent).toContain('Publish Readiness')
+    expect(document.body.textContent).toContain('发布就绪度')
     expect(document.body.textContent).toContain('Blocked')
     expect(document.body.textContent).toContain('ApplicantContactName')
     expect(document.body.textContent).toContain('Populate the required US Regional publishing metadata field before publishing.')
-    expect(document.body.textContent).toContain('Lifecycle')
+    expect(document.body.textContent).toContain('生命周期')
     expect(document.body.textContent).toContain('REPLACE_TARGET_NOT_FOUND')
     expect(document.body.textContent).toContain('DELETE_TARGET_NOT_FOUND')
     expect(document.body.textContent).toContain('LIFECYCLE_TARGET_INVALID')
     expect(document.body.textContent).toContain('by-file-name')
-    expect(document.body.textContent).toContain('Sequence')
-    expect(document.body.textContent).toContain('Historical Matches')
-    expect(document.body.textContent).toContain('Historical Sequences')
-    expect(document.body.textContent).toContain('Document ID')
-    expect(document.body.textContent).toContain('Attempted Strategies')
-    expect(document.body.textContent).toContain('Historical Placement IDs')
-    expect(document.body.textContent).toContain('Final State')
-    expectLifecycleCell('doc-2', 'Operation', 'Append')
-    expectLifecycleCell('doc-2', 'Sequence', '0001')
-    expectLifecycleCell('doc-2', 'CTD Section', '1.3.5')
-    expectLifecycleCell('doc-2', 'Result Code', 'APPEND_TARGET_NOT_FOUND')
-    expectLifecycleCell('doc-2', 'Match Strategy', 'explicit-placement-id')
-    expectLifecycleCell('doc-2', 'Attempted Strategies', 'explicit-placement-id, document-id')
-    expectLifecycleCell('doc-2', 'Historical Matches', '0')
-    expectLifecycleCell('doc-2', 'Historical Sequences', '-')
-    expectLifecycleCell('doc-2', 'Historical Placement IDs', '-')
-    expectLifecycleCell('doc-2', 'Final State', '缺失')
-    expectLifecycleCell('doc-3', 'Operation', 'Replace')
-    expectLifecycleCell('doc-3', 'Sequence', '0001')
-    expectLifecycleCell('doc-3', 'CTD Section', '1.4.1')
-    expectLifecycleCell('doc-3', 'Result Code', 'LIFECYCLE_TARGET_AMBIGUOUS')
-    expectLifecycleCell('doc-3', 'Match Strategy', 'document-id')
-    expectLifecycleCell('doc-3', 'Attempted Strategies', 'document-id')
-    expectLifecycleCell('doc-3', 'Historical Matches', '2')
-    expectLifecycleCell('doc-3', 'Historical Sequences', '0000, 0001')
-    expectLifecycleCell('doc-3', 'Historical Placement IDs', 'placement-1, placement-2')
-    expectLifecycleCell('doc-3', 'Final State', 'Current')
+    expect(document.body.textContent).toContain('序列')
+    expect(document.body.textContent).toContain('历史匹配数')
+    expect(document.body.textContent).toContain('历史序列')
+    expect(document.body.textContent).toContain('文档 ID')
+    expect(document.body.textContent).toContain('尝试的策略')
+    expect(document.body.textContent).toContain('历史放置 ID')
+    expect(document.body.textContent).toContain('最终状态')
+    expectLifecycleCell('doc-2', '操作类型', 'Append')
+    expectLifecycleCell('doc-2', '序列', '0001')
+    expectLifecycleCell('doc-2', 'CTD 章节', '1.3.5')
+    expectLifecycleCell('doc-2', '结果代码', 'APPEND_TARGET_NOT_FOUND')
+    expectLifecycleCell('doc-2', '匹配策略', 'explicit-placement-id')
+    expectLifecycleCell('doc-2', '尝试的策略', 'explicit-placement-id, document-id')
+    expectLifecycleCell('doc-2', '历史匹配数', '0')
+    expectLifecycleCell('doc-2', '历史序列', '-')
+    expectLifecycleCell('doc-2', '历史放置 ID', '-')
+    expectLifecycleCell('doc-2', '最终状态', '缺失')
+    expectLifecycleCell('doc-3', '操作类型', 'Replace')
+    expectLifecycleCell('doc-3', '序列', '0001')
+    expectLifecycleCell('doc-3', 'CTD 章节', '1.4.1')
+    expectLifecycleCell('doc-3', '结果代码', 'LIFECYCLE_TARGET_AMBIGUOUS')
+    expectLifecycleCell('doc-3', '匹配策略', 'document-id')
+    expectLifecycleCell('doc-3', '尝试的策略', 'document-id')
+    expectLifecycleCell('doc-3', '历史匹配数', '2')
+    expectLifecycleCell('doc-3', '历史序列', '0000, 0001')
+    expectLifecycleCell('doc-3', '历史放置 ID', 'placement-1, placement-2')
+    expectLifecycleCell('doc-3', '最终状态', 'Current')
     await clickByText('证据')
     expect(document.body.textContent).toContain('完整性发现')
     expect(document.body.textContent).toContain('MissingZipEntry')
@@ -797,33 +797,33 @@ describe('Publish history detail frontend', () => {
     for (const text of [
       '包审阅',
       '不可提交',
-      'Submission Readiness Checklist',
-      'Publish Readiness Snapshot',
+      '提交就绪检查清单',
+      '发布就绪度快照',
       'ApplicantContactName',
       'Populate the required US Regional publishing metadata field before publishing.',
-      'Publish succeeded',
-      'Validation errors',
-      'Lifecycle issues',
-      'Integrity consistent',
-      'Required artifacts present',
-      'Risk Summary',
+      '发布成功',
+      '校验错误',
+      '生命周期问题',
+      '完整性一致',
+      '必需产物齐全',
+      '风险摘要',
       'MissingZipEntry',
       'Output file is missing from package zip.',
-      'Required Artifacts',
+      '必需产物',
       'BackboneXml',
       'PublishReport',
       'PackageZip',
       '下载审阅 JSON',
-      'Download Package',
-      'Download Report',
+      '下载包',
+      '下载报告',
     ]) {
       expect(document.body.textContent).toContain(text)
     }
-    expectReviewChecklistRow('Publish succeeded', '通过')
-    expectReviewChecklistRow('Validation errors', '未通过')
-    expectReviewChecklistRow('Lifecycle issues', '未通过')
-    expectReviewChecklistRow('Integrity consistent', '未通过')
-    expectReviewChecklistRow('Required artifacts present', '通过')
+    expectReviewChecklistRow('发布成功', '通过')
+    expectReviewChecklistRow('校验错误', '未通过')
+    expectReviewChecklistRow('生命周期问题', '未通过')
+    expectReviewChecklistRow('完整性一致', '未通过')
+    expectReviewChecklistRow('必需产物齐全', '通过')
     const { createdBlobs, clickedDownloads } = setupDownloadCapture()
     await clickButtonByText('下载审阅 JSON')
 
@@ -884,11 +884,11 @@ describe('Publish history detail frontend', () => {
     })
     expect(exportJson.generatedAtUtc).toEqual(expect.any(String))
     expect(exportJson.checklist).toEqual([
-      { key: 'publish-succeeded', check: 'Publish succeeded', status: '通过', detail: 'Publish completed successfully.' },
-      { key: 'validation-errors', check: 'Validation errors', status: '未通过', detail: '1 error(s)' },
-      { key: 'lifecycle-issues', check: 'Lifecycle issues', status: '未通过', detail: '6 issue(s)' },
-      { key: 'integrity-consistent', check: 'Integrity consistent', status: '未通过', detail: 'Inconsistent or unavailable' },
-      { key: 'required-artifacts-present', check: 'Required artifacts present', status: '通过', detail: '3/3 present' },
+      { key: 'publish-succeeded', check: '发布成功', status: 'Pass', detail: 'Publish completed successfully.' },
+      { key: 'validation-errors', check: '校验错误', status: 'Fail', detail: '1 个错误' },
+      { key: 'lifecycle-issues', check: '生命周期问题', status: 'Fail', detail: '6 个问题' },
+      { key: 'integrity-consistent', check: '完整性一致', status: 'Fail', detail: '不一致或不可用' },
+      { key: 'required-artifacts-present', check: '必需产物齐全', status: 'Pass', detail: '3/3 已就绪' },
     ])
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PackageZip/download', expect.anything())
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PublishReport/download', expect.anything())
@@ -929,8 +929,8 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
     await clickByText('管理')
     await clickByText('发布历史')
-    await selectOptionByInputId('readinessStatus', 'Blocked')
-    await clickButtonByText('Filter')
+    await selectOptionByInputId('readinessStatus', '受阻')
+    await clickButtonByText('筛选')
     await flushPromises()
 
     expect(
@@ -990,8 +990,8 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
     await clickByText('管理')
     await clickByText('发布历史')
-    await selectOptionByInputId('readinessSort', 'Blocked first')
-    await clickButtonByText('Filter')
+    await selectOptionByInputId('readinessSort', '受阻优先')
+    await clickButtonByText('筛选')
     await flushPromises()
 
     expect(getPublishHistorySequenceOrder()).toEqual(['0001', '0003', '0002'])
@@ -1031,8 +1031,8 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
     await clickByText('管理')
     await clickByText('发布历史')
-    await selectOptionByInputId('readinessSort', 'Ready first')
-    await clickButtonByText('Filter')
+    await selectOptionByInputId('readinessSort', '就绪优先')
+    await clickButtonByText('筛选')
     await flushPromises()
 
     expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
@@ -1079,8 +1079,8 @@ describe('Publish history detail frontend', () => {
     ).toBe(true)
     expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
 
-    await selectOptionByInputId('readinessSort', 'Blocked first')
-    await clickButtonByText('Filter')
+    await selectOptionByInputId('readinessSort', '受阻优先')
+    await clickButtonByText('筛选')
     await flushPromises()
 
     expect(window.location.search).toContain('publishReadinessStatus=Blocked')
@@ -1135,16 +1135,16 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
 
     expect(document.body.textContent).toContain('可提交')
-    expect(document.body.textContent).toContain('Warnings do not block readiness')
-    expect(document.body.textContent).toContain('Publish Readiness Snapshot')
+    expect(document.body.textContent).toContain('警告不影响就绪度')
+    expect(document.body.textContent).toContain('发布就绪度快照')
     expect(document.body.textContent).toContain('Ready')
     expect(document.body.textContent).toContain('TITLE_FALLBACK_USED')
-    expect(document.body.textContent).toContain('No integrity findings were recorded')
-    expectReviewChecklistRow('Publish succeeded', '通过')
-    expectReviewChecklistRow('Validation errors', '通过')
-    expectReviewChecklistRow('Lifecycle issues', '通过')
-    expectReviewChecklistRow('Integrity consistent', '通过')
-    expectReviewChecklistRow('Required artifacts present', '通过')
+    expect(document.body.textContent).toContain('未记录任何完整性发现项')
+    expectReviewChecklistRow('发布成功', '通过')
+    expectReviewChecklistRow('校验错误', '通过')
+    expectReviewChecklistRow('生命周期问题', '通过')
+    expectReviewChecklistRow('完整性一致', '通过')
+    expectReviewChecklistRow('必需产物齐全', '通过')
 
     unmount()
   })
@@ -1194,11 +1194,11 @@ describe('Publish history detail frontend', () => {
 
     expect(document.body.textContent).toContain('包审阅')
     expect(document.body.textContent).toContain('不可提交')
-    expect(document.body.textContent).toContain('产物不可用 (410)')
-    expect(document.body.textContent).toContain('Required artifacts present')
-    expectReviewChecklistRow('Required artifacts present', '未通过')
-    expectControlDisabled('Download Package')
-    expectControlDisabled('Download Report')
+    expect(document.body.textContent).toContain('发布数据不可用 (410)')
+    expect(document.body.textContent).toContain('必需产物齐全')
+    expectReviewChecklistRow('必需产物齐全', '未通过')
+    expectControlDisabled('下载包')
+    expectControlDisabled('下载报告')
     const { createdBlobs, clickedDownloads } = setupDownloadCapture()
     await clickButtonByText('下载审阅 JSON')
 
@@ -1269,7 +1269,7 @@ describe('Publish history detail frontend', () => {
 
     expect(document.body.textContent).toContain('包审阅')
     expect(document.body.textContent).toContain('发布报告已损坏 (422)')
-    expect(document.body.textContent).toContain('产物不可用 (410)')
+    expect(document.body.textContent).toContain('发布数据不可用 (410)')
     expectControlDisabled('下载审阅 JSON')
     expect(createdBlobs).toHaveLength(0)
 
@@ -1401,9 +1401,9 @@ describe('Publish history detail frontend', () => {
 
     expect(document.body.textContent).toContain('包审阅')
     expect(document.body.textContent).toContain('不可提交')
-    expect(document.body.textContent).toContain('Required Artifacts')
-    expectReviewChecklistRow('Required artifacts present', '未通过')
-    expectControlDisabled('Download Package')
+    expect(document.body.textContent).toContain('必需产物')
+    expectReviewChecklistRow('必需产物齐全', '未通过')
+    expectControlDisabled('下载包')
 
     unmount()
   })
@@ -1449,11 +1449,11 @@ describe('Publish history detail frontend', () => {
     await flushPromises()
     await clickByText('管理')
     await clickByText('发布历史')
-    await clickButtonByText('Report')
+    await clickButtonByText('报告')
     await flushPromises()
     await clickByText('证据')
 
-    expect(document.body.textContent).toContain('No detailed integrity evidence was recorded for this report.')
+    expect(document.body.textContent).toContain('未记录该报告的详细完整性证据。')
 
     unmount()
   })

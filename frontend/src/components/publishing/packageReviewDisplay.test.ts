@@ -1,6 +1,7 @@
 import { isValidElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
+import { messages } from '../../i18n/messages'
 import {
   buildIntegrityRiskSummaryItems,
   buildPackageReviewChecklistColumns,
@@ -123,8 +124,8 @@ describe('packageReviewDisplay', () => {
   })
 
   it.each([
-    [true, 'green', 'Pass'],
-    [false, 'red', 'Fail'],
+    [true, 'green', messages.packageReview.passTag],
+    [false, 'red', messages.packageReview.failTag],
   ] as const)('renders checklist pass status %s', (pass, color, label) => {
     const element = renderChecklistPassStatus(pass)
 
@@ -137,15 +138,15 @@ describe('packageReviewDisplay', () => {
     const columns = buildPackageReviewChecklistColumns()
 
     expect(columns.map(({ title, dataIndex, key, width }) => ({ title, dataIndex, key, width }))).toEqual([
-      { title: '检查项', dataIndex: 'check', key: 'check', width: undefined },
-      { title: '状态', dataIndex: 'pass', key: 'status', width: 120 },
-      { title: 'Details', dataIndex: 'detail', key: 'detail', width: undefined },
+      { title: messages.packageReview.columnCheck, dataIndex: 'check', key: 'check', width: undefined },
+      { title: messages.packageReview.columnStatus, dataIndex: 'pass', key: 'status', width: 120 },
+      { title: messages.packageReview.columnDetail, dataIndex: 'detail', key: 'detail', width: undefined },
     ])
 
     const statusElement = (columns[1] as { render: (value: boolean) => unknown }).render(true)
     expect(isValidElement(statusElement)).toBe(true)
     expect((statusElement as ReactElement<{ color: string; children: string }>).props.color).toBe('green')
-    expect((statusElement as ReactElement<{ color: string; children: string }>).props.children).toBe('通过')
+    expect((statusElement as ReactElement<{ color: string; children: string }>).props.children).toBe(messages.packageReview.passTag)
   })
 
   it.each([

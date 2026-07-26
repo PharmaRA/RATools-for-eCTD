@@ -262,7 +262,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
                   rowKey={getPublishReadinessFindingKey}
                   pagination={{ pageSize: 10 }}
                   size="small"
-                  locale={{ emptyText: 'No publish readiness findings were recorded.' }}
+                  locale={{ emptyText: '未记录任何发布就绪度发现项。' }}
                   columns={buildReportPublishReadinessFindingColumns()}
                 />
               </div>
@@ -273,7 +273,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
             items={[
               {
                 key: 'lifecycle',
-                label: `Lifecycle (${lifecycleMatches.length})`,
+                label: `生命周期 (${lifecycleMatches.length})`,
                 children: (
               <Table dataSource={lifecycleMatches} rowKey={(record, i) => `${record.documentId}-${i}`} pagination={{ pageSize: 10 }} size="small"
                 columns={buildReportLifecycleMatchColumns()}
@@ -282,7 +282,7 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               },
               {
                 key: 'issues',
-                label: `Validation Issues (${validationIssues.length})`,
+                label: `校验问题 (${validationIssues.length})`,
                 children: (
                   <Table
                     dataSource={validationIssues}
@@ -295,23 +295,23 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               },
               {
                 key: 'evidence',
-                label: 'Evidence',
+                label: '证据',
                 children: report.integrityEvidence ? (
                   <div className="flex flex-col gap-4">
-                    <Card size="small" title="Integrity Findings">
+                    <Card size="small" title="完整性发现">
                       <Table dataSource={integrityFindings} rowKey={(_, i) => `finding-${i}`} pagination={{ pageSize: 10 }} size="small"
-                        locale={{ emptyText: 'No integrity findings were recorded.' }}
+                        locale={{ emptyText: '未记录任何完整性发现项。' }}
                         columns={buildReportIntegrityFindingColumns()}
                       />
                     </Card>
-                    <Card size="small" title="Artifact Manifest">
+                    <Card size="small" title="产物清单">
                       <Table dataSource={integrityArtifacts} rowKey={(_, i) => `artifact-evidence-${i}`} pagination={{ pageSize: 10 }} size="small"
                         columns={buildReportArtifactManifestColumns()}
                       />
                     </Card>
                   </div>
                 ) : (
-                  <Alert type="info" showIcon title="No detailed integrity evidence was recorded for this report." />
+                  <Alert type="info" showIcon title="未记录该报告的详细完整性证据。" />
                 ),
               },
             ]}

@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { Tag } from 'antd'
 
+import { messages } from '../i18n/messages'
 import { formatOptionalText, getErrorSeverityTagColor } from './appShared'
 
 export const getImportIssueSeverityDisplayMeta = (value: string) => {
@@ -50,13 +51,13 @@ export const buildImportIssueSummaryItems = ({
   errorCount,
   lifecycleWarningCount,
 }: ImportIssueSummaryCounts) => [
-  buildImportIssueSummaryItem('total', totalIssueCount, '条问题总数', 'blue'),
-  buildImportIssueSummaryItem('warnings', warningCount, '条警告', 'gold'),
-  buildImportIssueSummaryItem('errors', errorCount, '条错误', 'red'),
+  buildImportIssueSummaryItem('total', totalIssueCount, messages.importResult.totalLabel, 'blue'),
+  buildImportIssueSummaryItem('warnings', warningCount, messages.importResult.warningLabel, 'gold'),
+  buildImportIssueSummaryItem('errors', errorCount, messages.importResult.errorLabel, 'red'),
   buildImportIssueSummaryItem(
     'lifecycle-target-warnings',
     lifecycleWarningCount,
-    '条生命周期目标警告',
+    messages.importResult.lifecycleWarningLabel,
     getImportLifecycleWarningSummaryColor(lifecycleWarningCount),
   ),
 ]

@@ -19,6 +19,7 @@ vi.mock('antd', async (importOriginal) => {
   }
 })
 
+import { messages } from '../i18n/messages'
 import { SequenceWorkspacePage } from './SequenceWorkspacePage'
 import { message } from 'antd'
 import { type PublishReadinessReport, type ValidationReport } from '../validationActions'
@@ -128,8 +129,10 @@ const expectValidationSummaryField = (field: string) => {
   return element!
 }
 
+// antd 会在恰好两个 CJK 字符的按钮文本中自动插入空格（"定 位"），
+// 此处渲染不经过 App 的 ConfigProvider（未关闭 autoInsertSpace），故匹配前先去除空白。
 const getLocateButtons = (container: Element | null) => Array.from(container?.querySelectorAll('button') || [])
-  .filter((button) => button.textContent?.includes('定位')) as HTMLButtonElement[]
+  .filter((button) => button.textContent?.replace(/\s+/g, '').includes('定位')) as HTMLButtonElement[]
 
 const clickLocateButton = (container: Element | null, index = 0) => {
   const button = getLocateButtons(container).at(index)
@@ -659,10 +662,10 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(modal?.textContent).toContain('发布就绪度受阻')
     expect(modal?.textContent).toContain('ApplicantContactName')
     expect(modal?.textContent).toContain('Populate the required US Regional publishing metadata field before publishing.')
-    expect(getInputByLabel('Applicant Contact Name').value).toBe('')
+    expect(getInputByLabel('申请人联系人姓名').value).toBe('')
 
     act(() => {
-      setInputValue(getInputByLabel('Applicant Contact Name'), 'Jane Regulatory')
+      setInputValue(getInputByLabel('申请人联系人姓名'), 'Jane Regulatory')
     })
     await flushPromises()
 
@@ -958,7 +961,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(getValidationSummaryField('title')?.textContent).toContain('发布前检查未通过')
     expect(getValidationSummaryField('profile')?.textContent).toContain('校验 API')
     expect(getValidationSummaryField('issue-count')?.textContent).toContain('1 个阻断')
-    expect(getValidationSummaryField('issue-count')?.textContent).toContain('0 warnings')
+    expect(getValidationSummaryField('issue-count')?.textContent).toContain(`0 ${messages.prePublish.warningLabel}`)
     expect(getValidationSummaryField('has-api-error')?.textContent).toContain('是')
     expect(getValidationSummaryField('status-label')?.textContent).toContain('发布前检查未通过')
     const checklistSummary = expectValidationSummaryField('checklist')
@@ -1216,7 +1219,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
     expect(getValidationSummaryField('sections')?.textContent).toContain('章节匹配')
     expect(getValidationSummaryField('sections')?.textContent).toContain('1 个无效')
-    expect(getValidationSummaryField('sections')?.textContent).toContain('1 non-standard')
+    expect(getValidationSummaryField('sections')?.textContent).toContain('1 个非标准')
     expect(getValidationSummaryField('sections')?.textContent).toContain('m9.9')
     expect(getValidationSummaryField('sections')?.textContent).toContain('Unknown section.')
 
@@ -1319,7 +1322,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     clickLocateButton(issuesArea)
     await flushPromises()
 
-    expect(message.warning).toHaveBeenCalledWith('Could not locate this validation issue in the workspace tree.')
+    expect(message.warning).toHaveBeenCalledWith('无法在工作区树中定位该校验问题。')
     expect(document.body.textContent).toContain('叶节点元数据指南')
     expect(document.body.textContent).not.toContain('叶节点元数据\n操作类型')
 
@@ -1534,7 +1537,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(document.body.textContent).toContain('映射 ID')
     expect(document.body.textContent).toContain('placement-2')
     expect(document.body.textContent).toContain('m1.2')
-    expect(getInputByLabel('Leaf Title').value).toBe('Cover Leaf')
+    expect(getInputByLabel('叶节点标题').value).toBe('Cover Leaf')
     expect(document.body.textContent).not.toContain('placement-1')
 
     unmount()
@@ -1713,7 +1716,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(document.body.textContent).toContain('保存叶节点元数据')
 
     act(() => {
-      setInputValue(getInputByLabel('File Prefix'), 'updated-protocol')
+      setInputValue(getInputByLabel('文件名前缀'), 'updated-protocol')
     })
     await flushPromises()
 

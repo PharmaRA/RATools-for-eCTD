@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { messages } from '../../i18n/messages'
 import {
   buildPackageReviewChecklistRow,
   buildPackageReviewChecklistRows,
@@ -10,28 +11,30 @@ import {
   isPackageReviewReadyForSubmission,
 } from './packageReviewChecklist'
 
+const m = messages.packageReview
+
 describe('packageReviewChecklist', () => {
   it('builds package review checklist rows from row fields', () => {
     expect(buildPackageReviewChecklistRow(
       'publish-succeeded',
-      'Publish succeeded',
+      m.checkPublishSucceeded,
       true,
       'Published',
     )).toEqual({
       key: 'publish-succeeded',
-      check: 'Publish succeeded',
+      check: m.checkPublishSucceeded,
       pass: true,
       detail: 'Published',
     })
   })
 
   it('formats checklist count details when report data is loaded', () => {
-    expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe('2 error(s)')
-    expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe('1 issue(s)')
+    expect(formatPackageReviewChecklistCountDetail(true, 2, 'error')).toBe(`2 ${m.errorCountLabel}`)
+    expect(formatPackageReviewChecklistCountDetail(true, 1, 'issue')).toBe(`1 ${m.issueCountLabel}`)
   })
 
   it('formats required artifact details with error precedence', () => {
-    expect(formatPackageReviewRequiredArtifactsDetail(null, 2, 3)).toBe('2/3 present')
+    expect(formatPackageReviewRequiredArtifactsDetail(null, 2, 3)).toBe(`2/3 ${m.artifactsReadySuffix}`)
     expect(formatPackageReviewRequiredArtifactsDetail(new Error('Artifacts unavailable'), 2, 3))
       .toBe('Artifacts unavailable')
   })
@@ -39,24 +42,24 @@ describe('packageReviewChecklist', () => {
   it('formats publish details with report message and error fallbacks', () => {
     expect(formatPackageReviewPublishDetail('Published', new Error('Report unavailable'))).toBe('Published')
     expect(formatPackageReviewPublishDetail('', new Error('Report unavailable'))).toBe('Report unavailable')
-    expect(formatPackageReviewPublishDetail(undefined, null)).toBe('Report unavailable.')
+    expect(formatPackageReviewPublishDetail(undefined, null)).toBe(m.reportUnavailable)
   })
 
   it('formats integrity details from consistency evidence', () => {
-    expect(formatPackageReviewIntegrityDetail({ isConsistent: true })).toBe('Consistent')
-    expect(formatPackageReviewIntegrityDetail({ isConsistent: false })).toBe('Inconsistent or unavailable')
-    expect(formatPackageReviewIntegrityDetail(undefined)).toBe('Inconsistent or unavailable')
+    expect(formatPackageReviewIntegrityDetail({ isConsistent: true })).toBe(m.integrityConsistent)
+    expect(formatPackageReviewIntegrityDetail({ isConsistent: false })).toBe(m.integrityInconsistent)
+    expect(formatPackageReviewIntegrityDetail(undefined)).toBe(m.integrityInconsistent)
   })
 
   it('checks whether every package review checklist row passes', () => {
     expect(isPackageReviewReadyForSubmission([
-      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
-      { key: 'validation-errors', check: 'Validation errors', pass: true, detail: '0 error(s)' },
+      { key: 'publish-succeeded', check: m.checkPublishSucceeded, pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: m.checkValidationErrors, pass: true, detail: `0 ${m.errorCountLabel}` },
     ])).toBe(true)
 
     expect(isPackageReviewReadyForSubmission([
-      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
-      { key: 'validation-errors', check: 'Validation errors', pass: false, detail: '1 error(s)' },
+      { key: 'publish-succeeded', check: m.checkPublishSucceeded, pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: m.checkValidationErrors, pass: false, detail: `1 ${m.errorCountLabel}` },
     ])).toBe(false)
 
     expect(isPackageReviewReadyForSubmission([])).toBe(true)
@@ -77,11 +80,11 @@ describe('packageReviewChecklist', () => {
         integritySummary: { isConsistent: true },
       },
     })).toEqual([
-      { key: 'publish-succeeded', check: 'Publish succeeded', pass: true, detail: 'Published' },
-      { key: 'validation-errors', check: 'Validation errors', pass: true, detail: '0 error(s)' },
-      { key: 'lifecycle-issues', check: 'Lifecycle issues', pass: true, detail: '0 issue(s)' },
-      { key: 'integrity-consistent', check: 'Integrity consistent', pass: true, detail: 'Consistent' },
-      { key: 'required-artifacts-present', check: 'Required artifacts present', pass: true, detail: '3/3 present' },
+      { key: 'publish-succeeded', check: m.checkPublishSucceeded, pass: true, detail: 'Published' },
+      { key: 'validation-errors', check: m.checkValidationErrors, pass: true, detail: `0 ${m.errorCountLabel}` },
+      { key: 'lifecycle-issues', check: m.checkLifecycleIssues, pass: true, detail: `0 ${m.issueCountLabel}` },
+      { key: 'integrity-consistent', check: m.checkIntegrityConsistent, pass: true, detail: m.integrityConsistent },
+      { key: 'required-artifacts-present', check: m.checkRequiredArtifacts, pass: true, detail: `3/3 ${m.artifactsReadySuffix}` },
     ])
   })
 
@@ -95,11 +98,11 @@ describe('packageReviewChecklist', () => {
       presentArtifactCount: 1,
       requiredArtifactCount: 3,
     })).toEqual([
-      { key: 'publish-succeeded', check: 'Publish succeeded', pass: false, detail: 'Report unavailable' },
-      { key: 'validation-errors', check: 'Validation errors', pass: false, detail: 'Unavailable' },
-      { key: 'lifecycle-issues', check: 'Lifecycle issues', pass: false, detail: 'Unavailable' },
-      { key: 'integrity-consistent', check: 'Integrity consistent', pass: false, detail: 'Inconsistent or unavailable' },
-      { key: 'required-artifacts-present', check: 'Required artifacts present', pass: false, detail: 'Artifacts unavailable' },
+      { key: 'publish-succeeded', check: m.checkPublishSucceeded, pass: false, detail: 'Report unavailable' },
+      { key: 'validation-errors', check: m.checkValidationErrors, pass: false, detail: messages.common.unavailable },
+      { key: 'lifecycle-issues', check: m.checkLifecycleIssues, pass: false, detail: messages.common.unavailable },
+      { key: 'integrity-consistent', check: m.checkIntegrityConsistent, pass: false, detail: m.integrityInconsistent },
+      { key: 'required-artifacts-present', check: m.checkRequiredArtifacts, pass: false, detail: 'Artifacts unavailable' },
     ])
   })
 })

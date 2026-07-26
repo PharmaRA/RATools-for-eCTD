@@ -1,3 +1,4 @@
+import { messages } from '../../i18n/messages'
 import {
   buildLifecycleIssueCountItems,
   formatOptionalBytes,
@@ -19,7 +20,9 @@ export const formatArtifactPackageSize = (summary?: ArtifactPackageSummary | nul
 
 export const formatPublishHistoryLifecycleStatus = (summary?: LifecycleSummary | null) => {
   const issueCount = getLifecycleIssueCount(summary)
-  return issueCount === 0 ? '全部匹配' : `${issueCount} 个问题`
+  return issueCount === 0
+    ? messages.publishHistory.lifecycleAllMatched
+    : `${issueCount} ${messages.publishHistory.lifecycleIssueLabel}`
 }
 
 type PublishHistoryValidationSummary = {
