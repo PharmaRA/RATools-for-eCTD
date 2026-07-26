@@ -37,11 +37,12 @@ complete official regulatory rule set.
 | --- | --- | --- |
 | Application / sequence lifecycle | Production-ready | Production-ready |
 | Workspace import | Production-ready | Production-ready |
-| Document upload / placement | Production-ready | Production-ready |
-| Sequence validation (sections, lifecycle, readiness) | Production-ready | Production-ready |
+| Document upload / placement | Production-ready (full CTD section dictionary) | Controlled skeleton (Module 1 top-level sections only) |
+| Section structure tree | Production-ready | Controlled skeleton (minimal EU M1 tree) |
+| Sequence validation (sections, lifecycle, readiness) | Production-ready | Production-ready (shared checks; EU sections validated against the skeleton dictionary) |
 | ICH M2–M5 backbone (`index.xml`) | Production-ready | Production-ready (shared writer) |
 | Regional Module 1 backbone | Production-ready (`us-regional.xml`) | Controlled skeleton (`eu-regional.xml`, bundled placeholder DTD) |
-| Publish job execution + artifacts | Production-ready | Controlled skeleton (readiness dry-run) |
+| Publish job execution + artifacts | Production-ready | Controlled skeleton (end-to-end publish covered by regression test against the placeholder DTD) |
 | PDF compliance rules | Production-ready (rule engine) | Shared rules apply |
 | Publish history / audit | Production-ready | Production-ready |
 
@@ -49,10 +50,15 @@ Notes:
 
 - EU support is an intentionally narrow second region added to prove the multi-region
   architecture. The bundled `reference/dtd/eu-regional.dtd` is a test/architecture
-  placeholder, not the full official EU Module 1 validation rule set.
+  placeholder, not the full official EU Module 1 validation rule set. The EU section
+  dictionary (`EuEctd322`) covers only Module 1 top-level sections, matching the EU
+  regional writer's m1-only boundary; expanding EU support means replacing both with
+  the official EU M1 specification artifacts.
 - PDF compliance runs through the shared eCTD validation rule engine
   (`IEctdValidationRule`), so region-specific PDF policies can be layered on later
-  without bespoke checks in the readiness service.
+  without bespoke checks in the readiness service. Font-embedding and security
+  restriction checks are tri-state: findings distinguish verified failures from
+  "could not verify" (reported as low-severity for manual review).
 
 ## Local Run
 
@@ -79,6 +85,17 @@ npm run dev
 Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` to the backend at `http://localhost:5000`.
 
 Default backend configuration is in `src/RATools.Api/appsettings.json`.
+
+## Key Configuration
+
+- `Security:ApiKey`: required for non-InMemory providers; startup fails fast when empty.
+- `Security:AllowedWorkspaceRoots`: whitelist roots for every workspace read/write/delete.
+- `Security:AllowDestructiveOperations` (default `false`): gates `deleteMode=PurgeWorkspace`
+  (recursive workspace deletion). Keep it off unless an environment explicitly needs purge.
+- `FileStorage:MaxUploadBytes` (default 500 MB): request body / multipart upload limit.
+- `BackboneOutput:RetainJobRuns` (default 5): publish keeps the newest N `_jobs/{jobId}`
+  delivery copies per application and prunes older ones; `_artifacts` and `_packages`
+  are never pruned. Set `0` or negative to disable pruning.
 
 ## Working Directories
 
