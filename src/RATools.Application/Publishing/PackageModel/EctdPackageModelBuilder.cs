@@ -170,12 +170,15 @@ public sealed class EctdPackageModelBuilder(
             return null;
         }
 
+        DocumentPlacement? targetPlacement;
         if (placement.LifecycleTargetPlacementId is null)
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, null, "target placement is missing");
+            // 与 LifecycleTargetResolver 的 SectionAndFileName 策略保持一致：验证侧
+            // 允许自动匹配，发布侧必须用同一规则解析，否则又会出现"验证绿、发布红"。
+            targetPlacement = ResolveAutoLifecycleTarget(applicationId, placement, placementById.Values, documentById)
+                ?? throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, null, "target placement is missing");
         }
-
-        if (!placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out var targetPlacement))
+        else if (!placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out targetPlacement))
         {
             throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement was not found");
         }
@@ -205,6 +208,29 @@ public sealed class EctdPackageModelBuilder(
             targetPlacement.DocumentId,
             targetPlacement.SequenceNumber,
             PublishOutputNaming.BuildPublishedDocumentRelativePath(targetDocument, targetPlacement.SequenceNumber));
+    }
+
+    private static DocumentPlacement? ResolveAutoLifecycleTarget(
+        Guid applicationId,
+        DocumentPlacement placement,
+        IEnumerable<DocumentPlacement> allPlacements,
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+    {
+        if (!documentById.TryGetValue(placement.DocumentId, out var currentDocument))
+        {
+            return null;
+        }
+
+        var candidates = allPlacements
+            .Where(candidate => candidate.ApplicationId == applicationId)
+            .Where(candidate => string.Equals(candidate.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase))
+            .Where(candidate => CompareSequenceNumbers(candidate.SequenceNumber, placement.SequenceNumber) < 0)
+            .Where(candidate => documentById.TryGetValue(candidate.DocumentId, out var candidateDocument)
+                && string.Equals(candidateDocument.FileName, currentDocument.FileName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        // 仅唯一匹配才自动解析；零解或多解一律回落到显式指定的错误路径。
+        return candidates.Length == 1 ? candidates[0] : null;
     }
 
     private static string ClassifyModule(Guid applicationId, string sequenceNumber, DocumentPlacement placement)

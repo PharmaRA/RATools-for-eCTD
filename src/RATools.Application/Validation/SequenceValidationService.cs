@@ -343,7 +343,9 @@ public sealed class SequenceValidationService(
         {
             "LIFECYCLE_TARGET_INVALID" => $"The selected lifecycle target for {placement.Operation} in section {placement.CtdSection} is not a valid historical placement.",
             "LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE" => $"A lifecycle target for {placement.Operation} exists only in the current sequence for section {placement.CtdSection} and document {placement.DocumentId}.",
-            "LIFECYCLE_TARGET_AMBIGUOUS" => $"Multiple historical targets were found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}.",
+            "LIFECYCLE_TARGET_AMBIGUOUS" => $"Multiple historical targets were found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}. Select the target placement explicitly.",
+            "LIFECYCLE_TARGET_SUPERSEDED" => $"The lifecycle target for {placement.Operation} in section {placement.CtdSection} was already replaced by a later sequence. Target the latest active leaf instead.",
+            "LIFECYCLE_TARGET_DELETED" => $"The lifecycle target for {placement.Operation} in section {placement.CtdSection} was already deleted by a later sequence and cannot be modified.",
             _ => $"No historical target was found for {placement.Operation} in section {placement.CtdSection} for document {placement.DocumentId}."
         };
     }
