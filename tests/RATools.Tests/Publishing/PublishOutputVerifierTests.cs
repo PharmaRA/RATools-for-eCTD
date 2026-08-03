@@ -427,6 +427,129 @@ public sealed class PublishOutputVerifierTests
         }
     }
 
+    [Fact]
+    public async Task VerifyAsync_FlagsEmptyFolderAsWarning()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1"));
+            Directory.CreateDirectory(Path.Combine(outputDir, "m2"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var leafPath = Path.Combine(outputDir, "m1", "leaf.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(leafPath, "leaf");
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("m1/leaf.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            // 空文件夹与孤儿同为 Warning：可见但不阻断已成功的发布。
+            Assert.True(result.Summary.IsConsistent);
+            var finding = Assert.Single(result.Evidence.Findings, x => x.Type == "EmptyFolder");
+            Assert.Equal("Warning", finding.Severity);
+            Assert.Equal("m2", finding.Path);
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_DoesNotFlagDirectoriesThatContainFiles()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1", "us", "11-forms"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var leafPath = Path.Combine(outputDir, "m1", "us", "11-forms", "form.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(leafPath, "form");
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("m1/us/11-forms/form.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            // 中间层目录本身没有文件，但子树有——不该报。
+            Assert.DoesNotContain(result.Evidence.Findings, x => x.Type == "EmptyFolder");
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_ReportsOnlyOutermostDirectoryForNestedEmptyFolders()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "m1"));
+            Directory.CreateDirectory(Path.Combine(outputDir, "m3", "32-body-of-data", "empty-leaf-dir"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var leafPath = Path.Combine(outputDir, "m1", "leaf.pdf");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(leafPath, "leaf");
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("m1/leaf.pdf"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            var finding = Assert.Single(result.Evidence.Findings, x => x.Type == "EmptyFolder");
+            Assert.Equal("m3", finding.Path);
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_FlagsEmptyDirectoryUnderUtilEvenThoughUtilIsOrphanWhitelisted()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var outputDir = Path.Combine(root, "output");
+            Directory.CreateDirectory(Path.Combine(outputDir, "util", "dtd"));
+            Directory.CreateDirectory(Path.Combine(outputDir, "util", "style"));
+            var backbonePath = Path.Combine(outputDir, "index.xml");
+            var dtdPath = Path.Combine(outputDir, "util", "dtd", "ich-ectd-3-2.dtd");
+            var reportPath = Path.Combine(root, "publish-report.json");
+            var packagePath = Path.Combine(root, "package.zip");
+
+            await File.WriteAllTextAsync(dtdPath, "<!-- dtd -->");
+            await File.WriteAllTextAsync(backbonePath, BackboneXml("util/dtd/ich-ectd-3-2.dtd"));
+            await File.WriteAllTextAsync(reportPath, "{}");
+            CreateZip(packagePath, outputDir);
+
+            var result = await new PublishOutputVerifier().VerifyAsync(backbonePath, reportPath, packagePath);
+
+            // util/ 只在孤儿扫描里被白名单，空目录检查对它同样生效。
+            var finding = Assert.Single(result.Evidence.Findings, x => x.Type == "EmptyFolder");
+            Assert.Equal("util/style", finding.Path);
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), $"publish-evidence-{Guid.NewGuid():N}");

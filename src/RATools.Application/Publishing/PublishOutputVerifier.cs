@@ -8,10 +8,11 @@ using RATools.Application.Publishing.Dtos;
 namespace RATools.Application.Publishing;
 
 /// <summary>
-/// 发布输出完整性核验。除文件存在性与 zip 条目外，还覆盖三类官方验证器高频拒收项：
+/// 发布输出完整性核验。除文件存在性与 zip 条目外，还覆盖四类官方验证器高频拒收项：
 /// (1) checksum 一致性——backbone 声明的 md5 与实际文件重算值必须一致；
 /// (2) 孤儿文件反向扫描——磁盘上存在但未被任何 backbone 引用的文件；
-/// (3) DTD 交付完整性——DOCTYPE SystemId 引用的 DTD 必须真实存在于包内。
+/// (3) DTD 交付完整性——DOCTYPE SystemId 引用的 DTD 必须真实存在于包内；
+/// (4) 空文件夹——整棵子树不含任何文件的目录被判为提交结构问题。
 /// backbone 的 href 相对于**声明它的 XML 文件所在目录**解析（index.xml 在包根，
 /// 区域 backbone 在 m1/&lt;region&gt;/ 下），跨序列引用（../ 逃出包根）不在本包核验范围。
 /// </summary>
@@ -184,6 +185,8 @@ public sealed partial class PublishOutputVerifier
                     zipEntryPresent,
                     "OutputDirectory"));
             }
+
+            VerifyNoEmptyDirectories(resolvedOutputDirectory, findings, cancellationToken);
         }
 
         var isConsistent = missingFilesCount == 0 && missingZipEntriesCount == 0 && mismatchedArtifactsCount == 0;
@@ -336,6 +339,56 @@ public sealed partial class PublishOutputVerifier
             mismatchedArtifactsCount++;
         }
     }
+
+    // 官方验证器把交付包里的空文件夹判为提交结构问题。与 OrphanFile 同为 Warning 级：
+    // 空目录可修可解释，不该阻断一次已成功的发布，故不翻转 isConsistent。
+    private static void VerifyNoEmptyDirectories(
+        string outputRoot,
+        List<PublishIntegrityFindingDto> findings,
+        CancellationToken cancellationToken)
+    {
+        foreach (var directory in EnumerateChildDirectories(outputRoot))
+        {
+            CollectEmptyDirectories(directory, outputRoot, findings, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// 递归判定子树是否含任何文件，并就地收集空目录 finding。
+    /// 嵌套目录整体为空时只报最外层——报一串嵌套空目录只是噪声。
+    /// </summary>
+    private static bool CollectEmptyDirectories(
+        string directory,
+        string outputRoot,
+        List<PublishIntegrityFindingDto> findings,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var subtreeHasFile = Directory.EnumerateFiles(directory).Any();
+        var nestedFindings = new List<PublishIntegrityFindingDto>();
+        foreach (var child in EnumerateChildDirectories(directory))
+        {
+            subtreeHasFile |= CollectEmptyDirectories(child, outputRoot, nestedFindings, cancellationToken);
+        }
+
+        if (!subtreeHasFile)
+        {
+            findings.Add(new PublishIntegrityFindingDto(
+                "Warning",
+                "EmptyFolder",
+                Path.GetRelativePath(outputRoot, directory).Replace('\\', '/'),
+                "The delivery output contains a folder without any file; official validators treat empty folders as a submission structure issue."));
+            return false;
+        }
+
+        findings.AddRange(nestedFindings);
+        return true;
+    }
+
+    // 枚举顺序按文件系统实现而定，排序保证 finding 顺序可预期。
+    private static IEnumerable<string> EnumerateChildDirectories(string directory)
+        => Directory.EnumerateDirectories(directory).OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
 
     private static bool IsExternalReference(string href)
         => string.IsNullOrWhiteSpace(href)
