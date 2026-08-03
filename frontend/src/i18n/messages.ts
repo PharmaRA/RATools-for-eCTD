@@ -66,6 +66,28 @@ export const messages = {
     columnDescription: '描述',
     columnActions: '操作',
   },
+  auditLogs: {
+    title: '审计日志',
+    navLabel: '审计日志',
+    entityTypeLabel: '实体类型',
+    entityTypePlaceholder: '全部类型',
+    entityIdLabel: '实体 ID',
+    entityIdPlaceholder: '精确匹配',
+    actionLabel: '动作',
+    actionPlaceholder: '精确匹配',
+    createdRangeLabel: '时间范围',
+    search: '查询',
+    reset: '重置',
+    columnCreated: '时间',
+    columnEntityType: '实体类型',
+    columnEntityId: '实体 ID',
+    columnAction: '动作',
+    columnActor: '操作者',
+    columnDetails: '详情',
+    empty: '没有符合条件的审计记录',
+    loadError: '无法加载审计日志',
+    totalLabel: '条记录',
+  },
 } as const
 
 export type Messages = typeof messages

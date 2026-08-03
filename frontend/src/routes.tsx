@@ -9,6 +9,8 @@ const ApplicationDetailsPage = lazy(() =>
   import('./pages/ApplicationDetailsPage').then((module) => ({ default: module.ApplicationDetailsPage })))
 const SequenceWorkspacePage = lazy(() =>
   import('./pages/SequenceWorkspacePage').then((module) => ({ default: module.SequenceWorkspacePage })))
+const AuditLogsPage = lazy(() =>
+  import('./pages/AuditLogsPage').then((module) => ({ default: module.AuditLogsPage })))
 
 const RouteFallback = () => (
   <div className="flex justify-center py-16" role="status" aria-live="polite">
@@ -67,6 +69,7 @@ export const AppRoutes = () => {
         <Route path="/" element={<ApplicationsRoute />} />
         <Route path="/applications/:applicationId" element={<ApplicationDetailsRoute />} />
         <Route path="/applications/:applicationId/sequences/:sequenceNumber/workspace" element={<SequenceWorkspaceRoute />} />
+        <Route path="/audit-logs" element={<AuditLogsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

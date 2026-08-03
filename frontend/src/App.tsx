@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, useNavigate } from 'react-router-dom'
 import { App as AntApp, ConfigProvider, Spin, Tag, theme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import { Activity } from 'lucide-react'
+import { Activity, ScrollText } from 'lucide-react'
 
 import { ErrorBoundary } from './ErrorBoundary'
 import { checkHealth, type HealthStatus } from './healthActions'
+import { messages } from './i18n/messages'
 import { AppRoutes } from './routes'
 
 // 健康探针轮询间隔：30s。既能及时反映后端掉线，又不至于给 /health 造成压力。
@@ -35,6 +36,7 @@ const RoutedAppShell = () => {
   }, [])
 
   const goHome = useCallback(() => navigate('/'), [navigate])
+  const goAuditLogs = useCallback(() => navigate('/audit-logs'), [navigate])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -48,6 +50,16 @@ const RoutedAppShell = () => {
           <Activity className="text-blue-400" aria-hidden="true" />
           <h1 className="text-xl font-bold m-0 tracking-wide">RATools Admin</h1>
         </button>
+        <nav className="flex items-center gap-4 text-sm" aria-label="主导航">
+          <button
+            type="button"
+            className="flex items-center gap-1 bg-transparent border-0 text-gray-300 hover:text-white cursor-pointer p-0"
+            onClick={goAuditLogs}
+          >
+            <ScrollText size={16} aria-hidden="true" />
+            {messages.auditLogs.navLabel}
+          </button>
+        </nav>
         <div className="flex items-center gap-2 text-sm" role="status" aria-live="polite">
           <span className="text-gray-400">API 状态：</span>
           {health === 'loading' ? <Spin size="small" aria-label="正在检测 API 状态" /> : (
