@@ -218,7 +218,10 @@ Content-Type: application/json
   "details": "Initial application bootstrap"
 }
 
-### List audit logs
-GET {{host}}/api/audit-logs
+### List audit logs (paged; pageSize is clamped to 200)
+GET {{host}}/api/audit-logs?page=1&pageSize=20
+
+### List audit logs filtered by entity
+GET {{host}}/api/audit-logs?entityType=PublishJob&entityId={{executePublishJob.response.body.$.id}}
 
 ### Audit logs now include validation and publish job lifecycle events

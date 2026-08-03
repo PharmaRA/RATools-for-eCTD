@@ -640,17 +640,20 @@ try {
 
     if (-not $SkipAuditCheck) {
         Write-Step "Checking audit linkage"
-        $auditLogs = Invoke-JsonGet -Url "$BaseUrl/api/audit-logs"
-        $publishJobAudit = $auditLogs | Where-Object {
-            $_.entityType -eq "PublishJob" -and $_.entityId -eq $publishJob.id
-        }
+        # 服务端过滤 + 分页（A3）：按 entityType/entityId 精确取，不再全表拉回客户端筛。
+        $publishJobAudit = (Invoke-JsonGet -Url "$BaseUrl/api/audit-logs?entityType=PublishJob&entityId=$($publishJob.id)&pageSize=200").items
 
-        $validationAudit = $auditLogs | Where-Object {
-            $_.entityType -eq "SequenceValidation" -and $_.entityId -eq "$($application.id):0000"
-        }
+        $validationAudit = (Invoke-JsonGet -Url "$BaseUrl/api/audit-logs?entityType=SequenceValidation&entityId=$($application.id):0000&pageSize=200").items
 
-        $artifactAudit = $auditLogs | Where-Object {
-            $_.entityType -eq "PublishJobArtifact" -and $_.entityId -like "$($publishJob.id):*"
+        # PublishJobArtifact 的 entityId 是 "<jobId>:<role>" 前缀形态，无法精确匹配；
+        # 按 entityType 取一页后在客户端筛前缀。
+        $artifactAudit = (Invoke-JsonGet -Url "$BaseUrl/api/audit-logs?entityType=PublishJobArtifact&pageSize=200").items |
+            Where-Object { $_.entityId -like "$($publishJob.id):*" }
+
+        # pageSize clamp 守卫：请求 999 必须被压到 200 上限。
+        $clampProbe = Invoke-JsonGet -Url "$BaseUrl/api/audit-logs?pageSize=999"
+        if ($clampProbe.pageSize -ne 200) {
+            throw "Audit log pageSize clamp failed: requested 999 but response reports pageSize $($clampProbe.pageSize) instead of 200."
         }
 
         if (-not $publishJobAudit -or $publishJobAudit.Count -eq 0) {

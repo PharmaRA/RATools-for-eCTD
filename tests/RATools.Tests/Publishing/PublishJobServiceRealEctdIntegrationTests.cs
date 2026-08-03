@@ -251,6 +251,9 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             return Task.FromResult<IReadOnlyCollection<AuditLogDto>>(
                 _entries.Where(x => wanted.Contains((x.EntityType, x.EntityId))).ToArray());
         }
+
+        public Task<AuditLogPageDto> QueryAsync(AuditLogQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult(new AuditLogPageDto(query.Page, query.PageSize, _entries.Count, _entries.ToArray()));
     }
 
     private sealed class RelaxedValidationProfileProvider : IValidationProfileProvider

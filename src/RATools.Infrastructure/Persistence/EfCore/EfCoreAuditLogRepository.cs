@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Auditing;
 using RATools.Domain.Auditing;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
@@ -20,6 +21,54 @@ public sealed class EfCoreAuditLogRepository(RAToolsDbContext dbContext) : IAudi
             .ToArrayAsync(cancellationToken);
 
         return records.Select(x => x.ToDomain()).ToArray();
+    }
+
+    public async Task<(IReadOnlyCollection<AuditLogEntry> Items, int TotalCount)> QueryAsync(
+        AuditLogQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var filtered = ApplyFilters(dbContext.AuditLogs.AsNoTracking(), query);
+
+        // 先算总数再取页：分页元数据必须反映过滤后的全集，而不是当前页。
+        var totalCount = await filtered.CountAsync(cancellationToken);
+        var page = query.Page < 1 ? 1 : query.Page;
+        var records = await filtered
+            .OrderByDescending(x => x.CreatedUtc)
+            .Skip((page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToArrayAsync(cancellationToken);
+
+        return (records.Select(x => x.ToDomain()).ToArray(), totalCount);
+    }
+
+    private static IQueryable<AuditLogRecord> ApplyFilters(IQueryable<AuditLogRecord> source, AuditLogQuery query)
+    {
+        if (!string.IsNullOrWhiteSpace(query.EntityType))
+        {
+            source = source.Where(x => x.EntityType == query.EntityType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.EntityId))
+        {
+            source = source.Where(x => x.EntityId == query.EntityId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Action))
+        {
+            source = source.Where(x => x.Action == query.Action);
+        }
+
+        if (query.CreatedFromUtc is { } from)
+        {
+            source = source.Where(x => x.CreatedUtc >= from);
+        }
+
+        if (query.CreatedToUtc is { } to)
+        {
+            source = source.Where(x => x.CreatedUtc <= to);
+        }
+
+        return source;
     }
 
     public async Task<IReadOnlyCollection<AuditLogEntry>> ListByEntitiesAsync(

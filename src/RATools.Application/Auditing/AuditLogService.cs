@@ -22,6 +22,16 @@ public sealed class AuditLogService(IAuditLogRepository repository) : IAuditLogS
         return items.Select(x => x.ToDto()).ToArray();
     }
 
+    public async Task<AuditLogPageDto> QueryAsync(AuditLogQuery query, CancellationToken cancellationToken = default)
+    {
+        var (items, totalCount) = await repository.QueryAsync(query, cancellationToken);
+        return new AuditLogPageDto(
+            query.Page < 1 ? 1 : query.Page,
+            query.PageSize,
+            totalCount,
+            items.Select(x => x.ToDto()).ToArray());
+    }
+
     public async Task<IReadOnlyCollection<AuditLogDto>> ListByEntitiesAsync(
         IReadOnlyCollection<(string EntityType, string EntityId)> entities,
         CancellationToken cancellationToken = default)

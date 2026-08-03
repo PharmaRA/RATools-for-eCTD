@@ -234,6 +234,9 @@ public sealed class PublishJobServiceEvidenceTests
             IReadOnlyCollection<(string EntityType, string EntityId)> entities,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());
+
+        public Task<AuditLogPageDto> QueryAsync(AuditLogQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult(new AuditLogPageDto(query.Page, query.PageSize, 0, Array.Empty<AuditLogDto>()));
     }
 
     private sealed class AllowAllWorkspacePathPolicy : IWorkspacePathPolicy
