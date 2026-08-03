@@ -74,20 +74,64 @@ public sealed class PdfPigPdfInspectorTests
     }
 
     private static byte[] CreateTinyPdf(string text)
+        => BuildPdf(text, bookmarkDepth: 0, pageMode: null);
+
+    /// <summary>
+    /// 构造最小可解析 PDF。bookmarkDepth &gt; 0 时生成一条 depth 层深的单链书签树
+    /// （每层一个节点，节点 i 的 First/Last 指向节点 i+1），pageMode 非 null 时写入 catalog 的 /PageMode。
+    /// </summary>
+    private static byte[] BuildPdf(string text, int bookmarkDepth, string? pageMode)
     {
-        var objects = new[]
+        // 对象编号：1 catalog、2 pages、3 page、4 font、5 contents、6 outlines 根、7.. 书签节点。
+        const int OutlinesObjectNumber = 6;
+        var firstBookmarkNumber = OutlinesObjectNumber + 1;
+
+        var catalogEntries = new StringBuilder("<< /Type /Catalog /Pages 2 0 R");
+        if (bookmarkDepth > 0)
         {
-            "<< /Type /Catalog /Pages 2 0 R >>",
+            catalogEntries.Append(CultureInfo.InvariantCulture, $" /Outlines {OutlinesObjectNumber} 0 R");
+        }
+
+        if (pageMode is not null)
+        {
+            catalogEntries.Append(CultureInfo.InvariantCulture, $" /PageMode /{pageMode}");
+        }
+
+        catalogEntries.Append(" >>");
+
+        var objects = new List<string>
+        {
+            catalogEntries.ToString(),
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             $"<< /Length {BuildContent(text).Length} >>\nstream\n{BuildContent(text)}\nendstream"
         };
 
+        if (bookmarkDepth > 0)
+        {
+            objects.Add($"<< /Type /Outlines /First {firstBookmarkNumber} 0 R /Last {firstBookmarkNumber} 0 R /Count 1 >>");
+            for (var level = 0; level < bookmarkDepth; level += 1)
+            {
+                var self = firstBookmarkNumber + level;
+                var parent = level == 0 ? OutlinesObjectNumber : self - 1;
+                var item = new StringBuilder(
+                    $"<< /Title (Level {level + 1}) /Parent {parent} 0 R /Dest [3 0 R /Fit]");
+                if (level + 1 < bookmarkDepth)
+                {
+                    var child = self + 1;
+                    item.Append(CultureInfo.InvariantCulture, $" /First {child} 0 R /Last {child} 0 R /Count 1");
+                }
+
+                item.Append(" >>");
+                objects.Add(item.ToString());
+            }
+        }
+
         var builder = new StringBuilder();
         var offsets = new List<int> { 0 };
         builder.Append("%PDF-1.4\n");
-        for (var index = 0; index < objects.Length; index += 1)
+        for (var index = 0; index < objects.Count; index += 1)
         {
             offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
             builder.Append(index + 1).Append(" 0 obj\n");
@@ -97,7 +141,7 @@ public sealed class PdfPigPdfInspectorTests
 
         var xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
         builder.Append("xref\n");
-        builder.Append("0 ").Append(objects.Length + 1).Append('\n');
+        builder.Append("0 ").Append(objects.Count + 1).Append('\n');
         builder.Append("0000000000 65535 f \n");
         foreach (var offset in offsets.Skip(1))
         {
@@ -105,7 +149,7 @@ public sealed class PdfPigPdfInspectorTests
         }
 
         builder.Append("trailer\n");
-        builder.Append("<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\n");
+        builder.Append("<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\n");
         builder.Append("startxref\n");
         builder.Append(xrefOffset).Append('\n');
         builder.Append("%%EOF\n");

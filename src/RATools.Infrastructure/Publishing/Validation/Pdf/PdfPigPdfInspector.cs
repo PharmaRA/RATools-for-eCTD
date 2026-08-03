@@ -1,6 +1,7 @@
 using RATools.Application.Publishing.Validation.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Outline;
 using UglyToad.PdfPig.Tokens;
 
 namespace RATools.Infrastructure.Publishing.Validation.Pdf;
@@ -24,7 +25,10 @@ public sealed class PdfPigPdfInspector : IPdfInspector
                 .Where(link => link is not null)
                 .Cast<PdfLinkReference>()
                 .ToArray();
-            var hasBookmarks = document.TryGetBookmarks(out var bookmarks) && bookmarks.Roots.Count > 0;
+            var bookmarksRead = document.TryGetBookmarks(out var bookmarks);
+            var hasBookmarks = bookmarksRead && bookmarks.Roots.Count > 0;
+            // 读不到书签结构时深度未知（null）；读到了则 0 层也是事实。
+            var bookmarkMaxDepth = bookmarksRead ? ComputeBookmarkMaxDepth(bookmarks.Roots) : (int?)null;
             var fontEmbedding = InspectFontEmbedding(document, pages);
 
             return new PdfInspectionResult(
@@ -38,7 +42,9 @@ public sealed class PdfPigPdfInspector : IPdfInspector
                 fontEmbedding.NonEmbeddedFonts,
                 hasBookmarks,
                 links,
-                PageCount: pages.Length);
+                PageCount: pages.Length,
+                BookmarkMaxDepth: bookmarkMaxDepth,
+                PageMode: ReadPageMode(document));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -54,6 +60,40 @@ public sealed class PdfPigPdfInspector : IPdfInspector
                 HasBookmarks: false,
                 [],
                 exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// 书签树最大层级：根节点为第 1 层。BookmarkNode.Level 由 PdfPig 填充，
+    /// 但这里按 Children 递归自算，不依赖它的基准值定义。
+    /// </summary>
+    private static int ComputeBookmarkMaxDepth(IReadOnlyList<BookmarkNode> nodes)
+    {
+        var maxDepth = 0;
+        foreach (var node in nodes)
+        {
+            var childDepth = node.Children.Count == 0 ? 0 : ComputeBookmarkMaxDepth(node.Children);
+            maxDepth = Math.Max(maxDepth, 1 + childDepth);
+        }
+
+        return maxDepth;
+    }
+
+    /// <summary>
+    /// 初始视图模式（catalog 的 /PageMode）。读不到就返回 null——"无法判定"不是违规。
+    /// </summary>
+    private static string? ReadPageMode(PdfDocument document)
+    {
+        try
+        {
+            var catalogDictionary = document.Structure.Catalog.CatalogDictionary;
+            return ResolveToken(document, GetOrNull(catalogDictionary, NameToken.PageMode)) is NameToken pageMode
+                ? pageMode.Data
+                : null;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return null;
         }
     }
 

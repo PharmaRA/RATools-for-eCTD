@@ -51,6 +51,21 @@ public static class ValidationRuleCatalog
             ["LIFECYCLE_TARGET_DELETED"] = new("Lifecycle", "The target was already deleted by a later sequence and cannot be modified."),
             ["LIFECYCLE_TARGET_IN_CURRENT_SEQUENCE"] = new("Lifecycle", "Lifecycle targets must reference an earlier sequence, not the current one."),
             ["UNSUPPORTED_OPERATION_VALUE"] = new("Lifecycle", "Change the placement operation to a supported eCTD lifecycle action before publishing."),
+
+            // PDF 合规（PdfComplianceRule 发出，规则引擎路径）
+            ["PDF_PARSE_FAILED"] = new("PdfCompliance", "Open and repair or replace the PDF, then rerun publish readiness."),
+            ["PDF_VERSION_UNSUPPORTED"] = new("PdfCompliance", "Save the PDF as a supported FDA eCTD PDF version before publishing."),
+            ["PDF_VERSION_LEGACY"] = new("PdfCompliance", "Consider re-saving the PDF as version 1.4 or later before publishing."),
+            ["PDF_ENCRYPTED"] = new("PdfCompliance", "Remove encryption or password protection from the PDF before publishing."),
+            ["PDF_SECURITY_RESTRICTED"] = new("PdfCompliance", "Remove PDF security restrictions that prevent review operations."),
+            ["PDF_NO_SEARCHABLE_TEXT"] = new("PdfCompliance", "Run OCR or replace the scanned image PDF with a searchable text PDF."),
+            ["PDF_FONT_NOT_EMBEDDED"] = new("PdfCompliance", "Embed all fonts before publishing the PDF."),
+            ["PDF_FONT_EMBEDDING_UNVERIFIED"] = new("PdfCompliance", "Manually confirm that all fonts are embedded before submission."),
+            ["PDF_NO_BOOKMARKS"] = new("PdfCompliance", "Add bookmarks or a table of contents when required for reviewer navigation."),
+            ["PDF_BOOKMARK_TOO_DEEP"] = new("PdfCompliance", "Flatten the bookmark hierarchy for reviewer navigation."),
+            ["PDF_INITIAL_VIEW_NOT_OUTLINES"] = new("PdfCompliance", "Set the PDF initial view to show the bookmarks panel (PageMode UseOutlines)."),
+            ["PDF_BROKEN_INTRA_LINK"] = new("PdfCompliance", "Update the PDF internal link target so it points to an existing page or destination."),
+            ["PDF_BROKEN_INTER_LINK"] = new("PdfCompliance", "Update the PDF link target or include the referenced file in the eCTD package."),
         };
 
     public static ValidationRuleMetadata Resolve(string code)

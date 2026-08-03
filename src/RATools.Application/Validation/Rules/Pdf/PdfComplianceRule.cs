@@ -5,6 +5,10 @@ namespace RATools.Application.Validation.Rules.Pdf;
 
 public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidationRule
 {
+    // 短文档无书签不发 finding 的页数下限，以及书签层级的推荐上限。
+    private const int BookmarkRequiredPageCount = 5;
+    private const int MaxRecommendedBookmarkDepth = 4;
+
     public string RuleId => "PDF-COMPLIANCE";
 
     public string Category => "PdfCompliance";
@@ -67,6 +71,16 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 $"PDF '{leaf.FileName}' uses unsupported version {result.PdfVersion}.",
                 "Save the PDF as a supported FDA eCTD PDF version before publishing.");
         }
+        else if (!string.IsNullOrWhiteSpace(result.PdfVersion) && IsLegacyPdfVersion(result.PdfVersion))
+        {
+            // 1.4–1.7 是审评惯用安全区间；更老的版本仍可读，但功能受限，提示而不阻断。
+            yield return Finding(
+                "PDF_VERSION_LEGACY",
+                EctdValidationSeverity.Low,
+                leaf,
+                $"PDF '{leaf.FileName}' uses legacy version {result.PdfVersion}, older than the customary 1.4-1.7 range.",
+                "Consider re-saving the PDF as version 1.4 or later before publishing.");
+        }
 
         if (result.IsEncrypted)
         {
@@ -122,7 +136,9 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 "Manually confirm that all fonts are embedded before submission.");
         }
 
-        if (!result.HasBookmarks)
+        // 书签只对有一定篇幅的文档才是导航必需品：1 页封面信没有书签不该被烦扰。
+        // PageCount 未知（null）时按"可能需要"处理，保持无法判定 ≠ 合规。
+        if (!result.HasBookmarks && result.PageCount is null or >= BookmarkRequiredPageCount)
         {
             yield return Finding(
                 "PDF_NO_BOOKMARKS",
@@ -130,6 +146,29 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 leaf,
                 $"PDF '{leaf.FileName}' has no bookmarks.",
                 "Add bookmarks or a table of contents when required for reviewer navigation.");
+        }
+
+        if (result.BookmarkMaxDepth is { } bookmarkDepth && bookmarkDepth > MaxRecommendedBookmarkDepth)
+        {
+            yield return Finding(
+                "PDF_BOOKMARK_TOO_DEEP",
+                EctdValidationSeverity.Low,
+                leaf,
+                $"PDF '{leaf.FileName}' nests bookmarks {bookmarkDepth} levels deep, beyond the recommended {MaxRecommendedBookmarkDepth}.",
+                $"Flatten the bookmark hierarchy to at most {MaxRecommendedBookmarkDepth} levels for reviewer navigation.");
+        }
+
+        // 有书签却不以书签面板打开，审评人看不到导航结构；PageMode 读不到（null）时不发 finding。
+        if (result.HasBookmarks
+            && result.PageMode is { } pageMode
+            && !string.Equals(pageMode, "UseOutlines", StringComparison.Ordinal))
+        {
+            yield return Finding(
+                "PDF_INITIAL_VIEW_NOT_OUTLINES",
+                EctdValidationSeverity.Low,
+                leaf,
+                $"PDF '{leaf.FileName}' has bookmarks but its initial view is '{pageMode}' instead of the bookmarks panel.",
+                "Set the PDF initial view to show the bookmarks panel (PageMode UseOutlines).");
         }
 
         foreach (var link in result.Links.Where(link => link.Kind == PdfLinkKind.IntraDocument))
@@ -188,6 +227,12 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
     {
         var normalized = pdfVersion.Trim().TrimStart('v', 'V');
         return Version.TryParse(normalized, out var version) && version > new Version(1, 7);
+    }
+
+    private static bool IsLegacyPdfVersion(string pdfVersion)
+    {
+        var normalized = pdfVersion.Trim().TrimStart('v', 'V');
+        return Version.TryParse(normalized, out var version) && version < new Version(1, 4);
     }
 
     private static bool TryGetIntraDocumentPageTarget(string target, out int pageNumber)

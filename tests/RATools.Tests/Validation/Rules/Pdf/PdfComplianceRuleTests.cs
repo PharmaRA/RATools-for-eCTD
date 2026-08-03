@@ -183,6 +183,185 @@ public sealed class PdfComplianceRuleTests
         Assert.Empty(findings);
     }
 
+    [Fact]
+    public void Evaluate_ReportsLegacyPdfVersionAsLowSeverity()
+    {
+        using var fixture = TempPdfFixture.Create("legacy.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { PdfVersion = "1.3" }));
+        var package = CreatePackage(CreateLeaf("legacy.pdf", "m5/legacy.pdf", fixture.Path));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("PDF_VERSION_LEGACY", finding.RuleId);
+        Assert.Equal(EctdValidationSeverity.Low, finding.Severity);
+    }
+
+    [Theory]
+    [InlineData("1.4")]
+    [InlineData("1.7")]
+    public void Evaluate_AcceptsCustomaryPdfVersionRange(string version)
+    {
+        using var fixture = TempPdfFixture.Create("ok.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { PdfVersion = version }));
+        var package = CreatePackage(CreateLeaf("ok.pdf", "m5/ok.pdf", fixture.Path));
+
+        var findings = rule.Evaluate(CreateContext(package)).ToArray();
+
+        Assert.DoesNotContain(findings, x => x.RuleId == "PDF_VERSION_LEGACY");
+        Assert.DoesNotContain(findings, x => x.RuleId == "PDF_VERSION_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Evaluate_ReportsDeeplyNestedBookmarks()
+    {
+        using var fixture = TempPdfFixture.Create("deep.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { BookmarkMaxDepth = 5 }));
+        var package = CreatePackage(CreateLeaf("deep.pdf", "m5/deep.pdf", fixture.Path));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("PDF_BOOKMARK_TOO_DEEP", finding.RuleId);
+        Assert.Equal(EctdValidationSeverity.Low, finding.Severity);
+        Assert.Contains("5", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Evaluate_AcceptsBookmarkDepthAtRecommendedLimit()
+    {
+        using var fixture = TempPdfFixture.Create("depth4.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { BookmarkMaxDepth = 4 }));
+        var package = CreatePackage(CreateLeaf("depth4.pdf", "m5/depth4.pdf", fixture.Path));
+
+        Assert.DoesNotContain(
+            rule.Evaluate(CreateContext(package)),
+            x => x.RuleId == "PDF_BOOKMARK_TOO_DEEP");
+    }
+
+    [Fact]
+    public void Evaluate_DoesNotReportBookmarkDepthWhenUnknown()
+    {
+        using var fixture = TempPdfFixture.Create("unknown-depth.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { BookmarkMaxDepth = null }));
+        var package = CreatePackage(CreateLeaf("unknown-depth.pdf", "m5/unknown-depth.pdf", fixture.Path));
+
+        Assert.DoesNotContain(
+            rule.Evaluate(CreateContext(package)),
+            x => x.RuleId == "PDF_BOOKMARK_TOO_DEEP");
+    }
+
+    [Fact]
+    public void Evaluate_ReportsInitialViewNotShowingBookmarks()
+    {
+        using var fixture = TempPdfFixture.Create("view.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { PageMode = "UseNone" }));
+        var package = CreatePackage(CreateLeaf("view.pdf", "m5/view.pdf", fixture.Path));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("PDF_INITIAL_VIEW_NOT_OUTLINES", finding.RuleId);
+        Assert.Equal(EctdValidationSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void Evaluate_AcceptsUseOutlinesInitialView()
+    {
+        using var fixture = TempPdfFixture.Create("outlines.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with { PageMode = "UseOutlines" }));
+        var package = CreatePackage(CreateLeaf("outlines.pdf", "m5/outlines.pdf", fixture.Path));
+
+        Assert.DoesNotContain(
+            rule.Evaluate(CreateContext(package)),
+            x => x.RuleId == "PDF_INITIAL_VIEW_NOT_OUTLINES");
+    }
+
+    [Fact]
+    public void Evaluate_DoesNotReportInitialViewWhenDocumentHasNoBookmarks()
+    {
+        // 无书签的文档谈不上"该以书签面板打开"；此处只应出现 PDF_NO_BOOKMARKS。
+        using var fixture = TempPdfFixture.Create("no-bookmarks.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with
+        {
+            HasBookmarks = false,
+            BookmarkMaxDepth = 0,
+            PageMode = "UseNone",
+            PageCount = 12
+        }));
+        var package = CreatePackage(CreateLeaf("no-bookmarks.pdf", "m5/no-bookmarks.pdf", fixture.Path));
+
+        var findings = rule.Evaluate(CreateContext(package)).ToArray();
+
+        Assert.DoesNotContain(findings, x => x.RuleId == "PDF_INITIAL_VIEW_NOT_OUTLINES");
+        Assert.Contains(findings, x => x.RuleId == "PDF_NO_BOOKMARKS");
+    }
+
+    [Fact]
+    public void Evaluate_DoesNotRequireBookmarksForShortDocument()
+    {
+        // 行为收紧：4 页以下无书签不再打扰（1 页封面信不该被烦扰）。
+        using var fixture = TempPdfFixture.Create("short.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with
+        {
+            HasBookmarks = false,
+            BookmarkMaxDepth = 0,
+            PageCount = 4
+        }));
+        var package = CreatePackage(CreateLeaf("short.pdf", "m5/short.pdf", fixture.Path));
+
+        Assert.DoesNotContain(
+            rule.Evaluate(CreateContext(package)),
+            x => x.RuleId == "PDF_NO_BOOKMARKS");
+    }
+
+    [Fact]
+    public void Evaluate_RequiresBookmarksFromFivePagesOnward()
+    {
+        using var fixture = TempPdfFixture.Create("long.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with
+        {
+            HasBookmarks = false,
+            BookmarkMaxDepth = 0,
+            PageCount = 5
+        }));
+        var package = CreatePackage(CreateLeaf("long.pdf", "m5/long.pdf", fixture.Path));
+
+        var finding = Assert.Single(rule.Evaluate(CreateContext(package)));
+
+        Assert.Equal("PDF_NO_BOOKMARKS", finding.RuleId);
+        Assert.Equal(EctdValidationSeverity.Medium, finding.Severity);
+    }
+
+    [Fact]
+    public void Evaluate_RequiresBookmarksWhenPageCountIsUnknown()
+    {
+        // 页数无法判定时保持"无法判定 ≠ 合规"：仍提示缺书签。
+        using var fixture = TempPdfFixture.Create("unknown-pages.pdf");
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult with
+        {
+            HasBookmarks = false,
+            BookmarkMaxDepth = 0,
+            PageCount = null
+        }));
+        var package = CreatePackage(CreateLeaf("unknown-pages.pdf", "m5/unknown-pages.pdf", fixture.Path));
+
+        Assert.Contains(
+            rule.Evaluate(CreateContext(package)),
+            x => x.RuleId == "PDF_NO_BOOKMARKS");
+    }
+
+    // 全合规基线：各用例用 `with` 只改被测那一个字段，避免每处重复 11 个构造参数。
+    private static readonly PdfInspectionResult CompliantResult = new(
+        "1.7",
+        IsEncrypted: false,
+        HasSecurityRestrictions: false,
+        HasSearchableText: true,
+        AllFontsEmbedded: true,
+        [],
+        HasBookmarks: true,
+        [],
+        PageCount: 10,
+        BookmarkMaxDepth: 2,
+        PageMode: "UseOutlines");
+
     private static EctdValidationContext CreateContext(EctdSequencePackage? package)
     {
         var profile = new StandardsProfile(

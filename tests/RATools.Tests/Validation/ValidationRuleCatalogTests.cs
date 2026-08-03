@@ -34,19 +34,24 @@ public sealed partial class ValidationRuleCatalogTests
     }
 
     /// <summary>
-    /// 漂移守卫：SequenceValidationService（含 LifecycleTargetResolver）源码中出现的
-    /// 每个 issue code 字面量都必须在 catalog 登记。此前 readiness 的映射与实际
-    /// code 集脱节正是因为没有这道闸门。
+    /// 漂移守卫：SequenceValidationService（含 LifecycleTargetResolver）与规则引擎
+    /// Rules/ 目录源码中出现的每个 issue code 字面量都必须在 catalog 登记。
+    /// 此前 readiness 的映射与实际 code 集脱节正是因为没有这道闸门；
+    /// 扫描范围含 Rules/ 是为了让新增规则 code 无法悄悄绕过登记。
     /// </summary>
     [Fact]
     public void EveryEmittedIssueCodeIsRegisteredInCatalog()
     {
         var repositoryRoot = LocateRepositoryRoot();
+        var validationRoot = Path.Combine(repositoryRoot, "src", "RATools.Application", "Validation");
         var sourceFiles = new[]
         {
-            Path.Combine(repositoryRoot, "src", "RATools.Application", "Validation", "SequenceValidationService.cs"),
-            Path.Combine(repositoryRoot, "src", "RATools.Application", "Validation", "LifecycleTargetResolver.cs"),
-        };
+            Path.Combine(validationRoot, "SequenceValidationService.cs"),
+            Path.Combine(validationRoot, "LifecycleTargetResolver.cs"),
+        }
+        .Concat(Directory.EnumerateFiles(Path.Combine(validationRoot, "Rules"), "*.cs", SearchOption.AllDirectories))
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 
         var knownCodes = ValidationRuleCatalog.KnownCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
         // MATCHED 是 lifecycle 成功结果码，不是 issue；排除之。
