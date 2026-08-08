@@ -29,8 +29,7 @@ public sealed class PostgresFixture : IAsyncLifetime
             return;
         }
 
-        _container = new PostgreSqlBuilder()
-            .WithImage("postgres:16")
+        _container = new PostgreSqlBuilder("postgres:16")
             .WithDatabase("ratools_constraints")
             .WithUsername("postgres")
             .WithPassword("postgres")
