@@ -73,7 +73,9 @@ function Wait-ForPublishJob {
     param(
         [string]$BaseUrl,
         [string]$JobId,
-        [int]$TimeoutSeconds = 60
+        # 冷启动的 postgres:16 容器 + 首次发布（建索引/编译计划）可能超过 60 秒；
+        # 之前固定 60 秒是间歇失败的一个来源。180 秒给慢 runner 留足余量。
+        [int]$TimeoutSeconds = 180
     )
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
