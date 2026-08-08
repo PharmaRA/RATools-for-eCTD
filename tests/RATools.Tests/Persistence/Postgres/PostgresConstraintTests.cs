@@ -23,7 +23,7 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
     /// </summary>
     private const string RestrictViolation = "23001";
 
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task ApplicationNumber_UniqueIndexIgnoresCase()
     {
         var applicationNumber = NewApplicationNumber().ToUpperInvariant();
@@ -45,7 +45,7 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
         }
     }
 
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task PublishJobs_PartialUniqueIndexBlocksSecondActiveJobButAllowsRetryAfterFailure()
     {
         var applicationId = Guid.NewGuid();
@@ -93,7 +93,7 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
         }
     }
 
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task DeletingApplication_CascadesToSequencesAndPlacementsButKeepsDocument()
     {
         var applicationId = Guid.NewGuid();
@@ -128,7 +128,7 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
         }
     }
 
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task DeletingDocument_IsRejectedWhilePlacementsStillReferenceIt()
     {
         var applicationId = Guid.NewGuid();

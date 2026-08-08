@@ -13,7 +13,7 @@ namespace RATools.Tests.Persistence.Postgres;
 [Collection(PostgresCollectionDefinition.Name)]
 public sealed class PostgresDeletionTransactionTests(PostgresFixture fixture)
 {
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task ExecuteAsync_RollsBackEarlierDeletesWhenOrchestrationThrows()
     {
         var applicationId = Guid.NewGuid();
@@ -36,7 +36,7 @@ public sealed class PostgresDeletionTransactionTests(PostgresFixture fixture)
         Assert.Equal(2, await verifyContext.Sequences.CountAsync(x => x.ApplicationId == applicationId));
     }
 
-    [RequiresDockerFact]
+    [RequiresPostgresFact]
     public async Task ExecuteAsync_RollsBackWhenAConstraintViolationAbortsTheTransaction()
     {
         var applicationId = Guid.NewGuid();

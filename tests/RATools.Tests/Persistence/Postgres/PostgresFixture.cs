@@ -1,74 +1,39 @@
 using Microsoft.EntityFrameworkCore;
 using RATools.Infrastructure.Persistence.EfCore;
-using Testcontainers.PostgreSql;
 
 namespace RATools.Tests.Persistence.Postgres;
 
 /// <summary>
-/// 整个测试运行期共享一个 postgres:16 容器。镜像与 <c>.github/workflows/smoke.yml</c> 一致，
-/// 让 CI 复用同一份镜像层。容器起好后跑一次 <c>MigrateAsync()</c>——这同时也是
-/// 迁移链能否落在真实 PostgreSQL 上的首个自动化验证（此前只有 smoke 经 API 间接覆盖）。
+/// 连上 <c>RATOOLS_TEST_POSTGRES</c> 指定的实例并跑一次 <c>MigrateAsync()</c>——
+/// 这同时也是迁移链能否落在真实 PostgreSQL 上的首个自动化验证
+/// （此前只有 smoke 经 API 间接覆盖）。各用例靠独立 GUID / 申请号互不干扰。
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer? _container;
-    private readonly string? _externalConnectionString;
-
-    public PostgresFixture()
-    {
-        _externalConnectionString = PostgresTestEnvironment.ExternalConnectionString;
-        if (_externalConnectionString is not null)
-        {
-            // 显式指定了实例：不起容器。
-            return;
-        }
-
-        if (!PostgresTestEnvironment.IsDockerAvailable)
-        {
-            // 无 Docker 也无外部实例：用例全部 Skip，Initialize/Dispose 均为空操作。
-            return;
-        }
-
-        _container = new PostgreSqlBuilder("postgres:16")
-            .WithDatabase("ratools_constraints")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-    }
-
-    private string ConnectionString =>
-        _externalConnectionString
-        ?? _container?.GetConnectionString()
-        ?? throw new InvalidOperationException("没有可用的 PostgreSQL：本机无 Docker 且未指定实例时，用例应当已被 Skip。");
+    private readonly string? _connectionString = PostgresTestEnvironment.ConnectionString;
 
     public async Task InitializeAsync()
     {
-        if (_container is not null)
+        if (_connectionString is null)
         {
-            await _container.StartAsync();
-        }
-        else if (_externalConnectionString is null)
-        {
+            // 无可用实例：用例已在发现阶段全部 Skip，这里不做任何事。
             return;
         }
 
-        // 迁移只跑一次；各用例靠独立的 GUID / 申请号互不干扰。
         await using var dbContext = CreateDbContext();
         await dbContext.Database.MigrateAsync();
     }
 
-    public async Task DisposeAsync()
-    {
-        if (_container is not null)
-        {
-            await _container.DisposeAsync();
-        }
-    }
+    public Task DisposeAsync() => Task.CompletedTask;
 
     public RAToolsDbContext CreateDbContext()
     {
+        var connectionString = _connectionString
+            ?? throw new InvalidOperationException(
+                $"没有可用的 PostgreSQL：未设置 {PostgresTestEnvironment.ConnectionStringVariable} 时用例应当已被 Skip。");
+
         var options = new DbContextOptionsBuilder<RAToolsDbContext>()
-            .UseNpgsql(ConnectionString)
+            .UseNpgsql(connectionString)
             .Options;
 
         return new RAToolsDbContext(options);
@@ -76,7 +41,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 }
 
 /// <summary>
-/// 把所有真实 PostgreSQL 用例归入同一 collection：共享一个容器，且彼此串行执行。
+/// 把所有真实 PostgreSQL 用例归入同一 collection：共享一次迁移，且彼此串行执行。
 /// </summary>
 [CollectionDefinition(Name)]
 public sealed class PostgresCollectionDefinition : ICollectionFixture<PostgresFixture>

@@ -10,6 +10,20 @@ jobs:
   backend:
     name: Backend (build & test)
     runs-on: ubuntu-latest
+    # 约束语义测试需要真实 PostgreSQL（InMemory 不强制唯一索引/外键，SQLite 的
+    # EnsureCreated 也拿不到写在迁移里的原生 SQL 索引）。由 runner 提供服务容器，
+    # 而不是让测试进程自己去起容器——后者要求进程能直连 Docker daemon，不可靠。
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ratools_tests
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ratools_tests"
+          --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +48,27 @@ jobs:
 
       - name: Test
         run: dotnet test tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=backend.trx" --results-directory ./TestResults
+        env:
+          RATOOLS_TEST_POSTGRES: Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres
+
+      # 测试失败时把失败用例名与消息打进日志——否则只剩 "exit code 1"，
+      # 而 job 日志需要仓库 admin 权限才能下载，排障会卡在拿不到信息上。
+      - name: Report failed tests
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
+          for path in glob.glob('TestResults/*.trx'):
+              for result in ET.parse(path).getroot().findall('.//t:UnitTestResult', ns):
+                  if result.get('outcome') != 'Failed':
+                      continue
+                  print(f"::error::{result.get('testName')}")
+                  for tag in ('Message', 'StackTrace'):
+                      node = result.find(f'.//t:{tag}', ns)
+                      if node is not None and node.text:
+                          print(node.text.strip()[:3000])
+          PY
 
       # 契约测试：守护 PublishJobsController 特性、RATools.Api.http 与 README 三方一致，
       # 防止端点契约与文档静默漂移（此前该脚本从未在 CI 执行，文档已漂移过一次）。

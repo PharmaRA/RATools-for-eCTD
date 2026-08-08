@@ -142,20 +142,20 @@ unique index that permits one active publish job per sequence, `ON DELETE CASCAD
 propagation, and transaction rollback. EF InMemory enforces none of these, and SQLite's
 `EnsureCreated()` never creates indexes declared as raw migration SQL.
 
-These tests need a database, obtained one of two ways:
+The database is supplied externally rather than started by the test process. Point
+`RATOOLS_TEST_POSTGRES` at an instance; the target database is migrated, so use a scratch one:
 
-- **Docker** (how CI runs them): [Testcontainers](https://dotnet.testcontainers.org/) starts a
-  throwaway `postgres:16` container automatically. No configuration needed.
-- **An existing instance** (for machines without Docker): set `RATOOLS_TEST_POSTGRES` to a
-  connection string. The target database is migrated, so point it at a scratch database:
+```powershell
+$env:RATOOLS_TEST_POSTGRES = "Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres"
+dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "FullyQualifiedName~Persistence.Postgres"
+```
 
-  ```powershell
-  $env:RATOOLS_TEST_POSTGRES = "Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres"
-  dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "FullyQualifiedName~Persistence.Postgres"
-  ```
+In CI the `backend` job declares a `postgres:16` service container and sets that variable, the same
+arrangement the smoke workflow uses.
 
-With neither available the tests report as **skipped**, which is expected on a plain developer
-machine — they are not silently passing. CI always runs them for real.
+Without the variable these tests report as **skipped**, which is expected on a developer machine
+that has no test database. To keep that from becoming a silent green if the CI service container is
+ever removed, `PostgresGateTests` fails outright when the variable is missing *and* `CI` is set.
 
 ## Smoke Test
 
