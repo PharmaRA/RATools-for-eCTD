@@ -24,6 +24,17 @@ const waitForElement = async (getElement: () => HTMLElement | undefined, label: 
   throw new Error(`Could not find ${label}`)
 }
 
+// 请求断言一律轮询等待，不能只靠固定节拍数：整套 59 个文件并行跑满机器时，
+// 懒加载分块 + 首帧请求会晚于固定窗口到达，固定节拍会间歇性假红。
+const waitForCondition = async (predicate: () => boolean, label: string) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await flushPromises()
+    if (predicate()) return
+  }
+
+  throw new Error(`Could not observe ${label}`)
+}
+
 const renderApp = (initialPath = '/') => {
   window.history.replaceState(null, '', initialPath)
 
@@ -121,11 +132,11 @@ describe('AuditLogsPage', () => {
     const fetchMock = stubFetch()
 
     const { unmount } = renderApp('/audit-logs')
-    await flushPromises()
 
-    expect(
-      fetchMock.mock.calls.some((call) => String(call[0]) === '/api/audit-logs?page=1&pageSize=20'),
-    ).toBe(true)
+    await waitForCondition(
+      () => fetchMock.mock.calls.some((call) => String(call[0]) === '/api/audit-logs?page=1&pageSize=20'),
+      'first page request with default page size',
+    )
 
     unmount()
   })
@@ -157,11 +168,14 @@ describe('AuditLogsPage', () => {
     await typeIntoInputById('entityId', 'job-1')
     await typeIntoInputById('action', 'Completed')
     await clickButtonByText('查询')
-    await flushPromises()
 
-    expect(
-      fetchMock.mock.calls.some((call) => String(call[0]) === '/api/audit-logs?page=1&pageSize=20&entityId=job-1&action=Completed'),
-    ).toBe(true)
+    await waitForCondition(
+      () =>
+        fetchMock.mock.calls.some(
+          (call) => String(call[0]) === '/api/audit-logs?page=1&pageSize=20&entityId=job-1&action=Completed',
+        ),
+      'filtered request reset to the first page',
+    )
 
     unmount()
   })
@@ -170,14 +184,14 @@ describe('AuditLogsPage', () => {
     const fetchMock = stubFetch()
 
     const { unmount } = renderApp('/')
-    await flushPromises()
     await clickButtonByText('审计日志')
-    await flushPromises()
+
+    await waitForCondition(
+      () => fetchMock.mock.calls.some((call) => String(call[0]).startsWith('/api/audit-logs?')),
+      'audit request issued after navigating from the top bar',
+    )
 
     expect(window.location.pathname).toBe('/audit-logs')
-    expect(
-      fetchMock.mock.calls.some((call) => String(call[0]).startsWith('/api/audit-logs?')),
-    ).toBe(true)
 
     unmount()
   })
