@@ -17,11 +17,13 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
     private const string UniqueViolation = "23505";
 
     /// <summary>
-    /// PostgreSQL 对 <c>ON DELETE RESTRICT</c> 抛 23001 restrict_violation，
-    /// 而 <c>NO ACTION</c> 抛的才是 23503 foreign_key_violation。
-    /// 断言 23001 因此顺带证明了该外键确实是 RESTRICT（不可延迟到事务提交时才检查）。
+    /// 外键拒绝删除时的 SqlState 随服务端版本而异：PostgreSQL 16 报
+    /// 23503 foreign_key_violation，18 报 23001 restrict_violation
+    /// （实测：CI 的 postgres:16 与开发机的 18.3 结果不同）。
+    /// 被测语义是"数据库拒绝了删除"，不是具体错误码，因此两者都接受——
+    /// 钉死单一错误码等于把测试绑在某个服务端版本上。
     /// </summary>
-    private const string RestrictViolation = "23001";
+    private static readonly string[] ForeignKeyRejectionStates = ["23503", "23001"];
 
     [RequiresPostgresFact]
     public async Task ApplicationNumber_UniqueIndexIgnoresCase()
@@ -152,7 +154,7 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
                 "DELETE FROM documents WHERE \"Id\" = {0}",
                 documentId));
 
-            Assert.Equal(RestrictViolation, exception.SqlState);
+            Assert.Contains(exception.SqlState, ForeignKeyRejectionStates);
         }
 
         await using (var dbContext = fixture.CreateDbContext())

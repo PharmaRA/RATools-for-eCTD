@@ -59,15 +59,24 @@ jobs:
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
           ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
+
+
+          def text_of(result, tag):
+              node = result.find(f'.//t:{tag}', ns)
+              return node.text.strip() if node is not None and node.text else ''
+
+
           for path in glob.glob('TestResults/*.trx'):
               for result in ET.parse(path).getroot().findall('.//t:UnitTestResult', ns):
                   if result.get('outcome') != 'Failed':
                       continue
-                  print(f"::error::{result.get('testName')}")
-                  for tag in ('Message', 'StackTrace'):
-                      node = result.find(f'.//t:{tag}', ns)
-                      if node is not None and node.text:
-                          print(node.text.strip()[:3000])
+                  name = result.get('testName')
+                  detail = '\n'.join(filter(None, (text_of(result, 'Message'), text_of(result, 'StackTrace'))))
+                  print(f'--- FAILED: {name}\n{detail}\n')
+                  # Put the detail in the annotation body: annotations are readable
+                  # without repository admin rights, whereas job logs are not.
+                  escaped = detail[:2000].replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+                  print(f'::error title={name}::{escaped}')
           PY
 
       # 契约测试：守护 PublishJobsController 特性、RATools.Api.http 与 README 三方一致，
