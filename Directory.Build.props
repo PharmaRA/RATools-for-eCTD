@@ -3,7 +3,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
+    <!-- 固定为 C# 12，不用 latest(C# 13)：13 的 first-class spans 让
+         string[]/Guid[] 的 .Contains 绑定到 MemoryExtensions.Contains(ReadOnlySpan)，
+         而 EF Core 内部以解释模式编译该表达式时触发 .NET 8 已知崩溃
+         (dotnet/runtime#109757, TypeLoadException: FuncCallInstruction ... ReadOnlySpan)。
+         集合表达式是 C# 12 特性，不受影响。 -->
+    <LangVersion>12.0</LangVersion>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
