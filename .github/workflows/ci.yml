@@ -25,7 +25,7 @@ jobs:
           --health-cmd "pg_isready -U postgres -d ratools_tests"
           --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -89,7 +89,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -117,7 +117,7 @@ jobs:
       # Force English CLI output so the vulnerability grep is locale-independent.
       DOTNET_CLI_UI_LANGUAGE: en-US
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
