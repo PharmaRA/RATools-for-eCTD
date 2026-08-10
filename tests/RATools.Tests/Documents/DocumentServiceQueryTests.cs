@@ -1,10 +1,11 @@
 using RATools.Application.Abstractions.Persistence;
-using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents;
 using RATools.Application.Validation;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Documents;
 
@@ -68,7 +69,7 @@ public sealed class DocumentServiceQueryTests
             new StubApplicationRepository(),
             new StubWorkspaceService(),
             new StubWorkspacePathResolver(),
-            new AllowingWorkspacePathPolicy());
+            PermissiveDocumentStorageBoundary.Instance);
 
     private static SubmissionDocument Document(Guid id, string fileName)
         => SubmissionDocument.Rehydrate(
@@ -177,10 +178,4 @@ public sealed class DocumentServiceQueryTests
             => new("US", ctdSection, "m1-1", Path.Combine("m1", "us", "11-forms"));
     }
 
-    private sealed class AllowingWorkspacePathPolicy : IWorkspacePathPolicy
-    {
-        public IReadOnlyCollection<string> GetAllowedRoots() => [];
-
-        public string EnsureAllowed(string path) => path;
-    }
 }

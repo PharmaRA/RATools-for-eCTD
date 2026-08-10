@@ -74,7 +74,7 @@ SDK 与 Python 安装后已经补跑 restore、build 和 Python 契约脚本。�
 **验收条件**
 
 - [ ] API 无法登记白名单外绝对路径或相对逃逸路径。
-- [ ] 白名单外文档无法挂载、验证、发布或删除。
+- [x] 白名单外文档无法挂载、验证、发布或删除。（提交：`security: enforce document workspace ownership`）
 - [ ] Windows junction/symlink 与 Linux symlink 用例均不能逃逸允许根。
 - [ ] 集成测试证明目标文件在所有拒绝场景中保持不变。
 
@@ -335,7 +335,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 **目标**：证明所有文件读取、写入、复制、删除和递归清理都不能逃逸服务端批准的根。
 
 - [x] 修复 F-01：退役/限制 raw document create；路径和散列由服务端生成。（提交：`security: retire raw document creation`）
-- [ ] 修复 F-01：挂载、验证、发布和删除统一执行 workspace + application + sequence ownership 检查。
+- [x] 修复 F-01：挂载、验证、发布和删除统一执行 workspace + application + sequence ownership 检查。（提交：`security: enforce document workspace ownership`）
 - [ ] 修复 F-02：移除任意输出路径，或映射为受控 destination ID。
 - [ ] 修复 F-02：Application Number 使用安全存储段，所有最终路径做 containment 检查。
 - [ ] 修复 F-06：提供鉴权 Blob 下载 helper，并替换所有普通 href。

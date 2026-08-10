@@ -3,16 +3,94 @@ using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Dtos;
 using RATools.Application.Auditing.Requests;
+using RATools.Application.Documents;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Requests;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using RATools.Infrastructure.Security;
+using RATools.Infrastructure.Storage;
+
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Validation;
 
 public sealed class SequenceValidationLifecycleTargetTests
 {
+    [Fact]
+    public async Task ValidateAsync_BlocksDocumentOwnedByAnotherApplicationWithoutChangingFile()
+    {
+        var allowedRoot = Path.Combine(Path.GetTempPath(), $"validation-boundary-{Guid.NewGuid():N}");
+        var applicationRoot = Path.Combine(allowedRoot, "app-a");
+        var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
+        Directory.CreateDirectory(applicationRoot);
+        Directory.CreateDirectory(otherApplicationSequenceRoot);
+        var outsidePath = Path.Combine(otherApplicationSequenceRoot, "outside.pdf");
+        await File.WriteAllTextAsync(outsidePath, "must remain unchanged");
+
+        try
+        {
+            var applicationId = Guid.NewGuid();
+            var documentId = Guid.NewGuid();
+            var placementId = Guid.NewGuid();
+            var application = SubmissionApplication.Rehydrate(
+                applicationId,
+                "APP-A",
+                "US",
+                "Sponsor",
+                DateTime.UtcNow,
+                [SubmissionSequence.Rehydrate("0001", "original", "Original", DateTime.UtcNow)],
+                applicationRoot,
+                EctdTemplateRegistry.DefaultTemplateKey);
+            var document = SubmissionDocument.Rehydrate(
+                documentId,
+                "outside.pdf",
+                "application/pdf",
+                new FileInfo(outsidePath).Length,
+                "sha256",
+                "md5",
+                outsidePath,
+                DateTime.UtcNow);
+            var placement = DocumentPlacement.Rehydrate(
+                placementId,
+                documentId,
+                applicationId,
+                "0001",
+                "m1.1",
+                DocumentPlacementOperation.New,
+                "Outside",
+                null,
+                DateTime.UtcNow);
+            var boundary = new DocumentStorageBoundary(
+                new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions
+                {
+                    AllowedWorkspaceRoots = [allowedRoot]
+                })));
+            var service = new SequenceValidationService(
+                new StubApplicationRepository(application),
+                new StubDocumentPlacementRepository([placement]),
+                new StubDocumentRepository([document]),
+                new StubAuditLogService(),
+                new StubValidationProfileProvider(),
+                NullLogger<SequenceValidationService>.Instance,
+                boundary);
+
+            var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0001"));
+
+            Assert.False(report.IsValid);
+            var issue = Assert.Single(report.Issues, x => x.Code == "DOCUMENT_STORAGE_SCOPE_INVALID");
+            Assert.Equal(documentId, issue.DocumentId);
+            Assert.Equal(placementId, issue.PlacementId);
+            Assert.Equal("must remain unchanged", await File.ReadAllTextAsync(outsidePath));
+        }
+        finally
+        {
+            Directory.Delete(allowedRoot, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task ValidateAsync_MatchesExplicitHistoricalLifecycleTarget()
     {
@@ -64,7 +142,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository(documents),
             new StubAuditLogService(),
             new StubValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0001"));
 
@@ -107,7 +186,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
             new StubValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -149,7 +229,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
             new StubValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0001"));
 
@@ -171,7 +252,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository([]),
             new StubAuditLogService(),
             new StubValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -224,7 +306,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository([document]),
             new StubAuditLogService(),
             new StrictValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 
@@ -280,7 +363,8 @@ public sealed class SequenceValidationLifecycleTargetTests
             new StubDocumentRepository([firstDocument, secondDocument]),
             new StubAuditLogService(),
             new StubValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
 
         var report = await service.ValidateAsync(new ValidateSequenceRequest(applicationId, "0000"));
 

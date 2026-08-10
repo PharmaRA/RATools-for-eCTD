@@ -9,6 +9,8 @@ using RATools.Application.Validation.Requests;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 
+using RATools.Tests.TestDoubles;
+
 namespace RATools.Tests.Validation;
 
 public sealed class SequenceNumberValidationTests
@@ -91,7 +93,8 @@ public sealed class SequenceNumberValidationTests
             new StubDocumentRepository(),
             new StubAuditLogService(),
             strict ? new StrictProfileProvider() : new RelaxedProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
     }
 
     private sealed class StubApplicationRepository(SubmissionApplication application) : IApplicationRepository

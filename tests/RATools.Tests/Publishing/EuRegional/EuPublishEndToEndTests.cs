@@ -22,6 +22,8 @@ using RATools.Domain.Publishing;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
 
+using RATools.Tests.TestDoubles;
+
 namespace RATools.Tests.Publishing.EuRegional;
 
 /// <summary>
@@ -143,7 +145,8 @@ public sealed class EuPublishEndToEndTests
             applicationRepository,
             placementRepository,
             documentRepository,
-            standardsProfileProvider);
+            standardsProfileProvider,
+            PermissiveDocumentStorageBoundary.Instance);
         var regionalWriterRegistry = new RegionalBackboneWriterRegistry(
         [
             new UsRegionalBackboneWriter(new UsRegionalXmlWriter()),
@@ -165,7 +168,8 @@ public sealed class EuPublishEndToEndTests
             documentRepository,
             auditLogService,
             new RelaxedValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
         var publishReadinessService = new PublishReadinessService(
             validationService,
             packageModelBuilder,

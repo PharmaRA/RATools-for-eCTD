@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents;
@@ -6,11 +7,76 @@ using RATools.Application.Validation;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 using RATools.Domain.Publishing;
+using RATools.Infrastructure.Security;
+using RATools.Infrastructure.Storage;
+
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Documents;
 
 public sealed class DocumentPlacementServiceTests
 {
+    [Fact]
+    public async Task CreateAsync_RejectsDocumentOwnedByAnotherApplicationWithoutChangingFileOrPlacement()
+    {
+        var allowedRoot = Path.Combine(Path.GetTempPath(), $"placement-boundary-{Guid.NewGuid():N}");
+        var applicationRoot = Path.Combine(allowedRoot, "app-a");
+        var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
+        Directory.CreateDirectory(applicationRoot);
+        Directory.CreateDirectory(otherApplicationSequenceRoot);
+        var outsidePath = Path.Combine(otherApplicationSequenceRoot, "outside.pdf");
+        await File.WriteAllTextAsync(outsidePath, "must remain unchanged");
+
+        try
+        {
+            var applicationId = Guid.NewGuid();
+            var application = SubmissionApplication.Rehydrate(
+                applicationId,
+                "APP-A",
+                "US",
+                "Sponsor",
+                DateTime.UtcNow,
+                [SubmissionSequence.Rehydrate("0001", "original", "Original", DateTime.UtcNow)],
+                applicationRoot,
+                "us-fda-ectd-3.2.2");
+            var document = SubmissionDocument.Rehydrate(
+                Guid.NewGuid(),
+                "outside.pdf",
+                "application/pdf",
+                new FileInfo(outsidePath).Length,
+                "sha256",
+                "md5",
+                outsidePath,
+                DateTime.UtcNow);
+            var placementRepository = new StubPlacementRepository();
+            var boundary = CreateBoundary(allowedRoot);
+            var service = new DocumentPlacementService(
+                placementRepository,
+                new StubDocumentRepository(document),
+                new StubFileStorage(),
+                new StubApplicationRepository(application),
+                new StubPublishJobRepository(),
+                new StubWorkspacePathResolver(),
+                boundary);
+
+            await Assert.ThrowsAsync<DocumentStorageBoundaryException>(() => service.CreateAsync(
+                new CreateDocumentPlacementRequest(
+                    document.Id,
+                    applicationId,
+                    "0001",
+                    "m1.1",
+                    "new",
+                    "Outside")));
+
+            Assert.False(placementRepository.AddCalled);
+            Assert.Equal("must remain unchanged", await File.ReadAllTextAsync(outsidePath));
+        }
+        finally
+        {
+            Directory.Delete(allowedRoot, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task UpdateMetadataAsync_RejectsNumericOperationValues()
     {
@@ -60,7 +126,8 @@ public sealed class DocumentPlacementServiceTests
                 new StubFileStorage(),
                 new StubApplicationRepository(application),
                 new StubPublishJobRepository(),
-                new StubWorkspacePathResolver());
+                new StubWorkspacePathResolver(),
+                PermissiveDocumentStorageBoundary.Instance);
 
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateMetadataAsync(
                 placement.Id,
@@ -78,21 +145,37 @@ public sealed class DocumentPlacementServiceTests
         }
     }
 
-    private sealed class StubPlacementRepository(DocumentPlacement placement) : IDocumentPlacementRepository
+    private static DocumentStorageBoundary CreateBoundary(string allowedRoot)
+        => new(new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions
+        {
+            AllowedWorkspaceRoots = [allowedRoot]
+        })));
+
+    private sealed class StubPlacementRepository(DocumentPlacement? placement = null) : IDocumentPlacementRepository
     {
-        public Task AddAsync(DocumentPlacement placement, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public bool AddCalled { get; private set; }
+
+        public Task AddAsync(DocumentPlacement placement, CancellationToken cancellationToken = default)
+        {
+            AddCalled = true;
+            return Task.CompletedTask;
+        }
 
         public Task<bool> UpdateAsync(DocumentPlacement placement, CancellationToken cancellationToken = default) => Task.FromResult(true);
 
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-        public Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(id == placement.Id ? placement : null);
+        public Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult(placement is not null && id == placement.Id ? placement : null);
 
-        public Task<IReadOnlyCollection<DocumentPlacement>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>([placement]);
+        public Task<IReadOnlyCollection<DocumentPlacement>> ListAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>(placement is null ? [] : [placement]);
 
-        public Task<IReadOnlyCollection<DocumentPlacement>> ListByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>([placement]);
+        public Task<IReadOnlyCollection<DocumentPlacement>> ListByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>(placement is null ? [] : [placement]);
 
-        public Task<IReadOnlyCollection<DocumentPlacement>> ListBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>([placement]);
+        public Task<IReadOnlyCollection<DocumentPlacement>> ListBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<DocumentPlacement>>(placement is null ? [] : [placement]);
     }
 
     private sealed class StubDocumentRepository(SubmissionDocument document) : IDocumentRepository

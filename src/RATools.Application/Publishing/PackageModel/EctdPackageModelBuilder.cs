@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Documents;
 using RATools.Application.Standards;
 using RATools.Domain.Documents;
 
@@ -8,7 +9,8 @@ public sealed class EctdPackageModelBuilder(
     IApplicationRepository applicationRepository,
     IDocumentPlacementRepository placementRepository,
     IDocumentRepository documentRepository,
-    IStandardsProfileProvider standardsProfileProvider) : IEctdPackageModelBuilder
+    IStandardsProfileProvider standardsProfileProvider,
+    IDocumentStorageBoundary documentStorageBoundary) : IEctdPackageModelBuilder
 {
     public async Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default)
     {
@@ -61,7 +63,16 @@ public sealed class EctdPackageModelBuilder(
         var documents = await documentRepository.ListByIdsPreferScopedAsync(documentIds, cancellationToken);
         var documentById = documents.ToDictionary(x => x.Id, x => x);
         var placementById = applicationPlacements.ToDictionary(x => x.Id, x => x);
-        var leaves = BuildLeaves(request.ApplicationId, request.SequenceNumber, placements, placementById, documentById);
+
+        foreach (var placement in placements)
+        {
+            if (documentById.TryGetValue(placement.DocumentId, out var document))
+            {
+                documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, request.SequenceNumber);
+            }
+        }
+
+        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById);
         var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
         var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
         var publishedFiles = BuildPublishedFiles(leaves);
@@ -86,8 +97,8 @@ public sealed class EctdPackageModelBuilder(
             publishedFiles);
     }
 
-    private static IReadOnlyCollection<EctdLeaf> BuildLeaves(
-        Guid applicationId,
+    private IReadOnlyCollection<EctdLeaf> BuildLeaves(
+        Domain.Applications.SubmissionApplication application,
         string sequenceNumber,
         IReadOnlyCollection<DocumentPlacement> placements,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
@@ -97,12 +108,12 @@ public sealed class EctdPackageModelBuilder(
             .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.CreatedUtc)
             .ThenBy(x => x.Id)
-            .Select(placement => BuildLeaf(applicationId, sequenceNumber, placement, placementById, documentById))
+            .Select(placement => BuildLeaf(application, sequenceNumber, placement, placementById, documentById))
             .ToArray();
     }
 
-    private static EctdLeaf BuildLeaf(
-        Guid applicationId,
+    private EctdLeaf BuildLeaf(
+        Domain.Applications.SubmissionApplication application,
         string sequenceNumber,
         DocumentPlacement placement,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
@@ -110,11 +121,11 @@ public sealed class EctdPackageModelBuilder(
     {
         if (!documentById.TryGetValue(placement.DocumentId, out var document))
         {
-            throw new EctdPackageDocumentNotFoundException(applicationId, sequenceNumber, placement.Id, placement.DocumentId);
+            throw new EctdPackageDocumentNotFoundException(application.Id, sequenceNumber, placement.Id, placement.DocumentId);
         }
 
-        var module = ClassifyModule(applicationId, sequenceNumber, placement);
-        var lifecycle = BuildLifecycle(applicationId, sequenceNumber, placement, placementById, documentById);
+        var module = ClassifyModule(application.Id, sequenceNumber, placement);
+        var lifecycle = BuildLifecycle(application, sequenceNumber, placement, placementById, documentById);
         return new EctdLeaf(
             placement.Id,
             placement.DocumentId,
@@ -122,7 +133,7 @@ public sealed class EctdPackageModelBuilder(
             placement.SequenceNumber,
             placement.CtdSection,
             module,
-            MapOperation(applicationId, sequenceNumber, placement),
+            MapOperation(application.Id, sequenceNumber, placement),
             placement.Title ?? document.FileName,
             PublishOutputNaming.BuildPublishedDocumentRelativePath(document, placement.SequenceNumber),
             document.FileName,
@@ -153,8 +164,8 @@ public sealed class EctdPackageModelBuilder(
         return string.Empty;
     }
 
-    private static EctdLifecycleReference? BuildLifecycle(
-        Guid applicationId,
+    private EctdLifecycleReference? BuildLifecycle(
+        Domain.Applications.SubmissionApplication application,
         string sequenceNumber,
         DocumentPlacement placement,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
@@ -175,33 +186,38 @@ public sealed class EctdPackageModelBuilder(
         {
             // 与 LifecycleTargetResolver 的 SectionAndFileName 策略保持一致：验证侧
             // 允许自动匹配，发布侧必须用同一规则解析，否则又会出现"验证绿、发布红"。
-            targetPlacement = ResolveAutoLifecycleTarget(applicationId, placement, placementById.Values, documentById)
-                ?? throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, null, "target placement is missing");
+            targetPlacement = ResolveAutoLifecycleTarget(application.Id, placement, placementById.Values, documentById)
+                ?? throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, null, "target placement is missing");
         }
         else if (!placementById.TryGetValue(placement.LifecycleTargetPlacementId.Value, out targetPlacement))
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement was not found");
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement was not found");
         }
 
-        if (targetPlacement.ApplicationId != applicationId)
+        if (targetPlacement.ApplicationId != application.Id)
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement belongs to a different application");
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement belongs to a different application");
         }
 
         if (!string.Equals(targetPlacement.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase))
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement is in a different CTD section");
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target placement is in a different CTD section");
         }
 
         if (CompareSequenceNumbers(targetPlacement.SequenceNumber, placement.SequenceNumber) >= 0)
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target sequence is not earlier than current sequence");
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target sequence is not earlier than current sequence");
         }
 
         if (!documentById.TryGetValue(targetPlacement.DocumentId, out var targetDocument))
         {
-            throw new EctdPackageLifecycleTargetException(applicationId, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target document was not found");
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target document was not found");
         }
+
+        documentStorageBoundary.EnsureDocumentOwnedBySequence(
+            targetDocument,
+            application,
+            targetPlacement.SequenceNumber);
 
         return new EctdLifecycleReference(
             targetPlacement.Id,

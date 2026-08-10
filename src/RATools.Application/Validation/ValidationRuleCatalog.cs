@@ -28,6 +28,7 @@ public static class ValidationRuleCatalog
 
             // 文档清单
             ["FILE_MISSING"] = new("DocumentInventory", "Restore the missing file on disk or update the document storage path before publishing."),
+            ["DOCUMENT_STORAGE_SCOPE_INVALID"] = new("DocumentInventory", "Re-upload or remap the document inside the workspace owned by this application and sequence."),
             ["DOCUMENT_NOT_FOUND"] = new("DocumentInventory", "Restore the missing document record or remove the broken placement before publishing."),
             ["DUPLICATE_PUBLISHED_DOCUMENT_PATH"] = new("DocumentInventory", "Rename or relocate documents so each published path is unique before publishing."),
             ["DUPLICATE_PLACEMENT"] = new("DocumentInventory", "Remove the duplicate placement so each document appears once per section."),

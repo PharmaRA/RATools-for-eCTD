@@ -100,6 +100,10 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (DocumentStorageBoundaryException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (DocumentFileValidationException exception)
         {
             return BadRequest(new { message = exception.Message });
@@ -115,6 +119,10 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             return deleted ? NoContent() : NotFound();
         }
         catch (DocumentDeleteConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (DocumentStorageBoundaryException exception)
         {
             return Conflict(new { message = exception.Message });
         }

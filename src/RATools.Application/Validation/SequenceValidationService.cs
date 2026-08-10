@@ -17,7 +17,8 @@ public sealed class SequenceValidationService(
     IDocumentRepository documentRepository,
     IAuditLogService auditLogService,
     IValidationProfileProvider validationProfileProvider,
-    ILogger<SequenceValidationService> logger) : ISequenceValidationService
+    ILogger<SequenceValidationService> logger,
+    IDocumentStorageBoundary documentStorageBoundary) : ISequenceValidationService
 {
     public async Task<ValidationReportDto> ValidateAsync(ValidateSequenceRequest request, CancellationToken cancellationToken = default)
     {
@@ -123,7 +124,38 @@ public sealed class SequenceValidationService(
             .Distinct()
             .ToArray();
         var documents = await documentRepository.ListByIdsPreferScopedAsync(referencedDocumentIds, cancellationToken);
-        var referencedDocuments = documents.Where(x => currentSequenceDocumentIds.Contains(x.Id)).ToArray();
+        var documentById = documents
+            .GroupBy(x => x.Id)
+            .ToDictionary(x => x.Key, x => x.First());
+        var invalidStoragePlacementIds = new HashSet<Guid>();
+
+        foreach (var placement in placements)
+        {
+            if (!documentById.TryGetValue(placement.DocumentId, out var document))
+            {
+                continue;
+            }
+
+            try
+            {
+                documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, request.SequenceNumber);
+            }
+            catch (DocumentStorageBoundaryException)
+            {
+                invalidStoragePlacementIds.Add(placement.Id);
+                issues.Add(PlacementIssue(
+                    "Error",
+                    "DOCUMENT_STORAGE_SCOPE_INVALID",
+                    $"Document {document.Id} is outside the workspace owned by application {application.Id} sequence {request.SequenceNumber}.",
+                    placement));
+            }
+        }
+
+        var validCurrentDocumentIds = placements
+            .Where(x => !invalidStoragePlacementIds.Contains(x.Id))
+            .Select(x => x.DocumentId)
+            .ToHashSet();
+        var referencedDocuments = documents.Where(x => validCurrentDocumentIds.Contains(x.Id)).ToArray();
 
         var duplicatePublishedPaths = referencedDocuments
             .GroupBy(document => PublishOutputNaming.BuildPublishedDocumentRelativePath(document, request.SequenceNumber), StringComparer.OrdinalIgnoreCase)
@@ -140,10 +172,6 @@ public sealed class SequenceValidationService(
                 $"Multiple documents resolve to the same published path '{duplicatePublishedPath.Key}'.",
                 placement));
         }
-
-        var documentById = documents
-            .GroupBy(x => x.Id)
-            .ToDictionary(x => x.Key, x => x.First());
 
         foreach (var placement in placements)
         {
@@ -164,6 +192,11 @@ public sealed class SequenceValidationService(
                     "DOCUMENT_NOT_FOUND",
                     $"Referenced document {placement.DocumentId} was not found for section {placement.CtdSection}.",
                     placement));
+                continue;
+            }
+
+            if (invalidStoragePlacementIds.Contains(placement.Id))
+            {
                 continue;
             }
 

@@ -14,7 +14,8 @@ public sealed class DocumentPlacementService(
     IFileStorage fileStorage,
     IApplicationRepository applicationRepository,
     IPublishJobRepository publishJobRepository,
-    IEctdWorkspacePathResolver workspacePathResolver) : IDocumentPlacementService
+    IEctdWorkspacePathResolver workspacePathResolver,
+    IDocumentStorageBoundary documentStorageBoundary) : IDocumentPlacementService
 {
     public async Task<DocumentPlacementDto> CreateAsync(CreateDocumentPlacementRequest request, CancellationToken cancellationToken = default)
     {
@@ -34,6 +35,8 @@ public sealed class DocumentPlacementService(
         {
             throw new InvalidOperationException($"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
         }
+
+        documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, request.SequenceNumber);
 
         if (!Enum.TryParse<DocumentPlacementOperation>(request.Operation, ignoreCase: true, out var operation)
             || !Enum.IsDefined(operation))
@@ -82,7 +85,7 @@ public sealed class DocumentPlacementService(
             throw new InvalidOperationException($"Document placement {placement.Id} cannot be reassigned because another placement still references document {placement.DocumentId}.");
         }
 
-        var originalStoragePath = ValidateDocumentStoragePath(document, application, placement.SequenceNumber);
+        var originalStoragePath = documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, placement.SequenceNumber);
 
         var oldFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, placement.CtdSection);
         var newFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, request.CtdSection);
@@ -92,6 +95,7 @@ public sealed class DocumentPlacementService(
         if (!string.Equals(oldFolder.RelativeFolderPath, newFolder.RelativeFolderPath, StringComparison.OrdinalIgnoreCase))
         {
             var targetDirectory = Path.Combine(application.WorkingDirectoryPath, placement.SequenceNumber, newFolder.RelativeFolderPath);
+            documentStorageBoundary.EnsurePathOwnedBySequence(targetDirectory, application, placement.SequenceNumber);
             var targetPath = Path.Combine(targetDirectory, Path.GetFileName(originalStoragePath));
 
             if (!string.Equals(originalStoragePath, Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase))
@@ -127,30 +131,6 @@ public sealed class DocumentPlacementService(
             await RollbackMoveAsync(document, originalStoragePath, movedStoragePath, cancellationToken);
             throw;
         }
-    }
-
-    private static string ValidateDocumentStoragePath(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
-    {
-        if (!Path.IsPathFullyQualified(document.StoragePath))
-        {
-            throw new InvalidOperationException($"Document {document.Id} does not have a valid fully qualified storage path configured.");
-        }
-
-        var fullStoragePath = WorkspacePathGuard.Normalize(document.StoragePath);
-        var workspaceRoot = WorkspacePathGuard.Normalize(application.WorkingDirectoryPath);
-
-        if (!WorkspacePathGuard.IsInsideScope(fullStoragePath, workspaceRoot))
-        {
-            throw new InvalidOperationException($"Document {document.Id} storage path is outside the application workspace.");
-        }
-
-        var expectedSequenceRoot = WorkspacePathGuard.Normalize(Path.Combine(workspaceRoot, sequenceNumber));
-        if (!WorkspacePathGuard.IsInsideScope(fullStoragePath, expectedSequenceRoot))
-        {
-            throw new InvalidOperationException($"Document {document.Id} storage path must remain under sequence {sequenceNumber}.");
-        }
-
-        return fullStoragePath;
     }
 
     private async Task RollbackMoveAsync(SubmissionDocument document, string originalStoragePath, string movedStoragePath, CancellationToken cancellationToken)
@@ -286,9 +266,9 @@ public sealed class DocumentPlacementService(
         }
     }
 
-    private static string ResolveSourcePathForRename(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
+    private string ResolveSourcePathForRename(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
     {
-        var validatedPath = ValidateDocumentStoragePath(document, application, sequenceNumber);
+        var validatedPath = documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, sequenceNumber);
         if (File.Exists(validatedPath))
         {
             return validatedPath;

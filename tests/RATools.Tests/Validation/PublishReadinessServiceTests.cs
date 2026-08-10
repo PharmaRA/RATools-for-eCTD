@@ -19,6 +19,8 @@ using RATools.Domain.Applications;
 using RATools.Domain.Documents;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using RATools.Tests.TestDoubles;
+
 namespace RATools.Tests.Validation;
 
 public sealed class PublishReadinessServiceTests
@@ -331,7 +333,8 @@ public sealed class PublishReadinessServiceTests
             documentRepository,
             auditLogService,
             new RelaxedValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
         var standardsProfileProvider = new CompositeStandardsProfileProvider(
         [
             new FdaEctd322StandardsProfileProvider(),
@@ -341,7 +344,8 @@ public sealed class PublishReadinessServiceTests
             applicationRepository,
             placementRepository,
             documentRepository,
-            standardsProfileProvider);
+            standardsProfileProvider,
+            PermissiveDocumentStorageBoundary.Instance);
 
         return new PublishReadinessService(
             validationService,

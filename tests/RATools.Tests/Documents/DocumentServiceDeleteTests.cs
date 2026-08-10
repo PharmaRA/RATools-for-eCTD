@@ -1,15 +1,52 @@
+using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
-using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents;
 using RATools.Application.Validation;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+using RATools.Infrastructure.Security;
+using RATools.Infrastructure.Storage;
+
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Documents;
 
 public sealed class DocumentServiceDeleteTests
 {
+    [Fact]
+    public async Task DeleteAsync_RejectsOutsideWorkspaceBeforeChangingDatabaseOrFile()
+    {
+        var allowedRoot = Path.Combine(Path.GetTempPath(), $"document-delete-allowed-{Guid.NewGuid():N}");
+        var outsideRoot = Path.Combine(Path.GetTempPath(), $"document-delete-outside-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(allowedRoot);
+        Directory.CreateDirectory(outsideRoot);
+        var outsidePath = Path.Combine(outsideRoot, "outside.pdf");
+        await File.WriteAllTextAsync(outsidePath, "must remain unchanged");
+
+        try
+        {
+            var document = Document(Guid.NewGuid(), outsidePath);
+            var repository = new DeleteDocumentRepository(document, [document]);
+            var boundary = new DocumentStorageBoundary(
+                new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions
+                {
+                    AllowedWorkspaceRoots = [allowedRoot]
+                })));
+            var service = CreateService(repository, boundary);
+
+            await Assert.ThrowsAsync<DocumentStorageBoundaryException>(() => service.DeleteAsync(document.Id));
+
+            Assert.Null(repository.DeletedId);
+            Assert.Equal("must remain unchanged", await File.ReadAllTextAsync(outsidePath));
+        }
+        finally
+        {
+            Directory.Delete(allowedRoot, recursive: true);
+            Directory.Delete(outsideRoot, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task DeleteAsync_StopsCheckingSharedStoragePathAfterFirstMatch()
     {
@@ -27,7 +64,9 @@ public sealed class DocumentServiceDeleteTests
         Assert.Equal(document.Id, repository.DeletedId);
     }
 
-    private static DocumentService CreateService(IDocumentRepository documentRepository)
+    private static DocumentService CreateService(
+        IDocumentRepository documentRepository,
+        IDocumentStorageBoundary? documentStorageBoundary = null)
         => new(
             documentRepository,
             new StubFileStorage(),
@@ -35,7 +74,7 @@ public sealed class DocumentServiceDeleteTests
             new EmptyApplicationRepository(),
             new StubWorkspaceService(),
             new StubWorkspacePathResolver(),
-            new AllowingWorkspacePathPolicy());
+            documentStorageBoundary ?? PermissiveDocumentStorageBoundary.Instance);
 
     private static SubmissionDocument Document(Guid id, string storagePath)
         => SubmissionDocument.Rehydrate(
@@ -131,10 +170,4 @@ public sealed class DocumentServiceDeleteTests
             => new("US", ctdSection, "m1-1", Path.Combine("m1", "us", "11-forms"));
     }
 
-    private sealed class AllowingWorkspacePathPolicy : IWorkspacePathPolicy
-    {
-        public IReadOnlyCollection<string> GetAllowedRoots() => [];
-
-        public string EnsureAllowed(string path) => path;
-    }
 }

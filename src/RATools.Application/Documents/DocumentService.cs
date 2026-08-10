@@ -1,5 +1,4 @@
 using RATools.Application.Abstractions.Persistence;
-using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
@@ -16,7 +15,7 @@ public sealed class DocumentService(
     IApplicationRepository applicationRepository,
     IApplicationWorkspaceService workspaceService,
     IEctdWorkspacePathResolver workspacePathResolver,
-    IWorkspacePathPolicy workspacePathPolicy) : IDocumentService
+    IDocumentStorageBoundary documentStorageBoundary) : IDocumentService
 {
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -63,7 +62,7 @@ public sealed class DocumentService(
         var sequenceDirectory = await workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, sequenceNumber, cancellationToken);
         var folder = ResolveSequenceUploadFolder(application.EctdTemplateKey, request.CtdSection);
         var destinationDirectory = Path.Combine(sequenceDirectory, folder.RelativeFolderPath);
-        workspacePathPolicy.EnsureAllowed(destinationDirectory);
+        documentStorageBoundary.EnsurePathOwnedBySequence(destinationDirectory, application, sequenceNumber);
 
         var storedFile = await fileStorage.SaveAsync(
             new FileUploadRequest
@@ -148,15 +147,17 @@ public sealed class DocumentService(
             throw new DocumentDeleteConflictException($"Document {id} cannot be deleted because document placements exist.");
         }
 
+        var storagePath = documentStorageBoundary.EnsureAllowedDocumentPath(document);
+
         var allDocuments = await repository.ListAsync(cancellationToken);
-        var sharedPathExists = allDocuments.Any(x => x.Id != id && string.Equals(x.StoragePath, document.StoragePath, StringComparison.OrdinalIgnoreCase));
+        var sharedPathExists = allDocuments.Any(x => x.Id != id && string.Equals(x.StoragePath, storagePath, StringComparison.OrdinalIgnoreCase));
 
         await repository.DeleteAsync(id, cancellationToken);
 
-        if (!sharedPathExists && File.Exists(document.StoragePath))
+        if (!sharedPathExists && File.Exists(storagePath))
         {
-            File.Delete(document.StoragePath);
-            await TryDeleteEmptyWorkspaceFoldersAsync(document.StoragePath, cancellationToken);
+            File.Delete(storagePath);
+            await TryDeleteEmptyWorkspaceFoldersAsync(storagePath, cancellationToken);
         }
 
         return true;

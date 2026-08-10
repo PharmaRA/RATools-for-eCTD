@@ -26,6 +26,8 @@ using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using RATools.Tests.TestDoubles;
+
 namespace RATools.Tests.Publishing;
 
 public sealed class PublishJobServiceRealEctdIntegrationTests
@@ -190,7 +192,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             applicationRepository,
             placementRepository,
             documentRepository,
-            standardsProfileProvider);
+            standardsProfileProvider,
+            PermissiveDocumentStorageBoundary.Instance);
         var regionalWriterRegistry = new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(new UsRegionalXmlWriter())]);
         var backboneService = new BackboneService(
             packageModelBuilder,
@@ -205,7 +208,8 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             documentRepository,
             auditLogService,
             new RelaxedValidationProfileProvider(),
-            NullLogger<SequenceValidationService>.Instance);
+            NullLogger<SequenceValidationService>.Instance,
+            PermissiveDocumentStorageBoundary.Instance);
         var publishReadinessService = new PublishReadinessService(
             validationService,
             packageModelBuilder,

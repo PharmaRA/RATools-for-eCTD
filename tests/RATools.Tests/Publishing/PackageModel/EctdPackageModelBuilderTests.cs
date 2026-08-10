@@ -1,15 +1,82 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using RATools.Application;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Documents;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Standards;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+using RATools.Infrastructure.Security;
+using RATools.Infrastructure.Storage;
+
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Publishing.PackageModel;
 
 public sealed class EctdPackageModelBuilderTests
 {
+    [Fact]
+    public async Task BuildAsync_RejectsDocumentOwnedByAnotherApplicationBeforeReadingSourceFile()
+    {
+        var allowedRoot = Path.Combine(Path.GetTempPath(), $"package-boundary-{Guid.NewGuid():N}");
+        var applicationRoot = Path.Combine(allowedRoot, "app-a");
+        var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
+        Directory.CreateDirectory(applicationRoot);
+        Directory.CreateDirectory(otherApplicationSequenceRoot);
+        var outsidePath = Path.Combine(otherApplicationSequenceRoot, "outside.pdf");
+        await File.WriteAllTextAsync(outsidePath, "must remain unchanged");
+
+        try
+        {
+            var applicationId = Guid.NewGuid();
+            var documentId = Guid.NewGuid();
+            var application = SubmissionApplication.Rehydrate(
+                applicationId,
+                "APP-A",
+                "US",
+                "Sponsor",
+                DateTime.UtcNow,
+                [SubmissionSequence.Rehydrate("0001", "original", "Original", DateTime.UtcNow)],
+                applicationRoot,
+                "us-fda-ectd-322");
+            var document = SubmissionDocument.Rehydrate(
+                documentId,
+                "outside.pdf",
+                "application/pdf",
+                new FileInfo(outsidePath).Length,
+                "sha256",
+                string.Empty,
+                outsidePath,
+                DateTime.UtcNow);
+            var placement = DocumentPlacement.Rehydrate(
+                Guid.NewGuid(),
+                documentId,
+                applicationId,
+                "0001",
+                "m1.1",
+                DocumentPlacementOperation.New,
+                "Outside",
+                null,
+                DateTime.UtcNow);
+            var boundary = new DocumentStorageBoundary(
+                new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions
+                {
+                    AllowedWorkspaceRoots = [allowedRoot]
+                })));
+            var builder = CreateBuilder(application, [placement], [document], boundary);
+
+            await Assert.ThrowsAsync<DocumentStorageBoundaryException>(() => builder.BuildAsync(
+                new BuildEctdPackageRequest(applicationId, "0001")));
+
+            Assert.Equal("must remain unchanged", await File.ReadAllTextAsync(outsidePath));
+        }
+        finally
+        {
+            Directory.Delete(allowedRoot, recursive: true);
+        }
+    }
+
     [Fact]
     public void PackageRecords_ExposeExpectedImmutableContract()
     {
@@ -485,13 +552,15 @@ public sealed class EctdPackageModelBuilderTests
     private static EctdPackageModelBuilder CreateBuilder(
         SubmissionApplication? application,
         IReadOnlyCollection<DocumentPlacement> placements,
-        IReadOnlyCollection<SubmissionDocument> documents)
+        IReadOnlyCollection<SubmissionDocument> documents,
+        IDocumentStorageBoundary? documentStorageBoundary = null)
     {
         return new EctdPackageModelBuilder(
             new StubApplicationRepository(application),
             new StubDocumentPlacementRepository(placements),
             new StubDocumentRepository(documents),
-            new StubStandardsProfileProvider());
+            new StubStandardsProfileProvider(),
+            documentStorageBoundary ?? PermissiveDocumentStorageBoundary.Instance);
     }
 
     private sealed class StubStandardsProfileProvider : IStandardsProfileProvider
