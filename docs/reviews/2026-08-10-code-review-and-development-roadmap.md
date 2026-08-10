@@ -125,10 +125,10 @@ SDK 与 Python 安装后已经补跑 restore、build 和 Python 契约脚本。�
 
 **验收条件**
 
-- [ ] `git ls-files 'src/RATools.Api/App_Data/uploads/**'` 输出为空。
+- [x] `git ls-files 'src/RATools.Api/App_Data/uploads/**'` 输出为空。
 - [ ] 仓库数据/密钥扫描通过。
-- [ ] 敏感性结论与是否重写历史的决策被记录。
-- [ ] CI 对重新提交运行时数据直接失败。
+- [x] 敏感性结论与是否重写历史的决策被记录。
+- [x] CI 对重新提交运行时数据直接失败。
 
 ### F-04 [P1] 发布取消/超时可能阻止终态持久化
 
@@ -322,9 +322,9 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **目标**：先处理潜在公开数据事件，并确保运行时数据不能再次进入版本库。
 
-- [ ] 完成 D-01，记录文件来源、授权、敏感性和负责人。
+- [x] 完成 D-01，记录文件来源、授权、敏感性和负责角色；见[公开仓库数据事件处置记录](../security/2026-08-10-public-repository-data-incident.md)。
 - [x] 从 HEAD 移除 `App_Data/uploads` 下全部已跟踪文件，保留目录结构只使用 `.gitkeep`（如确有需要）。
-- [ ] 根据 D-01 决定是否协调重写远端历史；不在未经批准的普通提交中执行历史重写。
+- [x] 根据 D-01 决定协调重写远端历史；实际 force push 等待仓库管理员明确批准，不在普通提交中执行。
 - [x] 修正 `.gitignore` 的意图：正式文档使用可跟踪的 `docs/reviews`/`docs/section-dictionary`，`reference` 与 `scripts/tests` 不再被误忽略；本地 agent 草稿和生成工具目录继续忽略。
 - [x] 新增 repository hygiene 测试或 CI 脚本，禁止 runtime data、数据库和密钥被跟踪。
 
