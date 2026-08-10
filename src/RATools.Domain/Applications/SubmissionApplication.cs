@@ -26,14 +26,13 @@ public sealed class SubmissionApplication : Entity
         string workingDirectoryPath,
         string ectdTemplateKey)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(region);
         ArgumentException.ThrowIfNullOrWhiteSpace(sponsorName);
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(ectdTemplateKey);
 
         Id = id;
-        ApplicationNumber = applicationNumber.Trim();
+        ApplicationNumber = PortablePathSegment.NormalizeAndValidate(applicationNumber, nameof(applicationNumber));
         Region = region.Trim();
         SponsorName = sponsorName.Trim();
         WorkingDirectoryPath = workingDirectoryPath.Trim();

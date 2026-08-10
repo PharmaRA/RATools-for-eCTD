@@ -42,7 +42,9 @@ public sealed class PublishDestinationContractTests
         var saveMethod = typeof(IBackboneFileWriter).GetMethod(nameof(IBackboneFileWriter.SaveAsync));
 
         Assert.NotNull(saveMethod);
-        Assert.DoesNotContain(saveMethod!.GetParameters(), parameter =>
+        Assert.Equal(typeof(Guid), saveMethod!.GetParameters()[0].ParameterType);
+        Assert.Equal("applicationId", saveMethod.GetParameters()[0].Name);
+        Assert.DoesNotContain(saveMethod.GetParameters(), parameter =>
             parameter.Name?.Contains("Path", StringComparison.OrdinalIgnoreCase) == true
             || parameter.Name?.Contains("Directory", StringComparison.OrdinalIgnoreCase) == true
             || parameter.Name?.Contains("Root", StringComparison.OrdinalIgnoreCase) == true);

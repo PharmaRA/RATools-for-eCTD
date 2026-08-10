@@ -5,6 +5,7 @@ using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Domain.Applications;
+using RATools.Domain.Common;
 
 namespace RATools.Application.Applications;
 
@@ -18,14 +19,17 @@ public sealed class ApplicationService(
 
     public async Task<ApplicationDto> CreateAsync(CreateApplicationRequest request, CancellationToken cancellationToken = default)
     {
+        var applicationNumber = PortablePathSegment.NormalizeAndValidate(
+            request.ApplicationNumber,
+            nameof(request.ApplicationNumber));
         var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
         var existingApplications = await repository.ListAsync(cancellationToken);
-        if (existingApplications.Any(x => string.Equals(x.ApplicationNumber, request.ApplicationNumber, StringComparison.OrdinalIgnoreCase)))
+        if (existingApplications.Any(x => string.Equals(x.ApplicationNumber, applicationNumber, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new ApplicationNumberAlreadyExistsException($"Application number '{request.ApplicationNumber}' already exists.");
+            throw new ApplicationNumberAlreadyExistsException($"Application number '{applicationNumber}' already exists.");
         }
 
-        var requestedWorkingDirectoryPath = Path.Combine(request.WorkingDirectoryParentPath, request.ApplicationNumber);
+        var requestedWorkingDirectoryPath = Path.Combine(request.WorkingDirectoryParentPath, applicationNumber);
         var allowedWorkingDirectoryPath = Path.TrimEndingDirectorySeparator(workspacePathPolicy.EnsureAllowed(requestedWorkingDirectoryPath));
         var allowedParentPath = Path.GetDirectoryName(allowedWorkingDirectoryPath)
             ?? throw new InvalidOperationException($"Unable to derive a parent directory for '{allowedWorkingDirectoryPath}'.");
@@ -36,7 +40,7 @@ public sealed class ApplicationService(
             allowedApplicationNumber,
             cancellationToken);
 
-        var application = new SubmissionApplication(request.ApplicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);
+        var application = new SubmissionApplication(applicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);
         await repository.AddAsync(application, cancellationToken);
         return application.ToDto();
     }

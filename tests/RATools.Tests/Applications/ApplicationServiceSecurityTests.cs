@@ -9,6 +9,20 @@ namespace RATools.Tests.Applications;
 
 public sealed class ApplicationServiceSecurityTests
 {
+    public static TheoryData<string> UnsafeApplicationNumbers => new()
+    {
+        "../escape",
+        "..\\escape",
+        "/var/tmp/escape",
+        "C:\\escape",
+        "\\\\server\\share",
+        "mixed/..\\escape",
+        "CON",
+        "NUL.json",
+        "COM1",
+        "LPT9.log"
+    };
+
     [Fact]
     public async Task CreateAsync_RejectsWorkingDirectoryOutsideConfiguredRootsBeforeCreatingDirectory()
     {
@@ -53,6 +67,31 @@ public sealed class ApplicationServiceSecurityTests
         Assert.True(workspaceService.EnsureApplicationCalled);
         Assert.Equal(Path.GetDirectoryName(normalizedFinalPath), workspaceService.LastParentPath);
         Assert.Equal(Path.GetFileName(normalizedFinalPath), workspaceService.LastApplicationNumber);
+    }
+
+    [Theory]
+    [MemberData(nameof(UnsafeApplicationNumbers))]
+    public async Task CreateAsync_RejectsUnsafeApplicationNumberBeforeFilesystemOrRepositoryMutation(
+        string applicationNumber)
+    {
+        var repository = new StubApplicationRepository();
+        var workspacePathPolicy = new RecordingWorkspacePathPolicy(Path.Combine(Path.GetTempPath(), "unused"));
+        var workspaceService = new RecordingWorkspaceService();
+        var service = new ApplicationService(
+            repository,
+            new StubApplicationDeletionCoordinator(),
+            workspacePathPolicy,
+            workspaceService);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(new CreateApplicationRequest(
+            applicationNumber,
+            "us-fda-ectd-3.2.2",
+            "Sponsor",
+            Path.GetTempPath())));
+
+        Assert.Null(workspacePathPolicy.LastRequestedPath);
+        Assert.False(workspaceService.EnsureApplicationCalled);
+        Assert.Null(repository.AddedApplication);
     }
 
     [Fact]
@@ -116,7 +155,13 @@ public sealed class ApplicationServiceSecurityTests
 
     private sealed class StubApplicationRepository(IReadOnlyCollection<SubmissionApplication>? applications = null) : IApplicationRepository
     {
-        public Task AddAsync(SubmissionApplication application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public SubmissionApplication? AddedApplication { get; private set; }
+
+        public Task AddAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
+        {
+            AddedApplication = application;
+            return Task.CompletedTask;
+        }
         public Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<SubmissionApplication?>(null);

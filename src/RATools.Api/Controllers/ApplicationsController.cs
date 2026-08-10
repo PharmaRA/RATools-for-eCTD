@@ -72,6 +72,10 @@ public sealed class ApplicationsController(
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPost("import")]
@@ -94,6 +98,10 @@ public sealed class ApplicationsController(
             return BadRequest(new { message = exception.Message });
         }
         catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
         {
             return BadRequest(new { message = exception.Message });
         }

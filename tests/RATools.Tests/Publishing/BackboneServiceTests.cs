@@ -38,7 +38,7 @@ public sealed class BackboneServiceTests
         Assert.Equal(new BuildEctdPackageRequest(applicationId, "0001"), packageBuilder.Request);
         Assert.Same(package, ichWriter.Package);
         Assert.Same(package, usRegionalWriter.Package);
-        Assert.Equal("ANDA123456", fileWriter.ApplicationNumber);
+        Assert.Equal(applicationId, fileWriter.ApplicationId);
         Assert.Equal("0001", fileWriter.SequenceNumber);
         Assert.Equal(publishJobId, fileWriter.PublishJobId);
         Assert.Equal("publish-report-0001.json", fileWriter.ReportFileName);
@@ -152,7 +152,7 @@ public sealed class BackboneServiceTests
             _validator = validator;
         }
 
-        public string? ApplicationNumber { get; private set; }
+        public Guid ApplicationId { get; private set; }
 
         public string? SequenceNumber { get; private set; }
 
@@ -167,7 +167,7 @@ public sealed class BackboneServiceTests
         public IReadOnlyCollection<EctdPublishedFile> PublishedFiles { get; private set; } = [];
 
         public Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
-            string applicationNumber,
+            Guid applicationId,
             string sequenceNumber,
             Guid publishJobId,
             IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
@@ -181,7 +181,7 @@ public sealed class BackboneServiceTests
                 _validator.FileWriterWasInvoked = true;
             }
 
-            ApplicationNumber = applicationNumber;
+            ApplicationId = applicationId;
             SequenceNumber = sequenceNumber;
             PublishJobId = publishJobId;
             ReportFileName = reportFileName;

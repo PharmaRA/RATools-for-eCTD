@@ -102,6 +102,8 @@ Default backend configuration is in `src/RATools.Api/appsettings.json`.
 ## Working Directories
 
 - Creating an application requires `workingDirectoryParentPath`.
+- `applicationNumber` must be a portable single path segment; traversal, rooted paths,
+  mixed separators, and Windows reserved device names are rejected.
 - The backend creates and stores `{workingDirectoryParentPath}/{applicationNumber}` as the application working directory.
 - Creating a sequence automatically creates `{applicationWorkingDirectoryPath}/{sequenceNumber}`.
 - Creating or importing an application uses `ectdTemplateKey`, for example `us-fda-ectd-3.2.2`.
@@ -191,6 +193,8 @@ Publish job endpoints follow a create-vs-execute split:
 - `POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`.
 - `POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`;
   poll `GET /api/publish-jobs/{id}` for status and fetch `/report` and `/artifacts` once completed.
+- Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;
+  the business-facing application number is never used as the publish storage path segment.
 
 Use `RATools.Api.http` for local HTTP examples. New application and import requests use `ectdTemplateKey`:
 

@@ -4,6 +4,24 @@ namespace RATools.Tests.Domain;
 
 public sealed class SubmissionApplicationTests
 {
+    public static TheoryData<string> UnsafeApplicationNumbers => new()
+    {
+        ".",
+        "..",
+        "../escape",
+        "..\\escape",
+        "/var/tmp/escape",
+        "C:\\escape",
+        "\\\\server\\share",
+        "mixed/..\\escape",
+        "CON",
+        "nul.txt",
+        "COM1",
+        "COM\u00B9",
+        "LPT9.log",
+        "application."
+    };
+
     [Fact]
     public void Constructor_TrimsFieldsAndRejectsBlank()
     {
@@ -33,6 +51,18 @@ public sealed class SubmissionApplicationTests
         Assert.Equal("0000", sequence.SequenceNumber);
         Assert.Throws<InvalidOperationException>(
             () => application.CreateSequence("0000", "supplement", "Duplicate"));
+    }
+
+    [Theory]
+    [MemberData(nameof(UnsafeApplicationNumbers))]
+    public void Constructor_RejectsApplicationNumbersThatAreNotPortablePathSegments(string applicationNumber)
+    {
+        Assert.Throws<ArgumentException>(() => new SubmissionApplication(
+            applicationNumber,
+            "US",
+            "Acme",
+            "C:/workspace",
+            "us-fda-ectd-3.2.2"));
     }
 
     [Fact]

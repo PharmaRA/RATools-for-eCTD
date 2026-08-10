@@ -40,7 +40,7 @@ public sealed class BackboneService(
         }
 
         var output = await backboneFileWriter.SaveAsync(
-            package.ApplicationNumber,
+            package.ApplicationId,
             package.SequenceNumber,
             request.PublishJobId,
             generatedFiles,

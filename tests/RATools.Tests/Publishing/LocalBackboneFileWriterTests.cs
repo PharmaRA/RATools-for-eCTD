@@ -9,6 +9,24 @@ namespace RATools.Tests.Publishing;
 
 public sealed class LocalBackboneFileWriterTests
 {
+    private static readonly Guid ApplicationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
+    public static TheoryData<string, string, string> UnsafeOutputSegments => new()
+    {
+        { "../0001", "publish-report.json", "0001.zip" },
+        { "..\\0001", "publish-report.json", "0001.zip" },
+        { "/var/tmp/0001", "publish-report.json", "0001.zip" },
+        { "C:\\0001", "publish-report.json", "0001.zip" },
+        { "\\\\server\\share", "publish-report.json", "0001.zip" },
+        { "CON", "publish-report.json", "0001.zip" },
+        { "0001", "../publish-report.json", "0001.zip" },
+        { "0001", "..\\publish-report.json", "0001.zip" },
+        { "0001", "NUL.json", "0001.zip" },
+        { "0001", "mixed/path\\publish-report.json", "0001.zip" },
+        { "0001", "publish-report.json", "../0001.zip" },
+        { "0001", "publish-report.json", "COM1.zip" }
+    };
+
     [Fact]
     public async Task SaveAsync_WritesGeneratedFilesDocumentsDtdsMd5AndPackageZip()
     {
@@ -40,7 +58,7 @@ public sealed class LocalBackboneFileWriterTests
             };
 
             var result = await writer.SaveAsync(
-                "ANDA123456",
+                ApplicationId,
                 "0001",
                 jobId,
                 generatedFiles,
@@ -48,7 +66,7 @@ public sealed class LocalBackboneFileWriterTests
                 "0001.zip",
                 publishedFiles);
 
-            var deliveryRoot = Path.Combine(root, "ANDA123456", "_jobs", jobId.ToString("N"), "0001");
+            var deliveryRoot = Path.Combine(root, ApplicationId.ToString("N"), "_jobs", jobId.ToString("N"), "0001");
             var indexPath = Path.Combine(deliveryRoot, "index.xml");
             var regionalPath = Path.Combine(deliveryRoot, "m1", "us", "us-regional.xml");
             var copiedDocumentPath = Path.Combine(deliveryRoot, "m1", "us", "12-cover-letters", "cover.pdf");
@@ -114,7 +132,7 @@ public sealed class LocalBackboneFileWriterTests
             };
 
             var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => writer.SaveAsync(
-                "ANDA123456",
+                ApplicationId,
                 "0001",
                 Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 generatedFiles,
@@ -136,7 +154,7 @@ public sealed class LocalBackboneFileWriterTests
         var root = CreateTempRoot();
         try
         {
-            var applicationRoot = Path.Combine(root, "ANDA123456");
+            var applicationRoot = Path.Combine(root, ApplicationId.ToString("N"));
             var jobsRoot = Path.Combine(applicationRoot, "_jobs");
             var artifactsRoot = Path.Combine(applicationRoot, "_artifacts", "0001");
             Directory.CreateDirectory(artifactsRoot);
@@ -158,7 +176,7 @@ public sealed class LocalBackboneFileWriterTests
             var newJobId = Guid.NewGuid();
 
             await writer.SaveAsync(
-                "ANDA123456",
+                ApplicationId,
                 "0001",
                 newJobId,
                 [new BackboneGeneratedFile("index.xml", "<ectd:ectd />")],
@@ -188,7 +206,7 @@ public sealed class LocalBackboneFileWriterTests
         var root = CreateTempRoot();
         try
         {
-            var jobsRoot = Path.Combine(root, "ANDA123456", "_jobs");
+            var jobsRoot = Path.Combine(root, ApplicationId.ToString("N"), "_jobs");
             var oldJobDirectory = Path.Combine(jobsRoot, Guid.NewGuid().ToString("N"), "0001");
             Directory.CreateDirectory(oldJobDirectory);
             await File.WriteAllTextAsync(Path.Combine(oldJobDirectory, "index.xml"), "<ectd:ectd />");
@@ -198,7 +216,7 @@ public sealed class LocalBackboneFileWriterTests
                 NullLogger<LocalBackboneFileWriter>.Instance);
 
             await writer.SaveAsync(
-                "ANDA123456",
+                ApplicationId,
                 "0001",
                 Guid.NewGuid(),
                 [new BackboneGeneratedFile("index.xml", "<ectd:ectd />")],
@@ -211,6 +229,82 @@ public sealed class LocalBackboneFileWriterTests
         finally
         {
             DeleteIfExists(root);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(UnsafeOutputSegments))]
+    public async Task SaveAsync_RejectsUnsafeFinalPathSegmentsBeforeWriting(
+        string sequenceNumber,
+        string reportFileName,
+        string packageFileName)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var writer = new LocalBackboneFileWriter(
+                Options.Create(new BackboneOutputOptions { RootPath = root }),
+                NullLogger<LocalBackboneFileWriter>.Instance);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => writer.SaveAsync(
+                ApplicationId,
+                sequenceNumber,
+                Guid.NewGuid(),
+                [new BackboneGeneratedFile("index.xml", "<ectd:ectd />")],
+                reportFileName,
+                packageFileName,
+                []));
+
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
+        }
+        finally
+        {
+            DeleteIfExists(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("../outside.txt")]
+    [InlineData("..\\outside.txt")]
+    [InlineData("/var/tmp/outside.txt")]
+    [InlineData("C:\\outside.txt")]
+    [InlineData("\\\\server\\share\\outside.txt")]
+    [InlineData("mixed/..\\..\\outside.txt")]
+    [InlineData("m1/CON/outside.txt")]
+    [InlineData("m1/NUL.txt")]
+    [InlineData("m1/file:name.txt")]
+    [InlineData("m1/file.")]
+    public async Task SaveAsync_RejectsEscapingPackagePathsWithoutChangingExternalFile(string relativePath)
+    {
+        var container = CreateTempRoot();
+        var root = Path.Combine(container, "publish");
+        Directory.CreateDirectory(root);
+        var sentinelPath = Path.Combine(container, "outside.txt");
+        await File.WriteAllTextAsync(sentinelPath, "unchanged");
+        var sentinelWriteTime = File.GetLastWriteTimeUtc(sentinelPath);
+
+        try
+        {
+            var writer = new LocalBackboneFileWriter(
+                Options.Create(new BackboneOutputOptions { RootPath = root }),
+                NullLogger<LocalBackboneFileWriter>.Instance);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => writer.SaveAsync(
+                ApplicationId,
+                "0001",
+                Guid.NewGuid(),
+                [new BackboneGeneratedFile(relativePath, "modified")],
+                "publish-report.json",
+                "0001.zip",
+                []));
+
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
+            Assert.Equal("unchanged", await File.ReadAllTextAsync(sentinelPath));
+            Assert.Equal(sentinelWriteTime, File.GetLastWriteTimeUtc(sentinelPath));
+        }
+        finally
+        {
+            DeleteIfExists(container);
         }
     }
 

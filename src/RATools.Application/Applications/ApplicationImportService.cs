@@ -8,6 +8,7 @@ using RATools.Application.Applications.Requests;
 using RATools.Application.Documents;
 using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
+using RATools.Domain.Common;
 using RATools.Domain.Documents;
 
 namespace RATools.Application.Applications;
@@ -27,7 +28,9 @@ public sealed class ApplicationImportService(
         var template = EctdTemplateRegistry.Resolve(request.EctdTemplateKey);
 
         var workingDirectoryPath = workspacePathPolicy.EnsureAllowed(request.WorkingDirectoryPath);
-        var applicationNumber = Path.GetFileName(workingDirectoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var applicationNumber = PortablePathSegment.NormalizeAndValidate(
+            Path.GetFileName(workingDirectoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)),
+            "applicationNumber");
         var existingApplications = await applicationRepository.ListAsync(cancellationToken);
         if (existingApplications.Any(x => x.ApplicationNumber == applicationNumber || string.Equals(x.WorkingDirectoryPath, workingDirectoryPath, StringComparison.OrdinalIgnoreCase)))
         {

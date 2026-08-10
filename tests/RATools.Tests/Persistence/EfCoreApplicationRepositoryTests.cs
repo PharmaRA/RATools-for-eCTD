@@ -104,4 +104,33 @@ public sealed class EfCoreApplicationRepositoryTests
         Assert.Equal("office", persistedSequence.PublishingMetadata.TelephoneNumberType);
         Assert.Equal("jane.regulatory@example.test", persistedSequence.PublishingMetadata.Email);
     }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("C:\\escape")]
+    [InlineData("CON")]
+    public async Task GetAsync_RejectsUnsafeLegacyApplicationNumberBeforeDerivingFallbackWorkspacePath(
+        string applicationNumber)
+    {
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>()
+            .UseInMemoryDatabase($"ratools-app-repo-{Guid.NewGuid():N}")
+            .Options;
+
+        await using var dbContext = new RAToolsDbContext(options);
+        var applicationId = Guid.NewGuid();
+        dbContext.Applications.Add(new ApplicationRecord
+        {
+            Id = applicationId,
+            ApplicationNumber = applicationNumber,
+            Region = "US",
+            SponsorName = "Sponsor",
+            EctdTemplateKey = EctdTemplateRegistry.DefaultTemplateKey,
+            WorkingDirectoryPath = string.Empty,
+            CreatedUtc = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+        var repository = new EfCoreApplicationRepository(dbContext);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.GetAsync(applicationId));
+    }
 }

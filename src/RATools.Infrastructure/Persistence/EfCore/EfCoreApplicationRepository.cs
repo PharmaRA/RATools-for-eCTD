@@ -4,6 +4,7 @@ using RATools.Application.Applications;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Applications;
+using RATools.Domain.Common;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
@@ -163,6 +164,9 @@ internal static class ApplicationRecordMapping
 
     public static SubmissionApplication ToDomain(this ApplicationRecord record)
     {
+        var applicationNumber = PortablePathSegment.NormalizeAndValidate(
+            record.ApplicationNumber,
+            nameof(record.ApplicationNumber));
         var sequences = record.Sequences
             .OrderBy(x => x.CreatedUtc)
             .Select(x => SubmissionSequence.Rehydrate(
@@ -175,13 +179,13 @@ internal static class ApplicationRecordMapping
 
         return SubmissionApplication.Rehydrate(
             record.Id,
-            record.ApplicationNumber,
+            applicationNumber,
             record.Region,
             record.SponsorName,
             record.CreatedUtc,
             sequences,
             string.IsNullOrWhiteSpace(record.WorkingDirectoryPath)
-                ? Path.Combine("workspace", record.ApplicationNumber)
+                ? Path.Combine("workspace", applicationNumber)
                 : record.WorkingDirectoryPath,
             string.IsNullOrWhiteSpace(record.EctdTemplateKey)
                 ? EctdTemplateRegistry.DefaultTemplateKey
