@@ -11,7 +11,7 @@ README = REPO_ROOT / "README.md"
 
 def method_block(source: str, method_name: str) -> str:
     match = re.search(
-        rf"(?P<attributes>(?:\s*\[[^\n]+\]\n)+)\s*public\s+async\s+Task<IActionResult>\s+{method_name}\(",
+        rf"(?P<attributes>(?:\s*\[[^\n]+\]\n)+)\s*public(?:\s+async)?\s+(?:Task<IActionResult>|IActionResult)\s+{method_name}\(",
         source,
     )
     if not match:
@@ -37,20 +37,19 @@ def main() -> None:
     http_examples = HTTP_EXAMPLES.read_text(encoding="utf-8")
     readme = README.read_text(encoding="utf-8")
 
-    create_attributes = method_block(source, "Create")
+    legacy_attributes = method_block(source, "Create")
     execute_attributes = method_block(source, "Execute")
 
-    assert '[HttpPost]' in create_attributes, "Create must remain POST /api/publish-jobs"
+    assert '[HttpPost]' in legacy_attributes, "Legacy POST /api/publish-jobs route must remain discoverable during migration"
     assert '[HttpPost("execute")]' in execute_attributes, "Execute must remain POST /api/publish-jobs/execute"
 
     assert (
-        '[ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status201Created)]'
-        in create_attributes
-    ), "POST /api/publish-jobs must document that it creates a job resource, not a publish report"
+        '[ProducesResponseType(StatusCodes.Status410Gone)]' in legacy_attributes
+    ), "Legacy POST /api/publish-jobs must document that it is gone"
 
     assert (
-        "PublishExecutionReportDto" not in create_attributes
-    ), "POST /api/publish-jobs must not advertise the execute/report response contract"
+        "CreatePublishJobRequestBody" not in legacy_attributes
+    ), "Legacy POST /api/publish-jobs must not accept the old synchronous request contract"
 
     assert (
         '[ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status202Accepted)]'
@@ -61,25 +60,18 @@ def main() -> None:
         "PublishExecutionReportDto" not in execute_attributes
     ), "POST /api/publish-jobs/execute runs in the background; it must not advertise a synchronous report response"
 
-    create_example = http_example_block(http_examples, "Create publish job")
     execute_example = http_example_block(http_examples, "Execute publish in the background")
 
-    assert (
-        "# Response: 201 Created PublishJobDto" in create_example
-    ), "RATools.Api.http must clarify that POST /api/publish-jobs returns a created PublishJobDto"
-
-    assert (
-        "PublishExecutionReportDto" not in create_example
-    ), "RATools.Api.http must not imply POST /api/publish-jobs returns the execution report contract"
+    assert "Create publish job" not in http_examples, "RATools.Api.http must stop documenting the removed synchronous command"
 
     assert (
         "# Response: 202 Accepted PublishJobDto" in execute_example
     ), "RATools.Api.http must clarify that POST /api/publish-jobs/execute returns 202 with the queued PublishJobDto"
 
     assert (
-        "POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`"
+        "The former synchronous `POST /api/publish-jobs` endpoint is deprecated and returns `410 Gone`"
         in readme
-    ), "README must clarify that POST /api/publish-jobs creates a job resource"
+    ), "README must clarify that the legacy synchronous endpoint is gone"
 
     assert (
         "POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`"

@@ -211,14 +211,16 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 - [Python 契约脚本](../../scripts/tests/test_publish_jobs_controller_contract.py#L43) 只检查 attribute 和响应 DTO，不验证运行行为。
 - 同一 controller 已存在明确的异步 [`POST /api/publish-jobs/execute`](../../src/RATools.Api/Controllers/PublishJobsController.cs#L101)。
 
+以上是原问题记录；当前同步入口已停止执行，保留路由仅返回 `410 Gone` 迁移提示，唯一创建并入队的命令是 `/execute`。
+
 **建议决策**
 
 优先保留单一异步命令：逐步弃用同步 `POST /api/publish-jobs`，由 `/execute` 创建 Pending 资源并入队。若业务必须保留两阶段协议，则 `POST /api/publish-jobs` 只能创建资源，并新增 `POST /api/publish-jobs/{id}/execute`。不要继续保留两个表面不同、行为重叠的入口。
 
 **验收条件**
 
-- [ ] Controller、OpenAPI、README、HTTP 示例和行为集成测试描述同一语义。
-- [ ] 契约测试能发现同步执行与纯创建之间的行为漂移。
+- [x] Controller、OpenAPI、README、HTTP 示例和行为测试统一描述 `/execute` 的 `202 Accepted` 异步入队语义；旧入口返回 `410 Gone`。（提交：`api: unify publish job command contract`）
+- [x] 契约脚本与 controller 行为测试验证旧入口不会调用发布服务，并能发现响应语义漂移。（提交：`api: unify publish job command contract`）
 
 ### F-08 [P2] 发布历史查询执行全量数据库和磁盘扫描
 
@@ -350,7 +352,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 - [x] 修复 F-04：终态先使用独立 cleanup token 持久化，审计改为后置 best-effort。（提交：`reliability: persist publish terminal states`）
 - [x] 增加取消、15 分钟超时、host stopping、审计失败、writer 失败和 repository 失败测试。（提交：`reliability: persist publish terminal states`）
 - [x] 修复 F-05：引入 unit of work/事务边界，并实现可验证的文件补偿。（提交：`reliability: make metadata updates atomic`）
-- [ ] 完成 D-03，修复 F-07 的 API 行为和契约测试。
+- [x] 完成 D-03，修复 F-07 的 API 行为和契约测试。（提交：`api: unify publish job command contract`）
 - [ ] 将无界 Channel 至少改为有界队列和明确 backpressure；持久化队列留到 Phase 3。
 
 **Stop gate**：故障注入矩阵通过；数据库中无遗留 Pending/Running；文件与数据库状态一致。

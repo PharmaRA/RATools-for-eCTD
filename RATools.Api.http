@@ -154,17 +154,6 @@ Content-Type: application/json
 # Files are written under BackboneOutput:RootPath/{applicationId-no-dashes}/_jobs/{publishJobId-no-dashes}/{sequenceNumber}/index.xml.
 # The request cannot select or override the physical output root.
 
-### Create publish job
-# @name createPublishJob
-# Response: 201 Created PublishJobDto
-POST {{host}}/api/publish-jobs
-Content-Type: application/json
-
-{
-  "applicationId": "{{createApplication.response.body.$.id}}",
-  "sequenceNumber": "0000"
-}
-
 ### Execute publish in the background
 # @name executePublishJob
 # Response: 202 Accepted PublishJobDto
@@ -182,7 +171,7 @@ Content-Type: application/json
 GET {{host}}/api/publish-jobs
 
 ### Get publish job by id
-GET {{host}}/api/publish-jobs/{{createPublishJob.response.body.$.id}}
+GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}
 
 ### Get persisted publish report by job id
 GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}/report

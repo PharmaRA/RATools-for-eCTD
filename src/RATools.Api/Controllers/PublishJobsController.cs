@@ -81,21 +81,13 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
+    [Obsolete("Use POST /api/publish-jobs/execute to create and enqueue a publish job.")]
+    [ProducesResponseType(StatusCodes.Status410Gone)]
+    public IActionResult Create()
     {
-        try
-        {
-            var created = await publishJobService.CreateAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
-                cancellationToken);
-
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-        catch (PublishJobAlreadyInProgressException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        return StatusCode(
+            StatusCodes.Status410Gone,
+            new { message = "POST /api/publish-jobs is deprecated; use POST /api/publish-jobs/execute." });
     }
 
     [HttpPost("execute")]

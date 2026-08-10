@@ -5,8 +5,6 @@ namespace RATools.Application.Publishing;
 
 public interface IPublishJobService
 {
-    Task<PublishJobDto> CreateAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default);
-
     Task<PublishExecutionReportDto> ExecuteAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default);
 
     Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default);

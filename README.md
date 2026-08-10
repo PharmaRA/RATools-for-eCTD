@@ -191,11 +191,11 @@ The smoke test covers application and sequence creation, document upload, canoni
 
 ## API Examples
 
-Publish job endpoints follow a create-vs-execute split:
+Publish jobs use one asynchronous command:
 
-- `POST /api/publish-jobs` creates a publish job resource and returns `201 Created` with `PublishJobDto`.
 - `POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`;
   poll `GET /api/publish-jobs/{id}` for status and fetch `/report` and `/artifacts` once completed.
+- The former synchronous `POST /api/publish-jobs` endpoint is deprecated and returns `410 Gone`; it never starts a publish.
 - Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;
   the business-facing application number is never used as the publish storage path segment.
 

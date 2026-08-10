@@ -27,6 +27,7 @@ public sealed class PublishJobService(
     private const string PublishExecutionReportVersion = "1.1";
     private static readonly TimeSpan TerminalCleanupTimeout = TimeSpan.FromSeconds(30);
 
+    // 保留给现有应用层测试与内部调用方的兼容入口；HTTP API 不再暴露该同步语义。
     public async Task<PublishJobDto> CreateAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
         var result = await ExecuteInternalAsync(request, cancellationToken);
