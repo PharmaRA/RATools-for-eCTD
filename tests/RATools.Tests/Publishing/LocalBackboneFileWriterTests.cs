@@ -1,9 +1,9 @@
 using System.IO.Compression;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Infrastructure.Publishing;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RATools.Tests.Publishing;
 
@@ -233,6 +233,7 @@ public sealed class LocalBackboneFileWriterTests
     }
 
     [Theory]
+    [Trait("Category", "PathSecurity")]
     [MemberData(nameof(UnsafeOutputSegments))]
     public async Task SaveAsync_RejectsUnsafeFinalPathSegmentsBeforeWriting(
         string sequenceNumber,
@@ -264,6 +265,7 @@ public sealed class LocalBackboneFileWriterTests
     }
 
     [Theory]
+    [Trait("Category", "PathSecurity")]
     [InlineData("../outside.txt")]
     [InlineData("..\\outside.txt")]
     [InlineData("/var/tmp/outside.txt")]

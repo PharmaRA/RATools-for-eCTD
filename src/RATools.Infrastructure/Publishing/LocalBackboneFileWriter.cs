@@ -75,6 +75,19 @@ public sealed partial class LocalBackboneFileWriter(
         var reportPath = ResolveDescendantPath(reportDirectory, safeReportFileName, "Publish report path");
         var packagePath = ResolveDescendantPath(packageDirectory, safePackageFileName, "Publish package path");
         var fullPath = ResolveDescendantPath(deliveryRoot, "index.xml", "Backbone index path");
+        var standardsAssets = BuildStandardsAssetCopyPlan(deliveryRoot);
+
+        var plannedPaths = generatedDestinations.Select(item => item.DestinationPath)
+            .Concat(publishedDestinations.Select(item => item.DestinationPath))
+            .Concat(standardsAssets.Select(item => item.DestinationPath))
+            .Append(indexMd5Path)
+            .Append(reportPath)
+            .Append(packagePath)
+            .Append(fullPath);
+        foreach (var plannedPath in plannedPaths)
+        {
+            EnsureNoReparsePoints(fullRootPath, plannedPath);
+        }
 
         Directory.CreateDirectory(deliveryRoot);
         Directory.CreateDirectory(reportDirectory);
@@ -101,7 +114,7 @@ public sealed partial class LocalBackboneFileWriter(
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
         }
 
-        CopyStandardsAssets(deliveryRoot);
+        CopyStandardsAssets(standardsAssets);
 
         var md5Content = BuildIndexMd5(deliveryRoot);
         await File.WriteAllTextAsync(indexMd5Path, md5Content, cancellationToken);
@@ -240,7 +253,59 @@ public sealed partial class LocalBackboneFileWriter(
                && relativePath != ".";
     }
 
-    private static void CopyStandardsAssets(string deliveryRoot)
+    private static void EnsureNoReparsePoints(string rootPath, string candidatePath)
+    {
+        var fullRootPath = Path.GetFullPath(rootPath);
+        var fullCandidatePath = Path.GetFullPath(candidatePath);
+        if (!IsDescendantPath(fullRootPath, fullCandidatePath))
+        {
+            throw new InvalidOperationException($"Path '{fullCandidatePath}' escapes publish root '{fullRootPath}'.");
+        }
+
+        EnsurePathComponentIsNotReparsePoint(fullRootPath);
+        var currentPath = fullRootPath;
+        foreach (var segment in Path.GetRelativePath(fullRootPath, fullCandidatePath)
+                     .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            currentPath = Path.Combine(currentPath, segment);
+            if (!TryGetAttributes(currentPath, out var attributes))
+            {
+                return;
+            }
+
+            if ((attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+            {
+                throw new InvalidOperationException(
+                    $"Publish path '{currentPath}' is a reparse point and cannot be used as an output destination.");
+            }
+        }
+    }
+
+    private static void EnsurePathComponentIsNotReparsePoint(string path)
+    {
+        if (TryGetAttributes(path, out var attributes)
+            && (attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+        {
+            throw new InvalidOperationException(
+                $"Publish root '{path}' is a reparse point and cannot be used as an output destination.");
+        }
+    }
+
+    private static bool TryGetAttributes(string path, out FileAttributes attributes)
+    {
+        try
+        {
+            attributes = File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            attributes = default;
+            return false;
+        }
+    }
+
+    private static (string SourcePath, string DestinationPath)[] BuildStandardsAssetCopyPlan(string deliveryRoot)
     {
         var sourceDirectory = Path.Combine(AppContext.BaseDirectory, "reference", "dtd");
         if (!Directory.Exists(sourceDirectory))
@@ -249,14 +314,22 @@ public sealed partial class LocalBackboneFileWriter(
         }
 
         var destinationDirectory = ResolveDescendantPath(deliveryRoot, "util/dtd", "Standards asset directory");
-        Directory.CreateDirectory(destinationDirectory);
+        return Directory.GetFiles(sourceDirectory, "*.dtd", SearchOption.TopDirectoryOnly)
+            .Select(sourcePath => (
+                SourcePath: sourcePath,
+                DestinationPath: ResolveDescendantPath(
+                    destinationDirectory,
+                    Path.GetFileName(sourcePath),
+                    "Standards asset path")))
+            .ToArray();
+    }
 
-        foreach (var sourcePath in Directory.GetFiles(sourceDirectory, "*.dtd", SearchOption.TopDirectoryOnly))
+    private static void CopyStandardsAssets(
+        IReadOnlyCollection<(string SourcePath, string DestinationPath)> standardsAssets)
+    {
+        foreach (var (sourcePath, destinationPath) in standardsAssets)
         {
-            var destinationPath = ResolveDescendantPath(
-                destinationDirectory,
-                Path.GetFileName(sourcePath),
-                "Standards asset path");
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
             File.Copy(sourcePath, destinationPath, overwrite: true);
         }
     }

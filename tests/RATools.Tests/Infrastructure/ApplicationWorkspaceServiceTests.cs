@@ -4,6 +4,7 @@ using RATools.Infrastructure.Storage;
 
 namespace RATools.Tests.Infrastructure;
 
+[Trait("Category", "PathSecurity")]
 public sealed class ApplicationWorkspaceServiceTests
 {
     private static ApplicationWorkspaceService CreateService(params string[] allowedRoots)
@@ -17,21 +18,21 @@ public sealed class ApplicationWorkspaceServiceTests
     }
 
     [Fact]
-    public async Task EnsureApplicationWorkingDirectoryAsync_DoesNotTrimPathSegments()
+    public async Task EnsureApplicationWorkingDirectoryAsync_RejectsNonCanonicalPathSegment()
     {
         using var parent = new TemporaryDirectory();
         var applicationNumber = " app-001";
         var service = CreateService(parent.Path);
         var expectedPath = Path.Combine(parent.Path, applicationNumber);
 
-        var path = await service.EnsureApplicationWorkingDirectoryAsync(parent.Path, applicationNumber);
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.EnsureApplicationWorkingDirectoryAsync(parent.Path, applicationNumber));
 
-        Assert.Equal(expectedPath, path);
-        Assert.True(Directory.Exists(expectedPath));
+        Assert.False(Directory.Exists(expectedPath));
     }
 
     [Fact]
-    public async Task EnsureSequenceWorkingDirectoryAsync_DoesNotTrimPathSegments()
+    public async Task EnsureSequenceWorkingDirectoryAsync_RejectsNonCanonicalPathSegment()
     {
         using var parent = new TemporaryDirectory();
         var applicationPath = Path.Combine(parent.Path, " app-001");
@@ -40,21 +41,21 @@ public sealed class ApplicationWorkspaceServiceTests
         var service = CreateService(parent.Path);
         var expectedPath = Path.Combine(applicationPath, sequenceNumber);
 
-        var path = await service.EnsureSequenceWorkingDirectoryAsync(applicationPath, sequenceNumber);
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.EnsureSequenceWorkingDirectoryAsync(applicationPath, sequenceNumber));
 
-        Assert.Equal(expectedPath, path);
-        Assert.True(Directory.Exists(expectedPath));
+        Assert.False(Directory.Exists(expectedPath));
     }
 
     [Fact]
-    public async Task EnsureApplicationWorkingDirectoryAsync_RejectsEscapeOutsideAllowedRoots()
+    public async Task EnsureApplicationWorkingDirectoryAsync_RejectsTraversalPathSegment()
     {
         using var parent = new TemporaryDirectory();
         var service = CreateService(parent.Path);
         var escapingNumber = Path.Combine("..", $"escape-{Guid.NewGuid():N}");
         var escapedPath = Path.GetFullPath(Path.Combine(parent.Path, escapingNumber));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<ArgumentException>(
             () => service.EnsureApplicationWorkingDirectoryAsync(parent.Path, escapingNumber));
         Assert.False(Directory.Exists(escapedPath));
     }

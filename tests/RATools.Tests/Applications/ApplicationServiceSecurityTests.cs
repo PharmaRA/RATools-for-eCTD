@@ -7,6 +7,7 @@ using RATools.Domain.Applications;
 
 namespace RATools.Tests.Applications;
 
+[Trait("Category", "PathSecurity")]
 public sealed class ApplicationServiceSecurityTests
 {
     public static TheoryData<string> UnsafeApplicationNumbers => new()
@@ -21,6 +22,18 @@ public sealed class ApplicationServiceSecurityTests
         "NUL.json",
         "COM1",
         "LPT9.log"
+    };
+
+    public static TheoryData<string> UnsafeSequenceNumbers => new()
+    {
+        "../0001",
+        "..\\0001",
+        "/var/tmp/0001",
+        "C:\\0001",
+        "\\\\server\\share",
+        "mixed/..\\0001",
+        "CON",
+        "NUL.txt"
     };
 
     [Fact]
@@ -114,6 +127,60 @@ public sealed class ApplicationServiceSecurityTests
         Assert.False(workspaceService.EnsureApplicationCalled);
     }
 
+    [Theory]
+    [MemberData(nameof(UnsafeSequenceNumbers))]
+    public async Task CreateSequenceAsync_RejectsUnsafeSequenceBeforeFilesystemOrRepositoryMutation(
+        string sequenceNumber)
+    {
+        var application = new SubmissionApplication(
+            "app-001",
+            "United States",
+            "Sponsor",
+            Path.Combine(Path.GetTempPath(), "app-001"),
+            "us-fda-ectd-3.2.2");
+        var repository = new StubApplicationRepository([application]);
+        var workspaceService = new RecordingWorkspaceService();
+        var service = new ApplicationService(
+            repository,
+            new StubApplicationDeletionCoordinator(),
+            new RecordingWorkspacePathPolicy(application.WorkingDirectoryPath),
+            workspaceService);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateSequenceAsync(
+            application.Id,
+            new CreateSequenceRequest(sequenceNumber, "original-application", "Initial")));
+
+        Assert.False(workspaceService.EnsureSequenceCalled);
+        Assert.Null(repository.UpdatedApplication);
+        Assert.Empty(application.Sequences);
+    }
+
+    [Fact]
+    public async Task CreateSequenceAsync_RejectsSequenceWorkspaceOutsidePolicyBeforeAggregateMutation()
+    {
+        var application = new SubmissionApplication(
+            "app-001",
+            "United States",
+            "Sponsor",
+            Path.Combine(Path.GetTempPath(), "app-001"),
+            "us-fda-ectd-3.2.2");
+        var repository = new StubApplicationRepository([application]);
+        var workspaceService = new RecordingWorkspaceService();
+        var service = new ApplicationService(
+            repository,
+            new StubApplicationDeletionCoordinator(),
+            new RejectingWorkspacePathPolicy(),
+            workspaceService);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateSequenceAsync(
+            application.Id,
+            new CreateSequenceRequest("0001", "original-application", "Initial")));
+
+        Assert.False(workspaceService.EnsureSequenceCalled);
+        Assert.Null(repository.UpdatedApplication);
+        Assert.Empty(application.Sequences);
+    }
+
     private sealed class RejectingWorkspacePathPolicy : IWorkspacePathPolicy
     {
         public IReadOnlyCollection<string> GetAllowedRoots() => [];
@@ -138,6 +205,7 @@ public sealed class ApplicationServiceSecurityTests
     private sealed class RecordingWorkspaceService : IApplicationWorkspaceService
     {
         public bool EnsureApplicationCalled { get; private set; }
+        public bool EnsureSequenceCalled { get; private set; }
         public string? LastParentPath { get; private set; }
         public string? LastApplicationNumber { get; private set; }
 
@@ -150,21 +218,30 @@ public sealed class ApplicationServiceSecurityTests
         }
 
         public Task<string> EnsureSequenceWorkingDirectoryAsync(string applicationWorkingDirectoryPath, string sequenceNumber, CancellationToken cancellationToken = default)
-            => Task.FromResult(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber));
+        {
+            EnsureSequenceCalled = true;
+            return Task.FromResult(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber));
+        }
     }
 
     private sealed class StubApplicationRepository(IReadOnlyCollection<SubmissionApplication>? applications = null) : IApplicationRepository
     {
         public SubmissionApplication? AddedApplication { get; private set; }
+        public SubmissionApplication? UpdatedApplication { get; private set; }
 
         public Task AddAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
         {
             AddedApplication = application;
             return Task.CompletedTask;
         }
-        public Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
+        {
+            UpdatedApplication = application;
+            return Task.CompletedTask;
+        }
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<SubmissionApplication?>(null);
+        public Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult(applications?.SingleOrDefault(application => application.Id == id));
         public Task<IReadOnlyCollection<SubmissionApplication>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult(applications ?? []);
     }
 

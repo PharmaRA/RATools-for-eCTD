@@ -123,6 +123,10 @@ public sealed class ApplicationsController(
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpGet("{id:guid}/sequences/{sequenceNumber}/publishing-metadata")]

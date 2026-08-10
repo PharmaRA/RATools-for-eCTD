@@ -1,5 +1,6 @@
 using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Storage;
+using RATools.Domain.Common;
 
 namespace RATools.Infrastructure.Storage;
 
@@ -12,9 +13,9 @@ public sealed class ApplicationWorkspaceService(IWorkspacePathPolicy workspacePa
     public Task<string> EnsureApplicationWorkingDirectoryAsync(string parentPath, string applicationNumber, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(parentPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
+        var safeApplicationNumber = EnsureCanonicalPathSegment(applicationNumber, nameof(applicationNumber));
 
-        var path = workspacePathPolicy.EnsureAllowed(Path.GetFullPath(Path.Combine(parentPath, applicationNumber)));
+        var path = workspacePathPolicy.EnsureAllowed(Path.GetFullPath(Path.Combine(parentPath, safeApplicationNumber)));
         Directory.CreateDirectory(path);
         return Task.FromResult(path);
     }
@@ -22,10 +23,21 @@ public sealed class ApplicationWorkspaceService(IWorkspacePathPolicy workspacePa
     public Task<string> EnsureSequenceWorkingDirectoryAsync(string applicationWorkingDirectoryPath, string sequenceNumber, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationWorkingDirectoryPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
+        var safeSequenceNumber = EnsureCanonicalPathSegment(sequenceNumber, nameof(sequenceNumber));
 
-        var path = workspacePathPolicy.EnsureAllowed(Path.GetFullPath(Path.Combine(applicationWorkingDirectoryPath, sequenceNumber)));
+        var path = workspacePathPolicy.EnsureAllowed(Path.GetFullPath(Path.Combine(applicationWorkingDirectoryPath, safeSequenceNumber)));
         Directory.CreateDirectory(path);
         return Task.FromResult(path);
+    }
+
+    private static string EnsureCanonicalPathSegment(string value, string parameterName)
+    {
+        var normalized = PortablePathSegment.NormalizeAndValidate(value, parameterName);
+        if (!string.Equals(normalized, value, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Value must not contain surrounding whitespace.", parameterName);
+        }
+
+        return normalized;
     }
 }

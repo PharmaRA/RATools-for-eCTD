@@ -2,6 +2,7 @@ using RATools.Domain.Applications;
 
 namespace RATools.Tests.Domain;
 
+[Trait("Category", "PathSecurity")]
 public sealed class SubmissionApplicationTests
 {
     public static TheoryData<string> UnsafeApplicationNumbers => new()
@@ -20,6 +21,20 @@ public sealed class SubmissionApplicationTests
         "COM\u00B9",
         "LPT9.log",
         "application."
+    };
+
+    public static TheoryData<string> UnsafeSequenceNumbers => new()
+    {
+        ".",
+        "..",
+        "../0001",
+        "..\\0001",
+        "/var/tmp/0001",
+        "C:\\0001",
+        "\\\\server\\share",
+        "mixed/..\\0001",
+        "CON",
+        "NUL.txt"
     };
 
     [Fact]
@@ -63,6 +78,42 @@ public sealed class SubmissionApplicationTests
             "Acme",
             "C:/workspace",
             "us-fda-ectd-3.2.2"));
+    }
+
+    [Theory]
+    [MemberData(nameof(UnsafeSequenceNumbers))]
+    public void CreateSequence_RejectsSequenceNumbersThatAreNotPortablePathSegments(string sequenceNumber)
+    {
+        var application = new SubmissionApplication(
+            "NDA123456",
+            "US",
+            "Acme",
+            "C:/workspace",
+            "us-fda-ectd-3.2.2");
+
+        Assert.Throws<ArgumentException>(() => application.CreateSequence(
+            sequenceNumber,
+            "original-application",
+            "Initial"));
+        Assert.Empty(application.Sequences);
+    }
+
+    [Fact]
+    public void CreateSequence_DetectsDuplicateAfterNormalizingSequenceNumber()
+    {
+        var application = new SubmissionApplication(
+            "NDA123456",
+            "US",
+            "Acme",
+            "C:/workspace",
+            "us-fda-ectd-3.2.2");
+        application.CreateSequence("0001", "original-application", "Initial");
+
+        Assert.Throws<InvalidOperationException>(() => application.CreateSequence(
+            " 0001 ",
+            "supplement",
+            "Duplicate"));
+        Assert.Single(application.Sequences);
     }
 
     [Fact]

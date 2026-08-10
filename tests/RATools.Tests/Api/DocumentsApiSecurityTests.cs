@@ -18,8 +18,13 @@ public sealed class DocumentsApiSecurityTests : IClassFixture<WebApplicationFact
         _factory = factory;
     }
 
-    [Fact]
-    public async Task RawCreateEndpoint_CannotRegisterClientSuppliedPathOrHashes()
+    [Theory]
+    [Trait("Category", "PathSecurity")]
+    [InlineData("../outside.pdf")]
+    [InlineData("C:\\outside.pdf")]
+    [InlineData("\\\\server\\share\\outside.pdf")]
+    [InlineData("/var/tmp/outside.pdf")]
+    public async Task RawCreateEndpoint_CannotRegisterClientSuppliedPathOrHashes(string storagePath)
     {
         using var tempRoot = new TemporaryDirectory();
         using var client = CreateClient(tempRoot.Path);
@@ -31,7 +36,7 @@ public sealed class DocumentsApiSecurityTests : IClassFixture<WebApplicationFact
             FileSize = 1,
             Sha256 = new string('0', 64),
             Md5 = new string('0', 32),
-            StoragePath = Path.Combine(Path.GetPathRoot(tempRoot.Path)!, "outside.pdf")
+            StoragePath = storagePath
         });
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);

@@ -94,6 +94,30 @@ jobs:
           name: backend-test-results
           path: ./TestResults
 
+  path-security:
+    name: Path security (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore tests/RATools.Tests/RATools.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-restore
+
+      - name: Run adversarial path matrix
+        run: dotnet test tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-build --filter "Category=PathSecurity" --logger "console;verbosity=minimal"
+
   frontend:
     name: Frontend (lint, build & test)
     runs-on: ubuntu-latest

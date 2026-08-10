@@ -1,3 +1,5 @@
+using RATools.Domain.Common;
+
 namespace RATools.Domain.Applications;
 
 public sealed class SubmissionSequence
@@ -14,11 +16,10 @@ public sealed class SubmissionSequence
         DateTime createdUtc,
         SequencePublishingMetadata? publishingMetadata)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(submissionType);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
-        SequenceNumber = sequenceNumber.Trim();
+        SequenceNumber = PortablePathSegment.NormalizeAndValidate(sequenceNumber, nameof(sequenceNumber));
         SubmissionType = submissionType.Trim();
         Description = description.Trim();
         CreatedUtc = createdUtc;

@@ -29,7 +29,20 @@ public sealed class ApplicationNumberSecurityApiTests : IClassFixture<WebApplica
         "LPT9.log"
     };
 
+    public static TheoryData<string> UnsafeSequenceNumbers => new()
+    {
+        "../0001",
+        "..\\0001",
+        "/var/tmp/0001",
+        "C:\\0001",
+        "\\\\server\\share",
+        "mixed/..\\0001",
+        "CON",
+        "NUL.txt"
+    };
+
     [Theory]
+    [Trait("Category", "PathSecurity")]
     [MemberData(nameof(UnsafeApplicationNumbers))]
     public async Task CreateApplication_RejectsUnsafeApplicationNumberWithoutChangingFilesOrRepository(
         string applicationNumber)
@@ -57,6 +70,46 @@ public sealed class ApplicationNumberSecurityApiTests : IClassFixture<WebApplica
         var applications = await client.GetFromJsonAsync<ApplicationResponse[]>("/api/applications");
         Assert.NotNull(applications);
         Assert.Empty(applications);
+    }
+
+    [Theory]
+    [Trait("Category", "PathSecurity")]
+    [MemberData(nameof(UnsafeSequenceNumbers))]
+    public async Task CreateSequence_RejectsUnsafeSequenceNumberWithoutChangingFilesOrRepository(
+        string sequenceNumber)
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var sentinelPath = Path.Combine(tempRoot.Path, "sentinel.txt");
+        await File.WriteAllTextAsync(sentinelPath, "unchanged");
+        using var client = CreateClient(tempRoot.Path);
+        var createResponse = await client.PostAsJsonAsync("/api/applications", new
+        {
+            ApplicationNumber = "app-001",
+            EctdTemplateKey = "us-fda-ectd-3.2.2",
+            SponsorName = "Security Test Sponsor",
+            WorkingDirectoryParentPath = tempRoot.Path
+        });
+        var application = await createResponse.Content.ReadFromJsonAsync<ApplicationResponse>();
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(application);
+        var beforeEntries = CaptureEntries(tempRoot.Path);
+        var beforeWriteTime = File.GetLastWriteTimeUtc(sentinelPath);
+
+        var response = await client.PostAsJsonAsync($"/api/applications/{application!.Id}/sequences", new
+        {
+            SequenceNumber = sequenceNumber,
+            SubmissionType = "original-application",
+            Description = "Initial"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(beforeEntries, CaptureEntries(tempRoot.Path));
+        Assert.Equal("unchanged", await File.ReadAllTextAsync(sentinelPath));
+        Assert.Equal(beforeWriteTime, File.GetLastWriteTimeUtc(sentinelPath));
+
+        var persisted = await client.GetFromJsonAsync<ApplicationResponse>($"/api/applications/{application.Id}");
+        Assert.NotNull(persisted);
+        Assert.Empty(persisted!.Sequences);
     }
 
     private HttpClient CreateClient(string allowedRoot)
@@ -93,7 +146,9 @@ public sealed class ApplicationNumberSecurityApiTests : IClassFixture<WebApplica
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-    private sealed record ApplicationResponse(Guid Id);
+    private sealed record ApplicationResponse(Guid Id, SequenceResponse[] Sequences);
+
+    private sealed record SequenceResponse(string SequenceNumber);
 
     private sealed class TemporaryDirectory : IDisposable
     {

@@ -57,12 +57,12 @@ public sealed class SubmissionApplication : Entity
 
     public SubmissionSequence CreateSequence(string sequenceNumber, string submissionType, string description)
     {
-        if (_sequences.Any(x => x.SequenceNumber == sequenceNumber))
+        var sequence = new SubmissionSequence(sequenceNumber, submissionType, description);
+        if (_sequences.Any(x => x.SequenceNumber == sequence.SequenceNumber))
         {
-            throw new InvalidOperationException($"Sequence {sequenceNumber} already exists.");
+            throw new InvalidOperationException($"Sequence {sequence.SequenceNumber} already exists.");
         }
 
-        var sequence = new SubmissionSequence(sequenceNumber, submissionType, description);
         _sequences.Add(sequence);
 
         return sequence;

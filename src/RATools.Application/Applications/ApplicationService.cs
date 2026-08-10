@@ -65,8 +65,18 @@ public sealed class ApplicationService(
             return null;
         }
 
-        application.CreateSequence(request.SequenceNumber, request.SubmissionType, request.Description);
-        await _workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, request.SequenceNumber, cancellationToken);
+        var sequenceNumber = PortablePathSegment.NormalizeAndValidate(
+            request.SequenceNumber,
+            nameof(request.SequenceNumber));
+        workspacePathPolicy.EnsureAllowed(Path.GetFullPath(Path.Combine(
+            application.WorkingDirectoryPath,
+            sequenceNumber)));
+
+        var sequence = application.CreateSequence(sequenceNumber, request.SubmissionType, request.Description);
+        await _workspaceService.EnsureSequenceWorkingDirectoryAsync(
+            application.WorkingDirectoryPath,
+            sequence.SequenceNumber,
+            cancellationToken);
         await repository.UpdateAsync(application, cancellationToken);
         return application.ToDto();
     }
