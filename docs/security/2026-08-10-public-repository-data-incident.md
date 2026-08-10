@@ -1,14 +1,14 @@
 # 2026-08-10 公开仓库数据事件处置记录
 
-> 状态：Mitigated in HEAD; history cleanup approval pending
+> 状态：Remote master rewritten; GitHub Support purge pending
 > 关联发现：[F-03 公开仓库跟踪运行时上传数据](../reviews/2026-08-10-code-review-and-development-roadmap.md#f-03-p0-公开仓库跟踪运行时上传数据)
 > 负责角色：PharmaRA 仓库管理员，直至实际数据所有者接手
 > 首次引入 commit：`73388e3739ac1931c411d596b6df9bb5a8212519`
-> 当前版本删除 commit：`3e9ac8295f89abe4abd4b6430fe63497b8a00533`
+> 当前版本删除 commit：`92b10efa54a9c40576fb20708583fd24d67913cd`
 
 ## 1. 结论
 
-历史中的 PDF 应按机密监管申报材料处理，不能按公开测试夹具处理。必须协调执行 Git 历史重写；仅从当前 `master` 删除文件不能完成处置。
+历史中的 PDF 应按机密监管申报材料处理，不能按公开测试夹具处理。远端 `master` 已完成协调式历史重写，但 13 个 GitHub pull request refs、cached views 和服务器端不可达对象仍需 GitHub Support 清理。
 
 本记录不重复正文中的申办方、产品代号或监管申请标识，避免在新的可搜索文件中再次扩散这些字段。
 
@@ -29,14 +29,14 @@
 - [x] 增加 `scripts/tests/test_repository_hygiene.py` 并接入 CI，阻止运行时数据、数据库、私钥和非示例环境文件重新进入 Git 索引。
 - [x] 当前 HEAD 高置信凭据签名扫描未发现 private key、AWS access key、GitHub token、Slack token 或 certificate block。
 
-## 4. 尚未完成的处置
+## 4. 处置状态
 
-- [ ] 仓库管理员明确批准协调式历史重写和远端 force push。
+- [x] 仓库管理员明确批准协调式历史重写和远端 force push。
 - [x] 盘点 GitHub 可见 refs：1 个 branch（`master`）、0 个 tag、0 个 fork、13 个已关闭 PR；collaborator clone 仍需仓库管理员确认。
 - [x] 使用隔离 bare clone 完成 `git-filter-repo 2.47.0` 演练，不修改主工作区或远端。
-- [ ] 在隔离的全新 clone 中使用 `git-filter-repo >= 2.47` 和 `--sensitive-data-removal` 删除所有 refs 下的 `src/RATools.Api/App_Data/uploads/**`。
-- [ ] 对重写后的全部 refs 运行数据/secret scan，并证明目标 blob 不再 reachable。
-- [ ] 暂停写入、备份远端 refs、临时调整 branch protection 后，执行受控 mirror force push。
+- [x] 在隔离的全新 clone 中使用 `git-filter-repo 2.47.0` 和 `--sensitive-data-removal` 删除已抓取 refs 下的 `src/RATools.Api/App_Data/uploads/**`。
+- [x] 对重写后的全部 refs 运行数据/secret scan，并证明目标 blob 不再 reachable。
+- [x] 生成受限的远端/本地 bundle 备份；确认 branch protection 未启用后，使用绑定旧远端 HEAD 的 `--force-with-lease` 更新唯一可写 ref `master`。
 - [ ] 按 GitHub 官方流程向 Support 提供 affected PR 数、First Changed Commit 和 orphaned LFS 信息，请求清理 PR 引用、cached views 和 unreachable objects。
 - [ ] 通知 fork/clone 持有者清理旧历史；协作者必须 rebase 或重新 clone，不能 merge 旧历史。
 - [ ] 确认没有旧 clone 或 fork 将污染历史重新推回远端。
@@ -55,9 +55,25 @@
 - 敏感 blob `5aa3edc3209e66cf08c6bc16d7b5072f066be5d3` 在 repack 后不可达。
 - LFS 未启用，没有需要迁移的 LFS 对象。
 
-通过 GitHub API 得到的远端清单不等于远端清理完成。正式执行仍必须从 GitHub origin 的全新 clone 开始，让 `--sensitive-data-removal` 获取服务器暴露的全部 refs，并向 GitHub Support 报告受影响 PR。
+通过 GitHub API 得到的远端清单不等于远端清理完成。正式执行结果见下一节；13 个只读 pull request refs 仍必须由 GitHub Support 解除引用并触发服务器端垃圾回收。
 
-## 6. 执行前检查单
+## 6. 正式执行与远端验证
+
+2026-08-10 在受限的工作区外目录中完成正式处置：
+
+- 为当前本地全部 refs 和 GitHub 当前全部可见 refs 分别生成完整 bundle，并通过 `git bundle verify`；GitHub 备份包含 `master` 和 13 个 pull request head refs。
+- 从 GitHub 全新 clone 抓取 14 个 refs，并纳入 6 个尚未推送的 Phase 0 缓解提交。
+- 使用 `git-filter-repo 2.47.0` 解析 240 个 commit、重写 239 个；First Changed Commit 为 `73388e3739ac1931c411d596b6df9bb5a8212519`，未使用 LFS。
+- `master` 的 231 个可达 commit 保持不变；重写前后候选 HEAD tree 均为 `a60661137901f7c47b7e39568f48247a9dea564c`。
+- 将远端 `master` 从 `89f8a4c978cf114f5884380376a020a026d24056` 强制更新到清理后的 `e2fc859fcafe9a205888a27937fe7f1710ee778d`。推送前逐项确认 14 个远端 refs 与备份一致，避免覆盖并发工作。
+- 推送后从 GitHub 全新单分支 clone 验证：上传目录历史和可达对象数均为 0，敏感 blob 不存在，`git fsck --full --no-reflogs` 通过。
+- 当前本地 clone 的 `master` 和 12 文件 stash 均已迁移到清理后的历史；未跟踪 `.claude/` 保持不变，旧对象已在受限 bundle 外回收。
+- 仓库卫生测试、控制器契约测试和全历史高置信 secret 签名扫描通过；后端通过 350 项、跳过 6 项 PostgreSQL 测试；前端 421 项全部通过。
+- 远端 [Smoke](https://github.com/PharmaRA/RATools-for-eCTD/actions/runs/31371677416)、[CI](https://github.com/PharmaRA/RATools-for-eCTD/actions/runs/31371677480) 和 [CodeQL](https://github.com/PharmaRA/RATools-for-eCTD/actions/runs/31371677501) 均成功。
+
+GitHub 拒绝客户端更新 `refs/pull/*`，属于平台预期行为。`changed-refs` 显示 13 个 pull request head refs 受影响；在 GitHub Support 完成解除引用、cached view 清理和服务器端垃圾回收前，不能把事件状态标记为完全关闭。
+
+## 7. 执行前检查单
 
 历史重写是破坏性仓库操作，只能在维护窗口中执行。负责人必须在执行前确认：
 
@@ -67,7 +83,7 @@
 4. 已明确谁执行 force push、谁复核、谁联系 GitHub Support。
 5. 已准备 clean clone/rebase 通知模板和回滚条件。
 
-## 7. 推荐验证
+## 8. 推荐验证
 
 隔离 clone 中至少验证以下不变量：
 
@@ -84,7 +100,7 @@ python3 scripts/tests/test_repository_hygiene.py
 
 还必须运行完整后端、前端、smoke 和 secret scan，确保重写没有遗漏 refs 或破坏构建基线。
 
-## 8. 参考流程
+## 9. 参考流程
 
 - [GitHub：从存储库中删除敏感数据](https://docs.github.com/zh/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
 
