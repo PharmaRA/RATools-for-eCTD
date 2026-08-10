@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Applications;
 using RATools.Application.Documents;
@@ -10,6 +11,7 @@ using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.UsRegional;
 using RATools.Application.Publishing.Validation;
+using RATools.Application.Persistence;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Rules;
@@ -21,6 +23,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<IPersistenceTransaction, PassthroughPersistenceTransaction>();
         services.AddScoped<IApplicationDeletionTransaction, PassthroughApplicationDeletionTransaction>();
         services.AddScoped<IApplicationDeletionCoordinator, ApplicationDeletionCoordinator>();
         services.AddScoped<IApplicationService, ApplicationService>();

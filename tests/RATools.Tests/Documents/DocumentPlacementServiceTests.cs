@@ -3,6 +3,7 @@ using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
 using RATools.Application.Documents;
 using RATools.Application.Documents.Requests;
+using RATools.Application.Persistence;
 using RATools.Application.Validation;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
@@ -57,7 +58,8 @@ public sealed class DocumentPlacementServiceTests
                 new StubApplicationRepository(application),
                 new StubPublishJobRepository(),
                 new StubWorkspacePathResolver(),
-                boundary);
+                boundary,
+                new PassthroughPersistenceTransaction());
 
             await Assert.ThrowsAsync<DocumentStorageBoundaryException>(() => service.CreateAsync(
                 new CreateDocumentPlacementRequest(
@@ -127,7 +129,8 @@ public sealed class DocumentPlacementServiceTests
                 new StubApplicationRepository(application),
                 new StubPublishJobRepository(),
                 new StubWorkspacePathResolver(),
-                PermissiveDocumentStorageBoundary.Instance);
+                PermissiveDocumentStorageBoundary.Instance,
+                new PassthroughPersistenceTransaction());
 
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateMetadataAsync(
                 placement.Id,
@@ -210,6 +213,8 @@ public sealed class DocumentPlacementServiceTests
             => Task.FromResult(new FileUploadResult(request.FileName, "application/octet-stream", 0, string.Empty, string.Empty, request.FileName));
 
         public Task<string> MoveAsync(string sourcePath, string destinationDirectoryPath, CancellationToken cancellationToken = default) => Task.FromResult(sourcePath);
+
+        public Task<string> RenameAsync(string sourcePath, string targetPath, CancellationToken cancellationToken = default) => Task.FromResult(targetPath);
     }
 
     private sealed class StubPublishJobRepository : IPublishJobRepository

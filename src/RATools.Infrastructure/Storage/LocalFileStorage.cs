@@ -86,4 +86,34 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
         File.Move(fullSourcePath, targetPath);
         return Task.FromResult(targetPath);
     }
+
+    public Task<string> RenameAsync(string sourcePath, string targetPath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
+
+        var fullSourcePath = Path.GetFullPath(sourcePath);
+        var fullTargetPath = Path.GetFullPath(targetPath);
+        if (string.Equals(fullSourcePath, fullTargetPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(fullTargetPath);
+        }
+
+        if (!File.Exists(fullSourcePath))
+        {
+            throw new FileNotFoundException($"Source file '{fullSourcePath}' was not found.", fullSourcePath);
+        }
+
+        if (File.Exists(fullTargetPath))
+        {
+            throw new IOException($"Destination file '{fullTargetPath}' already exists.");
+        }
+
+        var targetDirectory = Path.GetDirectoryName(fullTargetPath)
+            ?? throw new InvalidOperationException($"Target path '{fullTargetPath}' does not have a parent directory.");
+        Directory.CreateDirectory(targetDirectory);
+        File.Move(fullSourcePath, fullTargetPath);
+        return Task.FromResult(fullTargetPath);
+    }
 }

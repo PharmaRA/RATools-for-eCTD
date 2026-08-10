@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IPublishJobRepository, EfCorePublishJobRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
         services.AddScoped<IApplicationDeletionTransaction, EfCoreApplicationDeletionTransaction>();
+        services.AddScoped<IPersistenceTransaction, EfCorePersistenceTransaction>();
         return services;
     }
 }

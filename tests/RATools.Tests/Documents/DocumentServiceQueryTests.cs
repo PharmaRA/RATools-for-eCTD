@@ -152,6 +152,9 @@ public sealed class DocumentServiceQueryTests
 
         public Task<string> MoveAsync(string sourcePath, string destinationDirectoryPath, CancellationToken cancellationToken = default)
             => Task.FromResult(sourcePath);
+
+        public Task<string> RenameAsync(string sourcePath, string targetPath, CancellationToken cancellationToken = default)
+            => Task.FromResult(targetPath);
     }
 
     private sealed class StubApplicationRepository : IApplicationRepository

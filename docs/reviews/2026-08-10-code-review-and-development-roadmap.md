@@ -160,9 +160,9 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **证据链**
 
-- [`DocumentPlacementService.UpdateMetadataAsync`](../../src/RATools.Application/Documents/DocumentPlacementService.cs#L249) 先更新 Document，再更新 Placement。
+- 原实现中的 [`DocumentPlacementService.UpdateMetadataAsync`](../../src/RATools.Application/Documents/DocumentPlacementService.cs) 先更新 Document，再更新 Placement。
 - 两个 EF repository 都在各自的 `UpdateAsync` 中立即 `SaveChangesAsync`：[`EfCoreDocumentRepository`](../../src/RATools.Infrastructure/Persistence/EfCore/EfCoreDocumentRepository.cs#L15) 和 [`EfCoreDocumentPlacementRepository`](../../src/RATools.Infrastructure/Persistence/EfCore/EfCoreDocumentPlacementRepository.cs#L15)。
-- 第二次更新失败后，catch 只恢复内存对象并尝试移回文件，没有再次持久化原 Document 状态。
+- 原实现第二次更新失败后只恢复内存对象并尝试移回文件，没有再次持久化原 Document 状态。
 
 **影响**
 
@@ -176,8 +176,8 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **验收条件**
 
-- [ ] 任意阶段失败后，Document、Placement 和物理文件要么全部为旧状态，要么全部为新状态。
-- [ ] 测试在真实 PostgreSQL 下覆盖事务行为。
+- [x] 任意阶段失败后，Document、Placement 和物理文件要么全部为旧状态，要么在文件无法回移时全部保留为新状态；并发删除会显式报告补偿不完整。（提交：`reliability: make metadata updates atomic`）
+- [x] SQLite 覆盖跨多次 `SaveChanges` 的提交/回滚；真实 PostgreSQL 测试覆盖同一事务的回滚行为。（提交：`reliability: make metadata updates atomic`）
 
 ### F-06 [P1] 制品下载绕过 API Key 注入
 
@@ -349,7 +349,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 - [x] 修复 F-04：终态先使用独立 cleanup token 持久化，审计改为后置 best-effort。（提交：`reliability: persist publish terminal states`）
 - [x] 增加取消、15 分钟超时、host stopping、审计失败、writer 失败和 repository 失败测试。（提交：`reliability: persist publish terminal states`）
-- [ ] 修复 F-05：引入 unit of work/事务边界，并实现可验证的文件补偿。
+- [x] 修复 F-05：引入 unit of work/事务边界，并实现可验证的文件补偿。（提交：`reliability: make metadata updates atomic`）
 - [ ] 完成 D-03，修复 F-07 的 API 行为和契约测试。
 - [ ] 将无界 Channel 至少改为有界队列和明确 backpressure；持久化队列留到 Phase 3。
 

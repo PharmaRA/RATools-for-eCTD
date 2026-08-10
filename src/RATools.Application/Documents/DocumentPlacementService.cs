@@ -15,8 +15,11 @@ public sealed class DocumentPlacementService(
     IApplicationRepository applicationRepository,
     IPublishJobRepository publishJobRepository,
     IEctdWorkspacePathResolver workspacePathResolver,
-    IDocumentStorageBoundary documentStorageBoundary) : IDocumentPlacementService
+    IDocumentStorageBoundary documentStorageBoundary,
+    IPersistenceTransaction persistenceTransaction) : IDocumentPlacementService
 {
+    private static readonly TimeSpan MetadataCleanupTimeout = TimeSpan.FromSeconds(30);
+
     public async Task<DocumentPlacementDto> CreateAsync(CreateDocumentPlacementRequest request, CancellationToken cancellationToken = default)
     {
         var document = await documentRepository.GetAsync(request.DocumentId, cancellationToken);
@@ -181,6 +184,15 @@ public sealed class DocumentPlacementService(
         {
             document.Relocate(sourcePath);
         }
+
+        var originalState = new DocumentMetadataState(
+            placement.Title,
+            placement.Operation,
+            placement.LifecycleTargetPlacementId,
+            document.FileName,
+            document.MediaType,
+            sourcePath);
+
         var sourceDirectory = Path.GetDirectoryName(sourcePath)
             ?? throw new InvalidOperationException($"Document {document.Id} storage path does not have a parent directory.");
         var targetPath = Path.Combine(sourceDirectory, targetFileName);
@@ -195,7 +207,10 @@ public sealed class DocumentPlacementService(
 
             try
             {
-                File.Move(sourcePath, targetPath);
+                movedStoragePath = await fileStorage.RenameAsync(
+                    sourcePath,
+                    Path.GetFullPath(targetPath),
+                    cancellationToken);
             }
             catch (FileNotFoundException exception)
             {
@@ -210,60 +225,132 @@ public sealed class DocumentPlacementService(
                 throw new InvalidOperationException($"Unable to rename workspace file '{sourcePath}' due to insufficient permissions.", exception);
             }
 
-            movedStoragePath = Path.GetFullPath(targetPath);
             document.Relocate(movedStoragePath);
         }
 
         var mediaType = EctdDocumentFileRules.GetMediaType(targetFileName);
-        var originalTitle = placement.Title;
-        var originalOperation = placement.Operation;
-        var originalLifecycleTargetPlacementId = placement.LifecycleTargetPlacementId;
-        var originalFileName = document.FileName;
-        var originalMediaType = document.MediaType;
-
         placement.ReviseTitle(request.Title);
         placement.ReviseOperation(operation);
         placement.ReviseLifecycleTarget(lifecycleTargetPlacementId);
         document.ReviseFileMetadata(targetFileName, mediaType);
 
+        var updatedState = new DocumentMetadataState(
+            placement.Title,
+            placement.Operation,
+            placement.LifecycleTargetPlacementId,
+            document.FileName,
+            document.MediaType,
+            movedStoragePath);
+
         try
         {
-            if (!await documentRepository.UpdateAsync(document, cancellationToken))
+            await persistenceTransaction.ExecuteAsync(async transactionToken =>
             {
-                throw new InvalidOperationException($"Document {document.Id} could not be updated.");
-            }
+                if (!await documentRepository.UpdateAsync(document, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document {document.Id} could not be updated.");
+                }
 
-            if (!await placementRepository.UpdateAsync(placement, cancellationToken))
-            {
-                throw new InvalidOperationException($"Document placement {placement.Id} could not be updated.");
-            }
+                if (!await placementRepository.UpdateAsync(placement, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document placement {placement.Id} could not be updated.");
+                }
+            }, cancellationToken);
 
             return placement.ToDto();
         }
-        catch
+        catch (Exception exception)
         {
-            placement.ReviseTitle(originalTitle);
-            placement.ReviseOperation(originalOperation);
-            placement.ReviseLifecycleTarget(originalLifecycleTargetPlacementId);
-            document.ReviseFileMetadata(originalFileName, originalMediaType);
-            document.Relocate(sourcePath);
-
-            if (!string.Equals(sourcePath, movedStoragePath, StringComparison.OrdinalIgnoreCase)
-                && File.Exists(movedStoragePath)
-                && !File.Exists(sourcePath))
-            {
-                try
-                {
-                    File.Move(movedStoragePath, sourcePath);
-                }
-                catch
-                {
-                    // Keep original exception; best effort rollback for file rename.
-                }
-            }
+            await CompensateMetadataUpdateAsync(
+                document,
+                placement,
+                originalState,
+                updatedState,
+                exception);
 
             throw;
         }
+    }
+
+    private async Task CompensateMetadataUpdateAsync(
+        SubmissionDocument document,
+        DocumentPlacement placement,
+        DocumentMetadataState originalState,
+        DocumentMetadataState updatedState,
+        Exception originalException)
+    {
+        using var cleanupCts = new CancellationTokenSource(MetadataCleanupTimeout);
+        var compensationFailures = new List<Exception>();
+        var restoredOriginalFile = string.Equals(
+            originalState.StoragePath,
+            updatedState.StoragePath,
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!restoredOriginalFile)
+        {
+            try
+            {
+                await fileStorage.RenameAsync(
+                    updatedState.StoragePath,
+                    originalState.StoragePath,
+                    cleanupCts.Token);
+                restoredOriginalFile = true;
+            }
+            catch (Exception exception)
+            {
+                compensationFailures.Add(exception);
+            }
+        }
+
+        // If the file cannot be moved back, preserving the new database state is the
+        // only recoverable way to keep persisted metadata aligned with the physical file.
+        ApplyMetadataState(
+            document,
+            placement,
+            restoredOriginalFile ? originalState : updatedState);
+
+        try
+        {
+            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            {
+                if (!await documentRepository.UpdateAsync(document, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document {document.Id} could not be restored.");
+                }
+
+                if (!await placementRepository.UpdateAsync(placement, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document placement {placement.Id} could not be restored.");
+                }
+            }, cleanupCts.Token);
+        }
+        catch (Exception exception)
+        {
+            compensationFailures.Add(exception);
+        }
+
+        if (compensationFailures.Count > 0)
+        {
+            var message = restoredOriginalFile
+                ? $"Metadata update for document {document.Id} failed and automatic compensation was incomplete."
+                : $"Metadata update for document {document.Id} failed; the file could not be restored, so updated metadata was preserved to keep storage consistent.";
+
+            throw new InvalidOperationException(
+                message,
+                new AggregateException([originalException, .. compensationFailures]));
+        }
+    }
+
+    private static void ApplyMetadataState(
+        SubmissionDocument document,
+        DocumentPlacement placement,
+        DocumentMetadataState state)
+    {
+        placement.ReviseTitle(state.Title);
+        placement.ReviseOperation(state.Operation);
+        placement.ReviseLifecycleTarget(state.LifecycleTargetPlacementId);
+        document.ReviseFileMetadata(state.FileName, state.MediaType);
+        document.Relocate(state.StoragePath);
     }
 
     private string ResolveSourcePathForRename(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
@@ -374,6 +461,14 @@ public sealed class DocumentPlacementService(
         await placementRepository.DeleteAsync(id, cancellationToken);
         return true;
     }
+
+    private sealed record DocumentMetadataState(
+        string? Title,
+        DocumentPlacementOperation Operation,
+        Guid? LifecycleTargetPlacementId,
+        string FileName,
+        string MediaType,
+        string StoragePath);
 }
 
 internal static class DocumentPlacementMapping
