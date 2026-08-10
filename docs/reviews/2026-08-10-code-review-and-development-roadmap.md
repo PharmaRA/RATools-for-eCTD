@@ -314,7 +314,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 | ID | 决策 | 最晚时点 | 默认建议 |
 |---|---|---|---|
 | D-01 | 公开 PDF 是否敏感/有公开授权，是否重写 Git 历史 | Phase 0 开始前 | 无法证明可公开时按敏感处理 |
-| D-02 | 产品是严格 local-only，还是未来 shared deployment | Phase 3 前 | 先记录 local-only 边界，shared 另立安全里程碑 |
+| D-02 | 产品是严格 local-only，还是未来 shared deployment | Phase 3 前 | **已决策**：当前仅支持 local-only；shared 另立安全里程碑，见 [ADR-0001](../architecture/0001-local-only-deployment-boundary.md) |
 | D-03 | Publish Job 采用单一异步命令，还是两阶段创建/执行 | Phase 2 前 | 单一异步命令，弃用同步入口 |
 | D-04 | EU M1 完整规则、官方资产和版本维护来源 | Phase 6 前 | 没有权威来源时保持受控骨架，不宣称完整合规 |
 
@@ -361,7 +361,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **目标**：为重启恢复和可选的共享部署建立明确架构，而不是继续扩大临时 API Key 模型。
 
-- [ ] 记录 D-02 ADR 和威胁模型。
+- [x] 记录 D-02 ADR 和威胁模型。（提交：`docs: define local-only deployment boundary`）
 - [ ] 实现 DB-backed outbox/queue、租约、heartbeat、实例归属、重试和幂等键。
 - [ ] 启动恢复只回收租约过期任务。
 - [ ] shared 模式引入 OIDC/session、角色与服务端 actor；local-only 模式在配置和文档中明确限制。

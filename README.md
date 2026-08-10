@@ -86,6 +86,23 @@ Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` t
 
 Default backend configuration is in `src/RATools.Api/appsettings.json`.
 
+## Supported Deployment Boundary
+
+The current release supports one trusted operator, one API/worker process, and a
+browser, API, PostgreSQL database, and workspaces on the same controlled host. Keep
+the API and database bound to loopback; do not expose this build through a LAN,
+reverse proxy, public address, or multiple replicas.
+
+The browser-visible shared API key is an access gate, not a user identity or a
+browser secret. Client-created audit entries also do not provide multi-user
+non-repudiation. Shared or horizontally scaled deployment remains unsupported until
+the identity, server-derived audit, persistent lease queue, and migration controls in
+[ADR-0001](docs/architecture/0001-local-only-deployment-boundary.md) are complete.
+
+The tracked Compose and development settings are development conveniences, not a
+hardened deployment profile. Review the ADR's local-only requirements before using
+real regulatory documents.
+
 ## Key Configuration
 
 - `Security:ApiKey`: required for non-InMemory providers; startup fails fast when empty.
