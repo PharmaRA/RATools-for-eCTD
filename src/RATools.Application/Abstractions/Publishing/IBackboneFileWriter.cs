@@ -8,7 +8,6 @@ public interface IBackboneFileWriter
         string applicationNumber,
         string sequenceNumber,
         Guid publishJobId,
-        string outputDirectoryPath,
         IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,

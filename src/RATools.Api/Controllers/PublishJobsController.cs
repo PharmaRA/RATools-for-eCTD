@@ -87,7 +87,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         try
         {
             var created = await publishJobService.CreateAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -105,7 +105,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         try
         {
             var job = await publishJobService.EnqueueExecutionAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, request.OutputDirectoryPath),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
             // 发布在后台作业中执行；客户端通过 GetById / report / artifacts 端点轮询状态。

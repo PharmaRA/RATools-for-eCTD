@@ -151,7 +151,8 @@ Content-Type: application/json
 }
 
 ### Expected backbone output path
-# Files are written under src/RATools.Api/App_Data/publish/{applicationId-no-dashes}/{sequenceNumber}/index.xml
+# Files are written under BackboneOutput:RootPath/{applicationNumber}/_jobs/{publishJobId-no-dashes}/{sequenceNumber}/index.xml.
+# The request cannot select or override the physical output root.
 
 ### Create publish job
 # @name createPublishJob

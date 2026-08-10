@@ -92,8 +92,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         var executeResponse = await client.PostAsJsonAsync("/api/publish-jobs/execute", new
         {
             ApplicationId = applicationId,
-            SequenceNumber = "0001",
-            OutputDirectoryPath = tempRoot.Path
+            SequenceNumber = "0001"
         });
 
         // 发布改为后台执行：/execute 返回 202 与作业 id，结果通过轮询作业获取。

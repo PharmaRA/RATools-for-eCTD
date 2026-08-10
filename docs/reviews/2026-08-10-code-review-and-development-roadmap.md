@@ -100,7 +100,7 @@ SDK 与 Python 安装后已经补跑 restore、build 和 Python 契约脚本。�
 
 **验收条件**
 
-- [ ] 请求不能选择配置白名单外的输出位置。
+- [x] 请求不能选择配置白名单外的输出位置。（提交：`security: enforce configured publish destination`）
 - [ ] `..`、绝对路径、UNC、驱动器路径、混合分隔符和保留设备名全部被拒绝。
 - [ ] 发布、覆盖和保留清理都不能越过服务端批准的 application root。
 
@@ -336,7 +336,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 - [x] 修复 F-01：退役/限制 raw document create；路径和散列由服务端生成。（提交：`security: retire raw document creation`）
 - [x] 修复 F-01：挂载、验证、发布和删除统一执行 workspace + application + sequence ownership 检查。（提交：`security: enforce document workspace ownership`）
-- [ ] 修复 F-02：移除任意输出路径，或映射为受控 destination ID。
+- [x] 修复 F-02：移除任意输出路径，或映射为受控 destination ID。（提交：`security: enforce configured publish destination`）
 - [ ] 修复 F-02：Application Number 使用安全存储段，所有最终路径做 containment 检查。
 - [ ] 修复 F-06：提供鉴权 Blob 下载 helper，并替换所有普通 href。
 - [ ] 为 Windows/Linux 增加路径遍历、UNC、大小写、symlink/junction/reparse point 对抗性集成测试。

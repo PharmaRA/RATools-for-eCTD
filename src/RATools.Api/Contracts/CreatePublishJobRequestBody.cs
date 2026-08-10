@@ -10,7 +10,4 @@ public sealed class CreatePublishJobRequestBody
     [Required]
     [RegularExpression("^\\d{4}$")]
     public string SequenceNumber { get; init; } = string.Empty;
-
-    [Required]
-    public string OutputDirectoryPath { get; init; } = string.Empty;
 }

@@ -1,6 +1,5 @@
 import { Alert, Form, Input, Modal, Tag, type FormInstance } from 'antd'
 
-import { PathPicker } from '../../PathPicker'
 import { getPublishReadinessFindingSeverityTagColor } from '../../components/publishing/publishReadinessDisplay'
 import type { PrePublishChecklistSummary } from '../../prePublishChecklist'
 import type { PublishReadinessReport } from '../../validationActions'
@@ -112,13 +111,6 @@ export const PublishModal = ({
           </Form>
         </div>
       )}
-      <Form.Item
-        name="outputDirectoryPath"
-        label="导出目录"
-        rules={[{ required: true, message: '导出目录为必填项。' }]}
-      >
-        <PathPicker placeholder="e.g. C:/eCTD/exports" />
-      </Form.Item>
     </Form>
   </Modal>
 )

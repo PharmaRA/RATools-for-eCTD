@@ -102,7 +102,7 @@ public sealed class EuPublishEndToEndTests
                 publishJobRepository,
                 root);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber, root));
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber));
 
             Assert.True(report.Succeeded, $"EU publish failed: {report.Message}; FailureReason={report.PublishJob.FailureReason}");
             Assert.Equal(PublishJobStatus.Completed.ToString(), report.PublishJob.Status);

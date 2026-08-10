@@ -93,6 +93,8 @@ Default backend configuration is in `src/RATools.Api/appsettings.json`.
 - `Security:AllowDestructiveOperations` (default `false`): gates `deleteMode=PurgeWorkspace`
   (recursive workspace deletion). Keep it off unless an environment explicitly needs purge.
 - `FileStorage:MaxUploadBytes` (default 500 MB): request body / multipart upload limit.
+- `BackboneOutput:RootPath`: server-controlled publish output root. It must be inside a
+  `Security:AllowedWorkspaceRoots` entry; publish requests cannot override this physical path.
 - `BackboneOutput:RetainJobRuns` (default 5): publish keeps the newest N `_jobs/{jobId}`
   delivery copies per application and prunes older ones; `_artifacts` and `_packages`
   are never pruned. Set `0` or negative to disable pruning.

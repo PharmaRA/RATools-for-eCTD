@@ -4,7 +4,6 @@ import { buildApplicationUrl } from './applicationActions'
 export type ExecutePublishJobRequest = {
   applicationId: string
   sequenceNumber: string
-  outputDirectoryPath: string
 }
 
 export type PublishHistoryRequestFilterValues = {
@@ -35,7 +34,6 @@ export const executePublishJob = async (
   const body = {
     applicationId: request.applicationId,
     sequenceNumber: request.sequenceNumber,
-    outputDirectoryPath: request.outputDirectoryPath,
   }
 
   // 发布在后端后台执行：该端点返回 202 与作业（含 id/status），

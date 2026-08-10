@@ -389,9 +389,6 @@ export const SequenceWorkspacePage = ({
         return
       }
 
-      publishForm.setFieldsValue({
-        outputDirectoryPath: '',
-      })
       setIsPublishModalOpen(true)
     } catch (err) {
       const errorMessage = getErrorMessage(err)
@@ -420,7 +417,7 @@ export const SequenceWorkspacePage = ({
     setPublishing(true)
     try {
       const sequenceNumber = String(seqNumber).trim()
-      const publishValues = await publishForm.validateFields()
+      await publishForm.validateFields()
       let readinessToUse = publishReadiness
 
       if (publishReadiness && !publishReadiness.isReady && publishReadiness.missingMetadataFields.length > 0) {
@@ -445,7 +442,6 @@ export const SequenceWorkspacePage = ({
       const startedJob = await createAndExecutePublishJobProvider({
         applicationId: appId,
         sequenceNumber,
-        outputDirectoryPath: String(publishValues.outputDirectoryPath || '').trim(),
       })
 
       message.success('发布任务已启动，正在跟踪进度…')

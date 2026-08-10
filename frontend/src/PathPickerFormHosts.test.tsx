@@ -245,7 +245,7 @@ describe('PathPicker form hosts', () => {
     unmount()
   })
 
-  it('validates then submits publish sequence with outputDirectoryPath', async () => {
+  it('validates then submits publish sequence without a client output path', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url === '/health') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
@@ -340,16 +340,8 @@ describe('PathPicker form hosts', () => {
     await clickByText('发布序列')
 
     await waitFor(() => {
-      getInputByPlaceholder('e.g. C:/eCTD/exports')
+      expect(document.querySelector('.ant-modal')?.textContent).toContain('发布序列')
     })
-
-    const input = getInputByPlaceholder('e.g. C:/eCTD/exports')
-
-    act(() => {
-      setInputValue(input, 'E:/exports/submission-a')
-    })
-
-    await flushPromises()
 
     clickPrimaryModalButton()
 
@@ -368,7 +360,6 @@ describe('PathPicker form hosts', () => {
     expect(JSON.parse(String(publishCall?.[1]?.body))).toMatchObject({
       applicationId: 'app-1',
       sequenceNumber: '0000',
-      outputDirectoryPath: 'E:/exports/submission-a',
     })
 
     unmount()

@@ -32,7 +32,6 @@ public sealed class BackboneServiceTests
             applicationId,
             "0001",
             publishJobId,
-            "C:/publish-root",
             "publish-report-0001.json",
             "0001.zip"));
 
@@ -42,7 +41,6 @@ public sealed class BackboneServiceTests
         Assert.Equal("ANDA123456", fileWriter.ApplicationNumber);
         Assert.Equal("0001", fileWriter.SequenceNumber);
         Assert.Equal(publishJobId, fileWriter.PublishJobId);
-        Assert.Equal("C:/publish-root", fileWriter.OutputDirectoryPath);
         Assert.Equal("publish-report-0001.json", fileWriter.ReportFileName);
         Assert.Equal("0001.zip", fileWriter.PackageFileName);
         Assert.Contains(fileWriter.GeneratedFiles, x => x.RelativePath == "index.xml" && x.Content == "<ich />");
@@ -160,8 +158,6 @@ public sealed class BackboneServiceTests
 
         public Guid PublishJobId { get; private set; }
 
-        public string? OutputDirectoryPath { get; private set; }
-
         public string? ReportFileName { get; private set; }
 
         public string? PackageFileName { get; private set; }
@@ -174,7 +170,6 @@ public sealed class BackboneServiceTests
             string applicationNumber,
             string sequenceNumber,
             Guid publishJobId,
-            string outputDirectoryPath,
             IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
             string reportFileName,
             string packageFileName,
@@ -189,7 +184,6 @@ public sealed class BackboneServiceTests
             ApplicationNumber = applicationNumber;
             SequenceNumber = sequenceNumber;
             PublishJobId = publishJobId;
-            OutputDirectoryPath = outputDirectoryPath;
             ReportFileName = reportFileName;
             PackageFileName = packageFileName;
             GeneratedFiles = generatedFiles;

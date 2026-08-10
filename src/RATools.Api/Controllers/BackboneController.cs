@@ -20,7 +20,6 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
                     request.ApplicationId,
                     request.SequenceNumber,
                     publishJobId,
-                    request.OutputDirectoryPath,
                     $"publish-report-{request.SequenceNumber}-{publishJobId:N}.json",
                     $"{request.SequenceNumber}-{publishJobId:N}.zip"),
                 cancellationToken);

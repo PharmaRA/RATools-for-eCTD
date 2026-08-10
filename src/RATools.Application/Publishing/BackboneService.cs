@@ -43,7 +43,6 @@ public sealed class BackboneService(
             package.ApplicationNumber,
             package.SequenceNumber,
             request.PublishJobId,
-            request.OutputDirectoryPath,
             generatedFiles,
             request.ReportFileName,
             request.PackageFileName,

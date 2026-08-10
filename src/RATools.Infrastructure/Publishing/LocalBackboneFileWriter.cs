@@ -28,7 +28,6 @@ public sealed partial class LocalBackboneFileWriter(
         string applicationNumber,
         string sequenceNumber,
         Guid publishJobId,
-        string outputDirectoryPath,
         IReadOnlyCollection<BackboneGeneratedFile> generatedFiles,
         string reportFileName,
         string packageFileName,
@@ -37,15 +36,12 @@ public sealed partial class LocalBackboneFileWriter(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationNumber);
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(reportFileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageFileName);
         ArgumentNullException.ThrowIfNull(generatedFiles);
         ArgumentNullException.ThrowIfNull(publishedFiles);
 
-        var rootPath = string.IsNullOrWhiteSpace(outputDirectoryPath)
-            ? options.Value.RootPath
-            : outputDirectoryPath;
+        var rootPath = options.Value.RootPath;
         if (string.IsNullOrWhiteSpace(rootPath))
         {
             throw new InvalidOperationException("Backbone output root path is not configured.");

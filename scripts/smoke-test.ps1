@@ -1,9 +1,6 @@
 ﻿param(
     [string]$BaseUrl = "http://localhost:5000",
     [string]$ApiKey = "dev-api-key-do-not-use-in-production",
-    # 发布输出目录：必须落在 API 的 Security:AllowedWorkspaceRoots 白名单内。
-    # 默认放在应用工作区父目录下（该目录本就在白名单内）。
-    [string]$PublishOutputPath = "",
     [switch]$KeepSampleFile,
     [switch]$SkipAuditCheck,
     [switch]$CleanPublishOutput,
@@ -369,14 +366,9 @@ try {
     } | ConvertTo-Json) | Out-Null
 
     Write-Step "Executing publish job"
-    if ([string]::IsNullOrWhiteSpace($PublishOutputPath)) {
-        $PublishOutputPath = Join-Path $applicationWorkspaceParentPath "publish-output"
-    }
-    New-Item -ItemType Directory -Path $PublishOutputPath -Force | Out-Null
     $acceptedJob = Invoke-JsonPost -Url "$BaseUrl/api/publish-jobs/execute" -Body @{
         applicationId = $application.id
         sequenceNumber = "0000"
-        outputDirectoryPath = $PublishOutputPath
     }
 
     Write-Step "Waiting for background publish job to complete"

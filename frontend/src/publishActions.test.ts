@@ -23,7 +23,7 @@ describe('publishActions', () => {
     expect(buildPublishJobArtifactsUrl('job-1')).toBe('/api/publish-jobs/job-1/artifacts')
   })
 
-  it('executes a publish job using only application, sequence, and output directory', async () => {
+  it('executes a publish job using only application and sequence', async () => {
     const request = vi
       .fn()
       .mockResolvedValueOnce({ succeeded: true })
@@ -31,7 +31,6 @@ describe('publishActions', () => {
     await executePublishJob({
       applicationId: 'app-1',
       sequenceNumber: '0001',
-      outputDirectoryPath: 'E:/exports/submission-a',
     }, request)
 
     expect(request).toHaveBeenCalledOnce()
@@ -41,7 +40,6 @@ describe('publishActions', () => {
       body: JSON.stringify({
         applicationId: 'app-1',
         sequenceNumber: '0001',
-        outputDirectoryPath: 'E:/exports/submission-a',
       }),
     })
   })

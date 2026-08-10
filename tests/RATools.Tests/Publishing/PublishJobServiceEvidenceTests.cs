@@ -44,7 +44,7 @@ public sealed class PublishJobServiceEvidenceTests
                 new FakePublishJobQueue(),
                 NullLogger<PublishJobService>.Instance);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001"));
 
             Assert.NotNull(report.IntegrityEvidence);
             Assert.Contains(report.IntegrityEvidence.Artifacts, x => x.Role == "BackboneXml" && x.Exists);
@@ -89,7 +89,7 @@ public sealed class PublishJobServiceEvidenceTests
                 new FakePublishJobQueue(),
                 NullLogger<PublishJobService>.Instance);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001", root));
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001"));
 
             Assert.False(report.Succeeded);
             Assert.Equal("Failed", report.PublishJob.Status);

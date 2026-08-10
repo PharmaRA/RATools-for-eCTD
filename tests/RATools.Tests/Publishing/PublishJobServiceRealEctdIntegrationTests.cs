@@ -109,7 +109,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
                 root,
                 auditLogService);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber, root));
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber));
 
             Assert.True(report.Succeeded);
             Assert.NotNull(report.IntegritySummary);

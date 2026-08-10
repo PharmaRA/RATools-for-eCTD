@@ -282,13 +282,6 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(modal).toBeTruthy()
     expect(modal?.textContent).toContain('仍有 0 个警告')
 
-    const input = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
-    expect(input).toBeTruthy()
-
-    act(() => {
-      setInputValue(input!, 'E:/exports/submission-a')
-    })
-
     await flushPromises()
     clickPrimaryModalButton()
     await flushPromises()
@@ -297,7 +290,6 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(createAndExecutePublishJobProvider).toHaveBeenCalledWith({
       applicationId: 'app-1',
       sequenceNumber: '0001',
-      outputDirectoryPath: 'E:/exports/submission-a',
     })
     expect(callOrder).toEqual(['validate', 'publish'])
 
@@ -669,14 +661,6 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     })
     await flushPromises()
 
-    const outputInput = Array.from(document.querySelectorAll('input')).find((element) => element.placeholder === 'e.g. C:/eCTD/exports') as HTMLInputElement | undefined
-    expect(outputInput).toBeTruthy()
-
-    act(() => {
-      setInputValue(outputInput!, 'E:/exports/submission-a')
-    })
-    await flushPromises()
-
     clickPrimaryModalButton()
     await flushPromises()
 
@@ -684,7 +668,6 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     expect(createAndExecutePublishJobProvider).toHaveBeenCalledWith({
       applicationId: 'app-1',
       sequenceNumber: '0001',
-      outputDirectoryPath: 'E:/exports/submission-a',
     })
 
     unmount()
