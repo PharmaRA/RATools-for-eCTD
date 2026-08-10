@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -41,22 +43,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         });
         Assert.Equal(HttpStatusCode.OK, sequenceResponse.StatusCode);
 
-        var documentPath = Path.Combine(tempRoot.Path, "ANDA123456", "0001", "m1", "us", "12-cover-letters", "cover.pdf");
-        Directory.CreateDirectory(Path.GetDirectoryName(documentPath)!);
-        await File.WriteAllTextAsync(documentPath, "cover");
-
-        var documentResponse = await client.PostAsJsonAsync("/api/documents", new
-        {
-            FileName = "cover.pdf",
-            MediaType = "application/pdf",
-            FileSize = 5,
-            Sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            Md5 = "0123456789abcdef0123456789abcdef",
-            StoragePath = documentPath
-        });
-        var document = await documentResponse.Content.ReadFromJsonAsync<DocumentResponse>();
-        Assert.Equal(HttpStatusCode.Created, documentResponse.StatusCode);
-        Assert.NotNull(document);
+        var document = await UploadSequenceDocumentAsync(client, application.Id);
 
         var placementResponse = await client.PostAsJsonAsync("/api/document-placements", new
         {
@@ -184,22 +171,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         });
         Assert.Equal(HttpStatusCode.OK, sequenceResponse.StatusCode);
 
-        var documentPath = Path.Combine(root, "ANDA123456", "0001", "m1", "us", "12-cover-letters", "cover.pdf");
-        Directory.CreateDirectory(Path.GetDirectoryName(documentPath)!);
-        await File.WriteAllTextAsync(documentPath, "cover");
-
-        var documentResponse = await client.PostAsJsonAsync("/api/documents", new
-        {
-            FileName = "cover.pdf",
-            MediaType = "application/pdf",
-            FileSize = 5,
-            Sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            Md5 = "0123456789abcdef0123456789abcdef",
-            StoragePath = documentPath
-        });
-        var document = await documentResponse.Content.ReadFromJsonAsync<DocumentResponse>();
-        Assert.Equal(HttpStatusCode.Created, documentResponse.StatusCode);
-        Assert.NotNull(document);
+        var document = await UploadSequenceDocumentAsync(client, application.Id);
 
         var placementResponse = await client.PostAsJsonAsync("/api/document-placements", new
         {
@@ -213,6 +185,24 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         Assert.Equal(HttpStatusCode.OK, placementResponse.StatusCode);
 
         return application.Id;
+    }
+
+    private static async Task<DocumentResponse> UploadSequenceDocumentAsync(HttpClient client, Guid applicationId)
+    {
+        using var form = new MultipartFormDataContent();
+        using var file = new ByteArrayContent(Encoding.UTF8.GetBytes("cover"));
+        file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        form.Add(file, "File", "cover.pdf");
+        form.Add(new StringContent("m1.2"), "CtdSection");
+
+        var response = await client.PostAsync(
+            $"/api/applications/{applicationId}/sequences/0001/documents/upload",
+            form);
+        var document = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(document);
+        return document!;
     }
 
     private sealed record ApplicationResponse(Guid Id);

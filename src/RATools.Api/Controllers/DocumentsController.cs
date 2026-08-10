@@ -29,16 +29,6 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         return item is null ? NotFound() : Ok(item);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateDocumentRequestBody request, CancellationToken cancellationToken)
-    {
-        var created = await documentService.CreateAsync(
-            new CreateDocumentRequest(request.FileName, request.MediaType, request.FileSize, request.Sha256, request.Md5, request.StoragePath),
-            cancellationToken);
-
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-    }
-
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload([FromForm] UploadDocumentRequestBody request, CancellationToken cancellationToken)

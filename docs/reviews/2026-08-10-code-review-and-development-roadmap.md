@@ -334,7 +334,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **目标**：证明所有文件读取、写入、复制、删除和递归清理都不能逃逸服务端批准的根。
 
-- [ ] 修复 F-01：退役/限制 raw document create；路径和散列由服务端生成。
+- [x] 修复 F-01：退役/限制 raw document create；路径和散列由服务端生成。（提交：`security: retire raw document creation`）
 - [ ] 修复 F-01：挂载、验证、发布和删除统一执行 workspace + application + sequence ownership 检查。
 - [ ] 修复 F-02：移除任意输出路径，或映射为受控 destination ID。
 - [ ] 修复 F-02：Application Number 使用安全存储段，所有最终路径做 containment 检查。

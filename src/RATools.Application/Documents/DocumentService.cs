@@ -18,20 +18,6 @@ public sealed class DocumentService(
     IEctdWorkspacePathResolver workspacePathResolver,
     IWorkspacePathPolicy workspacePathPolicy) : IDocumentService
 {
-    public async Task<DocumentDto> CreateAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
-    {
-        var document = new SubmissionDocument(
-            request.FileName,
-            request.MediaType,
-            request.FileSize,
-            request.Sha256,
-            request.Md5,
-            request.StoragePath);
-
-        await repository.AddAsync(document, cancellationToken);
-        return document.ToDto();
-    }
-
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
     {
         ValidateAllowedFileName(request.FileName);
