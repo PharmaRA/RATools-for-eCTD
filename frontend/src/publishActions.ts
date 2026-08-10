@@ -1,5 +1,7 @@
-import { apiFetch, buildJsonRequestInit } from './apiClient'
+import { ApiRequestError, apiFetch, apiFetchResponse, buildJsonRequestInit } from './apiClient'
 import { buildApplicationUrl } from './applicationActions'
+import { downloadBlob, getDownloadFileName } from './browserDownload'
+import { messages } from './i18n/messages'
 
 export type ExecutePublishJobRequest = {
   applicationId: string
@@ -56,9 +58,43 @@ export const buildPublishJobReportUrl = (jobId: string) => `${buildPublishJobUrl
 export const buildPublishJobArtifactsUrl = (jobId: string) => `${buildPublishJobUrl(jobId)}/artifacts`
 
 export const buildPublishJobArtifactDownloadUrl = (
-  jobId: string | null,
+  jobId: string,
   artifactName: string,
-) => `${buildPublishJobArtifactsUrl(String(jobId))}/${artifactName}/download`
+) => `${buildPublishJobArtifactsUrl(jobId)}/${encodeURIComponent(artifactName)}/download`
+
+const artifactFallbackFileNames: Record<string, string> = {
+  BackboneXml: 'index.xml',
+  PublishReport: 'publish-report.json',
+  PackageZip: 'package.zip',
+}
+
+export const downloadArtifact = async (
+  jobId: string,
+  artifactName: string,
+  executeRequest: typeof apiFetchResponse = apiFetchResponse,
+  saveDownload: typeof downloadBlob = downloadBlob,
+) => {
+  const response = await executeRequest(buildPublishJobArtifactDownloadUrl(jobId, artifactName))
+  const fallbackFileName = artifactFallbackFileNames[artifactName] || artifactName
+  const fileName = getDownloadFileName(response.headers.get('content-disposition'), fallbackFileName)
+  const blob = await response.blob()
+  saveDownload(blob, fileName)
+  return fileName
+}
+
+export const getArtifactDownloadErrorMessage = (error: unknown) => {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 401) return messages.artifact.downloadUnauthorized
+    if (error.status === 410) return messages.artifact.downloadGone
+  }
+
+  if (error instanceof TypeError) return messages.artifact.downloadNetworkError
+
+  const detail = error instanceof Error && error.message
+    ? error.message
+    : messages.common.unknownError
+  return `${messages.artifact.downloadFailed}：${detail}`
+}
 
 export const loadPublishJobReport = async <T = unknown>(
   jobId: string,

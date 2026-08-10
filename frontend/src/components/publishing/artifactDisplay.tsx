@@ -1,9 +1,9 @@
-import { Button, Tag } from 'antd'
+import { Tag } from 'antd'
 import { Download } from 'lucide-react'
 
 import { messages } from '../../i18n/messages'
 import { formatBytes } from '../../pages/appShared'
-import { buildPublishJobArtifactDownloadUrl } from '../../publishActions'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 
 type PublishArtifactRow = {
   name: string
@@ -30,15 +30,14 @@ export const buildArtifactColumns = (jobId: string | null) => [
     key: 'action',
     render: (_: unknown, record: PublishArtifactRow) => (
       record.exists ? (
-        <Button
+        <ArtifactDownloadButton
           type="link"
           icon={<Download size={14} className="mr-1" />}
-          href={buildPublishJobArtifactDownloadUrl(jobId, record.name)}
-          target="_blank"
-          download
+          jobId={jobId}
+          artifactName={record.name}
         >
           {messages.artifact.download}
-        </Button>
+        </ArtifactDownloadButton>
       ) : <span className="text-gray-400">{messages.common.unavailable}</span>
     ),
   },

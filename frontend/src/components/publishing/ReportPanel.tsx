@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs } from 'antd'
+import { Alert, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
-import { buildPublishJobArtifactDownloadUrl, loadPublishJobReport } from '../../publishActions'
+import { loadPublishJobReport } from '../../publishActions'
 import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import {
   getReportErrorAlertMeta,
@@ -27,6 +27,7 @@ import {
   getReportValidationIssues,
   getReportOutcomeDisplayMeta,
 } from './reportDisplay'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 import {
   buildPublishReadinessSnapshotItems,
   getPublishReadinessCategoryKey,
@@ -190,9 +191,14 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               </h2>
               <p className="text-gray-500 m-0 text-sm mt-1">{report.message}</p>
             </div>
-            <Button type="primary" icon={<Download size={16} className="mr-1" />} href={buildPublishJobArtifactDownloadUrl(jobId, 'PublishReport')} target="_blank">
+            <ArtifactDownloadButton
+              type="primary"
+              icon={<Download size={16} className="mr-1" />}
+              jobId={jobId}
+              artifactName="PublishReport"
+            >
               下载 JSON
-            </Button>
+            </ArtifactDownloadButton>
           </div>
           <Descriptions
             bordered

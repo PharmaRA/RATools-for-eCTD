@@ -64,7 +64,7 @@ export const buildJsonRequestInit = (method: string, body: unknown): RequestInit
   body: JSON.stringify(body),
 });
 
-export const apiFetch = async (url: string, options?: RequestInit) => {
+export const apiFetchResponse = async (url: string, options?: RequestInit) => {
   const res = await fetch(url, { ...options, headers: buildHeaders(options) });
 
   if (!res.ok) {
@@ -82,6 +82,12 @@ export const apiFetch = async (url: string, options?: RequestInit) => {
       traceId: data?.traceId,
     });
   }
+
+  return res;
+};
+
+export const apiFetch = async (url: string, options?: RequestInit) => {
+  const res = await apiFetchResponse(url, options);
 
   if (res.status === 204) {
     return undefined;

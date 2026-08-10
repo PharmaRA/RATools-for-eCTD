@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Space, Spin, Tag } from 'antd'
 
-import { buildPublishJobArtifactDownloadUrl } from '../../publishActions'
+import { ArtifactDownloadButton } from '../../components/publishing/ArtifactDownloadButton'
 import type { PolledPublishJob } from './usePublishJobPolling'
 
 type PublishProgressCardProps = {
@@ -69,21 +69,21 @@ export const PublishProgressCard = ({ job, isPolling, error, onDismiss }: Publis
 
         {job?.status === 'Completed' && (
           <Space>
-            <Button
+            <ArtifactDownloadButton
               size="small"
               type="primary"
-              href={buildPublishJobArtifactDownloadUrl(job.id, 'PackageZip')}
-              target="_blank"
+              jobId={job.id}
+              artifactName="PackageZip"
             >
               下载包
-            </Button>
-            <Button
+            </ArtifactDownloadButton>
+            <ArtifactDownloadButton
               size="small"
-              href={buildPublishJobArtifactDownloadUrl(job.id, 'PublishReport')}
-              target="_blank"
+              jobId={job.id}
+              artifactName="PublishReport"
             >
               下载报告
-            </Button>
+            </ArtifactDownloadButton>
           </Space>
         )}
 

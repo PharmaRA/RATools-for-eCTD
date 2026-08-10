@@ -198,9 +198,9 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **验收条件**
 
-- [ ] API Key 必填环境中，四个下载入口均可下载并保持正确文件名。
-- [ ] 401、410 和网络错误有一致 UI 反馈。
-- [ ] 测试验证请求头或真实下载行为，不再只断言 href 字符串。
+- [x] API Key 必填环境中，四个下载入口均可下载并保持正确文件名。（提交：`security: authenticate artifact downloads`）
+- [x] 401、410 和网络错误有一致 UI 反馈。（提交：`security: authenticate artifact downloads`）
+- [x] 测试验证请求头或真实下载行为，不再只断言 href 字符串。（提交：`security: authenticate artifact downloads`）
 
 ### F-07 [P2] Publish Job 创建契约与实现语义漂移
 
@@ -338,7 +338,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 - [x] 修复 F-01：挂载、验证、发布和删除统一执行 workspace + application + sequence ownership 检查。（提交：`security: enforce document workspace ownership`）
 - [x] 修复 F-02：移除任意输出路径，或映射为受控 destination ID。（提交：`security: enforce configured publish destination`）
 - [x] 修复 F-02：Application Number 使用安全存储段，所有最终路径做 containment 检查。（提交：`security: contain publish output paths`）
-- [ ] 修复 F-06：提供鉴权 Blob 下载 helper，并替换所有普通 href。
+- [x] 修复 F-06：提供鉴权 Blob 下载 helper，并替换所有普通 href。（提交：`security: authenticate artifact downloads`）
 - [ ] 为 Windows/Linux 增加路径遍历、UNC、大小写、symlink/junction/reparse point 对抗性集成测试。
 
 **Stop gate**：恶意路径矩阵全部通过；测试证明白名单外文件内容和元数据均未变化。

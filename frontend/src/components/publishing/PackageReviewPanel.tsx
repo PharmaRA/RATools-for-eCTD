@@ -3,7 +3,7 @@ import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, message 
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
 import { summarizeRequiredArtifacts } from '../../packageReviewSummary'
-import { buildPublishJobArtifactDownloadUrl, loadPublishJobArtifacts, loadPublishJobReport } from '../../publishActions'
+import { loadPublishJobArtifacts, loadPublishJobReport } from '../../publishActions'
 import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
 import { getArtifactsFromResponse } from './packageReviewArtifacts'
 import { buildPackageReviewChecklistRows, isPackageReviewReadyForSubmission } from './packageReviewChecklist'
@@ -19,6 +19,7 @@ import {
   getPackageReviewReadinessDisplayMeta,
 } from './packageReviewDisplay'
 import { downloadJson } from './packageReviewDownload'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 import { getReviewErrorDescription, getReviewErrorTitle, normalizePackageReviewError } from './packageReviewErrors'
 import { buildPackageReviewPanelState } from './packageReviewPanelState'
 import {
@@ -201,23 +202,23 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
             >
               下载审阅 JSON
             </Button>
-            <Button
+            <ArtifactDownloadButton
               type="primary"
               icon={<Download size={16} className="mr-1" />}
-              href={buildPublishJobArtifactDownloadUrl(jobId, 'PackageZip')}
-              target="_blank"
+              jobId={jobId}
+              artifactName="PackageZip"
               disabled={!packageZipExists}
             >
               下载包
-            </Button>
-            <Button
+            </ArtifactDownloadButton>
+            <ArtifactDownloadButton
               icon={<Download size={16} className="mr-1" />}
-              href={buildPublishJobArtifactDownloadUrl(jobId, 'PublishReport')}
-              target="_blank"
+              jobId={jobId}
+              artifactName="PublishReport"
               disabled={!publishReportExists}
             >
               下载报告
-            </Button>
+            </ArtifactDownloadButton>
           </Space>
         </div>
 
