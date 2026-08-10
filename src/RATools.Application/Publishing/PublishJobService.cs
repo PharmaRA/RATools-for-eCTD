@@ -25,6 +25,7 @@ public sealed class PublishJobService(
     ILogger<PublishJobService> logger) : IPublishJobService
 {
     private const string PublishExecutionReportVersion = "1.1";
+    private static readonly TimeSpan TerminalCleanupTimeout = TimeSpan.FromSeconds(30);
 
     public async Task<PublishJobDto> CreateAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
@@ -48,7 +49,8 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken = default)
     {
-        var job = await repository.GetAsync(jobId, cancellationToken)
+        using var lookupCts = new CancellationTokenSource(TerminalCleanupTimeout);
+        var job = await repository.GetAsync(jobId, lookupCts.Token)
             ?? throw new InvalidOperationException($"Publish job {jobId} was not found for queued execution.");
 
         var stopwatch = Stopwatch.StartNew();
@@ -224,7 +226,8 @@ public sealed class PublishJobService(
             entityId: job.Id.ToString(),
             action: "Created",
             details: $"Publish job created for application {request.ApplicationId}, sequence {request.SequenceNumber}.",
-            cancellationToken);
+            cancellationToken,
+            ignoreCancellation: true);
 
         return job;
     }
@@ -251,13 +254,12 @@ public sealed class PublishJobService(
                     job.Id,
                     validationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase)));
                 job.MarkFailed(failureMessage);
-                await repository.UpdateAsync(job, cancellationToken);
-                await TryWriteAuditAsync(
+                await PersistTerminalStateAsync(job);
+                await TryWriteTerminalAuditAsync(
                     entityType: "PublishJob",
                     entityId: job.Id.ToString(),
                     action: "ValidationFailed",
-                    details: $"Profile={validationReport.ValidationProfile}; {failureMessage}",
-                    cancellationToken);
+                    details: $"Profile={validationReport.ValidationProfile}; {failureMessage}");
                 return (job, validationReport, null, "Publish stopped because validation failed.", reportPath);
             }
 
@@ -280,13 +282,12 @@ public sealed class PublishJobService(
 
                 PublishPipelineLog.ReadinessBlocked(logger, job.Id, publishReadiness.BlockingErrorCount);
                 job.MarkFailed(readinessFailureMessage);
-                await repository.UpdateAsync(job, cancellationToken);
-                await TryWriteAuditAsync(
+                await PersistTerminalStateAsync(job);
+                await TryWriteTerminalAuditAsync(
                     entityType: "PublishJob",
                     entityId: job.Id.ToString(),
                     action: "ReadinessBlocked",
-                    details: $"Profile={publishReadiness.ValidationReport.ValidationProfile}; {readinessFailureMessage}",
-                    cancellationToken);
+                    details: $"Profile={publishReadiness.ValidationReport.ValidationProfile}; {readinessFailureMessage}");
                 return (job, validationReport, publishReadiness, "Publish stopped because publish readiness check failed.", reportPath);
             }
 
@@ -298,7 +299,8 @@ public sealed class PublishJobService(
                 entityId: job.Id.ToString(),
                 action: "Started",
                 details: $"Publish execution started. Profile={validationReport.ValidationProfile}",
-                cancellationToken);
+                cancellationToken,
+                ignoreCancellation: true);
 
             var generated = await backboneService.GenerateAsync(
                 new GenerateBackboneRequest(
@@ -312,36 +314,76 @@ public sealed class PublishJobService(
 
             job.MarkCompleted(generated.FilePath, generated.PackagePath);
             PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
-            await TryWriteAuditAsync(
+            await PersistTerminalStateAsync(job);
+            await TryWriteTerminalAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
                 action: "Completed",
-                details: $"Profile={validationReport.ValidationProfile}; Output: {generated.FilePath}; Package: {generated.PackagePath}",
-                cancellationToken);
+                details: $"Profile={validationReport.ValidationProfile}; Output: {generated.FilePath}; Package: {generated.PackagePath}");
 
-            await repository.UpdateAsync(job, cancellationToken);
             return (job, validationReport, publishReadiness, "Publish completed successfully.", reportPath);
         }
         catch (Exception exception)
         {
             PublishPipelineLog.ExecutionFailed(logger, exception, job.Id);
-            job.MarkFailed(exception.Message);
-            await TryWriteAuditAsync(
+            if (job.Status is not PublishJobStatus.Completed and not PublishJobStatus.Failed)
+            {
+                var failureReason = exception is OperationCanceledException
+                    ? "Publish execution was canceled or timed out."
+                    : exception.Message;
+                job.MarkFailed(failureReason);
+            }
+
+            await PersistTerminalStateAsync(job);
+            await TryWriteTerminalAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
-                action: "Failed",
+                action: job.Status == PublishJobStatus.Completed ? "Completed" : "Failed",
                 details: validationReport is null
                     ? exception.Message
-                    : $"Profile={validationReport.ValidationProfile}; {exception.Message}",
-                cancellationToken);
+                    : $"Profile={validationReport.ValidationProfile}; {exception.Message}");
 
-            await repository.UpdateAsync(job, cancellationToken);
             validationReport ??= await validationService.ValidateAsync(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
             return (job, validationReport, publishReadiness, "Publish failed during execution.", reportPath);
         }
+    }
+
+    private async Task PersistTerminalStateAsync(PublishJob job)
+    {
+        try
+        {
+            await PersistTerminalStateOnceAsync(job);
+        }
+        catch (Exception exception)
+        {
+            PublishPipelineLog.TerminalPersistenceRetry(logger, exception, job.Id, job.Status.ToString());
+            await PersistTerminalStateOnceAsync(job);
+        }
+    }
+
+    private async Task PersistTerminalStateOnceAsync(PublishJob job)
+    {
+        using var cleanupCts = new CancellationTokenSource(TerminalCleanupTimeout);
+        await repository.UpdateAsync(job, cleanupCts.Token);
+    }
+
+    private async Task TryWriteTerminalAuditAsync(
+        string entityType,
+        string entityId,
+        string action,
+        string? details)
+    {
+        using var cleanupCts = new CancellationTokenSource(TerminalCleanupTimeout);
+        await TryWriteAuditAsync(
+            entityType,
+            entityId,
+            action,
+            details,
+            cleanupCts.Token,
+            ignoreCancellation: true);
     }
 
     // Best-effort 预检：在正常路径上给出友好的"已有活动作业"冲突提示。
@@ -375,13 +417,18 @@ public sealed class PublishJobService(
         string entityId,
         string action,
         string? details,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool ignoreCancellation = false)
     {
         try
         {
             await auditLogService.CreateAsync(
                 new CreateAuditLogRequest(entityType, entityId, action, "system", details),
                 cancellationToken);
+        }
+        catch (OperationCanceledException exception) when (ignoreCancellation)
+        {
+            PublishPipelineLog.AuditWriteFailed(logger, exception, entityType, entityId, action);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

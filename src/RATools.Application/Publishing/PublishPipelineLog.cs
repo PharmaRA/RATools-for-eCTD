@@ -43,4 +43,12 @@ internal static partial class PublishPipelineLog
     [LoggerMessage(EventId = 1009, Level = LogLevel.Warning,
         Message = "Audit write failed for sequence validation of application {ApplicationId}, sequence {SequenceNumber}.")]
     public static partial void ValidationAuditWriteFailed(ILogger logger, Exception exception, Guid applicationId, string sequenceNumber);
+
+    [LoggerMessage(EventId = 1010, Level = LogLevel.Warning,
+        Message = "Persisting terminal state {Status} for publish job {JobId} failed; retrying once with a fresh cleanup token.")]
+    public static partial void TerminalPersistenceRetry(
+        ILogger logger,
+        Exception exception,
+        Guid jobId,
+        string status);
 }

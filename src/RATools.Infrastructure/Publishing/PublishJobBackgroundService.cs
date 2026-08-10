@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RATools.Application.Publishing;
 
 namespace RATools.Infrastructure.Publishing;
@@ -13,10 +14,9 @@ namespace RATools.Infrastructure.Publishing;
 public sealed partial class PublishJobBackgroundService(
     IPublishJobQueue queue,
     IServiceScopeFactory scopeFactory,
+    IOptions<PublishJobExecutionOptions> executionOptions,
     ILogger<PublishJobBackgroundService> logger) : BackgroundService
 {
-    private static readonly TimeSpan ExecutionTimeout = TimeSpan.FromMinutes(15);
-
     [LoggerMessage(EventId = 2001, Level = LogLevel.Error,
         Message = "Background publish job {JobId} failed.")]
     private static partial void LogBackgroundJobFailed(ILogger logger, Exception exception, Guid jobId);
@@ -42,7 +42,13 @@ public sealed partial class PublishJobBackgroundService(
     private async Task ProcessAsync(QueuedPublishJob queued, CancellationToken stoppingToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        timeoutCts.CancelAfter(ExecutionTimeout);
+        var executionTimeout = executionOptions.Value.ExecutionTimeout;
+        if (executionTimeout <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException("Publish job execution timeout must be greater than zero.");
+        }
+
+        timeoutCts.CancelAfter(executionTimeout);
 
         using var scope = scopeFactory.CreateScope();
         var publishJobService = scope.ServiceProvider.GetRequiredService<IPublishJobService>();

@@ -152,9 +152,9 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **验收条件**
 
-- [ ] 取消、超时和 host stopping 后作业最终均为 Completed 或 Failed，不存在永久活动状态。
-- [ ] 审计写入失败不改变业务终态。
-- [ ] 同一序列在失败终态落库后可再次发布。
+- [x] 取消、超时和 host stopping 后作业最终均为 Completed 或 Failed，不存在永久活动状态。（提交：`reliability: persist publish terminal states`）
+- [x] 审计写入失败不改变业务终态。（提交：`reliability: persist publish terminal states`）
+- [x] 同一序列在失败终态落库后可再次发布。（提交：`reliability: persist publish terminal states`）
 
 ### F-05 [P1] 元数据重命名跨两个 SaveChanges，补偿不恢复数据库
 
@@ -347,8 +347,8 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **目标**：任何取消、异常和并发情况下都不留下永久活动任务或数据库/文件漂移。
 
-- [ ] 修复 F-04：终态先使用独立 cleanup token 持久化，审计改为后置 best-effort。
-- [ ] 增加取消、15 分钟超时、host stopping、审计失败、writer 失败和 repository 失败测试。
+- [x] 修复 F-04：终态先使用独立 cleanup token 持久化，审计改为后置 best-effort。（提交：`reliability: persist publish terminal states`）
+- [x] 增加取消、15 分钟超时、host stopping、审计失败、writer 失败和 repository 失败测试。（提交：`reliability: persist publish terminal states`）
 - [ ] 修复 F-05：引入 unit of work/事务边界，并实现可验证的文件补偿。
 - [ ] 完成 D-03，修复 F-07 的 API 行为和契约测试。
 - [ ] 将无界 Channel 至少改为有界队列和明确 backpressure；持久化队列留到 Phase 3。

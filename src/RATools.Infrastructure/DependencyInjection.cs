@@ -24,6 +24,11 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<BackboneOutputOptions>(configuration.GetSection(BackboneOutputOptions.SectionName));
+        services.AddOptions<PublishJobExecutionOptions>()
+            .Bind(configuration.GetSection(PublishJobExecutionOptions.SectionName))
+            .Validate(options => options.ExecutionTimeout > TimeSpan.Zero,
+                "PublishJobs:ExecutionTimeout must be greater than zero.")
+            .ValidateOnStart();
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));

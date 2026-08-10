@@ -98,6 +98,9 @@ Default backend configuration is in `src/RATools.Api/appsettings.json`.
 - `BackboneOutput:RetainJobRuns` (default 5): publish keeps the newest N `_jobs/{jobId}`
   delivery copies per application and prunes older ones; `_artifacts` and `_packages`
   are never pruned. Set `0` or negative to disable pruning.
+- `PublishJobs:ExecutionTimeout` (default `00:15:00`): maximum execution time for a queued
+  publish job. Timeout and host shutdown persist a terminal `Failed` state with an independent
+  cleanup token before best-effort audit logging.
 
 ## Working Directories
 
