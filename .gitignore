@@ -24,9 +24,8 @@ obj/
 /.worktrees/
 /worktrees/
 
-# Local planning/reference directories
+# Local agent planning drafts and generated tool workspaces. Maintained project
+# documentation belongs under tracked directories such as docs/reviews.
 /docs/superpowers/
 /docs/2026-*
-/reference/
 /tools/
-/scripts/tests/
