@@ -98,6 +98,7 @@ browser secret. Client-created audit entries also do not provide multi-user
 non-repudiation. Shared or horizontally scaled deployment remains unsupported until
 the identity, server-derived audit, persistent lease queue, and migration controls in
 [ADR-0001](docs/architecture/0001-local-only-deployment-boundary.md) are complete.
+ADRs are maintained locally and are not part of the public repository.
 
 The tracked Compose and development settings are development conveniences, not a
 hardened deployment profile. Review the ADR's local-only requirements before using

@@ -24,8 +24,7 @@ obj/
 /.worktrees/
 /worktrees/
 
-# Local agent planning drafts and generated tool workspaces. Maintained project
-# documentation belongs under tracked directories such as docs/reviews.
-/docs/superpowers/
-/docs/2026-*
+# Local documentation (ADR, reviews, security records, plans/specs) stays
+# untracked: keep it out of the public repository index.
+/docs/
 /tools/
