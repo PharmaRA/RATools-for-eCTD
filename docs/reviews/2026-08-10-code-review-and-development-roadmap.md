@@ -326,7 +326,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 - [x] 从 HEAD 移除 `App_Data/uploads` 下全部已跟踪文件，保留目录结构只使用 `.gitkeep`（如确有需要）。
 - [ ] 根据 D-01 决定是否协调重写远端历史；不在未经批准的普通提交中执行历史重写。
 - [x] 修正 `.gitignore` 的意图：正式文档使用可跟踪的 `docs/reviews`/`docs/section-dictionary`，`reference` 与 `scripts/tests` 不再被误忽略；本地 agent 草稿和生成工具目录继续忽略。
-- [ ] 新增 repository hygiene 测试或 CI 脚本，禁止 runtime data、数据库和密钥被跟踪。
+- [x] 新增 repository hygiene 测试或 CI 脚本，禁止 runtime data、数据库和密钥被跟踪。
 
 **Stop gate**：F-03 全部验收条件通过，远端处置决策已记录。
 

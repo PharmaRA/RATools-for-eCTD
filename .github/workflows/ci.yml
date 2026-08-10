@@ -27,6 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Repository hygiene
+        run: python3 scripts/tests/test_repository_hygiene.py
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
