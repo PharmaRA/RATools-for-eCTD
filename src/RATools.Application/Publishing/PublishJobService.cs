@@ -64,7 +64,28 @@ public sealed class PublishJobService(
     public async Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
         var job = await CreatePendingJobAsync(request, cancellationToken);
-        await publishJobQueue.EnqueueAsync(new QueuedPublishJob(job.Id, request), cancellationToken);
+        try
+        {
+            await publishJobQueue.EnqueueAsync(new QueuedPublishJob(job.Id, request), cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            if (job.Status is not PublishJobStatus.Completed and not PublishJobStatus.Failed)
+            {
+                job.MarkFailed(exception is OperationCanceledException
+                    ? "Publish job enqueue was canceled before execution started."
+                    : $"Publish job could not be queued: {exception.Message}");
+                await PersistTerminalStateAsync(job);
+                await TryWriteTerminalAuditAsync(
+                    entityType: "PublishJob",
+                    entityId: job.Id.ToString(),
+                    action: "QueueFailed",
+                    details: job.FailureReason);
+            }
+
+            throw;
+        }
+
         return job.ToDto();
     }
 

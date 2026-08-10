@@ -41,6 +41,24 @@ public sealed class PublishJobTerminalPersistenceTests
     }
 
     [Fact]
+    public async Task EnqueueExecutionAsync_CancellationAfterPendingCreationPersistsFailedTerminalState()
+    {
+        using var enqueueCts = new CancellationTokenSource();
+        var repository = new SnapshotPublishJobRepository();
+        var service = CreateService(repository, queue: new CancelingPublishJobQueue(enqueueCts));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.EnqueueExecutionAsync(
+            NewRequest(),
+            enqueueCts.Token));
+
+        var persisted = Assert.Single(await repository.ListAsync());
+        Assert.Equal(PublishJobStatus.Failed, persisted.Status);
+        Assert.Contains("enqueue was canceled", persisted.FailureReason, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(repository.UpdateObservations, update =>
+            update.Status == PublishJobStatus.Failed && !update.CancellationRequested);
+    }
+
+    [Fact]
     public async Task CreateAsync_ReadinessCancellationPersistsFailedWithIndependentCleanupToken()
     {
         using var executionCts = new CancellationTokenSource();
@@ -594,6 +612,18 @@ public sealed class PublishJobTerminalPersistenceTests
                 job.FailureReason);
     }
 
+    private sealed class CancelingPublishJobQueue(CancellationTokenSource cancellationTokenSource) : IPublishJobQueue
+    {
+        public ValueTask EnqueueAsync(QueuedPublishJob job, CancellationToken cancellationToken = default)
+        {
+            cancellationTokenSource.Cancel();
+            return ValueTask.FromCanceled(cancellationTokenSource.Token);
+        }
+
+        public ValueTask<QueuedPublishJob> DequeueAsync(CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+    }
+
     private sealed class BackgroundHarness : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
@@ -624,7 +654,7 @@ public sealed class PublishJobTerminalPersistenceTests
         {
             var repository = new SnapshotPublishJobRepository();
             var backbone = new DelayingBackboneService();
-            var queue = new ChannelPublishJobQueue();
+            var queue = new ChannelPublishJobQueue(Options.Create(new PublishJobExecutionOptions()));
             var service = CreateService(repository, backboneService: backbone, queue: queue);
             var request = NewRequest();
             var job = await service.EnqueueExecutionAsync(request);

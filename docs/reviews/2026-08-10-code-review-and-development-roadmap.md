@@ -260,7 +260,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 
 **证据链**
 
-- [`ChannelPublishJobQueue`](../../src/RATools.Infrastructure/Publishing/ChannelPublishJobQueue.cs#L6) 是无界、进程内、单消费者队列。
+- [`ChannelPublishJobQueue`](../../src/RATools.Infrastructure/Publishing/ChannelPublishJobQueue.cs) 已改为可配置容量、满载等待的进程内单消费者队列；它仍不是跨实例持久队列。
 - [`StalePublishJobRecoveryService`](../../src/RATools.Infrastructure/Publishing/StalePublishJobRecoveryService.cs#L11) 在启动时把全部活动作业标记为 Failed，前提是假定没有其他实例正在执行。
 - [`Program.cs`](../../src/RATools.Api/Program.cs#L78) 在每个应用实例启动时直接执行 `Database.Migrate()`。
 
@@ -353,7 +353,7 @@ token 已取消时，审计调用可在终态保存前中断控制流，使数�
 - [x] 增加取消、15 分钟超时、host stopping、审计失败、writer 失败和 repository 失败测试。（提交：`reliability: persist publish terminal states`）
 - [x] 修复 F-05：引入 unit of work/事务边界，并实现可验证的文件补偿。（提交：`reliability: make metadata updates atomic`）
 - [x] 完成 D-03，修复 F-07 的 API 行为和契约测试。（提交：`api: unify publish job command contract`）
-- [ ] 将无界 Channel 至少改为有界队列和明确 backpressure；持久化队列留到 Phase 3。
+- [x] 将无界 Channel 改为可配置有界队列和满载等待 backpressure；入队取消会持久化 Failed，持久化队列留到 Phase 3。（提交：`reliability: bound publish job queue`）
 
 **Stop gate**：故障注入矩阵通过；数据库中无遗留 Pending/Running；文件与数据库状态一致。
 

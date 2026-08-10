@@ -28,6 +28,8 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(PublishJobExecutionOptions.SectionName))
             .Validate(options => options.ExecutionTimeout > TimeSpan.Zero,
                 "PublishJobs:ExecutionTimeout must be greater than zero.")
+            .Validate(options => options.QueueCapacity > 0,
+                "PublishJobs:QueueCapacity must be greater than zero.")
             .ValidateOnStart();
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));

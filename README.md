@@ -101,6 +101,9 @@ Default backend configuration is in `src/RATools.Api/appsettings.json`.
 - `PublishJobs:ExecutionTimeout` (default `00:15:00`): maximum execution time for a queued
   publish job. Timeout and host shutdown persist a terminal `Failed` state with an independent
   cleanup token before best-effort audit logging.
+- `PublishJobs:QueueCapacity` (default `32`): maximum number of queued jobs waiting for the
+  single in-process worker. A full queue applies backpressure; a canceled enqueue is persisted
+  as `Failed` instead of leaving a `Pending` job behind.
 
 ## Working Directories
 
