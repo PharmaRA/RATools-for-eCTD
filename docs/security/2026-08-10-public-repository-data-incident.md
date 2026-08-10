@@ -32,7 +32,8 @@
 ## 4. 尚未完成的处置
 
 - [ ] 仓库管理员明确批准协调式历史重写和远端 force push。
-- [ ] 盘点受影响的 branch、tag、pull request、fork 和 collaborator clone。
+- [x] 盘点 GitHub 可见 refs：1 个 branch（`master`）、0 个 tag、0 个 fork、13 个已关闭 PR；collaborator clone 仍需仓库管理员确认。
+- [x] 使用隔离 bare clone 完成 `git-filter-repo 2.47.0` 演练，不修改主工作区或远端。
 - [ ] 在隔离的全新 clone 中使用 `git-filter-repo >= 2.47` 和 `--sensitive-data-removal` 删除所有 refs 下的 `src/RATools.Api/App_Data/uploads/**`。
 - [ ] 对重写后的全部 refs 运行数据/secret scan，并证明目标 blob 不再 reachable。
 - [ ] 暂停写入、备份远端 refs、临时调整 branch protection 后，执行受控 mirror force push。
@@ -40,7 +41,23 @@
 - [ ] 通知 fork/clone 持有者清理旧历史；协作者必须 rebase 或重新 clone，不能 merge 旧历史。
 - [ ] 确认没有旧 clone 或 fork 将污染历史重新推回远端。
 
-## 5. 执行前检查单
+## 5. 历史重写演练证据
+
+2026-08-10 在 `.artifacts/history-rewrite-rehearsal` 内完成本地隔离演练：
+
+- 工具：`git-filter-repo 2.47.0`，参数为 `--sensitive-data-removal --invert-paths --path src/RATools.Api/App_Data/uploads/`。
+- 解析 232 个 commit，重写其中 231 个；`master` 的可达 commit 数重写前后均为 230。
+- First Changed Commit：`73388e3739ac1931c411d596b6df9bb5a8212519`。
+- 重写前本地候选 HEAD：`98e0d11602e4b1ce69f3ae1c99c0b03acc8e9beb`。
+- 重写后 rehearsal HEAD：`5268003139dbdcd3c5c82e8d4868ce252d4a117f`。
+- 两个 HEAD 的 tree 均为 `bc58e3b7a8a1a52310a0ccb181fee5c692f1ceb3`，证明当前文件内容除历史身份外没有变化。
+- `git log --all -- src/RATools.Api/App_Data/uploads` 输出为空。
+- 敏感 blob `5aa3edc3209e66cf08c6bc16d7b5072f066be5d3` 在 repack 后不可达。
+- LFS 未启用，没有需要迁移的 LFS 对象。
+
+通过 GitHub API 得到的远端清单不等于远端清理完成。正式执行仍必须从 GitHub origin 的全新 clone 开始，让 `--sensitive-data-removal` 获取服务器暴露的全部 refs，并向 GitHub Support 报告受影响 PR。
+
+## 6. 执行前检查单
 
 历史重写是破坏性仓库操作，只能在维护窗口中执行。负责人必须在执行前确认：
 
@@ -50,7 +67,7 @@
 4. 已明确谁执行 force push、谁复核、谁联系 GitHub Support。
 5. 已准备 clean clone/rebase 通知模板和回滚条件。
 
-## 6. 推荐验证
+## 7. 推荐验证
 
 隔离 clone 中至少验证以下不变量：
 
@@ -67,7 +84,7 @@ python3 scripts/tests/test_repository_hygiene.py
 
 还必须运行完整后端、前端、smoke 和 secret scan，确保重写没有遗漏 refs 或破坏构建基线。
 
-## 7. 参考流程
+## 8. 参考流程
 
 - [GitHub：从存储库中删除敏感数据](https://docs.github.com/zh/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
 
