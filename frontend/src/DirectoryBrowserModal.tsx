@@ -133,9 +133,9 @@ export const DirectoryBrowserModal = ({
       destroyOnHidden
     >
       <div className="flex flex-col gap-4">
-        {loading && <Spin tip="正在加载目录…" />}
+        {loading && <Spin description="正在加载目录…" />}
 
-        {error && <Alert type="error" showIcon message="加载目录失败" description={error} />}
+        {error && <Alert type="error" showIcon title="加载目录失败" description={error} />}
 
         {!error && result && (
           <div className="flex flex-col gap-3">

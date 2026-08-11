@@ -96,7 +96,7 @@ export const AuditLogsPage = () => {
         </Form>
       </Card>
 
-      {error && <Alert type="error" showIcon message={messages.auditLogs.loadError} description={error} />}
+      {error && <Alert type="error" showIcon title={messages.auditLogs.loadError} description={error} />}
 
       <Table
         rowKey="id"

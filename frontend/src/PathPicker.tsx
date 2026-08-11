@@ -99,7 +99,7 @@ export const PathPicker = ({ value, onChange, placeholder, provider = defaultPro
       />
       <Button onClick={() => setBrowseOpen(true)}>浏览</Button>
 
-      {error && <Alert type="error" showIcon message="无法解析目录路径" description={error} />}
+      {error && <Alert type="error" showIcon title="无法解析目录路径" description={error} />}
 
       <DirectoryBrowserModal
         open={browseOpen}

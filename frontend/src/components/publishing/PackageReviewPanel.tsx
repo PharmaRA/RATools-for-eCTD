@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Descriptions, Drawer, Space, Spin, Table, message } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
 
@@ -51,10 +51,19 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
   const [artifactsLoaded, setArtifactsLoaded] = useState(false)
   const [reportError, setReportError] = useState<Error | null>(null)
   const [artifactsError, setArtifactsError] = useState<Error | null>(null)
+  const previousJobIdRef = useRef(jobId)
 
   useEffect(() => {
+    const previousJobId = previousJobIdRef.current
+    previousJobIdRef.current = jobId
+
     if (!jobId) {
+      if (!previousJobId) return
+
+      let active = true
       void Promise.resolve().then(() => {
+        if (!active) return
+
         setLoading(false)
         setReport(null)
         setArtifacts([])
@@ -62,12 +71,17 @@ export const PackageReviewPanel = ({ jobId, onClose }: PackageReviewPanelProps) 
         setReportError(null)
         setArtifactsError(null)
       })
-      return
+
+      return () => {
+        active = false
+      }
     }
 
     let active = true
 
     void Promise.resolve().then(async () => {
+      if (!active) return
+
       setLoading(true)
       setReport(null)
       setArtifacts([])

@@ -8,11 +8,11 @@ const flushPromises = async () => {
   // 路由懒加载后首次渲染需等待动态 import + Suspense 重渲染。
   // CI 的 Linux runner 上动态 import 需要真实 I/O 时间，0ms 定时器链不够，
   // 每个节拍给 5ms 真实延迟（本地几乎无感，CI 上足以完成模块加载）。
-  for (let tick = 0; tick < 5; tick += 1) {
-    await act(async () => {
+  await act(async () => {
+    for (let tick = 0; tick < 5; tick += 1) {
       await new Promise((resolve) => setTimeout(resolve, 5))
-    })
-  }
+    }
+  })
 }
 
 const waitForElement = async (getElement: () => HTMLElement | undefined, label: string) => {
@@ -37,9 +37,10 @@ const renderApp = (initialPath = '/') => {
   })
 
   return {
-    unmount() {
-      act(() => {
+    async unmount() {
+      await act(async () => {
         root.unmount()
+        await Promise.resolve()
       })
       container.remove()
     },
@@ -52,8 +53,9 @@ const clickByText = async (text: string) => {
     `control with text ${text}`,
   )
 
-  act(() => {
+  await act(async () => {
     element.click()
+    await Promise.resolve()
   })
 }
 
@@ -63,8 +65,9 @@ const clickButtonByText = async (text: string) => {
     `button with text ${text}`,
   )
 
-  act(() => {
+  await act(async () => {
     button.click()
+    await Promise.resolve()
   })
 }
 
@@ -76,8 +79,9 @@ const selectOptionByInputId = async (inputId: string, optionText: string) => {
   const select = input.closest('.ant-select') as HTMLElement | null
   expect(select).toBeTruthy()
 
-  act(() => {
+  await act(async () => {
     select!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await Promise.resolve()
   })
 
   const option = await waitForElement(
@@ -85,8 +89,9 @@ const selectOptionByInputId = async (inputId: string, optionText: string) => {
     `select option ${optionText}`,
   )
 
-  act(() => {
+  await act(async () => {
     option.click()
+    await Promise.resolve()
   })
 }
 
@@ -629,7 +634,7 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('受阻序列')
     expect(document.body.textContent).toContain('就绪度未知')
 
-    unmount()
+    await unmount()
   })
 
   it('shows integrity, artifact, audit, and lifecycle details in the publish report drawer', async () => {
@@ -749,7 +754,7 @@ describe('Publish history detail frontend', () => {
     expect(document.body.textContent).toContain('2 KB')
     expect(document.body.textContent).toContain('Zip 中缺失')
 
-    unmount()
+    await unmount()
   })
 
   it('shows a strict not-ready package review with checklist, evidence, and downloads', async () => {
@@ -898,7 +903,7 @@ describe('Publish history detail frontend', () => {
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PackageZip/download', expect.anything())
     expect(fetchMock).not.toHaveBeenCalledWith('/api/publish-jobs/job-1/artifacts/PublishReport/download', expect.anything())
 
-    unmount()
+    await unmount()
   })
 
   it('sends the readiness filter when publish history is filtered to blocked readiness', async () => {
@@ -942,7 +947,7 @@ describe('Publish history detail frontend', () => {
       fetchMock.mock.calls.some((call) => String(call[0]).includes('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')),
     ).toBe(true)
 
-    unmount()
+    await unmount()
   })
 
   it('sorts publish history by readiness priority when blocked first is selected', async () => {
@@ -1001,7 +1006,7 @@ describe('Publish history detail frontend', () => {
 
     expect(getPublishHistorySequenceOrder()).toEqual(['0001', '0003', '0002'])
 
-    unmount()
+    await unmount()
   })
 
   it('sorts publish history by readiness priority when ready first is selected', async () => {
@@ -1042,7 +1047,7 @@ describe('Publish history detail frontend', () => {
 
     expect(getPublishHistorySequenceOrder()).toEqual(['0002', '0003', '0001'])
 
-    unmount()
+    await unmount()
   })
 
   it('restores and persists publish history filter state in the browser query', async () => {
@@ -1104,7 +1109,7 @@ describe('Publish history detail frontend', () => {
       ),
     ).toBe(true)
 
-    unmount()
+    await unmount()
   })
 
   it('shows ready for submission when every strict package review check passes', async () => {
@@ -1162,7 +1167,7 @@ describe('Publish history detail frontend', () => {
     expectReviewChecklistRow('完整性一致', '通过')
     expectReviewChecklistRow('必需产物齐全', '通过')
 
-    unmount()
+    await unmount()
   })
 
   it('keeps package review open and fails artifacts check when artifacts cannot load', async () => {
@@ -1235,7 +1240,7 @@ describe('Publish history detail frontend', () => {
       },
     })
 
-    unmount()
+    await unmount()
   })
 
   it('disables review json export when report and artifacts cannot load', async () => {
@@ -1289,7 +1294,7 @@ describe('Publish history detail frontend', () => {
     expectControlDisabled('下载审阅 JSON')
     expect(createdBlobs).toHaveLength(0)
 
-    unmount()
+    await unmount()
   })
 
   it('exports review json when only an empty artifact list is available', async () => {
@@ -1363,7 +1368,7 @@ describe('Publish history detail frontend', () => {
       integrityFindings: [],
     })
 
-    unmount()
+    await unmount()
   })
 
   it('handles malformed artifact rows without crashing the package review', async () => {
@@ -1421,7 +1426,7 @@ describe('Publish history detail frontend', () => {
     expectReviewChecklistRow('必需产物齐全', '未通过')
     expectControlDisabled('下载包')
 
-    unmount()
+    await unmount()
   })
 
   it('shows old-report compatibility message when integrity evidence is absent', async () => {
@@ -1471,6 +1476,6 @@ describe('Publish history detail frontend', () => {
 
     expect(document.body.textContent).toContain('未记录该报告的详细完整性证据。')
 
-    unmount()
+    await unmount()
   })
 })
