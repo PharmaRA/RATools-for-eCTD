@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Alert, Button, Card, DatePicker, Form, Input, Select, Space, Table } from 'antd'
 import { RotateCcw, Search } from 'lucide-react'
 import type { Dayjs } from 'dayjs'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import {
   AUDIT_LOG_ENTITY_TYPES,
   loadAuditLogs,
   type AuditLogFilterValues,
-  type AuditLogPage,
 } from '../auditLogActions'
 import { messages } from '../i18n/messages'
 import { getErrorMessage } from './appShared'
@@ -33,28 +33,17 @@ const toFilterValues = (values: AuditLogFormValues): AuditLogFilterValues => ({
 
 export const AuditLogsPage = () => {
   const [form] = Form.useForm<AuditLogFormValues>()
-  const [result, setResult] = useState<AuditLogPage | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [filters, setFilters] = useState<AuditLogFilterValues>({})
-
-  const fetchLogs = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setResult(await loadAuditLogs({ page, pageSize, filters }))
-    } catch (e) {
-      setError(getErrorMessage(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [page, pageSize, filters])
-
-  useEffect(() => {
-    void Promise.resolve().then(fetchLogs)
-  }, [fetchLogs])
+  const auditLogsQuery = useQuery({
+    queryKey: ['audit-logs', { page, pageSize, filters }],
+    queryFn: ({ signal }) => loadAuditLogs({ page, pageSize, filters, signal }),
+    placeholderData: keepPreviousData,
+  })
+  const result = auditLogsQuery.data
+  const loading = auditLogsQuery.isFetching
+  const error = auditLogsQuery.error ? getErrorMessage(auditLogsQuery.error) : null
 
   const handleSearch = async () => {
     const values = await form.validateFields()

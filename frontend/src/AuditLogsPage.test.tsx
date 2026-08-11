@@ -195,4 +195,32 @@ describe('AuditLogsPage', () => {
 
     unmount()
   })
+
+  it('aborts a pending audit request when the page unmounts', async () => {
+    let requestSignal: AbortSignal | undefined
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/health') {
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ status: 'ok' }) })
+      }
+
+      if (String(url).startsWith('/api/audit-logs?')) {
+        requestSignal = init?.signal ?? undefined
+        return new Promise((_resolve, reject) => {
+          requestSignal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'))
+          }, { once: true })
+        })
+      }
+
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { unmount } = renderApp('/audit-logs')
+    await waitForCondition(() => requestSignal !== undefined, 'audit request signal')
+
+    unmount()
+
+    expect(requestSignal?.aborted).toBe(true)
+  })
 })

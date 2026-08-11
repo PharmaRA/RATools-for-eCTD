@@ -29,6 +29,7 @@ export type LoadAuditLogsRequest = {
   page: number
   pageSize: number
   filters: AuditLogFilterValues
+  signal?: AbortSignal
 }
 
 export const buildAuditLogsUrl = () => '/api/audit-logs'
@@ -52,7 +53,10 @@ export const loadAuditLogs = async (
   request: LoadAuditLogsRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<AuditLogPage> => {
-  return executeRequest(buildAuditLogsRequestUrl(request.page, request.pageSize, request.filters))
+  const url = buildAuditLogsRequestUrl(request.page, request.pageSize, request.filters)
+  return request.signal
+    ? executeRequest(url, { signal: request.signal })
+    : executeRequest(url)
 }
 
 // 后端已知的实体类型（审计写入方：PublishJobService / SequenceValidationService /

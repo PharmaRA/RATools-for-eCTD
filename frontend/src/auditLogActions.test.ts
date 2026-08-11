@@ -68,6 +68,18 @@ describe('auditLogActions', () => {
     expect(result).toEqual(page)
   })
 
+  it('forwards an abort signal to the request function', async () => {
+    const controller = new AbortController()
+    const request = vi.fn().mockResolvedValueOnce({ page: 1, pageSize: 20, totalCount: 0, items: [] })
+
+    await loadAuditLogs({ page: 1, pageSize: 20, filters: {}, signal: controller.signal }, request)
+
+    expect(request).toHaveBeenCalledWith(
+      '/api/audit-logs?page=1&pageSize=20',
+      { signal: controller.signal },
+    )
+  })
+
   it('exposes the entity types written by the backend audit producers', () => {
     expect(AUDIT_LOG_ENTITY_TYPES).toEqual(['PublishJob', 'SequenceValidation', 'PublishJobArtifact'])
   })

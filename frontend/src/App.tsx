@@ -3,10 +3,12 @@ import { BrowserRouter, useNavigate } from 'react-router-dom'
 import { App as AntApp, ConfigProvider, Spin, Tag, theme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { Activity, ScrollText } from 'lucide-react'
+import { QueryClientProvider } from '@tanstack/react-query'
 
 import { ErrorBoundary } from './ErrorBoundary'
 import { checkHealth, type HealthStatus } from './healthActions'
 import { messages } from './i18n/messages'
+import { createQueryClient } from './queryClient'
 import { AppRoutes } from './routes'
 
 // 健康探针轮询间隔：30s。既能及时反映后端掉线，又不至于给 /health 造成压力。
@@ -80,25 +82,29 @@ const RoutedAppShell = () => {
 }
 
 export default function App() {
+  const [queryClient] = useState(createQueryClient)
+
   return (
-    <ConfigProvider
-      locale={zhCN}
-      // antd 默认会在两个 CJK 字符之间插入空格（"删除" 渲染成 "删 除"）。
-      // 中文界面下这既影响排版，也让按钮文本匹配变得脆弱，故全局关闭。
-      button={{ autoInsertSpace: false }}
-      theme={{
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#2563eb',
-          borderRadius: 6,
-        },
-      }}
-    >
-      <AntApp>
-        <BrowserRouter>
-          <RoutedAppShell />
-        </BrowserRouter>
-      </AntApp>
-    </ConfigProvider>
+    <QueryClientProvider client={queryClient}>
+      <ConfigProvider
+        locale={zhCN}
+        // antd 默认会在两个 CJK 字符之间插入空格（"删除" 渲染成 "删 除"）。
+        // 中文界面下这既影响排版，也让按钮文本匹配变得脆弱，故全局关闭。
+        button={{ autoInsertSpace: false }}
+        theme={{
+          algorithm: theme.defaultAlgorithm,
+          token: {
+            colorPrimary: '#2563eb',
+            borderRadius: 6,
+          },
+        }}
+      >
+        <AntApp>
+          <BrowserRouter>
+            <RoutedAppShell />
+          </BrowserRouter>
+        </AntApp>
+      </ConfigProvider>
+    </QueryClientProvider>
   )
 }
