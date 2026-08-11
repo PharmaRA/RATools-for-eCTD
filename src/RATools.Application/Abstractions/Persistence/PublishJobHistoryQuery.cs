@@ -7,4 +7,5 @@ public sealed record PublishJobHistoryQuery(
     DateTime? CreatedFromUtc,
     DateTime? CreatedToUtc,
     int Page,
-    int PageSize);
+    int PageSize,
+    string? ReadinessStatus = null);

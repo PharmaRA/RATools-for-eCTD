@@ -113,9 +113,16 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.AttemptCount).IsRequired();
             entity.Property(x => x.NextAttemptUtc).IsRequired();
             entity.Property(x => x.LeaseOwner).HasMaxLength(256);
+            entity.Property(x => x.HistoryReportError).HasMaxLength(1024);
+            entity.Property(x => x.HistoryValidationProfile).HasMaxLength(128);
+            entity.Property(x => x.HistoryValidationWarningSummary).HasMaxLength(2048);
+            entity.Property(x => x.HistoryReadinessStatus).HasMaxLength(32);
+            entity.Property(x => x.HistoryReadinessMissingMetadataFieldsJson).HasMaxLength(4096);
+            entity.Property(x => x.HistoryReportPath).HasMaxLength(512);
             entity.HasIndex(x => new { x.ApplicationId, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.Status });
+            entity.HasIndex(x => new { x.ApplicationId, x.HistoryReadinessStatus, x.CreatedUtc });
             entity.HasIndex(x => x.IdempotencyKey).IsUnique();
             entity.HasIndex(x => new { x.Status, x.NextAttemptUtc, x.CreatedUtc });
             entity.HasIndex(x => new { x.Status, x.LeaseExpiresUtc });

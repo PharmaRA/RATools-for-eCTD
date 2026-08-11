@@ -504,6 +504,12 @@ public sealed class PublishJobTerminalPersistenceTests
             return failure is null ? Task.CompletedTask : Task.FromException(failure);
         }
 
+        public Task<bool> UpdateHistorySummaryAsync(
+            Guid jobId,
+            int expectedAttemptCount,
+            PublishJobHistorySummary summary,
+            CancellationToken cancellationToken = default) => Task.FromResult(true);
+
         public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -383,6 +383,11 @@ try {
         Write-Step "Corrupting persisted publish report"
         $reportForCorruption = Invoke-JsonGet -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/report"
         Set-Content -Path $reportForCorruption.reportPath -Value "{not-json}" -Encoding UTF8
+
+        $corruptedReportStatus = Invoke-RequestStatusCode -Url "$BaseUrl/api/publish-jobs/$($publishJob.id)/report"
+        if ($corruptedReportStatus -ne 422) {
+            throw "Corrupted publish report detail should return 422, got $corruptedReportStatus."
+        }
     }
 
     Write-Step "Reading persisted publish report"
@@ -475,8 +480,8 @@ try {
     }
 
     if ($CorruptReportAfterPublish) {
-        if (-not $historyEntry.reportAvailable -or $historyEntry.reportReadable) {
-            throw "Corrupted report should remain available but unreadable in publish history."
+        if (-not $historyEntry.reportAvailable -or -not $historyEntry.reportReadable) {
+            throw "Publish history should retain its materialized report snapshot after detail evidence is corrupted."
         }
     }
 

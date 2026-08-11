@@ -8,6 +8,7 @@ namespace RATools.Infrastructure.Persistence.InMemory;
 public sealed class InMemoryPublishJobRepository : IPublishJobRepository
 {
     private readonly ConcurrentDictionary<Guid, PublishJob> _items = new();
+    private readonly ConcurrentDictionary<Guid, PublishJobHistorySummary> _historySummaries = new();
     private readonly object _activeJobGate = new();
 
     public Task AddAsync(PublishJob job, CancellationToken cancellationToken = default)
@@ -76,6 +77,26 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task<bool> UpdateHistorySummaryAsync(
+        Guid jobId,
+        int expectedAttemptCount,
+        PublishJobHistorySummary summary,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            if (!_items.TryGetValue(jobId, out var job)
+                || job.AttemptCount != expectedAttemptCount
+                || job.Status is not (PublishJobStatus.Completed or PublishJobStatus.Failed))
+            {
+                return Task.FromResult(false);
+            }
+
+            _historySummaries[jobId] = summary;
+            return Task.FromResult(true);
+        }
     }
 
     public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -260,12 +281,14 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
 
     public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var filtered = _items.Values
             .Where(x => x.ApplicationId == query.ApplicationId)
             .Where(x => string.IsNullOrWhiteSpace(query.SequenceNumber) || x.SequenceNumber == query.SequenceNumber)
             .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Status.ToString().Equals(query.Status, StringComparison.OrdinalIgnoreCase))
             .Where(x => !query.CreatedFromUtc.HasValue || x.CreatedUtc >= query.CreatedFromUtc.Value)
             .Where(x => !query.CreatedToUtc.HasValue || x.CreatedUtc <= query.CreatedToUtc.Value)
+            .Where(x => MatchesReadinessStatus(x.Id, query.ReadinessStatus))
             .OrderByDescending(x => x.CreatedUtc)
             .ToArray();
 
@@ -273,13 +296,36 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
         var pageItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).Select(Clone).ToArray();
         var statusCounts = PublishJobHistoryStatusCounts.Create(filtered);
+        var pageSummaries = new Dictionary<Guid, PublishJobHistorySummary>();
+        foreach (var job in pageItems)
+        {
+            if (_historySummaries.TryGetValue(job.Id, out var summary))
+            {
+                pageSummaries[job.Id] = summary;
+            }
+        }
+        var summaries = filtered
+            .Select(job => _historySummaries.GetValueOrDefault(job.Id))
+            .ToArray();
 
         return Task.FromResult(new PublishJobHistoryQueryResult(
             pageItems,
             statusCounts.Total,
             statusCounts.Completed,
             statusCounts.Failed,
-            statusCounts.Running));
+            statusCounts.Running,
+            pageSummaries,
+            new PublishJobHistoryReadinessCounts(
+                summaries.Count(summary => string.Equals(summary?.ReadinessStatus, "Ready", StringComparison.Ordinal)),
+                summaries.Count(summary => string.Equals(summary?.ReadinessStatus, "Blocked", StringComparison.Ordinal)),
+                summaries.Count(summary => summary?.ReadinessStatus is null)),
+            new PublishJobHistoryLifecycleCounts(
+                summaries.Sum(summary => summary?.LifecycleMatchedCount ?? 0),
+                summaries.Sum(summary => summary?.LifecycleReplaceTargetNotFoundCount ?? 0),
+                summaries.Sum(summary => summary?.LifecycleDeleteTargetNotFoundCount ?? 0),
+                summaries.Sum(summary => summary?.LifecycleAppendTargetNotFoundCount ?? 0),
+                summaries.Sum(summary => summary?.LifecycleAmbiguousCount ?? 0),
+                summaries.Sum(summary => summary?.LifecycleCurrentSequenceCount ?? 0))));
     }
 
     public Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
@@ -292,6 +338,7 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         foreach (var key in keys)
         {
             _items.TryRemove(key, out _);
+            _historySummaries.TryRemove(key, out _);
         }
 
         return Task.CompletedTask;
@@ -307,9 +354,26 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         foreach (var key in keys)
         {
             _items.TryRemove(key, out _);
+            _historySummaries.TryRemove(key, out _);
         }
 
         return Task.CompletedTask;
+    }
+
+    private bool MatchesReadinessStatus(Guid jobId, string? requestedStatus)
+    {
+        if (string.IsNullOrWhiteSpace(requestedStatus))
+        {
+            return true;
+        }
+
+        _historySummaries.TryGetValue(jobId, out var summary);
+        if (requestedStatus.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return summary?.ReadinessStatus is null;
+        }
+
+        return string.Equals(summary?.ReadinessStatus, requestedStatus.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     private static PublishJob Clone(PublishJob job)

@@ -137,10 +137,19 @@ public sealed class PublishJobService(
 
         report = report with { ArtifactSummary = await artifactResolver.BuildArtifactSummaryAsync(jobDto, cancellationToken) };
 
+        var reportAvailable = false;
         if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
         {
             await reportStore.WriteAsync(report, cancellationToken);
+            reportAvailable = true;
         }
+
+        await PersistHistorySummaryAsync(
+            result.Job,
+            PublishJobHistorySummaryBuilder.Create(
+                report,
+                reportAvailable,
+                reportReadable: reportAvailable));
 
         var integrityVerification = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
         report = report with
@@ -155,6 +164,20 @@ public sealed class PublishJobService(
         }
 
         return report;
+    }
+
+    private async Task PersistHistorySummaryAsync(PublishJob job, PublishJobHistorySummary summary)
+    {
+        using var cleanupCts = new CancellationTokenSource(TerminalCleanupTimeout);
+        if (!await repository.UpdateHistorySummaryAsync(
+                job.Id,
+                job.AttemptCount,
+                summary,
+                cleanupCts.Token))
+        {
+            throw new InvalidOperationException(
+                $"Publish history summary for terminal job {job.Id} could not be persisted because the job changed or no longer exists.");
+        }
     }
 
     public async Task<PublishExecutionReportDto?> GetExecutionReportAsync(Guid id, CancellationToken cancellationToken = default)

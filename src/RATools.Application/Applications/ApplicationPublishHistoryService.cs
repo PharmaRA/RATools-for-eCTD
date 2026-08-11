@@ -1,9 +1,6 @@
-using System.Text.Json;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.Dtos;
-using RATools.Application.Publishing;
 using RATools.Application.Publishing.Dtos;
-using RATools.Application.Validation.Dtos;
 
 namespace RATools.Application.Applications;
 
@@ -11,11 +8,6 @@ public sealed class ApplicationPublishHistoryService(
     IApplicationRepository applicationRepository,
     IPublishJobRepository publishJobRepository) : IApplicationPublishHistoryService
 {
-    private static readonly JsonSerializerOptions ReportJsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     public async Task<ApplicationPublishHistoryDto?> GetAsync(
         Guid applicationId,
         ApplicationPublishHistoryQuery query,
@@ -34,62 +26,44 @@ public sealed class ApplicationPublishHistoryService(
                 query.Status,
                 query.CreatedFromUtc,
                 query.CreatedToUtc,
-                1,
-                int.MaxValue),
+                query.Page,
+                query.PageSize,
+                query.ReadinessStatus),
             cancellationToken);
 
-        var entries = new List<ApplicationPublishHistoryEntryDto>();
-        var lifecycleMatches = new List<ValidationLifecycleMatchDto>();
-
-        foreach (var job in result.Items)
-        {
-            var reportState = await TryReadReportAsync(job, cancellationToken);
-            var entryLifecycleMatches = reportState.Report?.ValidationReport?.LifecycleMatches?.ToArray() ?? Array.Empty<ValidationLifecycleMatchDto>();
-            var readinessSummary = BuildReadinessSummary(reportState.Report?.PublishReadiness);
-
-            if (!MatchesReadinessFilter(readinessSummary, query.ReadinessStatus))
+        var entries = result.Items
+            .Select(job =>
             {
-                continue;
-            }
-
-            if (entryLifecycleMatches.Length > 0)
-            {
-                lifecycleMatches.AddRange(entryLifecycleMatches);
-            }
-
-            entries.Add(new ApplicationPublishHistoryEntryDto(
-                job.Id,
-                job.SequenceNumber,
-                job.Status.ToString(),
-                job.CreatedUtc,
-                job.CompletedUtc,
-                reportState.Exists,
-                reportState.Readable,
-                reportState.Error,
-                reportState.Report?.ValidationProfile,
-                reportState.Report?.ErrorCount,
-                reportState.Report?.WarningCount,
-                reportState.Report?.WarningSummary,
-                readinessSummary,
-                BuildLifecycleSummary(entryLifecycleMatches),
-                entryLifecycleMatches,
-                reportState.Report?.ArtifactSummary,
-                reportState.Report?.ReportPath,
-                job.PackagePath));
-        }
+                PublishJobHistorySummary? summary = null;
+                result.HistorySummaries?.TryGetValue(job.Id, out summary);
+                return new ApplicationPublishHistoryEntryDto(
+                    job.Id,
+                    job.SequenceNumber,
+                    job.Status.ToString(),
+                    job.CreatedUtc,
+                    job.CompletedUtc,
+                    summary?.ReportAvailable ?? false,
+                    summary?.ReportReadable ?? false,
+                    summary?.ReportError,
+                    summary?.ValidationProfile,
+                    summary?.ErrorCount,
+                    summary?.WarningCount,
+                    summary?.WarningSummary,
+                    BuildReadinessSummary(summary),
+                    BuildLifecycleSummary(summary),
+                    [],
+                    BuildArtifactSummary(summary),
+                    summary?.ReportPath,
+                    job.PackagePath);
+            })
+            .ToArray();
 
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
-        var pagedEntries = entries
-            .OrderByDescending(x => x.CreatedUtc)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToArray();
-        var statusSummary = ApplicationPublishHistoryStatusSummary.Create(
-            entries.Select(x => x.Status));
-        var readinessAggregate = ApplicationPublishHistoryReadinessAggregate.Create(
-            entries.Select(x => x.PublishReadiness));
-        var lifecycleSummary = BuildLifecycleSummary(lifecycleMatches);
+        var readinessCounts = result.ReadinessCounts
+            ?? new PublishJobHistoryReadinessCounts(0, 0, result.TotalCount);
+        var lifecycleCounts = result.LifecycleCounts
+            ?? new PublishJobHistoryLifecycleCounts(0, 0, 0, 0, 0, 0);
 
         return new ApplicationPublishHistoryDto(
             application.Id,
@@ -97,82 +71,65 @@ public sealed class ApplicationPublishHistoryService(
             application.SponsorName,
             page,
             pageSize,
-            entries.Count,
-            statusSummary,
-            readinessAggregate,
-            lifecycleSummary,
-            pagedEntries);
+            result.TotalCount,
+            new ApplicationPublishHistoryStatusSummaryDto(
+                result.CompletedCount,
+                result.FailedCount,
+                result.RunningCount),
+            new ApplicationPublishHistoryReadinessAggregateDto(
+                readinessCounts.Ready,
+                readinessCounts.Blocked,
+                readinessCounts.Unknown),
+            new ApplicationPublishHistoryLifecycleSummaryDto(
+                lifecycleCounts.Matched,
+                lifecycleCounts.ReplaceTargetNotFound,
+                lifecycleCounts.DeleteTargetNotFound,
+                lifecycleCounts.AppendTargetNotFound,
+                lifecycleCounts.Ambiguous,
+                lifecycleCounts.CurrentSequence),
+            entries);
     }
 
-    private static async Task<(PublishExecutionReportDto? Report, bool Exists, bool Readable, string? Error)> TryReadReportAsync(
-        Domain.Publishing.PublishJob job,
-        CancellationToken cancellationToken)
+    private static ApplicationPublishHistoryLifecycleSummaryDto BuildLifecycleSummary(PublishJobHistorySummary? summary)
     {
-        if (string.IsNullOrWhiteSpace(job.OutputPath))
-        {
-            return (null, false, false, null);
-        }
-
-        var outputDirectory = Path.GetDirectoryName(job.OutputPath);
-        if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
-        {
-            return (null, false, false, null);
-        }
-
-        var reportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
-        if (!File.Exists(reportPath))
-        {
-            return (null, false, false, null);
-        }
-
-        try
-        {
-            var json = await File.ReadAllTextAsync(reportPath, cancellationToken);
-            var report = JsonSerializer.Deserialize<PublishExecutionReportDto>(json, ReportJsonOptions);
-
-            return report is null
-                ? (null, true, false, "Report file could not be deserialized.")
-                : (report, true, true, null);
-        }
-        catch (Exception exception)
-        {
-            return (null, true, false, exception.Message);
-        }
+        return summary is null
+            ? new ApplicationPublishHistoryLifecycleSummaryDto(0, 0, 0, 0, 0, 0)
+            : new ApplicationPublishHistoryLifecycleSummaryDto(
+                summary.LifecycleMatchedCount,
+                summary.LifecycleReplaceTargetNotFoundCount,
+                summary.LifecycleDeleteTargetNotFoundCount,
+                summary.LifecycleAppendTargetNotFoundCount,
+                summary.LifecycleAmbiguousCount,
+                summary.LifecycleCurrentSequenceCount);
     }
 
-    private static ApplicationPublishHistoryLifecycleSummaryDto BuildLifecycleSummary(IReadOnlyCollection<ValidationLifecycleMatchDto> lifecycleMatches)
-        => ApplicationPublishHistoryLifecycleSummary.Create(lifecycleMatches);
-
-    private static ApplicationPublishHistoryReadinessSummaryDto? BuildReadinessSummary(PublishReadinessReportDto? readiness)
+    private static ApplicationPublishHistoryReadinessSummaryDto? BuildReadinessSummary(PublishJobHistorySummary? summary)
     {
-        if (readiness is null)
+        if (summary?.ReadinessStatus is null || !summary.ReadinessIsReady.HasValue)
         {
             return null;
         }
 
         return new ApplicationPublishHistoryReadinessSummaryDto(
-            readiness.IsReady,
-            readiness.Status,
-            readiness.BlockingErrorCount,
-            readiness.WarningCount,
-            readiness.MissingMetadataFields?.ToArray() ?? Array.Empty<string>());
+            summary.ReadinessIsReady.Value,
+            summary.ReadinessStatus,
+            summary.ReadinessBlockingErrorCount ?? 0,
+            summary.ReadinessWarningCount ?? 0,
+            summary.ReadinessMissingMetadataFields);
     }
 
-    private static bool MatchesReadinessFilter(
-        ApplicationPublishHistoryReadinessSummaryDto? readiness,
-        string? readinessStatus)
+    private static PublishArtifactSummaryDto? BuildArtifactSummary(PublishJobHistorySummary? summary)
     {
-        if (string.IsNullOrWhiteSpace(readinessStatus))
+        if (summary?.ArtifactFileCount is null
+            || summary.ArtifactTotalSizeBytes is null
+            || summary.ArtifactPackageSizeBytes is null)
         {
-            return true;
+            return null;
         }
 
-        if (string.Equals(readinessStatus, "Unknown", StringComparison.OrdinalIgnoreCase))
-        {
-            return readiness is null;
-        }
-
-        return readiness is not null
-            && readiness.Status.Equals(readinessStatus, StringComparison.OrdinalIgnoreCase);
+        return new PublishArtifactSummaryDto(
+            summary.ArtifactFileCount.Value,
+            summary.ArtifactTotalSizeBytes.Value,
+            summary.ArtifactPackageSizeBytes.Value);
     }
 }

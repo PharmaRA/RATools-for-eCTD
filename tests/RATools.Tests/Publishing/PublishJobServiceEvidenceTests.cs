@@ -44,7 +44,8 @@ public sealed class PublishJobServiceEvidenceTests
                 new FakePublishJobQueue(),
                 NullLogger<PublishJobService>.Instance);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001"));
+            var applicationId = Guid.NewGuid();
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, "0001"));
 
             Assert.NotNull(report.IntegrityEvidence);
             Assert.Contains(report.IntegrityEvidence.Artifacts, x => x.Role == "BackboneXml" && x.Exists);
@@ -55,6 +56,14 @@ public sealed class PublishJobServiceEvidenceTests
             var entries = archive.Entries.Select(x => x.FullName.Replace('\\', '/')).ToHashSet(StringComparer.OrdinalIgnoreCase);
             Assert.Contains("index.xml", entries);
             Assert.Contains("leaf.txt", entries);
+
+            var history = await repository.QueryHistoryAsync(
+                new PublishJobHistoryQuery(applicationId, null, null, null, null, 1, 20));
+            var summary = history.HistorySummaries![report.PublishJob.Id];
+            Assert.True(summary.ReportAvailable);
+            Assert.True(summary.ReportReadable);
+            Assert.Equal("Ready", summary.ReadinessStatus);
+            Assert.Equal(report.ArtifactSummary!.FileCount, summary.ArtifactFileCount);
         }
         finally
         {
@@ -89,7 +98,8 @@ public sealed class PublishJobServiceEvidenceTests
                 new FakePublishJobQueue(),
                 NullLogger<PublishJobService>.Instance);
 
-            var report = await service.ExecuteAsync(new CreatePublishJobRequest(Guid.NewGuid(), "0001"));
+            var applicationId = Guid.NewGuid();
+            var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, "0001"));
 
             Assert.False(report.Succeeded);
             Assert.Equal("Failed", report.PublishJob.Status);
@@ -100,6 +110,14 @@ public sealed class PublishJobServiceEvidenceTests
             Assert.NotNull(report.PublishReadiness);
             Assert.False(report.PublishReadiness!.IsReady);
             Assert.Contains(report.PublishReadiness.Findings, x => x.Code == "US_REGIONAL_METADATA_MISSING");
+
+            var history = await repository.QueryHistoryAsync(
+                new PublishJobHistoryQuery(applicationId, null, null, null, null, 1, 20));
+            var summary = history.HistorySummaries![report.PublishJob.Id];
+            Assert.False(summary.ReportAvailable);
+            Assert.False(summary.ReportReadable);
+            Assert.Equal("Blocked", summary.ReadinessStatus);
+            Assert.Equal(["ApplicantContactName"], summary.ReadinessMissingMetadataFields);
         }
         finally
         {

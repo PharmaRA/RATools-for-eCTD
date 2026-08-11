@@ -233,9 +233,13 @@ Optional smoke-test arguments:
 - `-SkipAuditCheck`: skip audit linkage checks.
 - `-CleanPublishOutput`: clean publish output before run.
 - `-InjectWarnings`: inject warning scenarios to verify warning counts and summaries.
-- `-CorruptReportAfterPublish`: corrupt the persisted publish report to verify tolerant report/history handling.
+- `-CorruptReportAfterPublish`: corrupt the persisted report to verify the detail endpoint returns `422` while the materialized history snapshot remains available.
 
 The smoke test covers application and sequence creation, document upload, canonical storage, placement reassignment, validation, publish execution, persisted report retrieval, artifact listing, artifact download, publish history filters, audit logs, duplicate file-name handling, and generated backbone metadata.
+
+Publish history list queries use validation, readiness, artifact, and lifecycle summaries
+materialized on `publish_jobs`; filtering, aggregation, and pagination stay in the
+repository query. Full report JSON is read only by the single-job report/detail path.
 
 ## API Examples
 

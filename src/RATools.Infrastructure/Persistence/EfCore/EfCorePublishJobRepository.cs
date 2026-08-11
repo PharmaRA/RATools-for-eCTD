@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using RATools.Application.Abstractions.Persistence;
@@ -115,6 +116,48 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         existing.LastHeartbeatUtc = job.LastHeartbeatUtc;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> UpdateHistorySummaryAsync(
+        Guid jobId,
+        int expectedAttemptCount,
+        PublishJobHistorySummary summary,
+        CancellationToken cancellationToken = default)
+    {
+        var completedStatus = PublishJobStatus.Completed.ToString();
+        var failedStatus = PublishJobStatus.Failed.ToString();
+        var missingMetadataJson = JsonSerializer.Serialize(summary.ReadinessMissingMetadataFields);
+
+        var affected = await dbContext.PublishJobs
+            .Where(x => x.Id == jobId
+                && x.AttemptCount == expectedAttemptCount
+                && (x.Status == completedStatus || x.Status == failedStatus))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.HistoryReportAvailable, summary.ReportAvailable)
+                .SetProperty(x => x.HistoryReportReadable, summary.ReportReadable)
+                .SetProperty(x => x.HistoryReportError, summary.ReportError)
+                .SetProperty(x => x.HistoryValidationProfile, summary.ValidationProfile)
+                .SetProperty(x => x.HistoryValidationErrorCount, summary.ErrorCount)
+                .SetProperty(x => x.HistoryValidationWarningCount, summary.WarningCount)
+                .SetProperty(x => x.HistoryValidationWarningSummary, summary.WarningSummary)
+                .SetProperty(x => x.HistoryReadinessIsReady, summary.ReadinessIsReady)
+                .SetProperty(x => x.HistoryReadinessStatus, summary.ReadinessStatus)
+                .SetProperty(x => x.HistoryReadinessBlockingErrorCount, summary.ReadinessBlockingErrorCount)
+                .SetProperty(x => x.HistoryReadinessWarningCount, summary.ReadinessWarningCount)
+                .SetProperty(x => x.HistoryReadinessMissingMetadataFieldsJson, missingMetadataJson)
+                .SetProperty(x => x.HistoryLifecycleMatchedCount, summary.LifecycleMatchedCount)
+                .SetProperty(x => x.HistoryLifecycleReplaceTargetNotFoundCount, summary.LifecycleReplaceTargetNotFoundCount)
+                .SetProperty(x => x.HistoryLifecycleDeleteTargetNotFoundCount, summary.LifecycleDeleteTargetNotFoundCount)
+                .SetProperty(x => x.HistoryLifecycleAppendTargetNotFoundCount, summary.LifecycleAppendTargetNotFoundCount)
+                .SetProperty(x => x.HistoryLifecycleAmbiguousCount, summary.LifecycleAmbiguousCount)
+                .SetProperty(x => x.HistoryLifecycleCurrentSequenceCount, summary.LifecycleCurrentSequenceCount)
+                .SetProperty(x => x.HistoryArtifactFileCount, summary.ArtifactFileCount)
+                .SetProperty(x => x.HistoryArtifactTotalSizeBytes, summary.ArtifactTotalSizeBytes)
+                .SetProperty(x => x.HistoryArtifactPackageSizeBytes, summary.ArtifactPackageSizeBytes)
+                .SetProperty(x => x.HistoryReportPath, summary.ReportPath),
+                cancellationToken);
+
+        return affected == 1;
     }
 
     public async Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -384,6 +427,24 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         return records.Select(x => x.ToDomain()).ToArray();
     }
 
+    private static string NormalizeReadinessStatus(string readinessStatus)
+    {
+        var normalized = readinessStatus.Trim();
+        if (normalized.Equals("Ready", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Ready";
+        }
+
+        if (normalized.Equals("Blocked", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Blocked";
+        }
+
+        return normalized.Equals("Unknown", StringComparison.OrdinalIgnoreCase)
+            ? "Unknown"
+            : normalized;
+    }
+
     public async Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
     {
         var baseQuery = dbContext.PublishJobs
@@ -397,7 +458,10 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
-            baseQuery = baseQuery.Where(x => x.Status == query.Status);
+            var status = Enum.TryParse<PublishJobStatus>(query.Status, ignoreCase: true, out var parsedStatus)
+                ? parsedStatus.ToString()
+                : query.Status.Trim();
+            baseQuery = baseQuery.Where(x => x.Status == status);
         }
 
         if (query.CreatedFromUtc.HasValue)
@@ -410,15 +474,36 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             baseQuery = baseQuery.Where(x => x.CreatedUtc <= query.CreatedToUtc.Value);
         }
 
-        var countsByStatus = await baseQuery
-            .GroupBy(x => x.Status)
-            .Select(x => new { Status = x.Key, Count = x.Count() })
-            .ToArrayAsync(cancellationToken);
-        var totalCount = countsByStatus.Sum(x => x.Count);
-        var statusCounts = countsByStatus.ToDictionary(x => x.Status, x => x.Count, StringComparer.Ordinal);
-        var completedCount = statusCounts.GetValueOrDefault(PublishJobStatus.Completed.ToString(), 0);
-        var failedCount = statusCounts.GetValueOrDefault(PublishJobStatus.Failed.ToString(), 0);
-        var runningCount = statusCounts.GetValueOrDefault(PublishJobStatus.Running.ToString(), 0);
+        if (!string.IsNullOrWhiteSpace(query.ReadinessStatus))
+        {
+            var readinessStatus = NormalizeReadinessStatus(query.ReadinessStatus);
+            baseQuery = readinessStatus == "Unknown"
+                ? baseQuery.Where(x => x.HistoryReadinessStatus == null)
+                : baseQuery.Where(x => x.HistoryReadinessStatus == readinessStatus);
+        }
+
+        var completedStatus = PublishJobStatus.Completed.ToString();
+        var failedStatus = PublishJobStatus.Failed.ToString();
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var aggregate = await baseQuery
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                TotalCount = group.Count(),
+                CompletedCount = group.Count(x => x.Status == completedStatus),
+                FailedCount = group.Count(x => x.Status == failedStatus),
+                RunningCount = group.Count(x => x.Status == runningStatus),
+                ReadyCount = group.Count(x => x.HistoryReadinessStatus == "Ready"),
+                BlockedCount = group.Count(x => x.HistoryReadinessStatus == "Blocked"),
+                UnknownCount = group.Count(x => x.HistoryReadinessStatus == null),
+                LifecycleMatchedCount = group.Sum(x => x.HistoryLifecycleMatchedCount ?? 0),
+                LifecycleReplaceTargetNotFoundCount = group.Sum(x => x.HistoryLifecycleReplaceTargetNotFoundCount ?? 0),
+                LifecycleDeleteTargetNotFoundCount = group.Sum(x => x.HistoryLifecycleDeleteTargetNotFoundCount ?? 0),
+                LifecycleAppendTargetNotFoundCount = group.Sum(x => x.HistoryLifecycleAppendTargetNotFoundCount ?? 0),
+                LifecycleAmbiguousCount = group.Sum(x => x.HistoryLifecycleAmbiguousCount ?? 0),
+                LifecycleCurrentSequenceCount = group.Sum(x => x.HistoryLifecycleCurrentSequenceCount ?? 0)
+            })
+            .SingleOrDefaultAsync(cancellationToken);
 
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
@@ -428,12 +513,29 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             .Take(pageSize)
             .ToArrayAsync(cancellationToken);
 
+        var historySummaries = records
+            .Select(record => (record.Id, Summary: record.ToHistorySummary()))
+            .Where(item => item.Summary is not null)
+            .ToDictionary(item => item.Id, item => item.Summary!);
+
         return new PublishJobHistoryQueryResult(
             records.Select(x => x.ToDomain()).ToArray(),
-            totalCount,
-            completedCount,
-            failedCount,
-            runningCount);
+            aggregate?.TotalCount ?? 0,
+            aggregate?.CompletedCount ?? 0,
+            aggregate?.FailedCount ?? 0,
+            aggregate?.RunningCount ?? 0,
+            historySummaries,
+            new PublishJobHistoryReadinessCounts(
+                aggregate?.ReadyCount ?? 0,
+                aggregate?.BlockedCount ?? 0,
+                aggregate?.UnknownCount ?? 0),
+            new PublishJobHistoryLifecycleCounts(
+                aggregate?.LifecycleMatchedCount ?? 0,
+                aggregate?.LifecycleReplaceTargetNotFoundCount ?? 0,
+                aggregate?.LifecycleDeleteTargetNotFoundCount ?? 0,
+                aggregate?.LifecycleAppendTargetNotFoundCount ?? 0,
+                aggregate?.LifecycleAmbiguousCount ?? 0,
+                aggregate?.LifecycleCurrentSequenceCount ?? 0));
     }
 
     public async Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
@@ -469,6 +571,8 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
 
 internal static class PublishJobRecordMapping
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public static PublishJobRecord ToRecord(this PublishJob job)
     {
         return new PublishJobRecord
@@ -513,4 +617,54 @@ internal static class PublishJobRecordMapping
             record.LeaseExpiresUtc,
             record.LastHeartbeatUtc);
     }
+
+    public static PublishJobHistorySummary? ToHistorySummary(this PublishJobRecord record)
+    {
+        if (!record.HistoryReportAvailable.HasValue)
+        {
+            return null;
+        }
+
+        return new PublishJobHistorySummary(
+            record.HistoryReportAvailable.Value,
+            record.HistoryReportReadable ?? false,
+            record.HistoryReportError,
+            record.HistoryValidationProfile,
+            record.HistoryValidationErrorCount,
+            record.HistoryValidationWarningCount,
+            record.HistoryValidationWarningSummary,
+            record.HistoryReadinessIsReady,
+            record.HistoryReadinessStatus,
+            record.HistoryReadinessBlockingErrorCount,
+            record.HistoryReadinessWarningCount,
+            DeserializeMissingMetadataFields(record.HistoryReadinessMissingMetadataFieldsJson),
+            record.HistoryLifecycleMatchedCount ?? 0,
+            record.HistoryLifecycleReplaceTargetNotFoundCount ?? 0,
+            record.HistoryLifecycleDeleteTargetNotFoundCount ?? 0,
+            record.HistoryLifecycleAppendTargetNotFoundCount ?? 0,
+            record.HistoryLifecycleAmbiguousCount ?? 0,
+            record.HistoryLifecycleCurrentSequenceCount ?? 0,
+            record.HistoryArtifactFileCount,
+            record.HistoryArtifactTotalSizeBytes,
+            record.HistoryArtifactPackageSizeBytes,
+            record.HistoryReportPath);
+    }
+
+    private static string[] DeserializeMissingMetadataFields(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(json, JsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
 }

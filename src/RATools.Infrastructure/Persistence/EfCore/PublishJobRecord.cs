@@ -33,4 +33,48 @@ public sealed class PublishJobRecord
     public DateTime? LeaseExpiresUtc { get; set; }
 
     public DateTime? LastHeartbeatUtc { get; set; }
+
+    public bool? HistoryReportAvailable { get; set; }
+
+    public bool? HistoryReportReadable { get; set; }
+
+    public string? HistoryReportError { get; set; }
+
+    public string? HistoryValidationProfile { get; set; }
+
+    public int? HistoryValidationErrorCount { get; set; }
+
+    public int? HistoryValidationWarningCount { get; set; }
+
+    public string? HistoryValidationWarningSummary { get; set; }
+
+    public bool? HistoryReadinessIsReady { get; set; }
+
+    public string? HistoryReadinessStatus { get; set; }
+
+    public int? HistoryReadinessBlockingErrorCount { get; set; }
+
+    public int? HistoryReadinessWarningCount { get; set; }
+
+    public string? HistoryReadinessMissingMetadataFieldsJson { get; set; }
+
+    public int? HistoryLifecycleMatchedCount { get; set; }
+
+    public int? HistoryLifecycleReplaceTargetNotFoundCount { get; set; }
+
+    public int? HistoryLifecycleDeleteTargetNotFoundCount { get; set; }
+
+    public int? HistoryLifecycleAppendTargetNotFoundCount { get; set; }
+
+    public int? HistoryLifecycleAmbiguousCount { get; set; }
+
+    public int? HistoryLifecycleCurrentSequenceCount { get; set; }
+
+    public int? HistoryArtifactFileCount { get; set; }
+
+    public long? HistoryArtifactTotalSizeBytes { get; set; }
+
+    public long? HistoryArtifactPackageSizeBytes { get; set; }
+
+    public string? HistoryReportPath { get; set; }
 }

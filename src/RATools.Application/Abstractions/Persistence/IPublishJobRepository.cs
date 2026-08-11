@@ -17,6 +17,12 @@ public interface IPublishJobRepository
 
     Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default);
 
+    Task<bool> UpdateHistorySummaryAsync(
+        Guid jobId,
+        int expectedAttemptCount,
+        PublishJobHistorySummary summary,
+        CancellationToken cancellationToken = default);
+
     Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PublishJob?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)

@@ -7,4 +7,7 @@ public sealed record PublishJobHistoryQueryResult(
     int TotalCount,
     int CompletedCount,
     int FailedCount,
-    int RunningCount);
+    int RunningCount,
+    IReadOnlyDictionary<Guid, PublishJobHistorySummary>? HistorySummaries = null,
+    PublishJobHistoryReadinessCounts? ReadinessCounts = null,
+    PublishJobHistoryLifecycleCounts? LifecycleCounts = null);

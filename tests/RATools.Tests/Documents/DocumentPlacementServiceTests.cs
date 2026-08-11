@@ -223,6 +223,12 @@ public sealed class DocumentPlacementServiceTests
 
         public Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+        public Task<bool> UpdateHistorySummaryAsync(
+            Guid jobId,
+            int expectedAttemptCount,
+            PublishJobHistorySummary summary,
+            CancellationToken cancellationToken = default) => Task.FromResult(true);
+
         public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<PublishJob?>(null);
 
         public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<PublishJob>>([]);
