@@ -4,5 +4,4 @@ public sealed record CreateAuditLogRequest(
     string EntityType,
     string EntityId,
     string Action,
-    string Actor,
     string? Details);

@@ -224,8 +224,8 @@ public sealed class PublishJobServiceEvidenceTests
 
     private sealed class NoopAuditLogService : IAuditLogService
     {
-        public Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
-            => Task.FromResult(new AuditLogDto(Guid.NewGuid(), request.EntityType, request.EntityId, request.Action, request.Actor, request.Details, DateTime.UtcNow));
+        public Task<AuditLogDto> WriteSystemEventAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new AuditLogDto(Guid.NewGuid(), request.EntityType, request.EntityId, request.Action, "system", request.Details, DateTime.UtcNow));
 
         public Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<AuditLogDto>>(Array.Empty<AuditLogDto>());

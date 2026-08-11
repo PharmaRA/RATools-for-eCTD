@@ -237,9 +237,9 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
     {
         private readonly List<AuditLogDto> _entries = [];
 
-        public Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
+        public Task<AuditLogDto> WriteSystemEventAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
         {
-            var entry = new AuditLogDto(Guid.NewGuid(), request.EntityType, request.EntityId, request.Action, request.Actor, request.Details, DateTime.UtcNow);
+            var entry = new AuditLogDto(Guid.NewGuid(), request.EntityType, request.EntityId, request.Action, "system", request.Details, DateTime.UtcNow);
             _entries.Add(entry);
             return Task.FromResult(entry);
         }

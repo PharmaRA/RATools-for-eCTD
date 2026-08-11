@@ -185,22 +185,10 @@ GET {{host}}/api/publish-jobs/{{executePublishJob.response.body.$.id}}/artifacts
 
 ### Publish job should return completed status with outputPath and packagePath when generation succeeds
 
-### Create audit log
-POST {{host}}/api/audit-logs
-Content-Type: application/json
-
-{
-  "entityType": "Application",
-  "entityId": "{{createApplication.response.body.$.id}}",
-  "action": "Created",
-  "actor": "local-user",
-  "details": "Initial application bootstrap"
-}
-
 ### List audit logs (paged; pageSize is clamped to 200)
 GET {{host}}/api/audit-logs?page=1&pageSize=20
 
 ### List audit logs filtered by entity
 GET {{host}}/api/audit-logs?entityType=PublishJob&entityId={{executePublishJob.response.body.$.id}}
 
-### Audit logs now include validation and publish job lifecycle events
+### Audit logs are read-only and include server-generated validation and publish job lifecycle events

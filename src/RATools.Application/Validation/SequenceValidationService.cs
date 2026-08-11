@@ -361,12 +361,11 @@ public sealed class SequenceValidationService(
 
             var details = $"Profile={report.ValidationProfile}; Issue count: {report.Issues.Count}; MatchedPrefixes={(matchedPrefixes.Length == 0 ? "none" : string.Join(",", matchedPrefixes))}; LifecycleResults={(lifecycleResults.Length == 0 ? "none" : string.Join(",", lifecycleResults))}";
 
-            await auditLogService.CreateAsync(
+            await auditLogService.WriteSystemEventAsync(
                 new CreateAuditLogRequest(
                     "SequenceValidation",
                     $"{report.ApplicationId}:{report.SequenceNumber}",
                     action,
-                    "system",
                     details),
                 cancellationToken);
         }

@@ -7,9 +7,9 @@ namespace RATools.Application.Auditing;
 
 public sealed class AuditLogService(IAuditLogRepository repository) : IAuditLogService
 {
-    public async Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
+    public async Task<AuditLogDto> WriteSystemEventAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default)
     {
-        var entry = new AuditLogEntry(request.EntityType, request.EntityId, request.Action, request.Actor);
+        var entry = new AuditLogEntry(request.EntityType, request.EntityId, request.Action, "system");
         entry.AddDetails(request.Details);
 
         await repository.AddAsync(entry, cancellationToken);

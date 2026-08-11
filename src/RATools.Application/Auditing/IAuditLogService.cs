@@ -5,7 +5,7 @@ namespace RATools.Application.Auditing;
 
 public interface IAuditLogService
 {
-    Task<AuditLogDto> CreateAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default);
+    Task<AuditLogDto> WriteSystemEventAsync(CreateAuditLogRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<AuditLogDto>> ListAsync(CancellationToken cancellationToken = default);
 

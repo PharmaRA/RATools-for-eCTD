@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using RATools.Api.Contracts;
 using RATools.Application.Auditing;
-using RATools.Application.Auditing.Requests;
 
 namespace RATools.Api.Controllers;
 
@@ -26,15 +24,5 @@ public sealed class AuditLogsController(IAuditLogService auditLogService) : Cont
             new AuditLogQuery(page, clampedPageSize, entityType, entityId, action, createdFromUtc, createdToUtc),
             cancellationToken);
         return Ok(result);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateAuditLogRequestBody request, CancellationToken cancellationToken)
-    {
-        var created = await auditLogService.CreateAsync(
-            new CreateAuditLogRequest(request.EntityType, request.EntityId, request.Action, request.Actor, request.Details),
-            cancellationToken);
-
-        return Ok(created);
     }
 }

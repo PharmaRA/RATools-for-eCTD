@@ -56,12 +56,11 @@ public sealed partial class StalePublishJobRecoveryService(
         {
             try
             {
-                await auditLogService.CreateAsync(
+                await auditLogService.WriteSystemEventAsync(
                     new CreateAuditLogRequest(
                         EntityType: "PublishJob",
                         EntityId: job.Id.ToString(),
                         Action: "RecoveredAtStartup",
-                        Actor: "system",
                         Details: $"Publish job for application {job.ApplicationId}, sequence {job.SequenceNumber} had an expired or missing lease and was marked Failed during startup recovery."),
                     cancellationToken);
             }

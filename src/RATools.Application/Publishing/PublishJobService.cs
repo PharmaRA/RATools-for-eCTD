@@ -542,8 +542,8 @@ public sealed class PublishJobService(
     {
         try
         {
-            await auditLogService.CreateAsync(
-                new CreateAuditLogRequest(entityType, entityId, action, "system", details),
+            await auditLogService.WriteSystemEventAsync(
+                new CreateAuditLogRequest(entityType, entityId, action, details),
                 cancellationToken);
         }
         catch (OperationCanceledException exception) when (ignoreCancellation)

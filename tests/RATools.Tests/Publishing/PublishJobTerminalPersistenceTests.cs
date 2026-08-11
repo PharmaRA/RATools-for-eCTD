@@ -386,7 +386,7 @@ public sealed class PublishJobTerminalPersistenceTests
     private sealed class StubAuditLogService(
         Func<CreateAuditLogRequest, CancellationToken, Task>? createBehavior = null) : IAuditLogService
     {
-        public async Task<AuditLogDto> CreateAsync(
+        public async Task<AuditLogDto> WriteSystemEventAsync(
             CreateAuditLogRequest request,
             CancellationToken cancellationToken = default)
         {
@@ -400,7 +400,7 @@ public sealed class PublishJobTerminalPersistenceTests
                 request.EntityType,
                 request.EntityId,
                 request.Action,
-                request.Actor,
+                "system",
                 request.Details,
                 DateTime.UtcNow);
         }

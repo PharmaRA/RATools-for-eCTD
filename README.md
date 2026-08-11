@@ -100,10 +100,12 @@ also rejects short/development API keys and default PostgreSQL passwords. These 
 are support boundaries, not a substitute for host access controls.
 
 The browser-visible shared API key is an access gate, not a user identity or a
-browser secret. Client-created audit entries also do not provide multi-user
-non-repudiation. Shared or horizontally scaled deployment remains unsupported until
-the identity, server-derived audit, persistent lease queue, and migration controls in
-the locally maintained ADR-0001 are complete. ADRs are not part of the public repository.
+browser secret. The public audit API is read-only: validation and publish business
+services create audit events and derive the current `system` actor on the server.
+This protects audit records from client-supplied actors, but it does not provide
+multi-user attribution or non-repudiation. Shared or horizontally scaled deployment
+remains unsupported until the remaining identity and migration controls in the
+locally maintained ADR-0001 are complete. ADRs are not part of the public repository.
 
 The tracked Compose port is bound to `127.0.0.1`, but its credentials and the
 development settings are still development conveniences, not a hardened deployment
