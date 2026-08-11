@@ -1093,6 +1093,17 @@ describe('Publish history detail frontend', () => {
     expect(window.location.search).not.toContain('readinessSort=')
     expect(getPublishHistorySequenceOrder()).toEqual(['0001', '0003', '0002'])
 
+    await clickButtonByText('重置')
+    await flushPromises()
+
+    expect(window.location.search).not.toContain('publishReadinessStatus=')
+    expect(window.location.search).not.toContain('publishReadinessSort=')
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]) === '/api/applications/app-1/publish-history?page=1&pageSize=20',
+      ),
+    ).toBe(true)
+
     unmount()
   })
 

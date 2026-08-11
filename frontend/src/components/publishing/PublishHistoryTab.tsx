@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card, Col, Form, Input, Row, Select, Statistic, Table, message } from 'antd'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
-import { loadPublishHistory } from '../../publishActions'
+import { loadPublishHistory, type PublishHistoryRequestFilterValues } from '../../publishActions'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
 import { getPublishHistoryEntriesFromResponse, sortPublishHistoryEntries, type ReadinessSort } from './publishHistorySorting'
@@ -35,8 +36,6 @@ type PublishHistoryResponse = {
 
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [initialQueryState] = useState(() => getPublishHistoryInitialQueryState(window.location.search))
-  const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<PublishHistoryResponse | null>(null)
   const [selectedReviewJobId, setSelectedReviewJobId] = useState<string | null>(null)
   const [selectedReportJobId, setSelectedReportJobId] = useState<string | null>(null)
   const [selectedArtifactsJobId, setSelectedArtifactsJobId] = useState<string | null>(null)
@@ -44,6 +43,30 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [readinessSort, setReadinessSort] = useState<ReadinessSort | null>(initialQueryState.readinessSort)
+  const [filters, setFilters] = useState<PublishHistoryRequestFilterValues>(() => ({
+    sequenceNumber: initialQueryState.formValues.sequenceNumber,
+    status: initialQueryState.formValues.status,
+    readinessStatus: initialQueryState.formValues.readinessStatus,
+  }))
+  const historyQuery = useQuery({
+    queryKey: ['publish-history', appId, { page, pageSize, filters }],
+    queryFn: ({ signal }) => loadPublishHistory<PublishHistoryResponse>({
+      applicationId: appId,
+      page,
+      pageSize,
+      filters,
+      signal,
+    }),
+    placeholderData: keepPreviousData,
+  })
+  const data = historyQuery.data
+  const loading = historyQuery.isFetching
+
+  useEffect(() => {
+    if (historyQuery.error) {
+      message.error('加载发布历史失败：' + getErrorMessage(historyQuery.error))
+    }
+  }, [historyQuery.error])
 
   const replaceBrowserQuery = (values: PublishHistoryFilterValues, nextReadinessSort: ReadinessSort | null) => {
     window.history.replaceState(null, '', buildPublishHistoryBrowserUrl(
@@ -55,32 +78,20 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
     ))
   }
 
-  const fetchHistory = useCallback(async () => {
-    setLoading(true)
-    const values = form.getFieldsValue()
-
-    try {
-      const res = await loadPublishHistory<PublishHistoryResponse>({
-        applicationId: appId,
-        page,
-        pageSize,
-        filters: values,
-      })
-      setData(res)
-    } catch (err) {
-      message.error('加载发布历史失败：' + getErrorMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [appId, form, page, pageSize])
-
-  useEffect(() => {
-    void Promise.resolve().then(fetchHistory)
-  }, [fetchHistory])
-
   const applyFilters = () => {
     const values = form.getFieldsValue()
     const nextReadinessSort = normalizePublishHistoryReadinessSort(values.readinessSort)
+    const nextFilters: PublishHistoryRequestFilterValues = {
+      sequenceNumber: values.sequenceNumber,
+      status: values.status,
+      readinessStatus: values.readinessStatus,
+    }
+    const filtersChanged = nextFilters.sequenceNumber !== filters.sequenceNumber
+      || nextFilters.status !== filters.status
+      || nextFilters.readinessStatus !== filters.readinessStatus
+    const sortChanged = nextReadinessSort !== readinessSort
+
+    setFilters(nextFilters)
     setReadinessSort(nextReadinessSort)
     replaceBrowserQuery(values, nextReadinessSort)
 
@@ -89,11 +100,24 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       return
     }
 
-    fetchHistory()
+    if (!filtersChanged && !sortChanged) {
+      void historyQuery.refetch()
+    }
   }
 
   const resetFilters = () => {
     form.resetFields()
+    form.setFieldsValue({
+      sequenceNumber: undefined,
+      status: undefined,
+      readinessStatus: undefined,
+      readinessSort: undefined,
+    })
+    const filtersChanged = filters.sequenceNumber !== undefined
+      || filters.status !== undefined
+      || filters.readinessStatus !== undefined
+    const sortChanged = readinessSort !== null
+    setFilters({})
     setReadinessSort(null)
     replaceBrowserQuery({}, null)
 
@@ -102,7 +126,9 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
       return
     }
 
-    fetchHistory()
+    if (!filtersChanged && !sortChanged) {
+      void historyQuery.refetch()
+    }
   }
 
   const getSortedEntries = () => {

@@ -99,4 +99,22 @@ describe('publishActions', () => {
     expect(request).toHaveBeenCalledWith('/api/applications/app-1/publish-history?page=1&pageSize=20&readinessStatus=Blocked')
     expect(result).toEqual(history)
   })
+
+  it('forwards an abort signal when loading publish history', async () => {
+    const controller = new AbortController()
+    const request = vi.fn().mockResolvedValueOnce({ entries: [], totalCount: 0 })
+
+    await loadPublishHistory({
+      applicationId: 'app-1',
+      page: 1,
+      pageSize: 20,
+      filters: {},
+      signal: controller.signal,
+    }, request)
+
+    expect(request).toHaveBeenCalledWith(
+      '/api/applications/app-1/publish-history?page=1&pageSize=20',
+      { signal: controller.signal },
+    )
+  })
 })

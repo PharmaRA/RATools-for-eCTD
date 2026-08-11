@@ -19,6 +19,7 @@ export type LoadPublishHistoryRequest = {
   page: number
   pageSize: number
   filters: PublishHistoryRequestFilterValues
+  signal?: AbortSignal
 }
 
 export type ExecutedPublishJob = {
@@ -128,10 +129,13 @@ export const loadPublishHistory = async <T = unknown>(
   request: LoadPublishHistoryRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<T> => {
-  return executeRequest(buildPublishHistoryRequestUrl(
+  const url = buildPublishHistoryRequestUrl(
     request.applicationId,
     request.page,
     request.pageSize,
     request.filters,
-  ))
+  )
+  return request.signal
+    ? executeRequest(url, { signal: request.signal })
+    : executeRequest(url)
 }
