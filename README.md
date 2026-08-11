@@ -197,6 +197,11 @@ unique index that permits one active publish job per sequence, `ON DELETE CASCAD
 propagation, and transaction rollback. EF InMemory enforces none of these, and SQLite's
 `EnsureCreated()` never creates indexes declared as raw migration SQL.
 
+The same suite seeds 55,000 publish-job rows as a history-query performance baseline. It
+requires the filtered aggregate and page query to complete within five seconds, then checks
+PostgreSQL JSON execution plans for the application/readiness/time, application/status/time,
+and application/sequence/time indexes.
+
 The database is supplied externally rather than started by the test process. Point
 `RATOOLS_TEST_POSTGRES` at an instance; the target database is migrated, so use a scratch one:
 

@@ -3,7 +3,7 @@ namespace RATools.Tests.Persistence.Postgres;
 /// <summary>
 /// 防假门禁：真实 PostgreSQL 用例靠 <see cref="RequiresPostgresFactAttribute"/> 在缺少数据库时
 /// Skip，而 Skip 不会让测试运行变红——一旦 CI 上的 service container 或连接串配置被改坏、删掉，
-/// 那 6 条约束用例会集体静默跳过，CI 照样全绿，等于门禁形同虚设。
+/// 这些数据库用例会集体静默跳过，CI 照样全绿，等于门禁形同虚设。
 /// 这条守卫把"CI 上跳过"变成硬失败。
 /// </summary>
 public sealed class PostgresGateTests

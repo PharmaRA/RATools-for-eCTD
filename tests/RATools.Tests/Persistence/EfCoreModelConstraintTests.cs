@@ -72,6 +72,16 @@ public sealed class EfCoreModelConstraintTests
             nameof(PublishJobRecord.ApplicationId),
             nameof(PublishJobRecord.SequenceNumber),
             nameof(PublishJobRecord.Status)));
+        Assert.Contains(entityType.GetIndexes(), x => HasProperties(
+            x,
+            nameof(PublishJobRecord.ApplicationId),
+            nameof(PublishJobRecord.Status),
+            nameof(PublishJobRecord.CreatedUtc)));
+        Assert.Contains(entityType.GetIndexes(), x => HasProperties(
+            x,
+            nameof(PublishJobRecord.ApplicationId),
+            nameof(PublishJobRecord.HistoryReadinessStatus),
+            nameof(PublishJobRecord.CreatedUtc)));
         var idempotencyIndex = Assert.Single(entityType.GetIndexes(), x => HasProperties(
             x,
             nameof(PublishJobRecord.IdempotencyKey)));

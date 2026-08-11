@@ -122,6 +122,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.HasIndex(x => new { x.ApplicationId, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.Status });
+            entity.HasIndex(x => new { x.ApplicationId, x.Status, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.HistoryReadinessStatus, x.CreatedUtc });
             entity.HasIndex(x => x.IdempotencyKey).IsUnique();
             entity.HasIndex(x => new { x.Status, x.NextAttemptUtc, x.CreatedUtc });
