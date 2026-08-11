@@ -15,7 +15,6 @@ describe('sequenceActions', () => {
       applicationId: 'app-1',
       sequenceNumber: '0001',
       submissionType: 'Original Application',
-      submissionSubType: 'Presubmission',
       description: 'Initial submission',
     }, request)).resolves.toEqual({ sequenceNumber: '0001' })
 
@@ -25,7 +24,6 @@ describe('sequenceActions', () => {
       body: JSON.stringify({
         sequenceNumber: '0001',
         submissionType: 'Original Application',
-        submissionSubType: 'Presubmission',
         description: 'Initial submission',
       }),
     })

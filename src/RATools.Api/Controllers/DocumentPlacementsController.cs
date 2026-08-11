@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Documents;
+using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
 
 namespace RATools.Api.Controllers;
@@ -10,6 +11,7 @@ namespace RATools.Api.Controllers;
 public sealed class DocumentPlacementsController(IDocumentPlacementService placementService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(DocumentPlacementDto[]), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] Guid? applicationId, CancellationToken cancellationToken)
     {
         if (applicationId.HasValue)
@@ -23,6 +25,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(DocumentPlacementDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Create([FromBody] CreateDocumentPlacementRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -46,6 +49,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -60,6 +64,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     }
 
     [HttpPut("{id:guid}/section")]
+    [ProducesResponseType(typeof(DocumentPlacementDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateSection(Guid id, [FromBody] UpdateDocumentPlacementSectionRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -74,6 +79,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     }
 
     [HttpPut("{id:guid}/metadata")]
+    [ProducesResponseType(typeof(DocumentPlacementDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateMetadata(Guid id, [FromBody] UpdateDocumentPlacementMetadataRequestBody request, CancellationToken cancellationToken)
     {
         try

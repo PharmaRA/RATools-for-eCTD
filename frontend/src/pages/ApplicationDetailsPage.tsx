@@ -72,7 +72,6 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
         applicationId: appId,
         sequenceNumber: values.sequenceNumber,
         submissionType: values.submissionType,
-        submissionSubType: values.submissionSubType,
         description: values.description,
       })
       message.success('序列创建成功！')
@@ -262,9 +261,6 @@ export const ApplicationDetailsPage = ({ appId, onBack, onOpenWorkspace }: { app
           </Form.Item>
           <Form.Item name="submissionType" label="提交类型" initialValue="Original Application" rules={[{ required: true }]}>
             <Select options={[{ value: 'Original Application', label: 'Original Application' }, { value: 'Supplemental Application', label: 'Supplemental Application' }, { value: 'Amendment', label: 'Amendment' }]} />
-          </Form.Item>
-          <Form.Item name="submissionSubType" label="提交子类型" initialValue="Presubmission">
-            <Input />
           </Form.Item>
           <Form.Item name="description" label="描述" rules={[{ required: true }, { min: 2, max: 512 }]}>
             <Input.TextArea placeholder="例如：初始 eCTD 提交" rows={3} />

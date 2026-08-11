@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Validation;
+using RATools.Application.Validation.Dtos;
 using RATools.Application.Validation.Requests;
 
 namespace RATools.Api.Controllers;
@@ -12,6 +13,7 @@ public sealed class ValidationController(
     IPublishReadinessService publishReadinessService) : ControllerBase
 {
     [HttpPost("sequence")]
+    [ProducesResponseType(typeof(ValidationReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> ValidateSequence([FromBody] ValidateSequenceRequestBody request, CancellationToken cancellationToken)
     {
         var report = await validationService.ValidateAsync(
@@ -22,6 +24,7 @@ public sealed class ValidationController(
     }
 
     [HttpPost("publish-readiness")]
+    [ProducesResponseType(typeof(PublishReadinessReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPublishReadiness([FromBody] PublishReadinessRequestBody request, CancellationToken cancellationToken)
     {
         var report = await publishReadinessService.GetAsync(

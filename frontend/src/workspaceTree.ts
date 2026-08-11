@@ -1,30 +1,10 @@
-export interface EctdStructureNode {
-  elementName: string
-  sectionPath: string
-  displayName: string
-  sourceProfile: string
-  children: EctdStructureNode[]
-}
+import type {
+  DocumentPlacementRecord,
+  DocumentRecord,
+  EctdStructureNode,
+} from './api/contracts'
 
-export interface DocumentRecord {
-  id: string
-  fileName: string
-  storagePath: string
-  mediaType?: string
-  sha256?: string
-  sizeBytes?: number
-}
-
-export interface DocumentPlacementRecord {
-  id: string
-  applicationId: string
-  sequenceNumber: string
-  documentId: string
-  ctdSection: string
-  operation: string
-  title?: string
-  lifecycleTargetPlacementId?: string | null
-}
+export type { DocumentPlacementRecord, DocumentRecord, EctdStructureNode } from './api/contracts'
 
 export type WorkspaceTreeNode =
   | {

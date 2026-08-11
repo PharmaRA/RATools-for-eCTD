@@ -1,11 +1,14 @@
 import { Badge, Button, Space, Tag, type TableColumnsType } from 'antd'
 
+import type {
+  PublishHistoryEntry,
+  PublishReadinessSummary,
+} from '../../api/contracts'
 import { messages } from '../../i18n/messages'
 import {
   formatDate,
   getReportAvailabilityLabel,
   getStatusColor,
-  type LifecycleSummary,
   type ReportAvailability,
 } from '../../pages/appShared'
 import {
@@ -20,33 +23,9 @@ import {
   formatPublishHistoryLifecycleStatus,
 } from './publishHistoryDisplay'
 
-export type PublishReadinessSummary = {
-  isReady?: boolean
-  status?: string
-  blockingErrorCount?: number
-  warningCount?: number
-  missingMetadataFields?: string[]
-}
+export type { PublishHistoryEntry } from '../../api/contracts'
 
-type ArtifactSummary = {
-  fileCount?: number | null
-  packageSizeBytes?: number | null
-}
-
-export type PublishHistoryEntry = ReportAvailability & {
-  publishJobId: string
-  sequenceNumber: string
-  status: string
-  validationProfile?: string | null
-  errorCount?: number | null
-  warningCount?: number | null
-  warningSummary?: string | null
-  lifecycleSummary?: LifecycleSummary | null
-  artifactSummary?: ArtifactSummary | null
-  reportError?: string | null
-  createdUtc?: string | null
-  publishReadiness?: PublishReadinessSummary | null
-}
+type PublishHistoryTableEntry = PublishHistoryEntry & ReportAvailability
 
 type BuildPublishHistoryColumnsOptions = {
   onOpenReview: (publishJobId: string) => void
@@ -82,7 +61,7 @@ export const buildPublishHistoryColumns = ({
   onOpenReview,
   onOpenReport,
   onOpenArtifacts,
-}: BuildPublishHistoryColumnsOptions): TableColumnsType<PublishHistoryEntry> => [
+}: BuildPublishHistoryColumnsOptions): TableColumnsType<PublishHistoryTableEntry> => [
   { title: '序列', dataIndex: 'sequenceNumber', key: 'seq' },
   { title: '状态', dataIndex: 'status', key: 'status', render: (status: string) => <Badge status={getStatusColor(status)} text={status} /> },
   { title: '配置', dataIndex: 'validationProfile', key: 'profile' },

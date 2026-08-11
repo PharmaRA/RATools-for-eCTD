@@ -1,21 +1,7 @@
 import { apiFetch } from './apiClient'
+import type { AuditLogPage } from './api/contracts'
 
-export type AuditLogEntry = {
-  id: string
-  entityType: string
-  entityId: string
-  action: string
-  actor: string
-  details?: string | null
-  createdUtc: string
-}
-
-export type AuditLogPage = {
-  page: number
-  pageSize: number
-  totalCount: number
-  items: AuditLogEntry[]
-}
+export type { AuditLogEntry, AuditLogPage } from './api/contracts'
 
 export type AuditLogFilterValues = {
   entityType?: string | null

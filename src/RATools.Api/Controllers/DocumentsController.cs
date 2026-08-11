@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Documents;
+using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
 
 namespace RATools.Api.Controllers;
@@ -10,6 +11,7 @@ namespace RATools.Api.Controllers;
 public sealed class DocumentsController(IDocumentService documentService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(DocumentDto[]), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] Guid? applicationId, [FromQuery] string? sequenceNumber, CancellationToken cancellationToken)
     {
         if (applicationId.HasValue)
@@ -23,6 +25,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var item = await documentService.GetAsync(id, cancellationToken);
@@ -31,6 +34,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
 
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Upload([FromForm] UploadDocumentRequestBody request, CancellationToken cancellationToken)
     {
         if (request.File is null)
@@ -66,6 +70,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
 
     [HttpPost("/api/applications/{applicationId:guid}/sequences/{sequenceNumber}/documents/upload")]
     [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> UploadToSequence(Guid applicationId, string sequenceNumber, [FromForm] UploadSequenceDocumentRequestBody request, CancellationToken cancellationToken)
     {
         if (request.File is null)
@@ -111,6 +116,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

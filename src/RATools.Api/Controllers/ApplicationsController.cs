@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Api.Security;
 using RATools.Application.Applications;
+using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 
@@ -19,6 +20,7 @@ public sealed class ApplicationsController(
     IAuthorizationService authorizationService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(ApplicationDto[]), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
         var items = await applicationService.ListAsync(cancellationToken);
@@ -26,6 +28,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var item = await applicationService.GetAsync(id, cancellationToken);
@@ -33,6 +36,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpGet("{id:guid}/publish-history")]
+    [ProducesResponseType(typeof(ApplicationPublishHistoryDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPublishHistory(
         Guid id,
         [FromQuery] string? sequenceNumber,
@@ -54,6 +58,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -79,6 +84,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpPost("import")]
+    [ProducesResponseType(typeof(ApplicationImportResultDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Import([FromBody] ImportApplicationRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -108,6 +114,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpPost("{id:guid}/sequences")]
+    [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateSequence(Guid id, [FromBody] CreateSequenceRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -130,6 +137,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpGet("{id:guid}/sequences/{sequenceNumber}/publishing-metadata")]
+    [ProducesResponseType(typeof(SequencePublishingMetadataDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSequencePublishingMetadata(
         Guid id,
         string sequenceNumber,
@@ -140,6 +148,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpPut("{id:guid}/sequences/{sequenceNumber}/publishing-metadata")]
+    [ProducesResponseType(typeof(SequencePublishingMetadataDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateSequencePublishingMetadata(
         Guid id,
         string sequenceNumber,
@@ -174,6 +183,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(
         Guid id,
         [FromQuery] ApplicationDeleteMode deleteMode = ApplicationDeleteMode.DatabaseOnly,
@@ -205,6 +215,7 @@ public sealed class ApplicationsController(
     }
 
     [HttpDelete("{id:guid}/sequences/{sequenceNumber}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteSequence(
         Guid id,
         string sequenceNumber,

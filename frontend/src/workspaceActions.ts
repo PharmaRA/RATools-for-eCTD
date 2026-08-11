@@ -1,7 +1,10 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import type {
+  DocumentContract,
+  DocumentPlacementContract,
+  EctdStructureContract,
+} from './api/contracts'
 import { buildApplicationUrl } from './applicationActions'
-import type { EctdStructureResponse } from './pages/appShared'
-import type { DocumentPlacementRecord, DocumentRecord } from './workspaceTree'
 
 export const WORKSPACE_PLACEMENT_DRAG_MIME = 'application/x-ratools-placement'
 
@@ -69,7 +72,7 @@ export const loadWorkspacePlacements = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
   signal?: AbortSignal,
-): Promise<DocumentPlacementRecord[] | { items?: DocumentPlacementRecord[] | null }> => {
+): Promise<DocumentPlacementContract[]> => {
   const url = buildWorkspaceDataUrls(appId).placements
   return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }
@@ -78,7 +81,7 @@ export const loadWorkspaceDocuments = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
   signal?: AbortSignal,
-): Promise<DocumentRecord[]> => {
+): Promise<DocumentContract[]> => {
   const url = buildWorkspaceDataUrls(appId).documents
   return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }
@@ -87,7 +90,7 @@ export const loadWorkspaceEctdStructure = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
   signal?: AbortSignal,
-): Promise<EctdStructureResponse> => {
+): Promise<EctdStructureContract> => {
   const url = buildWorkspaceDataUrls(appId).ectdStructure
   return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }

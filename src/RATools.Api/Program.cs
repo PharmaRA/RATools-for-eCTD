@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Reflection;
 using RATools.Api.Health;
 using RATools.Api.Middleware;
+using RATools.Api.OpenApi;
 using RATools.Api.Security;
 using RATools.Application;
 using RATools.Infrastructure;
@@ -63,7 +64,11 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SupportNonNullableReferenceTypes();
+    options.SchemaFilter<NonNullablePropertiesRequiredSchemaFilter>();
+});
 
 // 健康检查：存活探针不含依赖；就绪探针（ready 标签）在关系型 provider 下探测数据库。
 var healthChecksBuilder = builder.Services.AddHealthChecks();

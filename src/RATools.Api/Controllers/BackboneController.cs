@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Api.Contracts;
 using RATools.Application.Publishing;
+using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Requests;
 
 namespace RATools.Api.Controllers;
@@ -10,6 +11,7 @@ namespace RATools.Api.Controllers;
 public sealed class BackboneController(IBackboneService backboneService) : ControllerBase
 {
     [HttpPost("generate")]
+    [ProducesResponseType(typeof(GeneratedBackboneDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Generate([FromBody] GenerateBackboneRequestBody request, CancellationToken cancellationToken)
     {
         try

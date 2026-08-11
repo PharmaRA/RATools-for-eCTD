@@ -4,11 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "api:generate": "node scripts/api-contracts.mjs update",
+    "api:check": "node scripts/api-contracts.mjs check",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -20,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

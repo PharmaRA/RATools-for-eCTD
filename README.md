@@ -82,6 +82,8 @@ npm install
 npm run dev
 ```
 
+Frontend development requires Node.js 22.18 or newer.
+
 Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` to the backend at `http://localhost:5000`.
 
 Default backend configuration is in `src/RATools.Api/appsettings.json`.
@@ -188,6 +190,13 @@ The API applies migrations automatically on startup when `Persistence:Provider` 
 - Run backend tests: `dotnet test tests/RATools.Tests/RATools.Tests.csproj`.
 - Run frontend tests: `cd frontend && npm test`.
 - Build frontend: `cd frontend && npm run build`.
+- Regenerate the committed OpenAPI snapshot and TypeScript contracts after an API
+  request/response change: `cd frontend && npm run api:generate`.
+- Check generated TypeScript contracts against the snapshot: `cd frontend && npm run api:check`.
+
+Backend tests compare the live Swagger document with `src/RATools.Api/openapi.v1.json`;
+the frontend check independently compares generated TypeScript with that snapshot. Both
+guards must pass, so API contract changes cannot leave either artifact stale.
 
 ### Real-PostgreSQL constraint tests
 

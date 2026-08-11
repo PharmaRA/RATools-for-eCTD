@@ -1,13 +1,8 @@
 import { apiFetch } from './apiClient'
+import type { EctdTemplateOption } from './api/contracts'
 import { importApplication, type ImportApplicationRequest, type ImportApplicationResult } from './importActions'
 
-export type EctdTemplateOption = {
-  key: string
-  displayName: string
-  region: string
-  standardName?: string
-  standardVersion?: string
-}
+export type { EctdTemplateOption } from './api/contracts'
 
 export const buildEctdTemplatesUrl = () => '/api/ectd-templates'
 

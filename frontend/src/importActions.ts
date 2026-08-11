@@ -1,30 +1,13 @@
 import { ApiRequestError, apiFetch, buildJsonRequestInit } from './apiClient'
+import type {
+  ImportApplicationContract,
+  ImportApplicationIssue,
+  ImportApplicationResult,
+} from './api/contracts'
 import { buildApplicationsUrl } from './applicationActions'
 
-export type ImportApplicationRequest = {
-  workingDirectoryPath: string
-  ectdTemplateKey: string
-  sponsorName: string
-}
-
-export type ImportApplicationIssue = {
-  severity: string
-  code: string
-  sequenceNumber: string | null
-  message: string
-}
-
-export type ImportApplicationResult = {
-  applicationId: string
-  applicationNumber: string
-  workingDirectoryPath: string
-  importedSequenceCount: number
-  importedDocumentCount: number
-  importedPlacementCount: number
-  skippedSequenceCount: number
-  failedSequenceCount: number
-  issues: ImportApplicationIssue[]
-}
+export type ImportApplicationRequest = ImportApplicationContract
+export type { ImportApplicationIssue, ImportApplicationResult } from './api/contracts'
 
 const lifecycleTargetIssueCodes = new Set(['LIFECYCLE_TARGET_MISSING', 'LIFECYCLE_TARGET_NOT_IMPORTED'])
 

@@ -1,0 +1,3601 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "RATools.Api",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/applications": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "deleteMode",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ApplicationDeleteMode"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/publish-history": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "readinessStatus",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "createdToUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationPublishHistoryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationPublishHistoryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationPublishHistoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/import": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportApplicationRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportApplicationRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportApplicationRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationImportResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationImportResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationImportResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSequenceRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSequenceRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSequenceRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSequencePublishingMetadataRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSequencePublishingMetadataRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSequencePublishingMetadataRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePublishingMetadataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}": {
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleteMode",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ApplicationDeleteMode"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/audit-logs": {
+      "get": {
+        "tags": [
+          "AuditLogs"
+        ],
+        "parameters": [
+          {
+            "name": "entityType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "createdToUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPageDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPageDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/backbone/generate": {
+      "post": {
+        "tags": [
+          "Backbone"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateBackboneRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateBackboneRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateBackboneRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedBackboneDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedBackboneDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedBackboneDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/document-placements": {
+      "get": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentPlacementDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentPlacementDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentPlacementDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentPlacementRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentPlacementRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentPlacementRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/document-placements/{id}": {
+      "delete": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/document-placements/{id}/section": {
+      "put": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/document-placements/{id}/metadata": {
+      "put": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementMetadataRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementMetadataRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementMetadataRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPlacementDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "File"
+                ],
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "CtdSection",
+                  "File"
+                ],
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "CtdSection": {
+                    "maxLength": 128,
+                    "minLength": 2,
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "CtdSection": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/ectd-structure": {
+      "get": {
+        "tags": [
+          "EctdStructure"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EctdStructureDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EctdStructureDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EctdStructureDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ectd-templates": {
+      "get": {
+        "tags": [
+          "EctdTemplates"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EctdTemplateDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EctdTemplateDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EctdTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filesystem/directories": {
+      "get": {
+        "tags": [
+          "Filesystem"
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryBrowseResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryBrowseResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryBrowseResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filesystem/resolve-directory": {
+      "post": {
+        "tags": [
+          "Filesystem"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDirectoryRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDirectoryRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDirectoryRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryResolutionResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryResolutionResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryResolutionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publish-jobs": {
+      "get": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishJobDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishJobDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishJobDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "responses": {
+          "410": {
+            "description": "Gone",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/publish-jobs/{id}": {
+      "get": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publish-jobs/{id}/report": {
+      "get": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishExecutionReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishExecutionReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishExecutionReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publish-jobs/{id}/artifacts": {
+      "get": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishArtifactsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishArtifactsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishArtifactsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publish-jobs/{id}/artifacts/{name}/download": {
+      "get": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/publish-jobs/execute": {
+      "post": {
+        "tags": [
+          "PublishJobs"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublishJobRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublishJobRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublishJobRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishJobDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "RATools.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "RATools.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": [
+          "RATools.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/validation/sequence": {
+      "post": {
+        "tags": [
+          "Validation"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateSequenceRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateSequenceRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateSequenceRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validation/publish-readiness": {
+      "post": {
+        "tags": [
+          "Validation"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishReadinessRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishReadinessRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishReadinessRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishReadinessReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishReadinessReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishReadinessReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApplicationDeleteMode": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ApplicationDto": {
+        "required": [
+          "applicationNumber",
+          "createdUtc",
+          "ectdTemplateDisplayName",
+          "ectdTemplateKey",
+          "id",
+          "sequences",
+          "sponsorName",
+          "workingDirectoryPath"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationNumber": {
+            "type": "string"
+          },
+          "sponsorName": {
+            "type": "string"
+          },
+          "workingDirectoryPath": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ectdTemplateKey": {
+            "type": "string"
+          },
+          "ectdTemplateDisplayName": {
+            "type": "string"
+          },
+          "sequences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SequenceDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationImportIssueDto": {
+        "required": [
+          "code",
+          "message",
+          "sequenceNumber",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "sequenceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationImportResultDto": {
+        "required": [
+          "applicationId",
+          "applicationNumber",
+          "failedSequenceCount",
+          "importedDocumentCount",
+          "importedPlacementCount",
+          "importedSequenceCount",
+          "issues",
+          "skippedSequenceCount",
+          "workingDirectoryPath"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationNumber": {
+            "type": "string"
+          },
+          "workingDirectoryPath": {
+            "type": "string"
+          },
+          "importedSequenceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "importedDocumentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "importedPlacementCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skippedSequenceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedSequenceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationImportIssueDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryDto": {
+        "required": [
+          "applicationId",
+          "applicationNumber",
+          "entries",
+          "lifecycleSummary",
+          "page",
+          "pageSize",
+          "readinessSummary",
+          "sponsorName",
+          "statusSummary",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationNumber": {
+            "type": "string"
+          },
+          "sponsorName": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "statusSummary": {
+            "$ref": "#/components/schemas/ApplicationPublishHistoryStatusSummaryDto"
+          },
+          "readinessSummary": {
+            "$ref": "#/components/schemas/ApplicationPublishHistoryReadinessAggregateDto"
+          },
+          "lifecycleSummary": {
+            "$ref": "#/components/schemas/ApplicationPublishHistoryLifecycleSummaryDto"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationPublishHistoryEntryDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryEntryDto": {
+        "required": [
+          "artifactSummary",
+          "completedUtc",
+          "createdUtc",
+          "errorCount",
+          "lifecycleMatches",
+          "lifecycleSummary",
+          "packagePath",
+          "publishJobId",
+          "publishReadiness",
+          "reportAvailable",
+          "reportError",
+          "reportPath",
+          "reportReadable",
+          "sequenceNumber",
+          "status",
+          "validationProfile",
+          "warningCount",
+          "warningSummary"
+        ],
+        "type": "object",
+        "properties": {
+          "publishJobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reportAvailable": {
+            "type": "boolean"
+          },
+          "reportReadable": {
+            "type": "boolean"
+          },
+          "reportError": {
+            "type": "string",
+            "nullable": true
+          },
+          "validationProfile": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "warningSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishReadiness": {
+            "$ref": "#/components/schemas/ApplicationPublishHistoryReadinessSummaryDto"
+          },
+          "lifecycleSummary": {
+            "$ref": "#/components/schemas/ApplicationPublishHistoryLifecycleSummaryDto"
+          },
+          "lifecycleMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationLifecycleMatchDto"
+            }
+          },
+          "artifactSummary": {
+            "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+          },
+          "reportPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "packagePath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryLifecycleSummaryDto": {
+        "required": [
+          "ambiguousCount",
+          "appendTargetNotFoundCount",
+          "currentSequenceCount",
+          "deleteTargetNotFoundCount",
+          "matchedCount",
+          "replaceTargetNotFoundCount"
+        ],
+        "type": "object",
+        "properties": {
+          "matchedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "replaceTargetNotFoundCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deleteTargetNotFoundCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "appendTargetNotFoundCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ambiguousCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentSequenceCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryReadinessAggregateDto": {
+        "required": [
+          "blockedCount",
+          "readyCount",
+          "unknownCount"
+        ],
+        "type": "object",
+        "properties": {
+          "readyCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blockedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unknownCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryReadinessSummaryDto": {
+        "required": [
+          "blockingErrorCount",
+          "isReady",
+          "missingMetadataFields",
+          "status",
+          "warningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "isReady": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "blockingErrorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingMetadataFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationPublishHistoryStatusSummaryDto": {
+        "required": [
+          "completedCount",
+          "failedCount",
+          "runningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "completedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runningCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditLogDto": {
+        "required": [
+          "action",
+          "actor",
+          "createdUtc",
+          "details",
+          "entityId",
+          "entityType",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditLogPageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateApplicationRequestBody": {
+        "required": [
+          "applicationNumber",
+          "ectdTemplateKey",
+          "sponsorName",
+          "workingDirectoryParentPath"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationNumber": {
+            "maxLength": 32,
+            "minLength": 3,
+            "type": "string"
+          },
+          "ectdTemplateKey": {
+            "maxLength": 32,
+            "minLength": 2,
+            "type": "string"
+          },
+          "sponsorName": {
+            "maxLength": 128,
+            "minLength": 2,
+            "type": "string"
+          },
+          "workingDirectoryParentPath": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateDocumentPlacementRequestBody": {
+        "required": [
+          "applicationId",
+          "ctdSection",
+          "documentId",
+          "operation",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          },
+          "ctdSection": {
+            "maxLength": 128,
+            "minLength": 2,
+            "type": "string"
+          },
+          "operation": {
+            "maxLength": 32,
+            "minLength": 2,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 512,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePublishJobRequestBody": {
+        "required": [
+          "applicationId",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateSequenceRequestBody": {
+        "required": [
+          "description",
+          "sequenceNumber",
+          "submissionType"
+        ],
+        "type": "object",
+        "properties": {
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          },
+          "submissionType": {
+            "maxLength": 64,
+            "minLength": 2,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 512,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DirectoryBrowseEntry": {
+        "required": [
+          "canBrowse",
+          "fullPath",
+          "hasChildren",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "fullPath": {
+            "type": "string"
+          },
+          "canBrowse": {
+            "type": "boolean"
+          },
+          "hasChildren": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DirectoryBrowseResult": {
+        "required": [
+          "currentPath",
+          "directories",
+          "parentPath"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "directories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryBrowseEntry"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DirectoryResolutionResult": {
+        "required": [
+          "exists",
+          "fullPath",
+          "isAccessible",
+          "isDirectory"
+        ],
+        "type": "object",
+        "properties": {
+          "fullPath": {
+            "type": "string"
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "isDirectory": {
+            "type": "boolean"
+          },
+          "isAccessible": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DocumentDto": {
+        "required": [
+          "createdUtc",
+          "fileName",
+          "fileSize",
+          "id",
+          "md5",
+          "mediaType",
+          "sha256",
+          "storagePath"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "storagePath": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DocumentPlacementDto": {
+        "required": [
+          "applicationId",
+          "createdUtc",
+          "ctdSection",
+          "documentId",
+          "id",
+          "lifecycleTargetPlacementId",
+          "operation",
+          "sequenceNumber",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "ctdSection": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "lifecycleTargetPlacementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EctdStructureDto": {
+        "required": [
+          "profileName",
+          "region",
+          "roots"
+        ],
+        "type": "object",
+        "properties": {
+          "profileName": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EctdStructureNodeDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EctdStructureNodeDto": {
+        "required": [
+          "children",
+          "displayName",
+          "elementName",
+          "sectionPath",
+          "sourceProfile"
+        ],
+        "type": "object",
+        "properties": {
+          "elementName": {
+            "type": "string"
+          },
+          "sectionPath": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "sourceProfile": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EctdStructureNodeDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EctdTemplateDto": {
+        "required": [
+          "displayName",
+          "key",
+          "region",
+          "standardName",
+          "standardVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "standardName": {
+            "type": "string"
+          },
+          "standardVersion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GenerateBackboneRequestBody": {
+        "required": [
+          "applicationId",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GeneratedBackboneDto": {
+        "required": [
+          "applicationId",
+          "fileName",
+          "filePath",
+          "packagePath",
+          "reportPath",
+          "sequenceNumber",
+          "xmlContent"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "reportPath": {
+            "type": "string"
+          },
+          "packagePath": {
+            "type": "string"
+          },
+          "xmlContent": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportApplicationRequestBody": {
+        "required": [
+          "ectdTemplateKey",
+          "sponsorName",
+          "workingDirectoryPath"
+        ],
+        "type": "object",
+        "properties": {
+          "workingDirectoryPath": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ectdTemplateKey": {
+            "maxLength": 32,
+            "minLength": 2,
+            "type": "string"
+          },
+          "sponsorName": {
+            "maxLength": 128,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "PublishArtifactDto": {
+        "required": [
+          "contentType",
+          "exists",
+          "name",
+          "path",
+          "sizeBytes",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishArtifactEvidenceDto": {
+        "required": [
+          "exists",
+          "path",
+          "relativePath",
+          "role",
+          "sizeBytes",
+          "source",
+          "zipEntryPresent"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "relativePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "zipEntryPresent": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishArtifactSummaryDto": {
+        "required": [
+          "fileCount",
+          "packageSizeBytes",
+          "totalSizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "fileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalSizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "packageSizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishArtifactsDto": {
+        "required": [
+          "applicationId",
+          "artifacts",
+          "publishJobId",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "publishJobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishArtifactDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishAuditSummaryDto": {
+        "required": [
+          "latestPublishJobAction",
+          "latestPublishJobEventUtc",
+          "publishJobEventCount",
+          "validationEventCount"
+        ],
+        "type": "object",
+        "properties": {
+          "publishJobEventCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validationEventCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestPublishJobAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "latestPublishJobEventUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishExecutionReportDto": {
+        "required": [
+          "applicationId",
+          "artifactSummary",
+          "auditSummary",
+          "durationMs",
+          "errorCount",
+          "integrityEvidence",
+          "integritySummary",
+          "message",
+          "publishJob",
+          "publishReadiness",
+          "reportPath",
+          "reportVersion",
+          "sequenceNumber",
+          "succeeded",
+          "validationProfile",
+          "validationReport",
+          "warningCount",
+          "warningSummary"
+        ],
+        "type": "object",
+        "properties": {
+          "reportVersion": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "validationProfile": {
+            "type": "string"
+          },
+          "reportPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "validationReport": {
+            "$ref": "#/components/schemas/ValidationReportDto"
+          },
+          "publishJob": {
+            "$ref": "#/components/schemas/PublishJobDto"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "integritySummary": {
+            "$ref": "#/components/schemas/PublishIntegritySummaryDto"
+          },
+          "integrityEvidence": {
+            "$ref": "#/components/schemas/PublishIntegrityEvidenceDto"
+          },
+          "publishReadiness": {
+            "$ref": "#/components/schemas/PublishReadinessReportDto"
+          },
+          "artifactSummary": {
+            "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+          },
+          "auditSummary": {
+            "$ref": "#/components/schemas/PublishAuditSummaryDto"
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishIntegrityEvidenceDto": {
+        "required": [
+          "artifacts",
+          "findings"
+        ],
+        "type": "object",
+        "properties": {
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishArtifactEvidenceDto"
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishIntegrityFindingDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishIntegrityFindingDto": {
+        "required": [
+          "message",
+          "path",
+          "severity",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishIntegritySummaryDto": {
+        "required": [
+          "isConsistent",
+          "mismatchedArtifactsCount",
+          "missingFilesCount",
+          "missingZipEntriesCount"
+        ],
+        "type": "object",
+        "properties": {
+          "isConsistent": {
+            "type": "boolean"
+          },
+          "missingFilesCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingZipEntriesCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mismatchedArtifactsCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishJobDto": {
+        "required": [
+          "applicationId",
+          "attemptCount",
+          "completedUtc",
+          "createdUtc",
+          "failureReason",
+          "id",
+          "idempotencyKey",
+          "nextAttemptUtc",
+          "outputPath",
+          "packagePath",
+          "sequenceNumber",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "packagePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextAttemptUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishReadinessCategorySummaryDto": {
+        "required": [
+          "blockingErrorCount",
+          "category",
+          "findingCount",
+          "warningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "blockingErrorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "findingCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishReadinessFindingDto": {
+        "required": [
+          "category",
+          "code",
+          "documentId",
+          "fieldName",
+          "message",
+          "placementId",
+          "recommendedAction",
+          "sectionPath",
+          "severity",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "recommendedAction": {
+            "type": "string"
+          },
+          "fieldName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sectionPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishReadinessReportDto": {
+        "required": [
+          "applicationId",
+          "blockingErrorCount",
+          "categorySummaries",
+          "findings",
+          "isReady",
+          "missingMetadataFields",
+          "sequenceNumber",
+          "status",
+          "validationReport",
+          "warningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "isReady": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "blockingErrorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validationReport": {
+            "$ref": "#/components/schemas/ValidationReportDto"
+          },
+          "missingMetadataFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categorySummaries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishReadinessCategorySummaryDto"
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishReadinessFindingDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishReadinessRequestBody": {
+        "required": [
+          "applicationId",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResolveDirectoryRequestBody": {
+        "required": [
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SequenceDto": {
+        "required": [
+          "createdUtc",
+          "description",
+          "sequenceNumber",
+          "submissionType",
+          "workingDirectoryPath"
+        ],
+        "type": "object",
+        "properties": {
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "submissionType": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "workingDirectoryPath": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SequencePublishingMetadataDto": {
+        "required": [
+          "applicantContactName",
+          "applicantContactType",
+          "applicantName",
+          "applicationId",
+          "applicationType",
+          "email",
+          "formType",
+          "sequenceDescription",
+          "sequenceNumber",
+          "standardsProfile",
+          "submissionSubtype",
+          "submissionType",
+          "telephone",
+          "telephoneNumberType"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "standardsProfile": {
+            "type": "string"
+          },
+          "applicationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionType": {
+            "type": "string"
+          },
+          "submissionSubtype": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequenceDescription": {
+            "type": "string"
+          },
+          "applicantName": {
+            "type": "string"
+          },
+          "formType": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantContactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantContactType": {
+            "type": "string",
+            "nullable": true
+          },
+          "telephone": {
+            "type": "string",
+            "nullable": true
+          },
+          "telephoneNumberType": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateDocumentPlacementMetadataRequestBody": {
+        "required": [
+          "fileNamePrefix",
+          "operation"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation": {
+            "maxLength": 32,
+            "minLength": 2,
+            "type": "string"
+          },
+          "lifecycleTargetPlacementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fileNamePrefix": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateDocumentPlacementSectionRequestBody": {
+        "required": [
+          "ctdSection"
+        ],
+        "type": "object",
+        "properties": {
+          "ctdSection": {
+            "maxLength": 128,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateSequencePublishingMetadataRequestBody": {
+        "required": [
+          "applicantName",
+          "sequenceDescription",
+          "submissionType"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionType": {
+            "type": "string"
+          },
+          "submissionSubtype": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequenceDescription": {
+            "type": "string"
+          },
+          "applicantName": {
+            "type": "string"
+          },
+          "formType": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantContactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantContactType": {
+            "type": "string",
+            "nullable": true
+          },
+          "telephone": {
+            "type": "string",
+            "nullable": true
+          },
+          "telephoneNumberType": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidateSequenceRequestBody": {
+        "required": [
+          "applicationId",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationIssueDto": {
+        "required": [
+          "code",
+          "documentId",
+          "message",
+          "placementId",
+          "sectionPath",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "sectionPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationLifecycleMatchDto": {
+        "required": [
+          "attemptedStrategies",
+          "ctdSection",
+          "documentId",
+          "historicalFinalState",
+          "historicalMatchCount",
+          "historicalPlacementIds",
+          "historicalSequenceNumbers",
+          "matchStrategy",
+          "operation",
+          "resultCode",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "ctdSection": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultCode": {
+            "type": "string"
+          },
+          "matchStrategy": {
+            "type": "string"
+          },
+          "attemptedStrategies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "historicalMatchCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "historicalSequenceNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "historicalPlacementIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "historicalFinalState": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationReportDto": {
+        "required": [
+          "applicationId",
+          "issues",
+          "isValid",
+          "lifecycleMatches",
+          "sectionMatches",
+          "sequenceNumber",
+          "validationProfile"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "validationProfile": {
+            "type": "string"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssueDto"
+            }
+          },
+          "sectionMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationSectionMatchDto"
+            }
+          },
+          "lifecycleMatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationLifecycleMatchDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationSectionMatchDto": {
+        "required": [
+          "isStandard",
+          "isValid",
+          "matchedPrefix",
+          "reason",
+          "sectionPath"
+        ],
+        "type": "object",
+        "properties": {
+          "sectionPath": {
+            "type": "string"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "isStandard": {
+            "type": "boolean"
+          },
+          "matchedPrefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

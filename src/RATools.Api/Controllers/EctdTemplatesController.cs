@@ -9,6 +9,7 @@ namespace RATools.Api.Controllers;
 public sealed class EctdTemplatesController : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(EctdTemplateDto[]), StatusCodes.Status200OK)]
     public IActionResult List()
     {
         var items = EctdTemplateRegistry.All

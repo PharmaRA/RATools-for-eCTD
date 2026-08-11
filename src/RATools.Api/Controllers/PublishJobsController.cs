@@ -11,6 +11,7 @@ namespace RATools.Api.Controllers;
 public sealed class PublishJobsController(IPublishJobService publishJobService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(PublishJobDto[]), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
         var items = await publishJobService.ListAsync(cancellationToken);
@@ -18,6 +19,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var item = await publishJobService.GetAsync(id, cancellationToken);
@@ -25,6 +27,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpGet("{id:guid}/report")]
+    [ProducesResponseType(typeof(PublishExecutionReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetExecutionReport(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -47,6 +50,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
     }
 
     [HttpGet("{id:guid}/artifacts")]
+    [ProducesResponseType(typeof(PublishArtifactsDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetArtifacts(Guid id, CancellationToken cancellationToken)
     {
         var artifacts = await publishJobService.GetArtifactsAsync(id, cancellationToken);

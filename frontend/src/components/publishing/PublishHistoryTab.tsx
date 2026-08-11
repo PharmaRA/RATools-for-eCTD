@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Button, Card, Col, Form, Input, Row, Select, Statistic, Table, message } from 'antd'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { getErrorMessage, type LifecycleSummary } from '../../pages/appShared'
+import type { ApplicationPublishHistoryContract } from '../../api/contracts'
+import { getErrorMessage } from '../../pages/appShared'
 import { loadPublishHistory, type PublishHistoryRequestFilterValues } from '../../publishActions'
 import { ArtifactsPanel } from './ArtifactsPanel'
 import { PackageReviewPanel } from './PackageReviewPanel'
@@ -15,24 +16,6 @@ import {
 } from './publishHistoryDisplay'
 import { buildPublishHistoryColumns, type PublishHistoryEntry } from './publishHistoryTableDisplay'
 import { ReportPanel } from './ReportPanel'
-
-type PublishHistoryResponse = {
-  entries?: PublishHistoryEntry[]
-  totalCount?: number
-  statusSummary?: {
-    completedCount?: number
-    failedCount?: number
-    runningCount?: number
-  }
-  readinessSummary?: {
-    readyCount?: number
-    blockedCount?: number
-    unknownCount?: number
-  }
-  lifecycleSummary?: LifecycleSummary & {
-    matchedCount?: number
-  }
-}
 
 export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   const [initialQueryState] = useState(() => getPublishHistoryInitialQueryState(window.location.search))
@@ -50,7 +33,7 @@ export const PublishHistoryTab = ({ appId }: { appId: string }) => {
   }))
   const historyQuery = useQuery({
     queryKey: ['publish-history', appId, { page, pageSize, filters }],
-    queryFn: ({ signal }) => loadPublishHistory<PublishHistoryResponse>({
+    queryFn: ({ signal }) => loadPublishHistory<ApplicationPublishHistoryContract>({
       applicationId: appId,
       page,
       pageSize,

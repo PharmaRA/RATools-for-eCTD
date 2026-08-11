@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Application.Auditing;
+using RATools.Application.Auditing.Dtos;
 
 namespace RATools.Api.Controllers;
 
@@ -8,6 +9,7 @@ namespace RATools.Api.Controllers;
 public sealed class AuditLogsController(IAuditLogService auditLogService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(AuditLogPageDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
         [FromQuery] string? entityType,
         [FromQuery] string? entityId,

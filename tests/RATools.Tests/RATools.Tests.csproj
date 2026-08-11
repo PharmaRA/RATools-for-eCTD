@@ -12,6 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\src\RATools.Api\openapi.v1.json"
+          Link="openapi.v1.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />

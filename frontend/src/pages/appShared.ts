@@ -1,29 +1,10 @@
 import { messages } from '../i18n/messages'
-import type { EctdStructureNode } from '../workspaceTree'
+import type {
+  Application,
+  LifecycleSummary,
+} from '../api/contracts'
 
-export interface SequenceSummary {
-  sequenceNumber: string
-  submissionType?: string | null
-  submissionSubType?: string | null
-  description?: string | null
-}
-
-export interface Application {
-  id: string
-  applicationNumber: string
-  ectdTemplateKey?: string | null
-  ectdTemplateDisplayName?: string | null
-  sponsorName: string
-  workingDirectoryPath?: string | null
-  createdUtc?: string | null
-  sequences: SequenceSummary[]
-}
-
-export interface EctdStructureResponse {
-  profileName: string
-  region: string
-  roots: EctdStructureNode[]
-}
+export type { Application, EctdStructureResponse, LifecycleSummary, SequenceSummary } from '../api/contracts'
 
 export const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
@@ -68,14 +49,6 @@ export const getStatusColor = (status: string): StatusColor => {
     case 'pending': return 'default'
     default: return 'default'
   }
-}
-
-export type LifecycleSummary = {
-  replaceTargetNotFoundCount?: number | null
-  deleteTargetNotFoundCount?: number | null
-  appendTargetNotFoundCount?: number | null
-  ambiguousCount?: number | null
-  currentSequenceCount?: number | null
 }
 
 type LifecycleIssueCountValueKey = keyof LifecycleSummary

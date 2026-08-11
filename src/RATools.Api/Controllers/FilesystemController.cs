@@ -9,6 +9,7 @@ namespace RATools.Api.Controllers;
 public sealed class FilesystemController(IServerDirectoryBrowser serverDirectoryBrowser) : ControllerBase
 {
     [HttpGet("directories")]
+    [ProducesResponseType(typeof(DirectoryBrowseResult), StatusCodes.Status200OK)]
     public IActionResult Browse([FromQuery] string? path, CancellationToken cancellationToken)
     {
         try
@@ -26,6 +27,7 @@ public sealed class FilesystemController(IServerDirectoryBrowser serverDirectory
     }
 
     [HttpPost("resolve-directory")]
+    [ProducesResponseType(typeof(DirectoryResolutionResult), StatusCodes.Status200OK)]
     public IActionResult Resolve([FromBody] ResolveDirectoryRequestBody request, CancellationToken cancellationToken)
     {
         try

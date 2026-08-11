@@ -1,24 +1,10 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
+import type {
+  DirectoryBrowseResult,
+  DirectoryResolutionResult,
+} from './api/contracts'
 
-export type DirectoryBrowseEntry = {
-  name: string
-  fullPath: string
-  canBrowse: boolean
-  hasChildren: boolean
-}
-
-export type DirectoryBrowseResult = {
-  currentPath: string | null
-  parentPath: string | null
-  directories: DirectoryBrowseEntry[]
-}
-
-export type DirectoryResolutionResult = {
-  fullPath: string
-  exists: boolean
-  isDirectory: boolean
-  isAccessible: boolean
-}
+export type { DirectoryBrowseEntry, DirectoryBrowseResult, DirectoryResolutionResult } from './api/contracts'
 
 export const buildFilesystemDirectoriesUrl = () => '/api/filesystem/directories'
 
@@ -28,11 +14,17 @@ export const buildDirectoryListingUrl = (path?: string) => (
 
 export const buildResolveDirectoryUrl = () => '/api/filesystem/resolve-directory'
 
-export const listDirectories = async (path?: string, executeRequest: typeof apiFetch = apiFetch) => {
+export const listDirectories = async (
+  path?: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<DirectoryBrowseResult> => {
   return executeRequest(buildDirectoryListingUrl(path))
 }
 
-export const resolveDirectory = async (path: string, executeRequest: typeof apiFetch = apiFetch) => {
+export const resolveDirectory = async (
+  path: string,
+  executeRequest: typeof apiFetch = apiFetch,
+): Promise<DirectoryResolutionResult> => {
   return executeRequest(buildResolveDirectoryUrl(), buildJsonRequestInit('POST', { path }))
 }
 

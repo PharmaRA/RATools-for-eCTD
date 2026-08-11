@@ -1,12 +1,7 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
-import type { Application } from './pages/appShared'
+import type { ApplicationContract, CreateApplicationContract } from './api/contracts'
 
-export type CreateApplicationRequest = {
-  applicationNumber: string
-  ectdTemplateKey: string
-  sponsorName: string
-  workingDirectoryParentPath: string
-}
+export type CreateApplicationRequest = CreateApplicationContract
 
 export const buildApplicationsUrl = () => '/api/applications'
 
@@ -14,14 +9,14 @@ export const buildApplicationUrl = (applicationId: string) => `${buildApplicatio
 
 export const loadApplications = async (
   executeRequest: typeof apiFetch = apiFetch,
-): Promise<Application[]> => {
+): Promise<ApplicationContract[]> => {
   return executeRequest(buildApplicationsUrl())
 }
 
 export const loadApplication = async (
   applicationId: string,
   executeRequest: typeof apiFetch = apiFetch,
-): Promise<Application> => {
+): Promise<ApplicationContract> => {
   return executeRequest(buildApplicationUrl(applicationId))
 }
 
