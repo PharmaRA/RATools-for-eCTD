@@ -10,7 +10,7 @@ public sealed class PublishDestinationContractTests
     {
         { typeof(CreatePublishJobRequestBody), ["ApplicationId", "SequenceNumber"] },
         { typeof(GenerateBackboneRequestBody), ["ApplicationId", "SequenceNumber"] },
-        { typeof(CreatePublishJobRequest), ["ApplicationId", "SequenceNumber"] },
+        { typeof(CreatePublishJobRequest), ["ApplicationId", "IdempotencyKey", "SequenceNumber"] },
         {
             typeof(GenerateBackboneRequest),
             ["ApplicationId", "PackageFileName", "PublishJobId", "ReportFileName", "SequenceNumber"]

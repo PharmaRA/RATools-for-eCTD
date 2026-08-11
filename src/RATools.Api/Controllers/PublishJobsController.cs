@@ -92,12 +92,15 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
 
     [HttpPost("execute")]
     [ProducesResponseType(typeof(PublishJobDto), StatusCodes.Status202Accepted)]
-    public async Task<IActionResult> Execute([FromBody] CreatePublishJobRequestBody request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Execute(
+        [FromBody] CreatePublishJobRequestBody request,
+        CancellationToken cancellationToken,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
     {
         try
         {
             var job = await publishJobService.EnqueueExecutionAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, idempotencyKey),
                 cancellationToken);
 
             // 发布在后台作业中执行；客户端通过 GetById / report / artifacts 端点轮询状态。
@@ -106,6 +109,14 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         catch (PublishJobAlreadyInProgressException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+        catch (PublishJobIdempotencyConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "idempotencyKey")
+        {
+            return BadRequest(new { message = exception.Message });
         }
     }
 }

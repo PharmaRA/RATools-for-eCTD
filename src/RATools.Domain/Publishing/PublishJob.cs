@@ -4,8 +4,24 @@ namespace RATools.Domain.Publishing;
 
 public sealed class PublishJob : Entity
 {
-    public PublishJob(Guid applicationId, string sequenceNumber)
-        : this(Guid.NewGuid(), applicationId, sequenceNumber, PublishJobStatus.Pending, null, null, DateTime.UtcNow, null, null)
+    public PublishJob(Guid applicationId, string sequenceNumber, string? idempotencyKey = null)
+        : this(
+            Guid.NewGuid(),
+            applicationId,
+            sequenceNumber,
+            PublishJobStatus.Pending,
+            null,
+            null,
+            DateTime.UtcNow,
+            null,
+            null,
+            idempotencyKey,
+            0,
+            null,
+            null,
+            null,
+            null,
+            null)
     {
     }
 
@@ -18,7 +34,14 @@ public sealed class PublishJob : Entity
         string? packagePath,
         DateTime createdUtc,
         DateTime? completedUtc,
-        string? failureReason)
+        string? failureReason,
+        string? idempotencyKey,
+        int attemptCount,
+        DateTime? nextAttemptUtc,
+        string? leaseOwner,
+        Guid? leaseToken,
+        DateTime? leaseExpiresUtc,
+        DateTime? lastHeartbeatUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
 
@@ -31,6 +54,13 @@ public sealed class PublishJob : Entity
         CreatedUtc = createdUtc;
         CompletedUtc = completedUtc;
         FailureReason = failureReason?.Trim();
+        IdempotencyKey = NormalizeIdempotencyKey(idempotencyKey, id);
+        AttemptCount = attemptCount;
+        NextAttemptUtc = nextAttemptUtc ?? createdUtc;
+        LeaseOwner = leaseOwner?.Trim();
+        LeaseToken = leaseToken;
+        LeaseExpiresUtc = leaseExpiresUtc;
+        LastHeartbeatUtc = lastHeartbeatUtc;
     }
 
     public Guid ApplicationId { get; private set; }
@@ -49,6 +79,20 @@ public sealed class PublishJob : Entity
 
     public string? FailureReason { get; private set; }
 
+    public string IdempotencyKey { get; private set; }
+
+    public int AttemptCount { get; private set; }
+
+    public DateTime NextAttemptUtc { get; private set; }
+
+    public string? LeaseOwner { get; private set; }
+
+    public Guid? LeaseToken { get; private set; }
+
+    public DateTime? LeaseExpiresUtc { get; private set; }
+
+    public DateTime? LastHeartbeatUtc { get; private set; }
+
     public void MarkRunning()
     {
         if (Status != PublishJobStatus.Pending)
@@ -58,6 +102,59 @@ public sealed class PublishJob : Entity
 
         Status = PublishJobStatus.Running;
         FailureReason = null;
+    }
+
+    public Guid Claim(string owner, DateTime nowUtc, TimeSpan leaseDuration)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        if (leaseDuration <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        }
+
+        if (Status != PublishJobStatus.Pending || NextAttemptUtc > nowUtc)
+        {
+            throw new InvalidOperationException($"Publish job {Id} is not ready to be claimed.");
+        }
+
+        var token = Guid.NewGuid();
+        Status = PublishJobStatus.Running;
+        AttemptCount++;
+        LeaseOwner = owner.Trim();
+        LeaseToken = token;
+        LastHeartbeatUtc = nowUtc;
+        LeaseExpiresUtc = nowUtc.Add(leaseDuration);
+        FailureReason = null;
+        return token;
+    }
+
+    public void RenewLease(Guid leaseToken, string owner, DateTime nowUtc, TimeSpan leaseDuration)
+    {
+        EnsureLease(leaseToken, owner);
+        if (leaseDuration <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        }
+
+        if (LeaseExpiresUtc <= nowUtc)
+        {
+            throw new InvalidOperationException($"Publish job {Id} lease has expired.");
+        }
+
+        LastHeartbeatUtc = nowUtc;
+        LeaseExpiresUtc = nowUtc.Add(leaseDuration);
+    }
+
+    public void ScheduleRetry(Guid leaseToken, string owner, string failureReason, DateTime nextAttemptUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+        EnsureLease(leaseToken, owner);
+
+        Status = PublishJobStatus.Pending;
+        FailureReason = failureReason.Trim();
+        CompletedUtc = null;
+        NextAttemptUtc = nextAttemptUtc;
+        ClearLease();
     }
 
     public void MarkCompleted(string outputPath, string packagePath)
@@ -75,6 +172,7 @@ public sealed class PublishJob : Entity
         PackagePath = packagePath.Trim();
         CompletedUtc = DateTime.UtcNow;
         FailureReason = null;
+        ClearLease();
     }
 
     public void MarkFailed(string failureReason)
@@ -90,6 +188,7 @@ public sealed class PublishJob : Entity
         FailureReason = failureReason.Trim();
         PackagePath = null;
         CompletedUtc = DateTime.UtcNow;
+        ClearLease();
     }
 
     public static PublishJob Rehydrate(
@@ -101,8 +200,64 @@ public sealed class PublishJob : Entity
         string? packagePath,
         DateTime createdUtc,
         DateTime? completedUtc,
-        string? failureReason)
+        string? failureReason,
+        string? idempotencyKey = null,
+        int attemptCount = 0,
+        DateTime? nextAttemptUtc = null,
+        string? leaseOwner = null,
+        Guid? leaseToken = null,
+        DateTime? leaseExpiresUtc = null,
+        DateTime? lastHeartbeatUtc = null)
     {
-        return new PublishJob(id, applicationId, sequenceNumber, status, outputPath, packagePath, createdUtc, completedUtc, failureReason);
+        return new PublishJob(
+            id,
+            applicationId,
+            sequenceNumber,
+            status,
+            outputPath,
+            packagePath,
+            createdUtc,
+            completedUtc,
+            failureReason,
+            idempotencyKey,
+            attemptCount,
+            nextAttemptUtc,
+            leaseOwner,
+            leaseToken,
+            leaseExpiresUtc,
+            lastHeartbeatUtc);
+    }
+
+    private void EnsureLease(Guid leaseToken, string owner)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        if (Status != PublishJobStatus.Running
+            || LeaseToken != leaseToken
+            || !string.Equals(LeaseOwner, owner.Trim(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Publish job {Id} is not owned by the supplied lease.");
+        }
+    }
+
+    private void ClearLease()
+    {
+        LeaseOwner = null;
+        LeaseToken = null;
+        LeaseExpiresUtc = null;
+        LastHeartbeatUtc = null;
+    }
+
+    private static string NormalizeIdempotencyKey(string? idempotencyKey, Guid id)
+    {
+        var normalized = string.IsNullOrWhiteSpace(idempotencyKey)
+            ? id.ToString("N")
+            : idempotencyKey.Trim();
+
+        if (normalized.Length > 128 || normalized.Any(character => character is < '!' or > '~'))
+        {
+            throw new ArgumentException("Idempotency key must contain 1-128 visible ASCII characters.", nameof(idempotencyKey));
+        }
+
+        return normalized;
     }
 }

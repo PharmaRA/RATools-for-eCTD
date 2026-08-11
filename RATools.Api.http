@@ -159,6 +159,7 @@ Content-Type: application/json
 # Response: 202 Accepted PublishJobDto
 POST {{host}}/api/publish-jobs/execute
 Content-Type: application/json
+Idempotency-Key: example-publish-0000-v1
 
 {
   "applicationId": "{{createApplication.response.body.$.id}}",

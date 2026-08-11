@@ -9,4 +9,7 @@ public sealed record PublishJobDto(
     string? PackagePath,
     DateTime CreatedUtc,
     DateTime? CompletedUtc,
-    string? FailureReason);
+    string? FailureReason,
+    string? IdempotencyKey = null,
+    int AttemptCount = 0,
+    DateTime? NextAttemptUtc = null);

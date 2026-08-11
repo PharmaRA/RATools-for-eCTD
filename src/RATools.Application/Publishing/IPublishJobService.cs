@@ -11,6 +11,9 @@ public interface IPublishJobService
 
     Task<PublishExecutionReportDto> ExecuteQueuedAsync(Guid jobId, CreatePublishJobRequest request, CancellationToken cancellationToken = default);
 
+    Task<PublishExecutionReportDto> ExecuteClaimedAsync(PublishJobLease lease, CancellationToken cancellationToken = default)
+        => Task.FromException<PublishExecutionReportDto>(new NotSupportedException("Claimed publish execution is not implemented."));
+
     Task<PublishExecutionReportDto?> GetExecutionReportAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PublishArtifactsDto?> GetArtifactsAsync(Guid id, CancellationToken cancellationToken = default);

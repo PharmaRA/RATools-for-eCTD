@@ -21,6 +21,53 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         }
     }
 
+    public async Task<PublishJobEnqueueResult> AddOrGetByIdempotencyKeyAsync(
+        PublishJob job,
+        CancellationToken cancellationToken = default)
+    {
+        var record = job.ToRecord();
+        try
+        {
+            await dbContext.PublishJobs.AddAsync(record, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return new PublishJobEnqueueResult(job, Created: true);
+        }
+        catch (DbUpdateException exception) when (IsIdempotencyKeyConflict(exception))
+        {
+            dbContext.Entry(record).State = EntityState.Detached;
+            var existing = await dbContext.PublishJobs
+                .AsNoTracking()
+                .SingleAsync(x => x.IdempotencyKey == job.IdempotencyKey, cancellationToken);
+
+            if (existing.ApplicationId != job.ApplicationId
+                || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
+            {
+                throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
+            }
+
+            return new PublishJobEnqueueResult(existing.ToDomain(), Created: false);
+        }
+        catch (DbUpdateException exception) when (IsActivePublishJobConflict(exception))
+        {
+            dbContext.Entry(record).State = EntityState.Detached;
+            var existing = await dbContext.PublishJobs
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.IdempotencyKey == job.IdempotencyKey, cancellationToken);
+            if (existing is not null)
+            {
+                if (existing.ApplicationId != job.ApplicationId
+                    || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
+                {
+                    throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
+                }
+
+                return new PublishJobEnqueueResult(existing.ToDomain(), Created: false);
+            }
+
+            throw new PublishJobAlreadyInProgressException($"A publish job is already pending or running for application {job.ApplicationId}, sequence {job.SequenceNumber}.");
+        }
+    }
+
     private static bool IsActivePublishJobConflict(DbUpdateException exception)
     {
         if (exception.InnerException is PostgresException postgresException)
@@ -31,6 +78,19 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
 
         return exception.InnerException?.Message.Contains(
             "publish_jobs.ApplicationId, publish_jobs.SequenceNumber",
+            StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsIdempotencyKeyConflict(DbUpdateException exception)
+    {
+        if (exception.InnerException is PostgresException postgresException)
+        {
+            return postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+                && string.Equals(postgresException.ConstraintName, "IX_publish_jobs_IdempotencyKey", StringComparison.Ordinal);
+        }
+
+        return exception.InnerException?.Message.Contains(
+            "publish_jobs.IdempotencyKey",
             StringComparison.OrdinalIgnoreCase) == true;
     }
 
@@ -47,6 +107,12 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         existing.PackagePath = job.PackagePath;
         existing.CompletedUtc = job.CompletedUtc;
         existing.FailureReason = job.FailureReason;
+        existing.AttemptCount = job.AttemptCount;
+        existing.NextAttemptUtc = job.NextAttemptUtc;
+        existing.LeaseOwner = job.LeaseOwner;
+        existing.LeaseToken = job.LeaseToken;
+        existing.LeaseExpiresUtc = job.LeaseExpiresUtc;
+        existing.LastHeartbeatUtc = job.LastHeartbeatUtc;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -58,6 +124,188 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         return record?.ToDomain();
+    }
+
+    public async Task<PublishJob?> GetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        var record = await dbContext.PublishJobs
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+        return record?.ToDomain();
+    }
+
+    public async Task<PublishJobLease?> TryClaimNextAsync(
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        int maxAttempts,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(leaseDuration, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttempts);
+
+        var pendingStatus = PublishJobStatus.Pending.ToString();
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var leaseExpiresUtc = nowUtc.Add(leaseDuration);
+
+        while (true)
+        {
+            var candidateId = await dbContext.PublishJobs
+                .AsNoTracking()
+                .Where(x => x.Status == pendingStatus
+                    && x.NextAttemptUtc <= nowUtc
+                    && x.AttemptCount < maxAttempts)
+                .OrderBy(x => x.NextAttemptUtc)
+                .ThenBy(x => x.CreatedUtc)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!candidateId.HasValue)
+            {
+                return null;
+            }
+
+            var leaseToken = Guid.NewGuid();
+            var affected = await dbContext.PublishJobs
+                .Where(x => x.Id == candidateId.Value
+                    && x.Status == pendingStatus
+                    && x.NextAttemptUtc <= nowUtc
+                    && x.AttemptCount < maxAttempts)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, runningStatus)
+                    .SetProperty(x => x.AttemptCount, x => x.AttemptCount + 1)
+                    .SetProperty(x => x.LeaseOwner, owner)
+                    .SetProperty(x => x.LeaseToken, leaseToken)
+                    .SetProperty(x => x.LeaseExpiresUtc, leaseExpiresUtc)
+                    .SetProperty(x => x.LastHeartbeatUtc, nowUtc)
+                    .SetProperty(x => x.FailureReason, (string?)null),
+                    cancellationToken);
+
+            if (affected == 0)
+            {
+                continue;
+            }
+
+            var claimed = await dbContext.PublishJobs
+                .AsNoTracking()
+                .SingleAsync(x => x.Id == candidateId.Value && x.LeaseToken == leaseToken, cancellationToken);
+            return new PublishJobLease(claimed.ToDomain(), leaseToken, owner, leaseExpiresUtc);
+        }
+    }
+
+    public async Task<bool> RenewLeaseAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(leaseDuration, TimeSpan.Zero);
+
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var affected = await dbContext.PublishJobs
+            .Where(x => x.Id == jobId
+                && x.Status == runningStatus
+                && x.LeaseToken == leaseToken
+                && x.LeaseOwner == owner
+                && x.LeaseExpiresUtc > nowUtc)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.LastHeartbeatUtc, nowUtc)
+                .SetProperty(x => x.LeaseExpiresUtc, nowUtc.Add(leaseDuration)),
+                cancellationToken);
+        return affected == 1;
+    }
+
+    public async Task<bool> UpdateLeasedAsync(
+        PublishJob job,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var affected = await dbContext.PublishJobs
+            .Where(x => x.Id == job.Id
+                && x.Status == runningStatus
+                && x.LeaseToken == leaseToken
+                && x.LeaseOwner == owner
+                && x.LeaseExpiresUtc > nowUtc)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, job.Status.ToString())
+                .SetProperty(x => x.OutputPath, job.OutputPath)
+                .SetProperty(x => x.PackagePath, job.PackagePath)
+                .SetProperty(x => x.CompletedUtc, job.CompletedUtc)
+                .SetProperty(x => x.FailureReason, job.FailureReason)
+                .SetProperty(x => x.NextAttemptUtc, job.NextAttemptUtc)
+                .SetProperty(x => x.LeaseOwner, (string?)null)
+                .SetProperty(x => x.LeaseToken, (Guid?)null)
+                .SetProperty(x => x.LeaseExpiresUtc, (DateTime?)null)
+                .SetProperty(x => x.LastHeartbeatUtc, (DateTime?)null),
+                cancellationToken);
+        return affected == 1;
+    }
+
+    public async Task<PublishJobRetryResult> RetryOrFailLeasedAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        DateTime nextAttemptUtc,
+        int maxAttempts,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var attemptCount = await dbContext.PublishJobs
+            .AsNoTracking()
+            .Where(x => x.Id == jobId
+                && x.Status == runningStatus
+                && x.LeaseToken == leaseToken
+                && x.LeaseOwner == owner
+                && x.LeaseExpiresUtc > nowUtc)
+            .Select(x => (int?)x.AttemptCount)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (!attemptCount.HasValue)
+        {
+            return new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null);
+        }
+
+        var failed = attemptCount.Value >= maxAttempts;
+        var targetStatus = failed ? PublishJobStatus.Failed.ToString() : PublishJobStatus.Pending.ToString();
+        var normalizedReason = failureReason.Length <= 1024 ? failureReason : failureReason[..1024];
+        var affected = await dbContext.PublishJobs
+            .Where(x => x.Id == jobId
+                && x.Status == runningStatus
+                && x.LeaseToken == leaseToken
+                && x.LeaseOwner == owner
+                && x.LeaseExpiresUtc > nowUtc)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, targetStatus)
+                .SetProperty(x => x.FailureReason, normalizedReason)
+                .SetProperty(x => x.CompletedUtc, failed ? nowUtc : (DateTime?)null)
+                .SetProperty(x => x.NextAttemptUtc, failed ? nowUtc : nextAttemptUtc)
+                .SetProperty(x => x.LeaseOwner, (string?)null)
+                .SetProperty(x => x.LeaseToken, (Guid?)null)
+                .SetProperty(x => x.LeaseExpiresUtc, (DateTime?)null)
+                .SetProperty(x => x.LastHeartbeatUtc, (DateTime?)null),
+                cancellationToken);
+
+        if (affected == 0)
+        {
+            return new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null);
+        }
+
+        var updated = await GetAsync(jobId, cancellationToken);
+        return new PublishJobRetryResult(
+            failed ? PublishJobRetryDisposition.Failed : PublishJobRetryDisposition.RetryScheduled,
+            updated);
     }
 
     public async Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
@@ -180,7 +428,14 @@ internal static class PublishJobRecordMapping
             PackagePath = job.PackagePath,
             CreatedUtc = job.CreatedUtc,
             CompletedUtc = job.CompletedUtc,
-            FailureReason = job.FailureReason
+            FailureReason = job.FailureReason,
+            IdempotencyKey = job.IdempotencyKey,
+            AttemptCount = job.AttemptCount,
+            NextAttemptUtc = job.NextAttemptUtc,
+            LeaseOwner = job.LeaseOwner,
+            LeaseToken = job.LeaseToken,
+            LeaseExpiresUtc = job.LeaseExpiresUtc,
+            LastHeartbeatUtc = job.LastHeartbeatUtc
         };
     }
 
@@ -196,6 +451,13 @@ internal static class PublishJobRecordMapping
             record.PackagePath,
             record.CreatedUtc,
             record.CompletedUtc,
-            record.FailureReason);
+            record.FailureReason,
+            record.IdempotencyKey,
+            record.AttemptCount,
+            record.NextAttemptUtc,
+            record.LeaseOwner,
+            record.LeaseToken,
+            record.LeaseExpiresUtc,
+            record.LastHeartbeatUtc);
     }
 }

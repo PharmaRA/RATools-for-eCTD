@@ -36,13 +36,16 @@ public sealed class PublishJobsControllerContractTests
                 ApplicationId = applicationId,
                 SequenceNumber = "0001"
             },
-            CancellationToken.None);
+            CancellationToken.None,
+            "controller-idempotency-0001");
 
         var response = Assert.IsType<AcceptedAtActionResult>(result);
         Assert.Equal(StatusCodes.Status202Accepted, response.StatusCode);
         Assert.Equal(nameof(PublishJobsController.GetById), response.ActionName);
         Assert.Equal(service.Job, response.Value);
-        Assert.Equal(new CreatePublishJobRequest(applicationId, "0001"), service.EnqueuedRequest);
+        Assert.Equal(
+            new CreatePublishJobRequest(applicationId, "0001", "controller-idempotency-0001"),
+            service.EnqueuedRequest);
     }
 
     private sealed class StubPublishJobService : IPublishJobService

@@ -28,6 +28,40 @@ public sealed class PublishJobStateMachineTests
     }
 
     [Fact]
+    public void Constructor_NormalizesAndValidatesIdempotencyKey()
+    {
+        var generated = new PublishJob(Guid.NewGuid(), "0001");
+        var supplied = new PublishJob(Guid.NewGuid(), "0001", " request-key-0001 ");
+
+        Assert.Equal(32, generated.IdempotencyKey.Length);
+        Assert.Equal("request-key-0001", supplied.IdempotencyKey);
+        Assert.Throws<ArgumentException>(() => new PublishJob(Guid.NewGuid(), "0001", "contains space"));
+    }
+
+    [Fact]
+    public void ClaimHeartbeatAndRetryMaintainLeaseState()
+    {
+        var job = new PublishJob(Guid.NewGuid(), "0001", "domain-lease-0001");
+        var nowUtc = DateTime.UtcNow;
+
+        var token = job.Claim("worker-a", nowUtc, TimeSpan.FromMinutes(1));
+        job.RenewLease(token, "worker-a", nowUtc.AddSeconds(10), TimeSpan.FromMinutes(1));
+
+        Assert.Equal(PublishJobStatus.Running, job.Status);
+        Assert.Equal(1, job.AttemptCount);
+        Assert.Equal("worker-a", job.LeaseOwner);
+        Assert.Equal(nowUtc.AddSeconds(10), job.LastHeartbeatUtc);
+        Assert.Throws<InvalidOperationException>(() =>
+            job.ScheduleRetry(Guid.NewGuid(), "worker-a", "failure", nowUtc.AddMinutes(1)));
+
+        var retryAt = nowUtc.AddMinutes(1);
+        job.ScheduleRetry(token, "worker-a", "transient failure", retryAt);
+        Assert.Equal(PublishJobStatus.Pending, job.Status);
+        Assert.Equal(retryAt, job.NextAttemptUtc);
+        Assert.Null(job.LeaseToken);
+    }
+
+    [Fact]
     public void MarkRunning_MovesPendingToRunning()
     {
         var job = new PublishJob(Guid.NewGuid(), "0000");

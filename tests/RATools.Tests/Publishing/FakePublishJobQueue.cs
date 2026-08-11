@@ -18,8 +18,6 @@ public sealed class FakePublishJobQueue : IPublishJobQueue
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask<QueuedPublishJob> DequeueAsync(CancellationToken cancellationToken)
-    {
-        throw new NotSupportedException("FakePublishJobQueue does not support dequeue.");
-    }
+    public ValueTask WaitForWorkAsync(TimeSpan maximumDelay, CancellationToken cancellationToken)
+        => ValueTask.CompletedTask;
 }

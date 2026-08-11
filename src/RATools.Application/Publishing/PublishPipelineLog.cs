@@ -51,4 +51,8 @@ internal static partial class PublishPipelineLog
         Exception exception,
         Guid jobId,
         string status);
+
+    [LoggerMessage(EventId = 1011, Level = LogLevel.Warning,
+        Message = "Wake signal for durable publish job {JobId} failed; database polling will still discover it.")]
+    public static partial void QueueSignalFailed(ILogger logger, Exception exception, Guid jobId);
 }

@@ -28,8 +28,17 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(PublishJobExecutionOptions.SectionName))
             .Validate(options => options.ExecutionTimeout > TimeSpan.Zero,
                 "PublishJobs:ExecutionTimeout must be greater than zero.")
-            .Validate(options => options.QueueCapacity > 0,
-                "PublishJobs:QueueCapacity must be greater than zero.")
+            .Validate(options => options.PollInterval > TimeSpan.Zero,
+                "PublishJobs:PollInterval must be greater than zero.")
+            .Validate(options => options.LeaseDuration > TimeSpan.Zero,
+                "PublishJobs:LeaseDuration must be greater than zero.")
+            .Validate(options => options.HeartbeatInterval > TimeSpan.Zero
+                && options.HeartbeatInterval < options.LeaseDuration,
+                "PublishJobs:HeartbeatInterval must be greater than zero and less than LeaseDuration.")
+            .Validate(options => options.RetryDelay >= TimeSpan.Zero,
+                "PublishJobs:RetryDelay must not be negative.")
+            .Validate(options => options.MaxAttempts > 0,
+                "PublishJobs:MaxAttempts must be greater than zero.")
             .ValidateOnStart();
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));

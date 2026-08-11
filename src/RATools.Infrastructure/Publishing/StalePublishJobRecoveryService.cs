@@ -5,15 +5,14 @@ using Microsoft.Extensions.Logging;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
+using RATools.Domain.Publishing;
 
 namespace RATools.Infrastructure.Publishing;
 
 /// <summary>
-/// 启动回收：发布作业先落库（Pending）再进入纯进程内队列，进程重启会丢失队列条目，
-/// 数据库中遗留的 Pending/Running 行会永久占用活动作业唯一索引，使对应序列无法再发布。
-/// 本服务在宿主启动阶段（先于 PublishJobBackgroundService 消费队列、先于 API 接收请求）
-/// 把所有遗留活动作业标记为 Failed 并写审计。此时进程内队列必为空，因此数据库中的
-/// 活动作业只可能来自上一个进程，回收不会误伤本进程作业。
+/// 兼容性启动回收：Pending 行已经是持久队列事实，必须保留给 worker 继续认领；
+/// 当前仅把上一进程中断的 Running 行标记为 Failed。Phase 3 的下一项会改为只处理
+/// 租约已过期的 Running 行，从而解除这里仍然存在的单实例启动假设。
 /// </summary>
 public sealed partial class StalePublishJobRecoveryService(
     IServiceScopeFactory scopeFactory,
@@ -21,14 +20,14 @@ public sealed partial class StalePublishJobRecoveryService(
     ILogger<StalePublishJobRecoveryService> logger) : IHostedService
 {
     private const string RecoveryFailureReason =
-        "Recovered at startup: the process restarted while this job was queued or executing, so its in-process queue entry was lost.";
+        "Recovered at startup: the process restarted while this publish job was executing.";
 
     [LoggerMessage(EventId = 3001, Level = LogLevel.Warning,
         Message = "Failed to write the startup-recovery audit entry for publish job {JobId}; the job itself was recovered.")]
     private static partial void LogRecoveryAuditWriteFailed(ILogger logger, Exception exception, Guid jobId);
 
     [LoggerMessage(EventId = 3002, Level = LogLevel.Warning,
-        Message = "Recovered {Count} stale publish job(s) left in Pending/Running state by a previous process.")]
+        Message = "Recovered {Count} publish job(s) left in Running state by a previous process.")]
     private static partial void LogStaleJobsRecovered(ILogger logger, int count);
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -46,8 +45,10 @@ public sealed partial class StalePublishJobRecoveryService(
         var repository = scope.ServiceProvider.GetRequiredService<IPublishJobRepository>();
         var auditLogService = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
 
-        var staleJobs = await repository.ListActiveAsync(cancellationToken);
-        if (staleJobs.Count == 0)
+        var staleJobs = (await repository.ListActiveAsync(cancellationToken))
+            .Where(job => job.Status == PublishJobStatus.Running)
+            .ToArray();
+        if (staleJobs.Length == 0)
         {
             return;
         }
@@ -74,7 +75,7 @@ public sealed partial class StalePublishJobRecoveryService(
             }
         }
 
-        LogStaleJobsRecovered(logger, staleJobs.Count);
+        LogStaleJobsRecovered(logger, staleJobs.Length);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

@@ -6,5 +6,13 @@ public sealed class PublishJobExecutionOptions
 
     public TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromMinutes(15);
 
-    public int QueueCapacity { get; set; } = 32;
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(1);
+
+    public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(1);
+
+    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(15);
+
+    public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(5);
+
+    public int MaxAttempts { get; set; } = 3;
 }

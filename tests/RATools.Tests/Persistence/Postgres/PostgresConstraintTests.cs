@@ -192,14 +192,21 @@ public sealed class PostgresConstraintTests(PostgresFixture fixture)
         CreatedUtc = DateTime.UtcNow
     };
 
-    private static PublishJobRecord CreatePublishJob(Guid applicationId, string sequenceNumber, string status) => new()
+    private static PublishJobRecord CreatePublishJob(Guid applicationId, string sequenceNumber, string status)
     {
-        Id = Guid.NewGuid(),
-        ApplicationId = applicationId,
-        SequenceNumber = sequenceNumber,
-        Status = status,
-        CreatedUtc = DateTime.UtcNow
-    };
+        var id = Guid.NewGuid();
+        var nowUtc = DateTime.UtcNow;
+        return new PublishJobRecord
+        {
+            Id = id,
+            ApplicationId = applicationId,
+            SequenceNumber = sequenceNumber,
+            Status = status,
+            CreatedUtc = nowUtc,
+            IdempotencyKey = id.ToString("N"),
+            NextAttemptUtc = nowUtc
+        };
+    }
 
     private static DocumentRecord CreateDocument(Guid id) => new()
     {

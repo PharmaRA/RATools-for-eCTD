@@ -109,9 +109,16 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.PackagePath).HasMaxLength(512);
             entity.Property(x => x.CreatedUtc).IsRequired();
             entity.Property(x => x.FailureReason).HasMaxLength(1024);
+            entity.Property(x => x.IdempotencyKey).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.AttemptCount).IsRequired();
+            entity.Property(x => x.NextAttemptUtc).IsRequired();
+            entity.Property(x => x.LeaseOwner).HasMaxLength(256);
             entity.HasIndex(x => new { x.ApplicationId, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.CreatedUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber, x.Status });
+            entity.HasIndex(x => x.IdempotencyKey).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.NextAttemptUtc, x.CreatedUtc });
+            entity.HasIndex(x => new { x.Status, x.LeaseExpiresUtc });
             entity.HasIndex(x => new { x.ApplicationId, x.SequenceNumber })
                 .IsUnique()
                 .HasFilter("\"Status\" IN ('Pending', 'Running')");

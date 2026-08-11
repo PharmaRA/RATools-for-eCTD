@@ -19,4 +19,18 @@ public sealed class PublishJobRecord
     public DateTime? CompletedUtc { get; set; }
 
     public string? FailureReason { get; set; }
+
+    public string IdempotencyKey { get; set; } = string.Empty;
+
+    public int AttemptCount { get; set; }
+
+    public DateTime NextAttemptUtc { get; set; }
+
+    public string? LeaseOwner { get; set; }
+
+    public Guid? LeaseToken { get; set; }
+
+    public DateTime? LeaseExpiresUtc { get; set; }
+
+    public DateTime? LastHeartbeatUtc { get; set; }
 }

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using RATools.Application.Publishing;
 using RATools.Application.Publishing.Requests;
 using RATools.Infrastructure.Publishing;
@@ -8,54 +8,41 @@ namespace RATools.Tests.Publishing;
 public sealed class ChannelPublishJobQueueTests
 {
     [Fact]
-    public async Task EnqueueAsync_WaitsAndCanBeCanceledWhenCapacityIsFull()
+    public async Task WaitForWorkAsync_ReturnsWhenDurableJobNotificationArrives()
     {
-        var queue = CreateQueue(capacity: 1);
-        var first = Job("0001");
-        var second = Job("0002");
-        await queue.EnqueueAsync(first);
-        using var enqueueCts = new CancellationTokenSource();
+        var queue = new ChannelPublishJobQueue();
+        var wait = queue.WaitForWorkAsync(TimeSpan.FromSeconds(5), CancellationToken.None).AsTask();
 
-        var blockedEnqueue = queue.EnqueueAsync(second, enqueueCts.Token).AsTask();
-        await Task.Delay(25);
+        await queue.EnqueueAsync(Job());
 
-        Assert.False(blockedEnqueue.IsCompleted);
-        enqueueCts.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => blockedEnqueue);
-        Assert.Equal(first, await queue.DequeueAsync(CancellationToken.None));
+        await wait.WaitAsync(TimeSpan.FromSeconds(1));
     }
 
     [Fact]
-    public async Task EnqueueAsync_ContinuesAfterConsumerReleasesCapacity()
+    public async Task WaitForWorkAsync_ReturnsAfterPollingDelayWithoutNotification()
     {
-        var queue = CreateQueue(capacity: 1);
-        var first = Job("0001");
-        var second = Job("0002");
-        await queue.EnqueueAsync(first);
+        var queue = new ChannelPublishJobQueue();
+        var stopwatch = Stopwatch.StartNew();
 
-        var blockedEnqueue = queue.EnqueueAsync(second).AsTask();
-        Assert.Equal(first, await queue.DequeueAsync(CancellationToken.None));
-        await blockedEnqueue.WaitAsync(TimeSpan.FromSeconds(1));
+        await queue.WaitForWorkAsync(TimeSpan.FromMilliseconds(40), CancellationToken.None);
 
-        Assert.Equal(second, await queue.DequeueAsync(CancellationToken.None));
+        Assert.True(stopwatch.Elapsed >= TimeSpan.FromMilliseconds(20));
     }
 
     [Fact]
-    public void Constructor_RejectsNonPositiveCapacity()
+    public async Task EnqueueAsync_CoalescesRepeatedWakeSignals()
     {
-        var options = Options.Create(new PublishJobExecutionOptions { QueueCapacity = 0 });
+        var queue = new ChannelPublishJobQueue();
+        await queue.EnqueueAsync(Job());
+        await queue.EnqueueAsync(Job());
 
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => new ChannelPublishJobQueue(options));
+        await queue.WaitForWorkAsync(TimeSpan.FromSeconds(1), CancellationToken.None);
+        var stopwatch = Stopwatch.StartNew();
+        await queue.WaitForWorkAsync(TimeSpan.FromMilliseconds(40), CancellationToken.None);
 
-        Assert.Contains("capacity", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(stopwatch.Elapsed >= TimeSpan.FromMilliseconds(20));
     }
 
-    private static ChannelPublishJobQueue CreateQueue(int capacity)
-        => new(Options.Create(new PublishJobExecutionOptions { QueueCapacity = capacity }));
-
-    private static QueuedPublishJob Job(string sequenceNumber)
-    {
-        var request = new CreatePublishJobRequest(Guid.NewGuid(), sequenceNumber);
-        return new QueuedPublishJob(Guid.NewGuid(), request);
-    }
+    private static QueuedPublishJob Job()
+        => new(Guid.NewGuid(), new CreatePublishJobRequest(Guid.NewGuid(), "0001"));
 }

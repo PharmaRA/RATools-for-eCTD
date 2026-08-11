@@ -40,7 +40,7 @@ public sealed class StalePublishJobRecoveryServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_MarksStalePendingAndRunningJobsAsFailed()
+    public async Task StartAsync_PreservesPendingJobsAndMarksInterruptedRunningJobsAsFailed()
     {
         var (service, repository, _) = CreateService();
         var pendingJob = new PublishJob(Guid.NewGuid(), "0000");
@@ -53,9 +53,9 @@ public sealed class StalePublishJobRecoveryServiceTests
 
         var recoveredPending = await repository.GetAsync(pendingJob.Id);
         var recoveredRunning = await repository.GetAsync(runningJob.Id);
-        Assert.Equal(PublishJobStatus.Failed, recoveredPending!.Status);
+        Assert.Equal(PublishJobStatus.Pending, recoveredPending!.Status);
         Assert.Equal(PublishJobStatus.Failed, recoveredRunning!.Status);
-        Assert.Contains("Recovered at startup", recoveredPending.FailureReason);
+        Assert.Null(recoveredPending.FailureReason);
         Assert.Contains("Recovered at startup", recoveredRunning.FailureReason);
     }
 
@@ -64,6 +64,7 @@ public sealed class StalePublishJobRecoveryServiceTests
     {
         var (service, repository, auditRepository) = CreateService();
         var staleJob = new PublishJob(Guid.NewGuid(), "0000");
+        staleJob.MarkRunning();
         await repository.AddAsync(staleJob);
 
         await service.StartAsync(CancellationToken.None);
@@ -103,6 +104,7 @@ public sealed class StalePublishJobRecoveryServiceTests
         var (service, repository, _) = CreateService();
         var applicationId = Guid.NewGuid();
         var ghostJob = new PublishJob(applicationId, "0000");
+        ghostJob.MarkRunning();
         await repository.AddAsync(ghostJob);
 
         await Assert.ThrowsAsync<PublishJobAlreadyInProgressException>(

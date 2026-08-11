@@ -1,3 +1,4 @@
+using RATools.Application.Publishing;
 using RATools.Domain.Publishing;
 
 namespace RATools.Application.Abstractions.Persistence;
@@ -6,9 +7,56 @@ public interface IPublishJobRepository
 {
     Task AddAsync(PublishJob job, CancellationToken cancellationToken = default);
 
+    async Task<PublishJobEnqueueResult> AddOrGetByIdempotencyKeyAsync(
+        PublishJob job,
+        CancellationToken cancellationToken = default)
+    {
+        await AddAsync(job, cancellationToken);
+        return new PublishJobEnqueueResult(job, Created: true);
+    }
+
     Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default);
 
     Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<PublishJob?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
+        => Task.FromResult<PublishJob?>(null);
+
+    Task<PublishJobLease?> TryClaimNextAsync(
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        int maxAttempts,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult<PublishJobLease?>(null);
+
+    Task<bool> RenewLeaseAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
+
+    Task<bool> UpdateLeasedAsync(
+        PublishJob job,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
+
+    Task<PublishJobRetryResult> RetryOrFailLeasedAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        DateTime nextAttemptUtc,
+        int maxAttempts,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null));
 
     Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default);
 

@@ -61,32 +61,48 @@ public sealed class PublishJobService(
         return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
     }
 
+    public async Task<PublishExecutionReportDto> ExecuteClaimedAsync(
+        PublishJobLease lease,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        if (lease.Job.Status != PublishJobStatus.Running
+            || lease.Job.LeaseToken != lease.Token
+            || !string.Equals(lease.Job.LeaseOwner, lease.Owner, StringComparison.Ordinal))
+        {
+            throw new PublishJobLeaseLostException(lease.Job.Id);
+        }
+
+        var request = new CreatePublishJobRequest(
+            lease.Job.ApplicationId,
+            lease.Job.SequenceNumber,
+            lease.Job.IdempotencyKey);
+        var stopwatch = Stopwatch.StartNew();
+        var result = await RunPipelineAsync(lease.Job, request, cancellationToken, lease);
+        stopwatch.Stop();
+
+        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+    }
+
     public async Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
-        var job = await CreatePendingJobAsync(request, cancellationToken);
-        try
+        var enqueueResult = await CreateQueuedPendingJobAsync(request, cancellationToken);
+        if (enqueueResult.Created)
         {
-            await publishJobQueue.EnqueueAsync(new QueuedPublishJob(job.Id, request), cancellationToken);
-        }
-        catch (Exception exception)
-        {
-            if (job.Status is not PublishJobStatus.Completed and not PublishJobStatus.Failed)
+            // 数据库 Pending 行是队列事实；Channel 仅负责降低 worker 轮询延迟。
+            try
             {
-                job.MarkFailed(exception is OperationCanceledException
-                    ? "Publish job enqueue was canceled before execution started."
-                    : $"Publish job could not be queued: {exception.Message}");
-                await PersistTerminalStateAsync(job);
-                await TryWriteTerminalAuditAsync(
-                    entityType: "PublishJob",
-                    entityId: job.Id.ToString(),
-                    action: "QueueFailed",
-                    details: job.FailureReason);
+                await publishJobQueue.EnqueueAsync(
+                    new QueuedPublishJob(enqueueResult.Job.Id, request),
+                    CancellationToken.None);
             }
-
-            throw;
+            catch (Exception exception)
+            {
+                PublishPipelineLog.QueueSignalFailed(logger, exception, enqueueResult.Job.Id);
+            }
         }
 
-        return job.ToDto();
+        return enqueueResult.Job.ToDto();
     }
 
     private async Task<PublishExecutionReportDto> BuildAndPersistReportAsync(
@@ -254,10 +270,50 @@ public sealed class PublishJobService(
         return job;
     }
 
+    private async Task<PublishJobEnqueueResult> CreateQueuedPendingJobAsync(
+        CreatePublishJobRequest request,
+        CancellationToken cancellationToken)
+    {
+        var candidate = new PublishJob(request.ApplicationId, request.SequenceNumber, request.IdempotencyKey);
+        var existing = await repository.GetByIdempotencyKeyAsync(candidate.IdempotencyKey, cancellationToken);
+        if (existing is not null)
+        {
+            EnsureIdempotencyRequestMatches(existing, request);
+            return new PublishJobEnqueueResult(existing, Created: false);
+        }
+
+        var result = await repository.AddOrGetByIdempotencyKeyAsync(candidate, cancellationToken);
+        EnsureIdempotencyRequestMatches(result.Job, request);
+        if (!result.Created)
+        {
+            return result;
+        }
+
+        PublishPipelineLog.JobCreated(logger, candidate.Id, request.ApplicationId, request.SequenceNumber);
+        await TryWriteAuditAsync(
+            entityType: "PublishJob",
+            entityId: candidate.Id.ToString(),
+            action: "Created",
+            details: $"Publish job created for application {request.ApplicationId}, sequence {request.SequenceNumber}.",
+            cancellationToken,
+            ignoreCancellation: true);
+        return result;
+    }
+
+    private static void EnsureIdempotencyRequestMatches(PublishJob job, CreatePublishJobRequest request)
+    {
+        if (job.ApplicationId != request.ApplicationId
+            || !string.Equals(job.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal))
+        {
+            throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
+        }
+    }
+
     private async Task<(PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath)> RunPipelineAsync(
         PublishJob job,
         CreatePublishJobRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PublishJobLease? lease = null)
     {
         ValidationReportDto? validationReport = null;
         PublishReadinessReportDto? publishReadiness = null;
@@ -276,7 +332,7 @@ public sealed class PublishJobService(
                     job.Id,
                     validationReport.Issues.Count(x => string.Equals(x.Severity, "Error", StringComparison.OrdinalIgnoreCase)));
                 job.MarkFailed(failureMessage);
-                await PersistTerminalStateAsync(job);
+                await PersistTerminalStateAsync(job, lease);
                 await TryWriteTerminalAuditAsync(
                     entityType: "PublishJob",
                     entityId: job.Id.ToString(),
@@ -304,7 +360,7 @@ public sealed class PublishJobService(
 
                 PublishPipelineLog.ReadinessBlocked(logger, job.Id, publishReadiness.BlockingErrorCount);
                 job.MarkFailed(readinessFailureMessage);
-                await PersistTerminalStateAsync(job);
+                await PersistTerminalStateAsync(job, lease);
                 await TryWriteTerminalAuditAsync(
                     entityType: "PublishJob",
                     entityId: job.Id.ToString(),
@@ -313,8 +369,16 @@ public sealed class PublishJobService(
                 return (job, validationReport, publishReadiness, "Publish stopped because publish readiness check failed.", reportPath);
             }
 
-            job.MarkRunning();
-            await repository.UpdateAsync(job, cancellationToken);
+            if (job.Status == PublishJobStatus.Pending)
+            {
+                job.MarkRunning();
+                await repository.UpdateAsync(job, cancellationToken);
+            }
+            else if (job.Status != PublishJobStatus.Running || lease is null)
+            {
+                throw new InvalidOperationException($"Publish job {job.Id} cannot start from status {job.Status}.");
+            }
+
             PublishPipelineLog.ExecutionStarted(logger, job.Id);
             await TryWriteAuditAsync(
                 entityType: "PublishJob",
@@ -336,7 +400,7 @@ public sealed class PublishJobService(
 
             job.MarkCompleted(generated.FilePath, generated.PackagePath);
             PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
-            await PersistTerminalStateAsync(job);
+            await PersistTerminalStateAsync(job, lease);
             await TryWriteTerminalAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
@@ -348,6 +412,13 @@ public sealed class PublishJobService(
         catch (Exception exception)
         {
             PublishPipelineLog.ExecutionFailed(logger, exception, job.Id);
+            if (lease is not null)
+            {
+                // 持久 worker 由外层依据 attempt/lease 决定重试或终态；这里不能抢先
+                // 清除租约，否则旧 worker 将绕过 fencing token 写入状态。
+                throw;
+            }
+
             if (job.Status is not PublishJobStatus.Completed and not PublishJobStatus.Failed)
             {
                 var failureReason = exception is OperationCanceledException
@@ -373,23 +444,50 @@ public sealed class PublishJobService(
         }
     }
 
-    private async Task PersistTerminalStateAsync(PublishJob job)
+    private async Task PersistTerminalStateAsync(PublishJob job, PublishJobLease? lease = null)
     {
         try
         {
-            await PersistTerminalStateOnceAsync(job);
+            await PersistTerminalStateOnceAsync(job, lease);
         }
         catch (Exception exception)
         {
             PublishPipelineLog.TerminalPersistenceRetry(logger, exception, job.Id, job.Status.ToString());
-            await PersistTerminalStateOnceAsync(job);
+            await PersistTerminalStateOnceAsync(job, lease);
         }
     }
 
-    private async Task PersistTerminalStateOnceAsync(PublishJob job)
+    private async Task PersistTerminalStateOnceAsync(PublishJob job, PublishJobLease? lease)
     {
         using var cleanupCts = new CancellationTokenSource(TerminalCleanupTimeout);
-        await repository.UpdateAsync(job, cleanupCts.Token);
+        if (lease is null)
+        {
+            await repository.UpdateAsync(job, cleanupCts.Token);
+            return;
+        }
+
+        if (await repository.UpdateLeasedAsync(
+                job,
+                lease.Token,
+                lease.Owner,
+                DateTime.UtcNow,
+                cleanupCts.Token))
+        {
+            return;
+        }
+
+        // 首次保存可能在数据库提交成功后丢失响应。读取终态可区分这种歧义与真实失租。
+        var persisted = await repository.GetAsync(job.Id, cleanupCts.Token);
+        if (persisted is not null
+            && persisted.Status == job.Status
+            && string.Equals(persisted.OutputPath, job.OutputPath, StringComparison.Ordinal)
+            && string.Equals(persisted.PackagePath, job.PackagePath, StringComparison.Ordinal)
+            && string.Equals(persisted.FailureReason, job.FailureReason, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        throw new PublishJobLeaseLostException(job.Id);
     }
 
     private async Task TryWriteTerminalAuditAsync(
@@ -485,6 +583,9 @@ internal static class PublishJobMapping
             job.PackagePath,
             job.CreatedUtc,
             job.CompletedUtc,
-            job.FailureReason);
+            job.FailureReason,
+            job.IdempotencyKey,
+            job.AttemptCount,
+            job.NextAttemptUtc);
     }
 }

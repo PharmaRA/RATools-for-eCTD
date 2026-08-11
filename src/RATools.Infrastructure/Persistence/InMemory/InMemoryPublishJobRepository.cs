@@ -22,10 +22,39 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
                     $"A publish job is already pending or running for application {job.ApplicationId}, sequence {job.SequenceNumber}.");
             }
 
-            _items[job.Id] = job;
+            _items[job.Id] = Clone(job);
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task<PublishJobEnqueueResult> AddOrGetByIdempotencyKeyAsync(
+        PublishJob job,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            var existing = _items.Values.SingleOrDefault(x => x.IdempotencyKey == job.IdempotencyKey);
+            if (existing is not null)
+            {
+                if (existing.ApplicationId != job.ApplicationId
+                    || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
+                {
+                    throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
+                }
+
+                return Task.FromResult(new PublishJobEnqueueResult(Clone(existing), Created: false));
+            }
+
+            if (IsActiveStatus(job.Status) && HasActiveJob(job.ApplicationId, job.SequenceNumber))
+            {
+                throw new PublishJobAlreadyInProgressException(
+                    $"A publish job is already pending or running for application {job.ApplicationId}, sequence {job.SequenceNumber}.");
+            }
+
+            _items[job.Id] = Clone(job);
+            return Task.FromResult(new PublishJobEnqueueResult(Clone(job), Created: true));
+        }
     }
 
     private bool HasActiveJob(Guid applicationId, string sequenceNumber)
@@ -41,20 +70,152 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
 
     public Task UpdateAsync(PublishJob job, CancellationToken cancellationToken = default)
     {
-        _items[job.Id] = job;
+        lock (_activeJobGate)
+        {
+            _items[job.Id] = Clone(job);
+        }
+
         return Task.CompletedTask;
     }
 
     public Task<PublishJob?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        _items.TryGetValue(id, out var job);
-        return Task.FromResult(job);
+        lock (_activeJobGate)
+        {
+            _items.TryGetValue(id, out var job);
+            return Task.FromResult(job is null ? null : Clone(job));
+        }
+    }
+
+    public Task<PublishJob?> GetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            var job = _items.Values.SingleOrDefault(x => x.IdempotencyKey == idempotencyKey);
+            return Task.FromResult(job is null ? null : Clone(job));
+        }
+    }
+
+    public Task<PublishJobLease?> TryClaimNextAsync(
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        int maxAttempts,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            var job = _items.Values
+                .Where(x => x.Status == PublishJobStatus.Pending
+                    && x.NextAttemptUtc <= nowUtc
+                    && x.AttemptCount < maxAttempts)
+                .OrderBy(x => x.NextAttemptUtc)
+                .ThenBy(x => x.CreatedUtc)
+                .FirstOrDefault();
+            if (job is null)
+            {
+                return Task.FromResult<PublishJobLease?>(null);
+            }
+
+            var token = job.Claim(owner, nowUtc, leaseDuration);
+            _items[job.Id] = Clone(job);
+            return Task.FromResult<PublishJobLease?>(
+                new PublishJobLease(Clone(job), token, owner, nowUtc.Add(leaseDuration)));
+        }
+    }
+
+    public Task<bool> RenewLeaseAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            if (!_items.TryGetValue(jobId, out var job)
+                || job.LeaseToken != leaseToken
+                || !string.Equals(job.LeaseOwner, owner, StringComparison.Ordinal)
+                || job.LeaseExpiresUtc <= nowUtc)
+            {
+                return Task.FromResult(false);
+            }
+
+            job.RenewLease(leaseToken, owner, nowUtc, leaseDuration);
+            _items[job.Id] = Clone(job);
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<bool> UpdateLeasedAsync(
+        PublishJob job,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            if (!_items.TryGetValue(job.Id, out var stored)
+                || stored.Status != PublishJobStatus.Running
+                || stored.LeaseToken != leaseToken
+                || !string.Equals(stored.LeaseOwner, owner, StringComparison.Ordinal)
+                || stored.LeaseExpiresUtc <= nowUtc)
+            {
+                return Task.FromResult(false);
+            }
+
+            _items[job.Id] = Clone(job);
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<PublishJobRetryResult> RetryOrFailLeasedAsync(
+        Guid jobId,
+        Guid leaseToken,
+        string owner,
+        DateTime nowUtc,
+        DateTime nextAttemptUtc,
+        int maxAttempts,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_activeJobGate)
+        {
+            if (!_items.TryGetValue(jobId, out var job)
+                || job.Status != PublishJobStatus.Running
+                || job.LeaseToken != leaseToken
+                || !string.Equals(job.LeaseOwner, owner, StringComparison.Ordinal)
+                || job.LeaseExpiresUtc <= nowUtc)
+            {
+                return Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null));
+            }
+
+            PublishJobRetryDisposition disposition;
+            if (job.AttemptCount >= maxAttempts)
+            {
+                job.MarkFailed(failureReason);
+                disposition = PublishJobRetryDisposition.Failed;
+            }
+            else
+            {
+                job.ScheduleRetry(leaseToken, owner, failureReason, nextAttemptUtc);
+                disposition = PublishJobRetryDisposition.RetryScheduled;
+            }
+
+            _items[job.Id] = Clone(job);
+            return Task.FromResult(new PublishJobRetryResult(disposition, Clone(job)));
+        }
     }
 
     public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<PublishJob> items = _items.Values
             .OrderBy(x => x.CreatedUtc)
+            .Select(Clone)
             .ToArray();
 
         return Task.FromResult(items);
@@ -65,6 +226,7 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         IReadOnlyCollection<PublishJob> items = _items.Values
             .Where(x => IsActiveStatus(x.Status))
             .OrderBy(x => x.CreatedUtc)
+            .Select(Clone)
             .ToArray();
 
         return Task.FromResult(items);
@@ -83,7 +245,7 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
 
         var page = query.Page < 1 ? 1 : query.Page;
         var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
-        var pageItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        var pageItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).Select(Clone).ToArray();
         var statusCounts = PublishJobHistoryStatusCounts.Create(filtered);
 
         return Task.FromResult(new PublishJobHistoryQueryResult(
@@ -123,4 +285,23 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
 
         return Task.CompletedTask;
     }
+
+    private static PublishJob Clone(PublishJob job)
+        => PublishJob.Rehydrate(
+            job.Id,
+            job.ApplicationId,
+            job.SequenceNumber,
+            job.Status,
+            job.OutputPath,
+            job.PackagePath,
+            job.CreatedUtc,
+            job.CompletedUtc,
+            job.FailureReason,
+            job.IdempotencyKey,
+            job.AttemptCount,
+            job.NextAttemptUtc,
+            job.LeaseOwner,
+            job.LeaseToken,
+            job.LeaseExpiresUtc,
+            job.LastHeartbeatUtc);
 }

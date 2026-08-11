@@ -97,8 +97,7 @@ The browser-visible shared API key is an access gate, not a user identity or a
 browser secret. Client-created audit entries also do not provide multi-user
 non-repudiation. Shared or horizontally scaled deployment remains unsupported until
 the identity, server-derived audit, persistent lease queue, and migration controls in
-[ADR-0001](docs/architecture/0001-local-only-deployment-boundary.md) are complete.
-ADRs are maintained locally and are not part of the public repository.
+the locally maintained ADR-0001 are complete. ADRs are not part of the public repository.
 
 The tracked Compose and development settings are development conveniences, not a
 hardened deployment profile. Review the ADR's local-only requirements before using
@@ -117,11 +116,16 @@ real regulatory documents.
   delivery copies per application and prunes older ones; `_artifacts` and `_packages`
   are never pruned. Set `0` or negative to disable pruning.
 - `PublishJobs:ExecutionTimeout` (default `00:15:00`): maximum execution time for a queued
-  publish job. Timeout and host shutdown persist a terminal `Failed` state with an independent
-  cleanup token before best-effort audit logging.
-- `PublishJobs:QueueCapacity` (default `32`): maximum number of queued jobs waiting for the
-  single in-process worker. A full queue applies backpressure; a canceled enqueue is persisted
-  as `Failed` instead of leaving a `Pending` job behind.
+  publish attempt. A timed-out or interrupted attempt is returned to the durable queue until
+  `MaxAttempts` is exhausted.
+- `PublishJobs:PollInterval` (default `00:00:01`): maximum delay before a worker polls the
+  database when no in-process wake signal is available.
+- `PublishJobs:LeaseDuration` (default `00:01:00`): exclusive database claim lifetime.
+- `PublishJobs:HeartbeatInterval` (default `00:00:15`): lease renewal interval; it must be
+  shorter than `LeaseDuration`.
+- `PublishJobs:RetryDelay` (default `00:00:05`): delay before a failed attempt is eligible again.
+- `PublishJobs:MaxAttempts` (default `3`): maximum claims before an execution failure becomes
+  terminal. Lease tokens fence stale workers from persisting state after ownership changes.
 
 ## Working Directories
 
@@ -216,6 +220,9 @@ Publish jobs use one asynchronous command:
 
 - `POST /api/publish-jobs/execute` enqueues background execution and returns `202 Accepted` with `PublishJobDto`;
   poll `GET /api/publish-jobs/{id}` for status and fetch `/report` and `/artifacts` once completed.
+- Send a stable `Idempotency-Key` header (1-128 visible ASCII characters) when retrying the
+  command. Reusing the key for the same application/sequence returns the original job; using
+  it for different request data returns `409 Conflict`.
 - The former synchronous `POST /api/publish-jobs` endpoint is deprecated and returns `410 Gone`; it never starts a publish.
 - Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;
   the business-facing application number is never used as the publish storage path segment.

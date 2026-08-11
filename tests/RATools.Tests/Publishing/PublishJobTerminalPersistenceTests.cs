@@ -41,21 +41,20 @@ public sealed class PublishJobTerminalPersistenceTests
     }
 
     [Fact]
-    public async Task EnqueueExecutionAsync_CancellationAfterPendingCreationPersistsFailedTerminalState()
+    public async Task EnqueueExecutionAsync_SignalFailureLeavesDurablePendingJobDiscoverable()
     {
         using var enqueueCts = new CancellationTokenSource();
         var repository = new SnapshotPublishJobRepository();
         var service = CreateService(repository, queue: new CancelingPublishJobQueue(enqueueCts));
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.EnqueueExecutionAsync(
+        var result = await service.EnqueueExecutionAsync(
             NewRequest(),
-            enqueueCts.Token));
+            enqueueCts.Token);
 
         var persisted = Assert.Single(await repository.ListAsync());
-        Assert.Equal(PublishJobStatus.Failed, persisted.Status);
-        Assert.Contains("enqueue was canceled", persisted.FailureReason, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(repository.UpdateObservations, update =>
-            update.Status == PublishJobStatus.Failed && !update.CancellationRequested);
+        Assert.Equal(PublishJobStatus.Pending.ToString(), result.Status);
+        Assert.Equal(PublishJobStatus.Pending, persisted.Status);
+        Assert.Null(persisted.FailureReason);
     }
 
     [Fact]
@@ -514,6 +513,114 @@ public sealed class PublishJobTerminalPersistenceTests
             }
         }
 
+        public Task<PublishJobLease?> TryClaimNextAsync(
+            string owner,
+            DateTime nowUtc,
+            TimeSpan leaseDuration,
+            int maxAttempts,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_gate)
+            {
+                var job = _items.Values
+                    .Where(item => item.Status == PublishJobStatus.Pending
+                        && item.NextAttemptUtc <= nowUtc
+                        && item.AttemptCount < maxAttempts)
+                    .OrderBy(item => item.CreatedUtc)
+                    .FirstOrDefault();
+                if (job is null)
+                {
+                    return Task.FromResult<PublishJobLease?>(null);
+                }
+
+                var token = job.Claim(owner, nowUtc, leaseDuration);
+                _items[job.Id] = Clone(job);
+                return Task.FromResult<PublishJobLease?>(
+                    new PublishJobLease(Clone(job), token, owner, nowUtc.Add(leaseDuration)));
+            }
+        }
+
+        public Task<bool> RenewLeaseAsync(
+            Guid jobId,
+            Guid leaseToken,
+            string owner,
+            DateTime nowUtc,
+            TimeSpan leaseDuration,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_gate)
+            {
+                if (!_items.TryGetValue(jobId, out var job)
+                    || job.LeaseToken != leaseToken
+                    || job.LeaseOwner != owner
+                    || job.LeaseExpiresUtc <= nowUtc)
+                {
+                    return Task.FromResult(false);
+                }
+
+                job.RenewLease(leaseToken, owner, nowUtc, leaseDuration);
+                _items[jobId] = Clone(job);
+                return Task.FromResult(true);
+            }
+        }
+
+        public async Task<bool> UpdateLeasedAsync(
+            PublishJob job,
+            Guid leaseToken,
+            string owner,
+            DateTime nowUtc,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_gate)
+            {
+                if (!_items.TryGetValue(job.Id, out var stored)
+                    || stored.LeaseToken != leaseToken
+                    || stored.LeaseOwner != owner
+                    || stored.LeaseExpiresUtc <= nowUtc)
+                {
+                    return false;
+                }
+            }
+
+            await UpdateAsync(job, cancellationToken);
+            return true;
+        }
+
+        public Task<PublishJobRetryResult> RetryOrFailLeasedAsync(
+            Guid jobId,
+            Guid leaseToken,
+            string owner,
+            DateTime nowUtc,
+            DateTime nextAttemptUtc,
+            int maxAttempts,
+            string failureReason,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_gate)
+            {
+                if (!_items.TryGetValue(jobId, out var job)
+                    || job.LeaseToken != leaseToken
+                    || job.LeaseOwner != owner
+                    || job.LeaseExpiresUtc <= nowUtc)
+                {
+                    return Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null));
+                }
+
+                if (job.AttemptCount >= maxAttempts)
+                {
+                    job.MarkFailed(failureReason);
+                    _updateObservations.Add(new UpdateObservation(job.Status, cancellationToken.IsCancellationRequested));
+                    _items[jobId] = Clone(job);
+                    return Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.Failed, Clone(job)));
+                }
+
+                job.ScheduleRetry(leaseToken, owner, failureReason, nextAttemptUtc);
+                _updateObservations.Add(new UpdateObservation(job.Status, cancellationToken.IsCancellationRequested));
+                _items[jobId] = Clone(job);
+                return Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.RetryScheduled, Clone(job)));
+            }
+        }
+
         public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -609,7 +716,14 @@ public sealed class PublishJobTerminalPersistenceTests
                 job.PackagePath,
                 job.CreatedUtc,
                 job.CompletedUtc,
-                job.FailureReason);
+                job.FailureReason,
+                job.IdempotencyKey,
+                job.AttemptCount,
+                job.NextAttemptUtc,
+                job.LeaseOwner,
+                job.LeaseToken,
+                job.LeaseExpiresUtc,
+                job.LastHeartbeatUtc);
     }
 
     private sealed class CancelingPublishJobQueue(CancellationTokenSource cancellationTokenSource) : IPublishJobQueue
@@ -620,8 +734,8 @@ public sealed class PublishJobTerminalPersistenceTests
             return ValueTask.FromCanceled(cancellationTokenSource.Token);
         }
 
-        public ValueTask<QueuedPublishJob> DequeueAsync(CancellationToken cancellationToken)
-            => throw new NotSupportedException();
+        public ValueTask WaitForWorkAsync(TimeSpan maximumDelay, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 
     private sealed class BackgroundHarness : IAsyncDisposable
@@ -654,12 +768,13 @@ public sealed class PublishJobTerminalPersistenceTests
         {
             var repository = new SnapshotPublishJobRepository();
             var backbone = new DelayingBackboneService();
-            var queue = new ChannelPublishJobQueue(Options.Create(new PublishJobExecutionOptions()));
+            var queue = new ChannelPublishJobQueue();
             var service = CreateService(repository, backboneService: backbone, queue: queue);
             var request = NewRequest();
             var job = await service.EnqueueExecutionAsync(request);
 
             var services = new ServiceCollection();
+            services.AddSingleton<IPublishJobRepository>(repository);
             services.AddSingleton<IPublishJobService>(service);
             var provider = services.BuildServiceProvider();
             var background = new PublishJobBackgroundService(
@@ -667,7 +782,12 @@ public sealed class PublishJobTerminalPersistenceTests
                 provider.GetRequiredService<IServiceScopeFactory>(),
                 Options.Create(new PublishJobExecutionOptions
                 {
-                    ExecutionTimeout = executionTimeout
+                    ExecutionTimeout = executionTimeout,
+                    PollInterval = TimeSpan.FromMilliseconds(10),
+                    LeaseDuration = TimeSpan.FromSeconds(1),
+                    HeartbeatInterval = TimeSpan.FromMilliseconds(50),
+                    RetryDelay = TimeSpan.Zero,
+                    MaxAttempts = 1
                 }),
                 NullLogger<PublishJobBackgroundService>.Instance);
 
