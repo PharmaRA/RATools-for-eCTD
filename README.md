@@ -189,7 +189,8 @@ The API applies migrations automatically on startup when `Persistence:Provider` 
 - Stop database: `docker compose down`.
 - Run backend tests: `dotnet test tests/RATools.Tests/RATools.Tests.csproj`.
 - Run frontend tests: `cd frontend && npm test`.
-- Build frontend: `cd frontend && npm run build`.
+- Build frontend and enforce the gzip bundle budget: `cd frontend && npm run build`.
+- Check the existing frontend build against the bundle budget: `cd frontend && npm run bundle:check`.
 - Regenerate the committed OpenAPI snapshot and TypeScript contracts after an API
   request/response change: `cd frontend && npm run api:generate`.
 - Check generated TypeScript contracts against the snapshot: `cd frontend && npm run api:check`.

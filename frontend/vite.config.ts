@@ -6,9 +6,8 @@ import type { InlineConfig } from 'vitest/node'
 const config = {
   plugins: [react()],
   build: {
-    // antd 单库压缩后约 320kB（gzip），是不可再拆的固有体积；vendor 已合理分包，
-    // 故上调告警阈值以消除这条对本项目无意义的构建噪音。
-    chunkSizeWarningLimit: 1100,
+    // Vite 只检查原始 chunk 大小；实际 gzip 预算由 npm run bundle:check 强制执行。
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         // 把体积最大的第三方库拆成独立 vendor chunk：antd 被三个页面共享，

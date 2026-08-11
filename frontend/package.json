@@ -7,7 +7,8 @@
     "api:generate": "node scripts/api-contracts.mjs update",
     "api:check": "node scripts/api-contracts.mjs check",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run bundle:check",
+    "bundle:check": "node scripts/check-bundle-budget.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview"

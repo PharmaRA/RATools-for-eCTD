@@ -1,0 +1,36 @@
+{
+  "totals": [
+    {
+      "name": "JavaScript total",
+      "include": "\\.js$",
+      "maxGzipKiB": 450
+    },
+    {
+      "name": "Stylesheet total",
+      "include": "\\.css$",
+      "maxGzipKiB": 4
+    }
+  ],
+  "groups": [
+    {
+      "name": "Ant Design vendor",
+      "include": "^antd-.*\\.js$",
+      "maxGzipKiB": 370,
+      "minMatches": 1,
+      "maxMatches": 1
+    },
+    {
+      "name": "Other JavaScript",
+      "include": "\\.js$",
+      "exclude": "^antd-",
+      "maxGzipKiB": 18,
+      "minMatches": 1
+    },
+    {
+      "name": "Stylesheets",
+      "include": "\\.css$",
+      "maxGzipKiB": 4,
+      "minMatches": 1
+    }
+  ]
+}
