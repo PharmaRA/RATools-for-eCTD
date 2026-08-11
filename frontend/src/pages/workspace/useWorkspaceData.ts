@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type SetStateAction } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch as defaultApiFetch } from '../../apiClient'
 import {
@@ -68,73 +69,71 @@ export const useWorkspaceData = ({
   seqNumber,
   apiFetch = defaultApiFetch,
 }: UseWorkspaceDataOptions) => {
-  const [placements, setPlacements] = useState<DocumentPlacementRecord[]>([])
-  const [applicationPlacements, setApplicationPlacements] = useState<DocumentPlacementRecord[]>([])
-  const [documentsById, setDocumentsById] = useState<Record<string, DocumentRecord>>({})
-  const [treeLoading, setTreeLoading] = useState(false)
-  const [treeError, setTreeError] = useState<string | null>(null)
-  const [placementsError, setPlacementsError] = useState<string | null>(null)
-  const [documentsError, setDocumentsError] = useState<string | null>(null)
-  const [ectdRoots, setEctdRoots] = useState<EctdStructureNode[]>([])
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+  const [expandedKeysOverride, setExpandedKeysOverride] = useState<{
+    appId: string
+    keys: string[]
+  } | null>(null)
+
+  const placementsQuery = useQuery({
+    queryKey: ['workspace', appId, 'placements'],
+    queryFn: ({ signal }) => loadWorkspacePlacements(appId, apiFetch, signal),
+  })
+  const documentsQuery = useQuery({
+    queryKey: ['workspace', appId, 'documents'],
+    queryFn: ({ signal }) => loadWorkspaceDocuments(appId, apiFetch, signal),
+  })
+  const ectdStructureQuery = useQuery({
+    queryKey: ['workspace', appId, 'ectd-structure'],
+    queryFn: ({ signal }) => loadWorkspaceEctdStructure(appId, apiFetch, signal),
+  })
+  const { refetch: refetchPlacements } = placementsQuery
+  const { refetch: refetchDocuments } = documentsQuery
+  const { refetch: refetchEctdStructure } = ectdStructureQuery
+
+  const placementSummary = useMemo(() => {
+    const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(placementsQuery.data)
+    return splitWorkspacePlacements(list, appId, seqNumber)
+  }, [appId, placementsQuery.data, seqNumber])
+  const placements = placementSummary.sequencePlacements
+  const applicationPlacements = placementSummary.applicationPlacements
+  const documentsById = useMemo(
+    () => buildWorkspaceDocumentsById(documentsQuery.data),
+    [documentsQuery.data],
+  )
+  const ectdRoots = useMemo(
+    () => getWorkspaceEctdRootsFromResponse(ectdStructureQuery.data),
+    [ectdStructureQuery.data],
+  )
+  const defaultExpandedKeys = useMemo(
+    () => buildWorkspaceExpandedKeys(ectdRoots),
+    [ectdRoots],
+  )
+  const expandedKeys = expandedKeysOverride?.appId === appId
+    ? expandedKeysOverride.keys
+    : defaultExpandedKeys
+  const setExpandedKeys = useCallback((value: SetStateAction<string[]>) => {
+    setExpandedKeysOverride((current) => {
+      const currentKeys = current?.appId === appId ? current.keys : defaultExpandedKeys
+      const keys = typeof value === 'function' ? value(currentKeys) : value
+      return { appId, keys }
+    })
+  }, [appId, defaultExpandedKeys])
 
   const treeData = useMemo(() => {
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById)
   }, [documentsById, ectdRoots, placements])
 
   const fetchPlacements = useCallback(async () => {
-    setPlacementsError(null)
-    try {
-      const res = await loadWorkspacePlacements(appId, apiFetch)
-      const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(res)
-      const placementSummary = splitWorkspacePlacements(list, appId, seqNumber)
-      setApplicationPlacements(placementSummary.applicationPlacements)
-      setPlacements(placementSummary.sequencePlacements)
-    } catch (error) {
-      const message = getErrorMessage(error)
-      setPlacementsError(message)
-    }
-  }, [apiFetch, appId, seqNumber])
+    await refetchPlacements()
+  }, [refetchPlacements])
 
   const fetchDocuments = useCallback(async () => {
-    setDocumentsError(null)
-    try {
-      const docs = await loadWorkspaceDocuments(appId, apiFetch)
-      const mapped = buildWorkspaceDocumentsById(docs)
-      setDocumentsById(mapped)
-    } catch (error) {
-      const message = getErrorMessage(error)
-      setDocumentsError(message)
-    }
-  }, [apiFetch, appId])
+    await refetchDocuments()
+  }, [refetchDocuments])
 
   const fetchEctdStructure = useCallback(async () => {
-    setTreeLoading(true)
-    setTreeError(null)
-    try {
-      const response = await loadWorkspaceEctdStructure(appId, apiFetch)
-      const roots = getWorkspaceEctdRootsFromResponse(response)
-      setEctdRoots(roots)
-      setExpandedKeys(buildWorkspaceExpandedKeys(roots))
-    } catch (error) {
-      setTreeError(getErrorMessage(error, '加载 eCTD 结构失败'))
-      setEctdRoots([])
-      setExpandedKeys([])
-    } finally {
-      setTreeLoading(false)
-    }
-  }, [apiFetch, appId])
-
-  useEffect(() => {
-    void Promise.resolve().then(async () => {
-      await fetchPlacements()
-      await fetchDocuments()
-    })
-  }, [fetchDocuments, fetchPlacements])
-
-  useEffect(() => {
-    void Promise.resolve().then(fetchEctdStructure)
-  }, [fetchEctdStructure])
+    await refetchEctdStructure()
+  }, [refetchEctdStructure])
 
   const refreshWorkspaceData = useCallback(async () => {
     await Promise.all([fetchPlacements(), fetchDocuments()])
@@ -145,10 +144,12 @@ export const useWorkspaceData = ({
     applicationPlacements,
     documentsById,
     treeData,
-    treeLoading,
-    treeError,
-    placementsError,
-    documentsError,
+    treeLoading: ectdStructureQuery.isFetching,
+    treeError: ectdStructureQuery.error
+      ? getErrorMessage(ectdStructureQuery.error, '加载 eCTD 结构失败')
+      : null,
+    placementsError: placementsQuery.error ? getErrorMessage(placementsQuery.error) : null,
+    documentsError: documentsQuery.error ? getErrorMessage(documentsQuery.error) : null,
     expandedKeys,
     setExpandedKeys,
     fetchPlacements,

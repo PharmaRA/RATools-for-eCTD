@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('antd', async (importOriginal) => {
   const actual = await importOriginal<typeof import('antd')>()
@@ -29,6 +30,15 @@ const flushPromises = async () => {
   await act(async () => {
     await Promise.resolve()
   })
+}
+
+const waitForCondition = async (predicate: () => boolean, label: string) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await flushPromises()
+    if (predicate()) return
+  }
+
+  throw new Error(`Could not observe ${label}`)
 }
 
 const defaultPublishingMetadata = (): SequencePublishingMetadata => ({
@@ -73,15 +83,20 @@ const renderSequenceWorkspacePage = (props: React.ComponentProps<typeof Sequence
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
 
   act(() => {
     root.render(
-      <SequenceWorkspacePage
-        getPublishReadinessProvider={props.getPublishReadinessProvider ?? vi.fn().mockResolvedValue(defaultPublishReadiness())}
-        getSequencePublishingMetadataProvider={props.getSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
-        updateSequencePublishingMetadataProvider={props.updateSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
-        {...props}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <SequenceWorkspacePage
+          getPublishReadinessProvider={props.getPublishReadinessProvider ?? vi.fn().mockResolvedValue(defaultPublishReadiness())}
+          getSequencePublishingMetadataProvider={props.getSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
+          updateSequencePublishingMetadataProvider={props.updateSequencePublishingMetadataProvider ?? vi.fn().mockResolvedValue(defaultPublishingMetadata())}
+          {...props}
+        />
+      </QueryClientProvider>,
     )
   })
 
@@ -90,6 +105,7 @@ const renderSequenceWorkspacePage = (props: React.ComponentProps<typeof Sequence
       act(() => {
         root.unmount()
       })
+      queryClient.clear()
       container.remove()
     },
   }
@@ -1681,8 +1697,11 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
       onBack: vi.fn(),
     })
 
-    await flushPromises()
-    await flushPromises()
+    await waitForCondition(
+      () => Array.from(document.querySelectorAll('.ant-tree-node-content-wrapper, .ectd-tree-node'))
+        .some((candidate) => candidate.textContent?.includes('protocol.pdf')),
+      'mapped protocol document node',
+    )
     clickAnyByText('protocol.pdf')
     await flushPromises()
 

@@ -68,22 +68,28 @@ export const buildWorkspaceDataUrls = (appId: string) => {
 export const loadWorkspacePlacements = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
+  signal?: AbortSignal,
 ): Promise<DocumentPlacementRecord[] | { items?: DocumentPlacementRecord[] | null }> => {
-  return executeRequest(buildWorkspaceDataUrls(appId).placements)
+  const url = buildWorkspaceDataUrls(appId).placements
+  return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }
 
 export const loadWorkspaceDocuments = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
+  signal?: AbortSignal,
 ): Promise<DocumentRecord[]> => {
-  return executeRequest(buildWorkspaceDataUrls(appId).documents)
+  const url = buildWorkspaceDataUrls(appId).documents
+  return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }
 
 export const loadWorkspaceEctdStructure = async (
   appId: string,
   executeRequest: typeof apiFetch = apiFetch,
+  signal?: AbortSignal,
 ): Promise<EctdStructureResponse> => {
-  return executeRequest(buildWorkspaceDataUrls(appId).ectdStructure)
+  const url = buildWorkspaceDataUrls(appId).ectdStructure
+  return signal ? executeRequest(url, { signal }) : executeRequest(url)
 }
 
 export const buildDocumentPlacementUrl = (placementId: string) => {

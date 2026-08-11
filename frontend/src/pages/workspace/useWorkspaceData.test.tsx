@@ -1,6 +1,7 @@
 import { act, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import {
   buildWorkspaceExpandedKeys,
@@ -42,6 +43,9 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   let current: UseWorkspaceDataResult | null = null
 
   const Probe = () => {
@@ -53,7 +57,11 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
   }
 
   act(() => {
-    root.render(<Probe />)
+    root.render(
+      <QueryClientProvider client={queryClient}>
+        <Probe />
+      </QueryClientProvider>,
+    )
   })
 
   return {
@@ -68,6 +76,7 @@ const renderUseWorkspaceData = (options: UseWorkspaceDataOptions) => {
       act(() => {
         root.unmount()
       })
+      queryClient.clear()
       host.remove()
     },
   }
@@ -181,6 +190,57 @@ describe('useWorkspaceData', () => {
     expect(result.current.treeError).toBeNull()
     expect(result.current.placementsError).toBeNull()
     expect(result.current.documentsError).toBeNull()
+    result.unmount()
+  })
+
+  it('refreshes mutable workspace data without reloading the eCTD structure', async () => {
+    let placementsRequestCount = 0
+    let documentsRequestCount = 0
+    let structureRequestCount = 0
+    const apiFetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/document-placements?applicationId=app-1') {
+        placementsRequestCount += 1
+        return Promise.resolve([{
+          id: 'placement-1',
+          applicationId: 'app-1',
+          sequenceNumber: '0000',
+          documentId: 'doc-1',
+          ctdSection: '1.2',
+          operation: 'New',
+          title: placementsRequestCount === 1 ? 'Initial title' : 'Updated title',
+        }])
+      }
+
+      if (url === '/api/documents?applicationId=app-1') {
+        documentsRequestCount += 1
+        return Promise.resolve([{
+          id: 'doc-1',
+          fileName: documentsRequestCount === 1 ? 'initial.pdf' : 'updated.pdf',
+          storagePath: '/tmp/document.pdf',
+        }])
+      }
+
+      if (url === '/api/applications/app-1/ectd-structure') {
+        structureRequestCount += 1
+        return Promise.resolve({
+          roots: [{ elementName: 'm1', sectionPath: '1.2', displayName: 'Cover', sourceProfile: 'FDA', children: [] }],
+        })
+      }
+
+      return Promise.reject(new Error(`Unexpected URL ${url}`))
+    })
+    const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
+    await waitForExpectation(() => expect(result.current.documentsById['doc-1']?.fileName).toBe('initial.pdf'))
+
+    await act(async () => {
+      await result.current.refreshWorkspaceData()
+    })
+
+    await waitForExpectation(() => expect(result.current.documentsById['doc-1']?.fileName).toBe('updated.pdf'))
+    expect(result.current.placements[0].title).toBe('Updated title')
+    expect(placementsRequestCount).toBe(2)
+    expect(documentsRequestCount).toBe(2)
+    expect(structureRequestCount).toBe(1)
     result.unmount()
   })
 

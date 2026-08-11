@@ -70,6 +70,18 @@ describe('workspaceActions', () => {
     expect(result).toEqual(structure)
   })
 
+  it('forwards an abort signal when loading workspace data', async () => {
+    const controller = new AbortController()
+    const request = vi.fn().mockResolvedValue([])
+
+    await loadWorkspacePlacements('app-1', request, controller.signal)
+
+    expect(request).toHaveBeenCalledWith(
+      '/api/document-placements?applicationId=app-1',
+      { signal: controller.signal },
+    )
+  })
+
   it('builds document placement mutation URLs', () => {
     expect(buildDocumentPlacementUrl('placement-1')).toBe('/api/document-placements/placement-1')
     expect(buildDocumentPlacementSectionUrl('placement-1')).toBe('/api/document-placements/placement-1/section')
