@@ -1,23 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Form, Modal, Row, Tag, message } from 'antd'
-import { ArrowLeft, FolderOpen, PlayCircle, Save } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Col, Form, Modal, Row, Tag, message } from 'antd'
+import { ArrowLeft, PlayCircle, Save } from 'lucide-react'
 
-import { createAndExecutePublishJob } from '../publishActions'
-import {
-  getSequencePublishingMetadata,
-  updateSequencePublishingMetadata,
-} from '../sequencePublishingMetadataActions'
-import {
-  getPublishReadiness,
-  type PublishReadinessReport,
-  validateSequence,
-  type ValidationReport,
-} from '../validationActions'
-import {
-  buildPrePublishChecklistSummary,
-  buildPrePublishChecklistDisplay,
-  getPublishReadinessValidationIssues,
-} from '../prePublishChecklist'
 import { splitFileName } from '../ectdFileTypes'
 import {
   deletePlacementWithDocument,
@@ -31,13 +15,10 @@ import {
   resolveUploadSection,
 } from '../workspaceTree'
 import { addSectionExpansionKeys, getErrorMessage } from './appShared'
-import { LeafMetadataPanel } from './LeafMetadataPanel'
 import { PublishProgressCard } from './workspace/PublishProgressCard'
-import { usePublishJobPolling } from './workspace/usePublishJobPolling'
 import { getLifecycleTargetCandidates } from './workspace/lifecycleTargetCandidates'
-import { buildSequencePublishingMetadataUpdateRequest } from './workspace/publishingMetadataFormValues'
-import { PublishModal, type MetadataFormValues } from './workspace/PublishModal'
-import { buildSectionSelectionDescriptionItems } from './workspace/selectionDetailsDisplay'
+import { PublishModal } from './workspace/PublishModal'
+import { useSequencePublishing, type SequencePublishingProviders } from './workspace/useSequencePublishing'
 import { useWorkspaceDragDrop } from './workspace/useWorkspaceDragDrop'
 import { useWorkspaceData } from './workspace/useWorkspaceData'
 import {
@@ -46,31 +27,26 @@ import {
   type ValidationLocation,
 } from './workspace/validationLocationResolver'
 import { ValidationSummaryPanel } from './workspace/ValidationSummaryPanel'
+import { WorkspaceSelectionDetails } from './workspace/WorkspaceSelectionDetails'
 import { WorkspaceTree } from './workspace/WorkspaceTree'
 
-type SequenceWorkspacePageProps = {
+type SequenceWorkspacePageProps = SequencePublishingProviders & {
   appId: string
   seqNumber: string
   onBack: () => void
-  validateSequenceProvider?: typeof validateSequence
-  getPublishReadinessProvider?: typeof getPublishReadiness
-  getSequencePublishingMetadataProvider?: typeof getSequencePublishingMetadata
-  updateSequencePublishingMetadataProvider?: typeof updateSequencePublishingMetadata
-  createAndExecutePublishJobProvider?: typeof createAndExecutePublishJob
 }
 
 export const SequenceWorkspacePage = ({
   appId,
   seqNumber,
   onBack,
-  validateSequenceProvider = validateSequence,
-  getPublishReadinessProvider = getPublishReadiness,
-  getSequencePublishingMetadataProvider = getSequencePublishingMetadata,
-  updateSequencePublishingMetadataProvider = updateSequencePublishingMetadata,
-  createAndExecutePublishJobProvider = createAndExecutePublishJob,
+  validateSequenceProvider,
+  getPublishReadinessProvider,
+  getSequencePublishingMetadataProvider,
+  updateSequencePublishingMetadataProvider,
+  createAndExecutePublishJobProvider,
 }: SequenceWorkspacePageProps) => {
   const [loading, setLoading] = useState(false)
-  const [publishing, setPublishing] = useState(false)
   const {
     placements,
     applicationPlacements,
@@ -89,24 +65,36 @@ export const SequenceWorkspacePage = ({
   const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set())
   const [movingPlacementIds, setMovingPlacementIds] = useState<Set<string>>(new Set())
   const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null)
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
-  const [validationResult, setValidationResult] = useState<ValidationReport | null>(null)
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [metadataForm] = Form.useForm()
-  const [publishForm] = Form.useForm()
-  const [publishMetadataForm] = Form.useForm<MetadataFormValues>()
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm)
   const revisedOperation = Form.useWatch('operation', metadataForm)
   const revisedLifecycleTargetPlacementId = Form.useWatch('lifecycleTargetPlacementId', metadataForm)
-  const [publishReadiness, setPublishReadiness] = useState<PublishReadinessReport | null>(null)
   const {
-    job: polledPublishJob,
-    isPolling: isPublishPolling,
-    error: publishPollingError,
-    startPolling: startPublishPolling,
-    stopPolling: stopPublishPolling,
-  } = usePublishJobPolling()
+    publishing,
+    isPublishModalOpen,
+    validationSummary,
+    validationIssueCountText,
+    validationStatusText,
+    publishReadiness,
+    publishForm,
+    publishMetadataForm,
+    polledPublishJob,
+    isPublishPolling,
+    publishPollingError,
+    openPublishModal,
+    handlePublishModalCancel,
+    triggerPublish,
+    stopPublishPolling,
+  } = useSequencePublishing({
+    appId,
+    seqNumber,
+    validateSequenceProvider,
+    getPublishReadinessProvider,
+    getSequencePublishingMetadataProvider,
+    updateSequencePublishingMetadataProvider,
+    createAndExecutePublishJobProvider,
+  })
 
   const selectedNode = useMemo(
     () => (selectedTreeKey ? findWorkspaceTreeNode(treeData, selectedTreeKey) : undefined),
@@ -164,14 +152,6 @@ export const SequenceWorkspacePage = ({
     setSelectedSectionPath(resolvedLocation.sectionPath)
     setExpandedKeys((current) => addSectionExpansionKeys(current, resolvedLocation.sectionPath))
   }
-
-  const validationSummary = useMemo(() => {
-    if (!validationResult) {
-      return null
-    }
-
-    return buildPrePublishChecklistSummary(validationResult)
-  }, [validationResult])
 
   useEffect(() => {
     if (!selectedNode || selectedNode.nodeType !== 'document' || !selectedPlacement || !selectedDocument) {
@@ -330,139 +310,6 @@ export const SequenceWorkspacePage = ({
     uploadFile: handleDirectDrop,
   })
 
-  const openPublishModal = async () => {
-    setPublishing(true)
-    setValidationResult(null)
-    setPublishReadiness(null)
-    setIsPublishModalOpen(false)
-    publishForm.resetFields()
-    publishMetadataForm.resetFields()
-    try {
-      const sequenceNumber = String(seqNumber).trim()
-      const validationResult = await validateSequenceProvider({
-        applicationId: appId,
-        sequenceNumber,
-      })
-
-      const checklistSummary = buildPrePublishChecklistSummary(validationResult)
-      setValidationResult(validationResult)
-      if (!checklistSummary.canProceed) {
-        return
-      }
-
-      const [metadata, readiness] = await Promise.all([
-        getSequencePublishingMetadataProvider({
-          applicationId: appId,
-          sequenceNumber,
-        }),
-        getPublishReadinessProvider({
-          applicationId: appId,
-          sequenceNumber,
-        }),
-      ])
-
-      publishMetadataForm.setFieldsValue({
-        applicationType: metadata.applicationType || '',
-        submissionType: metadata.submissionType,
-        submissionSubtype: metadata.submissionSubtype || '',
-        sequenceDescription: metadata.sequenceDescription,
-        applicantName: metadata.applicantName,
-        formType: metadata.formType || '',
-        applicantContactName: metadata.applicantContactName || '',
-        applicantContactType: metadata.applicantContactType || '',
-        telephone: metadata.telephone || '',
-        telephoneNumberType: metadata.telephoneNumberType || '',
-        email: metadata.email || '',
-      })
-      setPublishReadiness(readiness)
-
-      if (!readiness.isReady && readiness.missingMetadataFields.length === 0) {
-        setValidationResult({
-          ...validationResult,
-          isValid: false,
-          issues: [
-            ...validationResult.issues,
-            ...getPublishReadinessValidationIssues(readiness),
-          ],
-        })
-        setPublishReadiness(null)
-        return
-      }
-
-      setIsPublishModalOpen(true)
-    } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      setValidationResult({
-        applicationId: appId,
-        sequenceNumber: String(seqNumber).trim(),
-        validationProfile: '校验 API',
-        isValid: false,
-        issues: [{ severity: 'Error', code: 'API_ERROR', message: errorMessage }],
-        sectionMatches: [],
-        lifecycleMatches: [],
-      })
-    } finally {
-      setPublishing(false)
-    }
-  }
-
-  const handlePublishModalCancel = () => {
-    setIsPublishModalOpen(false)
-    publishForm.resetFields()
-    publishMetadataForm.resetFields()
-    setPublishReadiness(null)
-  }
-
-  const triggerPublish = async () => {
-    setPublishing(true)
-    try {
-      const sequenceNumber = String(seqNumber).trim()
-      await publishForm.validateFields()
-      let readinessToUse = publishReadiness
-
-      if (publishReadiness && !publishReadiness.isReady && publishReadiness.missingMetadataFields.length > 0) {
-        const metadataValues = await publishMetadataForm.validateFields()
-        await updateSequencePublishingMetadataProvider(buildSequencePublishingMetadataUpdateRequest(
-          appId,
-          sequenceNumber,
-          metadataValues,
-        ))
-        readinessToUse = await getPublishReadinessProvider({
-          applicationId: appId,
-          sequenceNumber,
-        })
-        setPublishReadiness(readinessToUse)
-
-        if (!readinessToUse.isReady) {
-          message.error('发布就绪度仍处于受阻状态。请先解决剩余发现项后再发布。')
-          return
-        }
-      }
-
-      const startedJob = await createAndExecutePublishJobProvider({
-        applicationId: appId,
-        sequenceNumber,
-      })
-
-      message.success('发布任务已启动，正在跟踪进度…')
-      setIsPublishModalOpen(false)
-      publishForm.resetFields()
-      publishMetadataForm.resetFields()
-      setPublishReadiness(null)
-      // 就地轮询进度，不再把用户抛回详情页自行寻找结果。
-      if (startedJob?.id) {
-        startPublishPolling(String(startedJob.id))
-      }
-    } catch (err) {
-      message.error('发布失败：' + getErrorMessage(err))
-    } finally {
-      setPublishing(false)
-    }
-  }
-
-  const validationDisplay = validationSummary ? buildPrePublishChecklistDisplay(validationSummary) : null
-  const validationIssueCountText = validationDisplay?.issueCountText || ''
-  const validationStatusText = validationDisplay?.statusText || ''
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-200">
@@ -530,89 +377,31 @@ export const SequenceWorkspacePage = ({
         </Col>
 
         <Col span={12}>
-          <Card title="选中项详情" size="small" className="shadow-sm border-gray-200 h-[600px] overflow-y-auto">
-            {!selectedNode && (
-              <div className="text-center text-gray-400 mt-20">
-                <FolderOpen size={48} className="mx-auto mb-4 opacity-50" />
-                <p>请从左侧树中选择章节或已映射文件。</p>
-              </div>
-            )}
-
-            {selectedNode?.nodeType === 'section' && (
-              <div className="flex flex-col gap-4">
-                <Descriptions
-                  size="small"
-                  bordered
-                  column={1}
-                  className="selection-details-descriptions"
-                  items={buildSectionSelectionDescriptionItems(selectedNode, selectedSectionChildrenCount)}
-                />
-
-                <Alert
-                  type="info"
-                  showIcon
-                  title="叶节点元数据指南"
-                  description={(
-                    <div className="flex flex-col gap-1 text-sm">
-                      <div>已映射叶节点：<b>{selectedSectionChildrenCount}</b></div>
-                      <div>将文件拖放到叶级章节，然后选择已映射的叶节点以编辑其标题、操作类型与文件命名元数据。</div>
-                      {!selectedNode.canDrop && <div>该章节包含子章节，文件应映射到叶级子章节。</div>}
-                    </div>
-                  )}
-                />
-
-                {selectedNode.canDrop && (
-                  // 键盘/辅助技术兜底：拖拽之外提供标准文件选择入口。
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      data-testid="section-file-input"
-                      aria-label={`上传文件到 ${selectedNode.sectionPath || selectedNode.key}`}
-                      onChange={(event) => {
-                        const files = event.target.files
-                        if (files && files.length > 0) {
-                          void dragDrop.dropFiles(files, selectedNode.key)
-                        }
-                        event.target.value = ''
-                      }}
-                    />
-                    <Button
-                      icon={<FolderOpen size={14} className="mr-1" />}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      选择文件上传到此章节
-                    </Button>
-                  </div>
-                )}
-
-                <p className="text-xs text-gray-500">提示：将文件拖放到叶级章节；在章节之间拖动文件节点可移动它们。</p>
-              </div>
-            )}
-
-            {selectedNode?.nodeType === 'document' && selectedPlacement && selectedDocument && (
-              <LeafMetadataPanel
-                form={metadataForm}
-                placement={selectedPlacement}
-                document={selectedDocument}
-                sequenceNumber={seqNumber}
-                documentNameParts={selectedDocumentNameParts}
-                revisedPrefix={revisedPrefix}
-                revisedOperation={revisedOperation}
-                revisedLifecycleTargetPlacementId={revisedLifecycleTargetPlacementId}
-                lifecycleTargetCandidates={lifecycleTargetCandidates}
-                documentsById={documentsById}
-                loading={loading}
-                isSaving={savingRevisionPlacementId === selectedPlacement.id}
-                isDeleting={deletingPlacementIds.has(selectedPlacement.id)}
-                isMoving={movingPlacementIds.has(selectedPlacement.id)}
-                onSave={handleSaveRevision}
-                onDelete={() => confirmDeletePlacement(selectedPlacement.id, selectedPlacement.documentId)}
-              />
-            )}
-          </Card>
+          <WorkspaceSelectionDetails
+            selectedNode={selectedNode}
+            selectedPlacement={selectedPlacement}
+            selectedDocument={selectedDocument}
+            selectedSectionChildrenCount={selectedSectionChildrenCount}
+            metadataForm={metadataForm}
+            sequenceNumber={seqNumber}
+            documentNameParts={selectedDocumentNameParts}
+            revisedPrefix={revisedPrefix}
+            revisedOperation={revisedOperation}
+            revisedLifecycleTargetPlacementId={revisedLifecycleTargetPlacementId}
+            lifecycleTargetCandidates={lifecycleTargetCandidates}
+            documentsById={documentsById}
+            loading={loading}
+            isSaving={savingRevisionPlacementId === selectedPlacement?.id}
+            isDeleting={selectedPlacement ? deletingPlacementIds.has(selectedPlacement.id) : false}
+            isMoving={selectedPlacement ? movingPlacementIds.has(selectedPlacement.id) : false}
+            onSave={handleSaveRevision}
+            onDelete={() => {
+              if (selectedPlacement) {
+                confirmDeletePlacement(selectedPlacement.id, selectedPlacement.documentId)
+              }
+            }}
+            dropFiles={dragDrop.dropFiles}
+          />
         </Col>
       </Row>
     </div>

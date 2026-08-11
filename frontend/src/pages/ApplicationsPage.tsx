@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Form, Input, Modal, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip, message } from 'antd'
-import { Activity, HardDrive, Plus, Trash2 } from 'lucide-react'
+import { Alert, Button, Form, Modal, Radio, Space, Table, Tag, message } from 'antd'
+import { HardDrive, Plus, Trash2 } from 'lucide-react'
 
 import { ApiRequestError } from '../apiClient'
 import { createApplication, loadApplications } from '../applicationActions'
 import { buildApplicationBatchDeleteItems, buildApplicationDeleteUrl, getFailedBatchDeleteResults, performBatchDelete, performDelete, type BatchDeleteSummary, type DeleteMode } from '../deleteActions'
 import { buildEctdTemplateSelectOptions, getDefaultEctdTemplateKey, importApplicationWithTemplate, loadEctdTemplates, type EctdTemplateOption } from '../ectdTemplateActions'
-import { mapImportErrorToMessage, summarizeImportIssues, type ImportApplicationResult } from '../importActions'
-import { PathPicker } from '../PathPicker'
+import { mapImportErrorToMessage, type ImportApplicationResult } from '../importActions'
 import { type Application, getErrorMessage } from './appShared'
+import { ApplicationFormModals } from './applications/ApplicationFormModals'
+import { ApplicationImportResultModal } from './applications/ApplicationImportResultModal'
 import { buildApplicationColumns } from './applicationsDisplay'
 import { buildBatchDeleteSummaryItems } from './batchDeleteDisplay'
 import { buildBatchDeleteState } from './batchDeleteState'
-import {
-  buildImportIssueColumns,
-  buildImportIssueSummaryItems,
-  buildImportIssueTagItems,
-  getImportIssueSeverityDisplayMeta,
-  getImportResultIssues,
-} from './importResultDisplay'
 import { buildSelectionKeySet, keepKnownSelectionKeys, normalizeSelectionKeys } from './selectionKeys'
 
 export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) => void }) => {
@@ -214,19 +208,6 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
     deletingKeys: deletingAppIds,
     isBatchDeleteRunning: appBatchDeleteDialog.running,
   })
-  const importIssues = getImportResultIssues(importResult)
-  const importIssueSummary = summarizeImportIssues(importIssues)
-  const importLifecycleIssues = importIssueSummary.lifecycleIssues
-  const importOtherIssues = importIssueSummary.otherIssues
-  const importWarningCount = importIssueSummary.warningCount
-  const importErrorCount = importIssueSummary.errorCount
-  const importIssueSummaryItems = buildImportIssueSummaryItems({
-    totalIssueCount: importIssues.length,
-    warningCount: importWarningCount,
-    errorCount: importErrorCount,
-    lifecycleWarningCount: importLifecycleIssues.length,
-  })
-
   const columns = buildApplicationColumns({
     isBatchDeleteRunning: appBatchDeleteDialog.running,
     deletingAppIds,
@@ -293,184 +274,29 @@ export const ApplicationsPage = ({ onSelectApp }: { onSelectApp: (id: string) =>
         }}
       />
 
-      <Modal title="新建申请" open={appModalVisible} onOk={handleCreateApp} onCancel={() => setAppModalVisible(false)} destroyOnHidden width={600}>
-        <Form form={form} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="applicationNumber" label="申请编号" rules={[{ required: true }]}>
-                <Input placeholder="e.g. NDA123456" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="ectdTemplateKey"
-                label="eCTD 模板"
-                rules={[{ required: true, message: '请选择 eCTD 模板。' }]}
-              >
-                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="请选择 eCTD 模板" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="sponsorName" label="申办方名称" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Acme Pharma Ltd." />
-          </Form.Item>
-          <Form.Item
-            name="workingDirectoryParentPath"
-            label={(
-              <span className="flex items-center gap-1">
-                工作区父目录
-                <Tooltip title="服务器上用于组装此申请文件夹的物理路径。">
-                  <Activity size={14} className="text-gray-400 cursor-help" />
-                </Tooltip>
-              </span>
-            )}
-            rules={[{ required: true, message: '请指定工作目录父路径。' }]}
-          >
-            <PathPicker placeholder="e.g. C:/eCTD/workspaces" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <ApplicationFormModals
+        createOpen={appModalVisible}
+        importOpen={importModalVisible}
+        createForm={form}
+        importForm={importForm}
+        defaultTemplateKey={defaultTemplateKey}
+        templateOptions={ectdTemplateOptions}
+        templatesLoading={templatesLoading}
+        importingApplication={importingApplication}
+        onCreate={() => { void handleCreateApp() }}
+        onCreateCancel={() => setAppModalVisible(false)}
+        onImport={() => { void handleImportApplication() }}
+        onImportCancel={() => setImportModalVisible(false)}
+      />
 
-      <Modal
-        title="导入申请"
-        open={importModalVisible}
-        onOk={() => { void handleImportApplication() }}
-        onCancel={() => setImportModalVisible(false)}
-        okText="导入"
-        cancelText="取消"
-        confirmLoading={importingApplication}
-        destroyOnHidden
-        width={680}
-      >
-        <Form form={importForm} layout="vertical" initialValues={{ ectdTemplateKey: defaultTemplateKey }}>
-          <Form.Item
-            name="workingDirectoryPath"
-            label="工作目录路径"
-            rules={[{ required: true, message: '请输入工作目录路径。' }]}
-          >
-            <PathPicker placeholder="e.g. C:/eCTD/workspaces/NDA123456" />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="ectdTemplateKey" label="eCTD 模板" rules={[{ required: true, message: '请选择 eCTD 模板。' }]}>
-                <Select loading={templatesLoading} options={ectdTemplateOptions} placeholder="请选择 eCTD 模板" />
-              </Form.Item>
-            </Col>
-            <Col span={16}>
-              <Form.Item name="sponsorName" label="申办方名称" rules={[{ required: true, message: '请输入申办方名称。' }]}>
-                <Input placeholder="e.g. Demo Sponsor" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Alert
-            type="info"
-            showIcon
-            title="导入将从申请工作区目录读取序列，并解析每个序列的 index.xml。"
-          />
-        </Form>
-      </Modal>
-
-      <Modal
-        title="导入结果"
+      <ApplicationImportResultModal
         open={importResultVisible}
-        okText="关闭"
-        cancelButtonProps={{ style: { display: 'none' } }}
-        onOk={() => {
+        result={importResult}
+        onClose={() => {
           setImportResultVisible(false)
           setImportResult(null)
         }}
-        onCancel={() => {
-          setImportResultVisible(false)
-          setImportResult(null)
-        }}
-        width={860}
-      >
-        {importResult && (
-          <div className="flex flex-col gap-4">
-            <Row gutter={12}>
-              <Col span={8}><Card size="small"><Statistic title="已导入序列" value={importResult.importedSequenceCount} /></Card></Col>
-              <Col span={8}><Card size="small"><Statistic title="已导入文档" value={importResult.importedDocumentCount} /></Card></Col>
-              <Col span={8}><Card size="small"><Statistic title="已导入放置" value={importResult.importedPlacementCount} /></Card></Col>
-            </Row>
-            <Row gutter={12}>
-              <Col span={12}><Card size="small"><Statistic title="已跳过序列" value={importResult.skippedSequenceCount} /></Card></Col>
-              <Col span={12}><Card size="small"><Statistic title="失败序列" value={importResult.failedSequenceCount} /></Card></Col>
-            </Row>
-
-            <div data-testid="import-result-summary" className="flex flex-wrap gap-2">
-              {importIssueSummaryItems.map((item) => (
-                <Tag key={item.key} color={item.color}>{item.label}</Tag>
-              ))}
-            </div>
-
-            <Card size="small" title="生命周期目标需审阅" data-testid="import-result-lifecycle-issues">
-              {importLifecycleIssues.length === 0 ? (
-                <Alert type="success" showIcon title="没有生命周期目标警告。" />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {importLifecycleIssues.map((issue, index) => (
-                    <Alert
-                      key={`lifecycle-import-issue-${index}`}
-                      type="warning"
-                      showIcon
-                      title={(
-                        <span>
-                          {buildImportIssueTagItems(issue, { codeColor: 'gold' }).map((tag) => (
-                            <Tag key={tag.key} color={tag.color}>{tag.label}</Tag>
-                          ))}
-                          {issue.message}
-                        </span>
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            <Card size="small" title="其他导入问题" data-testid="import-result-other-issues">
-              {importOtherIssues.length === 0 ? (
-                <Alert type="success" showIcon title="没有其他导入问题。" />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {importOtherIssues.map((issue, index) => {
-                    const severityMeta = getImportIssueSeverityDisplayMeta(issue.severity)
-                    return (
-                      <Alert
-                        key={`other-import-issue-${index}`}
-                        type={severityMeta.alertType}
-                        showIcon
-                        title={(
-                          <span>
-                            {buildImportIssueTagItems(issue, { includeSeverity: true }).map((tag) => (
-                              <Tag key={tag.key} color={tag.color}>{tag.label}</Tag>
-                            ))}
-                            {issue.message}
-                          </span>
-                        )}
-                      />
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-
-            {importIssues.length === 0 ? (
-              <Alert type="success" showIcon title="导入完成，无警告或错误。" />
-            ) : (
-              <div data-testid="import-result-all-issues" className="flex flex-col gap-2">
-                <div className="font-semibold">全部导入问题</div>
-                <Table
-                  size="small"
-                  pagination={{ pageSize: 8 }}
-                  rowKey={(_, index) => `issue-${index}`}
-                  dataSource={importIssues}
-                  columns={buildImportIssueColumns()}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+      />
 
       <Modal
         title="删除申请"
