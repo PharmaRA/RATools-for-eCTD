@@ -5,14 +5,12 @@ using Microsoft.Extensions.Logging;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Auditing;
 using RATools.Application.Auditing.Requests;
-using RATools.Domain.Publishing;
 
 namespace RATools.Infrastructure.Publishing;
 
 /// <summary>
-/// 兼容性启动回收：Pending 行已经是持久队列事实，必须保留给 worker 继续认领；
-/// 当前仅把上一进程中断的 Running 行标记为 Failed。Phase 3 的下一项会改为只处理
-/// 租约已过期的 Running 行，从而解除这里仍然存在的单实例启动假设。
+/// 启动时原子回收租约已过期（或迁移前没有租约）的 Running 作业。Pending 行是持久
+/// 队列事实，仍由 worker 认领；未过期的租约可能属于另一个实例，绝不能触碰。
 /// </summary>
 public sealed partial class StalePublishJobRecoveryService(
     IServiceScopeFactory scopeFactory,
@@ -20,14 +18,14 @@ public sealed partial class StalePublishJobRecoveryService(
     ILogger<StalePublishJobRecoveryService> logger) : IHostedService
 {
     private const string RecoveryFailureReason =
-        "Recovered at startup: the process restarted while this publish job was executing.";
+        "Recovered at startup after the publish job execution lease expired or was missing.";
 
     [LoggerMessage(EventId = 3001, Level = LogLevel.Warning,
         Message = "Failed to write the startup-recovery audit entry for publish job {JobId}; the job itself was recovered.")]
     private static partial void LogRecoveryAuditWriteFailed(ILogger logger, Exception exception, Guid jobId);
 
     [LoggerMessage(EventId = 3002, Level = LogLevel.Warning,
-        Message = "Recovered {Count} publish job(s) left in Running state by a previous process.")]
+        Message = "Recovered {Count} publish job(s) with expired or missing execution leases.")]
     private static partial void LogStaleJobsRecovered(ILogger logger, int count);
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -45,19 +43,17 @@ public sealed partial class StalePublishJobRecoveryService(
         var repository = scope.ServiceProvider.GetRequiredService<IPublishJobRepository>();
         var auditLogService = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
 
-        var staleJobs = (await repository.ListActiveAsync(cancellationToken))
-            .Where(job => job.Status == PublishJobStatus.Running)
-            .ToArray();
-        if (staleJobs.Length == 0)
+        var staleJobs = await repository.RecoverExpiredLeasesAsync(
+            DateTime.UtcNow,
+            RecoveryFailureReason,
+            cancellationToken);
+        if (staleJobs.Count == 0)
         {
             return;
         }
 
         foreach (var job in staleJobs)
         {
-            job.MarkFailed(RecoveryFailureReason);
-            await repository.UpdateAsync(job, cancellationToken);
-
             try
             {
                 await auditLogService.CreateAsync(
@@ -66,7 +62,7 @@ public sealed partial class StalePublishJobRecoveryService(
                         EntityId: job.Id.ToString(),
                         Action: "RecoveredAtStartup",
                         Actor: "system",
-                        Details: $"Stale publish job for application {job.ApplicationId}, sequence {job.SequenceNumber} was marked Failed during startup recovery."),
+                        Details: $"Publish job for application {job.ApplicationId}, sequence {job.SequenceNumber} had an expired or missing lease and was marked Failed during startup recovery."),
                     cancellationToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -75,7 +71,7 @@ public sealed partial class StalePublishJobRecoveryService(
             }
         }
 
-        LogStaleJobsRecovered(logger, staleJobs.Length);
+        LogStaleJobsRecovered(logger, staleJobs.Count);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

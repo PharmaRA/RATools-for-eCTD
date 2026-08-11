@@ -67,6 +67,39 @@ public sealed class PostgresDurablePublishJobQueueTests(PostgresFixture fixture)
             lease.Job, lease.Token, lease.Owner, nowUtc.AddSeconds(1)));
     }
 
+    [RequiresPostgresFact]
+    public async Task ConcurrentStartupRecoveryRecoversOnlyExpiredLeaseOnce()
+    {
+        await ClearActiveJobsAsync();
+        var nowUtc = DateTime.UtcNow;
+        var expired = RunningJob("0001", nowUtc.AddMinutes(-1));
+        var live = RunningJob("0002", nowUtc.AddMinutes(1));
+        await using (var seedContext = fixture.CreateDbContext())
+        {
+            var seedRepository = new EfCorePublishJobRepository(seedContext);
+            await seedRepository.AddAsync(expired);
+            await seedRepository.AddAsync(live);
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+        var recoveries = await Task.WhenAll(
+            new EfCorePublishJobRepository(firstContext).RecoverExpiredLeasesAsync(
+                nowUtc,
+                "Expired during PostgreSQL recovery test."),
+            new EfCorePublishJobRepository(secondContext).RecoverExpiredLeasesAsync(
+                nowUtc,
+                "Expired during PostgreSQL recovery test."));
+
+        Assert.Single(recoveries.SelectMany(jobs => jobs), job => job.Id == expired.Id);
+        await using var verifyContext = fixture.CreateDbContext();
+        var storedExpired = await verifyContext.PublishJobs.AsNoTracking().SingleAsync(job => job.Id == expired.Id);
+        var storedLive = await verifyContext.PublishJobs.AsNoTracking().SingleAsync(job => job.Id == live.Id);
+        Assert.Equal("Failed", storedExpired.Status);
+        Assert.Equal("Running", storedLive.Status);
+        Assert.Equal(live.LeaseToken, storedLive.LeaseToken);
+    }
+
     private async Task ClearActiveJobsAsync()
     {
         await using var context = fixture.CreateDbContext();
@@ -81,5 +114,22 @@ public sealed class PostgresDurablePublishJobQueueTests(PostgresFixture fixture)
                 .SetProperty(job => job.LeaseToken, (Guid?)null)
                 .SetProperty(job => job.LeaseExpiresUtc, (DateTime?)null)
                 .SetProperty(job => job.LastHeartbeatUtc, (DateTime?)null));
+    }
+
+    private static PublishJob RunningJob(string sequenceNumber, DateTime leaseExpiresUtc)
+    {
+        var claimedAtUtc = leaseExpiresUtc.AddMinutes(-1);
+        var job = PublishJob.Rehydrate(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            sequenceNumber,
+            PublishJobStatus.Pending,
+            null,
+            null,
+            claimedAtUtc.AddMinutes(-1),
+            null,
+            null);
+        job.Claim("postgres-recovery-test-worker", claimedAtUtc, TimeSpan.FromMinutes(1));
+        return job;
     }
 }

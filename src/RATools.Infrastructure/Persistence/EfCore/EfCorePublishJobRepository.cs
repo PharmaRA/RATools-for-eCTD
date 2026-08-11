@@ -308,6 +308,59 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             updated);
     }
 
+    public async Task<IReadOnlyCollection<PublishJob>> RecoverExpiredLeasesAsync(
+        DateTime nowUtc,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+        var runningStatus = PublishJobStatus.Running.ToString();
+        var failedStatus = PublishJobStatus.Failed.ToString();
+        var normalizedReason = failureReason.Length <= 1024 ? failureReason : failureReason[..1024];
+        var recovered = new List<PublishJob>();
+
+        while (true)
+        {
+            var candidateId = await dbContext.PublishJobs
+                .AsNoTracking()
+                .Where(x => x.Status == runningStatus
+                    && (!x.LeaseExpiresUtc.HasValue || x.LeaseExpiresUtc <= nowUtc))
+                .OrderBy(x => x.LeaseExpiresUtc)
+                .ThenBy(x => x.CreatedUtc)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!candidateId.HasValue)
+            {
+                return recovered;
+            }
+
+            var affected = await dbContext.PublishJobs
+                .Where(x => x.Id == candidateId.Value
+                    && x.Status == runningStatus
+                    && (!x.LeaseExpiresUtc.HasValue || x.LeaseExpiresUtc <= nowUtc))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, failedStatus)
+                    .SetProperty(x => x.PackagePath, (string?)null)
+                    .SetProperty(x => x.CompletedUtc, nowUtc)
+                    .SetProperty(x => x.FailureReason, normalizedReason)
+                    .SetProperty(x => x.LeaseOwner, (string?)null)
+                    .SetProperty(x => x.LeaseToken, (Guid?)null)
+                    .SetProperty(x => x.LeaseExpiresUtc, (DateTime?)null)
+                    .SetProperty(x => x.LastHeartbeatUtc, (DateTime?)null),
+                    cancellationToken);
+            if (affected == 0)
+            {
+                continue;
+            }
+
+            var job = await GetAsync(candidateId.Value, cancellationToken);
+            if (job is not null)
+            {
+                recovered.Add(job);
+            }
+        }
+    }
+
     public async Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
     {
         var records = await dbContext.PublishJobs

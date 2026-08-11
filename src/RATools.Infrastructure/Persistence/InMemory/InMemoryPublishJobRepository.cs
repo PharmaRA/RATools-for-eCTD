@@ -211,6 +211,32 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         }
     }
 
+    public Task<IReadOnlyCollection<PublishJob>> RecoverExpiredLeasesAsync(
+        DateTime nowUtc,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+        lock (_activeJobGate)
+        {
+            var normalizedReason = failureReason.Length <= 1024 ? failureReason : failureReason[..1024];
+            var expired = _items.Values
+                .Where(job => job.Status == PublishJobStatus.Running
+                    && (!job.LeaseExpiresUtc.HasValue || job.LeaseExpiresUtc <= nowUtc))
+                .OrderBy(job => job.LeaseExpiresUtc)
+                .ThenBy(job => job.CreatedUtc)
+                .ToArray();
+
+            foreach (var job in expired)
+            {
+                job.MarkFailed(normalizedReason);
+                _items[job.Id] = Clone(job);
+            }
+
+            return Task.FromResult<IReadOnlyCollection<PublishJob>>(expired.Select(Clone).ToArray());
+        }
+    }
+
     public Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyCollection<PublishJob> items = _items.Values

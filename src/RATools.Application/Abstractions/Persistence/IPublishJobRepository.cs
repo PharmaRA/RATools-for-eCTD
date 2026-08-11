@@ -58,11 +58,16 @@ public interface IPublishJobRepository
         CancellationToken cancellationToken = default)
         => Task.FromResult(new PublishJobRetryResult(PublishJobRetryDisposition.LeaseLost, null));
 
+    Task<IReadOnlyCollection<PublishJob>> RecoverExpiredLeasesAsync(
+        DateTime nowUtc,
+        string failureReason,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyCollection<PublishJob>>([]);
+
     Task<IReadOnlyCollection<PublishJob>> ListAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 列出全部处于 Pending/Running 的活动作业。用于进程启动时回收上一进程遗留的
-    /// 幽灵作业——它们占用活动作业唯一索引，会永久阻塞对应序列再次发布。
+    /// 列出全部处于 Pending/Running 的活动作业。
     /// </summary>
     Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default);
 

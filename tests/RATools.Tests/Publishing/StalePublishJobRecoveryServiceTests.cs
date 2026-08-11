@@ -40,31 +40,40 @@ public sealed class StalePublishJobRecoveryServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_PreservesPendingJobsAndMarksInterruptedRunningJobsAsFailed()
+    public async Task StartAsync_RecoversOnlyExpiredOrUnleasedRunningJobs()
     {
         var (service, repository, _) = CreateService();
         var pendingJob = new PublishJob(Guid.NewGuid(), "0000");
-        var runningJob = new PublishJob(Guid.NewGuid(), "0001");
-        runningJob.MarkRunning();
+        var expiredJob = RunningJob("0001", DateTime.UtcNow.AddMinutes(-1));
+        var liveJob = RunningJob("0002", DateTime.UtcNow.AddMinutes(5));
+        var legacyUnleasedJob = new PublishJob(Guid.NewGuid(), "0003");
+        legacyUnleasedJob.MarkRunning();
         await repository.AddAsync(pendingJob);
-        await repository.AddAsync(runningJob);
+        await repository.AddAsync(expiredJob);
+        await repository.AddAsync(liveJob);
+        await repository.AddAsync(legacyUnleasedJob);
 
         await service.StartAsync(CancellationToken.None);
 
         var recoveredPending = await repository.GetAsync(pendingJob.Id);
-        var recoveredRunning = await repository.GetAsync(runningJob.Id);
+        var recoveredExpired = await repository.GetAsync(expiredJob.Id);
+        var untouchedLive = await repository.GetAsync(liveJob.Id);
+        var recoveredLegacy = await repository.GetAsync(legacyUnleasedJob.Id);
         Assert.Equal(PublishJobStatus.Pending, recoveredPending!.Status);
-        Assert.Equal(PublishJobStatus.Failed, recoveredRunning!.Status);
+        Assert.Equal(PublishJobStatus.Failed, recoveredExpired!.Status);
+        Assert.Equal(PublishJobStatus.Running, untouchedLive!.Status);
+        Assert.Equal(liveJob.LeaseToken, untouchedLive.LeaseToken);
+        Assert.Equal(PublishJobStatus.Failed, recoveredLegacy!.Status);
         Assert.Null(recoveredPending.FailureReason);
-        Assert.Contains("Recovered at startup", recoveredRunning.FailureReason);
+        Assert.Contains("expired", recoveredExpired.FailureReason, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expired", recoveredLegacy.FailureReason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task StartAsync_WritesRecoveryAuditEntries()
     {
         var (service, repository, auditRepository) = CreateService();
-        var staleJob = new PublishJob(Guid.NewGuid(), "0000");
-        staleJob.MarkRunning();
+        var staleJob = RunningJob("0000", DateTime.UtcNow.AddMinutes(-1));
         await repository.AddAsync(staleJob);
 
         await service.StartAsync(CancellationToken.None);
@@ -73,6 +82,37 @@ public sealed class StalePublishJobRecoveryServiceTests
         var recoveryEntry = Assert.Single(entries, x => x.Action == "RecoveredAtStartup");
         Assert.Equal("PublishJob", recoveryEntry.EntityType);
         Assert.Equal(staleJob.Id.ToString(), recoveryEntry.EntityId);
+    }
+
+    [Fact]
+    public async Task StartAsync_ConcurrentInstancesRecoverAnExpiredLeaseOnlyOnce()
+    {
+        var (firstService, repository, auditRepository) = CreateService();
+        var services = new ServiceCollection();
+        services.AddSingleton<IPublishJobRepository>(repository);
+        services.AddSingleton<IAuditLogRepository>(auditRepository);
+        services.AddSingleton<IAuditLogService, AuditLogService>();
+        using var secondProvider = services.BuildServiceProvider();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Persistence:Provider"] = "PostgreSql",
+            })
+            .Build();
+        var secondService = new StalePublishJobRecoveryService(
+            secondProvider.GetRequiredService<IServiceScopeFactory>(),
+            configuration,
+            NullLogger<StalePublishJobRecoveryService>.Instance);
+        var staleJob = RunningJob("0000", DateTime.UtcNow.AddMinutes(-1));
+        await repository.AddAsync(staleJob);
+
+        await Task.WhenAll(
+            firstService.StartAsync(CancellationToken.None),
+            secondService.StartAsync(CancellationToken.None));
+
+        var entries = await auditRepository.ListAsync();
+        Assert.Single(entries, entry => entry.Action == "RecoveredAtStartup");
+        Assert.Equal(PublishJobStatus.Failed, (await repository.GetAsync(staleJob.Id))!.Status);
     }
 
     [Fact]
@@ -141,5 +181,22 @@ public sealed class StalePublishJobRecoveryServiceTests
         var untouched = await repository.GetAsync(activeJob.Id);
         Assert.Equal(PublishJobStatus.Pending, untouched!.Status);
         Assert.Empty(await auditRepository.ListAsync());
+    }
+
+    private static PublishJob RunningJob(string sequenceNumber, DateTime leaseExpiresUtc)
+    {
+        var claimedAtUtc = leaseExpiresUtc.AddMinutes(-1);
+        var job = PublishJob.Rehydrate(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            sequenceNumber,
+            PublishJobStatus.Pending,
+            null,
+            null,
+            claimedAtUtc.AddMinutes(-1),
+            null,
+            null);
+        job.Claim("recovery-test-worker", claimedAtUtc, TimeSpan.FromMinutes(1));
+        return job;
     }
 }

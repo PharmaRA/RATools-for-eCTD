@@ -159,4 +159,47 @@ public sealed class DurablePublishJobQueueTests
         Assert.Equal(retryAt, retry.Job.NextAttemptUtc);
         Assert.Null(retry.Job.LeaseToken);
     }
+
+    [Fact]
+    public async Task EfCore_ExpiredLeaseRecoveryDoesNotTouchLiveLease()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).Options;
+        await using var context = new RAToolsDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var repository = new EfCorePublishJobRepository(context);
+        var nowUtc = DateTime.UtcNow;
+        var expired = RunningJob("0001", nowUtc.AddMinutes(-1));
+        var live = RunningJob("0002", nowUtc.AddMinutes(1));
+        await repository.AddAsync(expired);
+        await repository.AddAsync(live);
+
+        var recovered = await repository.RecoverExpiredLeasesAsync(
+            nowUtc,
+            "Expired during SQLite recovery test.");
+
+        Assert.Single(recovered, job => job.Id == expired.Id);
+        Assert.Equal(PublishJobStatus.Failed, (await repository.GetAsync(expired.Id))!.Status);
+        var storedLive = await repository.GetAsync(live.Id);
+        Assert.Equal(PublishJobStatus.Running, storedLive!.Status);
+        Assert.Equal(live.LeaseToken, storedLive.LeaseToken);
+    }
+
+    private static PublishJob RunningJob(string sequenceNumber, DateTime leaseExpiresUtc)
+    {
+        var claimedAtUtc = leaseExpiresUtc.AddMinutes(-1);
+        var job = PublishJob.Rehydrate(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            sequenceNumber,
+            PublishJobStatus.Pending,
+            null,
+            null,
+            claimedAtUtc.AddMinutes(-1),
+            null,
+            null);
+        job.Claim("durable-queue-test-worker", claimedAtUtc, TimeSpan.FromMinutes(1));
+        return job;
+    }
 }

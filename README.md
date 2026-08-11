@@ -126,6 +126,8 @@ real regulatory documents.
 - `PublishJobs:RetryDelay` (default `00:00:05`): delay before a failed attempt is eligible again.
 - `PublishJobs:MaxAttempts` (default `3`): maximum claims before an execution failure becomes
   terminal. Lease tokens fence stale workers from persisting state after ownership changes.
+  Startup recovery marks only `Running` jobs with expired or missing leases as `Failed` and
+  never touches `Pending` jobs or another instance's unexpired lease.
 
 ## Working Directories
 
