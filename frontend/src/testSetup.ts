@@ -17,17 +17,19 @@ const shouldIgnoreConsoleWarning = (args: unknown[]) => {
   return ignoredConsoleWarnings.some((warning) => message.includes(warning))
 }
 
-const consoleWarn = console.warn.bind(console)
-const consoleError = console.error.bind(console)
+const failOnUnexpectedConsoleOutput = (level: 'warn' | 'error', args: unknown[]) => {
+  const message = args.map((arg) => String(arg)).join(' ')
+  throw new Error(`Unexpected console.${level}: ${message}`)
+}
 
 console.warn = (...args: unknown[]) => {
   if (shouldIgnoreConsoleWarning(args)) return
-  consoleWarn(...args)
+  failOnUnexpectedConsoleOutput('warn', args)
 }
 
 console.error = (...args: unknown[]) => {
   if (shouldIgnoreConsoleWarning(args)) return
-  consoleError(...args)
+  failOnUnexpectedConsoleOutput('error', args)
 }
 
 beforeEach(() => {
