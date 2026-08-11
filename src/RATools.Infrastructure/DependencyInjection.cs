@@ -42,6 +42,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
+        services.Configure<DeploymentOptions>(configuration.GetSection(DeploymentOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
         services.AddSingleton<IPublishArtifactStore, LocalPublishArtifactStore>();
@@ -55,6 +56,8 @@ public static class DependencyInjection
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
         services.AddSingleton<IWorkspacePathPolicy, ConfiguredWorkspacePathPolicy>();
         services.AddSingleton<StartupConfigurationValidator>();
+        services.AddSingleton<LocalOnlyDeploymentValidator>();
+        services.AddSingleton<LocalOnlyInstanceLock>();
         services.AddSingleton<IServerDirectoryBrowser, LocalServerDirectoryBrowser>();
         services.AddSingleton<IWorkspaceDeletionService, WorkspaceDeletionService>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();

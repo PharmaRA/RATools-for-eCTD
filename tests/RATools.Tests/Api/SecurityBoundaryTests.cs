@@ -352,6 +352,7 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = apiKey,
                         ["Security:AllowedWorkspaceRoots:0"] = allowedRoot,
@@ -378,6 +379,7 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = apiKey,
                         ["FileStorage:RootPath"] = Path.Combine(Path.GetTempPath(), "ratools-test-uploads"),

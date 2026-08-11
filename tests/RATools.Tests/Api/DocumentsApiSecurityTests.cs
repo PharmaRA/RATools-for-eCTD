@@ -82,6 +82,7 @@ public sealed class DocumentsApiSecurityTests : IClassFixture<WebApplicationFact
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = storageRoot,

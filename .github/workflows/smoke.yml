@@ -20,13 +20,13 @@ jobs:
         env:
           POSTGRES_DB: ratools
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: RATools-smoke-database-password-2026
         ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U postgres -d ratools"
           --health-interval 10s --health-timeout 5s --health-retries 10
     env:
-      ApiKey: smoke-ci-key
+      ApiKey: RATools-smoke-local-only-api-key-2026
       # smoke-test.ps1 在 $env:TEMP（ubuntu 上为 /tmp）下创建应用工作区与样本文件，
       # API 的白名单必须允许该根目录。
       WorkspaceRoot: /tmp
@@ -55,7 +55,7 @@ jobs:
           ASPNETCORE_URLS: http://localhost:5000
           ASPNETCORE_ENVIRONMENT: Production
           Persistence__Provider: PostgreSql
-          ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=postgres
+          ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=RATools-smoke-database-password-2026
           Security__ApiKey: ${{ env.ApiKey }}
           Security__AllowedWorkspaceRoots__0: ${{ env.WorkspaceRoot }}
           Security__AllowedWorkspaceRoots__1: ${{ env.PublishRoot }}

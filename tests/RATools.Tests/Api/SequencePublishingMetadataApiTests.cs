@@ -107,6 +107,7 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = apiKey,
                         ["Security:AllowedWorkspaceRoots:0"] = allowedRoot,

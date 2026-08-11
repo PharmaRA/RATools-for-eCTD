@@ -29,6 +29,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = Path.GetTempPath(),
@@ -60,6 +61,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = Path.GetTempPath(),
@@ -121,6 +123,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = Path.GetTempPath(),
@@ -151,6 +154,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = Path.GetTempPath(),
@@ -181,6 +185,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
                     configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["Persistence:Provider"] = "InMemory",
+                        ["Deployment:Mode"] = "LocalOnly",
                         ["Swagger:Enabled"] = "false",
                         ["Security:ApiKey"] = "test-key",
                         ["Security:AllowedWorkspaceRoots:0"] = Path.GetTempPath(),

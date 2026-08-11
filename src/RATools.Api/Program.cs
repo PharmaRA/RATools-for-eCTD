@@ -76,18 +76,25 @@ if (!string.Equals(persistenceProvider, "InMemory", StringComparison.OrdinalIgno
 var app = builder.Build();
 
 var provider = app.Configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
+using (var validatorScope = app.Services.CreateScope())
+{
+    validatorScope.ServiceProvider.GetRequiredService<LocalOnlyDeploymentValidator>().Validate();
+    if (!string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
+    {
+        validatorScope.ServiceProvider.GetRequiredService<StartupConfigurationValidator>().Validate();
+    }
+}
+
+if (!string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    app.Services.GetRequiredService<LocalOnlyInstanceLock>().Acquire();
+}
+
 if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RAToolsDbContext>();
     dbContext.Database.Migrate();
-}
-
-if (!string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
-{
-    using var validatorScope = app.Services.CreateScope();
-    var validator = validatorScope.ServiceProvider.GetRequiredService<StartupConfigurationValidator>();
-    validator.Validate();
 }
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);

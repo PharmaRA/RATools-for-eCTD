@@ -93,19 +93,33 @@ browser, API, PostgreSQL database, and workspaces on the same controlled host. K
 the API and database bound to loopback; do not expose this build through a LAN,
 reverse proxy, public address, or multiple replicas.
 
+Startup enforces this boundary: `Deployment:Mode` must remain `LocalOnly`, every API
+listener and PostgreSQL host must be loopback, and a cross-process lock rejects a
+second relational API/worker process. Outside the `Development` environment, startup
+also rejects short/development API keys and default PostgreSQL passwords. These checks
+are support boundaries, not a substitute for host access controls.
+
 The browser-visible shared API key is an access gate, not a user identity or a
 browser secret. Client-created audit entries also do not provide multi-user
 non-repudiation. Shared or horizontally scaled deployment remains unsupported until
 the identity, server-derived audit, persistent lease queue, and migration controls in
 the locally maintained ADR-0001 are complete. ADRs are not part of the public repository.
 
-The tracked Compose and development settings are development conveniences, not a
-hardened deployment profile. Review the ADR's local-only requirements before using
-real regulatory documents.
+The tracked Compose port is bound to `127.0.0.1`, but its credentials and the
+development settings are still development conveniences, not a hardened deployment
+profile. Review the ADR's local-only requirements before using real regulatory documents.
 
 ## Key Configuration
 
-- `Security:ApiKey`: required for non-InMemory providers; startup fails fast when empty.
+- `Deployment:Mode`: fixed to `LocalOnly`; any other value is rejected because shared
+  deployment is not implemented.
+- `Deployment:InstanceLockPath` (default `App_Data/ratools-api.lock`): cross-process lock
+  held for the lifetime of a relational API/worker process. Put all replicas of one local
+  installation on the same lock path; only one may run.
+- `Urls`: configured values must contain only HTTP(S) loopback listeners. Configured
+  `Kestrel:Endpoints:*:Url` values are checked by the same rule.
+- `Security:ApiKey`: required for non-InMemory providers; outside `Development`, it must
+  be a non-development value of at least 32 characters.
 - `Security:AllowedWorkspaceRoots`: whitelist roots for every workspace read/write/delete.
 - `Security:AllowDestructiveOperations` (default `false`): gates `deleteMode=PurgeWorkspace`
   (recursive workspace deletion). Keep it off unless an environment explicitly needs purge.
@@ -128,6 +142,11 @@ real regulatory documents.
   terminal. Lease tokens fence stale workers from persisting state after ownership changes.
   Startup recovery marks only `Running` jobs with expired or missing leases as `Failed` and
   never touches `Pending` jobs or another instance's unexpired lease.
+
+For a non-development local run, override both tracked development credentials and keep
+all endpoints on loopback, for example with `ASPNETCORE_URLS`, `Security__ApiKey`, and
+`ConnectionStrings__PostgreSql` environment variables. Startup validates these values
+before acquiring the instance lock or applying a database migration.
 
 ## Working Directories
 
