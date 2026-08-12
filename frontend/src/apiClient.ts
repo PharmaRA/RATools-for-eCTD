@@ -7,6 +7,12 @@ type ProblemDetails = {
   message?: string;
 };
 
+let runtimeApiKey: string | undefined;
+
+export const setRuntimeApiKey = (apiKey: string | undefined) => {
+  runtimeApiKey = apiKey;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly title?: string;
@@ -49,7 +55,7 @@ const buildErrorMessage = (status: number, data?: ProblemDetails) => {
 
 const buildHeaders = (init?: RequestInit) => {
   const headers = new Headers(init?.headers);
-  const apiKey = import.meta.env.VITE_API_KEY;
+  const apiKey = runtimeApiKey ?? import.meta.env.VITE_API_KEY;
 
   if (apiKey && !headers.has('X-RA-Tools-Api-Key')) {
     headers.set('X-RA-Tools-Api-Key', apiKey);

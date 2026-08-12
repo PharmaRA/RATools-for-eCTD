@@ -80,6 +80,9 @@ if (!string.Equals(persistenceProvider, "InMemory", StringComparison.OrdinalIgno
 
 var app = builder.Build();
 
+var frontendIndex = app.Environment.WebRootFileProvider.GetFileInfo("index.html");
+var frontendAvailable = frontendIndex.Exists;
+
 var provider = app.Configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
 using (var validatorScope = app.Services.CreateScope())
 {
@@ -106,13 +109,30 @@ var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+if (frontendAvailable)
+{
+    app.UseStaticFiles();
+}
+
 if (swaggerEnabled)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.MapGet("/", () => Results.Redirect(swaggerEnabled ? "/swagger" : "/health")).AllowAnonymous();
+app.MapGet("/", (HttpContext context) => frontendAvailable
+    ? CreateFrontendIndexResult(context)
+    : Results.Redirect(swaggerEnabled ? "/swagger" : "/health")).AllowAnonymous();
+
+if (frontendAvailable || app.Environment.IsDevelopment())
+{
+    app.MapGet("/runtime-config", (HttpContext context) =>
+    {
+        var apiKey = app.Configuration.GetValue<string>("Security:ApiKey") ?? string.Empty;
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Json(new { apiKey });
+    }).AllowAnonymous().ExcludeFromDescription();
+}
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 // 存活探针：进程在跑即 200，不探测依赖，供编排器存活探针使用。
@@ -135,7 +155,39 @@ app.MapGet("/version", () =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+if (frontendAvailable)
+{
+    app.MapFallback(async context =>
+    {
+        if (!HttpMethods.IsGet(context.Request.Method)
+            || IsReservedServerPath(context.Request.Path)
+            || !AcceptsHtml(context.Request))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        await CreateFrontendIndexResult(context).ExecuteAsync(context);
+    }).AllowAnonymous();
+}
 app.Run();
+
+IResult CreateFrontendIndexResult(HttpContext context)
+{
+    context.Response.Headers.CacheControl = "no-cache";
+    return Results.Stream(frontendIndex.CreateReadStream(), "text/html; charset=utf-8");
+}
+
+static bool AcceptsHtml(HttpRequest request)
+    => request.GetTypedHeaders().Accept?.Any(value =>
+        string.Equals(value.MediaType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) == true;
+
+static bool IsReservedServerPath(PathString path)
+    => path.StartsWithSegments("/api")
+        || path.StartsWithSegments("/health")
+        || path.StartsWithSegments("/swagger")
+        || path.StartsWithSegments("/version");
 
 file static class HealthCheckTags
 {

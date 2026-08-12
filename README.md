@@ -88,6 +88,27 @@ Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` t
 
 Default backend configuration is in `src/RATools.Api/appsettings.json`.
 
+## Production Image
+
+The root `Dockerfile` creates one production artifact: Node 22 builds the React
+application, .NET 8 publishes the API, and the final ASP.NET runtime image serves
+the frontend from `wwwroot` on the same origin as `/api`. The final image runs as
+the built-in non-root .NET user and contains no development `.env` file or runtime
+`App_Data` content. At startup, `/runtime-config` supplies the browser-visible
+local-only API access key from the API's runtime configuration with `no-store`; the
+key is not baked into an image layer.
+
+```powershell
+docker build --pull --tag ratools:local .
+```
+
+The image listens on container port `8080`. `Deployment:Containerized=true` only
+allows the required wildcard listener inside the container; the local-only support
+boundary still requires the published host port and database to remain local to the
+controlled host. The production Compose topology, reverse proxy, TLS, external
+secrets, and persistent volume mounts are separate deployment controls and are not
+provided by this image-only step.
+
 ## Supported Deployment Boundary
 
 The current release supports one trusted operator, one API/worker process, and a

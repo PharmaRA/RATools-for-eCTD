@@ -7,5 +7,7 @@ public sealed class DeploymentOptions
 
     public string Mode { get; set; } = string.Empty;
 
+    public bool Containerized { get; set; }
+
     public string InstanceLockPath { get; set; } = "App_Data/ratools-api.lock";
 }

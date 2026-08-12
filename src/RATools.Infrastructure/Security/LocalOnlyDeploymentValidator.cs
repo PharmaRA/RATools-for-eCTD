@@ -74,12 +74,28 @@ public sealed class LocalOnlyDeploymentValidator(
         {
             if (!Uri.TryCreate(listener.Url, UriKind.Absolute, out var uri)
                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-                || !IsLoopbackHost(uri.Host))
+                || !IsAllowedListenerHost(uri.Host))
             {
                 throw new InvalidOperationException(
-                    $"{listener.Key} '{listener.Url}' must use an HTTP(S) loopback host (localhost, 127.0.0.0/8, or ::1) in LocalOnly mode.");
+                    $"{listener.Key} '{listener.Url}' must use an HTTP(S) loopback host in LocalOnly mode; wildcard container listeners additionally require Deployment:Containerized=true.");
             }
         }
+    }
+
+    private bool IsAllowedListenerHost(string host)
+    {
+        if (IsLoopbackHost(host))
+        {
+            return true;
+        }
+
+        if (!deploymentOptions.Value.Containerized)
+        {
+            return false;
+        }
+
+        var normalized = host.Trim().TrimStart('[').TrimEnd(']');
+        return normalized is "0.0.0.0" or "::" or "*" or "+";
     }
 
     private void ValidatePostgresConnection(bool allowDevelopmentPassword)

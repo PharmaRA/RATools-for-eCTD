@@ -48,6 +48,10 @@ const config = {
       '/health': {
         target: 'http://localhost:5000',
         changeOrigin: true
+      },
+      '/runtime-config': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   }

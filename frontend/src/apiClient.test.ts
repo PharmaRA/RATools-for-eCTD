@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiRequestError, apiFetch, buildJsonRequestInit } from './apiClient';
+import { ApiRequestError, apiFetch, buildJsonRequestInit, setRuntimeApiKey } from './apiClient';
 
 describe('apiClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    setRuntimeApiKey(undefined);
   });
 
   it('builds JSON request init objects', () => {
@@ -105,5 +106,20 @@ describe('apiClient', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     const headers = new Headers(init.headers);
     expect(headers.get('X-RA-Tools-Api-Key')).toBe('dev-api-key-do-not-use-in-production');
+  });
+
+  it('prefers the runtime API key over the development build fallback', async () => {
+    setRuntimeApiKey('runtime-api-key');
+    vi.stubEnv('VITE_API_KEY', 'development-api-key');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await apiFetch('/api/applications');
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(new Headers(init.headers).get('X-RA-Tools-Api-Key')).toBe('runtime-api-key');
   });
 });

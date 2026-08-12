@@ -48,6 +48,28 @@ public sealed class LocalOnlyDeploymentBoundaryTests
     }
 
     [Fact]
+    public void Validate_AcceptsWildcardListenerOnlyForContainerizedDeployment()
+    {
+        var validator = CreateValidator(
+            urls: "http://0.0.0.0:8080;http://[::]:8081",
+            containerized: true);
+
+        validator.Validate();
+    }
+
+    [Fact]
+    public void Validate_ContainerizedDeploymentStillRejectsLanListener()
+    {
+        var validator = CreateValidator(
+            urls: "http://192.168.1.10:8080",
+            containerized: true);
+
+        var exception = Assert.Throws<InvalidOperationException>(validator.Validate);
+
+        Assert.Contains("loopback", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Validate_RejectsNonLoopbackKestrelEndpoint()
     {
         var validator = CreateValidator(
@@ -168,6 +190,7 @@ public sealed class LocalOnlyDeploymentBoundaryTests
         string apiKey = "dev-api-key-do-not-use-in-production",
         string provider = "InMemory",
         string? connectionString = null,
+        bool containerized = false,
         IReadOnlyDictionary<string, string?>? additionalConfiguration = null)
     {
         var values = new Dictionary<string, string?>
@@ -191,7 +214,11 @@ public sealed class LocalOnlyDeploymentBoundaryTests
         return new LocalOnlyDeploymentValidator(
             configuration,
             new TestHostEnvironment(environmentName, AppContext.BaseDirectory),
-            Options.Create(new DeploymentOptions { Mode = deploymentMode }));
+            Options.Create(new DeploymentOptions
+            {
+                Mode = deploymentMode,
+                Containerized = containerized,
+            }));
     }
 
     private sealed class TestHostEnvironment(string environmentName, string contentRootPath) : IHostEnvironment
