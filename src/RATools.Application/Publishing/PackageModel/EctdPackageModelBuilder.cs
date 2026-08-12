@@ -97,7 +97,7 @@ public sealed class EctdPackageModelBuilder(
             publishedFiles);
     }
 
-    private IReadOnlyCollection<EctdLeaf> BuildLeaves(
+    private EctdLeaf[] BuildLeaves(
         Domain.Applications.SubmissionApplication application,
         string sequenceNumber,
         IReadOnlyCollection<DocumentPlacement> placements,
@@ -298,7 +298,7 @@ public sealed class EctdPackageModelBuilder(
         return string.Empty;
     }
 
-    private static IReadOnlyCollection<EctdPublishedFile> BuildPublishedFiles(IReadOnlyCollection<EctdLeaf> leaves)
+    private static EctdPublishedFile[] BuildPublishedFiles(EctdLeaf[] leaves)
     {
         // delete leaf 只声明生命周期操作，不交付新文件：把被删文件复制进新序列
         // 交付包违反 eCTD 惯例（官方验证器将其视为未引用的孤儿文件）。

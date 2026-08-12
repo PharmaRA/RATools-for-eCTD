@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -18,6 +19,7 @@ namespace RATools.Application.Publishing;
 /// </summary>
 public sealed partial class PublishOutputVerifier
 {
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "This operation is resolved as an application service and intentionally keeps an instance service contract.")]
     public Task<PublishIntegrityVerificationDto> VerifyAsync(
         string? outputPath,
         string? reportPath,
@@ -199,7 +201,7 @@ public sealed partial class PublishOutputVerifier
 
     private sealed record BackboneLeafReference(string Href, string? Checksum, string? ChecksumType);
 
-    private static IReadOnlyList<BackboneFileInfo> CollectBackboneFiles(string outputRoot, string? outputPath)
+    private static List<BackboneFileInfo> CollectBackboneFiles(string outputRoot, string? outputPath)
     {
         var files = new List<BackboneFileInfo>();
         if (!string.IsNullOrWhiteSpace(outputPath) && File.Exists(outputPath))
@@ -225,7 +227,7 @@ public sealed partial class PublishOutputVerifier
         return files;
     }
 
-    private void VerifyBackboneReferences(
+    private static void VerifyBackboneReferences(
         BackboneFileInfo backboneFile,
         string outputRoot,
         HashSet<string> referencedRelativePaths,
@@ -434,8 +436,8 @@ public sealed partial class PublishOutputVerifier
     private static void AddTopLevelArtifact(
         string role,
         string? path,
-        ICollection<PublishArtifactEvidenceDto> artifacts,
-        ICollection<PublishIntegrityFindingDto> findings,
+        List<PublishArtifactEvidenceDto> artifacts,
+        List<PublishIntegrityFindingDto> findings,
         ref int missingFilesCount)
     {
         var exists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
@@ -471,7 +473,7 @@ public sealed partial class PublishOutputVerifier
         }
     }
 
-    private static IReadOnlyCollection<BackboneLeafReference> ReadLeafReferences(string backbonePath)
+    private static BackboneLeafReference[] ReadLeafReferences(string backbonePath)
     {
         // 安全解析：忽略 DTD、禁用外部实体解析（核验目标是不受信任的输出产物）。
         var settings = new XmlReaderSettings

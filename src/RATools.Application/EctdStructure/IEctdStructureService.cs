@@ -4,5 +4,5 @@ namespace RATools.Application.EctdStructure;
 
 public interface IEctdStructureService
 {
-    EctdStructureDto Get(string ectdTemplateKey);
+    EctdStructureDto GetStructure(string ectdTemplateKey);
 }

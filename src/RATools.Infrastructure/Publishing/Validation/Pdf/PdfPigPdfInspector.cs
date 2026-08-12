@@ -26,9 +26,12 @@ public sealed class PdfPigPdfInspector : IPdfInspector
                 .Cast<PdfLinkReference>()
                 .ToArray();
             var bookmarksRead = document.TryGetBookmarks(out var bookmarks);
-            var hasBookmarks = bookmarksRead && bookmarks.Roots.Count > 0;
+            IReadOnlyList<BookmarkNode> bookmarkRoots = bookmarksRead && bookmarks is not null
+                ? bookmarks.Roots
+                : [];
+            var hasBookmarks = bookmarkRoots.Count > 0;
             // 读不到书签结构时深度未知（null）；读到了则 0 层也是事实。
-            var bookmarkMaxDepth = bookmarksRead ? ComputeBookmarkMaxDepth(bookmarks.Roots) : (int?)null;
+            var bookmarkMaxDepth = bookmarksRead ? ComputeBookmarkMaxDepth(bookmarkRoots) : (int?)null;
             var fontEmbedding = InspectFontEmbedding(document, pages);
 
             return new PdfInspectionResult(

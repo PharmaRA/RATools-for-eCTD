@@ -57,8 +57,8 @@ public sealed class SectionDictionary
 
         if (string.IsNullOrWhiteSpace(ctdSection) ||
             ctdSection.Contains("..", StringComparison.Ordinal) ||
-            ctdSection.StartsWith(".", StringComparison.Ordinal) ||
-            ctdSection.EndsWith(".", StringComparison.Ordinal))
+            ctdSection.StartsWith('.') ||
+            ctdSection.EndsWith('.'))
         {
             return false;
         }

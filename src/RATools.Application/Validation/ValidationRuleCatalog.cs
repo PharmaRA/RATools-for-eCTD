@@ -15,7 +15,7 @@ public static class ValidationRuleCatalog
         "Validation",
         "Resolve the validation issue before publishing.");
 
-    private static readonly IReadOnlyDictionary<string, ValidationRuleMetadata> Entries =
+    private static readonly Dictionary<string, ValidationRuleMetadata> Entries =
         new Dictionary<string, ValidationRuleMetadata>(StringComparer.OrdinalIgnoreCase)
         {
             // 应用/序列层

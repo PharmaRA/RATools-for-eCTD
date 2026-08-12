@@ -75,7 +75,7 @@ public static class EuEctd322
         }
     }
 
-    private static IReadOnlyDictionary<string, EctdWorkspacePathResolution> BuildCanonicalWorkspaceFolders()
+    private static Dictionary<string, EctdWorkspacePathResolution> BuildCanonicalWorkspaceFolders()
     {
         var folders = new Dictionary<string, EctdWorkspacePathResolution>(StringComparer.OrdinalIgnoreCase);
 
@@ -110,11 +110,11 @@ public static class EuEctd322
         }
     }
 
-    private static string BuildRelativeFolderPath(IReadOnlyList<SectionDictionaryManualNode> nodePath)
+    private static string BuildRelativeFolderPath(SectionDictionaryManualNode[] nodePath)
     {
         // EU M1 的物理布局锚定在 m1/eu 之下，与 EuRegionalXmlWriter 生成的
         // m1/eu/eu-regional.xml 相对 href 规则一致。
-        return nodePath.Count == 1
+        return nodePath.Length == 1
             ? Path.Combine("m1", "eu")
             : Path.Combine("m1", "eu", nodePath[^1].FolderName!);
     }

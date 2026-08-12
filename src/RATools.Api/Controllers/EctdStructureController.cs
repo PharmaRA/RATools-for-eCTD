@@ -21,7 +21,7 @@ public sealed class EctdStructureController(IEctdStructureService ectdStructureS
 
         try
         {
-            return Ok(ectdStructureService.Get(application.EctdTemplateKey));
+            return Ok(ectdStructureService.GetStructure(application.EctdTemplateKey));
         }
         catch (ArgumentException exception)
         {

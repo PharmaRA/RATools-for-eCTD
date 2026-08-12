@@ -107,10 +107,7 @@ public sealed class PublishJob : Entity
     public Guid Claim(string owner, DateTime nowUtc, TimeSpan leaseDuration)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
-        if (leaseDuration <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(leaseDuration, TimeSpan.Zero);
 
         if (Status != PublishJobStatus.Pending || NextAttemptUtc > nowUtc)
         {
@@ -131,10 +128,7 @@ public sealed class PublishJob : Entity
     public void RenewLease(Guid leaseToken, string owner, DateTime nowUtc, TimeSpan leaseDuration)
     {
         EnsureLease(leaseToken, owner);
-        if (leaseDuration <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(leaseDuration, TimeSpan.Zero);
 
         if (LeaseExpiresUtc <= nowUtc)
         {

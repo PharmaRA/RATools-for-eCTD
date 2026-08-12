@@ -215,7 +215,7 @@ public static class FdaEctd322
         IReadOnlyCollection<SectionDictionaryManualNode> children)
         => new(elementName, sectionPath, title, children, folderName);
 
-    private static IReadOnlyDictionary<string, EctdWorkspacePathResolution> BuildCanonicalWorkspaceFolders()
+    private static Dictionary<string, EctdWorkspacePathResolution> BuildCanonicalWorkspaceFolders()
     {
         var folders = new Dictionary<string, EctdWorkspacePathResolution>(StringComparer.OrdinalIgnoreCase);
 
@@ -250,11 +250,11 @@ public static class FdaEctd322
         }
     }
 
-    private static string BuildRelativeFolderPath(IReadOnlyList<SectionDictionaryManualNode> nodePath)
+    private static string BuildRelativeFolderPath(SectionDictionaryManualNode[] nodePath)
     {
         if (string.Equals(nodePath[0].SectionPath, "m1", StringComparison.OrdinalIgnoreCase))
         {
-            return nodePath.Count == 1
+            return nodePath.Length == 1
                 ? Path.Combine("m1", "us")
                 : Path.Combine("m1", "us", nodePath[^1].FolderName!);
         }

@@ -8,7 +8,7 @@ namespace RATools.Application.EctdStructure;
 public sealed class EctdStructureService : IEctdStructureService
 {
     // 与 EctdWorkspacePathResolver 相同的查表派发：模板 key → (章节树根, 区域, profile 名)。
-    private static readonly IReadOnlyDictionary<string, (SectionDictionaryManualNode Root, string Region, string ProfileName)> StructuresByTemplateKey =
+    private static readonly Dictionary<string, (SectionDictionaryManualNode Root, string Region, string ProfileName)> StructuresByTemplateKey =
         new Dictionary<string, (SectionDictionaryManualNode, string, string)>(StringComparer.OrdinalIgnoreCase)
         {
             [EctdTemplateRegistry.DefaultTemplateKey] = (
@@ -21,7 +21,7 @@ public sealed class EctdStructureService : IEctdStructureService
                 EuEctd322.ProfileName),
         };
 
-    public EctdStructureDto Get(string ectdTemplateKey)
+    public EctdStructureDto GetStructure(string ectdTemplateKey)
     {
         if (!StructuresByTemplateKey.TryGetValue(ectdTemplateKey, out var structure))
         {

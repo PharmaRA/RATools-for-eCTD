@@ -36,7 +36,7 @@ internal sealed record PublishValidationIssueReportSummary(
             BuildWarningSummary(warningCount, shownWarnings));
     }
 
-    private static string? BuildWarningSummary(int warningCount, IReadOnlyCollection<string> shownWarnings)
+    private static string? BuildWarningSummary(int warningCount, List<string> shownWarnings)
     {
         if (warningCount == 0)
         {

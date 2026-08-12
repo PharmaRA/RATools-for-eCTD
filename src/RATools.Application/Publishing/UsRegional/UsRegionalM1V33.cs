@@ -204,7 +204,7 @@ public static class UsRegionalM1V33
             Leaf("m1-20-general-investigational-plan-for-initial-ind", "m1.20")
         ]);
 
-    private static readonly IReadOnlyDictionary<string, UsRegionalSectionNode> BySectionPath = Flatten()
+    private static readonly Dictionary<string, UsRegionalSectionNode> BySectionPath = Flatten()
         .ToDictionary(x => x.SectionPath, x => x, StringComparer.OrdinalIgnoreCase);
 
     public static bool TryFind(string sectionPath, out UsRegionalSectionNode? node)

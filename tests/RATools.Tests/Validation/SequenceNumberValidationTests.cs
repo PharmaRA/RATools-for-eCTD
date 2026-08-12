@@ -132,8 +132,10 @@ public sealed class SequenceNumberValidationTests
             => Task.FromResult<SubmissionDocument?>(null);
         public Task<IReadOnlyCollection<SubmissionDocument>> ListAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<SubmissionDocument>>([]);
+#pragma warning disable CA1822 // Interface implementation must remain an instance member.
         public Task<IReadOnlyCollection<SubmissionDocument>> ListByIdsPreferScopedAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<SubmissionDocument>>([]);
+#pragma warning restore CA1822
     }
 
     private sealed class StubAuditLogService : IAuditLogService

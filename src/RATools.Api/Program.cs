@@ -75,7 +75,7 @@ var healthChecksBuilder = builder.Services.AddHealthChecks();
 var persistenceProvider = builder.Configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
 if (!string.Equals(persistenceProvider, "InMemory", StringComparison.OrdinalIgnoreCase))
 {
-    healthChecksBuilder.AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
+    healthChecksBuilder.AddCheck<DatabaseHealthCheck>("database", tags: HealthCheckTags.Ready);
 }
 
 var app = builder.Build();
@@ -136,5 +136,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+file static class HealthCheckTags
+{
+    public static readonly string[] Ready = ["ready"];
+}
 
 public partial class Program;

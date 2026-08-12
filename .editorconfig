@@ -32,6 +32,26 @@ dotnet_diagnostic.CA5351.severity = none
 # xUnit test method names use Method_Scenario_Result with underscores by convention.
 dotnet_diagnostic.CA1707.severity = none
 
+# These names describe the domain abstractions precisely; renaming them to avoid
+# collection suffixes would make the API less clear.
+[src/RATools.Application/Publishing/IPublishJobQueue.cs]
+dotnet_diagnostic.CA1711.severity = none
+
+[src/RATools.Application/Validation/SectionDictionary.cs]
+dotnet_diagnostic.CA1711.severity = none
+
+[src/RATools.Infrastructure/Publishing/ChannelPublishJobQueue.cs]
+dotnet_diagnostic.CA1711.severity = none
+
+[tests/RATools.Tests/Publishing/FakePublishJobQueue.cs]
+dotnet_diagnostic.CA1711.severity = none
+
+# EF migration operations are generated historical snapshots. Rewriting their
+# inline column arrays adds churn and can make future migration diffs misleading.
+[src/RATools.Infrastructure/Persistence/EfCore/Migrations/*.cs]
+dotnet_diagnostic.CA1825.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
 [*.{ts,tsx,js,jsx,json,yml,yaml,css}]
 indent_style = space
 indent_size = 2

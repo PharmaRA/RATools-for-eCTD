@@ -12,7 +12,7 @@ namespace RATools.Tests.Persistence;
 /// </summary>
 public sealed class MigrationsDiscoveryTests
 {
-    private static IReadOnlyList<string> GetDiscoveredMigrationIds()
+    private static string[] GetDiscoveredMigrationIds()
     {
         var options = new DbContextOptionsBuilder<RAToolsDbContext>()
             .UseNpgsql("Host=localhost;Database=unused;Username=unused;Password=unused")

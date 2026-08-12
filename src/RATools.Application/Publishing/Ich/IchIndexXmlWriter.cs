@@ -11,7 +11,7 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
         .Where(x => x.SectionPath is "m2" or "m3" or "m4" or "m5")
         .Select(BuildSectionPathNode)
         .ToArray();
-    private static readonly IReadOnlyDictionary<string, SectionPathNode> SectionByPath = IchTopLevelNodes
+    private static readonly Dictionary<string, SectionPathNode> SectionByPath = IchTopLevelNodes
         .SelectMany(Flatten)
         .ToDictionary(x => x.SectionPath, x => x, StringComparer.OrdinalIgnoreCase);
 

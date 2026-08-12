@@ -31,10 +31,7 @@ public sealed class SubmissionDocument : Entity
             ArgumentException.ThrowIfNullOrWhiteSpace(md5);
         }
 
-        if (fileSize < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(fileSize));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(fileSize);
 
         Id = id;
         FileName = fileName.Trim();

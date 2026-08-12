@@ -16,7 +16,9 @@ public sealed class PublishJobsControllerContractTests
         var service = new StubPublishJobService();
         var controller = new PublishJobsController(service);
 
+#pragma warning disable CS0618 // This contract test intentionally verifies the legacy endpoint response.
         var result = controller.Create();
+#pragma warning restore CS0618
 
         var response = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status410Gone, response.StatusCode);

@@ -128,6 +128,6 @@ public sealed class LifecycleTargetResolverTests
         Guid? lifecycleTargetPlacementId)
         => CreateHistorical(sequenceNumber, fileName, operation, lifecycleTargetPlacementId);
 
-    private static IReadOnlyDictionary<Guid, SubmissionDocument> Documents(params SubmissionDocument[] documents)
+    private static Dictionary<Guid, SubmissionDocument> Documents(params SubmissionDocument[] documents)
         => documents.ToDictionary(x => x.Id, x => x);
 }
