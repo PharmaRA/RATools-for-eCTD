@@ -9,6 +9,8 @@
     <ProjectReference Include="..\..\src\RATools.Application\RATools.Application.csproj" />
     <ProjectReference Include="..\..\src\RATools.Domain\RATools.Domain.csproj" />
     <ProjectReference Include="..\..\src\RATools.Infrastructure\RATools.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\RATools.DatabaseMigrator\RATools.DatabaseMigrator.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

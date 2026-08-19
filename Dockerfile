@@ -15,9 +15,18 @@ COPY src/RATools.Domain/RATools.Domain.csproj src/RATools.Domain/
 COPY src/RATools.Application/RATools.Application.csproj src/RATools.Application/
 COPY src/RATools.Infrastructure/RATools.Infrastructure.csproj src/RATools.Infrastructure/
 COPY src/RATools.Api/RATools.Api.csproj src/RATools.Api/
+COPY src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj src/RATools.DatabaseMigrator/
 RUN dotnet restore src/RATools.Api/RATools.Api.csproj
+RUN dotnet restore src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj
 COPY src/ ./src/
 RUN dotnet publish src/RATools.Api/RATools.Api.csproj --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
+RUN dotnet publish src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release --no-restore --output /app/migrator /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0.29-bookworm-slim AS migrator
+WORKDIR /app
+COPY --from=backend-build --chown=$APP_UID:$APP_UID /app/migrator ./
+USER $APP_UID
+ENTRYPOINT ["dotnet", "RATools.DatabaseMigrator.dll"]
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0.29-bookworm-slim AS runtime
 WORKDIR /app

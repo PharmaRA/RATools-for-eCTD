@@ -4,9 +4,9 @@ using RATools.Infrastructure.Persistence.EfCore;
 namespace RATools.Tests.Persistence.Postgres;
 
 /// <summary>
-/// 连上 <c>RATOOLS_TEST_POSTGRES</c> 指定的实例并跑一次 <c>MigrateAsync()</c>——
-/// 这同时也是迁移链能否落在真实 PostgreSQL 上的首个自动化验证
-/// （此前只有 smoke 经 API 间接覆盖）。各用例靠独立 GUID / 申请号互不干扰。
+/// 连上 <c>RATOOLS_TEST_POSTGRES</c> 指定的实例并验证独立迁移作业已经把 schema
+/// 更新到当前版本。测试进程不再隐式迁移数据库，避免掩盖部署顺序错误。
+/// 各用例靠独立 GUID / 申请号互不干扰。
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
@@ -21,7 +21,13 @@ public sealed class PostgresFixture : IAsyncLifetime
         }
 
         await using var dbContext = CreateDbContext();
-        await dbContext.Database.MigrateAsync();
+        var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToArray();
+        if (pendingMigrations.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "PostgreSQL test database was not migrated before the test run. "
+                + $"Pending migrations: {string.Join(", ", pendingMigrations)}");
+        }
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

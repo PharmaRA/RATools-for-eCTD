@@ -44,8 +44,15 @@ jobs:
         run: mkdir -p "$PublishRoot" "$UploadRoot"
 
       # 冷 runner 上 dotnet run 的隐式 restore+build 可能超过健康等待窗口；预先构建。
-      - name: Build API
-        run: dotnet build src/RATools.Api/RATools.Api.csproj --configuration Release
+      - name: Build API and database migrator
+        run: |
+          dotnet build src/RATools.Api/RATools.Api.csproj --configuration Release
+          dotnet build src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release
+
+      - name: Migrate database
+        run: dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release --no-build
+        env:
+          ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=RATools-smoke-database-password-2026
 
       - name: Start API
         run: |

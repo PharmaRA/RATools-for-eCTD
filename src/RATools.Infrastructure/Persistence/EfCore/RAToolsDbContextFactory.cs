@@ -18,7 +18,7 @@ public sealed class RAToolsDbContextFactory : IDesignTimeDbContextFactory<RATool
             .Build();
 
         var connectionString = configuration.GetConnectionString("PostgreSql")
-            ?? "Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=ratools;Username=postgres";
 
         var optionsBuilder = new DbContextOptionsBuilder<RAToolsDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

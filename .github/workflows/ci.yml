@@ -28,7 +28,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Repository hygiene
-        run: python3 scripts/tests/test_repository_hygiene.py
+        run: |
+          python3 scripts/tests/test_repository_hygiene.py
+          python3 scripts/tests/test_database_migration_contract.py
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -48,6 +50,13 @@ jobs:
 
       - name: Build
         run: dotnet build tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-restore
+
+      - name: Run database migrator twice
+        run: |
+          dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release --no-build
+          dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release --no-build
+        env:
+          ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres
 
       - name: Test
         run: dotnet test tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=backend.trx" --results-directory ./TestResults
@@ -175,11 +184,14 @@ jobs:
           caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
       - name: Build production image
-        run: docker build --pull --tag ratools:ci .
+        run: |
+          docker build --pull --target migrator --tag ratools-migrator:ci .
+          docker build --pull --tag ratools:ci .
 
       - name: Verify non-root runtime and frontend artifact
         run: |
           test "$(docker image inspect --format '{{.Config.User}}' ratools:ci)" != "0"
+          test "$(docker image inspect --format '{{.Config.User}}' ratools-migrator:ci)" != "0"
           container_id=$(docker create ratools:ci)
           trap 'docker rm -f "$container_id" >/dev/null' EXIT
           docker cp "$container_id:/app/wwwroot/index.html" ./image-index.html

@@ -58,6 +58,31 @@ services:
       retries: 12
       start_period: 20s
 
+  migration:
+    image: ratools-migrator:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    network_mode: "service:proxy"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      ConnectionStrings__PostgreSql: Host=127.0.0.1;Port=5432;Database=ratools;Username=ratools
+      FileSecrets__PostgreSqlPasswordPath: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
   api:
     image: ratools:local
     build:
@@ -65,8 +90,8 @@ services:
       dockerfile: Dockerfile
     network_mode: "service:proxy"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     restart: unless-stopped
     init: true
     read_only: true

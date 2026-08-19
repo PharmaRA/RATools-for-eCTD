@@ -66,7 +66,7 @@ def main() -> None:
     assert '"127.0.0.1:80:8080"' in compose
     assert '"127.0.0.1:443:8443"' in compose
     assert 'network_mode: "service:proxy"' in compose
-    assert compose.count('network_mode: "service:proxy"') == 2
+    assert compose.count('network_mode: "service:proxy"') == 3
     assert "0.0.0.0:" not in compose, "Production services must not publish or target wildcard addresses"
     assert "networks:" not in compose, "API and PostgreSQL must not join a separately routable bridge network"
 
@@ -86,9 +86,11 @@ def main() -> None:
         "/config",
     ):
         assert volume_target in compose, f"Missing persistent mount target: {volume_target}"
-    assert compose.count("read_only: true") == 3
-    assert compose.count("no-new-privileges:true") == 3
+    assert compose.count("read_only: true") == 4
+    assert compose.count("no-new-privileges:true") == 4
     assert 'Security__AllowDestructiveOperations: "false"' in compose
+    assert "target: migrator" in compose
+    assert "condition: service_completed_successfully" in compose
 
     assert "tls internal" in caddyfile
     assert "redir https://localhost{uri} 308" in caddyfile

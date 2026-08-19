@@ -103,7 +103,13 @@ if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RAToolsDbContext>();
-    dbContext.Database.Migrate();
+    var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToArray();
+    if (pendingMigrations.Length > 0)
+    {
+        throw new InvalidOperationException(
+            "Database schema is not current. Run RATools.DatabaseMigrator before starting the API. "
+            + $"Pending migrations: {string.Join(", ", pendingMigrations)}");
+    }
 }
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);

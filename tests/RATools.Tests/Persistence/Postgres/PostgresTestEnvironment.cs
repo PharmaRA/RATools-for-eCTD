@@ -9,7 +9,7 @@ namespace RATools.Tests.Persistence.Postgres;
 internal static class PostgresTestEnvironment
 {
     /// <summary>
-    /// 指向一个可用 PostgreSQL 的连接串。目标库会被 <c>Migrate()</c>，请用专用测试库。
+    /// 指向一个已由独立迁移入口更新的 PostgreSQL 测试库，请勿指向生产数据库。
     /// </summary>
     public const string ConnectionStringVariable = "RATOOLS_TEST_POSTGRES";
 

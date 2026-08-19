@@ -8,6 +8,7 @@ RATools-for-eCTD is an eCTD publishing system for regulatory submission workflow
 - `src/RATools.Application`: use cases, contracts, validation, publishing, and orchestration.
 - `src/RATools.Domain`: core business entities and state transitions.
 - `src/RATools.Infrastructure`: EF Core/PostgreSQL persistence, in-memory repositories, file storage, workspace policies, and local publish output.
+- `src/RATools.DatabaseMigrator`: single-purpose PostgreSQL schema migration entrypoint.
 - `frontend`: React UI for application management, sequence workspaces, validation, publishing, and publish history.
 - `tests/RATools.Tests`: backend xUnit tests.
 - `scripts`: local development and smoke-test scripts.
@@ -68,6 +69,14 @@ Start PostgreSQL:
 docker compose up -d
 ```
 
+Apply migrations:
+
+```powershell
+$env:ConnectionStrings__PostgreSql = "Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=postgres"
+dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj
+Remove-Item Env:ConnectionStrings__PostgreSql
+```
+
 Run the backend:
 
 ```powershell
@@ -90,13 +99,13 @@ Default backend configuration is in `src/RATools.Api/appsettings.json`.
 
 ## Production Image
 
-The root `Dockerfile` creates one production artifact: Node 22 builds the React
-application, .NET 8 publishes the API, and the final ASP.NET runtime image serves
-the frontend from `wwwroot` on the same origin as `/api`. The final image runs as
-the built-in non-root .NET user and contains no development `.env` file or runtime
-`App_Data` content. At startup, `/runtime-config` supplies the browser-visible
-local-only API access key from the API's runtime configuration with `no-store`; the
-key is not baked into an image layer.
+The root `Dockerfile` creates API and migration targets. Node 22 builds the React
+application, .NET 8 publishes both entrypoints, and the default final ASP.NET runtime
+image serves the frontend from `wwwroot` on the same origin as `/api`. Both targets
+run as the built-in non-root .NET user and contain no development settings, `.env`
+file, or runtime `App_Data` content. At startup, `/runtime-config` supplies the
+browser-visible local-only API access key from the API's runtime configuration with
+`no-store`; the key is not baked into an image layer.
 
 ```powershell
 docker build --pull --tag ratools:local .
@@ -123,6 +132,12 @@ docker compose -f compose.production.yml config --quiet
 docker compose -f compose.production.yml up --detach --build
 docker compose -f compose.production.yml ps
 ```
+
+Compose runs the single-purpose `migration` container after PostgreSQL becomes
+healthy. The API starts only after that container exits successfully. The migrator is
+safe to run repeatedly; a current database produces a successful no-op. The API never
+changes the schema and fails fast with the pending migration IDs if this step is
+skipped.
 
 The initializer writes independent random API and PostgreSQL credentials under the
 ignored `deploy/production/runtime/secrets` directory. It refuses to overwrite any
@@ -253,16 +268,21 @@ dotnet ef migrations add <MigrationName> --project src/RATools.Infrastructure/RA
 Apply migrations:
 
 ```powershell
-dotnet ef database update --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --context RAToolsDbContext
+$env:ConnectionStrings__PostgreSql = "Host=localhost;Port=5432;Database=ratools;Username=postgres;Password=postgres"
+dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release
+Remove-Item Env:ConnectionStrings__PostgreSql
 ```
 
-The API applies migrations automatically on startup when `Persistence:Provider` is `PostgreSql`.
+Production Compose supplies the connection string and password file to the same
+migrator entrypoint automatically. The API checks for pending migrations but never
+applies them. A migration failure therefore stops deployment before the API starts.
 
 ## Useful Commands
 
 - Check PostgreSQL health: `docker ps`.
 - View PostgreSQL logs: `docker logs ratools-postgres`.
 - Stop database: `docker compose down`.
+- Apply pending database migrations: `dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release`.
 - Run backend tests: `dotnet test tests/RATools.Tests/RATools.Tests.csproj`.
 - Run frontend tests: `cd frontend && npm test`.
 - Build frontend and enforce the gzip bundle budget: `cd frontend && npm run build`.
@@ -289,15 +309,20 @@ PostgreSQL JSON execution plans for the application/readiness/time, application/
 and application/sequence/time indexes.
 
 The database is supplied externally rather than started by the test process. Point
-`RATOOLS_TEST_POSTGRES` at an instance; the target database is migrated, so use a scratch one:
+both the migrator and `RATOOLS_TEST_POSTGRES` at a scratch database:
 
 ```powershell
-$env:RATOOLS_TEST_POSTGRES = "Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres"
+$testDatabase = "Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres"
+$env:ConnectionStrings__PostgreSql = $testDatabase
+$env:RATOOLS_TEST_POSTGRES = $testDatabase
+dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release
+Remove-Item Env:ConnectionStrings__PostgreSql
 dotnet test tests/RATools.Tests/RATools.Tests.csproj --filter "FullyQualifiedName~Persistence.Postgres"
 ```
 
-In CI the `backend` job declares a `postgres:16` service container and sets that variable, the same
-arrangement the smoke workflow uses.
+In CI the `backend` job declares a `postgres:16` service container, runs the migrator
+twice to prove idempotency, and then sets that variable for the tests. The smoke
+workflow also migrates its database before starting the API.
 
 Without the variable these tests report as **skipped**, which is expected on a developer machine
 that has no test database. To keep that from becoming a silent green if the CI service container is
@@ -305,7 +330,7 @@ ever removed, `PostgresGateTests` fails outright when the variable is missing *a
 
 ## Smoke Test
 
-Start the API first:
+Migrate the database as described above, then start the API:
 
 ```powershell
 dotnet run --project src/RATools.Api/RATools.Api.csproj

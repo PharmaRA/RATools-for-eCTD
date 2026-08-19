@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>RATools.DatabaseMigrator</AssemblyName>
+    <RootNamespace>RATools.DatabaseMigrator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RATools.Infrastructure\RATools.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
