@@ -1,13 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Reflection;
+using Prometheus;
 using RATools.Api.Health;
 using RATools.Api.Middleware;
+using RATools.Api.Monitoring;
 using RATools.Api.OpenApi;
 using RATools.Api.Security;
 using RATools.Application;
 using RATools.Infrastructure;
 using RATools.Infrastructure.Persistence.EfCore;
+using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +40,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<IPublishJobMetrics, PrometheusPublishJobMetrics>();
 
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.AuthenticationScheme)
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
@@ -114,6 +118,7 @@ if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
 
 var swaggerEnabled = app.Configuration.GetValue("Swagger:Enabled", true);
 
+app.UseHttpMetrics(options => options.ReduceStatusCodeCardinality());
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (frontendAvailable)
@@ -154,6 +159,8 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = check => check.Tags.Contains("ready")
 }).AllowAnonymous();
 
+app.MapMetrics().AllowAnonymous().ExcludeFromDescription();
+
 app.MapGet("/version", () =>
 {
     var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
@@ -193,6 +200,7 @@ static bool AcceptsHtml(HttpRequest request)
 static bool IsReservedServerPath(PathString path)
     => path.StartsWithSegments("/api")
         || path.StartsWithSegments("/health")
+        || path.StartsWithSegments("/metrics")
         || path.StartsWithSegments("/swagger")
         || path.StartsWithSegments("/version");
 

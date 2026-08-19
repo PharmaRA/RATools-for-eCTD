@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ public sealed partial class PublishJobBackgroundService(
     IPublishJobQueue queue,
     IServiceScopeFactory scopeFactory,
     IOptions<PublishJobExecutionOptions> executionOptions,
+    IPublishJobMetrics metrics,
     ILogger<PublishJobBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(30);
@@ -70,6 +72,24 @@ public sealed partial class PublishJobBackgroundService(
         PublishJobExecutionOptions options,
         CancellationToken stoppingToken)
     {
+        var startedTimestamp = Stopwatch.GetTimestamp();
+        var attemptOutcome = PublishJobAttemptOutcome.Error;
+
+        try
+        {
+            attemptOutcome = await ProcessCoreAsync(lease, options, stoppingToken);
+        }
+        finally
+        {
+            metrics.RecordAttempt(attemptOutcome, Stopwatch.GetElapsedTime(startedTimestamp));
+        }
+    }
+
+    private async Task<PublishJobAttemptOutcome> ProcessCoreAsync(
+        PublishJobLease lease,
+        PublishJobExecutionOptions options,
+        CancellationToken stoppingToken)
+    {
         using var executionCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         executionCts.CancelAfter(options.ExecutionTimeout);
         using var heartbeatStopCts = new CancellationTokenSource();
@@ -104,18 +124,43 @@ public sealed partial class PublishJobBackgroundService(
 
         if (executionFailure is null && heartbeatFailure is null)
         {
-            return;
+            if (lease.Job.Status is PublishJobStatus.Completed or PublishJobStatus.Failed)
+            {
+                metrics.RecordTerminal(lease.Job);
+                return lease.Job.Status == PublishJobStatus.Completed
+                    ? PublishJobAttemptOutcome.Completed
+                    : PublishJobAttemptOutcome.Failed;
+            }
+            return PublishJobAttemptOutcome.Error;
+        }
+
+        if (lease.Job.Status is PublishJobStatus.Completed or PublishJobStatus.Failed)
+        {
+            metrics.RecordTerminal(lease.Job);
         }
 
         if (executionFailure is PublishJobLeaseLostException
             || heartbeatFailure is PublishJobLeaseLostException)
         {
             LogLeaseLost(logger, lease.Job.Id, lease.Owner);
-            return;
+            return PublishJobAttemptOutcome.LeaseLost;
         }
 
         var failure = executionFailure ?? heartbeatFailure!;
-        await RetryOrFailAsync(lease, options, failure);
+        var result = await RetryOrFailAsync(lease, options, failure);
+        var outcome = result.Disposition switch
+        {
+            PublishJobRetryDisposition.RetryScheduled => PublishJobAttemptOutcome.Retry,
+            PublishJobRetryDisposition.Failed => PublishJobAttemptOutcome.Failed,
+            PublishJobRetryDisposition.LeaseLost => PublishJobAttemptOutcome.LeaseLost,
+            _ => PublishJobAttemptOutcome.Error,
+        };
+        if (result.Disposition == PublishJobRetryDisposition.Failed)
+        {
+            metrics.RecordTerminal(result.Job!);
+        }
+
+        return outcome;
     }
 
     private async Task MaintainHeartbeatAsync(
@@ -164,7 +209,7 @@ public sealed partial class PublishJobBackgroundService(
         }
     }
 
-    private async Task RetryOrFailAsync(
+    private async Task<PublishJobRetryResult> RetryOrFailAsync(
         PublishJobLease lease,
         PublishJobExecutionOptions options,
         Exception failure)
@@ -206,5 +251,7 @@ public sealed partial class PublishJobBackgroundService(
                 LogLeaseLost(logger, lease.Job.Id, lease.Owner);
                 break;
         }
+
+        return result;
     }
 }

@@ -13,7 +13,8 @@ namespace RATools.Tests.Publishing;
 public sealed class StalePublishJobRecoveryServiceTests
 {
     private static (StalePublishJobRecoveryService Service, InMemoryPublishJobRepository Repository, InMemoryAuditLogRepository AuditRepository) CreateService(
-        string persistenceProvider = "PostgreSql")
+        string persistenceProvider = "PostgreSql",
+        FakePublishJobMetrics? metrics = null)
     {
         var repository = new InMemoryPublishJobRepository();
         var auditRepository = new InMemoryAuditLogRepository();
@@ -34,6 +35,7 @@ public sealed class StalePublishJobRecoveryServiceTests
         var service = new StalePublishJobRecoveryService(
             provider.GetRequiredService<IServiceScopeFactory>(),
             configuration,
+            metrics ?? new FakePublishJobMetrics(),
             NullLogger<StalePublishJobRecoveryService>.Instance);
 
         return (service, repository, auditRepository);
@@ -42,7 +44,8 @@ public sealed class StalePublishJobRecoveryServiceTests
     [Fact]
     public async Task StartAsync_RecoversOnlyExpiredOrUnleasedRunningJobs()
     {
-        var (service, repository, _) = CreateService();
+        var metrics = new FakePublishJobMetrics();
+        var (service, repository, _) = CreateService(metrics: metrics);
         var pendingJob = new PublishJob(Guid.NewGuid(), "0000");
         var expiredJob = RunningJob("0001", DateTime.UtcNow.AddMinutes(-1));
         var liveJob = RunningJob("0002", DateTime.UtcNow.AddMinutes(5));
@@ -67,6 +70,7 @@ public sealed class StalePublishJobRecoveryServiceTests
         Assert.Null(recoveredPending.FailureReason);
         Assert.Contains("expired", recoveredExpired.FailureReason, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("expired", recoveredLegacy.FailureReason, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, metrics.TerminalStatuses.Count(status => status == PublishJobStatus.Failed));
     }
 
     [Fact]
@@ -102,6 +106,7 @@ public sealed class StalePublishJobRecoveryServiceTests
         var secondService = new StalePublishJobRecoveryService(
             secondProvider.GetRequiredService<IServiceScopeFactory>(),
             configuration,
+            new FakePublishJobMetrics(),
             NullLogger<StalePublishJobRecoveryService>.Instance);
         var staleJob = RunningJob("0000", DateTime.UtcNow.AddMinutes(-1));
         await repository.AddAsync(staleJob);

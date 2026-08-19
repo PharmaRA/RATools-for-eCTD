@@ -1,0 +1,45 @@
+groups:
+  - name: ratools-production
+    rules:
+      - alert: RAToolsApiUnavailable
+        expr: up{job="ratools-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: RATools API metrics target is unavailable
+
+      - alert: RAToolsPublishQueueBacklog
+        expr: ratools_publish_queue_depth > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: RATools publish queue has more than 10 pending jobs
+
+      - alert: RAToolsPublishQueueSampleFailed
+        expr: ratools_publish_queue_sample_success == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: RATools cannot sample the durable publish queue
+
+      - alert: RAToolsPublishJobP95Slow
+        expr: histogram_quantile(0.95, sum by (le) (rate(ratools_publish_job_duration_seconds_bucket[15m]))) > 300
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: RATools publish job P95 end-to-end duration exceeds five minutes
+
+      - alert: RAToolsPublishJobFailureRateHigh
+        expr: >-
+          (sum(increase(ratools_publish_jobs_terminal_total{outcome="failed"}[15m]))
+          / clamp_min(sum(increase(ratools_publish_jobs_terminal_total[15m])), 1)) > 0.2
+          and sum(increase(ratools_publish_jobs_terminal_total[15m])) >= 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: RATools publish job failure rate exceeds 20 percent

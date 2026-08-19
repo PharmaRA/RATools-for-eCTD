@@ -15,6 +15,7 @@ namespace RATools.Infrastructure.Publishing;
 public sealed partial class StalePublishJobRecoveryService(
     IServiceScopeFactory scopeFactory,
     IConfiguration configuration,
+    IPublishJobMetrics metrics,
     ILogger<StalePublishJobRecoveryService> logger) : IHostedService
 {
     private const string RecoveryFailureReason =
@@ -54,6 +55,7 @@ public sealed partial class StalePublishJobRecoveryService(
 
         foreach (var job in staleJobs)
         {
+            metrics.RecordTerminal(job);
             try
             {
                 await auditLogService.WriteSystemEventAsync(

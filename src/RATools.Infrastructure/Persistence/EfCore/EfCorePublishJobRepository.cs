@@ -427,6 +427,14 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
         return records.Select(x => x.ToDomain()).ToArray();
     }
 
+    public Task<int> CountPendingAsync(CancellationToken cancellationToken = default)
+    {
+        var pendingStatus = PublishJobStatus.Pending.ToString();
+        return dbContext.PublishJobs
+            .AsNoTracking()
+            .CountAsync(record => record.Status == pendingStatus, cancellationToken);
+    }
+
     private static string NormalizeReadinessStatus(string readinessStatus)
     {
         var normalized = readinessStatus.Trim();

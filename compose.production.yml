@@ -124,6 +124,37 @@ services:
       - /tmp:size=256m,mode=1777
     stop_grace_period: 60s
 
+  prometheus:
+    image: prom/prometheus:v3.13.2
+    network_mode: "service:proxy"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.listen-address=127.0.0.1:9090
+    volumes:
+      - ./deploy/production/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/production/alerts.yml:/etc/prometheus/rules/alerts.yml:ro
+      - ratools_prometheus_data:/prometheus
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      test: ["CMD", "/bin/promtool", "query", "instant", "http://127.0.0.1:9090", "up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 secrets:
   api_key:
     file: ./deploy/production/runtime/secrets/api-key
@@ -136,3 +167,4 @@ volumes:
   ratools_workspaces:
   ratools_caddy_data:
   ratools_caddy_config:
+  ratools_prometheus_data:

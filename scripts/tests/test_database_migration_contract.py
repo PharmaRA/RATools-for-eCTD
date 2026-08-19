@@ -15,6 +15,8 @@ def main() -> None:
     api_program = (REPO_ROOT / "src" / "RATools.Api" / "Program.cs").read_text(encoding="utf-8")
     migrator_program = (REPO_ROOT / "src" / "RATools.DatabaseMigrator" / "Program.cs").read_text(encoding="utf-8")
     migrator_project = (REPO_ROOT / "src" / "RATools.DatabaseMigrator" / "RATools.DatabaseMigrator.csproj").read_text(encoding="utf-8")
+    api_project = (REPO_ROOT / "src" / "RATools.Api" / "RATools.Api.csproj").read_text(encoding="utf-8")
+    infrastructure_project = (REPO_ROOT / "src" / "RATools.Infrastructure" / "RATools.Infrastructure.csproj").read_text(encoding="utf-8")
     test_project = (REPO_ROOT / "tests" / "RATools.Tests" / "RATools.Tests.csproj").read_text(encoding="utf-8")
     postgres_fixture = (REPO_ROOT / "tests" / "RATools.Tests" / "Persistence" / "Postgres" / "PostgresFixture.cs").read_text(encoding="utf-8")
     dockerfile = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
@@ -35,6 +37,10 @@ def main() -> None:
 
     assert '<OutputType>Exe</OutputType>' in migrator_project
     assert "RATools.Infrastructure.csproj" in migrator_project
+    assert "prometheus-net.AspNetCore" in api_project
+    assert "prometheus-net" not in infrastructure_project, (
+        "Monitoring exporters belong to the API and must not inflate the migration artifact"
+    )
     assert "RATools.DatabaseMigrator.csproj" in test_project
     assert 'ReferenceOutputAssembly="false"' in test_project
     assert "GetPendingMigrationsAsync" in postgres_fixture

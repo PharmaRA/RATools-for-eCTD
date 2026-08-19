@@ -211,9 +211,12 @@ public sealed class PublishJobTerminalPersistenceTests
         await harness.StartAsync();
         await harness.Backbone.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var persisted = await harness.WaitForTerminalAsync();
+        var attempt = await harness.WaitForAttemptAsync();
 
         Assert.Equal(PublishJobStatus.Failed, persisted.Status);
         Assert.Contains("canceled or timed out", persisted.FailureReason, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(PublishJobAttemptOutcome.Failed, attempt.Outcome);
+        Assert.Contains(PublishJobStatus.Failed, harness.Metrics.TerminalStatuses);
         Assert.Contains(harness.Repository.UpdateObservations, update =>
             update.Status == PublishJobStatus.Failed && !update.CancellationRequested);
     }
@@ -227,9 +230,11 @@ public sealed class PublishJobTerminalPersistenceTests
         await harness.Backbone.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await harness.StopAsync();
         var persisted = await harness.WaitForTerminalAsync();
+        var attempt = await harness.WaitForAttemptAsync();
 
         Assert.Equal(PublishJobStatus.Failed, persisted.Status);
         Assert.Contains("canceled or timed out", persisted.FailureReason, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(PublishJobAttemptOutcome.Failed, attempt.Outcome);
     }
 
     private static CreatePublishJobRequest NewRequest()
@@ -755,18 +760,22 @@ public sealed class PublishJobTerminalPersistenceTests
             PublishJobBackgroundService backgroundService,
             SnapshotPublishJobRepository repository,
             DelayingBackboneService backbone,
+            FakePublishJobMetrics metrics,
             Guid jobId)
         {
             _serviceProvider = serviceProvider;
             _backgroundService = backgroundService;
             Repository = repository;
             Backbone = backbone;
+            Metrics = metrics;
             JobId = jobId;
         }
 
         public SnapshotPublishJobRepository Repository { get; }
 
         public DelayingBackboneService Backbone { get; }
+
+        public FakePublishJobMetrics Metrics { get; }
 
         public Guid JobId { get; }
 
@@ -783,6 +792,7 @@ public sealed class PublishJobTerminalPersistenceTests
             services.AddSingleton<IPublishJobRepository>(repository);
             services.AddSingleton<IPublishJobService>(service);
             var provider = services.BuildServiceProvider();
+            var metrics = new FakePublishJobMetrics();
             var background = new PublishJobBackgroundService(
                 queue,
                 provider.GetRequiredService<IServiceScopeFactory>(),
@@ -795,9 +805,10 @@ public sealed class PublishJobTerminalPersistenceTests
                     RetryDelay = TimeSpan.Zero,
                     MaxAttempts = 1
                 }),
+                metrics,
                 NullLogger<PublishJobBackgroundService>.Instance);
 
-            return new BackgroundHarness(provider, background, repository, backbone, job.Id);
+            return new BackgroundHarness(provider, background, repository, backbone, metrics, job.Id);
         }
 
         public Task StartAsync()
@@ -829,6 +840,17 @@ public sealed class PublishJobTerminalPersistenceTests
 
                 await Task.Delay(10, waitCts.Token);
             }
+        }
+
+        public async Task<(PublishJobAttemptOutcome Outcome, TimeSpan Duration)> WaitForAttemptAsync()
+        {
+            using var waitCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (Metrics.Attempts.Count == 0)
+            {
+                await Task.Delay(10, waitCts.Token);
+            }
+
+            return Assert.Single(Metrics.Attempts);
         }
 
         public async ValueTask DisposeAsync()

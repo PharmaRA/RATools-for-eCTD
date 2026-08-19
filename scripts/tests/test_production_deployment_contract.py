@@ -10,6 +10,8 @@ import tempfile
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = REPO_ROOT / "compose.production.yml"
 CADDYFILE = REPO_ROOT / "deploy" / "production" / "Caddyfile"
+PROMETHEUS = REPO_ROOT / "deploy" / "production" / "prometheus.yml"
+ALERTS = REPO_ROOT / "deploy" / "production" / "alerts.yml"
 DOCKERFILE = REPO_ROOT / "Dockerfile"
 GITIGNORE = REPO_ROOT / ".gitignore"
 INITIALIZER = REPO_ROOT / "scripts" / "initialize_production.py"
@@ -60,13 +62,15 @@ def verify_initializer() -> None:
 def main() -> None:
     compose = COMPOSE.read_text(encoding="utf-8")
     caddyfile = CADDYFILE.read_text(encoding="utf-8")
+    prometheus = PROMETHEUS.read_text(encoding="utf-8")
+    alerts = ALERTS.read_text(encoding="utf-8")
     dockerfile = DOCKERFILE.read_text(encoding="utf-8")
     gitignore = GITIGNORE.read_text(encoding="utf-8")
 
     assert '"127.0.0.1:80:8080"' in compose
     assert '"127.0.0.1:443:8443"' in compose
     assert 'network_mode: "service:proxy"' in compose
-    assert compose.count('network_mode: "service:proxy"') == 3
+    assert compose.count('network_mode: "service:proxy"') == 4
     assert "0.0.0.0:" not in compose, "Production services must not publish or target wildcard addresses"
     assert "networks:" not in compose, "API and PostgreSQL must not join a separately routable bridge network"
 
@@ -84,17 +88,25 @@ def main() -> None:
         "/data/workspaces",
         "/data",
         "/config",
+        "/prometheus",
     ):
         assert volume_target in compose, f"Missing persistent mount target: {volume_target}"
-    assert compose.count("read_only: true") == 4
-    assert compose.count("no-new-privileges:true") == 4
+    assert compose.count("read_only: true") == 5
+    assert compose.count("no-new-privileges:true") == 5
     assert 'Security__AllowDestructiveOperations: "false"' in compose
     assert "target: migrator" in compose
     assert "condition: service_completed_successfully" in compose
+    assert "prom/prometheus:v3.13.2" in compose
+    assert "--web.listen-address=127.0.0.1:9090" in compose
+    assert '["CMD", "/bin/promtool", "query", "instant", "http://127.0.0.1:9090", "up"]' in compose
+    assert "9090:" not in compose, "Prometheus must not publish a host port"
 
     assert "tls internal" in caddyfile
     assert "redir https://localhost{uri} 308" in caddyfile
     assert "reverse_proxy 127.0.0.1:5000" in caddyfile
+    assert "@metrics path /metrics" in caddyfile
+    assert "respond @metrics 404" in caddyfile
+    assert "health_uri /health/ready" in caddyfile
     for header in (
         "Strict-Transport-Security",
         "Content-Security-Policy",
@@ -106,6 +118,24 @@ def main() -> None:
         "X-Frame-Options",
     ):
         assert header in caddyfile, f"Missing security header: {header}"
+
+    assert "127.0.0.1:5000" in prometheus
+    assert "metrics_path: /metrics" in prometheus
+    for alert_name in (
+        "RAToolsApiUnavailable",
+        "RAToolsPublishQueueBacklog",
+        "RAToolsPublishQueueSampleFailed",
+        "RAToolsPublishJobP95Slow",
+        "RAToolsPublishJobFailureRateHigh",
+    ):
+        assert f"alert: {alert_name}" in alerts, f"Missing alert rule: {alert_name}"
+    for metric_name in (
+        "ratools_publish_queue_depth",
+        "ratools_publish_queue_sample_success",
+        "ratools_publish_job_duration_seconds_bucket",
+        "ratools_publish_jobs_terminal_total",
+    ):
+        assert metric_name in alerts, f"Alerts do not use required metric: {metric_name}"
 
     assert "mkdir -p App_Data /data/workspaces" in dockerfile
     assert "chown -R $APP_UID:$APP_UID /app /data/workspaces" in dockerfile

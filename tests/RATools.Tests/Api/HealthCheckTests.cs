@@ -55,6 +55,23 @@ public sealed class HealthCheckTests(WebApplicationFactory<Program> factory)
         Assert.NotEqual(HttpStatusCode.Unauthorized, ready.StatusCode);
     }
 
+    [Fact]
+    public async Task Metrics_ExposeHealthAndPublishQueueSeriesWithoutAuthentication()
+    {
+        var client = CreateInMemoryClient();
+
+        var response = await client.GetAsync("/metrics");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("text/plain", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("ratools_publish_queue_depth", body);
+        Assert.Contains("ratools_publish_queue_sample_success", body);
+        Assert.Contains("ratools_publish_job_attempt_duration_seconds", body);
+        Assert.Contains("ratools_publish_job_duration_seconds", body);
+        Assert.Contains("http_requests_received_total", body);
+    }
+
     private HttpClient CreateInMemoryClient()
     {
         return _factory.WithWebHostBuilder(builder =>

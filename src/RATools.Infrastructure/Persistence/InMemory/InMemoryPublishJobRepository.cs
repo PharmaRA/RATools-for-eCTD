@@ -279,6 +279,12 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
         return Task.FromResult(items);
     }
 
+    public Task<int> CountPendingAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_items.Values.Count(job => job.Status == PublishJobStatus.Pending));
+    }
+
     public Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

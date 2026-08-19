@@ -40,6 +40,11 @@ public static class DependencyInjection
             .Validate(options => options.MaxAttempts > 0,
                 "PublishJobs:MaxAttempts must be greater than zero.")
             .ValidateOnStart();
+        services.AddOptions<MonitoringOptions>()
+            .Bind(configuration.GetSection(MonitoringOptions.SectionName))
+            .Validate(options => options.QueueSampleInterval > TimeSpan.Zero,
+                "Monitoring:QueueSampleInterval must be greater than zero.")
+            .ValidateOnStart();
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
         services.Configure<DeploymentOptions>(configuration.GetSection(DeploymentOptions.SectionName));
@@ -53,6 +58,7 @@ public static class DependencyInjection
         // WebApplicationFactory 等宿主在 ConfigureAppConfiguration 中的覆盖值）。
         services.AddHostedService<StalePublishJobRecoveryService>();
         services.AddHostedService<PublishJobBackgroundService>();
+        services.AddHostedService<PublishQueueMetricsService>();
         services.AddSingleton<IApplicationWorkspaceService, ApplicationWorkspaceService>();
         services.AddSingleton<IWorkspacePathPolicy, ConfiguredWorkspacePathPolicy>();
         services.AddSingleton<StartupConfigurationValidator>();

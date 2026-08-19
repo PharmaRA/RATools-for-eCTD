@@ -77,6 +77,10 @@ public interface IPublishJobRepository
     /// </summary>
     Task<IReadOnlyCollection<PublishJob>> ListActiveAsync(CancellationToken cancellationToken = default);
 
+    async Task<int> CountPendingAsync(CancellationToken cancellationToken = default)
+        => (await ListActiveAsync(cancellationToken))
+            .Count(job => job.Status == PublishJobStatus.Pending);
+
     Task<PublishJobHistoryQueryResult> QueryHistoryAsync(PublishJobHistoryQuery query, CancellationToken cancellationToken = default);
 
     Task DeleteByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)

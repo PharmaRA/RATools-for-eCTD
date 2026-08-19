@@ -23,8 +23,11 @@ https://localhost:8443 {
 		X-Frame-Options "DENY"
 	}
 
+	@metrics path /metrics
+	respond @metrics 404
+
 	reverse_proxy 127.0.0.1:5000 {
-		health_uri /health/live
+		health_uri /health/ready
 		health_interval 15s
 		health_timeout 5s
 	}

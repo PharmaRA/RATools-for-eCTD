@@ -183,6 +183,15 @@ jobs:
           caddy:2.11.4-alpine
           caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
+      - name: Validate Prometheus configuration and alerts
+        run: >-
+          docker run --rm
+          --entrypoint /bin/promtool
+          --volume "$PWD/deploy/production/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+          --volume "$PWD/deploy/production/alerts.yml:/etc/prometheus/rules/alerts.yml:ro"
+          prom/prometheus:v3.13.2
+          check config /etc/prometheus/prometheus.yml
+
       - name: Build production image
         run: |
           docker build --pull --target migrator --tag ratools-migrator:ci .

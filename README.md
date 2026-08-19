@@ -118,10 +118,11 @@ the controlled host. Prefer the production Compose topology below for an actual 
 
 ## Local Production Deployment
 
-`compose.production.yml` runs the application behind Caddy with local HTTPS. The API
-and PostgreSQL share the proxy container's network namespace and listen only on its
-loopback interface; Docker publishes only Caddy on host loopback ports 80 and 443.
-No API or database port joins a separately routable bridge network.
+`compose.production.yml` runs the application behind Caddy with local HTTPS. The API,
+PostgreSQL, and Prometheus share the proxy container's network namespace and listen
+only on its loopback interface; Docker publishes only Caddy on host loopback ports 80
+and 443. No API, database, or monitoring port joins a separately routable bridge
+network.
 
 Prerequisites: Docker Compose, Python 3, and free host ports 80/443. Initialize the
 file-backed secrets once, validate the configuration, then start the stack:
@@ -161,16 +162,50 @@ isolation headers. The services use read-only root filesystems where compatible;
 recursive workspace purge remains disabled.
 
 Persistent state is kept in the `ratools_postgres_data`, `ratools_app_data`,
-`ratools_workspaces`, `ratools_caddy_data`, and `ratools_caddy_config` named volumes.
-Normal shutdown retains them:
+`ratools_workspaces`, `ratools_caddy_data`, `ratools_caddy_config`, and
+`ratools_prometheus_data` named volumes. Normal shutdown retains them:
 
 ```powershell
 docker compose -f compose.production.yml down
 ```
 
 Do not add `--volumes` to that command unless permanent deletion of the database,
-workspaces, publish artifacts, and local CA is intended. Backup and restore automation
-is a later roadmap item; this topology does not yet support multiple replicas.
+workspaces, publish artifacts, local CA, and retained metrics is intended. Backup and
+restore automation is a later roadmap item; this topology does not yet support
+multiple replicas.
+
+## Health, Metrics, and Alerts
+
+The API exposes dependency-free liveness at `/health/live`, database-aware readiness
+at `/health/ready`, and Prometheus metrics at `/metrics`. Caddy uses readiness for its
+upstream health check. The browser-facing proxy deliberately returns 404 for
+`/metrics`; only the bundled Prometheus process can scrape it over the shared loopback
+network.
+
+Production Compose retains Prometheus samples for 15 days. In addition to bounded HTTP
+request metrics, the application publishes durable pending queue depth, queue-sample
+health, publish attempt count/duration, end-to-end terminal job duration, and terminal
+success/failure count. Metrics use fixed outcome labels and never include job,
+application, or sequence identifiers.
+
+`deploy/production/alerts.yml` evaluates these conditions:
+
+- API metrics target unavailable for 2 minutes.
+- More than 10 pending jobs for 10 minutes, or queue sampling failing for 2 minutes.
+- End-to-end publish job P95 above 5 minutes for 10 minutes.
+- At least 5 terminal jobs in 15 minutes with a failure rate above 20% for 5 minutes.
+
+Inspect current rule state without exposing a monitoring port:
+
+```powershell
+docker compose -f compose.production.yml exec prometheus promtool query instant http://127.0.0.1:9090 'ALERTS{alertstate="firing"}'
+docker compose -f compose.production.yml logs prometheus
+```
+
+Prometheus evaluates and persists alert state, but this local-only profile does not
+guess an email, chat, or paging destination. Configure an Alertmanager receiver before
+relying on notifications outside the host. Non-development API logs remain one-line
+structured JSON for collection by the container runtime or host log agent.
 
 ## Supported Deployment Boundary
 
@@ -237,11 +272,15 @@ file-secret, TLS, security-header, and persistent-volume controls described abov
   terminal. Lease tokens fence stale workers from persisting state after ownership changes.
   Startup recovery marks only `Running` jobs with expired or missing leases as `Failed` and
   never touches `Pending` jobs or another instance's unexpired lease.
+- `Monitoring:QueueSampleInterval` (default `00:00:15`): interval for reading the durable
+  Pending count into `ratools_publish_queue_depth`; sampling failures set a separate
+  health gauge and emit a structured warning without stopping the worker.
 
 For a non-development local run, override both tracked development credentials and keep
 all endpoints on loopback, for example with `ASPNETCORE_URLS`, `Security__ApiKey`, and
 `ConnectionStrings__PostgreSql` environment variables. Startup validates these values
-before acquiring the instance lock or applying a database migration.
+before acquiring the instance lock or checking that the independent migrator left no
+pending schema changes.
 
 ## Working Directories
 
