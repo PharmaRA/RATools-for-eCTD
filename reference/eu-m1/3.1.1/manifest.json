@@ -12,6 +12,13 @@
   "authority": "European Medicines Agency",
   "maintainer": "eSubmission Expert Group",
   "sourcePage": "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+  "licensing": {
+    "identifier": "LicenseRef-EMA-Copyright-and-Limited-Reproduction",
+    "legalNoticeUrl": "https://www.ema.europa.eu/en/about-us/about-website/legal-notice",
+    "attribution": "European Medicines Agency (EMA), EU eCTD Module 1 materials, accessed August 2026.",
+    "scope": "EMA permits public information and documents to be reproduced and distributed for commercial and non-commercial purposes when EMA is acknowledged as the source. The permission does not apply to third-party content.",
+    "repositoryLicenseApplies": false
+  },
   "accessed": "2026-08-19",
   "assetStatus": "acquired-not-active",
   "activationNote": "These files are the official source snapshot for the Phase 6 implementation. The production EU writer and validator still use the controlled skeleton until the next Phase 6 item adapts them to this DTD.",

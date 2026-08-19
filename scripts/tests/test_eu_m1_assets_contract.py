@@ -20,6 +20,9 @@ def test_manifest_matches_bundled_files() -> None:
     assert manifest["effective"] == "2025-12-01"
     assert manifest["assetStatus"] == "acquired-not-active"
     assert manifest["authority"] == "European Medicines Agency"
+    assert manifest["licensing"]["identifier"] == "LicenseRef-EMA-Copyright-and-Limited-Reproduction"
+    assert manifest["licensing"]["repositoryLicenseApplies"] is False
+    assert manifest["licensing"]["legalNoticeUrl"].startswith("https://www.ema.europa.eu/")
 
     for artifact in manifest["artifacts"]:
         path = SNAPSHOT / artifact["path"]
