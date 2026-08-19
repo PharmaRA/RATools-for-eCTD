@@ -11,4 +11,5 @@ public sealed record StandardsProfile(
     string ValidationCriteriaVersion,
     IReadOnlyCollection<string> OfficialReferences,
     IReadOnlyCollection<StandardsAsset> Assets,
-    BackboneXmlProfile? BackboneXml = null);
+    BackboneXmlProfile? BackboneXml = null,
+    StandardsLifecycle? Lifecycle = null);

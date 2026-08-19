@@ -4,6 +4,11 @@
   "validationCriteriaVersion": "8.2",
   "published": "2025-06",
   "effective": "2025-12-01",
+  "retirement": {
+    "policy": "Retain each published EU M1 snapshot for historical lifecycle validation. Mark a snapshot retired only after EMA publishes a replacement with an announced effective date; never silently rewrite an existing application lifecycle.",
+    "retired": null,
+    "reviewSource": "https://esubmission.ema.europa.eu/eumodule1/index.htm"
+  },
   "authority": "European Medicines Agency",
   "maintainer": "eSubmission Expert Group",
   "sourcePage": "https://esubmission.ema.europa.eu/eumodule1/index.htm",

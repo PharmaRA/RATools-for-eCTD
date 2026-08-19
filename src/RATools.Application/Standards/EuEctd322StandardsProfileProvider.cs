@@ -48,7 +48,14 @@ public sealed class EuEctd322StandardsProfileProvider : IStandardsProfileProvide
                     EmaEctdUrl,
                     null)
             ],
-            BackboneXmlProfiles.EuEctd322Regional);
+            BackboneXmlProfiles.EuEctd322Regional,
+            new StandardsLifecycle(
+                "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+                "3.1.1",
+                new DateOnly(2025, 12, 1),
+                null,
+                StandardsLifecycleStatus.AcquiredNotActive,
+                "Retain each published EU M1 snapshot for historical lifecycle validation. Mark a snapshot retired only after EMA publishes a replacement with an announced effective date; never silently rewrite an existing application lifecycle."));
     }
 
 }
