@@ -10,6 +10,7 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 RUNTIME_PREFIXES = (
+    "deploy/production/runtime/",
     "src/RATools.Api/App_Data/uploads/",
     "src/RATools.Api/App_Data/publish/",
 )
@@ -133,6 +134,8 @@ def verify_policy_examples() -> None:
         ".env.production": True,
         ".env.example": False,
         "frontend/.env.development": False,
+        "deploy/production/runtime/secrets/api-key": True,
+        "deploy/production/Caddyfile": False,
         "reference/dtd/ich-ectd-3-2.dtd": False,
     }
     for path, should_fail in examples.items():

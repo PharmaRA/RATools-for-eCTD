@@ -28,7 +28,7 @@ EXPOSE 8080
 COPY --from=backend-build --chown=$APP_UID:$APP_UID /app/publish ./
 COPY --from=frontend-build --chown=$APP_UID:$APP_UID /src/frontend/dist ./wwwroot
 RUN rm -f appsettings.Development.json \
-    && mkdir -p App_Data \
-    && chown -R $APP_UID:$APP_UID /app
+    && mkdir -p App_Data /data/workspaces \
+    && chown -R $APP_UID:$APP_UID /app /data/workspaces
 USER $APP_UID
 ENTRYPOINT ["dotnet", "RATools.Api.dll"]

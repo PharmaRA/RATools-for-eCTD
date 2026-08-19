@@ -11,6 +11,7 @@ using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
+FileSecretConfiguration.Apply(builder.Configuration);
 
 // 非开发环境输出单行 JSON 日志（含 scope），便于日志系统采集与检索；
 // 开发环境保留默认控制台格式以便人读。

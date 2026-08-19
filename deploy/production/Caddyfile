@@ -1,0 +1,31 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+http://localhost:8080 {
+	redir https://localhost{uri} 308
+}
+
+https://localhost:8443 {
+	tls internal
+	encode zstd gzip
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	reverse_proxy 127.0.0.1:5000 {
+		health_uri /health/live
+		health_interval 15s
+		health_timeout 5s
+	}
+}

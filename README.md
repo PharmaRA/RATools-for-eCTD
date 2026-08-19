@@ -102,19 +102,68 @@ key is not baked into an image layer.
 docker build --pull --tag ratools:local .
 ```
 
-The image listens on container port `8080`. `Deployment:Containerized=true` only
-allows the required wildcard listener inside the container; the local-only support
-boundary still requires the published host port and database to remain local to the
-controlled host. The production Compose topology, reverse proxy, TLS, external
-secrets, and persistent volume mounts are separate deployment controls and are not
-provided by this image-only step.
+The standalone image listens on container port `8080`. `Deployment:Containerized=true`
+only allows the required wildcard listener inside the container; the local-only
+support boundary still requires published ports and the database to remain local to
+the controlled host. Prefer the production Compose topology below for an actual run.
+
+## Local Production Deployment
+
+`compose.production.yml` runs the application behind Caddy with local HTTPS. The API
+and PostgreSQL share the proxy container's network namespace and listen only on its
+loopback interface; Docker publishes only Caddy on host loopback ports 80 and 443.
+No API or database port joins a separately routable bridge network.
+
+Prerequisites: Docker Compose, Python 3, and free host ports 80/443. Initialize the
+file-backed secrets once, validate the configuration, then start the stack:
+
+```powershell
+python scripts/initialize_production.py
+docker compose -f compose.production.yml config --quiet
+docker compose -f compose.production.yml up --detach --build
+docker compose -f compose.production.yml ps
+```
+
+The initializer writes independent random API and PostgreSQL credentials under the
+ignored `deploy/production/runtime/secrets` directory. It refuses to overwrite any
+existing secret: changing the PostgreSQL secret file alone does not rotate the
+password stored by PostgreSQL. Compose mounts both files read-only under
+`/run/secrets`; secret values do not appear in the Compose environment or image.
+
+Caddy issues the `localhost` certificate from a persistent internal CA. Trust that CA
+only after confirming it came from this local stack. On Windows, export and trust it
+for the current user:
+
+```powershell
+New-Item -ItemType Directory -Force .artifacts/certs | Out-Null
+docker compose -f compose.production.yml cp proxy:/data/caddy/pki/authorities/local/root.crt .artifacts/certs/ratools-local-root.crt
+Import-Certificate -FilePath .artifacts/certs/ratools-local-root.crt -CertStoreLocation Cert:\CurrentUser\Root
+```
+
+Open `https://localhost`. HTTP redirects to HTTPS. Caddy removes its server header and
+sets HSTS, CSP, clickjacking, MIME-sniffing, referrer, permissions, and cross-origin
+isolation headers. The services use read-only root filesystems where compatible;
+recursive workspace purge remains disabled.
+
+Persistent state is kept in the `ratools_postgres_data`, `ratools_app_data`,
+`ratools_workspaces`, `ratools_caddy_data`, and `ratools_caddy_config` named volumes.
+Normal shutdown retains them:
+
+```powershell
+docker compose -f compose.production.yml down
+```
+
+Do not add `--volumes` to that command unless permanent deletion of the database,
+workspaces, publish artifacts, and local CA is intended. Backup and restore automation
+is a later roadmap item; this topology does not yet support multiple replicas.
 
 ## Supported Deployment Boundary
 
 The current release supports one trusted operator, one API/worker process, and a
 browser, API, PostgreSQL database, and workspaces on the same controlled host. Keep
-the API and database bound to loopback; do not expose this build through a LAN,
-reverse proxy, public address, or multiple replicas.
+the API and database bound to loopback. Only the bundled host-loopback Caddy topology
+is supported; do not expose this build through a LAN, public address, shared reverse
+proxy, or multiple replicas.
 
 Startup enforces this boundary: `Deployment:Mode` must remain `LocalOnly`, every API
 listener and PostgreSQL host must be loopback, and a cross-process lock rejects a
@@ -130,14 +179,16 @@ multi-user attribution or non-repudiation. Shared or horizontally scaled deploym
 remains unsupported until the remaining identity and migration controls in the
 locally maintained ADR-0001 are complete. ADRs are not part of the public repository.
 
-The tracked Compose port is bound to `127.0.0.1`, but its credentials and the
-development settings are still development conveniences, not a hardened deployment
-profile. Review the ADR's local-only requirements before using real regulatory documents.
+The development `docker-compose.yml` binds PostgreSQL to `127.0.0.1`, but its tracked
+credentials remain a development convenience. Use `compose.production.yml` for the
+file-secret, TLS, security-header, and persistent-volume controls described above.
 
 ## Key Configuration
 
 - `Deployment:Mode`: fixed to `LocalOnly`; any other value is rejected because shared
   deployment is not implemented.
+- `Deployment:Containerized`: permits wildcard container listeners when explicitly set;
+  the production Compose topology overrides the API listener back to container-loopback.
 - `Deployment:InstanceLockPath` (default `App_Data/ratools-api.lock`): cross-process lock
   held for the lifetime of a relational API/worker process. Put all replicas of one local
   installation on the same lock path; only one may run.
@@ -145,6 +196,10 @@ profile. Review the ADR's local-only requirements before using real regulatory d
   `Kestrel:Endpoints:*:Url` values are checked by the same rule.
 - `Security:ApiKey`: required for non-InMemory providers; outside `Development`, it must
   be a non-development value of at least 32 characters.
+- `FileSecrets:ApiKeyPath`: optional absolute path whose non-empty file content overrides
+  `Security:ApiKey` before authentication is configured.
+- `FileSecrets:PostgreSqlPasswordPath`: optional absolute path whose non-empty file content
+  is injected into `ConnectionStrings:PostgreSql` before persistence is configured.
 - `Security:AllowedWorkspaceRoots`: whitelist roots for every workspace read/write/delete.
 - `Security:AllowDestructiveOperations` (default `false`): gates `deleteMode=PurgeWorkspace`
   (recursive workspace deletion). Keep it off unless an environment explicitly needs purge.
