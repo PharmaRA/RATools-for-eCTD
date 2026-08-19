@@ -63,6 +63,12 @@ jobs:
         env:
           RATOOLS_TEST_POSTGRES: Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres
 
+      - name: Regional FDA and EU regression
+        run: >-
+          dotnet test tests/RATools.Tests/RATools.Tests.csproj
+          --configuration Release --no-build
+          --filter "FullyQualifiedName~RATools.Tests.Publishing.UsRegional|FullyQualifiedName~RATools.Tests.Publishing.EuRegional"
+
       # 测试失败时把失败用例名与消息打进日志——否则只剩 "exit code 1"，
       # 而 job 日志需要仓库 admin 权限才能下载，排障会卡在拿不到信息上。
       - name: Report failed tests
