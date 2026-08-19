@@ -58,7 +58,11 @@ public sealed class CompositeStandardsProfileProviderTests
         Assert.Equal("eu-ectd-3.2.2", profile.TemplateKey);
         Assert.Equal("EU", profile.Region);
         Assert.Equal("m1/eu/eu-regional.xml", profile.BackboneXml?.Regional.RelativePath);
-        Assert.Contains(profile.Assets, asset => asset.LocalRelativePath == "reference/dtd/eu-regional.dtd");
+        Assert.Equal("3.1.1", profile.UsRegionalModule1Version);
+        Assert.Equal("8.2", profile.ValidationCriteriaVersion);
+        Assert.Contains(profile.Assets, asset => asset.LocalRelativePath == "reference/eu-m1/3.1.1/util/dtd/eu-regional.dtd");
+        Assert.Contains(profile.Assets, asset => asset.LocalRelativePath.EndsWith("eu-envelope.mod", StringComparison.Ordinal));
+        Assert.Contains(profile.Assets, asset => asset.LocalRelativePath.EndsWith("eu-leaf.mod", StringComparison.Ordinal));
     }
 
     private static StandardsProfile CreateProfile(string templateKey, string region)

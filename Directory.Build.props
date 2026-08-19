@@ -25,4 +25,10 @@
              Link="reference\dtd\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)reference\eu-m1')">
+    <Content Include="$(MSBuildThisFileDirectory)reference\eu-m1\**\util\**\*"
+             Link="reference\eu-m1\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

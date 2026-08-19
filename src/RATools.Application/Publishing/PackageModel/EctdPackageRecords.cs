@@ -15,7 +15,8 @@ public sealed record EctdSequencePackage(
     EctdUsRegionalMetadata UsRegional,
     IReadOnlyCollection<EctdLeaf> Module1Leaves,
     IReadOnlyCollection<EctdLeaf> IchBackboneLeaves,
-    IReadOnlyCollection<EctdPublishedFile> PublishedFiles);
+    IReadOnlyCollection<EctdPublishedFile> PublishedFiles,
+    EctdEuRegionalMetadata? EuRegional = null);
 
 public sealed record EctdApplicationMetadata(
     string ApplicationNumber,
@@ -45,6 +46,26 @@ public sealed record EctdUsRegionalMetadata(
     string SubmissionType,
     string SubmissionSubtype,
     string? FormType);
+
+public sealed record EctdEuRegionalMetadata(
+    string Identifier,
+    string Country,
+    string SubmissionType,
+    string? SubmissionMode,
+    string? SubmissionNumber,
+    IReadOnlyCollection<string> ProcedureTrackingNumbers,
+    string SubmissionUnit,
+    string Applicant,
+    string AgencyCode,
+    string ProcedureType,
+    IReadOnlyCollection<string> InventedNames,
+    IReadOnlyCollection<string> Inns,
+    string SequenceNumber,
+    IReadOnlyCollection<string> RelatedSequences,
+    string SubmissionDescription,
+    string DocumentCountry,
+    string ProductInformationLanguage,
+    string ProductInformationType);
 
 public sealed record EctdLeaf(
     Guid PlacementId,

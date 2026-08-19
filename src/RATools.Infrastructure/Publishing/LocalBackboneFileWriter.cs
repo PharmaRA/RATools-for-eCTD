@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Publishing;
 using RATools.Application.Publishing.PackageModel;
+using RATools.Application.Standards;
 using RATools.Domain.Common;
 
 namespace RATools.Infrastructure.Publishing;
@@ -33,6 +34,7 @@ public sealed partial class LocalBackboneFileWriter(
         string reportFileName,
         string packageFileName,
         IReadOnlyCollection<EctdPublishedFile> publishedFiles,
+        IReadOnlyCollection<StandardsAsset>? standardsAssets = null,
         CancellationToken cancellationToken = default)
     {
         if (applicationId == Guid.Empty)
@@ -75,11 +77,11 @@ public sealed partial class LocalBackboneFileWriter(
         var reportPath = ResolveDescendantPath(reportDirectory, safeReportFileName, "Publish report path");
         var packagePath = ResolveDescendantPath(packageDirectory, safePackageFileName, "Publish package path");
         var fullPath = ResolveDescendantPath(deliveryRoot, "index.xml", "Backbone index path");
-        var standardsAssets = BuildStandardsAssetCopyPlan(deliveryRoot);
+        var standardsAssetCopies = BuildStandardsAssetCopyPlan(deliveryRoot, standardsAssets);
 
         var plannedPaths = generatedDestinations.Select(item => item.DestinationPath)
             .Concat(publishedDestinations.Select(item => item.DestinationPath))
-            .Concat(standardsAssets.Select(item => item.DestinationPath))
+            .Concat(standardsAssetCopies.Select(item => item.DestinationPath))
             .Append(indexMd5Path)
             .Append(reportPath)
             .Append(packagePath)
@@ -114,7 +116,7 @@ public sealed partial class LocalBackboneFileWriter(
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
         }
 
-        CopyStandardsAssets(standardsAssets);
+        CopyStandardsAssets(standardsAssetCopies);
 
         var md5Content = BuildIndexMd5(deliveryRoot);
         await File.WriteAllTextAsync(indexMd5Path, md5Content, cancellationToken);
@@ -305,8 +307,21 @@ public sealed partial class LocalBackboneFileWriter(
         }
     }
 
-    private static (string SourcePath, string DestinationPath)[] BuildStandardsAssetCopyPlan(string deliveryRoot)
+    private static (string SourcePath, string DestinationPath)[] BuildStandardsAssetCopyPlan(
+        string deliveryRoot,
+        IReadOnlyCollection<StandardsAsset>? assets)
     {
+        if (assets is not null)
+        {
+            return assets
+                .Select(asset => BuildStandardsAssetCopyPlan(deliveryRoot, asset))
+                .GroupBy(item => item.DestinationPath, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.Count() == 1
+                    ? group.Single()
+                    : throw new InvalidOperationException($"Multiple standards assets target '{group.Key}'."))
+                .ToArray();
+        }
+
         var sourceDirectory = Path.Combine(AppContext.BaseDirectory, "reference", "dtd");
         if (!Directory.Exists(sourceDirectory))
         {
@@ -322,6 +337,29 @@ public sealed partial class LocalBackboneFileWriter(
                     Path.GetFileName(sourcePath),
                     "Standards asset path")))
             .ToArray();
+    }
+
+    private static (string SourcePath, string DestinationPath) BuildStandardsAssetCopyPlan(
+        string deliveryRoot,
+        StandardsAsset asset)
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            asset.LocalRelativePath.Replace('/', Path.DirectorySeparatorChar)));
+        if (!File.Exists(sourcePath))
+        {
+            throw new FileNotFoundException($"Standards asset '{asset.Key}' was not found.", sourcePath);
+        }
+
+        var extension = Path.GetExtension(sourcePath);
+        var packageDirectory = string.Equals(asset.Category, "XSL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".xsl", StringComparison.OrdinalIgnoreCase)
+            ? "util/style"
+            : "util/dtd";
+        var destinationDirectory = ResolveDescendantPath(deliveryRoot, packageDirectory, "Standards asset directory");
+        return (
+            sourcePath,
+            ResolveDescendantPath(destinationDirectory, Path.GetFileName(sourcePath), "Standards asset path"));
     }
 
     private static void CopyStandardsAssets(

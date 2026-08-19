@@ -113,10 +113,15 @@ public sealed class EuPublishEndToEndTests
             Assert.True(File.Exists(Path.Combine(outputDirectory!, "index.xml")));
             Assert.True(File.Exists(Path.Combine(outputDirectory!, "m1", "eu", "eu-regional.xml")));
             Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-regional.dtd")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-envelope.mod")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-leaf.mod")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "style", "eu-regional.xsl")));
             Assert.True(File.Exists(report.PublishJob.PackagePath));
 
             var euRegionalContent = await File.ReadAllTextAsync(Path.Combine(outputDirectory!, "m1", "eu", "eu-regional.xml"));
-            Assert.Contains("m1-eu-regional", euRegionalContent, StringComparison.Ordinal);
+            Assert.Contains("<eu:eu-backbone", euRegionalContent, StringComparison.Ordinal);
+            Assert.Contains("<eu-envelope>", euRegionalContent, StringComparison.Ordinal);
+            Assert.Contains("<m1-eu><m1-0-cover>", euRegionalContent, StringComparison.Ordinal);
             Assert.Contains("cover-letter.pdf", euRegionalContent, StringComparison.Ordinal);
         }
         finally

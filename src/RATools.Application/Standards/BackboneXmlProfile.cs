@@ -37,10 +37,10 @@ public static class BackboneXmlProfiles
             "3.2",
             "util/dtd/ich-ectd-3-2.dtd"),
         new BackboneXmlFileProfile(
-            "eu-regional:eu-regional",
-            "eu-regional",
-            "http://www.ema.europa.eu/eu-ectd",
-            "EU M1",
+            "eu:eu-backbone",
+            "eu-backbone",
+            "http://europa.eu.int",
+            "3.1",
             "../../util/dtd/eu-regional.dtd",
             "m1/eu/eu-regional.xml"));
 }

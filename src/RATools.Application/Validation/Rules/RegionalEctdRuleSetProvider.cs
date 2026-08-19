@@ -18,6 +18,9 @@ public sealed class RegionalEctdRuleSetProvider : IEctdValidationRuleSetProvider
         _ruleSets =
         [
             new EctdValidationRuleSet("us-fda-ectd-3.2.2", "4.5", sharedRules),
+            new EctdValidationRuleSet("eu-ectd-3.2.2", "8.2", sharedRules),
+            // Compatibility alias for persisted/test profiles created by the
+            // pre-v8.2 controlled EU skeleton.
             new EctdValidationRuleSet("eu-ectd-3.2.2", "EU", sharedRules)
         ];
     }

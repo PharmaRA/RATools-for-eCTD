@@ -94,7 +94,49 @@ public sealed class EctdPackageModelBuilder(
             usRegionalMetadata,
             module1Leaves,
             ichBackboneLeaves,
-            publishedFiles);
+            publishedFiles,
+            BuildEuRegionalMetadata(application.Id, application.ApplicationNumber, sequenceMetadata));
+    }
+
+    private static EctdEuRegionalMetadata BuildEuRegionalMetadata(
+        Guid applicationId,
+        string applicationNumber,
+        EctdSequenceMetadata sequence)
+    {
+        var submissionType = NormalizeEuSubmissionType(sequence.SubmissionType);
+        var submissionUnit = NormalizeEuSubmissionUnit(sequence.SubmissionSubtype, sequence.SubmissionType);
+        return new EctdEuRegionalMetadata(
+            applicationId.ToString("D"),
+            "ema",
+            submissionType,
+            null,
+            null,
+            [applicationNumber],
+            submissionUnit,
+            sequence.ApplicantName,
+            "EU-EMA",
+            "centralised",
+            [applicationNumber],
+            [],
+            sequence.SequenceNumber,
+            [sequence.SequenceNumber],
+            sequence.Description,
+            "ema",
+            "en",
+            "combined");
+    }
+
+    private static string NormalizeEuSubmissionType(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant().Replace(' ', '-');
+        return normalized is "initial" or "original-application" ? "maa" : normalized;
+    }
+
+    private static string NormalizeEuSubmissionUnit(string? subtype, string submissionType)
+    {
+        var candidate = string.IsNullOrWhiteSpace(subtype) ? submissionType : subtype;
+        var normalized = candidate.Trim().ToLowerInvariant().Replace(' ', '-');
+        return normalized is "original-application" or "maa" ? "initial" : normalized;
     }
 
     private EctdLeaf[] BuildLeaves(

@@ -16,14 +16,14 @@ public sealed class EctdXmlValidator : IEctdXmlValidator
     public void Validate(BackboneGeneratedFile file, StandardsProfile? standardsProfile = null)
     {
         ArgumentNullException.ThrowIfNull(file);
-        var allowedDtdFileNames = BuildAllowedDtdFileNames(standardsProfile);
+        var allowedDtdPaths = BuildAllowedDtdPaths(standardsProfile);
 
         var errors = new List<string>();
         var settings = new XmlReaderSettings
         {
             DtdProcessing = DtdProcessing.Parse,
             ValidationType = ValidationType.DTD,
-            XmlResolver = new BundledDtdResolver(allowedDtdFileNames),
+            XmlResolver = new BundledDtdResolver(allowedDtdPaths),
             IgnoreWhitespace = false
         };
         settings.ValidationEventHandler += (_, args) => errors.Add(args.Message);
@@ -67,21 +67,30 @@ public sealed class EctdXmlValidator : IEctdXmlValidator
         return $"file:///ectd-package/{normalizedRelativePath}";
     }
 
-    private static string[] BuildAllowedDtdFileNames(StandardsProfile? standardsProfile)
+    private static Dictionary<string, string> BuildAllowedDtdPaths(StandardsProfile? standardsProfile)
     {
         if (standardsProfile is null)
         {
-            return AllowedDtdFileNames;
+            return AllowedDtdFileNames.ToDictionary(
+                fileName => fileName,
+                fileName => Path.Combine(AppContext.BaseDirectory, "reference", "dtd", fileName),
+                StringComparer.OrdinalIgnoreCase);
         }
 
         return standardsProfile.Assets
             .Where(asset => string.Equals(asset.Category, "DTD", StringComparison.OrdinalIgnoreCase))
-            .Select(asset => Path.GetFileName(asset.LocalRelativePath))
-            .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
-            .ToArray();
+            .Select(asset => new
+            {
+                FileName = Path.GetFileName(asset.LocalRelativePath),
+                Path = Path.GetFullPath(Path.Combine(
+                    AppContext.BaseDirectory,
+                    asset.LocalRelativePath.Replace('/', Path.DirectorySeparatorChar)))
+            })
+            .Where(asset => !string.IsNullOrWhiteSpace(asset.FileName))
+            .ToDictionary(asset => asset.FileName, asset => asset.Path, StringComparer.OrdinalIgnoreCase);
     }
 
-    private sealed class BundledDtdResolver(IReadOnlyCollection<string> allowedDtdFileNames) : XmlResolver
+    private sealed class BundledDtdResolver(IReadOnlyDictionary<string, string> allowedDtdPaths) : XmlResolver
     {
         public override ICredentials? Credentials
         {
@@ -91,12 +100,11 @@ public sealed class EctdXmlValidator : IEctdXmlValidator
         public override object GetEntity(Uri absoluteUri, string? role, Type? ofObjectToReturn)
         {
             var fileName = Path.GetFileName(absoluteUri.LocalPath);
-            if (!allowedDtdFileNames.Contains(fileName, StringComparer.OrdinalIgnoreCase))
+            if (!allowedDtdPaths.TryGetValue(fileName, out var dtdPath))
             {
                 throw new InvalidOperationException($"DTD system id '{absoluteUri}' is not an allowed bundled eCTD DTD.");
             }
 
-            var dtdPath = Path.Combine(AppContext.BaseDirectory, "reference", "dtd", fileName);
             if (!File.Exists(dtdPath))
             {
                 throw new FileNotFoundException($"Bundled eCTD DTD '{fileName}' was not found.", dtdPath);

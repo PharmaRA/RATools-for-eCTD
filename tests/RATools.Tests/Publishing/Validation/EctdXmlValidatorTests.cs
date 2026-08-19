@@ -1,6 +1,7 @@
 using RATools.Application.Abstractions.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using RATools.Application;
+using RATools.Application.Publishing.EuRegional;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.UsRegional;
@@ -66,6 +67,21 @@ public sealed class EctdXmlValidatorTests
         var result = new UsRegionalXmlWriter().Write(package);
 
         validator.Validate(new BackboneGeneratedFile(result.RelativePath, result.XmlContent));
+    }
+
+    [Fact]
+    public void Validate_PassesForWriterGeneratedEuRegionalXmlAgainstOfficialModularDtd()
+    {
+        var validator = new EctdXmlValidator();
+        var package = CreatePackage() with
+        {
+            Application = new EctdApplicationMetadata("EU123456", "Acme Pharma", "EU", "eu-ectd-3.2.2", "maa"),
+            BackboneXml = BackboneXmlProfiles.EuEctd322Regional
+        };
+        var result = new EuRegionalXmlWriter().Write(package);
+        var profile = new EuEctd322StandardsProfileProvider().GetProfile("eu-ectd-3.2.2");
+
+        validator.Validate(new BackboneGeneratedFile(result.RelativePath, result.XmlContent), profile);
     }
 
     [Fact]

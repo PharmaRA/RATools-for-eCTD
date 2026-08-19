@@ -51,6 +51,8 @@ public sealed class BackboneServiceTests
         // EU 发布会在此处失败（readiness 与 publish 行为分歧的根因）。
         Assert.All(validator.ValidatedProfiles, Assert.NotNull);
         Assert.Same(package.PublishedFiles, fileWriter.PublishedFiles);
+        Assert.Contains(fileWriter.StandardsAssets, asset => asset.Key == "ich-ectd-3-2-dtd");
+        Assert.Contains(fileWriter.StandardsAssets, asset => asset.Key == "us-regional-v3-3-dtd");
         Assert.Equal(applicationId, result.ApplicationId);
         Assert.Equal("0001", result.SequenceNumber);
         Assert.Equal("index.xml", result.FileName);
@@ -166,6 +168,8 @@ public sealed class BackboneServiceTests
 
         public IReadOnlyCollection<EctdPublishedFile> PublishedFiles { get; private set; } = [];
 
+        public IReadOnlyCollection<StandardsAsset> StandardsAssets { get; private set; } = [];
+
         public Task<(string FilePath, string ReportPath, string PackagePath)> SaveAsync(
             Guid applicationId,
             string sequenceNumber,
@@ -174,6 +178,7 @@ public sealed class BackboneServiceTests
             string reportFileName,
             string packageFileName,
             IReadOnlyCollection<EctdPublishedFile> publishedFiles,
+            IReadOnlyCollection<StandardsAsset>? standardsAssets = null,
             CancellationToken cancellationToken = default)
         {
             if (_validator is not null)
@@ -188,6 +193,7 @@ public sealed class BackboneServiceTests
             PackageFileName = packageFileName;
             GeneratedFiles = generatedFiles;
             PublishedFiles = publishedFiles;
+            StandardsAssets = standardsAssets ?? [];
             return Task.FromResult(("C:/out/index.xml", "C:/out/report.json", "C:/out/package.zip"));
         }
     }

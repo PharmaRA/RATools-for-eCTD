@@ -47,6 +47,7 @@ public sealed class BackboneService(
             request.ReportFileName,
             request.PackageFileName,
             package.PublishedFiles,
+            profile.Assets,
             cancellationToken);
 
         return new GeneratedBackboneDto(
