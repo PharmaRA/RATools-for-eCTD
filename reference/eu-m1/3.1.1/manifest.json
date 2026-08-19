@@ -1,0 +1,92 @@
+{
+  "standard": "EU eCTD Module 1",
+  "specificationVersion": "3.1.1",
+  "validationCriteriaVersion": "8.2",
+  "published": "2025-06",
+  "effective": "2025-12-01",
+  "authority": "European Medicines Agency",
+  "maintainer": "eSubmission Expert Group",
+  "sourcePage": "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+  "accessed": "2026-08-19",
+  "assetStatus": "acquired-not-active",
+  "activationNote": "These files are the official source snapshot for the Phase 6 implementation. The production EU writer and validator still use the controlled skeleton until the next Phase 6 item adapts them to this DTD.",
+  "package": {
+    "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/util_zips/util%20(4).zip",
+    "sha256": "1938d04486ea07018972bf0e4e4fbb2f5f302d0becdbebff652f14c4441031ba"
+  },
+  "artifacts": [
+    {
+      "path": "util/dtd/eu-regional.dtd",
+      "role": "EU regional DTD",
+      "sourcePathInPackage": "util/dtd/eu-regional.dtd",
+      "md5": "f8e473246d58499f9ffff8e51a32380d",
+      "sha256": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759"
+    },
+    {
+      "path": "util/dtd/eu-envelope.mod",
+      "role": "EU envelope DTD module",
+      "sourcePathInPackage": "util/dtd/eu-envelope.mod",
+      "sha256": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73"
+    },
+    {
+      "path": "util/dtd/eu-leaf.mod",
+      "role": "EU leaf DTD module",
+      "sourcePathInPackage": "util/dtd/eu-leaf.mod",
+      "sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+    },
+    {
+      "path": "util/dtd/ich-ectd-3-2.dtd",
+      "role": "ICH eCTD DTD bundled by the EU package",
+      "sourcePathInPackage": "util/dtd/ich-ectd-3-2.dtd",
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+    },
+    {
+      "path": "util/style/eu-regional.xsl",
+      "role": "EU regional stylesheet",
+      "sourcePathInPackage": "util/style/eu-regional.xsl",
+      "sha256": "f212c58519b1d4e37a7152e9a6cf0ca4f335fccc8212b1f616e4c998b2f7ea81"
+    },
+    {
+      "path": "util/style/ectd-2-0.xsl",
+      "role": "eCTD stylesheet bundled by the EU package",
+      "sourcePathInPackage": "util/style/ectd-2-0.xsl",
+      "sha256": "41bf6aaf78fa1ba736951174c5e3dc6724410f4d5d9332034dac9b2c8d34dcd1"
+    },
+    {
+      "path": "documents/eCTD 3.2.2 - EU M1 Implementation Guide v3.1.1.pdf",
+      "role": "EU M1 implementation guide",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Implementation%20Guide%20v3.1.1.pdf",
+      "sha256": "ae27b9a2258ac396071234539f2bbd88491dec03521c1b12ded135bdf49b2492"
+    },
+    {
+      "path": "documents/eCTD 3.2.2 - EU M1 Validation Criteria v8.2.xlsx",
+      "role": "EU M1 validation criteria",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Validation%20Criteria%20v8.2.xlsx",
+      "sha256": "0f64339496564d89abe9e96376f29805dce2302a56f54ce12858d083315d1fd9"
+    },
+    {
+      "path": "documents/eCTD 3.2.2 - EU M1 Implementation Guide v3.1.1 - Release Notes.pdf",
+      "role": "EU M1 specification release notes",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Implementation%20Guide%20v3.1.1%20-%20Release%20Notes.pdf",
+      "sha256": "2fd472b0b3f1efaa297b1de92c9379845273e70d33c62db024670e219a1c5eb9"
+    },
+    {
+      "path": "documents/EU M1 Validation Criteria v8.2 - Release Notes.pdf",
+      "role": "EU M1 validation release notes",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Validation%20Criteria%20v8.2%20-%20Release%20Notes.pdf",
+      "sha256": "8e9a7b27cef444537a26a7a629a900c7f29900931e1c0130df756e7ad315d154"
+    },
+    {
+      "path": "documents/Implementation Timeline EU M1 IG v3.1.1 and validation criteria v8.2.pdf",
+      "role": "EU M1 implementation timeline",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/Implementation%20Timeline%20EU%20M1%20IG%20v3.1.1%20and%20validation%20criteria%20v8.2.pdf",
+      "sha256": "59ad244eb99f6bf2f077059b77d539b2395f2827feaf0d9288d60931c30c24ca"
+    },
+    {
+      "path": "documents/EU Accepted File Formats for eCTD - June 2024.pdf",
+      "role": "EU accepted file formats",
+      "sourceUrl": "https://esubmission.ema.europa.eu/eumodule1/EU%20Accepted%20File%20Formats%20for%20eCTD%20-%20June%202024.pdf",
+      "sha256": "9dc7d4d130e30b210db2be975d9ce575c6dd2acf35dca5a8742b2c78735d9572"
+    }
+  ]
+}

@@ -51,10 +51,11 @@ Notes:
 
 - EU support is an intentionally narrow second region added to prove the multi-region
   architecture. The bundled `reference/dtd/eu-regional.dtd` is a test/architecture
-  placeholder, not the full official EU Module 1 validation rule set. The EU section
-  dictionary (`EuEctd322`) covers only Module 1 top-level sections, matching the EU
-  regional writer's m1-only boundary; expanding EU support means replacing both with
-  the official EU M1 specification artifacts.
+  placeholder, not the full official EU Module 1 validation rule set. A dated official
+  source snapshot is now recorded under `reference/eu-m1/3.1.1/` with the EMA source
+  URLs, package digest, per-file digests, and implementation timeline. The snapshot is
+  acquired but not active: the EU section dictionary and regional writer still need to
+  be adapted and tested before the capability matrix can claim formal EU support.
 - PDF compliance runs through the shared eCTD validation rule engine
   (`IEctdValidationRule`), so region-specific PDF policies can be layered on later
   without bespoke checks in the readiness service. Font-embedding and security
