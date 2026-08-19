@@ -91,8 +91,8 @@ def main() -> None:
         "/prometheus",
     ):
         assert volume_target in compose, f"Missing persistent mount target: {volume_target}"
-    assert compose.count("read_only: true") == 5
-    assert compose.count("no-new-privileges:true") == 5
+    assert compose.count("read_only: true") == 6
+    assert compose.count("no-new-privileges:true") == 6
     assert 'Security__AllowDestructiveOperations: "false"' in compose
     assert "target: migrator" in compose
     assert "condition: service_completed_successfully" in compose
@@ -100,6 +100,21 @@ def main() -> None:
     assert "--web.listen-address=127.0.0.1:9090" in compose
     assert '["CMD", "/bin/promtool", "query", "instant", "http://127.0.0.1:9090", "up"]' in compose
     assert "9090:" not in compose, "Prometheus must not publish a host port"
+
+    backup_block = re.search(r"^  backup:\n(.*?)(?=^secrets:)", compose, re.MULTILINE | re.DOTALL)
+    if backup_block is None:
+        raise AssertionError("Production Compose must define a maintenance-only backup service")
+    backup = backup_block.group(1)
+    for expected in (
+        "image: alpine:3.22.5",
+        "- maintenance",
+        "network_mode: none",
+        'user: "1654:1654"',
+        "ratools_app_data:/source/app-data:ro",
+        "ratools_workspaces:/source/workspaces:ro",
+        "entrypoint:\n      - tar",
+    ):
+        assert expected in backup, f"Backup service is missing: {expected}"
 
     assert "tls internal" in caddyfile
     assert "redir https://localhost{uri} 308" in caddyfile

@@ -155,6 +155,23 @@ services:
       retries: 5
       start_period: 20s
 
+  backup:
+    image: alpine:3.22.5
+    profiles:
+      - maintenance
+    network_mode: none
+    user: "1654:1654"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ratools_app_data:/source/app-data:ro
+      - ratools_workspaces:/source/workspaces:ro
+    entrypoint:
+      - tar
+
 secrets:
   api_key:
     file: ./deploy/production/runtime/secrets/api-key

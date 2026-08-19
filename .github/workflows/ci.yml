@@ -169,6 +169,7 @@ jobs:
         run: |
           python3 scripts/tests/test_production_image_contract.py
           python3 scripts/tests/test_production_deployment_contract.py
+          python3 scripts/tests/test_backup_restore_contract.py
 
       - name: Initialize deployment secrets
         run: python3 scripts/initialize_production.py
@@ -196,6 +197,8 @@ jobs:
         run: |
           docker build --pull --target migrator --tag ratools-migrator:ci .
           docker build --pull --tag ratools:ci .
+          docker tag ratools-migrator:ci ratools-migrator:local
+          docker tag ratools:ci ratools:local
 
       - name: Verify non-root runtime and frontend artifact
         run: |
@@ -211,6 +214,38 @@ jobs:
             echo "appsettings.Development.json must not be present in the production image"
             exit 1
           fi
+
+      - name: Run production backup and isolated restore drill
+        run: |
+          docker compose -f compose.production.yml up --detach --no-build
+          ready=false
+          for attempt in {1..60}; do
+            if curl --insecure --fail --silent --show-error https://localhost/health/ready >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            docker compose -f compose.production.yml ps
+            docker compose -f compose.production.yml logs
+            exit 1
+          fi
+          docker compose -f compose.production.yml exec -T postgres psql \
+            --username=ratools --dbname=ratools --set=ON_ERROR_STOP=1 \
+            --command "INSERT INTO audit_logs (\"Id\", \"EntityType\", \"EntityId\", \"Action\", \"Actor\", \"Details\", \"CreatedUtc\") VALUES ('00000000-0000-0000-0000-000000000001', 'BackupDrill', 'ci', 'Seeded', 'system', 'backup restore drill', NOW());"
+          docker compose -f compose.production.yml exec -T api sh -c \
+            'mkdir -p /data/workspaces/backup-drill && printf "ratools-backup-drill\n" > /data/workspaces/backup-drill/probe.txt'
+          python3 scripts/backup_production.py \
+            --output-root .artifacts/backup-drill \
+            --backup-name ci-drill
+          python3 scripts/restore_production_backup.py \
+            .artifacts/backup-drill/ci-drill \
+            --migrator-image ratools-migrator:local
+
+      - name: Clean up production drill
+        if: always()
+        run: docker compose -f compose.production.yml down --volumes --remove-orphans
 
   security:
     name: Dependency vulnerability scan

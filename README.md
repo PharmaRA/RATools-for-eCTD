@@ -171,8 +171,48 @@ docker compose -f compose.production.yml down
 
 Do not add `--volumes` to that command unless permanent deletion of the database,
 workspaces, publish artifacts, local CA, and retained metrics is intended. Backup and
-restore automation is a later roadmap item; this topology does not yet support
-multiple replicas.
+restore operations assume this single-process topology; it does not support multiple
+replicas.
+
+## Backup and Restore Drill
+
+Create a consistent backup while the production stack is running:
+
+```powershell
+python scripts/backup_production.py
+```
+
+The command verifies that the API and PostgreSQL are running, stops the API for a
+short consistency window, writes a PostgreSQL custom-format dump, archives
+`App_Data` and the workspace volume, then restarts the API. A manifest records SHA-256
+digests, migration count, core-table row counts, and a per-file inventory. A failed
+run removes its partial directory; an existing backup name is never overwritten.
+
+Backups default to the ignored `deploy/production/runtime/backups/<UTC timestamp>`
+directory. They contain database data, uploaded source documents, publish artifacts,
+and workspace content. Treat the whole directory as regulated sensitive data: limit
+filesystem access, encrypt any off-host copy, and apply an organization-approved
+retention policy. Windows permissions are inherited from the destination directory;
+Unix output is restricted to the current operator.
+
+The backup intentionally excludes runtime secret files, the Caddy private CA, and
+Prometheus history. Store credentials through a separate approved secret-recovery
+process; a rebuilt host receives a new local CA and monitoring history unless those
+operational assets are protected independently.
+
+Prove that a backup is usable without changing production state:
+
+```powershell
+python scripts/restore_production_backup.py deploy/production/runtime/backups/<UTC timestamp>
+```
+
+The drill rejects checksum, manifest, unsafe tar-path, symlink, and inventory
+mismatches before restoration. It then restores the database and files into randomly
+named temporary Docker volumes, runs the current migration image against the restored
+database, verifies migrations, row counts, and every file digest, and removes the
+temporary container and volumes. It never mounts or modifies the production volumes.
+Run the drill after every scheduled backup and before relying on that backup for
+disaster recovery; CI executes the same workflow against seeded data on every change.
 
 ## Health, Metrics, and Alerts
 
