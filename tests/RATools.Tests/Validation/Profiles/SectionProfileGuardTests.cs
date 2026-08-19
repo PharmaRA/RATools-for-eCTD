@@ -138,6 +138,32 @@ public sealed class SectionProfileGuardTests
         Assert.Equal("EU", m1.Region);
     }
 
+    [Fact]
+    public void EuProfile_ContainsCompleteModuleOneAndSharedIchModules()
+    {
+        var moduleSectionPaths = EuEctd322.Root.Children.Select(x => x.SectionPath).ToArray();
+
+        Assert.Equal(["m1", "m2", "m3", "m4", "m5"], moduleSectionPaths);
+        Assert.Equal(33, CountNodes(EuEctd322.Root.Children.Single(x => x.SectionPath == "m1")));
+    }
+
+    [Theory]
+    [InlineData("m1.3.1", "m1/eu/13-pi/131-spclabelpl")]
+    [InlineData("m1.5.2", "m1/eu/15-specific/152-generic-hybrid-bio-similar")]
+    [InlineData("m1.8.2", "m1/eu/18-pharmacovigilance/182-riskmgt-system")]
+    [InlineData("m1.responses", "m1/eu/responses")]
+    [InlineData("m2.3", "m2/23-quality-overall-summary")]
+    public void EuProfile_UsesOfficialNestedDirectoryPaths(string sectionPath, string expectedPath)
+    {
+        var resolution = EuEctd322.CanonicalWorkspaceFolders[sectionPath];
+
+        Assert.Equal(expectedPath.Replace('/', Path.DirectorySeparatorChar), resolution.RelativeFolderPath);
+        Assert.Equal("EU", resolution.Region);
+    }
+
+    private static int CountNodes(SectionDictionaryManualNode node)
+        => 1 + node.Children.Sum(CountNodes);
+
     private static void VisitNodes(SectionDictionaryManualNode node, Action<SectionDictionaryManualNode> visit)
     {
         visit(node);
