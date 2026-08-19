@@ -107,6 +107,11 @@ file, or runtime `App_Data` content. At startup, `/runtime-config` supplies the
 browser-visible local-only API access key from the API's runtime configuration with
 `no-store`; the key is not baked into an image layer.
 
+The root `VERSION` file is the release version source. `/version` returns the .NET
+informational version, including the source revision when supplied by CI. Production
+images carry matching OCI version, revision, creation time, source, and license
+labels; local builds use the same version with `local` revision metadata.
+
 ```powershell
 docker build --pull --tag ratools:local .
 ```
@@ -213,6 +218,26 @@ database, verifies migrations, row counts, and every file digest, and removes th
 temporary container and volumes. It never mounts or modifies the production volumes.
 Run the drill after every scheduled backup and before relying on that backup for
 disaster recovery; CI executes the same workflow against seeded data on every change.
+
+## Release Evidence and Rollback
+
+Every production-image CI run generates three CycloneDX JSON SBOMs with pinned Syft:
+one scans source dependency manifests (including npm), while the other two scan the
+final API and migration images (including NuGet and operating-system runtime
+packages). CI rejects an SBOM
+whose subject version, format, component references, or required ecosystem coverage
+is invalid. The uploaded release-evidence artifact contains both SBOMs, `SHA256SUMS`,
+image IDs, source revision, build timestamp, `VERSION`, and `CHANGELOG.md`.
+
+Before changing a release version, update `VERSION`, the frontend package metadata,
+Docker/Compose defaults, and `CHANGELOG.md`; `scripts/tests/test_release_contract.py`
+fails when those values drift. Create the signed `v<version>` Git tag only after all
+CI jobs pass for the exact commit.
+
+Follow [`deploy/production/ROLLBACK.md`](deploy/production/ROLLBACK.md) before every
+upgrade and during recovery. It requires a verified pre-upgrade backup and retained
+image/SBOM evidence, distinguishes schema-compatible image rollback from stateful
+recovery, and never overwrites the failed production volumes.
 
 ## Health, Metrics, and Alerts
 

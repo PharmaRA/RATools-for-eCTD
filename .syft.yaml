@@ -1,0 +1,12 @@
+check-for-app-update: false
+exclude:
+  - .git/**
+  - .artifacts/**
+  - .claude/**
+  - deploy/production/runtime/**
+  - frontend/node_modules/**
+  - frontend/dist/**
+  - "**/bin/**"
+  - "**/obj/**"
+javascript:
+  include-dev-dependencies: true

@@ -170,6 +170,7 @@ jobs:
           python3 scripts/tests/test_production_image_contract.py
           python3 scripts/tests/test_production_deployment_contract.py
           python3 scripts/tests/test_backup_restore_contract.py
+          python3 scripts/tests/test_release_contract.py
 
       - name: Initialize deployment secrets
         run: python3 scripts/initialize_production.py
@@ -194,16 +195,34 @@ jobs:
           check config /etc/prometheus/prometheus.yml
 
       - name: Build production image
+        id: release_metadata
         run: |
-          docker build --pull --target migrator --tag ratools-migrator:ci .
-          docker build --pull --tag ratools:ci .
+          version=$(tr -d '\r\n' < VERSION)
+          build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          build_args=(
+            --build-arg "APP_VERSION=$version"
+            --build-arg "VCS_REF=$GITHUB_SHA"
+            --build-arg "BUILD_DATE=$build_date"
+          )
+          docker build --pull "${build_args[@]}" --target migrator --tag ratools-migrator:ci .
+          docker build --pull "${build_args[@]}" --tag ratools:ci .
           docker tag ratools-migrator:ci ratools-migrator:local
           docker tag ratools:ci ratools:local
+          echo "RATOOLS_VERSION=$version" >> "$GITHUB_ENV"
+          echo "RATOOLS_REVISION=$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "RATOOLS_BUILD_DATE=$build_date" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Verify non-root runtime and frontend artifact
         run: |
           test "$(docker image inspect --format '{{.Config.User}}' ratools:ci)" != "0"
           test "$(docker image inspect --format '{{.Config.User}}' ratools-migrator:ci)" != "0"
+          for image in ratools:ci ratools-migrator:ci; do
+            test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$image")" = "$RATOOLS_VERSION"
+            test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$RATOOLS_REVISION"
+            test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.created"}}' "$image")" = "$RATOOLS_BUILD_DATE"
+            test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.licenses"}}' "$image")" = "AGPL-3.0-only"
+          done
           container_id=$(docker create ratools:ci)
           trap 'docker rm -f "$container_id" >/dev/null' EXIT
           docker cp "$container_id:/app/wwwroot/index.html" ./image-index.html
@@ -214,6 +233,77 @@ jobs:
             echo "appsettings.Development.json must not be present in the production image"
             exit 1
           fi
+
+      - name: Prepare SBOM output
+        run: mkdir -p .artifacts/sbom
+
+      - name: Generate source dependency SBOM
+        uses: anchore/sbom-action@v0.24.0
+        env:
+          SYFT_SOURCE_NAME: RATools-for-eCTD-source
+          SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
+        with:
+          path: .
+          config: .syft.yaml
+          format: cyclonedx-json
+          output-file: .artifacts/sbom/ratools-source.cdx.json
+          syft-version: v1.50.0
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate runtime image SBOM
+        uses: anchore/sbom-action@v0.24.0
+        env:
+          SYFT_SOURCE_NAME: RATools-for-eCTD-image
+          SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
+        with:
+          image: ratools:ci
+          config: .syft.yaml
+          format: cyclonedx-json
+          output-file: .artifacts/sbom/ratools-image.cdx.json
+          syft-version: v1.50.0
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate migration image SBOM
+        uses: anchore/sbom-action@v0.24.0
+        env:
+          SYFT_SOURCE_NAME: RATools-for-eCTD-migrator
+          SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
+        with:
+          image: ratools-migrator:ci
+          config: .syft.yaml
+          format: cyclonedx-json
+          output-file: .artifacts/sbom/ratools-migrator.cdx.json
+          syft-version: v1.50.0
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Validate and package release evidence
+        run: |
+          python3 scripts/validate_release_artifacts.py \
+            --source-sbom .artifacts/sbom/ratools-source.cdx.json \
+            --image-sbom .artifacts/sbom/ratools-image.cdx.json \
+            --migrator-sbom .artifacts/sbom/ratools-migrator.cdx.json \
+            --checksums .artifacts/sbom/SHA256SUMS
+          {
+            echo "version=$RATOOLS_VERSION"
+            echo "revision=$RATOOLS_REVISION"
+            echo "created=$RATOOLS_BUILD_DATE"
+            echo "api_image=$(docker image inspect --format '{{.Id}}' ratools:ci)"
+            echo "migrator_image=$(docker image inspect --format '{{.Id}}' ratools-migrator:ci)"
+          } > .artifacts/sbom/build-metadata.txt
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: ratools-${{ steps.release_metadata.outputs.version }}-${{ github.sha }}-sbom
+          path: |
+            .artifacts/sbom
+            VERSION
+            CHANGELOG.md
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Run production backup and isolated restore drill
         run: |
@@ -231,6 +321,8 @@ jobs:
             docker compose -f compose.production.yml logs
             exit 1
           fi
+          curl --insecure --fail --silent --show-error https://localhost/version \
+            | python3 -c 'import json, sys; payload = json.load(sys.stdin); assert payload["version"].startswith(sys.argv[1])' "$RATOOLS_VERSION"
           docker compose -f compose.production.yml exec -T postgres psql \
             --username=ratools --dbname=ratools --set=ON_ERROR_STOP=1 \
             --command "INSERT INTO audit_logs (\"Id\", \"EntityType\", \"EntityId\", \"Action\", \"Actor\", \"Details\", \"CreatedUtc\") VALUES ('00000000-0000-0000-0000-000000000001', 'BackupDrill', 'ci', 'Seeded', 'system', 'backup restore drill', NOW());"

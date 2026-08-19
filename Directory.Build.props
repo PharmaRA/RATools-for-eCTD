@@ -1,6 +1,11 @@
 <Project>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <VersionPrefix>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</VersionPrefix>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/PharmaRA/RATools-for-eCTD</RepositoryUrl>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- 固定为 C# 12，不用 latest(C# 13)：13 的 first-class spans 让

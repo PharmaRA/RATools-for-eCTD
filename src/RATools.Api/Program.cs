@@ -163,7 +163,10 @@ app.MapMetrics().AllowAnonymous().ExcludeFromDescription();
 
 app.MapGet("/version", () =>
 {
-    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+    var assembly = Assembly.GetExecutingAssembly();
+    var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? assembly.GetName().Version?.ToString()
+        ?? "unknown";
     return Results.Ok(new { name = "RATools.Api", version });
 }).AllowAnonymous();
 app.UseAuthentication();

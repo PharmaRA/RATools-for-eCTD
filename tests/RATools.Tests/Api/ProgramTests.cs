@@ -287,5 +287,8 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await client.GetAsync("/version");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+        Assert.Equal("RATools.Api", payload?["name"]);
+        Assert.StartsWith("0.1.0", payload?["version"]);
     }
 }

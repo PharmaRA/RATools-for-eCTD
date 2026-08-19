@@ -64,6 +64,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
+      args:
+        APP_VERSION: ${RATOOLS_VERSION:-0.1.0}
+        VCS_REF: ${RATOOLS_REVISION:-local}
+        BUILD_DATE: ${RATOOLS_BUILD_DATE:-1970-01-01T00:00:00Z}
     network_mode: "service:proxy"
     depends_on:
       postgres:
@@ -88,6 +92,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${RATOOLS_VERSION:-0.1.0}
+        VCS_REF: ${RATOOLS_REVISION:-local}
+        BUILD_DATE: ${RATOOLS_BUILD_DATE:-1970-01-01T00:00:00Z}
     network_mode: "service:proxy"
     depends_on:
       migration:
