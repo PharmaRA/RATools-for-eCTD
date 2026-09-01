@@ -244,7 +244,7 @@ jobs:
         run: mkdir -p .artifacts/sbom
 
       - name: Generate source dependency SBOM
-        uses: anchore/sbom-action@v0.24.0
+        uses: anchore/sbom-action@v0.24.2
         env:
           SYFT_SOURCE_NAME: RATools-for-eCTD-source
           SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
@@ -258,7 +258,7 @@ jobs:
           upload-release-assets: false
 
       - name: Generate runtime image SBOM
-        uses: anchore/sbom-action@v0.24.0
+        uses: anchore/sbom-action@v0.24.2
         env:
           SYFT_SOURCE_NAME: RATools-for-eCTD-image
           SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
@@ -272,7 +272,7 @@ jobs:
           upload-release-assets: false
 
       - name: Generate migration image SBOM
-        uses: anchore/sbom-action@v0.24.0
+        uses: anchore/sbom-action@v0.24.2
         env:
           SYFT_SOURCE_NAME: RATools-for-eCTD-migrator
           SYFT_SOURCE_VERSION: ${{ steps.release_metadata.outputs.version }}
