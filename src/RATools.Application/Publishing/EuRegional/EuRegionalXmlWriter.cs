@@ -221,7 +221,7 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
 
         if (leaf.Lifecycle is not null)
         {
-            attributes.Add(new XAttribute("modified-file", $"../../../{leaf.Lifecycle.TargetSequenceNumber}/{leaf.Lifecycle.ModifiedFileHref}"));
+            attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.BuildModifiedFileHref(regionalRelativePath)));
         }
 
         return new XElement("leaf", attributes, new XElement("title", leaf.Title));

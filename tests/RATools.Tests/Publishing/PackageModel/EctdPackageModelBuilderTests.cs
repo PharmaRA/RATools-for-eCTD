@@ -373,7 +373,7 @@ public sealed class EctdPackageModelBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_ResolvesLifecycleModifiedFileHrefForReplaceOperation()
+    public async Task BuildAsync_ResolvesLifecycleTargetDocumentHrefForReplaceOperation()
     {
         var applicationId = Guid.Parse("88888888-8888-8888-8888-888888888888");
         var application = CreateApplication(applicationId, "0000", "0001");
@@ -392,7 +392,7 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal(historicalPlacementId, leaf.Lifecycle.TargetPlacementId);
         Assert.Equal(historicalDocument.Id, leaf.Lifecycle.TargetDocumentId);
         Assert.Equal("0000", leaf.Lifecycle.TargetSequenceNumber);
-        Assert.Equal("m1/us/old.pdf", leaf.Lifecycle.ModifiedFileHref);
+        Assert.Equal("m1/us/old.pdf", leaf.Lifecycle.TargetDocumentHref);
     }
 
     [Fact]

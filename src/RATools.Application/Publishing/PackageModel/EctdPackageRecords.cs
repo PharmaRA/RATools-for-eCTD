@@ -89,7 +89,17 @@ public sealed record EctdLifecycleReference(
     Guid TargetPlacementId,
     Guid TargetDocumentId,
     string TargetSequenceNumber,
-    string ModifiedFileHref);
+    string TargetDocumentHref)
+{
+    public string BuildModifiedFileHref(string backboneRelativePath)
+    {
+        // ICH eCTD 3.2.2: modified-file addresses the historical XML leaf by ID.
+        // Each backbone is relative to its own directory within the sequence.
+        var normalizedPath = backboneRelativePath.Replace('\\', '/');
+        var parents = string.Concat(Enumerable.Repeat("../", normalizedPath.Count(character => character == '/') + 1));
+        return $"{parents}{TargetSequenceNumber}/{normalizedPath}#leaf-{TargetPlacementId:N}";
+    }
+}
 
 public sealed record EctdPublishedFile(
     Guid DocumentId,

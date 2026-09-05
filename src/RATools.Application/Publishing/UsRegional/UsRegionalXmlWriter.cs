@@ -161,7 +161,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
         if (leaf.Lifecycle is not null)
         {
-            attributes.Add(new XAttribute("modified-file", BuildModifiedFileHref(leaf.Lifecycle)));
+            attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.BuildModifiedFileHref(regionalRelativePath)));
         }
 
         return new XElement("leaf",
@@ -193,9 +193,6 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
         return relativePath;
     }
-
-    private static string BuildModifiedFileHref(EctdLifecycleReference lifecycle)
-        => $"../../../{lifecycle.TargetSequenceNumber}/{lifecycle.ModifiedFileHref}";
 
     private static void ValidateRequiredMetadata(EctdSequencePackage package)
     {

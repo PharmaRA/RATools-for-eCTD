@@ -122,7 +122,7 @@ public sealed class IchIndexXmlWriterTests
         Assert.Equal("md5", leaf.Attribute("checksum-type")?.Value);
         Assert.Equal("simple", leaf.Attribute(XName.Get("type", "http://www.w3c.org/1999/xlink"))?.Value);
         Assert.Equal("m3/2/new.pdf", leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
-        Assert.Equal("m3/32-body-of-data/old.pdf", leaf.Attribute("modified-file")?.Value);
+        Assert.Equal($"../0000/index.xml#leaf-{lifecycle.TargetPlacementId:N}", leaf.Attribute("modified-file")?.Value);
         Assert.Equal("new", leaf.Element("title")?.Value);
     }
 
@@ -175,8 +175,7 @@ public sealed class IchIndexXmlWriterTests
 
         Assert.Equal("delete", leaf.Attribute("operation")?.Value);
         Assert.Null(leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink")));
-        // ICH writer 原样透传 builder 计算的 modified-file 相对路径。
-        Assert.Equal("m3/32-body-of-data/old.pdf", leaf.Attribute("modified-file")?.Value);
+        Assert.Equal($"../0000/index.xml#leaf-{lifecycle.TargetPlacementId:N}", leaf.Attribute("modified-file")?.Value);
     }
 
     [Fact]

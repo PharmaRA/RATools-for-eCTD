@@ -78,7 +78,7 @@ public sealed class EuRegionalXmlWriterTests
         Assert.Equal("combined", piDoc.Attribute("type")?.Value);
         Assert.Equal("ema", piDoc.Attribute("country")?.Value);
         Assert.Equal("13-pi/131-spclabelpl/ema/en/ema-combined.pdf", emittedLeaf?.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
-        Assert.Equal("../../../0000/m1/eu/13-pi/131-spclabelpl/ema/en/ema-combined.pdf", emittedLeaf?.Attribute("modified-file")?.Value);
+        Assert.Equal($"../../../0000/m1/eu/eu-regional.xml#leaf-{lifecycle.TargetPlacementId:N}", emittedLeaf?.Attribute("modified-file")?.Value);
     }
 
     [Fact]

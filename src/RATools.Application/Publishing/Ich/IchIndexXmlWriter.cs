@@ -148,7 +148,7 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
 
         if (leaf.Lifecycle is not null)
         {
-            attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.ModifiedFileHref));
+            attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.BuildModifiedFileHref("index.xml")));
         }
 
         return new XElement("leaf",

@@ -156,7 +156,7 @@ public sealed class UsRegionalXmlWriterTests
         Assert.Equal("md5", leaf.Attribute("checksum-type")?.Value);
         Assert.Equal("simple", leaf.Attribute(XName.Get("type", "http://www.w3c.org/1999/xlink"))?.Value);
         Assert.Equal("12-cover-letters/new.pdf", leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))?.Value);
-        Assert.Equal("../../../0000/m1/us/12-cover-letters/old.pdf", leaf.Attribute("modified-file")?.Value);
+        Assert.Equal($"../../../0000/m1/us/us-regional.xml#leaf-{lifecycle.TargetPlacementId:N}", leaf.Attribute("modified-file")?.Value);
         Assert.Equal("new", leaf.Element("title")?.Value);
     }
 
