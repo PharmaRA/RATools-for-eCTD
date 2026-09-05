@@ -180,10 +180,6 @@ public sealed class DocumentPlacementService(
         var application = await applicationRepository.GetAsync(placement.ApplicationId, cancellationToken)
             ?? throw new InvalidOperationException($"Application {placement.ApplicationId} was not found.");
         var sourcePath = ResolveSourcePathForRename(document, application, placement.SequenceNumber);
-        if (!string.Equals(sourcePath, Path.GetFullPath(document.StoragePath), StringComparison.OrdinalIgnoreCase))
-        {
-            document.Relocate(sourcePath);
-        }
 
         var originalState = new DocumentMetadataState(
             placement.Title,
@@ -356,40 +352,9 @@ public sealed class DocumentPlacementService(
     private string ResolveSourcePathForRename(SubmissionDocument document, Domain.Applications.SubmissionApplication application, string sequenceNumber)
     {
         var validatedPath = documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, sequenceNumber);
-        if (File.Exists(validatedPath))
+        if (!File.Exists(validatedPath))
         {
-            return validatedPath;
-        }
-
-        var directory = Path.GetDirectoryName(validatedPath);
-        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
-        {
-            return validatedPath;
-        }
-
-        var extension = Path.GetExtension(document.FileName);
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            extension = Path.GetExtension(validatedPath);
-        }
-
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            return validatedPath;
-        }
-
-        var candidates = Directory.EnumerateFiles(directory)
-            .Where(path => string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        if (candidates.Length == 1)
-        {
-            return Path.GetFullPath(candidates[0]);
-        }
-
-        if (candidates.Length > 1)
-        {
-            throw new InvalidOperationException($"Unable to resolve source workspace file for rename because multiple '{extension}' files exist in '{directory}'.");
+            throw new InvalidOperationException($"Unable to update document metadata because source workspace file '{validatedPath}' was not found.");
         }
 
         return validatedPath;

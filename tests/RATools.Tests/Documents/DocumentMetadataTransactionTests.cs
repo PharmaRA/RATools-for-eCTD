@@ -15,6 +15,32 @@ namespace RATools.Tests.Documents;
 
 public sealed class DocumentMetadataTransactionTests
 {
+    [Theory]
+    [InlineData("renamed")]
+    [InlineData("protocol")]
+    public async Task UpdateMetadataAsync_RejectsMissingSourceWithoutAdoptingAnotherFile(string fileNamePrefix)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var originalDocument = fixture.Documents.State;
+        var originalPlacement = fixture.Placements.State;
+        File.Delete(fixture.SourcePath);
+        var unrelatedPath = Path.Combine(Path.GetDirectoryName(fixture.SourcePath)!, "unrelated.pdf");
+        await File.WriteAllTextAsync(unrelatedPath, "unrelated document");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.UpdateMetadataAsync(
+            fixture.PlacementId,
+            new UpdateDocumentPlacementMetadataRequest("Updated title", "replace", fileNamePrefix, Guid.NewGuid())));
+
+        Assert.Contains("source workspace file", exception.Message);
+        Assert.Contains(fixture.SourcePath, exception.Message);
+        Assert.Equal(originalDocument, fixture.Documents.State);
+        Assert.Equal(originalPlacement, fixture.Placements.State);
+        Assert.Empty(fixture.FileStorage.RenameCancellationStates);
+        Assert.False(File.Exists(fixture.SourcePath));
+        Assert.False(File.Exists(fixture.TargetPath));
+        Assert.Equal("unrelated document", await File.ReadAllTextAsync(unrelatedPath));
+    }
+
     [Fact]
     public async Task UpdateMetadataAsync_RestoresDatabaseAndFileWhenPlacementUpdateFails()
     {
