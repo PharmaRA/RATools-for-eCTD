@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "publisher-development-2026-09-05",
+  "purpose": "Development and qualification baseline; not a declaration of regulatory readiness",
+  "reviewedOn": "2026-09-05",
+  "sources": [
+    {
+      "id": "ich-ectd-3.2.2",
+      "authority": "ICH",
+      "version": "3.2.2",
+      "publishedOn": "2008-07-16",
+      "effectiveOn": null,
+      "url": "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
+      "sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0",
+      "retrievalStatus": "Verified",
+      "locators": ["Appendix 3, Tables 3-2 through 3-5", "Appendix 6, Operation Attribute", "Appendix 6, Examples 6-4 and 6-5", "Appendix 8"]
+    },
+    {
+      "id": "ema-eu-m1-3.1.1",
+      "authority": "European Medicines Agency",
+      "version": "3.1.1",
+      "validationCriteriaVersion": "8.2",
+      "publishedOn": "2025-06",
+      "acceptedFrom": "2025-10-01",
+      "effectiveOn": "2025-12-01",
+      "url": "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+      "sha256": "30d4e9c37915e42dec56361ec791beddff2583bc7e2476de805b1aa2fff03d0e",
+      "retrievalStatus": "Verified",
+      "assetManifest": "reference/eu-m1/3.1.1/manifest.json",
+      "locators": ["EU M1 v3.1.1 and Validation Criteria v8.2 mandatory from 1st December", "Implementation Timeline EU M1 IG v3.1.1 and validation criteria v8.2"]
+    },
+    {
+      "id": "fda-us-m1-3.3",
+      "authority": "FDA CDER/CBER",
+      "version": "3.3",
+      "technicalConformanceGuideVersion": "1.9",
+      "validationCriteriaVersion": "4.5",
+      "publishedOn": null,
+      "effectiveOn": null,
+      "url": "https://www.fda.gov/drugs/electronic-regulatory-submission-and-review/ectd-submission-standards-ectd-v322-and-regional-m1",
+      "sha256": null,
+      "retrievalStatus": "Unverified",
+      "reason": "The standards URL and https://www.fda.gov/ectd returned Not found on 2026-09-05. Version labels are from the existing code, not independently confirmed current requirements.",
+      "locators": ["src/RATools.Application/Standards/FdaEctd322StandardsProfileProvider.cs"]
+    }
+  ],
+  "assets": [
+    {
+      "id": "ich-dtd-3.2",
+      "path": "reference/dtd/ich-ectd-3-2.dtd",
+      "version": "3.2",
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+      "sourceId": "ich-ectd-3.2.2",
+      "provenanceStatus": "Verified",
+      "byteIdenticalOfficialCopy": "reference/eu-m1/3.1.1/util/dtd/ich-ectd-3-2.dtd"
+    },
+    {
+      "id": "us-regional-dtd-3.3",
+      "path": "reference/dtd/us-regional-v3-3.dtd",
+      "version": "3.3",
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+      "sourceId": "fda-us-m1-3.3",
+      "provenanceStatus": "Unverified"
+    }
+  ],
+  "businessAttributes": [
+    {"element": "m2-3-s-drug-substance", "parent": "m2-3-quality-overall-summary", "repeatable": true, "required": ["substance", "manufacturer"], "optional": []},
+    {"element": "m2-3-p-drug-product", "parent": "m2-3-quality-overall-summary", "repeatable": true, "required": [], "optional": ["product-name", "dosageform", "manufacturer"]},
+    {"element": "m2-7-3-summary-of-clinical-efficacy", "parent": "m2-7-clinical-summary", "repeatable": true, "required": ["indication"], "optional": []},
+    {"element": "m3-2-s-drug-substance", "parent": "m3-2-body-of-data", "repeatable": true, "required": ["substance", "manufacturer"], "optional": []},
+    {"element": "m3-2-p-drug-product", "parent": "m3-2-body-of-data", "repeatable": true, "required": [], "optional": ["product-name", "dosageform", "manufacturer"]},
+    {"element": "m3-2-p-4-control-of-excipients", "parent": "m3-2-p-drug-product", "repeatable": true, "required": [], "optional": ["excipient"]},
+    {"element": "m3-2-a-1-facilities-and-equipment", "parent": "m3-2-a-appendices", "repeatable": true, "required": [], "optional": ["manufacturer", "substance", "dosageform", "product-name"]},
+    {"element": "m3-2-a-2-adventitious-agents-safety-evaluation", "parent": "m3-2-a-appendices", "repeatable": true, "required": [], "optional": ["manufacturer", "substance", "dosageform", "product-name"]},
+    {"element": "m5-3-5-reports-of-efficacy-and-safety-studies", "parent": "m5-3-clinical-study-reports", "repeatable": true, "required": ["indication"], "optional": []}
+  ],
+  "nodeExtensions": {
+    "sourceId": "ich-ectd-3.2.2",
+    "locator": "Appendix 6, Example 6-5",
+    "placement": "Only where the DTD explicitly permits node-extension; never insert an extension among defined child sections",
+    "content": "title followed by one or more leaf or node-extension children",
+    "attributes": ["ID", "xml:lang"],
+    "regionalPolicyStatus": "Unverified",
+    "qualificationSections": ["m4.2.3.2", "m5.3.5.1"],
+    "note": "ICH discourages extensions unless unavoidable and requires consulting regional guidance. DTD permission alone does not establish regional acceptance."
+  },
+  "operations": [
+    {"operation": "new", "ichStatus": "Verified", "meaning": "Create a new leaf with no modified-file target"},
+    {"operation": "replace", "ichStatus": "Verified", "meaning": "Reference the exact XML leaf being replaced; do not match by file name"},
+    {"operation": "append", "ichStatus": "Verified", "meaning": "Preserve the target and associate additional content; do not concatenate physical files", "regionalStatus": "Unverified", "combinations": "Qualify append chains and same-sequence references in P3-01 before enabling them"},
+    {"operation": "delete", "ichStatus": "Verified", "meaning": "Reference the exact XML leaf being deleted; deliver no new content file"}
+  ],
+  "qualificationScope": {
+    "m1": "Synthetic FDA cover letter and administrative metadata against the bundled US DTD; current FDA business criteria remain unverified",
+    "m2": "Overview, substance/product summaries and indication attributes",
+    "m3": "Two manufacturers of Drug A, a product, excipients and appendices",
+    "m4": "Repeat-dose toxicity study group in an explicitly permitted node-extension",
+    "m5": "Controlled study group under an explicit indication",
+    "sequenceRange": ["0000", "0001", "0002", "0003"],
+    "regulatoryReadiness": "NotEvaluated"
+  }
+}

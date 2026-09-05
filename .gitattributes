@@ -1,4 +1,6 @@
 # Preserve byte-exact regulator-published source files; their whitespace is
 # covered by the SHA-256 evidence in the EU M1 manifest.
-reference/eu-m1/3.1.1/util/dtd/* -whitespace
-reference/eu-m1/3.1.1/util/style/* -whitespace
+reference/dtd/ich-ectd-3-2.dtd -text -whitespace
+reference/dtd/us-regional-v3-3.dtd -text -whitespace
+reference/eu-m1/3.1.1/util/dtd/* -text -whitespace
+reference/eu-m1/3.1.1/util/style/* -text -whitespace
