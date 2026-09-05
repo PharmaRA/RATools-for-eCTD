@@ -30,7 +30,8 @@ public sealed partial class FileNamingConventionRule : IEctdValidationRule
             yield break;
         }
 
-        var leaves = context.Package.Module1Leaves.Concat(context.Package.IchBackboneLeaves);
+        var leaves = context.Package.Module1Leaves.Concat(context.Package.IchBackboneLeaves)
+            .Where(leaf => !string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase));
         foreach (var leaf in leaves)
         {
             var fileName = leaf.FileName;

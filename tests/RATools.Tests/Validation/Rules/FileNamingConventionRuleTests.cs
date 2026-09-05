@@ -8,6 +8,14 @@ namespace RATools.Tests.Validation.Rules;
 public sealed class FileNamingConventionRuleTests
 {
     [Fact]
+    public void Evaluate_DoesNotRequireRenamingAHistoricalFileForDeletion()
+    {
+        var leaf = CreateLeaf("Old Report.PDF", "m5/Old Report.PDF") with { Operation = "delete" };
+
+        Assert.Empty(new FileNamingConventionRule().Evaluate(CreateContext(CreatePackage(leaf))));
+    }
+
+    [Fact]
     public void Evaluate_ReportsUppercaseOrSpaceInFileName()
     {
         var rule = new FileNamingConventionRule();

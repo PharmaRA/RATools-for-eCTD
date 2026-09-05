@@ -6,6 +6,8 @@ public sealed class DocumentPlacementRecord
 
     public Guid DocumentId { get; set; }
 
+    public string? LeafId { get; set; }
+
     public Guid ApplicationId { get; set; }
 
     public string SequenceNumber { get; set; } = string.Empty;

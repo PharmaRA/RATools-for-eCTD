@@ -21,6 +21,7 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
         }
 
         existing.CtdSection = placement.CtdSection;
+        existing.LeafId = placement.LeafId;
         existing.Operation = placement.Operation.ToString();
         existing.Title = placement.Title;
         existing.LifecycleTargetPlacementId = placement.LifecycleTargetPlacementId;
@@ -90,6 +91,7 @@ internal static class DocumentPlacementRecordMapping
         {
             Id = placement.Id,
             DocumentId = placement.DocumentId,
+            LeafId = placement.LeafId,
             ApplicationId = placement.ApplicationId,
             SequenceNumber = placement.SequenceNumber,
             CtdSection = placement.CtdSection,
@@ -112,6 +114,7 @@ internal static class DocumentPlacementRecordMapping
             operation,
             record.Title,
             record.LifecycleTargetPlacementId,
-            record.CreatedUtc);
+            record.CreatedUtc,
+            record.LeafId);
     }
 }

@@ -10,6 +10,17 @@ namespace RATools.Tests.Validation.Rules.Pdf;
 public sealed class PdfComplianceRuleTests
 {
     [Fact]
+    public void Evaluate_DoesNotOpenOrInspectFilesForDeleteLeaves()
+    {
+        using var fixture = TempPdfFixture.Create("deleted.pdf");
+        File.Delete(fixture.Path);
+        var leaf = CreateLeaf("deleted.pdf", "m5/deleted.pdf", fixture.Path) with { Operation = "delete" };
+        var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult));
+
+        Assert.Empty(rule.Evaluate(CreateContext(CreatePackage(leaf))));
+    }
+
+    [Fact]
     public void Evaluate_ReportsEncryptedPdf()
     {
         using var fixture = TempPdfFixture.Create("encrypted.pdf");

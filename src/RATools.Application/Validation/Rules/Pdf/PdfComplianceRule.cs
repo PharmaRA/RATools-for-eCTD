@@ -220,6 +220,7 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
     private static IEnumerable<EctdLeaf> GetPdfLeaves(EctdSequencePackage package)
         => package.Module1Leaves
             .Concat(package.IchBackboneLeaves)
+            .Where(leaf => !string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase))
             .Where(leaf => string.Equals(leaf.MediaType, "application/pdf", StringComparison.OrdinalIgnoreCase)
                 || leaf.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase));
 

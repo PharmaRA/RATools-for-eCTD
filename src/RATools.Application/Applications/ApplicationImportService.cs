@@ -51,7 +51,7 @@ public sealed class ApplicationImportService(
         var issues = new List<ApplicationImportIssueDto>();
         var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
         var importedPlacements = new List<DocumentPlacement>();
-        var importedPlacementByHref = new Dictionary<string, DocumentPlacement>(StringComparer.Ordinal);
+        var importedLeafIndex = new ImportedLeafIndex(workingDirectoryPath);
         var fileHashes = new ImportFileHashCache();
 
         string[] sequenceDirectories;
@@ -80,13 +80,16 @@ public sealed class ApplicationImportService(
                 continue;
             }
 
-            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedPlacementByHref, cancellationToken);
+            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedLeafIndex, cancellationToken);
             if (parsed is not null)
             {
-                var sequence = application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
-                if (parsed.PublishingMetadata is not null)
+                if (parsed.Issues.All(issue => issue.Severity != "Error"))
                 {
-                    sequence.RevisePublishingMetadata(parsed.PublishingMetadata);
+                    var sequence = application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
+                    if (parsed.PublishingMetadata is not null)
+                    {
+                        sequence.RevisePublishingMetadata(parsed.PublishingMetadata);
+                    }
                 }
                 issues.AddRange(parsed.Issues);
             }
@@ -150,10 +153,13 @@ public sealed class ApplicationImportService(
         ImportFileHashCache fileHashes,
         Dictionary<string, SubmissionDocument> importedDocuments,
         List<DocumentPlacement> importedPlacements,
-        Dictionary<string, DocumentPlacement> importedPlacementByHref,
+        ImportedLeafIndex importedLeafIndex,
         CancellationToken cancellationToken)
     {
         var issues = new List<ApplicationImportIssueDto>();
+        var sequenceDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
+        var sequenceLeaves = new List<(string SourcePath, string? Href, DocumentPlacement Placement, SubmissionDocument Document)>();
+        var leafIds = new HashSet<(string SourcePath, string LeafId)>();
 
         try
         {
@@ -181,7 +187,46 @@ public sealed class ApplicationImportService(
                 .Where(element => element.Name.LocalName == "leaf")
                 .Select(element => (source.Path, Leaf: element))))
             {
+                var operation = ParseOperation(leaf.Attribute("operation")?.Value);
+                var section = ExtractSectionPath(leaf, sections, isEu);
+                var leafId = leaf.Attribute("ID")?.Value;
+                if (!string.IsNullOrWhiteSpace(leafId) && !leafIds.Add((sourcePath, leafId)))
+                {
+                    throw new XmlException($"Duplicate leaf ID '{leafId}' in '{Path.GetFileName(sourcePath)}'.");
+                }
+
                 var href = leaf.Attributes().FirstOrDefault(x => x.Name.LocalName == "href")?.Value;
+                ImportedLeaf? target = null;
+                if (operation != DocumentPlacementOperation.New)
+                {
+                    var modifiedFile = leaf.Attribute("modified-file")?.Value;
+                    if (!string.IsNullOrWhiteSpace(modifiedFile))
+                    {
+                        target = importedLeafIndex.Resolve(sourcePath, modifiedFile, sequenceNumber, section);
+                    }
+                    if (target is null)
+                    {
+                        var missing = string.IsNullOrWhiteSpace(modifiedFile);
+                        issues.Add(new ApplicationImportIssueDto(operation == DocumentPlacementOperation.Delete ? "Error" : "Warning",
+                            missing ? "LIFECYCLE_TARGET_MISSING" : "LIFECYCLE_TARGET_NOT_IMPORTED", sequenceNumber,
+                            missing ? $"Lifecycle leaf '{href ?? leafId}' is missing modified-file."
+                                : $"Lifecycle leaf '{href ?? leafId}' references modified-file '{modifiedFile}', but no unique imported historical leaf matched it."));
+                        if (operation == DocumentPlacementOperation.Delete)
+                        {
+                            return new SequenceImportResult(issues);
+                        }
+                    }
+                }
+
+                var title = leaf.Elements().FirstOrDefault(element => element.Name.LocalName == "title")?.Value;
+                if (operation == DocumentPlacementOperation.Delete)
+                {
+                    var deletion = new DocumentPlacement(target!.Document.Id, application.Id, sequenceNumber, section, operation, title, leafId);
+                    deletion.ReviseLifecycleTarget(target.Placement.Id);
+                    sequenceLeaves.Add((sourcePath, null, deletion, target.Document));
+                    continue;
+                }
+
                 if (string.IsNullOrWhiteSpace(href))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_INDEX_INVALID", sequenceNumber, "Leaf is missing xlink:href."));
@@ -220,7 +265,7 @@ public sealed class ApplicationImportService(
                     continue;
                 }
 
-                if (!importedDocuments.TryGetValue(resolvedPath, out var document))
+                if (!sequenceDocuments.TryGetValue(resolvedPath, out var document))
                 {
                     document = new SubmissionDocument(
                         Path.GetFileName(resolvedPath),
@@ -230,38 +275,31 @@ public sealed class ApplicationImportService(
                         hashes.Md5,
                         resolvedPath);
 
-                    importedDocuments[resolvedPath] = document;
+                    sequenceDocuments[resolvedPath] = document;
                 }
 
-                var operation = ParseOperation(leaf.Attribute("operation")?.Value);
                 var placement = new DocumentPlacement(
                     document.Id,
                     application.Id,
                     sequenceNumber,
-                    ExtractSectionPath(leaf, sections, isEu),
+                    section,
                     operation,
-                    leaf.Elements().FirstOrDefault(x => x.Name.LocalName == "title")?.Value);
+                    title,
+                    leafId);
+                placement.ReviseLifecycleTarget(target?.Placement.Id);
+                sequenceLeaves.Add((sourcePath, href, placement, document));
+            }
 
-                if (operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete or DocumentPlacementOperation.Append)
-                {
-                    var modifiedFile = leaf.Attribute("modified-file")?.Value;
-                    if (string.IsNullOrWhiteSpace(modifiedFile))
-                    {
-                        issues.Add(new ApplicationImportIssueDto("Warning", "LIFECYCLE_TARGET_MISSING", sequenceNumber, $"Lifecycle leaf '{href}' is missing modified-file."));
-                    }
-                    else if (importedPlacementByHref.TryGetValue(NormalizeLeafHref(modifiedFile), out var targetPlacement)
-                        && CompareSequenceNumbers(targetPlacement.SequenceNumber, sequenceNumber) < 0)
-                    {
-                        placement.ReviseLifecycleTarget(targetPlacement.Id);
-                    }
-                    else
-                    {
-                        issues.Add(new ApplicationImportIssueDto("Warning", "LIFECYCLE_TARGET_NOT_IMPORTED", sequenceNumber, $"Lifecycle leaf '{href}' references modified-file '{modifiedFile}', but no imported historical leaf matched it."));
-                    }
-                }
-
-                importedPlacements.Add(placement);
-                importedPlacementByHref[NormalizeLeafHref(href)] = placement;
+            // Publish a sequence to the import state only after every backbone
+            // was parsed successfully, so failed sequences cannot become targets.
+            foreach (var (path, document) in sequenceDocuments)
+            {
+                importedDocuments.Add(path, document);
+            }
+            foreach (var entry in sequenceLeaves)
+            {
+                importedPlacements.Add(entry.Placement);
+                importedLeafIndex.Add(entry.SourcePath, entry.Href, entry.Placement, entry.Document);
             }
 
             return new SequenceImportResult(issues, publishingMetadata);
@@ -392,27 +430,6 @@ public sealed class ApplicationImportService(
             "append" => DocumentPlacementOperation.Append,
             _ => throw new XmlException($"Unsupported leaf operation '{operation}'.")
         };
-    }
-
-    private static string NormalizeLeafHref(string href)
-    {
-        var normalized = href.Replace('\\', '/');
-        while (normalized.StartsWith("./", StringComparison.Ordinal))
-        {
-            normalized = normalized[2..];
-        }
-
-        return normalized;
-    }
-
-    private static int CompareSequenceNumbers(string left, string right)
-    {
-        if (int.TryParse(left, out var leftNumber) && int.TryParse(right, out var rightNumber))
-        {
-            return leftNumber.CompareTo(rightNumber);
-        }
-
-        return string.Compare(left, right, StringComparison.Ordinal);
     }
 
     private static string GuessMediaType(string path)

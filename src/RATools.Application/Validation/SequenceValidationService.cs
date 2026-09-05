@@ -128,6 +128,7 @@ public sealed class SequenceValidationService(
             .GroupBy(x => x.Id)
             .ToDictionary(x => x.Key, x => x.First());
         var invalidStoragePlacementIds = new HashSet<Guid>();
+        var placementById = applicationPlacements.ToDictionary(placement => placement.Id);
 
         foreach (var placement in placements)
         {
@@ -138,7 +139,7 @@ public sealed class SequenceValidationService(
 
             try
             {
-                documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, request.SequenceNumber);
+                documentStorageBoundary.EnsureDocumentOwnedByPlacement(document, application, placement, placementById);
             }
             catch (DocumentStorageBoundaryException)
             {
@@ -153,6 +154,7 @@ public sealed class SequenceValidationService(
 
         var validCurrentDocumentIds = placements
             .Where(x => !invalidStoragePlacementIds.Contains(x.Id))
+            .Where(x => x.Operation != DocumentPlacementOperation.Delete)
             .Select(x => x.DocumentId)
             .ToHashSet();
         var referencedDocuments = documents.Where(x => validCurrentDocumentIds.Contains(x.Id)).ToArray();

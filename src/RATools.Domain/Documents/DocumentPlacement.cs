@@ -1,3 +1,4 @@
+using System.Xml;
 using RATools.Domain.Common;
 
 namespace RATools.Domain.Documents;
@@ -10,8 +11,9 @@ public sealed class DocumentPlacement : Entity
         string sequenceNumber,
         string ctdSection,
         DocumentPlacementOperation operation,
-        string? title)
-        : this(Guid.NewGuid(), documentId, applicationId, sequenceNumber, ctdSection, operation, title, null, DateTime.UtcNow)
+        string? title,
+        string? leafId = null)
+        : this(Guid.NewGuid(), documentId, applicationId, sequenceNumber, ctdSection, operation, title, null, DateTime.UtcNow, leafId)
     {
     }
 
@@ -24,12 +26,14 @@ public sealed class DocumentPlacement : Entity
         DocumentPlacementOperation operation,
         string? title,
         Guid? lifecycleTargetPlacementId,
-        DateTime createdUtc)
+        DateTime createdUtc,
+        string? leafId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(ctdSection);
 
         Id = id;
+        LeafId = string.IsNullOrWhiteSpace(leafId) ? $"leaf-{id:N}" : XmlConvert.VerifyName(leafId);
         DocumentId = documentId;
         ApplicationId = applicationId;
         SequenceNumber = sequenceNumber.Trim();
@@ -41,6 +45,8 @@ public sealed class DocumentPlacement : Entity
     }
 
     public Guid DocumentId { get; private set; }
+
+    public string LeafId { get; private set; }
 
     public Guid ApplicationId { get; private set; }
 
@@ -65,9 +71,10 @@ public sealed class DocumentPlacement : Entity
         DocumentPlacementOperation operation,
         string? title,
         Guid? lifecycleTargetPlacementId,
-        DateTime createdUtc)
+        DateTime createdUtc,
+        string? leafId = null)
     {
-        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc);
+        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc, leafId);
     }
 
     public void ReassignSection(string ctdSection)

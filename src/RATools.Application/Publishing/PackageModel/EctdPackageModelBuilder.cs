@@ -68,7 +68,7 @@ public sealed class EctdPackageModelBuilder(
         {
             if (documentById.TryGetValue(placement.DocumentId, out var document))
             {
-                documentStorageBoundary.EnsureDocumentOwnedBySequence(document, application, request.SequenceNumber);
+                documentStorageBoundary.EnsureDocumentOwnedByPlacement(document, application, placement, placementById);
             }
         }
 
@@ -171,7 +171,7 @@ public sealed class EctdPackageModelBuilder(
         return new EctdLeaf(
             placement.Id,
             placement.DocumentId,
-            $"leaf-{placement.Id:N}",
+            placement.LeafId,
             placement.SequenceNumber,
             placement.CtdSection,
             module,
@@ -183,7 +183,7 @@ public sealed class EctdPackageModelBuilder(
             document.StoragePath,
             document.FileSize,
             document.Sha256,
-            ResolveMd5(document),
+            placement.Operation == DocumentPlacementOperation.Delete ? string.Empty : ResolveMd5(document),
             lifecycle);
     }
 
@@ -265,7 +265,8 @@ public sealed class EctdPackageModelBuilder(
             targetPlacement.Id,
             targetPlacement.DocumentId,
             targetPlacement.SequenceNumber,
-            PublishOutputNaming.BuildPublishedDocumentRelativePath(targetDocument, targetPlacement.SequenceNumber));
+            PublishOutputNaming.BuildPublishedDocumentRelativePath(targetDocument, targetPlacement.SequenceNumber),
+            targetPlacement.LeafId);
     }
 
     private static DocumentPlacement? ResolveAutoLifecycleTarget(

@@ -89,7 +89,8 @@ public sealed record EctdLifecycleReference(
     Guid TargetPlacementId,
     Guid TargetDocumentId,
     string TargetSequenceNumber,
-    string TargetDocumentHref)
+    string TargetDocumentHref,
+    string? TargetLeafId = null)
 {
     public string BuildModifiedFileHref(string backboneRelativePath)
     {
@@ -97,7 +98,7 @@ public sealed record EctdLifecycleReference(
         // Each backbone is relative to its own directory within the sequence.
         var normalizedPath = backboneRelativePath.Replace('\\', '/');
         var parents = string.Concat(Enumerable.Repeat("../", normalizedPath.Count(character => character == '/') + 1));
-        return $"{parents}{TargetSequenceNumber}/{normalizedPath}#leaf-{TargetPlacementId:N}";
+        return $"{parents}{TargetSequenceNumber}/{normalizedPath}#{Uri.EscapeDataString(TargetLeafId ?? $"leaf-{TargetPlacementId:N}")}";
     }
 }
 
