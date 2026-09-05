@@ -48,7 +48,7 @@ internal sealed class EctdWorkspaceFixture : IDisposable
     {
         var sequence = Application.CreateSequence(number, "original-application", "Test sequence");
         sequence.RevisePublishingMetadata(SequencePublishingMetadata.Create(
-            "ind", "original-application", "initial", "Test sequence", "Test sponsor", null,
+            "ind", "original-application", "initial", "Test sequence", "Test sponsor", Application.Region == "US" ? "1571" : null,
             "Test contact", "regulatory", "301-555-0100", "office", "test@example.test"));
         Directory.CreateDirectory(Path.Combine(Application.WorkingDirectoryPath, number));
         if (await Applications.GetAsync(Application.Id) is null)

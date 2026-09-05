@@ -100,6 +100,54 @@ public sealed class ApplicationImportSecurityTests
         Assert.Contains("reparse point", exception.Message);
     }
 
+    [Fact]
+    public async Task ImportAsync_RejectsRegionalBackboneReparsePointBeforeLoadingXml()
+    {
+        using var allowedRoot = new TemporaryDirectory();
+        using var outsideRoot = new TemporaryDirectory();
+        var sequencePath = Path.Combine(allowedRoot.Path, "0001");
+        var regionalDirectory = Path.Combine(sequencePath, "m1", "us");
+        Directory.CreateDirectory(regionalDirectory);
+        await File.WriteAllTextAsync(Path.Combine(sequencePath, "index.xml"), "<ectd />");
+        var outsideXml = Path.Combine(outsideRoot.Path, "regional.xml");
+        await File.WriteAllTextAsync(outsideXml, "<must-not-be-read");
+        if (!TryCreateFileSymlink(Path.Combine(regionalDirectory, "us-regional.xml"), outsideXml))
+        {
+            return;
+        }
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateImportService(allowedRoot.Path).ImportAsync(
+            new ImportApplicationRequest(allowedRoot.Path, "us-fda-ectd-3.2.2", "Sponsor")));
+
+        Assert.Contains("reparse point", exception.Message);
+    }
+
+    [Fact]
+    public async Task ImportAsync_RejectsRegionalLeafParentReparsePointBeforeReadingDocument()
+    {
+        using var allowedRoot = new TemporaryDirectory();
+        using var outsideRoot = new TemporaryDirectory();
+        var sequencePath = Path.Combine(allowedRoot.Path, "0001");
+        var regionalDirectory = Path.Combine(sequencePath, "m1", "us");
+        Directory.CreateDirectory(regionalDirectory);
+        await File.WriteAllTextAsync(Path.Combine(sequencePath, "index.xml"), "<ectd />");
+        await File.WriteAllTextAsync(Path.Combine(regionalDirectory, "us-regional.xml"), """
+            <fda-regional xmlns:xlink="http://www.w3.org/1999/xlink">
+              <m1-2-cover-letters><leaf xlink:href="docs/leaf.txt" operation="new"><title>Leaf</title></leaf></m1-2-cover-letters>
+            </fda-regional>
+            """);
+        await File.WriteAllTextAsync(Path.Combine(outsideRoot.Path, "leaf.txt"), "must not be read");
+        if (!TryCreateDirectorySymlink(Path.Combine(regionalDirectory, "docs"), outsideRoot.Path))
+        {
+            return;
+        }
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateImportService(allowedRoot.Path).ImportAsync(
+            new ImportApplicationRequest(allowedRoot.Path, "us-fda-ectd-3.2.2", "Sponsor")));
+
+        Assert.Contains("reparse point", exception.Message);
+    }
+
     private static ApplicationImportService CreateImportService(string allowedRoot)
     {
         return new ApplicationImportService(

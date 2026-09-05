@@ -6,6 +6,9 @@ using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Documents;
+using RATools.Application.Standards;
+using RATools.Application.Validation;
+using RATools.Application.Validation.Profiles;
 using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
 using RATools.Domain.Common;
@@ -19,6 +22,8 @@ public sealed class ApplicationImportService(
     IDocumentPlacementRepository placementRepository,
     IWorkspacePathPolicy workspacePathPolicy) : IApplicationImportService
 {
+    private static readonly SectionDictionaryProfile EuSections = EuEctd322.ToProfile();
+
     public async Task<ApplicationImportResultDto> ImportAsync(ImportApplicationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(request.WorkingDirectoryPath);
@@ -78,7 +83,11 @@ public sealed class ApplicationImportService(
             var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedPlacementByHref, cancellationToken);
             if (parsed is not null)
             {
-                application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
+                var sequence = application.CreateSequence(sequenceNumber, "imported", $"Imported from {sequenceNumber}/index.xml");
+                if (parsed.PublishingMetadata is not null)
+                {
+                    sequence.RevisePublishingMetadata(parsed.PublishingMetadata);
+                }
                 issues.AddRange(parsed.Issues);
             }
         }
@@ -150,8 +159,27 @@ public sealed class ApplicationImportService(
         {
             var xml = await LoadXmlAsync(indexXmlPath, cancellationToken);
             var sequenceRoot = Path.GetDirectoryName(indexXmlPath)!;
+            var isEu = application.EctdTemplateKey == EctdTemplateRegistry.EuTemplateKey;
+            var profile = isEu ? BackboneXmlProfiles.EuEctd322Regional : BackboneXmlProfiles.FdaEctd322UsRegional33;
+            var sections = isEu ? EuSections : SectionDictionaryProfiles.FdaEctd32;
+            var regionalPath = workspacePathPolicy.EnsureAllowed(Path.Combine(sequenceRoot, profile.Regional.RelativePath!));
+            var sources = new List<(string Path, XDocument Xml)> { (indexXmlPath, xml) };
+            SequencePublishingMetadata? publishingMetadata = null;
+            if (File.Exists(regionalPath))
+            {
+                var regionalXml = await LoadXmlAsync(regionalPath, cancellationToken);
+                sources.Add((regionalPath, regionalXml));
+                publishingMetadata = ReadPublishingMetadata(regionalXml, isEu, application.SponsorName, sequenceNumber);
+            }
+            else
+            {
+                issues.Add(new ApplicationImportIssueDto("Warning", "SEQUENCE_REGIONAL_MISSING", sequenceNumber,
+                    $"Regional backbone '{profile.Regional.RelativePath}' was not found; regional documents and metadata could not be imported."));
+            }
 
-            foreach (var leaf in xml.Descendants().Where(x => x.Name.LocalName == "leaf"))
+            foreach (var (sourcePath, leaf) in sources.SelectMany(source => source.Xml.Descendants()
+                .Where(element => element.Name.LocalName == "leaf")
+                .Select(element => (source.Path, Leaf: element))))
             {
                 var href = leaf.Attributes().FirstOrDefault(x => x.Name.LocalName == "href")?.Value;
                 if (string.IsNullOrWhiteSpace(href))
@@ -160,7 +188,7 @@ public sealed class ApplicationImportService(
                     return new SequenceImportResult(issues);
                 }
 
-                var resolvedPath = Path.GetFullPath(Path.Combine(sequenceRoot, href.Replace('/', Path.DirectorySeparatorChar)));
+                var resolvedPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourcePath)!, href.Replace('\\', '/').Replace('/', Path.DirectorySeparatorChar)));
                 if (!WorkspacePathGuard.IsInsideScope(resolvedPath, sequenceRoot))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_OUTSIDE_WORKSPACE", sequenceNumber, $"File '{href}' resolves outside the sequence workspace."));
@@ -173,7 +201,7 @@ public sealed class ApplicationImportService(
 
                 if (!File.Exists(resolvedPath))
                 {
-                    issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_MISSING", sequenceNumber, $"File '{href}' referenced by index.xml was not found."));
+                    issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_MISSING", sequenceNumber, $"File '{href}' referenced by '{Path.GetFileName(sourcePath)}' was not found."));
                     return new SequenceImportResult(issues);
                 }
 
@@ -181,8 +209,15 @@ public sealed class ApplicationImportService(
                 var checksum = leaf.Attribute("checksum")?.Value ?? hashes.Md5;
                 if (!string.Equals(checksum, hashes.Md5, StringComparison.OrdinalIgnoreCase))
                 {
-                    issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_CHECKSUM_MISMATCH", sequenceNumber, $"File '{href}' checksum does not match index.xml."));
+                    issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_CHECKSUM_MISMATCH", sequenceNumber, $"File '{href}' checksum does not match '{Path.GetFileName(sourcePath)}'."));
                     return new SequenceImportResult(issues);
+                }
+
+                // The regional backbone can itself be referenced from index.xml.
+                // Its leaves are imported from the regional source, not as an XML document.
+                if (string.Equals(resolvedPath, regionalPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
                 }
 
                 if (!importedDocuments.TryGetValue(resolvedPath, out var document))
@@ -203,7 +238,7 @@ public sealed class ApplicationImportService(
                     document.Id,
                     application.Id,
                     sequenceNumber,
-                    ExtractSectionPath(leaf.Parent?.Name.LocalName ?? string.Empty),
+                    ExtractSectionPath(leaf, sections, isEu),
                     operation,
                     leaf.Elements().FirstOrDefault(x => x.Name.LocalName == "title")?.Value);
 
@@ -229,7 +264,7 @@ public sealed class ApplicationImportService(
                 importedPlacementByHref[NormalizeLeafHref(href)] = placement;
             }
 
-            return new SequenceImportResult(issues);
+            return new SequenceImportResult(issues, publishingMetadata);
         }
         catch (XmlException exception)
         {
@@ -253,6 +288,59 @@ public sealed class ApplicationImportService(
     }
 
     private static bool IsSequenceDirectory(string name) => name.Length == 4 && name.All(char.IsDigit);
+
+    private static string ExtractSectionPath(XElement leaf, SectionDictionaryProfile sections, bool isEu)
+    {
+        foreach (var ancestor in leaf.Ancestors())
+        {
+            var name = ancestor.Name.LocalName;
+            if (!isEu && name == "form")
+            {
+                return "m1.1";
+            }
+
+            if (sections.ByElementName.TryGetValue(name, out var section))
+            {
+                return section.SectionPath;
+            }
+
+            // Retain support for earlier workspaces with short section names,
+            // such as m1-1, while walking past regional wrappers like pi-doc.
+            if (name.Length > 2 && name[0] == 'm' && name[1] is >= '1' and <= '5' && name[2] == '-')
+            {
+                return ExtractSectionPath(name);
+            }
+        }
+
+        throw new XmlException("Leaf parent section element is missing.");
+    }
+
+    private static SequencePublishingMetadata? ReadPublishingMetadata(XDocument xml, bool isEu, string sponsor, string sequenceNumber)
+    {
+        var container = xml.Descendants().FirstOrDefault(element => element.Name.LocalName == (isEu ? "envelope" : "admin"));
+        if (container is null)
+        {
+            return null;
+        }
+
+        XElement? Element(string name) => container.Descendants().FirstOrDefault(element => element.Name.LocalName == name);
+        var description = Element("submission-description")?.Value;
+        var applicant = Element(isEu ? "applicant" : "company-name")?.Value;
+        var submission = Element(isEu ? "submission" : "submission-id");
+        var submissionType = submission?.Attribute(isEu ? "type" : "submission-type")?.Value;
+        return SequencePublishingMetadata.Create(
+            isEu ? null : Element("application-number")?.Attribute("application-type")?.Value,
+            string.IsNullOrWhiteSpace(submissionType) ? "imported" : submissionType,
+            isEu ? Element("submission-unit")?.Attribute("type")?.Value : Element("sequence-number")?.Attribute("submission-sub-type")?.Value,
+            string.IsNullOrWhiteSpace(description) ? $"Imported sequence {sequenceNumber}" : description,
+            string.IsNullOrWhiteSpace(applicant) ? sponsor : applicant,
+            isEu ? null : Element("form")?.Attribute("form-type")?.Value,
+            Element("applicant-contact-name")?.Value,
+            Element("applicant-contact-name")?.Attribute("applicant-contact-type")?.Value,
+            Element("telephone")?.Value,
+            Element("telephone")?.Attribute("telephone-number-type")?.Value,
+            Element("email")?.Value);
+    }
 
     private static string ExtractSectionPath(string elementName)
     {
@@ -332,5 +420,7 @@ public sealed class ApplicationImportService(
         return EctdDocumentFileRules.GetMediaType(path);
     }
 
-    private sealed record SequenceImportResult(IReadOnlyCollection<ApplicationImportIssueDto> Issues);
+    private sealed record SequenceImportResult(
+        IReadOnlyCollection<ApplicationImportIssueDto> Issues,
+        SequencePublishingMetadata? PublishingMetadata = null);
 }
