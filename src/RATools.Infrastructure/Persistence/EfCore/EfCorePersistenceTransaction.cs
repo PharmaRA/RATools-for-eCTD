@@ -42,7 +42,7 @@ public sealed class EfCorePersistenceTransaction(RAToolsDbContext dbContext) : I
         }
     }
 
-    private static async Task RollbackAsync(
+    private async Task RollbackAsync(
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
         Exception originalException)
     {
@@ -56,6 +56,12 @@ public sealed class EfCorePersistenceTransaction(RAToolsDbContext dbContext) : I
             throw new InvalidOperationException(
                 "The persistence operation failed and its transaction could not be rolled back.",
                 new AggregateException(originalException, rollbackException));
+        }
+        finally
+        {
+            // SaveChanges accepts tracked values before the surrounding transaction
+            // commits. Compensation must reload persisted values after a rollback.
+            dbContext.ChangeTracker.Clear();
         }
     }
 }

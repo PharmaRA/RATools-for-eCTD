@@ -18,7 +18,7 @@ public sealed class DocumentPlacementService(
     IDocumentStorageBoundary documentStorageBoundary,
     IPersistenceTransaction persistenceTransaction) : IDocumentPlacementService
 {
-    private static readonly TimeSpan MetadataCleanupTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan FileOperationCleanupTimeout = TimeSpan.FromSeconds(30);
 
     public async Task<DocumentPlacementDto> CreateAsync(CreateDocumentPlacementRequest request, CancellationToken cancellationToken = default)
     {
@@ -92,7 +92,7 @@ public sealed class DocumentPlacementService(
 
         var oldFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, placement.CtdSection);
         var newFolder = workspacePathResolver.Resolve(application.EctdTemplateKey, request.CtdSection);
-        var originalSection = placement.CtdSection;
+        var originalState = new DocumentSectionState(placement.CtdSection, originalStoragePath);
         string? movedStoragePath = null;
 
         if (!string.Equals(oldFolder.RelativeFolderPath, newFolder.RelativeFolderPath, StringComparison.OrdinalIgnoreCase))
@@ -104,46 +104,106 @@ public sealed class DocumentPlacementService(
             if (!string.Equals(originalStoragePath, Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase))
             {
                 movedStoragePath = await fileStorage.MoveAsync(originalStoragePath, targetDirectory, cancellationToken);
-                document.Relocate(movedStoragePath);
             }
         }
 
+        var updatedState = new DocumentSectionState(request.CtdSection, movedStoragePath ?? originalStoragePath);
         try
         {
-            if (movedStoragePath is not null && !await documentRepository.UpdateAsync(document, cancellationToken))
+            ApplySectionState(document, placement, updatedState);
+            await persistenceTransaction.ExecuteAsync(async transactionToken =>
             {
-                throw new InvalidOperationException($"Document {document.Id} could not be updated after moving the stored file.");
-            }
-
-            placement.ReassignSection(request.CtdSection);
-            if (await placementRepository.UpdateAsync(placement, cancellationToken))
-            {
-                if (movedStoragePath is not null)
+                if (movedStoragePath is not null && !await documentRepository.UpdateAsync(document, transactionToken))
                 {
-                    TryDeleteEmptySourceFolders(application.WorkingDirectoryPath, placement.SequenceNumber, originalStoragePath, oldFolder.RelativeFolderPath);
+                    throw new InvalidOperationException($"Document {document.Id} could not be updated after moving the stored file.");
                 }
 
-                return placement.ToDto();
-            }
-
-            throw new InvalidOperationException($"Document placement {placement.Id} could not be updated.");
+                if (!await placementRepository.UpdateAsync(placement, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document placement {placement.Id} could not be updated.");
+                }
+            }, cancellationToken);
         }
-        catch when (movedStoragePath is not null)
+        catch (Exception exception)
         {
-            placement.ReassignSection(originalSection);
-            await RollbackMoveAsync(document, originalStoragePath, movedStoragePath, cancellationToken);
+            await CompensateSectionUpdateAsync(document, placement, originalState, updatedState, exception);
             throw;
+        }
+
+        if (movedStoragePath is not null)
+        {
+            TryDeleteEmptySourceFolders(application.WorkingDirectoryPath, placement.SequenceNumber, originalStoragePath, oldFolder.RelativeFolderPath);
+        }
+
+        return placement.ToDto();
+    }
+
+    private async Task CompensateSectionUpdateAsync(
+        SubmissionDocument document,
+        DocumentPlacement placement,
+        DocumentSectionState originalState,
+        DocumentSectionState updatedState,
+        Exception originalException)
+    {
+        using var cleanupCts = new CancellationTokenSource(FileOperationCleanupTimeout);
+        var compensationFailures = new List<Exception>();
+        var restoredOriginalFile = string.Equals(
+            originalState.StoragePath,
+            updatedState.StoragePath,
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!restoredOriginalFile)
+        {
+            try
+            {
+                await fileStorage.RenameAsync(updatedState.StoragePath, originalState.StoragePath, cleanupCts.Token);
+                restoredOriginalFile = true;
+            }
+            catch (Exception exception)
+            {
+                compensationFailures.Add(exception);
+            }
+        }
+
+        // Keep both database records aligned with the physical file, even if the
+        // file could not be moved back or the original commit outcome was unknown.
+        ApplySectionState(document, placement, restoredOriginalFile ? originalState : updatedState);
+        var persistedCompensation = false;
+        try
+        {
+            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            {
+                if (!await documentRepository.UpdateAsync(document, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document {document.Id} could not be restored after a failed section reassignment.");
+                }
+
+                if (!await placementRepository.UpdateAsync(placement, transactionToken))
+                {
+                    throw new InvalidOperationException($"Document placement {placement.Id} could not be restored after a failed section reassignment.");
+                }
+            }, cleanupCts.Token);
+            persistedCompensation = true;
+        }
+        catch (Exception exception)
+        {
+            compensationFailures.Add(exception);
+        }
+
+        if (compensationFailures.Count > 0)
+        {
+            var message = !restoredOriginalFile && persistedCompensation
+                ? $"Section reassignment for document {document.Id} failed; the file could not be restored, so the updated section was preserved to keep storage consistent."
+                : $"Section reassignment for document {document.Id} failed and automatic compensation was incomplete.";
+
+            throw new InvalidOperationException(message, new AggregateException([originalException, .. compensationFailures]));
         }
     }
 
-    private async Task RollbackMoveAsync(SubmissionDocument document, string originalStoragePath, string movedStoragePath, CancellationToken cancellationToken)
+    private static void ApplySectionState(SubmissionDocument document, DocumentPlacement placement, DocumentSectionState state)
     {
-        var restoredPath = await fileStorage.MoveAsync(movedStoragePath, Path.GetDirectoryName(originalStoragePath)!, cancellationToken);
-        document.Relocate(restoredPath);
-        if (!await documentRepository.UpdateAsync(document, cancellationToken))
-        {
-            throw new InvalidOperationException($"Document {document.Id} could not be restored after a failed section reassignment.");
-        }
+        document.Relocate(state.StoragePath);
+        placement.ReassignSection(state.CtdSection);
     }
 
     public async Task<DocumentPlacementDto?> UpdateMetadataAsync(Guid id, UpdateDocumentPlacementMetadataRequest request, CancellationToken cancellationToken = default)
@@ -275,7 +335,7 @@ public sealed class DocumentPlacementService(
         DocumentMetadataState updatedState,
         Exception originalException)
     {
-        using var cleanupCts = new CancellationTokenSource(MetadataCleanupTimeout);
+        using var cleanupCts = new CancellationTokenSource(FileOperationCleanupTimeout);
         var compensationFailures = new List<Exception>();
         var restoredOriginalFile = string.Equals(
             originalState.StoragePath,
@@ -426,6 +486,8 @@ public sealed class DocumentPlacementService(
         await placementRepository.DeleteAsync(id, cancellationToken);
         return true;
     }
+
+    private sealed record DocumentSectionState(string CtdSection, string StoragePath);
 
     private sealed record DocumentMetadataState(
         string? Title,

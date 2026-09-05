@@ -55,7 +55,6 @@ public sealed class EfCorePersistenceTransactionTests
             throw new InvalidOperationException("simulated second update failure");
         }));
 
-        dbContext.ChangeTracker.Clear();
         Assert.Equal("protocol.pdf", (await dbContext.Documents.SingleAsync(x => x.Id == ids.DocumentId)).FileName);
         Assert.Equal("Original title", (await dbContext.DocumentPlacements.SingleAsync(x => x.Id == ids.PlacementId)).Title);
     }
