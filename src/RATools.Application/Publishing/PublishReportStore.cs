@@ -31,12 +31,7 @@ public sealed class PublishReportStore(IPublishArtifactStore artifactStore)
             throw new PublishJobReportUnavailableException($"Publish job {job.Id} completed without an output path.");
         }
 
-        var outputDirectory = Path.GetDirectoryName(job.OutputPath);
-        if (string.IsNullOrWhiteSpace(outputDirectory) || !await artifactStore.ExistsAsync(outputDirectory, cancellationToken))
-        {
-            throw new PublishJobReportUnavailableException($"Publish output directory for job {job.Id} no longer exists.");
-        }
-
+        // Archived reports outlive the _jobs work directories removed by retention.
         var expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
         if (!await artifactStore.ExistsAsync(expectedReportPath, cancellationToken))
         {
