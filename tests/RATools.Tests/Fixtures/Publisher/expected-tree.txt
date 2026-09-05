@@ -1,0 +1,37 @@
+Hand-authored 0000 business tree (regional-backbone references are transport leaves)
+m1 / us-regional.xml
+  m1.2 -> overview [Synthetic cover letter]
+m2
+  m2.3
+    m2.3.s [Drug A, Alpha] -> qos-alpha
+    m2.3.s [Drug A, Beta] -> qos-beta
+    m2.3.p [Product A, Tablet, Alpha] -> qos-product
+  m2.5 -> overview [Clinical overview; distinct XML address from the cover]
+m3
+  m3.2
+    m3.2.s [Drug A, Alpha]
+      m3.2.s.4
+        m3.2.s.4.1 -> alpha-spec-v1
+    m3.2.s [Drug A, Beta]
+      m3.2.s.4
+        m3.2.s.4.1 -> beta-spec-v1
+    m3.2.p [Product A, Tablet, Alpha]
+      m3.2.p.1 -> product-composition
+m4
+  m4.2
+    m4.2.3
+      m4.2.3.2
+        node-extension [Study NC-001] -> nc-report
+m5
+  m5.3
+    m5.3.5 [Indication A]
+      m5.3.5.1
+        node-extension [Study CL-001] -> cl-report
+
+0001: m3 -> m3.2 -> m3.2.s [Drug A, Alpha] -> m3.2.s.4 -> m3.2.s.4.1
+        alpha-spec-v2 replaces 0000/index.xml#alpha-spec-v1; Beta remains effective.
+0002: same Alpha branch -> alpha-addendum appends 0001/index.xml#alpha-spec-v2.
+      m3 -> m3.2 -> m3.2.s [Drug B, Gamma] -> m3.2.s.4 -> m3.2.s.4.1 -> gamma-spec.
+      Alpha v2 and its addendum remain separate physical and logical leaves.
+0003: m3 -> m3.2 -> m3.2.s [Drug A, Beta] -> m3.2.s.4 -> m3.2.s.4.1
+        beta-delete deletes 0000/index.xml#beta-spec-v1, with no new payload.

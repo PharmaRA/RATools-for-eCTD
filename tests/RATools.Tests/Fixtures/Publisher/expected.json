@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "applicationKey": "synthetic-ind-000001",
+  "authority": "FDA CDER/CBER (provisional development scope)",
+  "regionalQualification": "NotEvaluated",
+  "authorship": "Hand-authored business expectations, independent of RATools writers and parsers",
+  "nodeGroups": [
+    {"key": "cover", "section": "m1.2", "ancestors": [], "leaves": ["0000/m1/us/us-regional.xml#overview"]},
+    {"key": "clinical-overview", "section": "m2.5", "ancestors": [], "leaves": ["0000/index.xml#overview"]},
+    {"key": "alpha-summary", "section": "m2.3.s", "ancestors": [{"element": "m2-3-s-drug-substance", "attributes": {"substance": "Drug A", "manufacturer": "Alpha"}}], "leaves": ["0000/index.xml#qos-alpha"]},
+    {"key": "beta-summary", "section": "m2.3.s", "ancestors": [{"element": "m2-3-s-drug-substance", "attributes": {"substance": "Drug A", "manufacturer": "Beta"}}], "leaves": ["0000/index.xml#qos-beta"]},
+    {"key": "product-summary", "section": "m2.3.p", "ancestors": [{"element": "m2-3-p-drug-product", "attributes": {"product-name": "Product A", "dosageform": "Tablet", "manufacturer": "Alpha"}}], "leaves": ["0000/index.xml#qos-product"]},
+    {"key": "alpha-specification", "section": "m3.2.s.4.1", "ancestors": [{"element": "m3-2-s-drug-substance", "attributes": {"substance": "Drug A", "manufacturer": "Alpha"}}], "leaves": ["0000/index.xml#alpha-spec-v1", "0001/index.xml#alpha-spec-v2", "0002/index.xml#alpha-addendum"]},
+    {"key": "beta-specification", "section": "m3.2.s.4.1", "ancestors": [{"element": "m3-2-s-drug-substance", "attributes": {"substance": "Drug A", "manufacturer": "Beta"}}], "leaves": ["0000/index.xml#beta-spec-v1", "0003/index.xml#beta-delete"]},
+    {"key": "product", "section": "m3.2.p.1", "ancestors": [{"element": "m3-2-p-drug-product", "attributes": {"product-name": "Product A", "dosageform": "Tablet", "manufacturer": "Alpha"}}], "leaves": ["0000/index.xml#product-composition"]},
+    {"key": "nonclinical-study", "section": "m4.2.3.2", "ancestors": [{"element": "node-extension", "title": "Study NC-001", "attributes": {"ID": "study-nc-001"}}], "leaves": ["0000/index.xml#nc-report"]},
+    {"key": "clinical-study", "section": "m5.3.5.1", "ancestors": [{"element": "m5-3-5-reports-of-efficacy-and-safety-studies", "attributes": {"indication": "Indication A"}}, {"element": "node-extension", "title": "Study CL-001", "attributes": {"ID": "study-cl-001"}}], "leaves": ["0000/index.xml#cl-report"]},
+    {"key": "gamma-specification", "section": "m3.2.s.4.1", "ancestors": [{"element": "m3-2-s-drug-substance", "attributes": {"substance": "Drug B", "manufacturer": "Gamma"}}], "leaves": ["0002/index.xml#gamma-spec"]}
+  ],
+  "events": [
+    {"leaf": "0001/index.xml#alpha-spec-v2", "operation": "replace", "target": "0000/index.xml#alpha-spec-v1", "targetRemainsEffective": false},
+    {"leaf": "0002/index.xml#alpha-addendum", "operation": "append", "target": "0001/index.xml#alpha-spec-v2", "targetRemainsEffective": true},
+    {"leaf": "0003/index.xml#beta-delete", "operation": "delete", "target": "0000/index.xml#beta-spec-v1", "targetRemainsEffective": false}
+  ],
+  "effectivePayloadLeaves": {
+    "0000": ["0000/m1/us/us-regional.xml#overview", "0000/index.xml#overview", "0000/index.xml#qos-alpha", "0000/index.xml#qos-beta", "0000/index.xml#qos-product", "0000/index.xml#alpha-spec-v1", "0000/index.xml#beta-spec-v1", "0000/index.xml#product-composition", "0000/index.xml#nc-report", "0000/index.xml#cl-report"],
+    "0001": ["0000/m1/us/us-regional.xml#overview", "0000/index.xml#overview", "0000/index.xml#qos-alpha", "0000/index.xml#qos-beta", "0000/index.xml#qos-product", "0001/index.xml#alpha-spec-v2", "0000/index.xml#beta-spec-v1", "0000/index.xml#product-composition", "0000/index.xml#nc-report", "0000/index.xml#cl-report"],
+    "0002": ["0000/m1/us/us-regional.xml#overview", "0000/index.xml#overview", "0000/index.xml#qos-alpha", "0000/index.xml#qos-beta", "0000/index.xml#qos-product", "0001/index.xml#alpha-spec-v2", "0000/index.xml#beta-spec-v1", "0000/index.xml#product-composition", "0000/index.xml#nc-report", "0000/index.xml#cl-report", "0002/index.xml#alpha-addendum", "0002/index.xml#gamma-spec"],
+    "0003": ["0000/m1/us/us-regional.xml#overview", "0000/index.xml#overview", "0000/index.xml#qos-alpha", "0000/index.xml#qos-beta", "0000/index.xml#qos-product", "0001/index.xml#alpha-spec-v2", "0000/index.xml#product-composition", "0000/index.xml#nc-report", "0000/index.xml#cl-report", "0002/index.xml#alpha-addendum", "0002/index.xml#gamma-spec"]
+  },
+  "externalExamples": [
+    {"path": "external/ich-example-6-4.xml", "sourceId": "ich-ectd-3.2.2", "locator": "Appendix 6, Example 6-4, PDF page 111 (printed 6-14)", "expectedGroups": [["Acetaminophen", "My Supplier"], ["Acetaminophen", "Bulk Company 2"], ["Codeine", "Drug company 2"]], "assurance": "StructureOnly", "payloadsAvailable": false},
+    {"path": "external/ich-example-6-5.xml", "sourceId": "ich-ectd-3.2.2", "locator": "Appendix 6, Example 6-5, PDF page 112 (printed 6-15)", "expectedExtensionTitle": "special-summary", "assurance": "StructureOnly", "payloadsAvailable": false}
+  ]
+}

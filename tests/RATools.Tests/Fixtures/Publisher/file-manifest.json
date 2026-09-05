@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "0000/index-md5.txt",
+      "length": 32,
+      "sha256": "c3a48443881252e0120c749c2adc4604046aa718a2c9ca281a3c6c532ccaa303",
+      "md5": "552de878a2e95c4d1e8a65a6c508499b"
+    },
+    {
+      "path": "0000/index.xml",
+      "length": 4798,
+      "sha256": "ba251daaf9a878a9c6eeecf3943c2d1b83611ec2d3fdbe564ec2879fb1be794c",
+      "md5": "c9f242f2baa0c0827ca1071be16feda8"
+    },
+    {
+      "path": "0000/m1/us/12-cover-letters/cover.pdf",
+      "length": 23417,
+      "sha256": "b6d8d4e2ef392e650023f99808d83f2fb91f16c3a7b679cfef851100ce93b39a",
+      "md5": "550ec2059932e6e45b32ad7b4cbfeb08"
+    },
+    {
+      "path": "0000/m1/us/us-regional.xml",
+      "length": 1616,
+      "sha256": "77ed82093d53eddf4a896ce7a3eec080893fad6abe0d374531f7eae1dde0768f",
+      "md5": "4319844cc2240906dee00b8f5cad0517"
+    },
+    {
+      "path": "0000/m2/23-qos/drug-a-alpha/summary.pdf",
+      "length": 23287,
+      "sha256": "3c3ea410d16ff1dbd7e1ac7b2d8e2ee9df9a013a6a21656a048dccec3bb99fc6",
+      "md5": "9b2d651f66c5ecc69e706fe31bc58627"
+    },
+    {
+      "path": "0000/m2/23-qos/drug-a-beta/summary.pdf",
+      "length": 23665,
+      "sha256": "c79b30858196bcf423bae8429e5d59587b9f67bdd0b700680c207d6e6cf6ae27",
+      "md5": "b2167ec52ac4472db031e374ae5c630c"
+    },
+    {
+      "path": "0000/m2/23-qos/tablet-alpha/summary.pdf",
+      "length": 23541,
+      "sha256": "5e813e6b2a4f210a10a5f495053437a6817b67a9a6e42330879a05828d72a255",
+      "md5": "52bd1c52daa323bf82e9d5d965f5646d"
+    },
+    {
+      "path": "0000/m2/25-clin-over/overview.pdf",
+      "length": 23624,
+      "sha256": "a2fa0190871d55bc514e8e43c326b75f7ba9f914d579923efd9d79691b6822b3",
+      "md5": "087603b12456110e6c26cac4d7c64bd8"
+    },
+    {
+      "path": "0000/m3/32-body-data/32p-drug-prod/tablet-alpha/32p1-desc-comp/composition.pdf",
+      "length": 23069,
+      "sha256": "9a9db02a49e0c465c2ae86fbbdb88414a4d996bc39b8a52f9d203983b42fc92e",
+      "md5": "bfad761f089b780fc6e2e8346a21aa30"
+    },
+    {
+      "path": "0000/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+      "length": 23513,
+      "sha256": "7c7d06c2a8a8b6b614e0aafe984b0fd3b3e4e8a0aa0456ec10e2ff8143c20dac",
+      "md5": "ca9074d045b50876258ce8ee0877ef5c"
+    },
+    {
+      "path": "0000/m3/32-body-data/32s-drug-sub/drug-a-beta/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+      "length": 23863,
+      "sha256": "be3048bd9d1af3bb7ae3b8dcb286723b5eae97a51470568c0a788e9b78f904b9",
+      "md5": "973574a5a9e88ba1da0e486132dd8cc7"
+    },
+    {
+      "path": "0000/m4/42-stud-rep/423-tox/4232-repeat-dose-tox/study-nc-001/report.pdf",
+      "length": 23439,
+      "sha256": "2a437ec59042e3253b65f8ea87ff2321624c5c17f7f1eaf72482dd97917e4036",
+      "md5": "8a83a1a4494a45eeccf3aa92f0f788ff"
+    },
+    {
+      "path": "0000/m5/53-clin-stud-rep/535-rep-effic-safety-stud/indication-a/5351-stud-rep-contr/study-cl-001/report.pdf",
+      "length": 23526,
+      "sha256": "e4963cc86ad7610ee50d837f16cfa3f3b22789a1c2c98dc559bd3e92d8e7cd3c",
+      "md5": "56c382afd6c9f342cb512f738b77415c"
+    },
+    {
+      "path": "0000/util/dtd/ich-ectd-3-2.dtd",
+      "length": 31400,
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+      "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+    },
+    {
+      "path": "0000/util/dtd/us-regional-v3-3.dtd",
+      "length": 35113,
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+      "md5": "bea39be6d3a1716262a30a87657bce2d"
+    },
+    {
+      "path": "0001/index-md5.txt",
+      "length": 32,
+      "sha256": "f6aa12cd8c807443fd0a379713029d53b3e20b88c4e9bc295b830ee211e3f292",
+      "md5": "a895dbd796581b78c3ab4b42bdd9da1c"
+    },
+    {
+      "path": "0001/index.xml",
+      "length": 1144,
+      "sha256": "deac29dfc7cb71053244330a7f96c5a274d95370fba90ce5c113c2b89726fcc7",
+      "md5": "cb83c9aa3f0be403ef26455ade492742"
+    },
+    {
+      "path": "0001/m1/us/us-regional.xml",
+      "length": 1355,
+      "sha256": "2bf30bf127741933f7e03533f975ba5496c6cf39d42a78467e4d77f29f008e5f",
+      "md5": "b638b55f1b51b3e25d928e0f4a1735d6"
+    },
+    {
+      "path": "0001/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+      "length": 23753,
+      "sha256": "5520d2b9e27a806135fcce9078d4b03a8feafa6b4e106d6e637495f106f03db1",
+      "md5": "4097658674f4b6df4a7911ba5b10c901"
+    },
+    {
+      "path": "0001/util/dtd/ich-ectd-3-2.dtd",
+      "length": 31400,
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+      "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+    },
+    {
+      "path": "0001/util/dtd/us-regional-v3-3.dtd",
+      "length": 35113,
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+      "md5": "bea39be6d3a1716262a30a87657bce2d"
+    },
+    {
+      "path": "0002/index-md5.txt",
+      "length": 32,
+      "sha256": "facb12e8288582324cdbbb27344eed66b4fc67abee82ea40d645550dcd094101",
+      "md5": "3e7a386acaa0559929a9e1acf2416c4f"
+    },
+    {
+      "path": "0002/index.xml",
+      "length": 1623,
+      "sha256": "a8ef7e32816fa765ffe502bdc75e610929fce96cd22d267e0a4051dad025bc2f",
+      "md5": "743a728ca3531450e68bcb801c24e8a2"
+    },
+    {
+      "path": "0002/m1/us/us-regional.xml",
+      "length": 1355,
+      "sha256": "046642dba080ecd92ac7387a68adb3bac1993014f641ed55e2c87bbd55ebe865",
+      "md5": "21769efd81a8e71ae43007f00c5c45ca"
+    },
+    {
+      "path": "0002/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/addendum.pdf",
+      "length": 24682,
+      "sha256": "109ae51d14396384f570b557640978467d2ab81d6dc21df537ec3a22ee105f43",
+      "md5": "12af41fd4f69faf20d204b02948f1819"
+    },
+    {
+      "path": "0002/m3/32-body-data/32s-drug-sub/drug-b-gamma/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+      "length": 24101,
+      "sha256": "9dc2dd5f87a2bb45db5d8596774d7123cec87b77aacac2fbe3d29ab950edcd88",
+      "md5": "dd1f24661a97d6210a855167e9719f6e"
+    },
+    {
+      "path": "0002/util/dtd/ich-ectd-3-2.dtd",
+      "length": 31400,
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+      "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+    },
+    {
+      "path": "0002/util/dtd/us-regional-v3-3.dtd",
+      "length": 35113,
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+      "md5": "bea39be6d3a1716262a30a87657bce2d"
+    },
+    {
+      "path": "0003/index-md5.txt",
+      "length": 32,
+      "sha256": "13d5bee3a06acfaf8d95017ea4348a3b64f7b7ebb1b23d6e19e4854371208910",
+      "md5": "45edd92463b2056dc8128618977b6e06"
+    },
+    {
+      "path": "0003/index.xml",
+      "length": 1030,
+      "sha256": "0a1b9cd379bb1bff5541ad3fdfb2c7594f8540f46cdf8a08c0e4c242a9f0f23b",
+      "md5": "730a40c162867dddeae78762df93af24"
+    },
+    {
+      "path": "0003/m1/us/us-regional.xml",
+      "length": 1355,
+      "sha256": "777ccf31d22f737fa2732825994f4063662c60e75cc821e163aeb279efbb789f",
+      "md5": "3d87110413d0b99ceaf0918f77a94cc1"
+    },
+    {
+      "path": "0003/util/dtd/ich-ectd-3-2.dtd",
+      "length": 31400,
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+      "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+    },
+    {
+      "path": "0003/util/dtd/us-regional-v3-3.dtd",
+      "length": 35113,
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+      "md5": "bea39be6d3a1716262a30a87657bce2d"
+    }
+  ],
+  "externalFiles": [
+    {
+      "path": "ich-example-6-4.xml",
+      "length": 1425,
+      "sha256": "0a17d04826a409859fa8fb2bedfb5da355dd668a7538ee3bac6d8c3f25429210",
+      "md5": "90a996e26a202f848d5db89165f5b41a"
+    },
+    {
+      "path": "ich-example-6-5.xml",
+      "length": 713,
+      "sha256": "ea53ee29c63f1d54ec9a370ea8e51d4530bdc19ecbc1ef772581f3ddf4a45113",
+      "md5": "89e38abf1fd2d6e60acf28cc07ca58c0"
+    }
+  ]
+}

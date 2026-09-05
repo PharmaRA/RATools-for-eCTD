@@ -1,0 +1,15 @@
+{
+  "0000/m1/us/12-cover-letters/cover.pdf": "Cover letter for synthetic IND 000001, sequence 0000.",
+  "0000/m2/25-clin-over/overview.pdf": "Clinical overview for the synthetic development application.",
+  "0000/m2/23-qos/drug-a-alpha/summary.pdf": "Drug A / Alpha: quality overall summary.",
+  "0000/m2/23-qos/drug-a-beta/summary.pdf": "Drug A / Beta: quality overall summary.",
+  "0000/m2/23-qos/tablet-alpha/summary.pdf": "Product A / Tablet / Alpha: quality overall summary.",
+  "0000/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf": "Drug A / Alpha: original specification, revision 1.",
+  "0000/m3/32-body-data/32s-drug-sub/drug-a-beta/32s4-contr-drug-sub/32s41-spec/specification.pdf": "Drug A / Beta: original specification, revision 1.",
+  "0000/m3/32-body-data/32p-drug-prod/tablet-alpha/32p1-desc-comp/composition.pdf": "Product A / Tablet / Alpha: description and composition.",
+  "0000/m4/42-stud-rep/423-tox/4232-repeat-dose-tox/study-nc-001/report.pdf": "Study NC-001: synthetic repeat-dose toxicity report.",
+  "0000/m5/53-clin-stud-rep/535-rep-effic-safety-stud/indication-a/5351-stud-rep-contr/study-cl-001/report.pdf": "Study CL-001: synthetic controlled clinical study, indication A.",
+  "0001/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf": "Drug A / Alpha: replacement specification, revision 2.",
+  "0002/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/addendum.pdf": "Drug A / Alpha: addendum associated with revision 2.",
+  "0002/m3/32-body-data/32s-drug-sub/drug-b-gamma/32s4-contr-drug-sub/32s41-spec/specification.pdf": "Drug B / Gamma: independent new substance specification."
+}

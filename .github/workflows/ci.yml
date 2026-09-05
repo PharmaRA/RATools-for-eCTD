@@ -32,6 +32,7 @@ jobs:
           python3 scripts/tests/test_repository_hygiene.py
           python3 scripts/tests/test_database_migration_contract.py
           python3 scripts/tests/test_publisher_reference_contract.py
+          python3 scripts/fixtures/materialize_publisher_fixture.py --output .artifacts/publisher-qualification
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4

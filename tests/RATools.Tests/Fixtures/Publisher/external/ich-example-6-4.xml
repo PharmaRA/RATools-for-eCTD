@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+<ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
+  <m3-quality><m3-2-body-of-data>
+    <m3-2-s-drug-substance substance="Acetaminophen" manufacturer="My Supplier">
+      <leaf ID="a123456" operation="new" xlink:type="simple" checksum-type="md5" checksum="b002e4544c02361fe54be926ae777012" xlink:href="m3/32-body-data/32s-drug-sub/acetaminophen-my-supplier/acetaminophen.pdf"><title>Acetaminophen - My Supplier Data</title></leaf>
+    </m3-2-s-drug-substance>
+    <m3-2-s-drug-substance substance="Acetaminophen" manufacturer="Bulk Company 2">
+      <leaf ID="a123457" operation="new" xlink:type="simple" checksum-type="md5" checksum="0000cdfa05b1e995f88057150414a783" xlink:href="m3/32-body-data/32s-drug-sub/acetaminophen-bulk-company-2/acetaminophen2.pdf"><title>Acetaminophen - bulk company 2 data</title></leaf>
+    </m3-2-s-drug-substance>
+    <m3-2-s-drug-substance substance="Codeine" manufacturer="Drug company 2">
+      <leaf ID="a123458" operation="new" xlink:type="simple" checksum-type="md5" checksum="f555a3234f65623fe54be926ee435354" xlink:href="m3/32-body-data/32s-drug-sub/codeine-drug-company-2/codeine-quality-data.pdf"><title>codeine - drug company 2 data</title></leaf>
+    </m3-2-s-drug-substance>
+  </m3-2-body-of-data></m3-quality>
+</ectd:ectd>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE fda-regional:fda-regional SYSTEM "../../util/dtd/us-regional-v3-3.dtd">
+<fda-regional:fda-regional xmlns:fda-regional="http://www.ich.org/fda" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.3">
+  <admin>
+    <applicant-info>
+      <id>000001</id><company-name>Synthetic Qualification Applicant</company-name>
+      <submission-description>Public synthetic fixture; no real submission data</submission-description>
+      <applicant-contacts><applicant-contact>
+        <applicant-contact-name applicant-contact-type="regulatory">Synthetic Contact</applicant-contact-name>
+        <telephones><telephone telephone-number-type="business">+1-202-555-0100</telephone></telephones>
+        <emails><email>qualification@example.invalid</email></emails>
+      </applicant-contact></applicant-contacts>
+    </applicant-info>
+    <application-set><application application-containing-files="true">
+      <application-information><application-number application-type="ind">000001</application-number></application-information>
+      <submission-information><submission-id submission-type="original-application">0000</submission-id><sequence-number submission-sub-type="original">0000</sequence-number></submission-information>
+    </application></application-set>
+  </admin>
+  <m1-regional><m1-2-cover-letters>
+    <leaf ID="overview" operation="new" checksum="550ec2059932e6e45b32ad7b4cbfeb08" checksum-type="md5" xlink:href="12-cover-letters/cover.pdf"><title>Synthetic cover letter</title></leaf>
+  </m1-2-cover-letters></m1-regional>
+</fda-regional:fda-regional>

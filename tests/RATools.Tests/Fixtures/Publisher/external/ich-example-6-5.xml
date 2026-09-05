@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+<ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
+  <m2-common-technical-document-summaries><m2-3-quality-overall-summary><m2-3-r-regional-information>
+    <node-extension><title>special-summary</title>
+      <leaf ID="a123456" operation="new" xlink:type="simple" xlink:href="m2/23-qos/extra-quality-sum.pdf" checksum-type="md5" checksum="7490d74c3d5e442ad57daa155253eb16"><title>Extra Quality Summary</title></leaf>
+    </node-extension>
+  </m2-3-r-regional-information></m2-3-quality-overall-summary></m2-common-technical-document-summaries>
+</ectd:ectd>

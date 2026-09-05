@@ -4,3 +4,8 @@ reference/dtd/ich-ectd-3-2.dtd -text -whitespace
 reference/dtd/us-regional-v3-3.dtd -text -whitespace
 reference/eu-m1/3.1.1/util/dtd/* -text -whitespace
 reference/eu-m1/3.1.1/util/style/* -text -whitespace
+
+# Qualification inputs are hashed packages, including their XML and checksum files.
+tests/RATools.Tests/Fixtures/Publisher/sequences/** -text
+tests/RATools.Tests/Fixtures/Publisher/sequences/**/*.dtd -whitespace
+tests/RATools.Tests/Fixtures/Publisher/external/*.xml -text

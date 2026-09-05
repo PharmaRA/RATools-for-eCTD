@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+<ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
+  <m1-administrative-information-and-prescribing-information>
+    <leaf ID="regional-0000" operation="new" checksum="4319844cc2240906dee00b8f5cad0517" checksum-type="md5" xlink:href="m1/us/us-regional.xml"><title>US regional backbone</title></leaf>
+  </m1-administrative-information-and-prescribing-information>
+  <m2-common-technical-document-summaries>
+    <m2-3-quality-overall-summary>
+      <m2-3-s-drug-substance substance="Drug A" manufacturer="Alpha">
+        <leaf ID="qos-alpha" operation="new" checksum="9b2d651f66c5ecc69e706fe31bc58627" checksum-type="md5" xlink:href="m2/23-qos/drug-a-alpha/summary.pdf"><title>Drug A / Alpha summary</title></leaf>
+      </m2-3-s-drug-substance>
+      <m2-3-s-drug-substance substance="Drug A" manufacturer="Beta">
+        <leaf ID="qos-beta" operation="new" checksum="b2167ec52ac4472db031e374ae5c630c" checksum-type="md5" xlink:href="m2/23-qos/drug-a-beta/summary.pdf"><title>Drug A / Beta summary</title></leaf>
+      </m2-3-s-drug-substance>
+      <m2-3-p-drug-product product-name="Product A" dosageform="Tablet" manufacturer="Alpha">
+        <leaf ID="qos-product" operation="new" checksum="52bd1c52daa323bf82e9d5d965f5646d" checksum-type="md5" xlink:href="m2/23-qos/tablet-alpha/summary.pdf"><title>Product A summary</title></leaf>
+      </m2-3-p-drug-product>
+    </m2-3-quality-overall-summary>
+    <m2-5-clinical-overview>
+      <leaf ID="overview" operation="new" checksum="087603b12456110e6c26cac4d7c64bd8" checksum-type="md5" xlink:href="m2/25-clin-over/overview.pdf"><title>Clinical overview</title></leaf>
+    </m2-5-clinical-overview>
+  </m2-common-technical-document-summaries>
+  <m3-quality>
+    <m3-2-body-of-data>
+      <m3-2-s-drug-substance substance="Drug A" manufacturer="Alpha">
+        <m3-2-s-4-control-of-drug-substance><m3-2-s-4-1-specification>
+          <leaf ID="alpha-spec-v1" operation="new" checksum="ca9074d045b50876258ce8ee0877ef5c" checksum-type="md5" xlink:href="m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf"><title>Alpha specification</title></leaf>
+        </m3-2-s-4-1-specification></m3-2-s-4-control-of-drug-substance>
+      </m3-2-s-drug-substance>
+      <m3-2-s-drug-substance substance="Drug A" manufacturer="Beta">
+        <m3-2-s-4-control-of-drug-substance><m3-2-s-4-1-specification>
+          <leaf ID="beta-spec-v1" operation="new" checksum="973574a5a9e88ba1da0e486132dd8cc7" checksum-type="md5" xlink:href="m3/32-body-data/32s-drug-sub/drug-a-beta/32s4-contr-drug-sub/32s41-spec/specification.pdf"><title>Beta specification</title></leaf>
+        </m3-2-s-4-1-specification></m3-2-s-4-control-of-drug-substance>
+      </m3-2-s-drug-substance>
+      <m3-2-p-drug-product product-name="Product A" dosageform="Tablet" manufacturer="Alpha">
+        <m3-2-p-1-description-and-composition-of-the-drug-product>
+          <leaf ID="product-composition" operation="new" checksum="bfad761f089b780fc6e2e8346a21aa30" checksum-type="md5" xlink:href="m3/32-body-data/32p-drug-prod/tablet-alpha/32p1-desc-comp/composition.pdf"><title>Product composition</title></leaf>
+        </m3-2-p-1-description-and-composition-of-the-drug-product>
+      </m3-2-p-drug-product>
+    </m3-2-body-of-data>
+  </m3-quality>
+  <m4-nonclinical-study-reports><m4-2-study-reports><m4-2-3-toxicology>
+    <m4-2-3-2-repeat-dose-toxicity><node-extension ID="study-nc-001"><title>Study NC-001</title>
+      <leaf ID="nc-report" operation="new" checksum="8a83a1a4494a45eeccf3aa92f0f788ff" checksum-type="md5" xlink:href="m4/42-stud-rep/423-tox/4232-repeat-dose-tox/study-nc-001/report.pdf"><title>Repeat-dose toxicity report</title></leaf>
+    </node-extension></m4-2-3-2-repeat-dose-toxicity>
+  </m4-2-3-toxicology></m4-2-study-reports></m4-nonclinical-study-reports>
+  <m5-clinical-study-reports><m5-3-clinical-study-reports>
+    <m5-3-5-reports-of-efficacy-and-safety-studies indication="Indication A">
+      <m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication><node-extension ID="study-cl-001"><title>Study CL-001</title>
+        <leaf ID="cl-report" operation="new" checksum="56c382afd6c9f342cb512f738b77415c" checksum-type="md5" xlink:href="m5/53-clin-stud-rep/535-rep-effic-safety-stud/indication-a/5351-stud-rep-contr/study-cl-001/report.pdf"><title>Controlled clinical study report</title></leaf>
+      </node-extension></m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication>
+    </m5-3-5-reports-of-efficacy-and-safety-studies>
+  </m5-3-clinical-study-reports></m5-clinical-study-reports>
+</ectd:ectd>

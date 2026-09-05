@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {"id": "missing-manufacturer", "targetSequence": "0000", "expectedDefect": "MISSING_REQUIRED_NODE_ATTRIBUTE", "mutation": {"kind": "text", "path": "0000/index.xml", "old": "<m3-2-s-drug-substance substance=\"Drug A\" manufacturer=\"Alpha\">", "new": "<m3-2-s-drug-substance substance=\"Drug A\">"}},
+    {"id": "duplicate-xml-id", "targetSequence": "0000", "expectedDefect": "DUPLICATE_XML_ID", "mutation": {"kind": "text", "path": "0000/index.xml", "old": "ID=\"qos-beta\"", "new": "ID=\"qos-alpha\""}},
+    {"id": "cross-application-target", "targetSequence": "0001", "expectedDefect": "TARGET_OUTSIDE_APPLICATION", "mutation": {"kind": "text", "path": "0001/index.xml", "old": "../0000/index.xml#alpha-spec-v1", "new": "../../other-application/0000/index.xml#alpha-spec-v1"}},
+    {"id": "wrong-backbone-fragment", "targetSequence": "0001", "expectedDefect": "TARGET_LEAF_NOT_FOUND", "mutation": {"kind": "text", "path": "0001/index.xml", "old": "../0000/index.xml#alpha-spec-v1", "new": "../0000/m1/us/us-regional.xml#alpha-spec-v1"}},
+    {"id": "missing-history", "targetSequence": "0001", "expectedDefect": "HISTORY_NOT_AVAILABLE", "omitHistory": ["0000"]},
+    {"id": "file-hash-mismatch", "targetSequence": "0000", "expectedDefect": "FILE_CHECKSUM_MISMATCH", "mutation": {"kind": "append-bytes", "path": "0000/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf", "text": "\n% deliberate fixture corruption\n"}},
+    {"id": "broken-link", "targetSequence": "0000", "expectedDefect": "REFERENCED_FILE_MISSING", "mutation": {"kind": "text", "path": "0000/index.xml", "old": "xlink:href=\"m2/25-clin-over/overview.pdf\"", "new": "xlink:href=\"m2/25-clin-over/missing.pdf\""}},
+    {"id": "directory-zip-inconsistent", "targetSequence": "0000", "expectedDefect": "DIRECTORY_ZIP_CONTENT_MISMATCH", "zipMutation": {"kind": "replace", "path": "0000/m2/25-clin-over/overview.pdf", "source": "0000/m1/us/12-cover-letters/cover.pdf"}},
+    {"id": "target-already-replaced", "targetSequence": "0002", "expectedDefect": "TARGET_NOT_EFFECTIVE", "mutation": {"kind": "text", "path": "0002/index.xml", "old": "../0001/index.xml#alpha-spec-v2", "new": "../0000/index.xml#alpha-spec-v1"}},
+    {"id": "target-already-deleted", "targetSequence": "0004", "expectedDefect": "TARGET_NOT_EFFECTIVE", "cloneSequence": {"source": "0003", "destination": "0004"}},
+    {"id": "unknown-external-dtd", "targetSequence": "0000", "expectedDefect": "UNTRUSTED_XML_RESOURCE", "mutation": {"kind": "text", "path": "0000/index.xml", "old": "SYSTEM \"util/dtd/ich-ectd-3-2.dtd\"", "new": "SYSTEM \"https://untrusted.example.invalid/ich-ectd-3-2.dtd\""}},
+    {"id": "zip-traversal", "targetSequence": "0000", "expectedDefect": "UNSAFE_ZIP_ENTRY", "zipMutation": {"kind": "add", "path": "../escaped.txt", "text": "must never be extracted"}},
+    {"id": "zip-duplicate-entry", "targetSequence": "0000", "expectedDefect": "DUPLICATE_ZIP_ENTRY", "zipMutation": {"kind": "add", "path": "0000/index.xml", "text": "deliberate duplicate entry"}}
+  ]
+}

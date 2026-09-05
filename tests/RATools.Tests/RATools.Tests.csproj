@@ -17,6 +17,7 @@
     <None Include="..\..\src\RATools.Api\openapi.v1.json"
           Link="openapi.v1.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures\Publisher\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

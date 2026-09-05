@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+<ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
+  <m1-administrative-information-and-prescribing-information>
+    <leaf ID="regional-0002" operation="new" checksum="21769efd81a8e71ae43007f00c5c45ca" checksum-type="md5" xlink:href="m1/us/us-regional.xml"><title>US regional backbone</title></leaf>
+  </m1-administrative-information-and-prescribing-information>
+  <m3-quality><m3-2-body-of-data>
+    <m3-2-s-drug-substance substance="Drug A" manufacturer="Alpha"><m3-2-s-4-control-of-drug-substance><m3-2-s-4-1-specification>
+      <leaf ID="alpha-addendum" operation="append" modified-file="../0001/index.xml#alpha-spec-v2" checksum="12af41fd4f69faf20d204b02948f1819" checksum-type="md5" xlink:href="m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/addendum.pdf"><title>Alpha specification addendum</title></leaf>
+    </m3-2-s-4-1-specification></m3-2-s-4-control-of-drug-substance></m3-2-s-drug-substance>
+    <m3-2-s-drug-substance substance="Drug B" manufacturer="Gamma"><m3-2-s-4-control-of-drug-substance><m3-2-s-4-1-specification>
+      <leaf ID="gamma-spec" operation="new" checksum="dd1f24661a97d6210a855167e9719f6e" checksum-type="md5" xlink:href="m3/32-body-data/32s-drug-sub/drug-b-gamma/32s4-contr-drug-sub/32s41-spec/specification.pdf"><title>Drug B / Gamma specification</title></leaf>
+    </m3-2-s-4-1-specification></m3-2-s-4-control-of-drug-substance></m3-2-s-drug-substance>
+  </m3-2-body-of-data></m3-quality>
+</ectd:ectd>
