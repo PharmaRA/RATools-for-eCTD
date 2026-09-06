@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "status": "ImplementationContract",
+  "runtimeAvailability": "Introduced incrementally by P1-P6; these declarations are not existing API endpoints",
+  "identityComparisonVersion": "exact-xml-values-v1",
+  "manifestEncoding": "ratools-canonical-json-v1",
+  "identities": {
+    "SectionDefinition": ["profileSnapshotId", "definitionKey"],
+    "CtdNodeInstance": ["applicationId", "nodeInstanceId"],
+    "SequenceNode": ["applicationId", "sequenceNumber", "nodeInstanceId"],
+    "LeafAddress": ["applicationId", "sequenceNumber", "backboneRelativePath", "leafId"],
+    "Draft": ["applicationId", "sequenceNumber", "draftId", "workspaceRevision"],
+    "DocumentVersion": ["documentVersionId"],
+    "FinalizedSequence": ["finalizedSequenceId"],
+    "DeliveryRecord": ["deliveryRecordId"]
+  },
+  "owners": {
+    "P1": ["SectionDefinition", "CtdNodeInstance", "SequenceNode", "WorkspaceRevision", "NodePath", "LeafAddress"],
+    "P2": ["PackageInputManifest", "HistoryBaselineManifest", "ValidationRuleDescriptor", "ValidationRun", "ValidationFinding"],
+    "P3": ["LifecycleEvent", "DossierProjection", "SequenceDelta"],
+    "P4": ["Draft", "DocumentVersion", "FinalizationJob", "FinalizedSequence", "DeliveryRecord", "DeliveryReceipt"],
+    "P5": ["AssemblyPlan", "AssemblyExecution", "DocumentProcessingPlan", "DocumentProcessingJob"],
+    "P6": ["StandardsProfileSnapshot", "UsRegionalMetadata", "EuRegionalMetadata", "RegionalCapability"]
+  },
+  "wireTypes": {
+    "entityId": "UUID, lower-case canonical D representation",
+    "sequenceNumber": "string matching ^[0-9]{4}$; never a JSON number",
+    "workspaceRevision": "integer in [0, 9007199254740991]; database bigint; overflow fails rather than wraps",
+    "sha256": "64 lower-case hexadecimal characters",
+    "md5": "32 lower-case hexadecimal characters; eCTD compatibility, not immutable content identity",
+    "relativePath": "case-preserved slash-separated logical path without a leading slash, query, fragment or parent segment",
+    "timestamp": "UTC ISO 8601 string; captured values are preserved in immutable manifests",
+    "checkStatus": ["Pass", "Fail", "NotEvaluated", "NotApplicable"],
+    "implementationStatus": ["Implemented", "Partial", "Manual", "NotImplemented", "NotApplicable"],
+    "severity": ["Info", "Warning", "Error"]
+  },
+  "nodeIdentity": {
+    "components": ["applicationId", "parentInstanceId", "definitionKey", "identityComparisonVersion", "schema-declared identity attributes"],
+    "comparison": "Ordinal equality of parsed XML attribute values, including case and whitespace; no heuristic trim, transliteration or case folding",
+    "missingValue": "Missing and present values have distinct encodings; ambiguous missing identity metadata requires repair",
+    "nonRepeatableUniqueness": "One instance per application, parent and definition; a separate root uniqueness constraint covers NULL parents",
+    "ambiguousImport": "Preserve separate instance IDs and source locations; report ambiguity instead of merging equal sibling contexts",
+    "extensionIdentity": "Stable explicit instance ID; title is sequence metadata and cannot be its database key",
+    "identityChange": "Create a new logical instance or use an explicit reviewed mapping; never rewrite historical business identity"
+  },
+  "historyBaseline": {
+    "entryFields": ["sequenceNumber", "sourceKind", "sourceId", "contentDigest", "profileSnapshotId", "trustStatus", "validationRunId", "finalizedSequenceId"],
+    "sourceKinds": ["ImportedExternal", "LegacyWorkspace", "Finalized"],
+    "trustStatuses": ["Unverified", "LegacyUnverified", "VerifiedForScope", "Rejected"],
+    "uniqueBy": ["applicationId", "sequenceNumber"],
+    "orderBy": ["sequenceNumber"],
+    "completeWhen": "Every required historical XML address resolves in explicitly selected, compatible and verified source versions",
+    "submissionInference": "None; validation or finalization never implies submission or regulatory acceptance"
+  },
+  "validationBinding": ["inputManifestDigest", "historyBaselineDigest", "profileSnapshotId", "rulesDigest", "engineVersion", "validationMode", "resourceLimitsDigest"],
+  "finalizationBinding": ["draftId", "workspaceRevision", "nodeSnapshotDigest", "metadataDigest", "documentVersions", "inputManifestDigest", "historyBaselineDigest", "profileSnapshotId", "validationRunId"],
+  "workspaceWrites": ["upload", "attach", "detach", "delete-document", "edit-title", "edit-file-name", "move", "sort", "edit-operation", "edit-lifecycle-target", "create-node", "edit-node", "clone-node", "remove-node", "edit-publishing-metadata", "change-history-baseline", "adopt-document-version", "execute-assembly-plan"],
+  "concurrency": {
+    "requestField": "expectedRevision",
+    "missingStatus": 428,
+    "mismatchStatus": 409,
+    "mismatchCode": "WorkspaceRevisionConflict",
+    "missingCode": "WorkspaceRevisionRequired",
+    "commit": "Compare-and-increment in the same database transaction as the complete logical mutation; one increment per atomic execution unit",
+    "noChange": "Rejected or completely compensated mutations do not increment; a surviving reconciled change increments and invalidates prior validation",
+    "externalChange": "Input digest checks remain necessary: external file changes need not increment the database revision",
+    "applicationDefaults": "List affected editable drafts and revise each affected draft; never change a historical snapshot"
+  },
+  "idempotency": {
+    "scope": ["operation", "applicationId", "sequenceNumber", "key"],
+    "payload": "Digest of the complete normalized request, selected inputs and their immutable versions",
+    "sameKeySamePayload": "Return the same durable operation or result, including after a lost response",
+    "sameKeyDifferentPayload": "409 IdempotencyPayloadConflict"
+  },
+  "states": {
+    "draft": ["Editable", "Finalizing", "FinalizedReadOnly"],
+    "validationRun": ["Pending", "Running", "Completed", "Failed", "Cancelled", "InputChanged"],
+    "finalizationJob": ["Requested", "Captured", "Staged", "Validated", "Materialized", "Committed", "Failed", "Cancelled"],
+    "deliveryEventKinds": ["Exported", "SubmissionRegistered", "ReceiptRegistered", "CorrectionRegistered"],
+    "receiptKinds": ["Transport", "TechnicalValidation", "BusinessAcceptance", "Other"],
+    "receiptOutcomes": ["Accepted", "Rejected", "Unknown"]
+  },
+  "transitions": [
+    {"entity": "draft", "from": "Editable", "event": "CaptureFinalization", "to": "Finalizing", "guard": "Expected revision, complete captured input and unique durable job"},
+    {"entity": "draft", "from": "Finalizing", "event": "JobFailedOrCancelled", "to": "Editable", "guard": "Compensation or recoverable quarantine recorded; fixed snapshots are never rolled back"},
+    {"entity": "draft", "from": "Finalizing", "event": "CommitSnapshot", "to": "FinalizedReadOnly", "guard": "Candidate bytes verified, necessary checks completed and snapshot transaction committed"},
+    {"entity": "draft", "from": "FinalizedReadOnly", "event": "CreateRevision", "to": "Editable", "newObject": true, "guard": "New draft ID and next workspace revision; preserve source snapshot and regulatory sequence number"},
+    {"entity": "finalizationJob", "from": "Materialized", "event": "Recover", "to": "Committed", "guard": "Job ownership, candidate manifest and file digests match; database uniqueness enforced"},
+    {"entity": "finalizationJob", "from": "Committed", "event": "CancelOrRetry", "to": "Committed", "guard": "Return existing snapshot; cleanup and lost responses cannot undo committed content"}
+  ],
+  "errorFields": ["message", "code", "correlationId", "location", "currentRevision"],
+  "locationFields": ["applicationId", "sequenceNumber", "backboneRelativePath", "leafId", "nodeInstanceId", "logicalPath", "fieldPath", "line", "column"],
+  "asyncResponse": {"status": 202, "fields": ["id", "status", "statusUrl"], "cancellation": "A request flag, not a terminal outcome"}
+}

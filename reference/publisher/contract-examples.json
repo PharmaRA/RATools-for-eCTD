@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "runtimeAvailability": "Contract examples, not persisted operations or qualified snapshots",
+  "canonicalVectors": [
+    {
+      "id": "empty",
+      "input": {},
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "ordinal-properties",
+      "input": {
+        "z": null,
+        "a": [
+          true,
+          false,
+          42,
+          -7
+        ],
+        "A": "Drug A"
+      },
+      "canonical": "{\"A\":\"Drug A\",\"a\":[true,false,42,-7],\"z\":null}",
+      "sha256": "b89a053981606e33a0fcce2a8c7fb91cb0d034d9a3101a82fd846a69dc774ee6"
+    },
+    {
+      "id": "unicode-and-controls",
+      "input": {
+        "title": "原料药 A\nAlpha\t\"quoted\"",
+        "path": "m3/alpha/specification.pdf"
+      },
+      "canonical": "{\"path\":\"m3/alpha/specification.pdf\",\"title\":\"原料药 A\\nAlpha\\t\\\"quoted\\\"\"}",
+      "sha256": "c1da4119cfc6d988601ca7807d4035e48f3393002843516b4cdfec1c75702128"
+    },
+    {
+      "id": "utf16-key-order",
+      "input": {
+        "￿": "last",
+        "😀": "surrogate-pair",
+        "a": "first"
+      },
+      "canonical": "{\"a\":\"first\",\"😀\":\"surrogate-pair\",\"￿\":\"last\"}",
+      "sha256": "3ec180dfebcc9da79de132befac0a0aa36c8b6cd69052c6430d50ab8aeb9c166"
+    },
+    {
+      "id": "null-control-and-solidus",
+      "input": {
+        "value": "\u0000/\\\b\f\r"
+      },
+      "canonical": "{\"value\":\"\\u0000/\\\\\\b\\f\\r\"}",
+      "sha256": "8aacac61818b7cc36cb21df146ac759de41cdcf8f85d50086a8fb980c8103d46"
+    }
+  ],
+  "invalidCanonicalInputs": [
+    {
+      "id": "floating-point",
+      "json": "{\"number\":1.25}"
+    },
+    {
+      "id": "unsafe-integer",
+      "json": "9007199254740992"
+    },
+    {
+      "id": "duplicate-key",
+      "json": "{\"a\":1,\"a\":2}"
+    },
+    {
+      "id": "unpaired-surrogate",
+      "json": "\"\\ud800\""
+    }
+  ],
+  "packageInputs": [
+    {
+      "content": {
+        "schemaVersion": 1,
+        "applicationId": "00000000-0000-0000-0000-000000000001",
+        "sequenceNumber": "0000",
+        "files": [
+          {
+            "logicalPath": "0000/index-md5.txt",
+            "length": 32,
+            "sha256": "c3a48443881252e0120c749c2adc4604046aa718a2c9ca281a3c6c532ccaa303",
+            "md5": "552de878a2e95c4d1e8a65a6c508499b"
+          },
+          {
+            "logicalPath": "0000/index.xml",
+            "length": 4798,
+            "sha256": "ba251daaf9a878a9c6eeecf3943c2d1b83611ec2d3fdbe564ec2879fb1be794c",
+            "md5": "c9f242f2baa0c0827ca1071be16feda8"
+          },
+          {
+            "logicalPath": "0000/m1/us/12-cover-letters/cover.pdf",
+            "length": 23417,
+            "sha256": "b6d8d4e2ef392e650023f99808d83f2fb91f16c3a7b679cfef851100ce93b39a",
+            "md5": "550ec2059932e6e45b32ad7b4cbfeb08"
+          },
+          {
+            "logicalPath": "0000/m1/us/us-regional.xml",
+            "length": 1616,
+            "sha256": "77ed82093d53eddf4a896ce7a3eec080893fad6abe0d374531f7eae1dde0768f",
+            "md5": "4319844cc2240906dee00b8f5cad0517"
+          },
+          {
+            "logicalPath": "0000/m2/23-qos/drug-a-alpha/summary.pdf",
+            "length": 23287,
+            "sha256": "3c3ea410d16ff1dbd7e1ac7b2d8e2ee9df9a013a6a21656a048dccec3bb99fc6",
+            "md5": "9b2d651f66c5ecc69e706fe31bc58627"
+          },
+          {
+            "logicalPath": "0000/m2/23-qos/drug-a-beta/summary.pdf",
+            "length": 23665,
+            "sha256": "c79b30858196bcf423bae8429e5d59587b9f67bdd0b700680c207d6e6cf6ae27",
+            "md5": "b2167ec52ac4472db031e374ae5c630c"
+          },
+          {
+            "logicalPath": "0000/m2/23-qos/tablet-alpha/summary.pdf",
+            "length": 23541,
+            "sha256": "5e813e6b2a4f210a10a5f495053437a6817b67a9a6e42330879a05828d72a255",
+            "md5": "52bd1c52daa323bf82e9d5d965f5646d"
+          },
+          {
+            "logicalPath": "0000/m2/25-clin-over/overview.pdf",
+            "length": 23624,
+            "sha256": "a2fa0190871d55bc514e8e43c326b75f7ba9f914d579923efd9d79691b6822b3",
+            "md5": "087603b12456110e6c26cac4d7c64bd8"
+          },
+          {
+            "logicalPath": "0000/m3/32-body-data/32p-drug-prod/tablet-alpha/32p1-desc-comp/composition.pdf",
+            "length": 23069,
+            "sha256": "9a9db02a49e0c465c2ae86fbbdb88414a4d996bc39b8a52f9d203983b42fc92e",
+            "md5": "bfad761f089b780fc6e2e8346a21aa30"
+          },
+          {
+            "logicalPath": "0000/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+            "length": 23513,
+            "sha256": "7c7d06c2a8a8b6b614e0aafe984b0fd3b3e4e8a0aa0456ec10e2ff8143c20dac",
+            "md5": "ca9074d045b50876258ce8ee0877ef5c"
+          },
+          {
+            "logicalPath": "0000/m3/32-body-data/32s-drug-sub/drug-a-beta/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+            "length": 23863,
+            "sha256": "be3048bd9d1af3bb7ae3b8dcb286723b5eae97a51470568c0a788e9b78f904b9",
+            "md5": "973574a5a9e88ba1da0e486132dd8cc7"
+          },
+          {
+            "logicalPath": "0000/m4/42-stud-rep/423-tox/4232-repeat-dose-tox/study-nc-001/report.pdf",
+            "length": 23439,
+            "sha256": "2a437ec59042e3253b65f8ea87ff2321624c5c17f7f1eaf72482dd97917e4036",
+            "md5": "8a83a1a4494a45eeccf3aa92f0f788ff"
+          },
+          {
+            "logicalPath": "0000/m5/53-clin-stud-rep/535-rep-effic-safety-stud/indication-a/5351-stud-rep-contr/study-cl-001/report.pdf",
+            "length": 23526,
+            "sha256": "e4963cc86ad7610ee50d837f16cfa3f3b22789a1c2c98dc559bd3e92d8e7cd3c",
+            "md5": "56c382afd6c9f342cb512f738b77415c"
+          },
+          {
+            "logicalPath": "0000/util/dtd/ich-ectd-3-2.dtd",
+            "length": 31400,
+            "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+            "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+          },
+          {
+            "logicalPath": "0000/util/dtd/us-regional-v3-3.dtd",
+            "length": 35113,
+            "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+            "md5": "bea39be6d3a1716262a30a87657bce2d"
+          }
+        ]
+      },
+      "digest": "0463f1c0ee5bdd8a97551c3074202956c182fc6bf33c0a61f4dc1b1de2e6c2b2"
+    },
+    {
+      "content": {
+        "schemaVersion": 1,
+        "applicationId": "00000000-0000-0000-0000-000000000001",
+        "sequenceNumber": "0001",
+        "files": [
+          {
+            "logicalPath": "0001/index-md5.txt",
+            "length": 32,
+            "sha256": "f6aa12cd8c807443fd0a379713029d53b3e20b88c4e9bc295b830ee211e3f292",
+            "md5": "a895dbd796581b78c3ab4b42bdd9da1c"
+          },
+          {
+            "logicalPath": "0001/index.xml",
+            "length": 1144,
+            "sha256": "deac29dfc7cb71053244330a7f96c5a274d95370fba90ce5c113c2b89726fcc7",
+            "md5": "cb83c9aa3f0be403ef26455ade492742"
+          },
+          {
+            "logicalPath": "0001/m1/us/us-regional.xml",
+            "length": 1355,
+            "sha256": "2bf30bf127741933f7e03533f975ba5496c6cf39d42a78467e4d77f29f008e5f",
+            "md5": "b638b55f1b51b3e25d928e0f4a1735d6"
+          },
+          {
+            "logicalPath": "0001/m3/32-body-data/32s-drug-sub/drug-a-alpha/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+            "length": 23753,
+            "sha256": "5520d2b9e27a806135fcce9078d4b03a8feafa6b4e106d6e637495f106f03db1",
+            "md5": "4097658674f4b6df4a7911ba5b10c901"
+          },
+          {
+            "logicalPath": "0001/util/dtd/ich-ectd-3-2.dtd",
+            "length": 31400,
+            "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731",
+            "md5": "1d6f631cc6b6357f0f4fe378e5f79a27"
+          },
+          {
+            "logicalPath": "0001/util/dtd/us-regional-v3-3.dtd",
+            "length": 35113,
+            "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec",
+            "md5": "bea39be6d3a1716262a30a87657bce2d"
+          }
+        ]
+      },
+      "digest": "99ff386eedf19c06fa4271e2c909a7b35a8790c808e334b603ab0b72d4ec56dd"
+    }
+  ],
+  "historyBaseline": {
+    "content": {
+      "schemaVersion": 1,
+      "applicationId": "00000000-0000-0000-0000-000000000001",
+      "entries": [
+        {
+          "sequenceNumber": "0000",
+          "sourceKind": "ImportedExternal",
+          "sourceId": "00000000-0000-0000-0000-000000000020",
+          "contentDigest": "0463f1c0ee5bdd8a97551c3074202956c182fc6bf33c0a61f4dc1b1de2e6c2b2",
+          "profileSnapshotId": "00000000-0000-0000-0000-000000000010",
+          "trustStatus": "Unverified",
+          "validationRunId": null,
+          "finalizedSequenceId": null
+        }
+      ]
+    },
+    "digest": "c34005debf11b3a8f88b6f16319d732f9e34ab8976715d2fc6bdca848b182ad6"
+  },
+  "leafReferences": [
+    {
+      "source": "0001/index.xml",
+      "modifiedFile": "../0000/index.xml#alpha-spec-v1",
+      "target": "0000/index.xml#alpha-spec-v1"
+    },
+    {
+      "source": "0001/m1/us/us-regional.xml",
+      "modifiedFile": "../../../0000/index.xml#alpha-spec-v1",
+      "target": "0000/index.xml#alpha-spec-v1"
+    },
+    {
+      "source": "0001/m1/us/us-regional.xml",
+      "modifiedFile": "../../../0000/m1/us/us-regional.xml#overview",
+      "target": "0000/m1/us/us-regional.xml#overview"
+    }
+  ],
+  "nodeCreate": {
+    "method": "POST",
+    "path": "/api/applications/00000000-0000-0000-0000-000000000001/sequences/0001/nodes",
+    "request": {
+      "expectedRevision": 42,
+      "definitionKey": "m3-2-s-drug-substance",
+      "parentInstanceId": "00000000-0000-0000-0000-000000000100",
+      "attributes": {
+        "substance": "Drug A",
+        "manufacturer": "Alpha"
+      },
+      "title": "Drug A / Alpha",
+      "sortOrder": 10,
+      "storageSegment": "drug-a-alpha"
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "nodeInstanceId": "00000000-0000-0000-0000-000000000101",
+        "workspaceRevision": 43
+      }
+    }
+  },
+  "revisionConflict": {
+    "status": 409,
+    "body": {
+      "message": "Workspace changed. Refresh and retry.",
+      "code": "WorkspaceRevisionConflict",
+      "currentRevision": 43,
+      "correlationId": "example-request",
+      "location": {
+        "applicationId": "00000000-0000-0000-0000-000000000001",
+        "sequenceNumber": "0001"
+      }
+    }
+  },
+  "validationRequest": {
+    "method": "POST",
+    "path": "/api/package-validations",
+    "request": {
+      "inputId": "00000000-0000-0000-0000-000000000021",
+      "targetSequence": "0001",
+      "profileSnapshotId": "00000000-0000-0000-0000-000000000010",
+      "historyBaselineId": "00000000-0000-0000-0000-000000000022",
+      "idempotencyKey": "example-validation-0001"
+    },
+    "response": {
+      "status": 202,
+      "body": {
+        "id": "00000000-0000-0000-0000-000000000023",
+        "status": "Pending",
+        "statusUrl": "/api/package-validations/00000000-0000-0000-0000-000000000023"
+      }
+    }
+  },
+  "finalizationRequest": {
+    "method": "POST",
+    "path": "/api/applications/00000000-0000-0000-0000-000000000001/sequences/0001/finalizations",
+    "request": {
+      "draftId": "00000000-0000-0000-0000-000000000024",
+      "expectedRevision": 43,
+      "profileSnapshotId": "00000000-0000-0000-0000-000000000010",
+      "historyBaselineId": "00000000-0000-0000-0000-000000000022",
+      "idempotencyKey": "example-finalization-0001"
+    },
+    "readiness": "NotEvaluated",
+    "reason": "Example history source is unverified; no finalization result is asserted"
+  }
+}
