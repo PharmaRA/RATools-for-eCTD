@@ -1,5 +1,6 @@
 using System.Xml;
 using RATools.Domain.Common;
+using RATools.Domain.Ctd;
 
 namespace RATools.Domain.Documents;
 
@@ -54,6 +55,10 @@ public sealed class DocumentPlacement : Entity
 
     public string CtdSection { get; private set; }
 
+    public Guid? NodeInstanceId { get; private set; }
+
+    public int SortOrder { get; private set; }
+
     public DocumentPlacementOperation Operation { get; private set; }
 
     public string? Title { get; private set; }
@@ -72,14 +77,37 @@ public sealed class DocumentPlacement : Entity
         string? title,
         Guid? lifecycleTargetPlacementId,
         DateTime createdUtc,
-        string? leafId = null)
+        string? leafId = null,
+        Guid? nodeInstanceId = null,
+        int sortOrder = 0)
     {
-        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc, leafId);
+        if (nodeInstanceId == Guid.Empty) throw new ArgumentException("A node identity must be nonempty.", nameof(nodeInstanceId));
+        ArgumentOutOfRangeException.ThrowIfNegative(sortOrder);
+        return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc, leafId)
+        {
+            NodeInstanceId = nodeInstanceId,
+            SortOrder = sortOrder
+        };
+    }
+
+    public void BindToNode(SequenceNode node, int sortOrder = 0)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        ArgumentOutOfRangeException.ThrowIfNegative(sortOrder);
+        if (node.ApplicationId != ApplicationId || node.SequenceNumber != SequenceNumber)
+            throw new CtdNodeConstraintException("PlacementNodeScopeMismatch", "A placement and its sequence node must have the same application and sequence.", node.NodeInstanceId);
+        if (!node.AllowsLeaves)
+            throw new CtdNodeConstraintException("NodeDoesNotAllowLeaves", "This node cannot receive document leaves.", node.NodeInstanceId);
+        NodeInstanceId = node.NodeInstanceId;
+        CtdSection = node.CtdSection;
+        SortOrder = sortOrder;
     }
 
     public void ReassignSection(string ctdSection)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ctdSection);
+        if (NodeInstanceId is not null && ctdSection.Trim() != CtdSection)
+            throw new CtdNodeConstraintException("NodeSelectionRequired", "Select a target instance when moving a node-bound placement.", NodeInstanceId);
         CtdSection = ctdSection.Trim();
     }
 

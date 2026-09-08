@@ -19,6 +19,7 @@
           CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures\Publisher\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures\CtdNodes\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\reference\publisher\contract-examples.json" Link="contract-examples.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
