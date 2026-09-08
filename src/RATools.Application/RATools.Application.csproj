@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RATools.Domain\RATools.Domain.csproj" />
+    <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-nodes.json" LogicalName="RATools.IchNodeSchema" />
   </ItemGroup>
 
   <ItemGroup>

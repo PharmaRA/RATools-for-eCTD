@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ectd:ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">
+<!-- Hand-authored attribute grammar specimen, not a complete submission package. -->
+<ectd:ectd xmlns:ectd="http://www.ich.org/ectd" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">
+  <m2-common-technical-document-summaries>
+    <m2-3-quality-overall-summary>
+      <m2-3-s-drug-substance substance="Drug A" manufacturer="Alpha" />
+      <m2-3-s-drug-substance substance="Drug A" manufacturer="Beta" />
+      <m2-3-p-drug-product product-name="Product A" dosageform="Tablet" manufacturer="Alpha" />
+      <m2-3-p-drug-product />
+    </m2-3-quality-overall-summary>
+    <m2-7-clinical-summary>
+      <m2-7-3-summary-of-clinical-efficacy indication="Indication A" />
+      <m2-7-3-summary-of-clinical-efficacy indication="Indication B" />
+    </m2-7-clinical-summary>
+  </m2-common-technical-document-summaries>
+  <m3-quality><m3-2-body-of-data>
+    <m3-2-s-drug-substance substance="Drug A" manufacturer="Alpha" />
+    <m3-2-s-drug-substance substance="Drug A" manufacturer="Beta" />
+    <m3-2-p-drug-product product-name="Product A" dosageform="Tablet" manufacturer="Alpha">
+      <m3-2-p-4-control-of-excipients excipient="Excipient A" />
+      <m3-2-p-4-control-of-excipients excipient="Excipient B" />
+    </m3-2-p-drug-product>
+    <m3-2-p-drug-product />
+    <m3-2-a-appendices>
+      <m3-2-a-1-facilities-and-equipment manufacturer="Alpha" substance="Drug A" dosageform="Tablet" product-name="Product A" />
+      <m3-2-a-1-facilities-and-equipment manufacturer="Beta" substance="Drug A" />
+      <m3-2-a-2-adventitious-agents-safety-evaluation manufacturer="Alpha" substance="Drug A" dosageform="Tablet" product-name="Product A" />
+      <m3-2-a-2-adventitious-agents-safety-evaluation />
+    </m3-2-a-appendices>
+  </m3-2-body-of-data></m3-quality>
+  <m5-clinical-study-reports><m5-3-clinical-study-reports>
+    <m5-3-5-reports-of-efficacy-and-safety-studies indication="Indication A" />
+    <m5-3-5-reports-of-efficacy-and-safety-studies indication="Indication B" />
+  </m5-3-clinical-study-reports></m5-clinical-study-reports>
+</ectd:ectd>

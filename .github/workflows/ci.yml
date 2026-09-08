@@ -27,6 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Verify ICH node schema against source DTD
+        run: |
+          python3 -m pip install -r scripts/standards/requirements.txt
+          python3 scripts/standards/generate_ich_node_schema.py --check
+
       - name: Repository hygiene
         run: |
           python3 scripts/tests/test_repository_hygiene.py
