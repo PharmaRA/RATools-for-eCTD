@@ -31,7 +31,8 @@ def main() -> None:
     assert "GetPendingMigrationsAsync" in api_program, (
         "The API must fail fast when the independent migration job was skipped"
     )
-    assert "Database.MigrateAsync()" in migrator_program
+    assert "Database.MigrateAsync(cancellation.Token)" in migrator_program
+    assert "--preview-ctd-backfill" in migrator_program and "--backfill-ctd" in migrator_program
     assert "FileSecretConfiguration.Apply(configuration)" in migrator_program
     assert "EnsureCreated" not in migrator_program and "EnsureDeleted" not in migrator_program
 

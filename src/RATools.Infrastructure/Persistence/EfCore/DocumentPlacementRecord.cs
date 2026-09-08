@@ -14,6 +14,10 @@ public sealed class DocumentPlacementRecord
 
     public string CtdSection { get; set; } = string.Empty;
 
+    public Guid? NodeInstanceId { get; set; }
+
+    public int SortOrder { get; set; }
+
     public string Operation { get; set; } = string.Empty;
 
     public string? Title { get; set; }

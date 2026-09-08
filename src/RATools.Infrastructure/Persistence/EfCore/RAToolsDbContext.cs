@@ -16,8 +16,15 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
     public DbSet<AuditLogRecord> AuditLogs => Set<AuditLogRecord>();
 
+    public DbSet<CtdDefinitionRecord> CtdDefinitions => Set<CtdDefinitionRecord>();
+    public DbSet<CtdNodeInstanceRecord> CtdNodeInstances => Set<CtdNodeInstanceRecord>();
+    public DbSet<SequenceNodeRecord> SequenceNodes => Set<SequenceNodeRecord>();
+    public DbSet<NodeBackfillCheckpointRecord> NodeBackfillCheckpoints => Set<NodeBackfillCheckpointRecord>();
+    public DbSet<NodeBackfillDiagnosticRecord> NodeBackfillDiagnostics => Set<NodeBackfillDiagnosticRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        CtdModelConfiguration.Configure(modelBuilder);
         modelBuilder.Entity<ApplicationRecord>(entity =>
         {
             entity.ToTable("applications");
@@ -37,7 +44,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
         modelBuilder.Entity<SequenceRecord>(entity =>
         {
-            entity.ToTable("sequences");
+            entity.ToTable("sequences", table => table.HasCheckConstraint("CK_sequences_workspace_revision", "\"WorkspaceRevision\" >= 0 AND \"WorkspaceRevision\" <= 9007199254740991"));
             entity.HasKey(x => new { x.ApplicationId, x.SequenceNumber });
             entity.Property(x => x.SequenceNumber).HasMaxLength(16).IsRequired();
             entity.Property(x => x.SubmissionType).HasMaxLength(64).IsRequired();
@@ -54,6 +61,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
             entity.Property(x => x.FdaTelephoneNumberType).HasMaxLength(64);
             entity.Property(x => x.FdaEmail).HasMaxLength(256);
             entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.Property(x => x.WorkspaceRevision).HasDefaultValue(0L).IsConcurrencyToken();
         });
 
         modelBuilder.Entity<DocumentRecord>(entity =>
@@ -71,7 +79,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
         modelBuilder.Entity<DocumentPlacementRecord>(entity =>
         {
-            entity.ToTable("document_placements");
+            entity.ToTable("document_placements", table => table.HasCheckConstraint("CK_placements_sort_order", "\"SortOrder\" >= 0"));
             entity.HasKey(x => x.Id);
             entity.Property(x => x.DocumentId).IsRequired();
             entity.Property(x => x.ApplicationId).IsRequired();
@@ -96,6 +104,10 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
                 .WithMany()
                 .HasForeignKey(x => x.DocumentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<SequenceNodeRecord>().WithMany()
+                .HasForeignKey(row => new { row.ApplicationId, row.SequenceNumber, row.NodeInstanceId, row.CtdSection })
+                .HasPrincipalKey(row => new { row.ApplicationId, row.SequenceNumber, row.NodeInstanceId, row.CtdSection })
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PublishJobRecord>(entity =>

@@ -14,7 +14,8 @@ public sealed class SubmissionSequence
         string submissionType,
         string description,
         DateTime createdUtc,
-        SequencePublishingMetadata? publishingMetadata)
+        SequencePublishingMetadata? publishingMetadata,
+        long workspaceRevision = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(submissionType);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
@@ -24,6 +25,9 @@ public sealed class SubmissionSequence
         Description = description.Trim();
         CreatedUtc = createdUtc;
         PublishingMetadata = publishingMetadata;
+        ArgumentOutOfRangeException.ThrowIfNegative(workspaceRevision);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(workspaceRevision, 9007199254740991L);
+        WorkspaceRevision = workspaceRevision;
     }
 
     public static SubmissionSequence Rehydrate(
@@ -31,12 +35,15 @@ public sealed class SubmissionSequence
         string submissionType,
         string description,
         DateTime createdUtc,
-        SequencePublishingMetadata? publishingMetadata = null)
+        SequencePublishingMetadata? publishingMetadata = null,
+        long workspaceRevision = 0)
     {
-        return new SubmissionSequence(sequenceNumber, submissionType, description, createdUtc, publishingMetadata);
+        return new SubmissionSequence(sequenceNumber, submissionType, description, createdUtc, publishingMetadata, workspaceRevision);
     }
 
     public string SequenceNumber { get; }
+
+    public long WorkspaceRevision { get; }
 
     public string SubmissionType { get; }
 

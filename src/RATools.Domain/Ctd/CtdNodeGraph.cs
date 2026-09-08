@@ -25,11 +25,19 @@ public sealed class CtdNodeGraph
     public CtdNodeInstance Create(string definitionKey, Guid? parentInstanceId, IReadOnlyDictionary<string, string> attributes)
     {
         var node = CtdNodeInstance.Rehydrate(Guid.NewGuid(), ApplicationId, parentInstanceId, Definitions, definitionKey, attributes);
+        Add(node);
+        return node;
+    }
+
+    public void Add(CtdNodeInstance node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (_nodes.ContainsKey(node.Id))
+            throw new CtdNodeConstraintException("DuplicateNodeId", "The node identity is already present in the graph.", node.Id);
         ValidateParentChain(node);
-        ValidateSiblings(_nodes.Values.Where(sibling => sibling.ParentInstanceId == parentInstanceId && sibling.DefinitionKey == definitionKey)
+        ValidateSiblings(_nodes.Values.Where(sibling => sibling.ParentInstanceId == node.ParentInstanceId && sibling.DefinitionKey == node.DefinitionKey)
             .Append(node).ToArray());
         _nodes.Add(node.Id, node);
-        return node;
     }
 
     public CtdNodeInstance Get(Guid id) => _nodes.TryGetValue(id, out var node) ? node

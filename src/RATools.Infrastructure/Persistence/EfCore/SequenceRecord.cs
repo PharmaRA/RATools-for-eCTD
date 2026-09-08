@@ -6,6 +6,8 @@ public sealed class SequenceRecord
 
     public string SequenceNumber { get; set; } = string.Empty;
 
+    public long WorkspaceRevision { get; set; }
+
     public string SubmissionType { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;

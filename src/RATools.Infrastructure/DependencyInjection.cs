@@ -90,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();
+        services.AddScoped<ICtdNodeRepository, EfCoreCtdNodeRepository>();
         services.AddScoped<IPublishJobRepository, EfCorePublishJobRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
         services.AddScoped<IApplicationDeletionTransaction, EfCoreApplicationDeletionTransaction>();

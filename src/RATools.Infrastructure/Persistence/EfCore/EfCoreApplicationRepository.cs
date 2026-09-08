@@ -57,6 +57,7 @@ public sealed class EfCoreApplicationRepository(RAToolsDbContext dbContext) : IA
                 {
                     ApplicationId = existing.Id,
                     SequenceNumber = sequence.SequenceNumber,
+                    WorkspaceRevision = sequence.WorkspaceRevision,
                     SubmissionType = sequence.SubmissionType,
                     Description = sequence.Description,
                     CreatedUtc = sequence.CreatedUtc,
@@ -144,6 +145,7 @@ internal static class ApplicationRecordMapping
             {
                 ApplicationId = application.Id,
                 SequenceNumber = x.SequenceNumber,
+                WorkspaceRevision = x.WorkspaceRevision,
                 SubmissionType = x.SubmissionType,
                 Description = x.Description,
                 CreatedUtc = x.CreatedUtc,
@@ -174,7 +176,8 @@ internal static class ApplicationRecordMapping
                 x.SubmissionType,
                 x.Description,
                 x.CreatedUtc,
-                BuildPublishingMetadata(x)))
+                BuildPublishingMetadata(x),
+                x.WorkspaceRevision))
             .ToArray();
 
         return SubmissionApplication.Rehydrate(
