@@ -53,6 +53,11 @@ jobs:
       - name: Build
         run: dotnet build tests/RATools.Tests/RATools.Tests.csproj --configuration Release --no-restore
 
+      - name: Check EF model and migration snapshot
+        run: |
+          dotnet tool restore
+          dotnet ef migrations has-pending-model-changes --project src/RATools.Infrastructure/RATools.Infrastructure.csproj --startup-project src/RATools.Api/RATools.Api.csproj --configuration Release --no-build
+
       - name: Run database migrator twice
         run: |
           dotnet run --project src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj --configuration Release --no-build

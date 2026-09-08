@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "task": "G0-04",
+  "codeBaseline": "7fea06d",
+  "recordedOn": "2026-09-08",
+  "windows": {
+    "status": "Pass",
+    "executedUtc": "2026-09-06T03:40:36.677531+00:00",
+    "dotnetSdk": "8.0.423",
+    "python": "3.14.7",
+    "postgresql": "16.14",
+    "postgresqlArchiveSha256": "98af1417ba6a8dc30543e560e5407833a3b9e7cc7ed20e73b2006f3aa2f04663",
+    "initialDatabase": "Empty task-owned database",
+    "firstMigrationsApplied": 13,
+    "repeatMigrationsApplied": 0,
+    "pathTests": {"passed": 105, "failed": 0, "skipped": 0},
+    "postgresTests": {"passed": 12, "failed": 0, "skipped": 0},
+    "receipt": {
+      "localPath": ".artifacts/publisher-g0/windows-postgres-ready/environment-receipt.json",
+      "sha256": "02a631e46cbf054290053b87214768c2d9973ee0d76b45f9f1cbe85ccefd262e"
+    },
+    "postgresTrx": {
+      "localPath": ".artifacts/publisher-g0/windows-postgres-ready/postgres.trx",
+      "sha256": "60f565b9ee47ab96504995aaa5774f1e9fbc3560eec5a41491264404d77eab35"
+    }
+  },
+  "linux": {
+    "status": "NotEvaluated",
+    "entrypoint": ".github/workflows/ci.yml: backend and path-security jobs",
+    "reason": "No Linux/WSL or Docker runtime available locally; retain actual CI evidence before marking this environment qualified"
+  },
+  "qualificationBoundary": "G0 verifies runnable entry points and existing constraints; future P1-P6 migration and workflow gates require their own evidence"
+}
