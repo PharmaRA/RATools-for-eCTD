@@ -5,6 +5,7 @@ using RATools.Application.Applications;
 using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.Requests;
 using RATools.Domain.Documents;
+using RATools.Domain.Common;
 using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Infrastructure.Persistence.InMemory;
 
@@ -12,7 +13,8 @@ namespace RATools.Tests.Applications;
 
 internal sealed class NodeImportWorkspace : IDisposable
 {
-    public string Root { get; } = Path.Combine(Path.GetTempPath(), "node-import-" + Guid.NewGuid().ToString("N"));
+    private readonly string _temporaryRoot = Path.Combine(Path.GetTempPath(), "node-import-" + Guid.NewGuid().ToString("N"));
+    public string Root { get; }
     public IApplicationRepository Applications { get; }
     public IDocumentRepository Documents { get; }
     public ImportFaultingPlacements Placements { get; }
@@ -22,8 +24,10 @@ internal sealed class NodeImportWorkspace : IDisposable
     public ApplicationImportBatch? Batch { get; private set; }
     public ApplicationImportService Service { get; }
 
-    public NodeImportWorkspace(RAToolsDbContext? database = null)
+    public NodeImportWorkspace(RAToolsDbContext? database = null, string? applicationNumber = null)
     {
+        Root = applicationNumber is null ? _temporaryRoot : Path.Combine(_temporaryRoot,
+            PortablePathSegment.NormalizeAndValidate(applicationNumber, nameof(applicationNumber)));
         Directory.CreateDirectory(Root);
         Applications = database is null ? new InMemoryApplicationRepository() : new EfCoreApplicationRepository(database);
         Documents = database is null ? new InMemoryDocumentRepository() : new EfCoreDocumentRepository(database);
@@ -83,7 +87,7 @@ internal sealed class NodeImportWorkspace : IDisposable
     public static XElement Extension(string id, string title, params XElement[] children) =>
         new("node-extension", new XAttribute("ID", id), new XElement("title", title), children);
 
-    public void Dispose() => Directory.Delete(Root, recursive: true);
+    public void Dispose() => Directory.Delete(_temporaryRoot, recursive: true);
 
     private sealed class AllowedPaths : IWorkspacePathPolicy
     {

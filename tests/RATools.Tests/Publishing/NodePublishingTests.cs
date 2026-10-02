@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Documents;
 using RATools.Application.Publishing;
+using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Regions;
@@ -48,8 +49,9 @@ public sealed class NodePublishingTests
         source.Documents, new FdaEctd322StandardsProfileProvider(), new DocumentStorageBoundary(new ConfiguredWorkspacePathPolicy(
             Options.Create(new SecurityOptions { AllowedWorkspaceRoots = [source.Root] }))), source.Nodes, source.Revisions, source.Store);
 
-    internal static async Task PublishFixtureAsync(NodeImportWorkspace source, string restoredRoot, Guid applicationId)
+    internal static async Task<IReadOnlyDictionary<string, GeneratedBackboneDto>> PublishFixtureAsync(NodeImportWorkspace source, string restoredRoot, Guid applicationId)
     {
+        var deliveries = new Dictionary<string, GeneratedBackboneDto>(StringComparer.Ordinal);
         var profiles = new FdaEctd322StandardsProfileProvider();
         var builder = Builder(source);
         var service = new BackboneService(builder, new IchIndexXmlWriter(),
@@ -64,6 +66,7 @@ public sealed class NodePublishingTests
             var package = await builder.BuildAsync(new(applicationId, number));
             Assert.Equal(1, package.WorkspaceRevision);
             var output = await service.GenerateAsync(new GenerateBackboneRequest(applicationId, number, Guid.NewGuid(), "report.json", "package.zip"));
+            deliveries.Add(number, output);
             var directory = Path.GetDirectoryName(output.FilePath)!;
             var destination = Path.Combine(restoredRoot, number);
             foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
@@ -90,6 +93,7 @@ public sealed class NodePublishingTests
                 index.Descendants("leaf").Select(leaf => leaf.Attribute("ID")!.Value).Order());
         }
         await AssertHistoricalAddressesAsync(restoredRoot);
+        return deliveries;
     }
 
     private static async Task AssertHistoricalAddressesAsync(string root)

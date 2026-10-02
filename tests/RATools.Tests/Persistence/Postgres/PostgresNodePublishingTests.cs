@@ -26,7 +26,8 @@ public sealed class PostgresNodePublishingTests(PostgresFixture fixture)
         var imported = await source.ImportAsync();
         database.ChangeTracker.Clear();
         using var restored = new NodeImportWorkspace();
-        await NodePublishingTests.PublishFixtureAsync(source, restored.Root, imported.ApplicationId);
+        var deliveries = await NodePublishingTests.PublishFixtureAsync(source, restored.Root, imported.ApplicationId);
+        await MultiInstanceRoundTripTests.InspectDeliveriesAsync(restored.Root, imported.ApplicationId, deliveries);
         var result = await restored.ImportAsync();
         Assert.Equal(4, result.ImportedSequenceCount);
         await ApplicationImportNodeTests.AssertFixtureAsync(restored, result.ApplicationId);
