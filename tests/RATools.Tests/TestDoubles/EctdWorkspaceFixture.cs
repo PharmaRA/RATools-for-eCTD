@@ -86,7 +86,7 @@ internal sealed class EctdWorkspaceFixture : IDisposable
     }
 
     public Task<EctdSequencePackage> BuildAsync(string sequence)
-        => new EctdPackageModelBuilder(Applications, Placements, Documents, standards, new DocumentStorageBoundary(PathPolicy))
+        => PackageTestServices.Create(Applications, Placements, Documents, standards, new DocumentStorageBoundary(PathPolicy))
             .BuildAsync(new BuildEctdPackageRequest(Application.Id, sequence));
 
     public async Task<EctdSequencePackage> WriteSequenceAsync(string sequence)

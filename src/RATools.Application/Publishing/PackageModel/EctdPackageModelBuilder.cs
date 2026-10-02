@@ -2,6 +2,7 @@ using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Documents;
 using RATools.Application.Standards;
 using RATools.Domain.Documents;
+using RATools.Domain.Ctd;
 
 namespace RATools.Application.Publishing.PackageModel;
 
@@ -10,11 +11,16 @@ public sealed class EctdPackageModelBuilder(
     IDocumentPlacementRepository placementRepository,
     IDocumentRepository documentRepository,
     IStandardsProfileProvider standardsProfileProvider,
-    IDocumentStorageBoundary documentStorageBoundary, RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IEctdPackageModelBuilder
+    IDocumentStorageBoundary documentStorageBoundary,
+    ICtdNodeRepository nodeRepository,
+    IWorkspaceRevisionStore revisions,
+    IApplicationImportStore imports,
+    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IEctdPackageModelBuilder
 {
     public async Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        await using var applicationLock = await revisions.LockApplicationAsync(request.ApplicationId, cancellationToken);
         if (moveGuard is not null) await moveGuard.EnsureReadyAsync(request.ApplicationId, cancellationToken);
 
         var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
@@ -30,6 +36,11 @@ public sealed class EctdPackageModelBuilder(
         }
 
         var profile = standardsProfileProvider.GetProfile(application.EctdTemplateKey);
+        var workspace = await nodeRepository.GetSequenceAsync(application.Id, sequence.SequenceNumber, cancellationToken)
+            ?? throw new EctdPackageSequenceNotFoundException(application.Id, sequence.SequenceNumber);
+        var backbone = ImportedBackboneProjection.Create(profile.BackboneXml ?? throw new EctdPackageStandardsProfileException(
+            request.ApplicationId, request.SequenceNumber, profile.TemplateKey, "backbone XML metadata is missing"),
+            await imports.GetBackbonesAsync(application.Id, sequence.SequenceNumber, cancellationToken), sequence.SequenceNumber);
         var metadata = sequence.PublishingMetadata;
         var applicationMetadata = new EctdApplicationMetadata(
             application.ApplicationNumber,
@@ -73,9 +84,15 @@ public sealed class EctdPackageModelBuilder(
             }
         }
 
-        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById);
+        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById, profile);
         var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
         var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
+        var tree = EctdPackageNodeTree.Create(application.Id, workspace.Nodes.Select(node =>
+        {
+            var instance = workspace.Graph.Get(node.NodeInstanceId);
+            return new EctdPackageNode(node.NodeInstanceId, instance.ParentInstanceId, instance.DefinitionKey,
+                node.DefinitionVersion, node.Attributes, node.Title, node.SortOrder, node.MetadataStatus);
+        }), ichBackboneLeaves, allowLegacyBinding: true);
         var publishedFiles = BuildPublishedFiles(leaves);
 
         return new EctdSequencePackage(
@@ -85,18 +102,17 @@ public sealed class EctdPackageModelBuilder(
             profile.DisplayName,
             profile.IchEctdVersion,
             profile.UsRegionalModule1Version,
-            profile.BackboneXml ?? throw new EctdPackageStandardsProfileException(
-                request.ApplicationId,
-                request.SequenceNumber,
-                profile.TemplateKey,
-                "backbone XML metadata is missing"),
+            backbone.Profile,
             applicationMetadata,
             sequenceMetadata,
             usRegionalMetadata,
             module1Leaves,
-            ichBackboneLeaves,
+            tree.Leaves,
             publishedFiles,
-            BuildEuRegionalMetadata(application.Id, application.ApplicationNumber, sequenceMetadata));
+            BuildEuRegionalMetadata(application.Id, application.ApplicationNumber, sequenceMetadata),
+            tree.Nodes.Concat(workspace.Nodes.Where(node => node.CtdSection == "m1").Select(node => new EctdPackageNode(
+                node.NodeInstanceId, null, workspace.Graph.Get(node.NodeInstanceId).DefinitionKey, node.DefinitionVersion,
+                node.Attributes, node.Title, node.SortOrder, node.MetadataStatus))).ToArray(), workspace.WorkspaceRevision, backbone.References);
     }
 
     private static EctdEuRegionalMetadata BuildEuRegionalMetadata(
@@ -145,13 +161,14 @@ public sealed class EctdPackageModelBuilder(
         string sequenceNumber,
         IReadOnlyCollection<DocumentPlacement> placements,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
+        StandardsProfile profile)
     {
         return placements
             .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(x => x.CreatedUtc)
+            .ThenBy(x => x.SortOrder)
             .ThenBy(x => x.Id)
-            .Select(placement => BuildLeaf(application, sequenceNumber, placement, placementById, documentById))
+            .Select(placement => BuildLeaf(application, sequenceNumber, placement, placementById, documentById, profile))
             .ToArray();
     }
 
@@ -160,7 +177,8 @@ public sealed class EctdPackageModelBuilder(
         string sequenceNumber,
         DocumentPlacement placement,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
+        StandardsProfile profile)
     {
         if (!documentById.TryGetValue(placement.DocumentId, out var document))
         {
@@ -168,7 +186,7 @@ public sealed class EctdPackageModelBuilder(
         }
 
         var module = ClassifyModule(application.Id, sequenceNumber, placement);
-        var lifecycle = BuildLifecycle(application, sequenceNumber, placement, placementById, documentById);
+        var lifecycle = BuildLifecycle(application, sequenceNumber, placement, placementById, documentById, profile);
         return new EctdLeaf(
             placement.Id,
             placement.DocumentId,
@@ -185,7 +203,7 @@ public sealed class EctdPackageModelBuilder(
             document.FileSize,
             document.Sha256,
             placement.Operation == DocumentPlacementOperation.Delete ? string.Empty : ResolveMd5(document),
-            lifecycle);
+            lifecycle, placement.NodeInstanceId, placement.SortOrder, placement.ImportedSource);
     }
 
     // 包模型是 backbone 校验和的事实来源。优先使用上传时持久化的 MD5；
@@ -212,7 +230,8 @@ public sealed class EctdPackageModelBuilder(
         string sequenceNumber,
         DocumentPlacement placement,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
-        IReadOnlyDictionary<Guid, SubmissionDocument> documentById)
+        IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
+        StandardsProfile profile)
     {
         if (placement.Operation is DocumentPlacementOperation.New)
         {
@@ -257,17 +276,24 @@ public sealed class EctdPackageModelBuilder(
             throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, placement.LifecycleTargetPlacementId, "target document was not found");
         }
 
+        if (targetPlacement.NodeInstanceId != placement.NodeInstanceId || targetPlacement.Operation == DocumentPlacementOperation.Delete)
+            throw new EctdPackageLifecycleTargetException(application.Id, sequenceNumber, placement.Id, targetPlacement.Id,
+                "target must be a non-delete leaf in the same business node");
+
         documentStorageBoundary.EnsureDocumentOwnedBySequence(
             targetDocument,
             application,
             targetPlacement.SequenceNumber);
 
+        var targetBackbone = targetPlacement.ImportedSource?.BackboneRelativePath ??
+            (targetPlacement.CtdSection.StartsWith("m1", StringComparison.Ordinal) ? profile.BackboneXml!.Regional.RelativePath! : "index.xml");
+        _ = new LeafAddress(application.Id, targetPlacement.SequenceNumber, targetBackbone, targetPlacement.LeafId);
         return new EctdLifecycleReference(
             targetPlacement.Id,
             targetPlacement.DocumentId,
             targetPlacement.SequenceNumber,
             PublishOutputNaming.BuildPublishedDocumentRelativePath(targetDocument, targetPlacement.SequenceNumber),
-            targetPlacement.LeafId);
+            targetPlacement.LeafId, targetBackbone);
     }
 
     private static DocumentPlacement? ResolveAutoLifecycleTarget(
@@ -283,6 +309,7 @@ public sealed class EctdPackageModelBuilder(
 
         var candidates = allPlacements
             .Where(candidate => candidate.ApplicationId == applicationId)
+            .Where(candidate => candidate.NodeInstanceId == placement.NodeInstanceId && candidate.Operation != DocumentPlacementOperation.Delete)
             .Where(candidate => string.Equals(candidate.CtdSection, placement.CtdSection, StringComparison.OrdinalIgnoreCase))
             .Where(candidate => CompareSequenceNumbers(candidate.SequenceNumber, placement.SequenceNumber) < 0)
             .Where(candidate => documentById.TryGetValue(candidate.DocumentId, out var candidateDocument)

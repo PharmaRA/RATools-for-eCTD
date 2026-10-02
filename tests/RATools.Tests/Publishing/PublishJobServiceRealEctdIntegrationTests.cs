@@ -188,7 +188,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
         IAuditLogService auditLogService)
     {
         var standardsProfileProvider = new FdaEctd322StandardsProfileProvider();
-        var packageModelBuilder = new EctdPackageModelBuilder(
+        var packageModelBuilder = PackageTestServices.Create(
             applicationRepository,
             placementRepository,
             documentRepository,

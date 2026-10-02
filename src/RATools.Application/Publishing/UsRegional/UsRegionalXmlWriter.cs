@@ -19,7 +19,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             new XAttribute(XNamespace.Xmlns + "fda-regional", regionalNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
             new XAttribute("dtd-version", xmlProfile.DtdVersion),
-            BuildAdminElement(package));
+            BuildAdminElement(package, relativePath));
         var m1Regional = BuildM1RegionalElement(package, relativePath);
         if (m1Regional is not null)
         {
@@ -38,7 +38,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             document.ToString(SaveOptions.DisableFormatting));
     }
 
-    private static XElement BuildAdminElement(EctdSequencePackage package)
+    private static XElement BuildAdminElement(EctdSequencePackage package, string relativePath)
     {
         var metadata = package.UsRegional;
         var formLeaves = package.Module1Leaves
@@ -59,7 +59,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
             Require(package, nameof(metadata.FormType), metadata.FormType);
             submissionInformationChildren.Add(new XElement("form",
                 new XAttribute("form-type", metadata.FormType!),
-                formLeaves.Select(leaf => BuildLeafElement(leaf, "m1/us/us-regional.xml"))));
+                formLeaves.Select(leaf => BuildLeafElement(leaf, relativePath))));
         }
 
         return new XElement("admin",
@@ -156,7 +156,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         // delete leaf 不交付新文件：省略 xlink:href（DTD #IMPLIED），仅保留 modified-file。
         if (!string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase))
         {
-            attributes.Add(new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath)));
+            attributes.Add(new XAttribute(XlinkNamespace + "href", EctdLeafHref.FromBackbone(leaf, regionalRelativePath)));
         }
 
         if (leaf.Lifecycle is not null)
@@ -167,21 +167,6 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         return new XElement("leaf",
             attributes,
             new XElement("title", leaf.Title));
-    }
-
-    private static string BuildRegionalHref(string sequenceRootHref, string regionalRelativePath)
-    {
-        var module1Prefix = GetDirectoryName(regionalRelativePath);
-        return sequenceRootHref.StartsWith(module1Prefix, StringComparison.OrdinalIgnoreCase)
-            ? sequenceRootHref[module1Prefix.Length..]
-            : sequenceRootHref;
-    }
-
-    private static string GetDirectoryName(string relativePath)
-    {
-        var normalized = relativePath.Replace('\\', '/');
-        var slashIndex = normalized.LastIndexOf('/');
-        return slashIndex < 0 ? string.Empty : normalized[..(slashIndex + 1)];
     }
 
     private static string RequireRelativePath(EctdSequencePackage package, string? relativePath)

@@ -1,6 +1,8 @@
 using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using RATools.Application;
+using RATools.Application.Ctd;
+using RATools.Domain.Ctd;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Standards;
@@ -78,13 +80,29 @@ public sealed class IchIndexXmlWriterTests
             CreateLeaf("m4.2", "leaf-00000000000000000000000000000004", "nonclinical.pdf")
         ]);
 
+        // The efficacy/safety grouping requires a declared indication, even in
+        // a basic section-mapping test. It cannot be inferred from the section.
+        var graph = new CtdNodeGraph(package.ApplicationId, IchSectionDefinitions.Current);
+        Guid? parent = null;
+        var nodes = new List<EctdPackageNode>();
+        foreach (var key in new[] { "m5-clinical-study-reports", "m5-3-clinical-study-reports", "m5-3-5-reports-of-efficacy-and-safety-studies", "m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication" })
+        {
+            var attrs = key == "m5-3-5-reports-of-efficacy-and-safety-studies" ? new Dictionary<string, string> { ["indication"] = "Indication A" } : [];
+            var node = graph.Create(key, parent, attrs);
+            nodes.Add(new(node.Id, parent, key, graph.Definitions.Version, attrs, null, 0, NodeMetadataStatus.Complete));
+            parent = node.Id;
+        }
+        var tree = EctdPackageNodeTree.Create(package.ApplicationId, nodes, package.IchBackboneLeaves.Select(leaf =>
+            leaf.CtdSection == "m5.3.5.1" ? leaf with { NodeInstanceId = parent } : leaf), allowLegacyBinding: true);
+        package = package with { Nodes = tree.Nodes, IchBackboneLeaves = tree.Leaves };
+
         var result = writer.Write(package);
         var xml = result.XmlContent;
 
         Assert.Contains("<m2-common-technical-document-summaries>", xml, StringComparison.Ordinal);
         Assert.Contains("<m3-quality><m3-2-body-of-data>", xml, StringComparison.Ordinal);
         Assert.Contains("<m4-nonclinical-study-reports><m4-2-study-reports>", xml, StringComparison.Ordinal);
-        Assert.Contains("<m5-clinical-study-reports><m5-3-clinical-study-reports><m5-3-5-reports-of-efficacy-and-safety-studies><m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication>", xml, StringComparison.Ordinal);
+        Assert.Contains("<m5-clinical-study-reports><m5-3-clinical-study-reports><m5-3-5-reports-of-efficacy-and-safety-studies indication=\"Indication A\"><m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication>", xml, StringComparison.Ordinal);
         Assert.True(xml.IndexOf("<m2-common", StringComparison.Ordinal) < xml.IndexOf("<m3-quality", StringComparison.Ordinal));
         Assert.True(xml.IndexOf("<m3-quality", StringComparison.Ordinal) < xml.IndexOf("<m4-nonclinical", StringComparison.Ordinal));
         Assert.True(xml.IndexOf("<m4-nonclinical", StringComparison.Ordinal) < xml.IndexOf("<m5-clinical", StringComparison.Ordinal));

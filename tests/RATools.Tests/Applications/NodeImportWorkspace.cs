@@ -17,6 +17,7 @@ internal sealed class NodeImportWorkspace : IDisposable
     public IDocumentRepository Documents { get; }
     public ImportFaultingPlacements Placements { get; }
     public ICtdNodeRepository Nodes { get; }
+    public IWorkspaceRevisionStore Revisions { get; }
     public IApplicationImportStore Store { get; }
     public ApplicationImportBatch? Batch { get; private set; }
     public ApplicationImportService Service { get; }
@@ -27,7 +28,8 @@ internal sealed class NodeImportWorkspace : IDisposable
         Applications = database is null ? new InMemoryApplicationRepository() : new EfCoreApplicationRepository(database);
         Documents = database is null ? new InMemoryDocumentRepository() : new EfCoreDocumentRepository(database);
         Placements = new(database is null ? new InMemoryDocumentPlacementRepository() : new EfCoreDocumentPlacementRepository(database));
-        Nodes = database is null ? new InMemoryCtdNodeRepository(new InMemoryWorkspaceRevisionStore(Applications), Placements)
+        Revisions = database is null ? new InMemoryWorkspaceRevisionStore(Applications) : new EfCoreWorkspaceRevisionStore(database);
+        Nodes = database is null ? new InMemoryCtdNodeRepository(Revisions, Placements)
             : new EfCoreCtdNodeRepository(database);
         Store = database is null ? new InMemoryApplicationImportStore(Applications, Documents, Placements, (InMemoryCtdNodeRepository)Nodes)
             : new EfCoreApplicationImportStore(database, Applications, Documents, Placements);

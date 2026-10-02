@@ -18,8 +18,9 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
     {
         ArgumentNullException.ThrowIfNull(package);
         var xmlProfile = package.BackboneXml.Regional;
-        if (!ReferenceEquals(package.BackboneXml, BackboneXmlProfiles.EuEctd322Regional)
-            && !string.Equals(xmlProfile.RelativePath, BackboneXmlProfiles.EuEctd322Regional.Regional.RelativePath, StringComparison.OrdinalIgnoreCase))
+        if (xmlProfile.RootElementName != BackboneXmlProfiles.EuEctd322Regional.Regional.RootElementName ||
+            xmlProfile.Namespace != BackboneXmlProfiles.EuEctd322Regional.Regional.Namespace ||
+            xmlProfile.DtdVersion != BackboneXmlProfiles.EuEctd322Regional.Regional.DtdVersion)
         {
             throw new EuRegionalXmlWriterException("Unable to generate EU regional XML: package does not use an EU regional backbone profile.");
         }
@@ -216,7 +217,7 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
 
         if (!string.Equals(leaf.Operation, "delete", StringComparison.OrdinalIgnoreCase))
         {
-            attributes.Add(new XAttribute(XlinkNamespace + "href", BuildRegionalHref(leaf.Href, regionalRelativePath)));
+            attributes.Add(new XAttribute(XlinkNamespace + "href", EctdLeafHref.FromBackbone(leaf, regionalRelativePath)));
         }
 
         if (leaf.Lifecycle is not null)
@@ -225,21 +226,6 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
         }
 
         return new XElement("leaf", attributes, new XElement("title", leaf.Title));
-    }
-
-    private static string BuildRegionalHref(string sequenceRootHref, string regionalRelativePath)
-    {
-        var module1Prefix = GetDirectoryName(regionalRelativePath);
-        return sequenceRootHref.StartsWith(module1Prefix, StringComparison.OrdinalIgnoreCase)
-            ? sequenceRootHref[module1Prefix.Length..]
-            : sequenceRootHref;
-    }
-
-    private static string GetDirectoryName(string relativePath)
-    {
-        var normalized = relativePath.Replace('\\', '/');
-        var slashIndex = normalized.LastIndexOf('/');
-        return slashIndex < 0 ? string.Empty : normalized[..(slashIndex + 1)];
     }
 
     private static void ValidateLeaves(EctdSequencePackage package)

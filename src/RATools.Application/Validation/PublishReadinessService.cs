@@ -44,11 +44,12 @@ public sealed class PublishReadinessService(
                     cancellationToken);
                 var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
 
-                var ichResult = ichIndexXmlWriter.Write(package);
+                var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
+                var regionalFiles = regionalBackboneWriter.WriteRegionalBackbones(package);
+                var ichResult = ichIndexXmlWriter.Write(EctdBackboneComposition.AttachRegionalFiles(package, regionalFiles));
                 ectdXmlValidator.Validate(new BackboneGeneratedFile(ichResult.FileName, ichResult.XmlContent), profile);
 
-                var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
-                foreach (var regionalFile in regionalBackboneWriter.WriteRegionalBackbones(package))
+                foreach (var regionalFile in regionalFiles)
                 {
                     ectdXmlValidator.Validate(regionalFile, profile);
                 }
@@ -163,6 +164,12 @@ public sealed class PublishReadinessService(
                     null,
                     null,
                     exception.PlacementId));
+            }
+            catch (EctdPackageNodeException exception)
+            {
+                findings.Add(new PublishReadinessFindingDto("PublishPreflight", "Error", exception.Code,
+                    exception.Message, "NodeMetadata", "Complete or repair the indicated business node before publishing.",
+                    exception.NodeInstanceId is { } id ? $"nodes.{id}" : null, exception.CtdSection, null, exception.PlacementId));
             }
             catch (EctdPackageException exception)
             {

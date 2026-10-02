@@ -555,7 +555,7 @@ public sealed class EctdPackageModelBuilderTests
         IReadOnlyCollection<SubmissionDocument> documents,
         IDocumentStorageBoundary? documentStorageBoundary = null)
     {
-        return new EctdPackageModelBuilder(
+        return PackageTestServices.Create(
             new StubApplicationRepository(application),
             new StubDocumentPlacementRepository(placements),
             new StubDocumentRepository(documents),

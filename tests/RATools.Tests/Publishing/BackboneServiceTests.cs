@@ -36,7 +36,8 @@ public sealed class BackboneServiceTests
             "0001.zip"));
 
         Assert.Equal(new BuildEctdPackageRequest(applicationId, "0001"), packageBuilder.Request);
-        Assert.Same(package, ichWriter.Package);
+        Assert.Equal(package.ApplicationId, ichWriter.Package!.ApplicationId);
+        Assert.NotNull(Assert.Single(ichWriter.Package.RegionalBackbones!).Md5);
         Assert.Same(package, usRegionalWriter.Package);
         Assert.Equal(applicationId, fileWriter.ApplicationId);
         Assert.Equal("0001", fileWriter.SequenceNumber);

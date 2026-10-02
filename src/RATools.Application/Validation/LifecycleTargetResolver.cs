@@ -27,7 +27,8 @@ public static class LifecycleTargetResolver
         if (placement.LifecycleTargetPlacementId is { } explicitTargetId)
         {
             var explicitTarget = historicalPlacements.SingleOrDefault(x => x.Id == explicitTargetId);
-            if (explicitTarget is null || !documentById.ContainsKey(explicitTarget.DocumentId))
+            if (explicitTarget is null || !documentById.ContainsKey(explicitTarget.DocumentId) ||
+                explicitTarget.NodeInstanceId != placement.NodeInstanceId || explicitTarget.Operation == DocumentPlacementOperation.Delete)
             {
                 return new LifecycleTargetResolution(
                     "LIFECYCLE_TARGET_INVALID",
@@ -45,6 +46,7 @@ public static class LifecycleTargetResolver
         // 策略 2：同 section + 同文件名 的历史 placement 唯一匹配。
         // historicalPlacements 已由调用方限定为同 section 且早于当前序列。
         var fileNameCandidates = historicalPlacements
+            .Where(candidate => candidate.NodeInstanceId == placement.NodeInstanceId && candidate.Operation != DocumentPlacementOperation.Delete)
             .Where(candidate => documentById.TryGetValue(candidate.DocumentId, out var candidateDocument)
                 && string.Equals(candidateDocument.FileName, currentDocument.FileName, StringComparison.OrdinalIgnoreCase))
             .OrderBy(candidate => candidate.SequenceNumber, StringComparer.Ordinal)

@@ -340,7 +340,7 @@ public sealed class PublishReadinessServiceTests
             new FdaEctd322StandardsProfileProvider(),
             new EuEctd322StandardsProfileProvider()
         ]);
-        var packageModelBuilder = new EctdPackageModelBuilder(
+        var packageModelBuilder = PackageTestServices.Create(
             applicationRepository,
             placementRepository,
             documentRepository,

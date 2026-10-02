@@ -25,9 +25,9 @@ public sealed class BackboneService(
         // 必须传 standards profile：不传时校验器回退到只含 ICH/US 的静态 DTD 白名单，
         // EU 的 eu-regional.dtd 会被拒 —— readiness（传 profile）绿、publish 红的分歧即源于此。
         var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
-        var indexXml = ichIndexXmlWriter.Write(package);
         var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
         var regionalFiles = regionalBackboneWriter.WriteRegionalBackbones(package);
+        var indexXml = ichIndexXmlWriter.Write(EctdBackboneComposition.AttachRegionalFiles(package, regionalFiles));
         BackboneGeneratedFile[] generatedFiles =
         [
             new BackboneGeneratedFile(indexXml.FileName, indexXml.XmlContent),

@@ -134,7 +134,7 @@ internal sealed class ImportedNodeTree(CtdNodeGraph previous, string sequenceNum
         $"{string.Join('/', element.AncestorsAndSelf().Reverse().Select(node => $"{node.Name.LocalName}[{node.ElementsBeforeSelf(node.Name).Count() + 1}]"))}: {message}"));
 
     private static Dictionary<string, string> Attributes(XElement element) => element.Attributes()
-        .Where(attribute => !attribute.IsNamespaceDeclaration).ToDictionary(attribute => attribute.Name.ToString(), attribute => attribute.Value, StringComparer.Ordinal);
+        .Where(attribute => !attribute.IsNamespaceDeclaration).ToDictionary(attribute => CtdXmlAttributes.SchemaName(attribute.Name), attribute => attribute.Value, StringComparer.Ordinal);
 
     private static bool IsAbbreviatedSection(string name)
     {

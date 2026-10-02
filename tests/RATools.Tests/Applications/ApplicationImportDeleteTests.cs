@@ -62,7 +62,7 @@ public sealed class ApplicationImportDeleteTests
         var applications = new EfCoreApplicationRepository(db);
         var documents = new EfCoreDocumentRepository(db);
         var placements = new EfCoreDocumentPlacementRepository(db);
-        var imported = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy)
+        var imported = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy, out var nodes, out var revisions)
             .ImportAsync(new ImportApplicationRequest(fixture.Application.WorkingDirectoryPath, templateKey, "Sponsor"));
 
         Assert.All(imported.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
@@ -84,7 +84,7 @@ public sealed class ApplicationImportDeleteTests
         Assert.True(validation.IsValid, string.Join("; ", validation.Issues.Select(issue => issue.Message)));
         IStandardsProfileProvider standards = templateKey.StartsWith("eu-", StringComparison.Ordinal)
             ? new EuEctd322StandardsProfileProvider() : new FdaEctd322StandardsProfileProvider();
-        var package = await new EctdPackageModelBuilder(applications, placements, documents, standards, boundary)
+        var package = await PackageTestServices.Create(applications, placements, documents, standards, boundary, nodes, revisions)
             .BuildAsync(new BuildEctdPackageRequest(imported.ApplicationId, "0001"));
         Assert.Empty(package.PublishedFiles);
         var output = section.StartsWith("m2.", StringComparison.Ordinal) ? new IchIndexXmlWriter().Write(package).Document

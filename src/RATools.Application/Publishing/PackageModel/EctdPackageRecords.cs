@@ -1,4 +1,6 @@
 using RATools.Application.Standards;
+using RATools.Domain.Ctd;
+using RATools.Domain.Documents;
 
 namespace RATools.Application.Publishing.PackageModel;
 
@@ -16,7 +18,17 @@ public sealed record EctdSequencePackage(
     IReadOnlyCollection<EctdLeaf> Module1Leaves,
     IReadOnlyCollection<EctdLeaf> IchBackboneLeaves,
     IReadOnlyCollection<EctdPublishedFile> PublishedFiles,
-    EctdEuRegionalMetadata? EuRegional = null);
+    EctdEuRegionalMetadata? EuRegional = null,
+    IReadOnlyList<EctdPackageNode>? Nodes = null,
+    long WorkspaceRevision = 0,
+    IReadOnlyList<EctdBackboneReference>? RegionalBackbones = null);
+
+public sealed record EctdBackboneReference(string RelativePath, string LeafId, string Title,
+    string Operation = "new", string? ModifiedFile = null, string? Md5 = null);
+
+public sealed record EctdPackageNode(Guid NodeInstanceId, Guid? ParentInstanceId, string DefinitionKey,
+    string DefinitionVersion, IReadOnlyDictionary<string, string> Attributes, string? Title,
+    int SortOrder, NodeMetadataStatus MetadataStatus);
 
 public sealed record EctdApplicationMetadata(
     string ApplicationNumber,
@@ -83,14 +95,18 @@ public sealed record EctdLeaf(
     long FileSize,
     string Sha256,
     string Md5,
-    EctdLifecycleReference? Lifecycle);
+    EctdLifecycleReference? Lifecycle,
+    Guid? NodeInstanceId = null,
+    int SortOrder = 0,
+    ImportedLeafSource? ImportedSource = null);
 
 public sealed record EctdLifecycleReference(
     Guid TargetPlacementId,
     Guid TargetDocumentId,
     string TargetSequenceNumber,
     string TargetDocumentHref,
-    string? TargetLeafId = null)
+    string? TargetLeafId = null,
+    string? TargetBackboneRelativePath = null)
 {
     public string BuildModifiedFileHref(string backboneRelativePath)
     {
@@ -98,7 +114,8 @@ public sealed record EctdLifecycleReference(
         // Each backbone is relative to its own directory within the sequence.
         var normalizedPath = backboneRelativePath.Replace('\\', '/');
         var parents = string.Concat(Enumerable.Repeat("../", normalizedPath.Count(character => character == '/') + 1));
-        return $"{parents}{TargetSequenceNumber}/{normalizedPath}#{Uri.EscapeDataString(TargetLeafId ?? $"leaf-{TargetPlacementId:N}")}";
+        var targetPath = string.Join('/', (TargetBackboneRelativePath ?? normalizedPath).Replace('\\', '/').Split('/').Select(Uri.EscapeDataString));
+        return $"{parents}{TargetSequenceNumber}/{targetPath}#{Uri.EscapeDataString(TargetLeafId ?? $"leaf-{TargetPlacementId:N}")}";
     }
 }
 

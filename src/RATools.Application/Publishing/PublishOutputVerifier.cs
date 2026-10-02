@@ -215,9 +215,11 @@ public sealed partial class PublishOutputVerifier
 
         // 区域 backbone（us-regional.xml / eu-regional.xml）的 leaf 只在区域文件中声明，
         // 不读它们会把全部 m1 文件误判为孤儿。
-        foreach (var regionalPath in Directory.EnumerateFiles(outputRoot, "*-regional.xml", SearchOption.AllDirectories))
+        foreach (var regionalPath in Directory.EnumerateFiles(outputRoot, "*.xml", SearchOption.AllDirectories))
         {
             var fullPath = Path.GetFullPath(regionalPath);
+            if (files.Any(file => string.Equals(file.Path, fullPath, StringComparison.OrdinalIgnoreCase))) continue;
+            if (!regionalPath.EndsWith("-regional.xml", StringComparison.OrdinalIgnoreCase) && !HasRegionalRoot(regionalPath)) continue;
             files.Add(new BackboneFileInfo(
                 fullPath,
                 Path.GetRelativePath(outputRoot, fullPath).Replace('\\', '/'),
@@ -225,6 +227,17 @@ public sealed partial class PublishOutputVerifier
         }
 
         return files;
+    }
+
+    private static bool HasRegionalRoot(string path)
+    {
+        try
+        {
+            using var reader = XmlReader.Create(path, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null });
+            reader.MoveToContent();
+            return reader.LocalName is "fda-regional" or "eu-backbone";
+        }
+        catch (XmlException) { return false; }
     }
 
     private static void VerifyBackboneReferences(
@@ -271,9 +284,10 @@ public sealed partial class PublishOutputVerifier
                 continue;
             }
 
-            var absolutePath = Path.GetFullPath(Path.Combine(
-                backboneFile.Directory,
-                leafReference.Href.Replace('/', Path.DirectorySeparatorChar)));
+            var sourceUri = new UriBuilder(Uri.UriSchemeFile, string.Empty) { Path = backboneFile.Path }.Uri;
+            if (!Uri.TryCreate(sourceUri, leafReference.Href.Replace('\\', '/'), out var targetUri) || !targetUri.IsFile ||
+                targetUri.Query.Length > 0 || targetUri.Fragment.Length > 0) continue;
+            var absolutePath = Path.GetFullPath(targetUri.LocalPath);
             if (!absolutePath.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 // 跨序列引用（如 modified-file 的 ../0000/…）不属于本交付包核验范围。

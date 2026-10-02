@@ -103,7 +103,7 @@ public sealed class SequenceValidationService(
         if (validationMode == ValidationMode.Strict)
         {
             var duplicatePlacements = placements
-                .GroupBy(x => new { x.DocumentId, Section = x.CtdSection.ToLowerInvariant() })
+                .GroupBy(x => new { x.DocumentId, x.NodeInstanceId, Section = x.CtdSection.ToLowerInvariant() })
                 .Where(x => x.Count() > 1)
                 .ToArray();
 

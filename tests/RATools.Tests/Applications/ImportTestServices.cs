@@ -9,9 +9,15 @@ internal static class ImportTestServices
 {
     public static ApplicationImportService Create(IApplicationRepository applications, IDocumentRepository documents,
         IDocumentPlacementRepository placements, IWorkspacePathPolicy paths)
+        => Create(applications, documents, placements, paths, out _, out _);
+
+    public static ApplicationImportService Create(IApplicationRepository applications, IDocumentRepository documents,
+        IDocumentPlacementRepository placements, IWorkspacePathPolicy paths, out ICtdNodeRepository nodes, out IWorkspaceRevisionStore revisions)
     {
-        var nodes = new InMemoryCtdNodeRepository(new InMemoryWorkspaceRevisionStore(applications), placements);
+        revisions = new InMemoryWorkspaceRevisionStore(applications);
+        var memoryNodes = new InMemoryCtdNodeRepository(revisions, placements);
+        nodes = memoryNodes;
         return new ApplicationImportService(applications,
-            new InMemoryApplicationImportStore(applications, documents, placements, nodes), paths);
+            new InMemoryApplicationImportStore(applications, documents, placements, memoryNodes), paths);
     }
 }
