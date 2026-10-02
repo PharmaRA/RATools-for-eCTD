@@ -16,7 +16,9 @@ public sealed class DocumentService(
     IApplicationWorkspaceService workspaceService,
     IEctdWorkspacePathResolver workspacePathResolver,
     IDocumentStorageBoundary documentStorageBoundary,
-    WorkspaceMutationCoordinator mutations) : IDocumentService
+    WorkspaceMutationCoordinator mutations,
+    ICtdNodeRepository? nodes = null,
+    RATools.Application.Ctd.CtdNodePathResolver? nodePaths = null) : IDocumentService
 {
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -63,8 +65,24 @@ public sealed class DocumentService(
         }
 
         var sequenceDirectory = await workspaceService.EnsureSequenceWorkingDirectoryAsync(application.WorkingDirectoryPath, sequenceNumber, cancellationToken);
-        var folder = ResolveSequenceUploadFolder(application.EctdTemplateKey, request.CtdSection);
-        var destinationDirectory = Path.Combine(sequenceDirectory, folder.RelativeFolderPath);
+        string relativeFolder;
+        if (request.NodeInstanceId is { } nodeId)
+        {
+            var workspace = nodes is null ? null : await nodes.GetSequenceAsync(applicationId, sequenceNumber, cancellationToken);
+            var node = workspace?.Nodes.SingleOrDefault(node => node.NodeInstanceId == nodeId)
+                ?? throw new RATools.Domain.Ctd.CtdNodeConstraintException("NodeNotFound", "Select a node in this sequence.", nodeId);
+            if (!node.AllowsLeaves || node.CtdSection != request.CtdSection)
+                throw new RATools.Domain.Ctd.CtdNodeConstraintException("PlacementNodeSectionMismatch", "The selected node must accept leaves in this section.", nodeId);
+            var relativePath = (nodePaths ?? throw new InvalidOperationException("Node paths are unavailable."))
+                .ResolveFile(application.EctdTemplateKey, workspace!, nodeId, request.FileName);
+            var destination = documentStorageBoundary.EnsurePathOwnedBySequence(Path.Combine(sequenceDirectory, relativePath), application, sequenceNumber);
+            RATools.Application.Ctd.CtdNodePlacementService.EnsurePortableDestination(application.WorkingDirectoryPath, destination, null);
+            if ((await repository.ListAsync(cancellationToken)).Any(document => string.Equals(document.StoragePath, destination, StringComparison.OrdinalIgnoreCase)))
+                throw new RATools.Domain.Ctd.CtdNodeConstraintException("NodeFileConflict", "A document already occupies this path.", nodeId);
+            relativeFolder = Path.GetDirectoryName(relativePath)!;
+        }
+        else relativeFolder = ResolveSequenceUploadFolder(application.EctdTemplateKey, request.CtdSection).RelativeFolderPath;
+        var destinationDirectory = Path.Combine(sequenceDirectory, relativeFolder);
         documentStorageBoundary.EnsurePathOwnedBySequence(destinationDirectory, application, sequenceNumber);
 
         var storedFile = await fileStorage.SaveAsync(
@@ -73,6 +91,7 @@ public sealed class DocumentService(
                 FileName = request.FileName,
                 MediaType = EctdDocumentFileRules.GetMediaType(request.FileName),
                 DestinationDirectoryPath = destinationDirectory,
+                PreserveFileName = request.NodeInstanceId is not null,
                 Content = request.Content
             },
             cancellationToken);

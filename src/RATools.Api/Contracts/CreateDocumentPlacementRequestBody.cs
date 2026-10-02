@@ -4,6 +4,8 @@ namespace RATools.Api.Contracts;
 
 public sealed class CreateDocumentPlacementRequestBody
 {
+    public Guid? NodeInstanceId { get; init; }
+    [Range(0, int.MaxValue)] public int SortOrder { get; init; }
     public long? ExpectedRevision { get; init; }
 
     [Required]

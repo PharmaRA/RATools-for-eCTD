@@ -40,10 +40,14 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
                     request.CtdSection,
                     request.Operation,
                     request.Title,
-                    request.ExpectedRevision),
+                    request.ExpectedRevision, request.NodeInstanceId, request.SortOrder),
                 cancellationToken);
 
             return Ok(created);
+        }
+        catch (CtdNodeConstraintException exception)
+        {
+            return Conflict(new { message = exception.Message, code = exception.Code, nodeInstanceId = exception.NodeInstanceId });
         }
         catch (InvalidOperationException exception)
         {
@@ -123,6 +127,10 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
         {
             var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.Operation, request.FileNamePrefix, request.LifecycleTargetPlacementId, request.ExpectedRevision), cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (CtdNodeConstraintException exception)
+        {
+            return Conflict(new { message = exception.Message, code = exception.Code, nodeInstanceId = exception.NodeInstanceId });
         }
         catch (InvalidOperationException exception)
         {

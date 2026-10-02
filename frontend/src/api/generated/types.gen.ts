@@ -123,7 +123,21 @@ export type CreateApplicationRequestBody = {
     workingDirectoryParentPath: string;
 };
 
+export type CreateCtdNodeRequest = {
+    expectedRevision?: number | null;
+    definitionKey: string;
+    parentInstanceId?: string | null;
+    attributes: {
+        [key: string]: string;
+    };
+    title?: string | null;
+    sortOrder: number;
+    storageSegment?: string | null;
+};
+
 export type CreateDocumentPlacementRequestBody = {
+    nodeInstanceId?: string | null;
+    sortOrder: number;
     expectedRevision?: number | null;
     documentId: string;
     applicationId: string;
@@ -142,6 +156,49 @@ export type CreateSequenceRequestBody = {
     sequenceNumber: string;
     submissionType: string;
     description: string;
+};
+
+export type CtdBackfillDiagnostic = {
+    placementId: string;
+    code: string;
+    message: string;
+};
+
+export type CtdNodeClonePreview = {
+    workspaceRevision: number;
+    nodes: Array<CtdNodeDto>;
+    directories: {
+        [key: string]: string;
+    };
+};
+
+export type CtdNodeDto = {
+    nodeInstanceId: string;
+    parentInstanceId: string | null;
+    definitionKey: string;
+    ctdSection: string;
+    attributes: {
+        [key: string]: string;
+    };
+    title: string | null;
+    sortOrder: number;
+    storageSegment: string | null;
+    metadataStatus: string;
+    identityStatus: string;
+    allowsLeaves: boolean;
+    issues: Array<NodeSchemaIssue>;
+};
+
+export type CtdNodeKind = 0 | 1;
+
+export type CtdNodeTreeDto = {
+    applicationId: string;
+    sequenceNumber: string;
+    workspaceRevision: number;
+    definitionVersion: string;
+    definitions: Array<SectionDefinition>;
+    nodes: Array<CtdNodeDto>;
+    diagnostics: Array<CtdBackfillDiagnostic>;
 };
 
 export type DirectoryBrowseEntry = {
@@ -234,12 +291,25 @@ export type ImportApplicationRequestBody = {
     sponsorName: string;
 };
 
+export type InheritCtdNodesRequest = {
+    sourceSequenceNumber: string;
+    expectedRevision: number | null;
+};
+
+export type NodeExtensionPolicy = 0 | 1;
+
 export type NodePlacementMovePreview = {
     placementId: string;
     nodeInstanceId: string;
     sourcePath: string;
     targetPath: string;
     workspaceRevision: number;
+};
+
+export type NodeSchemaIssue = {
+    code: string;
+    fieldPath: string;
+    message: string;
 };
 
 export type ProblemDetails = {
@@ -387,6 +457,35 @@ export type ResolveDirectoryRequestBody = {
     path: string;
 };
 
+export type SectionAttributeDefinition = {
+    name: string;
+    valueType: SectionAttributeValueType;
+    required: boolean;
+    identity: boolean;
+    allowedValues: Array<string>;
+};
+
+export type SectionAttributeValueType = 0 | 1 | 2;
+
+export type SectionChildDefinition = {
+    definitionKey: string;
+    minimum: number;
+    maximum: number | null;
+};
+
+export type SectionDefinition = {
+    definitionKey: string;
+    elementName: string;
+    sectionPath?: string | null;
+    parentDefinitionKey?: string | null;
+    repeatable: boolean;
+    kind: CtdNodeKind;
+    allowsLeaves: boolean;
+    extensionPolicy: NodeExtensionPolicy;
+    attributes: Array<SectionAttributeDefinition>;
+    children: Array<SectionChildDefinition>;
+};
+
 export type SequenceDto = {
     sequenceNumber: string;
     submissionType: string;
@@ -412,6 +511,16 @@ export type SequencePublishingMetadataDto = {
     telephoneNumberType: string | null;
     email: string | null;
     workspaceRevision: number;
+};
+
+export type UpdateCtdNodeRequest = {
+    expectedRevision?: number | null;
+    attributes: {
+        [key: string]: string | null;
+    };
+    title?: string | null;
+    sortOrder: number;
+    storageSegment?: string | null;
 };
 
 export type UpdateDocumentPlacementMetadataRequestBody = {
@@ -496,6 +605,7 @@ export type WorkspaceSnapshotDto = {
     workspaceRevision: number;
     placements: Array<DocumentPlacementDto>;
     documents: Array<DocumentDto>;
+    nodeTree: CtdNodeTreeDto;
 };
 
 export type GetApiApplicationsData = {
@@ -727,6 +837,145 @@ export type PostApiBackboneGenerateResponses = {
 
 export type PostApiBackboneGenerateResponse = PostApiBackboneGenerateResponses[keyof PostApiBackboneGenerateResponses];
 
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberNodesData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesData = {
+    body?: CreateCtdNodeRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesResponses];
+
+export type DeleteApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        nodeId: string;
+    };
+    query?: {
+        expectedRevision?: number;
+    };
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes/{nodeId}';
+};
+
+export type DeleteApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type DeleteApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponse = DeleteApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses[keyof DeleteApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses];
+
+export type PutApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdData = {
+    body?: UpdateCtdNodeRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        nodeId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes/{nodeId}';
+};
+
+export type PutApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type PutApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponse = PutApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses[keyof PutApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesInheritData = {
+    body?: InheritCtdNodesRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes/inherit';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesInheritResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesInheritResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesInheritResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesInheritResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdClonePreviewData = {
+    body?: UpdateCtdNodeRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        nodeId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes/{nodeId}/clone/preview';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdClonePreviewResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeClonePreview;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdClonePreviewResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdClonePreviewResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdClonePreviewResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdCloneData = {
+    body?: UpdateCtdNodeRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        nodeId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/nodes/{nodeId}/clone';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdCloneResponses = {
+    /**
+     * OK
+     */
+    200: CtdNodeTreeDto;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdCloneResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdCloneResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberNodesByNodeIdCloneResponses];
+
 export type GetApiDocumentPlacementsData = {
     body?: never;
     path?: never;
@@ -912,6 +1161,7 @@ export type PostApiDocumentsUploadResponse = PostApiDocumentsUploadResponses[key
 
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberDocumentsUploadData = {
     body?: {
+        NodeInstanceId?: string;
         ExpectedRevision?: number;
         File: Blob | File;
         CtdSection: string;

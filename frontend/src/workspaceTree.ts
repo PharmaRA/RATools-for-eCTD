@@ -9,6 +9,11 @@ export type { DocumentPlacementRecord, DocumentRecord, EctdStructureNode } from 
 export type WorkspaceTreeNode =
   | {
       nodeType: 'section'
+      nodeInstanceId?: string
+      definitionKey?: string
+      parentInstanceId?: string | null
+      requiresNodeBinding?: boolean
+      metadataStatus?: string
       key: string
       sectionPath: string
       title: string
@@ -18,6 +23,7 @@ export type WorkspaceTreeNode =
     }
   | {
       nodeType: 'document'
+      nodeInstanceId?: string | null
       key: string
       sectionPath: string
       placementId: string
@@ -130,6 +136,7 @@ const createDocumentNode = (
     key: `placement:${placement.id}`,
     sectionPath: placement.ctdSection,
     placementId: placement.id,
+    nodeInstanceId: placement.nodeInstanceId,
     documentId: placement.documentId,
     title: fileName,
     operation: placement.operation,
@@ -231,9 +238,9 @@ export const getWorkspaceTreeNodeDropCapabilities = (
 
   return {
     isSection,
-    acceptsPlacementDrop: isSection,
+    acceptsPlacementDrop: isSection && (!node.requiresNodeBinding || node.canDrop),
     acceptsFileDrop,
-    canDrop: acceptsFileDrop || (isSection && draggingPlacementId !== null),
+    canDrop: acceptsFileDrop || (isSection && !node.requiresNodeBinding && draggingPlacementId !== null),
   }
 }
 

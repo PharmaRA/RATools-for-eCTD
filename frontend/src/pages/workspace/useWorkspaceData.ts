@@ -14,6 +14,7 @@ import {
   type EctdStructureNode,
 } from '../../workspaceTree'
 import { getErrorMessage } from '../appShared'
+import { buildInstanceTree } from './nodeTree'
 
 type UseWorkspaceDataOptions = {
   appId: string
@@ -100,9 +101,10 @@ export const useWorkspaceData = ({
     () => getWorkspaceEctdRootsFromResponse(ectdStructureQuery.data),
     [ectdStructureQuery.data],
   )
+  const nodeTree = snapshotQuery.data?.nodeTree
   const defaultExpandedKeys = useMemo(
-    () => buildWorkspaceExpandedKeys(ectdRoots),
-    [ectdRoots],
+    () => nodeTree ? nodeTree.nodes.filter(node => !node.parentInstanceId).map(node => `node:${node.nodeInstanceId}`) : buildWorkspaceExpandedKeys(ectdRoots),
+    [ectdRoots, nodeTree],
   )
   const expandedKeys = expandedKeysOverride?.appId === appId
     ? expandedKeysOverride.keys
@@ -116,8 +118,9 @@ export const useWorkspaceData = ({
   }, [appId, defaultExpandedKeys])
 
   const treeData = useMemo(() => {
+    if (nodeTree) return buildInstanceTree(nodeTree, ectdRoots, placements, documentsById)
     return attachDocumentNodes(mapSectionTreeData(ectdRoots), placements, documentsById)
-  }, [documentsById, ectdRoots, placements])
+  }, [documentsById, ectdRoots, placements, nodeTree])
 
   const fetchPlacements = useCallback(async () => {
     await refetchSnapshot()
@@ -136,6 +139,7 @@ export const useWorkspaceData = ({
   }, [refetchSnapshot])
 
   return {
+    nodeTree: snapshotQuery.data?.nodeTree,
     workspaceRevision: snapshotQuery.isError ? undefined : snapshotQuery.data?.workspaceRevision,
     placements,
     applicationPlacements,

@@ -11,6 +11,7 @@ public sealed class UploadDocumentRequestBody
 
 public sealed class UploadSequenceDocumentRequestBody
 {
+    public Guid? NodeInstanceId { get; init; }
     public long? ExpectedRevision { get; init; }
 
     [Required]

@@ -17,6 +17,7 @@ type DocumentNameParts = {
 }
 
 type WorkspaceSelectionDetailsProps = {
+  nodeContexts?: Record<string, string>
   selectedNode?: WorkspaceTreeNode
   selectedPlacement?: DocumentPlacementRecord
   selectedDocument?: DocumentRecord
@@ -39,6 +40,7 @@ type WorkspaceSelectionDetailsProps = {
 }
 
 export const WorkspaceSelectionDetails = ({
+  nodeContexts,
   selectedNode,
   selectedPlacement,
   selectedDocument,
@@ -125,6 +127,7 @@ export const WorkspaceSelectionDetails = ({
 
       {selectedNode?.nodeType === 'document' && selectedPlacement && selectedDocument && (
         <LeafMetadataPanel
+          nodeContexts={nodeContexts}
           form={metadataForm}
           placement={selectedPlacement}
           document={selectedDocument}

@@ -71,8 +71,8 @@ public sealed class CtdNodePlacementService(ICtdNodeRepository nodes, IDocumentP
         if (!File.Exists(source)) throw new FileNotFoundException("The source workspace file is missing.", source);
         if (allPlacements.Any(item => item.DocumentId == document.Id && item.Id != placementId))
             throw new InvalidOperationException("A shared document cannot be moved independently.");
-        paths.ValidateAllocation(application.EctdTemplateKey, workspace);
-        var relative = paths.ResolveFile(application.EctdTemplateKey, workspace, request.NodeInstanceId, Path.GetFileName(source));
+        paths.ValidateAllocation(application.EctdTemplateKey, workspace, ignoreIncomplete: true);
+        var relative = paths.ResolveFile(application.EctdTemplateKey, workspace, request.NodeInstanceId, document.FileName);
         var destination = boundary.EnsurePathOwnedBySequence(
             Path.Combine(application.WorkingDirectoryPath, original.SequenceNumber, relative.Replace('/', Path.DirectorySeparatorChar)),
             application, original.SequenceNumber);
@@ -148,7 +148,7 @@ public sealed class CtdNodePlacementService(ICtdNodeRepository nodes, IDocumentP
     }
 
     // A workspace prepared on Linux must also be safe when delivered on Windows.
-    private static void EnsurePortableDestination(string root, string destination, string? sameFile)
+    internal static void EnsurePortableDestination(string root, string destination, string? sameFile)
     {
         var current = Path.GetFullPath(root);
         var parts = Path.GetRelativePath(current, destination).Split(Path.DirectorySeparatorChar);

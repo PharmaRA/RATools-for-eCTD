@@ -67,7 +67,7 @@ public sealed partial class CtdNodePathResolver(IEctdWorkspacePathResolver secti
         return path;
     }
 
-    public void ValidateAllocation(string templateKey, CtdSequenceWorkspace workspace)
+    public void ValidateAllocation(string templateKey, CtdSequenceWorkspace workspace, bool ignoreIncomplete = false)
     {
         var allocated = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
         foreach (var node in workspace.Nodes)
@@ -75,7 +75,9 @@ public sealed partial class CtdNodePathResolver(IEctdWorkspacePathResolver secti
             var instance = workspace.Graph.Get(node.NodeInstanceId);
             var definition = workspace.Graph.Definitions.Get(instance.DefinitionKey);
             if (!definition.Repeatable && definition.Kind != CtdNodeKind.Extension) continue;
-            var path = Resolve(templateKey, workspace, node.NodeInstanceId);
+            string path;
+            try { path = Resolve(templateKey, workspace, node.NodeInstanceId); }
+            catch (CtdNodeConstraintException error) when (ignoreIncomplete && error.Code is "NodeMetadataIncomplete" or "NodeStorageSegmentRequired") { continue; }
             if (!allocated.TryAdd(path, node.NodeInstanceId))
                 throw Error("NodeDirectoryConflict", "Two business instances would use the same directory. Choose a distinct stable segment.", node.NodeInstanceId);
             if (path.Length > 230) throw Error("NodePathTooLong", "The relative delivery path exceeds 230 characters.", node.NodeInstanceId);

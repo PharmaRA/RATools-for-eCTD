@@ -47,6 +47,13 @@ public sealed partial class GlobalExceptionMiddleware
                 location = context.Request.Path.Value
             });
         }
+        catch (RATools.Domain.Ctd.CtdNodeConstraintException ex)
+        {
+            if (context.Response.HasStarted) throw;
+            context.Response.Clear();
+            context.Response.StatusCode = ex.Code == "NodeNotFound" ? 404 : 409;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message, code = ex.Code, nodeInstanceId = ex.NodeInstanceId });
+        }
         catch (Exception ex)
         {
             var traceId = context.TraceIdentifier;

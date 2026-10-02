@@ -8,5 +8,7 @@ public sealed class FileUploadRequest
 
     public string? DestinationDirectoryPath { get; init; }
 
+    public bool PreserveFileName { get; init; }
+
     public required Stream Content { get; init; }
 }

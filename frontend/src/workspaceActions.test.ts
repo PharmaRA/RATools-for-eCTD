@@ -199,6 +199,7 @@ describe('workspaceActions', () => {
         sequenceNumber: '0001',
         documentId: 'document-1',
         ctdSection: 'm1.2',
+        sortOrder: 0,
         operation: 'New',
       }),
     })

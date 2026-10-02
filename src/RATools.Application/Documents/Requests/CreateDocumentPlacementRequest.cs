@@ -7,4 +7,6 @@ public sealed record CreateDocumentPlacementRequest(
     string CtdSection,
     string Operation,
     string? Title,
-    long? ExpectedRevision = null);
+    long? ExpectedRevision = null,
+    Guid? NodeInstanceId = null,
+    int SortOrder = 0);

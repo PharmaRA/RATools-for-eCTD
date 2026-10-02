@@ -171,7 +171,7 @@ export const useWorkspaceDragDrop = ({
         return
       }
 
-      await movePlacement(internalPayload.placementId, internalPayload.sectionPath, nodeData.sectionPath)
+      await movePlacement(internalPayload.placementId, internalPayload.sectionPath, nodeData.key)
       setDraggingPlacementId(null)
       return
     }
@@ -188,7 +188,7 @@ export const useWorkspaceDragDrop = ({
       return
     }
 
-    await dropFiles(files, nodeData.sectionPath)
+    await dropFiles(files, nodeData.key)
   }, [dropFiles, getFallbackDraggingPayload, messageApi, movePlacement])
 
   const handleNodeKeyDown = useCallback(async (
@@ -220,7 +220,7 @@ export const useWorkspaceDragDrop = ({
       return
     }
 
-    await movePlacement(payload.placementId, payload.sectionPath, nodeData.sectionPath)
+    await movePlacement(payload.placementId, payload.sectionPath, nodeData.key)
     setKeyboardPlacementPayload(null)
     setDraggingPlacementId(null)
   }, [getFallbackDraggingPayload, keyboardPlacementPayload, messageApi, movePlacement])

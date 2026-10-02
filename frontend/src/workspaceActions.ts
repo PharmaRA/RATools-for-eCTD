@@ -16,6 +16,8 @@ export type PlacementDragPayload = {
 }
 
 export type MovePlacementRequest = {
+  nodeInstanceId?: string
+  sortOrder?: number
   expectedRevision: number
   placementId: string
   fromSection: string
@@ -38,6 +40,8 @@ export type RevisePlacementMetadataRequest = {
 }
 
 export type UploadDocumentToSectionRequest = {
+  nodeInstanceId?: string
+  sortOrder?: number
   expectedRevision: number
   applicationId: string
   sequenceNumber: string
@@ -180,13 +184,14 @@ export const movePlacementToSection = async (
   request: MovePlacementRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ): Promise<boolean> => {
-  if (request.fromSection.trim().toLowerCase() === request.toSection.trim().toLowerCase()) {
+  if (!request.nodeInstanceId && request.fromSection.trim().toLowerCase() === request.toSection.trim().toLowerCase()) {
     return false
   }
 
   await executeRequest(
     buildDocumentPlacementSectionUrl(request.placementId),
-    buildJsonRequestInit('PUT', { ctdSection: request.toSection, expectedRevision: requireWorkspaceRevision(request.expectedRevision) }),
+    buildJsonRequestInit('PUT', { ctdSection: request.toSection, nodeInstanceId: request.nodeInstanceId, sortOrder: request.sortOrder,
+      expectedRevision: requireWorkspaceRevision(request.expectedRevision) }),
   )
 
   return true
@@ -232,6 +237,7 @@ export const uploadDocumentToSection = async (
   const formData = new FormData()
   formData.append('file', request.file)
   formData.append('CtdSection', request.ctdSection)
+  if (request.nodeInstanceId) formData.append('NodeInstanceId', request.nodeInstanceId)
   formData.append('ExpectedRevision', String(requireWorkspaceRevision(request.expectedRevision)))
 
   const document = await executeRequest(
@@ -239,7 +245,7 @@ export const uploadDocumentToSection = async (
     { method: 'POST', body: formData },
   ) as DocumentContract
 
-  await executeRequest(
+  return await executeRequest(
     buildDocumentPlacementsUrl(),
     buildJsonRequestInit('POST', {
       expectedRevision: requireWorkspaceRevision(document.workspaceRevision),
@@ -247,7 +253,9 @@ export const uploadDocumentToSection = async (
       sequenceNumber: request.sequenceNumber,
       documentId: document.id,
       ctdSection: request.ctdSection,
+      nodeInstanceId: request.nodeInstanceId,
+      sortOrder: request.sortOrder ?? 0,
       operation: 'New',
     }),
-  )
+  ) as DocumentPlacementContract
 }

@@ -20,6 +20,16 @@ const documentsById: Record<string, DocumentRecord> = {
 }
 
 describe('getLifecycleTargetCandidates', () => {
+  it('separates manufacturers with the same section and excludes delete targets', () => {
+    const current = placement({ id: 'current', sequenceNumber: '0002', nodeInstanceId: 'alpha' })
+    const candidates = getLifecycleTargetCandidates([
+      placement({ id: 'alpha-first', nodeInstanceId: 'alpha' }),
+      placement({ id: 'beta-first', nodeInstanceId: 'beta' }),
+      placement({ id: 'unmapped' }),
+      placement({ id: 'deleted', nodeInstanceId: 'alpha', operation: 'Delete' }),
+    ], current, documentsById)
+    expect(candidates.map(item => item.id)).toEqual(['alpha-first'])
+  })
   it('keeps same-app same-section historical placements with documents', () => {
     const current = placement({ id: 'current', sequenceNumber: '0010', documentId: 'doc-3' })
     const historicalSameSection = placement({ id: 'historical', sequenceNumber: '0009', documentId: 'doc-1' })

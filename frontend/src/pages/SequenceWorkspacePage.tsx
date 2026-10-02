@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Col, Form, Modal, Row, Tag, message } from 'antd'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Button, Card, Col, Form, InputNumber, Modal, Row, Select, Space, Tag, message } from 'antd'
 import { ArrowLeft, PlayCircle, Save } from 'lucide-react'
 
 import { splitFileName } from '../ectdFileTypes'
@@ -30,6 +30,9 @@ import {
 import { ValidationSummaryPanel } from './workspace/ValidationSummaryPanel'
 import { WorkspaceSelectionDetails } from './workspace/WorkspaceSelectionDetails'
 import { WorkspaceTree } from './workspace/WorkspaceTree'
+import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePropertiesPanel'
+import { nodeContext, treeAncestorKeys } from './workspace/nodeTree'
+import type { CtdNodeTreeDto } from '../api/generated'
 
 type SequenceWorkspacePageProps = SequencePublishingProviders & {
   appId: string
@@ -50,6 +53,7 @@ export const SequenceWorkspacePage = ({
   const [loading, setLoading] = useState(false)
   const {
     workspaceRevision,
+    nodeTree,
     placements,
     applicationPlacements,
     documentsById,
@@ -62,6 +66,10 @@ export const SequenceWorkspacePage = ({
     setExpandedKeys,
     refreshWorkspaceData,
   } = useWorkspaceData({ appId, seqNumber })
+  const revisionRef = useRef(workspaceRevision)
+  useEffect(() => { revisionRef.current = workspaceRevision }, [workspaceRevision])
+  const [mappingTarget, setMappingTarget] = useState<string | undefined>()
+  const [leafSortOrder, setLeafSortOrder] = useState<number>(0)
   const [selectedTreeKey, setSelectedTreeKey] = useState<string | null>(null)
   const [selectedSectionPath, setSelectedSectionPath] = useState<string | null>(null)
   const [deletingPlacementIds, setDeletingPlacementIds] = useState<Set<string>>(new Set())
@@ -169,6 +177,8 @@ export const SequenceWorkspacePage = ({
       fileNamePrefix: selectedDocumentNameParts.prefix,
       lifecycleTargetPlacementId: selectedPlacement.lifecycleTargetPlacementId || null,
     })
+    setMappingTarget(selectedPlacement.nodeInstanceId ?? undefined)
+    setLeafSortOrder(selectedPlacement.sortOrder ?? 0)
   }, [metadataForm, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement, selectedDocument])
 
   useEffect(() => {
@@ -178,7 +188,6 @@ export const SequenceWorkspacePage = ({
 
     const resolvedSelectedNode = findWorkspaceTreeNode(treeData, selectedTreeKey)
     if (!resolvedSelectedNode) {
-      setSelectedTreeKey(null)
       return
     }
 
@@ -187,20 +196,25 @@ export const SequenceWorkspacePage = ({
     }
   }, [selectedSectionPath, selectedTreeKey, treeData])
 
-  const handleMovePlacement = async (placementId: string, fromSection: string, toSection: string) => {
+  const handleMovePlacement = async (placementId: string, fromSection: string, targetKey: string, sortOrder?: number) => {
     setMovingPlacementIds((current) => new Set(current).add(placementId))
     setLoading(true)
     try {
       invalidateValidation()
-      const moved = await movePlacementToSection({ placementId, fromSection, toSection, expectedRevision: requireWorkspaceRevision(workspaceRevision) })
+      const target = findWorkspaceTreeNode(treeData, targetKey)
+      const toSection = target?.sectionPath ?? targetKey
+      const nodeInstanceId = target?.nodeType === 'section' ? target.nodeInstanceId : undefined
+      const moved = await movePlacementToSection({ placementId, fromSection, toSection, nodeInstanceId,
+        sortOrder: sortOrder ?? Math.max(0, ...placements.filter(item => item.nodeInstanceId === nodeInstanceId).map(item => (item.sortOrder ?? 0) + 1)),
+        expectedRevision: requireWorkspaceRevision(workspaceRevision) })
 
       if (!moved) {
         message.info('该文档已映射到此章节。')
         return
       }
 
-      setExpandedKeys((current) => addSectionExpansionKeys(current, toSection))
-      setSelectedTreeKey(toSection)
+      setExpandedKeys((current) => [...new Set([...addSectionExpansionKeys(current, toSection), ...treeAncestorKeys(treeData, targetKey)])])
+      setSelectedTreeKey(targetKey)
       setSelectedSectionPath(toSection)
       await refreshWorkspaceData()
       message.success('文档已移动到目标章节。')
@@ -294,19 +308,24 @@ export const SequenceWorkspacePage = ({
     message.loading({ content: `正在处理 ${file.name}...`, key: 'uploading' })
 
     try {
-      const targetSection = resolveUploadSection(targetNodeKey, selectedSectionPath)
-      setExpandedKeys((current) => addSectionExpansionKeys(current, targetSection))
-      setSelectedTreeKey(targetSection)
+      const target = findWorkspaceTreeNode(treeData, targetNodeKey)
+      const targetSection = resolveUploadSection(target?.sectionPath ?? targetNodeKey, selectedSectionPath)
+      const nodeInstanceId = target?.nodeType === 'section' ? target.nodeInstanceId : undefined
+      setExpandedKeys((current) => [...new Set([...addSectionExpansionKeys(current, targetSection), ...treeAncestorKeys(treeData, targetNodeKey)])])
+      setSelectedTreeKey(targetNodeKey)
       setSelectedSectionPath(targetSection)
 
       invalidateValidation()
-      await uploadDocumentToSection({
-        expectedRevision: requireWorkspaceRevision(workspaceRevision),
+      const created = await uploadDocumentToSection({
+        expectedRevision: requireWorkspaceRevision(revisionRef.current),
         applicationId: appId,
         sequenceNumber: seqNumber,
         file,
         ctdSection: targetSection,
+        nodeInstanceId,
+        sortOrder: Math.max(0, ...placements.filter(item => item.nodeInstanceId === nodeInstanceId).map(item => (item.sortOrder ?? 0) + 1)),
       })
+      revisionRef.current = created?.workspaceRevision ?? undefined
 
       message.success({ content: `${file.name} 已映射到 ${targetSection} 并保存！`, key: 'uploading' })
       await refreshWorkspaceData()
@@ -323,6 +342,15 @@ export const SequenceWorkspacePage = ({
     movePlacement: handleMovePlacement,
     uploadFile: handleDirectDrop,
   })
+
+  const handleNodesChanged = async (updated: CtdNodeTreeDto) => {
+    invalidateValidation()
+    revisionRef.current = updated.workspaceRevision
+    const newNode = updated.nodes.find(node => !nodeTree?.nodes.some(old => old.nodeInstanceId === node.nodeInstanceId))
+    await refreshWorkspaceData()
+    if (newNode) setSelectedTreeKey(`node:${newNode.nodeInstanceId}`)
+    setExpandedKeys(current => [...new Set([...current, ...updated.nodes.map(node => `node:${node.nodeInstanceId}`)])])
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -371,6 +399,12 @@ export const SequenceWorkspacePage = ({
 
       {placementsError && <Alert type="error" showIcon title="加载工作区映射失败" description={placementsError} />}
       {documentsError && <Alert type="error" showIcon title="加载工作区文档失败" description={documentsError} />}
+      <Space><Button disabled={loading} onClick={() => void refreshWorkspaceData()}>刷新工作区</Button>
+        {nodeTree && <InheritNodeStructure tree={nodeTree} disabled={loading} onChanged={handleNodesChanged} />}
+      </Space>
+      {nodeTree?.diagnostics.length ? <Alert type="warning" showIcon title="导入或旧数据诊断" description={
+        [...new Set(nodeTree.diagnostics.map(issue => issue.message))].join('；')
+      } /> : null}
 
       <Row gutter={16}>
         <Col span={12}>
@@ -391,7 +425,21 @@ export const SequenceWorkspacePage = ({
         </Col>
 
         <Col span={12}>
+          {nodeTree && selectedNode?.nodeType === 'section' && selectedNode.definitionKey && <NodePropertiesPanel tree={nodeTree}
+            selected={selectedNode} disabled={loading || workspaceRevision === undefined} onChanged={handleNodesChanged} />}
+          {nodeTree && selectedPlacement && !selectedPlacement.ctdSection.startsWith('m1') && <Card title="文件的业务节点与排序" size="small" className="mb-3">
+            <p>当前上下文：{nodeContext(nodeTree, selectedPlacement.nodeInstanceId) || '待映射'}</p>
+            <p className="text-xs text-gray-500">历史目标仅限相同业务节点。将旧文件映射到具体节点后可设置生命周期。</p>
+            <Space wrap>
+              <Select aria-label="文件目标业务节点" style={{ minWidth: 300 }} value={mappingTarget} onChange={setMappingTarget} options={nodeTree.nodes
+                .filter(node => node.allowsLeaves && node.metadataStatus === 'Complete')
+                .map(node => ({ value: node.nodeInstanceId, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` }))} />
+              <InputNumber aria-label="文件排序位置" min={0} precision={0} value={leafSortOrder} onChange={value => setLeafSortOrder(value ?? 0)} />
+              <Button disabled={!mappingTarget || loading} onClick={() => void handleMovePlacement(selectedPlacement.id, selectedPlacement.ctdSection, `node:${mappingTarget}`, leafSortOrder)}>保存映射与排序</Button>
+            </Space>
+          </Card>}
           <WorkspaceSelectionDetails
+            nodeContexts={nodeTree ? Object.fromEntries(nodeTree.nodes.map(node => [node.nodeInstanceId, nodeContext(nodeTree, node.nodeInstanceId)])) : undefined}
             selectedNode={selectedNode}
             selectedPlacement={selectedPlacement}
             selectedDocument={selectedDocument}

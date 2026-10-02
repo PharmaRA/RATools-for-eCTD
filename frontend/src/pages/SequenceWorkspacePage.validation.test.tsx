@@ -386,14 +386,16 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('uploads every valid file from a multi-file section drop and reports invalid files', async () => {
     const uploadedFileNames: string[] = []
+    let revision = 0
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url === '/api/document-placements' && init?.method === 'POST') {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
+        expect(JSON.parse(init.body as string).expectedRevision).toBe(revision)
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ workspaceRevision: ++revision }) })
       }
 
 if (url.endsWith('/workspace')) {
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
-        workspaceRevision: 0,
+        workspaceRevision: revision,
         placements: [],
         documents: [],
       }) })
@@ -419,7 +421,8 @@ if (url.endsWith('/workspace')) {
         const body = init?.body as FormData
         const file = body.get('file') as File
         uploadedFileNames.push(file.name)
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ id: `doc-${uploadedFileNames.length}`, workspaceRevision: 1 }) })
+        expect(body.get('ExpectedRevision')).toBe(String(revision))
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ id: `doc-${uploadedFileNames.length}`, workspaceRevision: ++revision }) })
       }
 
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })

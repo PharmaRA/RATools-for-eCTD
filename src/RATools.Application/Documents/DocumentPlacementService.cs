@@ -17,7 +17,8 @@ public sealed class DocumentPlacementService(
     IEctdWorkspacePathResolver workspacePathResolver,
     IDocumentStorageBoundary documentStorageBoundary,
     WorkspaceMutationCoordinator mutations,
-    RATools.Application.Ctd.CtdNodePlacementService? nodePlacements = null) : IDocumentPlacementService
+    RATools.Application.Ctd.CtdNodePlacementService? nodePlacements = null,
+    ICtdNodeRepository? nodes = null) : IDocumentPlacementService
 {
     private static readonly TimeSpan FileOperationCleanupTimeout = TimeSpan.FromSeconds(30);
 
@@ -57,6 +58,15 @@ public sealed class DocumentPlacementService(
             operation,
             request.Title);
 
+        if (request.NodeInstanceId is { } nodeId)
+        {
+            var workspace = nodes is null ? null : await nodes.GetSequenceAsync(request.ApplicationId, request.SequenceNumber, cancellationToken);
+            var node = workspace?.Nodes.SingleOrDefault(node => node.NodeInstanceId == nodeId)
+                ?? throw new RATools.Domain.Ctd.CtdNodeConstraintException("NodeNotFound", "Select a node in this sequence.", nodeId);
+            if (request.CtdSection.Trim() != node.CtdSection)
+                throw new RATools.Domain.Ctd.CtdNodeConstraintException("PlacementNodeSectionMismatch", "The supplied section differs from the node definition.", nodeId);
+            placement.BindToNode(node, request.SortOrder);
+        }
         await mutation.CommitAsync(ct => placementRepository.AddAsync(placement, ct), cancellationToken);
         return placement.ToDto() with { WorkspaceRevision = mutation.Revision };
     }
@@ -248,6 +258,16 @@ public sealed class DocumentPlacementService(
         var lifecycleTargetPlacementId = operation == DocumentPlacementOperation.New
             ? null
             : request.LifecycleTargetPlacementId;
+
+        if (placement.NodeInstanceId is { } nodeId && lifecycleTargetPlacementId is { } targetId)
+        {
+            var target = await placementRepository.GetAsync(targetId, cancellationToken);
+            if (target is null || target.ApplicationId != placement.ApplicationId || target.NodeInstanceId != nodeId ||
+                target.CtdSection != placement.CtdSection || target.Operation == DocumentPlacementOperation.Delete ||
+                string.CompareOrdinal(target.SequenceNumber, placement.SequenceNumber) >= 0)
+                throw new RATools.Domain.Ctd.CtdNodeConstraintException("LifecycleTargetNodeMismatch",
+                    "Select an earlier non-delete leaf in the same business node.", nodeId);
+        }
 
         var normalizedPrefix = NormalizeAndValidatePrefix(request.FileNamePrefix);
         var extension = Path.GetExtension(document.FileName);

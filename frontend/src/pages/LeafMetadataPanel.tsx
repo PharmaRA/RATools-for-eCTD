@@ -17,6 +17,7 @@ type DocumentNameParts = {
 }
 
 type LeafMetadataPanelProps = {
+  nodeContexts?: Record<string, string>
   form: FormInstance
   placement: DocumentPlacementRecord
   document: DocumentRecord
@@ -36,6 +37,7 @@ type LeafMetadataPanelProps = {
 }
 
 export const LeafMetadataPanel = ({
+  nodeContexts,
   form,
   placement,
   document,
@@ -106,7 +108,7 @@ export const LeafMetadataPanel = ({
               <Select
                 allowClear
                 placeholder="选择历史叶节点目标"
-                options={buildLifecycleTargetOptions(lifecycleTargetCandidates, documentsById)}
+                options={buildLifecycleTargetOptions(lifecycleTargetCandidates, documentsById, nodeContexts)}
               />
             </Form.Item>
             {lifecycleTargetCandidates.length > 0 && (

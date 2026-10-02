@@ -27,6 +27,10 @@ export const getLifecycleTargetCandidates = (
       continue
     }
 
+    if ((placement.nodeInstanceId ?? null) !== (selectedPlacement.nodeInstanceId ?? null) || placement.operation.toLowerCase() === 'delete') {
+      continue
+    }
+
     if (compareSequenceNumbers(placement.sequenceNumber, selectedPlacement.sequenceNumber) >= 0) {
       continue
     }

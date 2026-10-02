@@ -11,6 +11,7 @@ import {
 } from '../../workspaceTree'
 import { addSectionExpansionKeys } from '../appShared'
 import type { UseWorkspaceDragDropResult } from './useWorkspaceDragDrop'
+import { treeAncestorKeys } from './nodeTree'
 
 type WorkspaceTreeProps = {
   treeData: WorkspaceTreeNode[]
@@ -61,7 +62,7 @@ export const WorkspaceTree = ({
           }
 
           onSelectNode(resolvedSelectedNode)
-          setExpandedKeys((current) => addSectionExpansionKeys(current, resolvedSelectedNode.sectionPath))
+          setExpandedKeys((current) => [...new Set([...addSectionExpansionKeys(current, resolvedSelectedNode.sectionPath), ...treeAncestorKeys(treeData, selectedKey)])])
         }}
         titleRender={(nodeData: WorkspaceTreeNode) => {
           const isSelected = selectedTreeKey === nodeData.key
@@ -78,6 +79,7 @@ export const WorkspaceTree = ({
           return (
             <div
               role="treeitem"
+              data-tree-key={nodeData.key}
               tabIndex={isSection || !isBusy ? 0 : -1}
               aria-label={titleText}
               aria-grabbed={nodeData.nodeType === 'document' ? dragDrop.draggingPlacementId === nodeData.placementId : undefined}

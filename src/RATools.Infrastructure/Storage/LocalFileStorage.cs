@@ -24,7 +24,7 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
         Directory.CreateDirectory(fullRootPath);
 
         var safeFileName = Path.GetFileName(request.FileName.Trim());
-        var storedFileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}_{safeFileName}";
+        var storedFileName = request.PreserveFileName ? safeFileName : $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}_{safeFileName}";
         var fullPath = Path.Combine(fullRootPath, storedFileName);
 
         var created = false;

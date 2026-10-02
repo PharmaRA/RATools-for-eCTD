@@ -91,12 +91,17 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
                         ? "application/octet-stream"
                         : request.File.ContentType,
                     CtdSection = request.CtdSection,
+                    NodeInstanceId = request.NodeInstanceId,
                     ExpectedRevision = request.ExpectedRevision,
                     Content = stream
                 },
                 cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (IOException exception)
+        {
+            return Conflict(new { message = exception.Message, code = "NodeFileConflict" });
         }
         catch (DocumentSequenceUploadTargetNotFoundException exception)
         {
