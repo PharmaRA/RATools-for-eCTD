@@ -172,14 +172,14 @@
     {
       "path": "0003/index-md5.txt",
       "length": 32,
-      "sha256": "13d5bee3a06acfaf8d95017ea4348a3b64f7b7ebb1b23d6e19e4854371208910",
-      "md5": "45edd92463b2056dc8128618977b6e06"
+      "sha256": "c0474b116108aa69182f689ec01f0a8f726fb61b25b41b4c293f123e07da66c0",
+      "md5": "fa7f2fbe6fd068113dbb8312011af227"
     },
     {
       "path": "0003/index.xml",
-      "length": 1030,
-      "sha256": "0a1b9cd379bb1bff5541ad3fdfb2c7594f8540f46cdf8a08c0e4c242a9f0f23b",
-      "md5": "730a40c162867dddeae78762df93af24"
+      "length": 998,
+      "sha256": "ab86998e6833f130e7d21bdd213b52ee5c207a834c7265a05725e28aad9d6175",
+      "md5": "420a552606c8dfd705f04d04919f528c"
     },
     {
       "path": "0003/m1/us/us-regional.xml",

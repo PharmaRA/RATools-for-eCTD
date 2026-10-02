@@ -38,8 +38,8 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
             }
             foreach (var reference in package.RegionalBackbones.Where(reference => reference.Md5 is not null).OrderBy(reference => reference.RelativePath, StringComparer.Ordinal))
             {
-                if (reference.Operation == "delete")
-                    throw new EctdPackageNodeException("RegionalProfileRequired", "Deleting a regional backbone requires an applicable regional output profile.");
+                if (reference.Operation != "new")
+                    throw new EctdPackageNodeException("RegionalReferenceMustBeNew", "ICH requires a regional backbone reference to use operation new.");
                 container.Add(new XElement("leaf", new XAttribute("ID", reference.LeafId), new XAttribute("operation", reference.Operation),
                     new XAttribute("checksum", reference.Md5!), new XAttribute("checksum-type", "md5"),
                     new XAttribute(XlinkNamespace + "href", reference.RelativePath),
@@ -132,7 +132,7 @@ public sealed class IchIndexXmlWriter : IIchIndexXmlWriter
         {
             new XAttribute("ID", leaf.LeafId),
             new XAttribute("operation", leaf.Operation),
-            new XAttribute("checksum", leaf.Md5),
+            new XAttribute("checksum", IsDeleteOperation(leaf) ? "" : leaf.Md5),
             new XAttribute("checksum-type", "md5"),
             new XAttribute(XlinkNamespace + "type", "simple"),
         };

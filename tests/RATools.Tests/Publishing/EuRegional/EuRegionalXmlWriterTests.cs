@@ -82,6 +82,20 @@ public sealed class EuRegionalXmlWriterTests
     }
 
     [Fact]
+    public void Write_DeleteHasEmptyChecksumAndNoContentHref()
+    {
+        var input = CreateLeaf("m1.2", "leaf-11111111111111111111111111111111", "old.pdf", "m1/eu/12-cover/old.pdf") with
+        {
+            Operation = "delete",
+            Lifecycle = new(Guid.NewGuid(), Guid.NewGuid(), "0000", "m1/eu/12-cover/old.pdf")
+        };
+        var leaf = new EuRegionalXmlWriter().Write(CreatePackage(module1Leaves: [input])).Document.Descendants("leaf").Single();
+        Assert.Equal("", leaf.Attribute("checksum")?.Value);
+        Assert.Null(leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink")));
+        Assert.NotNull(leaf.Attribute("modified-file"));
+    }
+
+    [Fact]
     public void Write_RejectsMutuallyExclusiveEnvironmentalSections()
     {
         var package = CreatePackage(module1Leaves:

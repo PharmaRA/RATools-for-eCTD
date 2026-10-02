@@ -192,6 +192,7 @@ public sealed class IchIndexXmlWriterTests
         var leaf = result.Document.Descendants("leaf").Single();
 
         Assert.Equal("delete", leaf.Attribute("operation")?.Value);
+        Assert.Equal("", leaf.Attribute("checksum")?.Value);
         Assert.Null(leaf.Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink")));
         Assert.Equal($"../0000/index.xml#leaf-{lifecycle.TargetPlacementId:N}", leaf.Attribute("modified-file")?.Value);
     }

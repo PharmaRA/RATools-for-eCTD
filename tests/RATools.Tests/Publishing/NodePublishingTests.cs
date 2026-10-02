@@ -170,15 +170,18 @@ public sealed class NodePublishingTests
         new EctdXmlValidator().Validate(new BackboneGeneratedFile("index.xml", output.XmlContent), new FdaEctd322StandardsProfileProvider().GetProfile("us-fda-ectd-3.2.2"));
     }
 
-    [Fact]
-    public async Task RegionalBackboneDeleteIsBlockedUntilAnApplicableProfileExists()
+    [Theory]
+    [InlineData("delete")]
+    [InlineData("replace")]
+    [InlineData("append")]
+    public async Task RegionalBackboneReferenceMustAlwaysBeNew(string operation)
     {
         using var source = new NodeImportWorkspace();
         source.CopyPublisherFixture();
         var imported = await source.ImportAsync();
         var package = await Builder(source).BuildAsync(new(imported.ApplicationId, "0000"));
-        package = package with { RegionalBackbones = [new("m1/us/us-regional.xml", "regional-0000", "Delete backbone", "delete", "../0000/index.xml#old", "checksum")] };
-        Assert.Equal("RegionalProfileRequired", Assert.Throws<EctdPackageNodeException>(() => new IchIndexXmlWriter().Write(package)).Code);
+        package = package with { RegionalBackbones = [new("m1/us/us-regional.xml", "regional-0000", "Invalid operation", operation, "../0000/index.xml#old", "checksum")] };
+        Assert.Equal("RegionalReferenceMustBeNew", Assert.Throws<EctdPackageNodeException>(() => new IchIndexXmlWriter().Write(package)).Code);
     }
 
     [Theory]

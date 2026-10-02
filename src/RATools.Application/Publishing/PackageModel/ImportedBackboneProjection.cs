@@ -26,8 +26,8 @@ internal static class ImportedBackboneProjection
             using var reader = XmlReader.Create(new StringReader(index.Xml), new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null });
             var xml = XDocument.Load(reader);
             var container = xml.Root?.Elements().SingleOrDefault(element => element.Name.LocalName == "m1-administrative-information-and-prescribing-information");
-            if (container?.Elements("leaf").Any(leaf => leaf.Attribute("operation")?.Value == "delete") == true)
-                throw new EctdPackageNodeException("RegionalProfileRequired", "Deleting a regional backbone requires an applicable regional output profile.");
+            if (container?.Elements("leaf").Any(leaf => leaf.Attribute("operation")?.Value != "new") == true)
+                throw new EctdPackageNodeException("RegionalReferenceMustBeNew", "ICH requires a regional backbone reference to use operation new.");
             original = container?.Elements().SingleOrDefault(element => element.Name.LocalName == "leaf" && element.Attributes().Any(attribute =>
                     attribute.Name.LocalName == "href" && Uri.TryCreate(new Uri("https://ectd.invalid/"), attribute.Value, out var target) &&
                     Uri.UnescapeDataString(target.AbsolutePath.TrimStart('/')) == path));

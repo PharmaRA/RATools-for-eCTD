@@ -269,7 +269,7 @@
       "sourceSection": "historyBaseline; identities.LeafAddress",
       "title": "Explicit historical source selection and trust",
       "category": "History",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -281,18 +281,22 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "P2-02 captures and binds explicit historical sources without database lookup. XML references, compatibility and trust qualification still require P2-03/04/06.",
+      "implementationNote": "P2-04 resolves only explicitly selected captures, preserves unverified/rejected trust, and blocks unsupported profile compatibility. Persisted evidence authentication and authorization remain P2-06.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-history",
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target",
-        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
       ],
       "componentEvidence": [
         "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
-        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs",
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -369,7 +373,7 @@
       "internalRuleId": "PROFILE-VERSION",
       "authorityRuleId": null,
       "sourceId": "ratools-publisher-contract-v1",
-      "sourceSection": "validationBinding.profileSnapshotId",
+      "sourceSection": "validationBinding.profileSnapshotId; Appendix 6, regional backbone per submission (PDF p. 99 / printed 6-2)",
       "title": "Declared XML versions match explicit profile snapshot",
       "category": "XML",
       "ruleVersion": "2",
@@ -384,7 +388,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Implemented",
-      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification. P2-04 also rejects a missing regional backbone reference, even if the ICH DTD permits empty M1.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
         "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
@@ -614,10 +618,10 @@
       "internalRuleId": "LIFECYCLE-OPERATION",
       "authorityRuleId": null,
       "sourceId": "ich-ectd-3.2.2",
-      "sourceSection": "Appendix 6, Operation Attribute; change history for version 3.2.2",
+      "sourceSection": "Appendix 6, regional backbone reference (PDF p. 99 / printed 6-2), Operation Attribute and modified-file (PDF pp. 100-101 / printed 6-3-6-4)",
       "title": "Leaf operation and modified-file semantics",
       "category": "Lifecycle",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -628,13 +632,19 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent operation validation is pending. Do not treat the editor's conservative earlier-sequence selection as a universal ICH prohibition on same-sequence append.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-04 validates independent new, required modified-file, empty delete checksum and no new delete content; regional references must be new. Same-sequence consultation and complex combinations remain NotEvaluated pending applicable policy.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -644,7 +654,7 @@
       "sourceSection": "Appendix 6, modified-file attribute and lifecycle examples",
       "title": "Resolve exact modified-file URI from source backbone",
       "category": "Lifecycle",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -655,16 +665,21 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "P2-04 resolves once relative to the containing XML; exact sequence/backbone/fragment, query/scheme/escape/future rejection and explicit selection only. Windows positive and negative tests passed; no external-tool qualification is claimed.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment",
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -674,7 +689,7 @@
       "sourceSection": "Appendix 6, modified-file attribute and lifecycle examples",
       "title": "Historical XML and target leaf exist",
       "category": "Lifecycle",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -685,16 +700,21 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "P2-04 distinguishes missing history/XML/ID, duplicate/non-leaf IDs, uninspected or invalid XML, and missing historical content; href-free delete is included. Missing prerequisites remain NotEvaluated, never a fallback match.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-history",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment",
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -704,7 +724,7 @@
       "sourceSection": "Appendix 6, Operation Attribute; examples of replace, append and delete",
       "title": "Target effectiveness and operation chains",
       "category": "Lifecycle",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -715,16 +735,21 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-04 replays simple replace/append/delete against pre-sequence states. Inactive targets fail; unresolved historical effects propagate. Conflicting same-sequence operations, cycles and further append-branch operations remain NotEvaluated pending P3 policy.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#target-already-replaced",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#target-already-deleted"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#target-already-deleted",
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -734,7 +759,7 @@
       "sourceSection": "nodeIdentity; identities.LeafAddress; historyBaseline",
       "title": "Historical target has compatible business context",
       "category": "Lifecycle",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -746,15 +771,19 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Existing resolver depends on business repositories. Independent XML context comparison and ambiguity handling are pending.",
+      "implementationNote": "P2-04 compares exact independent ICH XML ancestry and identity attributes, preserving ambiguity. Regional identity and cross-profile compatibility remain NotEvaluated pending P6 policy.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences",
+        "tests/RATools.Tests/Fixtures/Publisher/expected.json"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target",
+        "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs"
       ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/LifecycleTargetResolver.cs"
+        "src/RATools.Application/Validation/LifecycleTargetResolver.cs",
+        "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs",
+        "reference/publisher/PACKAGE-LIFECYCLE-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },

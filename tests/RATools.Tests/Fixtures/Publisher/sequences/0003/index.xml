@@ -6,7 +6,7 @@
   </m1-administrative-information-and-prescribing-information>
   <m3-quality><m3-2-body-of-data>
     <m3-2-s-drug-substance substance="Drug A" manufacturer="Beta"><m3-2-s-4-control-of-drug-substance><m3-2-s-4-1-specification>
-      <leaf ID="beta-delete" operation="delete" modified-file="../0000/index.xml#beta-spec-v1" checksum="d41d8cd98f00b204e9800998ecf8427e" checksum-type="md5"><title>Delete Beta specification</title></leaf>
+      <leaf ID="beta-delete" operation="delete" modified-file="../0000/index.xml#beta-spec-v1" checksum="" checksum-type="md5"><title>Delete Beta specification</title></leaf>
     </m3-2-s-4-1-specification></m3-2-s-4-control-of-drug-substance></m3-2-s-drug-substance>
   </m3-2-body-of-data></m3-quality>
 </ectd:ectd>

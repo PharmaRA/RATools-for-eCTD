@@ -103,3 +103,10 @@ through the catalog's `ratools-package-xml-assets-v1` source. Node context and
 extension criteria retain their outstanding mapping/regional qualification gaps.
 See [PACKAGE-XML-INSPECTION.md](PACKAGE-XML-INSPECTION.md) for execution boundaries
 and the independent libxml fixture checks.
+
+P2-04 implements exact lifecycle URI and target resolution, bringing the catalog
+to nine implemented checks. Operation/effectiveness/context and historical trust
+remain partial where authority policy, append branches, regional identity or
+persisted evidence authentication is required. Passing a limited replay cannot
+close those catalog gaps. See [PACKAGE-LIFECYCLE-INSPECTION.md](PACKAGE-LIFECYCLE-INSPECTION.md)
+for the pinned source decisions and test boundaries.

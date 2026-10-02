@@ -26,6 +26,10 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null)
             documents.Add(ich);
             if (ich.ReadComplete)
             {
+                if (!ich.Leaves.Any(leaf => leaf.IsRegionalReference))
+                    findings.Add(new("PROFILE-VERSION", CheckStatus.Fail, ValidationSeverity.Error, "REGIONAL_BACKBONE_REFERENCE_MISSING",
+                        "ICH Appendix 6 requires a regional administrative backbone reference for each submission.",
+                        new(input.Manifest.SequenceNumber, ich.LogicalPath)));
                 var regionalProfile = profiles.SingleOrDefault(profile => profile.Kind != BackboneKind.Ich);
                 var regionalPaths = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var leaf in ich.Leaves.Where(leaf => leaf.IsRegionalReference && leaf.Operation != "delete"))

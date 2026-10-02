@@ -5,6 +5,8 @@ namespace RATools.Application.PackageValidation;
 
 public sealed record PackageReference(string? LogicalPath, string? Query, string? Fragment, string? ExternalUri = null);
 
+internal sealed class PackageReferenceScopeException(string message, string parameter) : ArgumentException(message, parameter);
+
 public static class PackageLogicalPath
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
@@ -56,7 +58,7 @@ public static class PackageLogicalPath
             if (part == ".") continue;
             if (part == "..")
             {
-                if (result.Count == 0) throw new ArgumentException("Reference escapes the selected application.", nameof(reference));
+                if (result.Count == 0) throw new PackageReferenceScopeException("Reference escapes the selected application.", nameof(reference));
                 result.RemoveAt(result.Count - 1);
             }
             else
