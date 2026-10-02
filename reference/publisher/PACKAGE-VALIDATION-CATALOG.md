@@ -1,7 +1,7 @@
 # Independent package validation catalog (P2-01)
 
 `package-rules-v1.json` is the versioned development inventory for independent
-package validation. Its 36 checks cover controlled inputs, XML, node identities,
+package validation. Its 37 checks cover controlled inputs, XML, node identities,
 lifecycle references, delivered bytes, PDF inspection and qualification gaps.
 It is not a complete regional regulatory checklist. In particular, the FDA and
 EU criteria inventory entries are explicit blockers until individual regional
@@ -93,4 +93,7 @@ dotnet test tests/RATools.Tests/RATools.Tests.csproj -c Release --filter FullyQu
 The tests cover embedded provenance, exact digest binding, strict parsing,
 immutable rule lists, coverage gates, all seven manual binding dimensions and
 portable report serialization. P2-02 adds database-independent directory/ZIP and
-history reading; P2-03/04 add XML inspection and lifecycle resolution.
+history reading, including an always-applicable `INPUT-LIMITS` check in addition
+to ZIP metadata limits. These input entries now link to the actual reader and
+rejection tests, while per-run report integration and Linux qualification remain
+pending. P2-03/04 add XML inspection and lifecycle resolution.

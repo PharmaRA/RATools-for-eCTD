@@ -125,6 +125,7 @@ public sealed class PackageRuleCatalogTests
     {
         var json = CatalogJson();
         json["rules"]![0]!["implementationStatus"] = "Implemented";
+        json["rules"]![0]!["negativeFixtures"] = new JsonArray();
         Assert.Throws<ArgumentException>(() => Load(json));
         json["rules"]![0]!["implementationStatus"] = "Manual";
         Assert.Throws<ArgumentException>(() => Load(json));

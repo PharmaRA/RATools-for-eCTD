@@ -79,13 +79,18 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
       ],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -107,13 +112,49 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "componentEvidence": [
-        "tests/RATools.Tests/Security/CrossPlatformPathSecurityTests.cs"
+        "tests/RATools.Tests/Security/CrossPlatformPathSecurityTests.cs",
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "INPUT-LIMITS",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.resourceLimitsDigest",
+      "title": "Bounded directory and ZIP input capture",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All inputs: entry count including inferred directories, single-file and total bytes, path limits and elapsed time are bound to the report.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
       ],
       "externalComparisonEvidence": []
     },
@@ -135,16 +176,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#zip-traversal",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#zip-duplicate-entry"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#zip-duplicate-entry",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -165,11 +210,16 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
       "positiveFixtures": [],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -190,13 +240,18 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
       ],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -217,16 +272,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Partial",
+      "implementationNote": "P2-02 captures and binds explicit historical sources without database lookup. XML references, compatibility and trust qualification still require P2-03/04/06.",
       "positiveFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-history",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+      ],
       "externalComparisonEvidence": []
     },
     {

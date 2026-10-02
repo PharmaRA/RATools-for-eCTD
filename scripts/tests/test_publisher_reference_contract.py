@@ -135,8 +135,10 @@ def verify_scope() -> None:
 
 if __name__ == "__main__":
     from test_package_rule_catalog import verify_package_rule_catalog
+    from test_package_input_contract import verify_package_input_contract
 
     verify_scope()
     verify_contract_examples()
     verify_package_rule_catalog()
+    verify_package_input_contract()
     print("Publisher source and scope contract passed")
