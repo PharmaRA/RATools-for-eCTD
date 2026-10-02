@@ -16,12 +16,13 @@ public sealed class DocumentPlacementService(
     IPublishJobRepository publishJobRepository,
     IEctdWorkspacePathResolver workspacePathResolver,
     IDocumentStorageBoundary documentStorageBoundary,
-    IPersistenceTransaction persistenceTransaction) : IDocumentPlacementService
+    WorkspaceMutationCoordinator mutations) : IDocumentPlacementService
 {
     private static readonly TimeSpan FileOperationCleanupTimeout = TimeSpan.FromSeconds(30);
 
     public async Task<DocumentPlacementDto> CreateAsync(CreateDocumentPlacementRequest request, CancellationToken cancellationToken = default)
     {
+        await using var mutation = await mutations.AcquireAsync(request.ApplicationId, request.SequenceNumber, request.ExpectedRevision, cancellationToken);
         var document = await documentRepository.GetAsync(request.DocumentId, cancellationToken);
         if (document is null)
         {
@@ -55,8 +56,8 @@ public sealed class DocumentPlacementService(
             operation,
             request.Title);
 
-        await placementRepository.AddAsync(placement, cancellationToken);
-        return placement.ToDto();
+        await mutation.CommitAsync(ct => placementRepository.AddAsync(placement, ct), cancellationToken);
+        return placement.ToDto() with { WorkspaceRevision = mutation.Revision };
     }
 
     public async Task<DocumentPlacementDto?> UpdateSectionAsync(Guid id, UpdateDocumentPlacementSectionRequest request, CancellationToken cancellationToken = default)
@@ -66,6 +67,10 @@ public sealed class DocumentPlacementService(
         {
             return null;
         }
+
+        await using var mutation = await mutations.AcquireAsync(placement.ApplicationId, placement.SequenceNumber, request.ExpectedRevision, cancellationToken);
+        placement = await placementRepository.GetAsync(id, cancellationToken);
+        if (placement is null) return null;
 
         var document = await documentRepository.GetAsync(placement.DocumentId, cancellationToken)
             ?? throw new InvalidOperationException($"Document {placement.DocumentId} was not found.");
@@ -111,7 +116,7 @@ public sealed class DocumentPlacementService(
         try
         {
             ApplySectionState(document, placement, updatedState);
-            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            await mutation.CommitAsync(async transactionToken =>
             {
                 if (movedStoragePath is not null && !await documentRepository.UpdateAsync(document, transactionToken))
                 {
@@ -126,7 +131,7 @@ public sealed class DocumentPlacementService(
         }
         catch (Exception exception)
         {
-            await CompensateSectionUpdateAsync(document, placement, originalState, updatedState, exception);
+            await CompensateSectionUpdateAsync(document, placement, originalState, updatedState, exception, mutation);
             throw;
         }
 
@@ -135,7 +140,7 @@ public sealed class DocumentPlacementService(
             TryDeleteEmptySourceFolders(application.WorkingDirectoryPath, placement.SequenceNumber, originalStoragePath, oldFolder.RelativeFolderPath);
         }
 
-        return placement.ToDto();
+        return placement.ToDto() with { WorkspaceRevision = mutation.Revision };
     }
 
     private async Task CompensateSectionUpdateAsync(
@@ -143,7 +148,8 @@ public sealed class DocumentPlacementService(
         DocumentPlacement placement,
         DocumentSectionState originalState,
         DocumentSectionState updatedState,
-        Exception originalException)
+        Exception originalException,
+        WorkspaceMutation mutation)
     {
         using var cleanupCts = new CancellationTokenSource(FileOperationCleanupTimeout);
         var compensationFailures = new List<Exception>();
@@ -171,7 +177,7 @@ public sealed class DocumentPlacementService(
         var persistedCompensation = false;
         try
         {
-            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            await mutation.ReconcileAsync(!restoredOriginalFile, async transactionToken =>
             {
                 if (!await documentRepository.UpdateAsync(document, transactionToken))
                 {
@@ -213,6 +219,10 @@ public sealed class DocumentPlacementService(
         {
             return null;
         }
+
+        await using var mutation = await mutations.AcquireAsync(placement.ApplicationId, placement.SequenceNumber, request.ExpectedRevision, cancellationToken);
+        placement = await placementRepository.GetAsync(id, cancellationToken);
+        if (placement is null) return null;
 
         var document = await documentRepository.GetAsync(placement.DocumentId, cancellationToken)
             ?? throw new InvalidOperationException($"Document {placement.DocumentId} was not found.");
@@ -300,7 +310,7 @@ public sealed class DocumentPlacementService(
 
         try
         {
-            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            await mutation.CommitAsync(async transactionToken =>
             {
                 if (!await documentRepository.UpdateAsync(document, transactionToken))
                 {
@@ -313,7 +323,7 @@ public sealed class DocumentPlacementService(
                 }
             }, cancellationToken);
 
-            return placement.ToDto();
+            return placement.ToDto() with { WorkspaceRevision = mutation.Revision };
         }
         catch (Exception exception)
         {
@@ -322,7 +332,8 @@ public sealed class DocumentPlacementService(
                 placement,
                 originalState,
                 updatedState,
-                exception);
+                exception,
+                mutation);
 
             throw;
         }
@@ -333,7 +344,8 @@ public sealed class DocumentPlacementService(
         DocumentPlacement placement,
         DocumentMetadataState originalState,
         DocumentMetadataState updatedState,
-        Exception originalException)
+        Exception originalException,
+        WorkspaceMutation mutation)
     {
         using var cleanupCts = new CancellationTokenSource(FileOperationCleanupTimeout);
         var compensationFailures = new List<Exception>();
@@ -367,7 +379,7 @@ public sealed class DocumentPlacementService(
 
         try
         {
-            await persistenceTransaction.ExecuteAsync(async transactionToken =>
+            await mutation.ReconcileAsync(!restoredOriginalFile, async transactionToken =>
             {
                 if (!await documentRepository.UpdateAsync(document, transactionToken))
                 {
@@ -466,13 +478,17 @@ public sealed class DocumentPlacementService(
         return items.Select(x => x.ToDto()).ToArray();
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, long? expectedRevision = null, CancellationToken cancellationToken = default)
     {
         var placement = await placementRepository.GetAsync(id, cancellationToken);
         if (placement is null)
         {
             return false;
         }
+
+        await using var mutation = await mutations.AcquireAsync(placement.ApplicationId, placement.SequenceNumber, expectedRevision, cancellationToken);
+        placement = await placementRepository.GetAsync(id, cancellationToken);
+        if (placement is null) return false;
 
         var publishJobs = await publishJobRepository.QueryHistoryAsync(
             new PublishJobHistoryQuery(placement.ApplicationId, null, null, null, null, 1, 1),
@@ -483,7 +499,7 @@ public sealed class DocumentPlacementService(
             throw new DocumentPlacementDeleteConflictException($"Document placement {id} cannot be deleted because publish jobs exist for application {placement.ApplicationId}.");
         }
 
-        await placementRepository.DeleteAsync(id, cancellationToken);
+        await mutation.CommitAsync(ct => placementRepository.DeleteAsync(id, ct), cancellationToken);
         return true;
     }
 

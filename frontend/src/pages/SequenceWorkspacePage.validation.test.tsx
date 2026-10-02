@@ -42,6 +42,7 @@ const waitForCondition = async (predicate: () => boolean, label: string) => {
 }
 
 const defaultPublishingMetadata = (): SequencePublishingMetadata => ({
+  workspaceRevision: 0,
   applicationId: 'app-1',
   sequenceNumber: '0001',
   standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
@@ -158,14 +159,12 @@ const clickLocateButton = (container: Element | null, index = 0) => {
   })
 }
 
-const isDocumentPlacementsQuery = (url: string) => url === '/api/document-placements' || url.startsWith('/api/document-placements?')
-
-const isDocumentsQuery = (url: string) => url === '/api/documents' || url.startsWith('/api/documents?')
-
 const stubWorkspaceFetch = () => {
   vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-    if (isDocumentPlacementsQuery(url)) {
-      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+if (url.endsWith('/workspace')) {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        workspaceRevision: 0,
+        placements: [
         {
           id: 'placement-1',
           documentId: 'document-1',
@@ -175,11 +174,8 @@ const stubWorkspaceFetch = () => {
           operation: 'Replace',
           title: 'Protocol Leaf',
         },
-      ]) })
-    }
-
-    if (isDocumentsQuery(url)) {
-      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+      ],
+        documents: [
         {
           id: 'document-1',
           fileName: 'protocol.pdf',
@@ -188,7 +184,8 @@ const stubWorkspaceFetch = () => {
           sha256: 'abc123',
           sizeBytes: 1234,
         },
-      ]) })
+      ],
+      }) })
     }
 
     if (url === '/api/applications/app-1/ectd-structure') {
@@ -322,12 +319,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
   it('renders visible workspace data load errors', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (isDocumentPlacementsQuery(url)) {
-        return Promise.reject(new Error('placements unavailable'))
-      }
-
-      if (isDocumentsQuery(url)) {
-        return Promise.reject(new Error('documents unavailable'))
+      if (url.endsWith('/workspace')) {
+        return Promise.reject(new Error('workspace unavailable'))
       }
 
       if (url === '/api/applications/app-1/ectd-structure') {
@@ -353,9 +346,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     await flushPromises()
 
     expect(document.body.textContent).toContain('加载工作区映射失败')
-    expect(document.body.textContent).toContain('placements unavailable')
+    expect(document.body.textContent).toContain('workspace unavailable')
     expect(document.body.textContent).toContain('加载工作区文档失败')
-    expect(document.body.textContent).toContain('documents unavailable')
+    expect(document.body.textContent).toContain('workspace unavailable')
 
     unmount()
   })
@@ -398,13 +391,13 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({}) })
       }
 
-      if (isDocumentPlacementsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
-      }
-
-      if (isDocumentsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
-      }
+if (url.endsWith('/workspace')) {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        workspaceRevision: 0,
+        placements: [],
+        documents: [],
+      }) })
+    }
 
       if (url === '/api/applications/app-1/ectd-structure') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
@@ -426,7 +419,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         const body = init?.body as FormData
         const file = body.get('file') as File
         uploadedFileNames.push(file.name)
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ id: `doc-${uploadedFileNames.length}` }) })
+        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({ id: `doc-${uploadedFileNames.length}`, workspaceRevision: 1 }) })
       }
 
       return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([]) })
@@ -547,6 +540,7 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
       lifecycleMatches: [],
     })
     const getSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+      workspaceRevision: 0,
       applicationId: 'app-1',
       sequenceNumber: '0001',
       standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
@@ -618,7 +612,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
         categorySummaries: [],
         findings: [],
       })
-    const updateSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+const updateSequencePublishingMetadataProvider = vi.fn().mockResolvedValue({
+      workspaceRevision: 0,
       applicationId: 'app-1',
       sequenceNumber: '0001',
       standardsProfile: 'FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3',
@@ -1431,8 +1426,10 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('locates a lifecycle row document by document id and section when duplicate placements exist', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (isDocumentPlacementsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+if (url.endsWith('/workspace')) {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        workspaceRevision: 0,
+        placements: [
           {
             id: 'placement-1',
             documentId: 'document-1',
@@ -1451,11 +1448,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             operation: 'Replace',
             title: 'Cover Leaf',
           },
-        ]) })
-      }
-
-      if (isDocumentsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+        ],
+        documents: [
           {
             id: 'document-1',
             fileName: 'shared.pdf',
@@ -1464,8 +1458,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             sha256: 'abc123',
             sizeBytes: 1234,
           },
-        ]) })
-      }
+        ],
+      }) })
+    }
 
       if (url === '/api/applications/app-1/ectd-structure') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
@@ -1544,8 +1539,10 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('replaces the reserved section placeholder with a leaf metadata guide', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (isDocumentPlacementsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+if (url.endsWith('/workspace')) {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        workspaceRevision: 0,
+        placements: [
           {
             id: 'target-placement-1',
             documentId: 'target-document-1',
@@ -1564,11 +1561,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             operation: 'New',
             title: 'Protocol Leaf',
           },
-        ]) })
-      }
-
-      if (isDocumentsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+        ],
+        documents: [
           {
             id: 'target-document-1',
             fileName: 'historical.pdf',
@@ -1585,8 +1579,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             sha256: 'abc123',
             sizeBytes: 1234,
           },
-        ]) })
-      }
+        ],
+      }) })
+    }
 
       if (url === '/api/applications/app-1/ectd-structure') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
@@ -1628,8 +1623,10 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
 
   it('shows editable leaf metadata and preview for a selected mapped document', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (isDocumentPlacementsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+if (url.endsWith('/workspace')) {
+      return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({
+        workspaceRevision: 0,
+        placements: [
           {
             id: 'target-placement-1',
             documentId: 'target-document-1',
@@ -1648,11 +1645,8 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             operation: 'Replace',
             title: 'Protocol Leaf',
           },
-        ]) })
-      }
-
-      if (isDocumentsQuery(url)) {
-        return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue([
+        ],
+        documents: [
           {
             id: 'target-document-1',
             fileName: 'historical.pdf',
@@ -1669,8 +1663,9 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
             sha256: 'abc123',
             sizeBytes: 1234,
           },
-        ]) })
-      }
+        ],
+      }) })
+    }
 
       if (url === '/api/applications/app-1/ectd-structure') {
         return Promise.resolve({ ok: true, json: vi.fn().mockResolvedValue({

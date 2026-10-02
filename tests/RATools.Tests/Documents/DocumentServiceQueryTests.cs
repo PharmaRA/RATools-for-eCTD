@@ -69,7 +69,8 @@ public sealed class DocumentServiceQueryTests
             new StubApplicationRepository(),
             new StubWorkspaceService(),
             new StubWorkspacePathResolver(),
-            PermissiveDocumentStorageBoundary.Instance);
+            PermissiveDocumentStorageBoundary.Instance,
+            TestWorkspaceMutations.Create(new StubApplicationRepository()));
 
     private static SubmissionDocument Document(Guid id, string fileName)
         => SubmissionDocument.Rehydrate(

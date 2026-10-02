@@ -5,6 +5,7 @@ import type {
   EctdStructureContract,
 } from './api/contracts'
 import { buildApplicationUrl } from './applicationActions'
+import type { WorkspaceSnapshotDto } from './api/generated'
 
 export const WORKSPACE_PLACEMENT_DRAG_MIME = 'application/x-ratools-placement'
 
@@ -15,17 +16,20 @@ export type PlacementDragPayload = {
 }
 
 export type MovePlacementRequest = {
+  expectedRevision: number
   placementId: string
   fromSection: string
   toSection: string
 }
 
 export type DeletePlacementWithDocumentRequest = {
+  expectedRevision: number
   placementId: string
   documentId: string
 }
 
 export type RevisePlacementMetadataRequest = {
+  expectedRevision: number
   placementId: string
   title?: string
   operation: string
@@ -34,6 +38,7 @@ export type RevisePlacementMetadataRequest = {
 }
 
 export type UploadDocumentToSectionRequest = {
+  expectedRevision: number
   applicationId: string
   sequenceNumber: string
   file: File
@@ -75,6 +80,23 @@ export const loadWorkspacePlacements = async (
 ): Promise<DocumentPlacementContract[]> => {
   const url = buildWorkspaceDataUrls(appId).placements
   return signal ? executeRequest(url, { signal }) : executeRequest(url)
+}
+
+export const loadWorkspaceSnapshot = async (
+  applicationId: string,
+  sequenceNumber: string,
+  executeRequest: typeof apiFetch = apiFetch,
+  signal?: AbortSignal,
+): Promise<WorkspaceSnapshotDto> => executeRequest(
+  `/api/applications/${encodeURIComponent(applicationId)}/sequences/${encodeURIComponent(sequenceNumber)}/workspace`,
+  { signal },
+)
+
+export const requireWorkspaceRevision = (revision: number | undefined | null): number => {
+  if (revision === undefined || revision === null || !Number.isSafeInteger(revision) || revision < 0 || revision >= Number.MAX_SAFE_INTEGER) {
+    throw new Error('请刷新工作区，加载当前修订号后再编辑。')
+  }
+  return revision
 }
 
 export const loadWorkspaceDocuments = async (
@@ -164,7 +186,7 @@ export const movePlacementToSection = async (
 
   await executeRequest(
     buildDocumentPlacementSectionUrl(request.placementId),
-    buildJsonRequestInit('PUT', { ctdSection: request.toSection }),
+    buildJsonRequestInit('PUT', { ctdSection: request.toSection, expectedRevision: requireWorkspaceRevision(request.expectedRevision) }),
   )
 
   return true
@@ -174,10 +196,11 @@ export const deletePlacementWithDocument = async (
   request: DeletePlacementWithDocumentRequest,
   executeRequest: typeof apiFetch = apiFetch,
 ) => {
-  await executeRequest(buildDocumentPlacementUrl(request.placementId), { method: 'DELETE' })
+  const revision = requireWorkspaceRevision(request.expectedRevision)
+  await executeRequest(`${buildDocumentPlacementUrl(request.placementId)}?expectedRevision=${revision}`, { method: 'DELETE' })
 
   try {
-    await executeRequest(buildDocumentUrl(request.documentId), { method: 'DELETE' })
+    await executeRequest(`${buildDocumentUrl(request.documentId)}?expectedRevision=${revision + 1}`, { method: 'DELETE' })
   } catch (error) {
     throw new PlacementDeletePartialFailureError(
       `Placement ${request.placementId} was deleted, but failed to delete document ${request.documentId}.`,
@@ -193,6 +216,7 @@ export const revisePlacementMetadata = async (
   await executeRequest(
     buildDocumentPlacementMetadataUrl(request.placementId),
     buildJsonRequestInit('PUT', {
+      expectedRevision: requireWorkspaceRevision(request.expectedRevision),
       title: request.title,
       operation: request.operation,
       fileNamePrefix: request.fileNamePrefix,
@@ -208,15 +232,17 @@ export const uploadDocumentToSection = async (
   const formData = new FormData()
   formData.append('file', request.file)
   formData.append('CtdSection', request.ctdSection)
+  formData.append('ExpectedRevision', String(requireWorkspaceRevision(request.expectedRevision)))
 
   const document = await executeRequest(
     buildDocumentUploadUrl(request.applicationId, request.sequenceNumber),
     { method: 'POST', body: formData },
-  ) as { id: string }
+  ) as DocumentContract
 
   await executeRequest(
     buildDocumentPlacementsUrl(),
     buildJsonRequestInit('POST', {
+      expectedRevision: requireWorkspaceRevision(document.workspaceRevision),
       applicationId: request.applicationId,
       sequenceNumber: request.sequenceNumber,
       documentId: document.id,

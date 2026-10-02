@@ -9,8 +9,10 @@ export const buildSequencePublishingMetadataUpdateRequest = (
   applicationId: string,
   sequenceNumber: string,
   values: MetadataFormValues,
+  expectedRevision: number,
 ): UpdateSequencePublishingMetadataRequest => ({
   applicationId,
+  expectedRevision,
   sequenceNumber,
   applicationType: optionalText(values.applicationType),
   submissionType: trimText(values.submissionType),

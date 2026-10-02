@@ -9,4 +9,5 @@ public sealed record DocumentPlacementDto(
     string Operation,
     string? Title,
     Guid? LifecycleTargetPlacementId,
-    DateTime CreatedUtc);
+    DateTime CreatedUtc,
+    long? WorkspaceRevision = null);

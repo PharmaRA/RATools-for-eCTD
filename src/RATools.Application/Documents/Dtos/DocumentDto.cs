@@ -8,4 +8,5 @@ public sealed record DocumentDto(
     string Sha256,
     string Md5,
     string StoragePath,
-    DateTime CreatedUtc);
+    DateTime CreatedUtc,
+    long? WorkspaceRevision = null);

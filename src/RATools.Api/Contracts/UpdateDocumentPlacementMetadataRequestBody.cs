@@ -4,6 +4,8 @@ namespace RATools.Api.Contracts;
 
 public sealed class UpdateDocumentPlacementMetadataRequestBody
 {
+    public long? ExpectedRevision { get; init; }
+
     public string? Title { get; init; }
 
     [Required]

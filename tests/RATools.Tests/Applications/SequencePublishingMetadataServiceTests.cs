@@ -3,6 +3,7 @@ using RATools.Application.Applications;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Standards;
 using RATools.Domain.Applications;
+using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Applications;
 
@@ -23,7 +24,7 @@ public sealed class SequencePublishingMetadataServiceTests
             "us-fda-ectd-3.2.2");
         var service = new SequencePublishingMetadataService(
             new StubApplicationRepository(application),
-            new FdaEctd322StandardsProfileProvider());
+            new FdaEctd322StandardsProfileProvider(), TestWorkspaceMutations.Create(new StubApplicationRepository(application)));
 
         var metadata = await service.GetAsync(applicationId, "0000");
 
@@ -58,7 +59,7 @@ public sealed class SequencePublishingMetadataServiceTests
             Path.Combine(Path.GetTempPath(), "IND-001"),
             "us-fda-ectd-3.2.2");
         var repository = new StubApplicationRepository(application);
-        var service = new SequencePublishingMetadataService(repository, new FdaEctd322StandardsProfileProvider());
+        var service = new SequencePublishingMetadataService(repository, new FdaEctd322StandardsProfileProvider(), TestWorkspaceMutations.Create(repository));
 
         var updated = await service.UpdateAsync(
             applicationId,
@@ -74,7 +75,7 @@ public sealed class SequencePublishingMetadataServiceTests
                 "regulatory",
                 "301-555-0100",
                 "office",
-                "jane.regulatory@example.test"));
+                "jane.regulatory@example.test", ExpectedRevision: 0));
 
         Assert.NotNull(updated);
         Assert.Equal("IND", updated!.ApplicationType);
@@ -88,7 +89,8 @@ public sealed class SequencePublishingMetadataServiceTests
         Assert.Equal("301-555-0100", updated.Telephone);
         Assert.Equal("office", updated.TelephoneNumberType);
         Assert.Equal("jane.regulatory@example.test", updated.Email);
-        Assert.Equal(1, repository.UpdateCount);
+        Assert.Equal(2, repository.UpdateCount);
+        Assert.Equal(1, updated.WorkspaceRevision);
 
         var reloaded = await service.GetAsync(applicationId, "0001");
         Assert.Equal("protocol-amendment", reloaded!.SubmissionType);
@@ -112,7 +114,7 @@ public sealed class SequencePublishingMetadataServiceTests
             "us-fda-ectd-3.2.2");
         var service = new SequencePublishingMetadataService(
             new StubApplicationRepository(application),
-            new FdaEctd322StandardsProfileProvider());
+            new FdaEctd322StandardsProfileProvider(), TestWorkspaceMutations.Create(new StubApplicationRepository(application)));
 
         var metadata = await service.GetAsync(applicationId, "0000");
 

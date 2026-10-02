@@ -8,6 +8,7 @@ import {
   movePlacementToSection,
   PlacementDeletePartialFailureError,
   revisePlacementMetadata,
+  requireWorkspaceRevision,
   uploadDocumentToSection,
 } from '../workspaceActions'
 import {
@@ -48,6 +49,7 @@ export const SequenceWorkspacePage = ({
 }: SequenceWorkspacePageProps) => {
   const [loading, setLoading] = useState(false)
   const {
+    workspaceRevision,
     placements,
     applicationPlacements,
     documentsById,
@@ -86,9 +88,11 @@ export const SequenceWorkspacePage = ({
     handlePublishModalCancel,
     triggerPublish,
     stopPublishPolling,
+    invalidateValidation,
   } = useSequencePublishing({
     appId,
     seqNumber,
+    onWorkspaceChanged: refreshWorkspaceData,
     validateSequenceProvider,
     getPublishReadinessProvider,
     getSequencePublishingMetadataProvider,
@@ -187,7 +191,8 @@ export const SequenceWorkspacePage = ({
     setMovingPlacementIds((current) => new Set(current).add(placementId))
     setLoading(true)
     try {
-      const moved = await movePlacementToSection({ placementId, fromSection, toSection })
+      invalidateValidation()
+      const moved = await movePlacementToSection({ placementId, fromSection, toSection, expectedRevision: requireWorkspaceRevision(workspaceRevision) })
 
       if (!moved) {
         message.info('该文档已映射到此章节。')
@@ -201,6 +206,7 @@ export const SequenceWorkspacePage = ({
       message.success('文档已移动到目标章节。')
     } catch (error) {
       message.error(`移动文档失败：${getErrorMessage(error)}`)
+      await refreshWorkspaceData()
     } finally {
       setMovingPlacementIds((current) => {
         const next = new Set(current)
@@ -215,10 +221,12 @@ export const SequenceWorkspacePage = ({
     setDeletingPlacementIds((current) => new Set(current).add(placementId))
     setLoading(true)
     try {
-      await deletePlacementWithDocument({ placementId, documentId })
+      invalidateValidation()
+      await deletePlacementWithDocument({ placementId, documentId, expectedRevision: requireWorkspaceRevision(workspaceRevision) })
       await refreshWorkspaceData()
       message.success('文档映射与物理文件已删除。')
     } catch (error) {
+      await refreshWorkspaceData()
       if (error instanceof PlacementDeletePartialFailureError) {
         message.error(`映射已删除，但文档/文件删除失败：${error.message}`)
       } else {
@@ -259,7 +267,9 @@ export const SequenceWorkspacePage = ({
     setSavingRevisionPlacementId(selectedPlacement.id)
     setLoading(true)
     try {
+      invalidateValidation()
       await revisePlacementMetadata({
+        expectedRevision: requireWorkspaceRevision(workspaceRevision),
         placementId: selectedPlacement.id,
         title: String(values.title || '').trim() || undefined,
         operation,
@@ -272,6 +282,7 @@ export const SequenceWorkspacePage = ({
       message.success('文件元数据修订已保存。')
     } catch (error) {
       message.error(`保存元数据修订失败：${getErrorMessage(error)}`)
+      await refreshWorkspaceData()
     } finally {
       setSavingRevisionPlacementId(null)
       setLoading(false)
@@ -288,7 +299,9 @@ export const SequenceWorkspacePage = ({
       setSelectedTreeKey(targetSection)
       setSelectedSectionPath(targetSection)
 
+      invalidateValidation()
       await uploadDocumentToSection({
+        expectedRevision: requireWorkspaceRevision(workspaceRevision),
         applicationId: appId,
         sequenceNumber: seqNumber,
         file,
@@ -299,6 +312,7 @@ export const SequenceWorkspacePage = ({
       await refreshWorkspaceData()
     } catch (err) {
       message.error({ content: `失败：${getErrorMessage(err)}`, key: 'uploading' })
+      await refreshWorkspaceData()
     } finally {
       setLoading(false)
     }

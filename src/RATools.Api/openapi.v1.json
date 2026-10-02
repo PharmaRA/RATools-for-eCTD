@@ -752,6 +752,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "expectedRevision",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         ],
         "responses": {
@@ -986,6 +994,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "expectedRevision",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         ],
         "responses": {
@@ -1081,6 +1097,10 @@
                 ],
                 "type": "object",
                 "properties": {
+                  "ExpectedRevision": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
                   "File": {
                     "type": "string",
                     "format": "binary"
@@ -1093,6 +1113,9 @@
                 }
               },
               "encoding": {
+                "ExpectedRevision": {
+                  "style": "form"
+                },
                 "File": {
                   "style": "form"
                 },
@@ -1696,6 +1719,54 @@
           }
         }
       }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/workspace": {
+      "get": {
+        "tags": [
+          "Workspace"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSnapshotDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSnapshotDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSnapshotDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2210,6 +2281,11 @@
         ],
         "type": "object",
         "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
           "documentId": {
             "type": "string",
             "format": "uuid"
@@ -2369,7 +2445,8 @@
           "md5",
           "mediaType",
           "sha256",
-          "storagePath"
+          "storagePath",
+          "workspaceRevision"
         ],
         "type": "object",
         "properties": {
@@ -2399,6 +2476,11 @@
           "createdUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -2413,7 +2495,8 @@
           "lifecycleTargetPlacementId",
           "operation",
           "sequenceNumber",
-          "title"
+          "title",
+          "workspaceRevision"
         ],
         "type": "object",
         "properties": {
@@ -2450,6 +2533,11 @@
           "createdUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3209,7 +3297,8 @@
           "description",
           "sequenceNumber",
           "submissionType",
-          "workingDirectoryPath"
+          "workingDirectoryPath",
+          "workspaceRevision"
         ],
         "type": "object",
         "properties": {
@@ -3228,6 +3317,10 @@
           "createdUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -3247,7 +3340,8 @@
           "submissionSubtype",
           "submissionType",
           "telephone",
-          "telephoneNumberType"
+          "telephoneNumberType",
+          "workspaceRevision"
         ],
         "type": "object",
         "properties": {
@@ -3301,6 +3395,10 @@
           "email": {
             "type": "string",
             "nullable": true
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -3312,6 +3410,11 @@
         ],
         "type": "object",
         "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
           "title": {
             "type": "string",
             "nullable": true
@@ -3340,6 +3443,11 @@
         ],
         "type": "object",
         "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
           "ctdSection": {
             "maxLength": 128,
             "minLength": 2,
@@ -3356,6 +3464,11 @@
         ],
         "type": "object",
         "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
           "applicationType": {
             "type": "string",
             "nullable": true
@@ -3592,6 +3705,42 @@
           "reason": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkspaceSnapshotDto": {
+        "required": [
+          "applicationId",
+          "documents",
+          "placements",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "placements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentPlacementDto"
+            }
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentDto"
+            }
           }
         },
         "additionalProperties": false

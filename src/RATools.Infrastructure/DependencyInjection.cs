@@ -73,6 +73,8 @@ public static class DependencyInjection
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
+            services.AddSingleton<IWorkspaceRevisionStore, InMemoryWorkspaceRevisionStore>();
+            services.AddScoped<IPersistenceTransaction, InMemoryPersistenceTransaction>();
             services.AddSingleton<IDocumentRepository, InMemoryDocumentRepository>();
             services.AddSingleton<IDocumentPlacementRepository, InMemoryDocumentPlacementRepository>();
             services.AddSingleton<IPublishJobRepository, InMemoryPublishJobRepository>();
@@ -91,6 +93,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();
         services.AddScoped<ICtdNodeRepository, EfCoreCtdNodeRepository>();
+        services.AddScoped<IWorkspaceRevisionStore, EfCoreWorkspaceRevisionStore>();
         services.AddScoped<IPublishJobRepository, EfCorePublishJobRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
         services.AddScoped<IApplicationDeletionTransaction, EfCoreApplicationDeletionTransaction>();

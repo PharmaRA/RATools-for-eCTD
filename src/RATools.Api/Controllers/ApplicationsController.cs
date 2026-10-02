@@ -171,7 +171,8 @@ public sealed class ApplicationsController(
                     request.ApplicantContactType,
                     request.Telephone,
                     request.TelephoneNumberType,
-                    request.Email),
+                    request.Email,
+                    request.ExpectedRevision),
                 cancellationToken);
 
             return updated is null ? NotFound() : Ok(updated);

@@ -37,6 +37,8 @@ public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext) : ICtdNo
     public async Task<long> SaveSequenceAsync(CtdNodeGraph graph, string sequenceNumber, IReadOnlyCollection<SequenceNode> nodes,
         long expectedRevision, CancellationToken cancellationToken = default)
     {
+        await using var applicationLock = await new EfCoreWorkspaceRevisionStore(dbContext)
+            .LockApplicationAsync(graph.ApplicationId, cancellationToken);
         return await new EfCorePersistenceTransaction(dbContext).ExecuteAsync(
             ct => SaveWithinTransactionAsync(graph, sequenceNumber, nodes, expectedRevision, ct), cancellationToken);
     }

@@ -11,6 +11,8 @@ public sealed class UploadDocumentRequestBody
 
 public sealed class UploadSequenceDocumentRequestBody
 {
+    public long? ExpectedRevision { get; init; }
+
     [Required]
     public IFormFile? File { get; init; }
 

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Documents;
 
@@ -6,34 +6,28 @@ namespace RATools.Infrastructure.Persistence.InMemory;
 
 public sealed class InMemoryDocumentPlacementRepository : IDocumentPlacementRepository
 {
-    private readonly ConcurrentDictionary<Guid, DocumentPlacement> _items = new();
+    private readonly TransactionalMemoryCollection<DocumentPlacement> _items = new(item => item.ToRecord().ToDomain());
 
     public Task AddAsync(DocumentPlacement placement, CancellationToken cancellationToken = default)
     {
-        _items[placement.Id] = placement;
+        _items.Set(placement.Id, placement);
         return Task.CompletedTask;
     }
 
     public Task<bool> UpdateAsync(DocumentPlacement placement, CancellationToken cancellationToken = default)
     {
-        if (!_items.ContainsKey(placement.Id))
-        {
-            return Task.FromResult(false);
-        }
-
-        _items[placement.Id] = placement;
-        return Task.FromResult(true);
+        return Task.FromResult(_items.Update(placement.Id, placement));
     }
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        _items.TryRemove(id, out _);
+        _items.Remove(id);
         return Task.CompletedTask;
     }
 
     public Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        _items.TryGetValue(id, out var placement);
+        var placement = _items.Get(id);
         return Task.FromResult(placement);
     }
 

@@ -2,6 +2,8 @@ namespace RATools.Api.Contracts;
 
 public sealed class UpdateSequencePublishingMetadataRequestBody
 {
+    public long? ExpectedRevision { get; init; }
+
     public string? ApplicationType { get; set; }
 
     public string SubmissionType { get; set; } = string.Empty;

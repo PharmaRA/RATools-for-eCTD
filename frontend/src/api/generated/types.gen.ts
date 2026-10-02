@@ -124,6 +124,7 @@ export type CreateApplicationRequestBody = {
 };
 
 export type CreateDocumentPlacementRequestBody = {
+    expectedRevision?: number | null;
     documentId: string;
     applicationId: string;
     sequenceNumber: string;
@@ -172,6 +173,7 @@ export type DocumentDto = {
     md5: string;
     storagePath: string;
     createdUtc: string;
+    workspaceRevision: number | null;
 };
 
 export type DocumentPlacementDto = {
@@ -184,6 +186,7 @@ export type DocumentPlacementDto = {
     title: string | null;
     lifecycleTargetPlacementId: string | null;
     createdUtc: string;
+    workspaceRevision: number | null;
 };
 
 export type EctdStructureDto = {
@@ -380,6 +383,7 @@ export type SequenceDto = {
     description: string;
     workingDirectoryPath: string;
     createdUtc: string;
+    workspaceRevision: number;
 };
 
 export type SequencePublishingMetadataDto = {
@@ -397,9 +401,11 @@ export type SequencePublishingMetadataDto = {
     telephone: string | null;
     telephoneNumberType: string | null;
     email: string | null;
+    workspaceRevision: number;
 };
 
 export type UpdateDocumentPlacementMetadataRequestBody = {
+    expectedRevision?: number | null;
     title?: string | null;
     operation: string;
     lifecycleTargetPlacementId?: string | null;
@@ -407,10 +413,12 @@ export type UpdateDocumentPlacementMetadataRequestBody = {
 };
 
 export type UpdateDocumentPlacementSectionRequestBody = {
+    expectedRevision?: number | null;
     ctdSection: string;
 };
 
 export type UpdateSequencePublishingMetadataRequestBody = {
+    expectedRevision?: number | null;
     applicationType?: string | null;
     submissionType: string;
     submissionSubtype?: string | null;
@@ -468,6 +476,14 @@ export type ValidationSectionMatchDto = {
     isStandard: boolean;
     matchedPrefix: string | null;
     reason: string | null;
+};
+
+export type WorkspaceSnapshotDto = {
+    applicationId: string;
+    sequenceNumber: string;
+    workspaceRevision: number;
+    placements: Array<DocumentPlacementDto>;
+    documents: Array<DocumentDto>;
 };
 
 export type GetApiApplicationsData = {
@@ -738,7 +754,9 @@ export type DeleteApiDocumentPlacementsByIdData = {
     path: {
         id: string;
     };
-    query?: never;
+    query?: {
+        expectedRevision?: number;
+    };
     url: '/api/document-placements/{id}';
 };
 
@@ -811,7 +829,9 @@ export type DeleteApiDocumentsByIdData = {
     path: {
         id: string;
     };
-    query?: never;
+    query?: {
+        expectedRevision?: number;
+    };
     url: '/api/documents/{id}';
 };
 
@@ -862,6 +882,7 @@ export type PostApiDocumentsUploadResponse = PostApiDocumentsUploadResponses[key
 
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberDocumentsUploadData = {
     body?: {
+        ExpectedRevision?: number;
         File: Blob | File;
         CtdSection: string;
     };
@@ -1145,3 +1166,22 @@ export type PostApiValidationPublishReadinessResponses = {
 };
 
 export type PostApiValidationPublishReadinessResponse = PostApiValidationPublishReadinessResponses[keyof PostApiValidationPublishReadinessResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberWorkspaceData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/workspace';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberWorkspaceResponses = {
+    /**
+     * OK
+     */
+    200: WorkspaceSnapshotDto;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberWorkspaceResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberWorkspaceResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberWorkspaceResponses];

@@ -5,4 +5,5 @@ public sealed record SequenceDto(
     string SubmissionType,
     string Description,
     string WorkingDirectoryPath,
-    DateTime CreatedUtc);
+    DateTime CreatedUtc,
+    long WorkspaceRevision = 0);

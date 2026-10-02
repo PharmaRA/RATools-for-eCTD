@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Workspaces;
 
 namespace RATools.Api.Middleware;
 
@@ -22,6 +24,28 @@ public sealed partial class GlobalExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (Exception ex) when (ex is WorkspaceRevisionRequiredException or WorkspaceRevisionConflictException
+                                  or WorkspaceRevisionTargetNotFoundException or WorkspaceRevisionInvalidException)
+        {
+            if (context.Response.HasStarted) throw;
+            var (status, code) = ex switch
+            {
+                WorkspaceRevisionRequiredException => (428, "WorkspaceRevisionRequired"),
+                WorkspaceRevisionConflictException => (409, "WorkspaceRevisionConflict"),
+                WorkspaceRevisionTargetNotFoundException => (404, "WorkspaceNotFound"),
+                _ => (400, "WorkspaceRevisionInvalid")
+            };
+            context.Response.Clear();
+            context.Response.StatusCode = status;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = ex.Message,
+                code,
+                currentRevision = (ex as WorkspaceRevisionConflictException)?.CurrentRevision,
+                traceId = context.TraceIdentifier,
+                location = context.Request.Path.Value
+            });
         }
         catch (Exception ex)
         {

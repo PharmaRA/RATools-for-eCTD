@@ -3,9 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch as defaultApiFetch } from '../../apiClient'
 import {
-  loadWorkspaceDocuments,
   loadWorkspaceEctdStructure,
-  loadWorkspacePlacements,
+  loadWorkspaceSnapshot,
 } from '../../workspaceActions'
 import {
   attachDocumentNodes,
@@ -74,31 +73,28 @@ export const useWorkspaceData = ({
     keys: string[]
   } | null>(null)
 
-  const placementsQuery = useQuery({
-    queryKey: ['workspace', appId, 'placements'],
-    queryFn: ({ signal }) => loadWorkspacePlacements(appId, apiFetch, signal),
-  })
-  const documentsQuery = useQuery({
-    queryKey: ['workspace', appId, 'documents'],
-    queryFn: ({ signal }) => loadWorkspaceDocuments(appId, apiFetch, signal),
+  const snapshotQuery = useQuery({
+    queryKey: ['workspace', appId, seqNumber, 'snapshot'],
+    queryFn: ({ signal }) => loadWorkspaceSnapshot(appId, seqNumber, apiFetch, signal),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
   const ectdStructureQuery = useQuery({
     queryKey: ['workspace', appId, 'ectd-structure'],
     queryFn: ({ signal }) => loadWorkspaceEctdStructure(appId, apiFetch, signal),
   })
-  const { refetch: refetchPlacements } = placementsQuery
-  const { refetch: refetchDocuments } = documentsQuery
+  const { refetch: refetchSnapshot } = snapshotQuery
   const { refetch: refetchEctdStructure } = ectdStructureQuery
 
   const placementSummary = useMemo(() => {
-    const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(placementsQuery.data)
+    const list = getWorkspacePlacementsFromResponse<DocumentPlacementRecord>(snapshotQuery.data?.placements)
     return splitWorkspacePlacements(list, appId, seqNumber)
-  }, [appId, placementsQuery.data, seqNumber])
+  }, [appId, snapshotQuery.data, seqNumber])
   const placements = placementSummary.sequencePlacements
   const applicationPlacements = placementSummary.applicationPlacements
   const documentsById = useMemo(
-    () => buildWorkspaceDocumentsById(documentsQuery.data),
-    [documentsQuery.data],
+    () => buildWorkspaceDocumentsById(snapshotQuery.data?.documents),
+    [snapshotQuery.data],
   )
   const ectdRoots = useMemo(
     () => getWorkspaceEctdRootsFromResponse(ectdStructureQuery.data),
@@ -124,22 +120,23 @@ export const useWorkspaceData = ({
   }, [documentsById, ectdRoots, placements])
 
   const fetchPlacements = useCallback(async () => {
-    await refetchPlacements()
-  }, [refetchPlacements])
+    await refetchSnapshot()
+  }, [refetchSnapshot])
 
   const fetchDocuments = useCallback(async () => {
-    await refetchDocuments()
-  }, [refetchDocuments])
+    await refetchSnapshot()
+  }, [refetchSnapshot])
 
   const fetchEctdStructure = useCallback(async () => {
     await refetchEctdStructure()
   }, [refetchEctdStructure])
 
   const refreshWorkspaceData = useCallback(async () => {
-    await Promise.all([fetchPlacements(), fetchDocuments()])
-  }, [fetchDocuments, fetchPlacements])
+    await refetchSnapshot()
+  }, [refetchSnapshot])
 
   return {
+    workspaceRevision: snapshotQuery.isError ? undefined : snapshotQuery.data?.workspaceRevision,
     placements,
     applicationPlacements,
     documentsById,
@@ -148,8 +145,8 @@ export const useWorkspaceData = ({
     treeError: ectdStructureQuery.error
       ? getErrorMessage(ectdStructureQuery.error, '加载 eCTD 结构失败')
       : null,
-    placementsError: placementsQuery.error ? getErrorMessage(placementsQuery.error) : null,
-    documentsError: documentsQuery.error ? getErrorMessage(documentsQuery.error) : null,
+    placementsError: snapshotQuery.error ? getErrorMessage(snapshotQuery.error) : null,
+    documentsError: snapshotQuery.error ? getErrorMessage(snapshotQuery.error) : null,
     expandedKeys,
     setExpandedKeys,
     fetchPlacements,

@@ -16,11 +16,12 @@ describe('buildSequencePublishingMetadataUpdateRequest', () => {
       telephone: ' ',
       telephoneNumberType: ' office ',
       email: ' ',
-    })
+    }, 3)
 
     expect(request).toEqual({
       applicationId: 'app-1',
       sequenceNumber: '0001',
+      expectedRevision: 3,
       applicationType: null,
       submissionType: 'supplemental-application',
       submissionSubtype: 'labeling',

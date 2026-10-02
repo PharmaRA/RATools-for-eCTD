@@ -14,4 +14,5 @@ public sealed record SequencePublishingMetadataDto(
     string? ApplicantContactType,
     string? Telephone,
     string? TelephoneNumberType,
-    string? Email);
+    string? Email,
+    long WorkspaceRevision = 0);

@@ -1,5 +1,6 @@
 import { apiFetch, buildJsonRequestInit } from './apiClient'
 import { buildSequenceUrl } from './sequenceActions'
+import { requireWorkspaceRevision } from './workspaceActions'
 
 export type SequencePublishingMetadataRequest = {
   applicationId: string
@@ -7,6 +8,7 @@ export type SequencePublishingMetadataRequest = {
 }
 
 export type SequencePublishingMetadata = {
+  workspaceRevision: number
   applicationId: string
   sequenceNumber: string
   standardsProfile: string
@@ -24,6 +26,7 @@ export type SequencePublishingMetadata = {
 }
 
 export type UpdateSequencePublishingMetadataRequest = SequencePublishingMetadataRequest & {
+  expectedRevision: number
   applicationType?: string | null
   submissionType: string
   submissionSubtype?: string | null
@@ -55,6 +58,7 @@ export const updateSequencePublishingMetadata = async (
   return executeRequest(
     buildSequencePublishingMetadataUrl(request.applicationId, request.sequenceNumber),
     buildJsonRequestInit('PUT', {
+      expectedRevision: requireWorkspaceRevision(request.expectedRevision),
       applicationType: request.applicationType,
       submissionType: request.submissionType,
       submissionSubtype: request.submissionSubtype,

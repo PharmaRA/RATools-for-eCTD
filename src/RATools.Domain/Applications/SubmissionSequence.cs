@@ -43,7 +43,14 @@ public sealed class SubmissionSequence
 
     public string SequenceNumber { get; }
 
-    public long WorkspaceRevision { get; }
+    public long WorkspaceRevision { get; private set; }
+
+    public void AdvanceWorkspaceRevision(long expectedRevision)
+    {
+        if (WorkspaceRevision != expectedRevision) throw new InvalidOperationException("The sequence revision has changed.");
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(expectedRevision, 9007199254740991L);
+        WorkspaceRevision++;
+    }
 
     public string SubmissionType { get; }
 
@@ -58,4 +65,6 @@ public sealed class SubmissionSequence
         ArgumentNullException.ThrowIfNull(metadata);
         PublishingMetadata = metadata;
     }
+
+    public void RestorePublishingMetadata(SequencePublishingMetadata? metadata) => PublishingMetadata = metadata;
 }

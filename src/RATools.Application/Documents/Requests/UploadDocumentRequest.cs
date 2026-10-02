@@ -11,6 +11,8 @@ public sealed class UploadDocumentRequest
 
 public sealed class UploadSequenceDocumentRequest
 {
+    public long? ExpectedRevision { get; init; }
+
     public required string FileName { get; init; }
 
     public required string MediaType { get; init; }

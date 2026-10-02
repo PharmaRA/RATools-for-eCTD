@@ -37,7 +37,8 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
                     request.SequenceNumber,
                     request.CtdSection,
                     request.Operation,
-                    request.Title),
+                    request.Title,
+                    request.ExpectedRevision),
                 cancellationToken);
 
             return Ok(created);
@@ -50,11 +51,11 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, [FromQuery] long? expectedRevision, CancellationToken cancellationToken)
     {
         try
         {
-            var deleted = await placementService.DeleteAsync(id, cancellationToken);
+            var deleted = await placementService.DeleteAsync(id, expectedRevision, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }
         catch (DocumentPlacementDeleteConflictException exception)
@@ -69,7 +70,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     {
         try
         {
-            var updated = await placementService.UpdateSectionAsync(id, new UpdateDocumentPlacementSectionRequest(request.CtdSection), cancellationToken);
+            var updated = await placementService.UpdateSectionAsync(id, new UpdateDocumentPlacementSectionRequest(request.CtdSection, request.ExpectedRevision), cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
         }
         catch (InvalidOperationException exception)
@@ -84,7 +85,7 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     {
         try
         {
-            var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.Operation, request.FileNamePrefix, request.LifecycleTargetPlacementId), cancellationToken);
+            var updated = await placementService.UpdateMetadataAsync(id, new UpdateDocumentPlacementMetadataRequest(request.Title, request.Operation, request.FileNamePrefix, request.LifecycleTargetPlacementId, request.ExpectedRevision), cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
         }
         catch (InvalidOperationException exception)

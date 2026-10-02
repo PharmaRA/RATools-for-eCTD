@@ -5,6 +5,8 @@ type ProblemDetails = {
   traceId?: string;
   errors?: Record<string, string[]>;
   message?: string;
+  code?: string;
+  currentRevision?: number | null;
 };
 
 let runtimeApiKey: string | undefined;
@@ -18,14 +20,18 @@ export class ApiRequestError extends Error {
   readonly title?: string;
   readonly type?: string;
   readonly traceId?: string;
+  readonly code?: string;
+  readonly currentRevision?: number | null;
 
-  constructor(status: number, message: string, details?: Pick<ProblemDetails, 'title' | 'type' | 'traceId'>) {
+  constructor(status: number, message: string, details?: Pick<ProblemDetails, 'title' | 'type' | 'traceId' | 'code' | 'currentRevision'>) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
     this.title = details?.title;
     this.type = details?.type;
     this.traceId = details?.traceId;
+    this.code = details?.code;
+    this.currentRevision = details?.currentRevision;
   }
 }
 
@@ -86,6 +92,8 @@ export const apiFetchResponse = async (url: string, options?: RequestInit) => {
       title: data?.title,
       type: data?.type,
       traceId: data?.traceId,
+      code: data?.code,
+      currentRevision: data?.currentRevision,
     });
   }
 

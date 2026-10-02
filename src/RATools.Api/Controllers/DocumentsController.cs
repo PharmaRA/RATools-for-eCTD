@@ -91,6 +91,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
                         ? "application/octet-stream"
                         : request.File.ContentType,
                     CtdSection = request.CtdSection,
+                    ExpectedRevision = request.ExpectedRevision,
                     Content = stream
                 },
                 cancellationToken);
@@ -117,11 +118,11 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, [FromQuery] long? expectedRevision, CancellationToken cancellationToken)
     {
         try
         {
-            var deleted = await documentService.DeleteAsync(id, cancellationToken);
+            var deleted = await documentService.DeleteAsync(id, expectedRevision, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }
         catch (DocumentDeleteConflictException exception)

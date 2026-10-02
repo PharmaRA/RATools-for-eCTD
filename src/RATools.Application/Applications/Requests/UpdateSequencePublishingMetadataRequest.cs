@@ -11,4 +11,5 @@ public sealed record UpdateSequencePublishingMetadataRequest(
     string? ApplicantContactType,
     string? Telephone,
     string? TelephoneNumberType,
-    string? Email);
+    string? Email,
+    long? ExpectedRevision = null);

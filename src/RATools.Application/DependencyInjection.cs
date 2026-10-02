@@ -16,6 +16,7 @@ using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Rules;
 using RATools.Application.Validation.Rules.Pdf;
+using RATools.Application.Workspaces;
 
 namespace RATools.Application;
 
@@ -24,6 +25,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IPersistenceTransaction, PassthroughPersistenceTransaction>();
+        services.AddScoped<WorkspaceMutationCoordinator>();
+        services.AddScoped<WorkspaceSnapshotService>();
         services.AddScoped<IApplicationDeletionTransaction, PassthroughApplicationDeletionTransaction>();
         services.AddScoped<IApplicationDeletionCoordinator, ApplicationDeletionCoordinator>();
         services.AddScoped<IApplicationService, ApplicationService>();

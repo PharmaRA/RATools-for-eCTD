@@ -9,8 +9,12 @@ public sealed record NodeBackfillResult(Guid ApplicationId, string SequenceNumbe
 
 public sealed class EfCoreNodeBackfill(RAToolsDbContext dbContext)
 {
-    public Task<NodeBackfillResult> RunAsync(Guid applicationId, string sequenceNumber, bool preview,
-        CancellationToken cancellationToken = default) => new EfCorePersistenceTransaction(dbContext).ExecuteAsync(async ct =>
+    public async Task<NodeBackfillResult> RunAsync(Guid applicationId, string sequenceNumber, bool preview,
+        CancellationToken cancellationToken = default)
+    {
+        await using var applicationLock = await new EfCoreWorkspaceRevisionStore(dbContext)
+            .LockApplicationAsync(applicationId, cancellationToken);
+        return await new EfCorePersistenceTransaction(dbContext).ExecuteAsync(async ct =>
     {
         var repository = new EfCoreCtdNodeRepository(dbContext);
         var workspace = await repository.GetSequenceAsync(applicationId, sequenceNumber, ct)
@@ -63,5 +67,6 @@ public sealed class EfCoreNodeBackfill(RAToolsDbContext dbContext)
         if (changed) revision = await repository.SaveWithinTransactionAsync(plan.Graph, sequenceNumber, plan.Nodes, revision, ct);
         else await dbContext.SaveChangesAsync(ct);
         return new NodeBackfillResult(applicationId, sequenceNumber, false, changed, revision, plan.Bindings.Count, plan.Diagnostics);
-    }, cancellationToken);
+        }, cancellationToken);
+    }
 }

@@ -159,16 +159,12 @@ describe('useWorkspaceData', () => {
   it('loads placements, documents, structure, and derived tree data', async () => {
     const apiFetch = vi.fn()
       .mockImplementation((url: string) => {
-        if (url === '/api/document-placements?applicationId=app-1') {
-          return Promise.resolve([
+        if (url === '/api/applications/app-1/sequences/0000/workspace') {
+          return Promise.resolve({ workspaceRevision: 7, placements: [
             { id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New' },
-          ])
-        }
-
-        if (url === '/api/documents?applicationId=app-1') {
-          return Promise.resolve([
+          ], documents: [
             { id: 'doc-1', fileName: 'cover.pdf', storagePath: '/tmp/cover.pdf' },
-          ])
+          ] })
         }
 
         if (url === '/api/applications/app-1/ectd-structure') {
@@ -184,6 +180,8 @@ describe('useWorkspaceData', () => {
 
     await waitForExpectation(() => expect(result.current.treeData).toHaveLength(1))
 
+    expect(result.current.workspaceRevision).toBe(7)
+    expect(apiFetch).toHaveBeenCalledTimes(2)
     expect(result.current.placements).toHaveLength(1)
     expect(result.current.documentsById['doc-1'].fileName).toBe('cover.pdf')
     expect(result.current.treeData[0].children).toHaveLength(1)
@@ -193,66 +191,37 @@ describe('useWorkspaceData', () => {
     result.unmount()
   })
 
-  it('refreshes mutable workspace data without reloading the eCTD structure', async () => {
-    let placementsRequestCount = 0
-    let documentsRequestCount = 0
-    let structureRequestCount = 0
+  it('refreshes the documents, placements and revision together', async () => {
+    let snapshots = 0
+    let structures = 0
     const apiFetch = vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/document-placements?applicationId=app-1') {
-        placementsRequestCount += 1
-        return Promise.resolve([{
-          id: 'placement-1',
-          applicationId: 'app-1',
-          sequenceNumber: '0000',
-          documentId: 'doc-1',
-          ctdSection: '1.2',
-          operation: 'New',
-          title: placementsRequestCount === 1 ? 'Initial title' : 'Updated title',
-        }])
-      }
-
-      if (url === '/api/documents?applicationId=app-1') {
-        documentsRequestCount += 1
-        return Promise.resolve([{
-          id: 'doc-1',
-          fileName: documentsRequestCount === 1 ? 'initial.pdf' : 'updated.pdf',
-          storagePath: '/tmp/document.pdf',
-        }])
-      }
-
-      if (url === '/api/applications/app-1/ectd-structure') {
-        structureRequestCount += 1
+      if (url.endsWith('/workspace')) {
+        snapshots += 1
         return Promise.resolve({
-          roots: [{ elementName: 'm1', sectionPath: '1.2', displayName: 'Cover', sourceProfile: 'FDA', children: [] }],
+          workspaceRevision: snapshots,
+          placements: [{ id: 'placement-1', applicationId: 'app-1', sequenceNumber: '0000', documentId: 'doc-1', ctdSection: '1.2', operation: 'New', title: snapshots === 1 ? 'Initial title' : 'Updated title' }],
+          documents: [{ id: 'doc-1', fileName: snapshots === 1 ? 'initial.pdf' : 'updated.pdf', storagePath: '/tmp/document.pdf' }],
         })
       }
-
-      return Promise.reject(new Error(`Unexpected URL ${url}`))
+      structures += 1
+      return Promise.resolve({ roots: [] })
     })
     const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
-    await waitForExpectation(() => expect(result.current.documentsById['doc-1']?.fileName).toBe('initial.pdf'))
-
-    await act(async () => {
-      await result.current.refreshWorkspaceData()
-    })
-
-    await waitForExpectation(() => expect(result.current.documentsById['doc-1']?.fileName).toBe('updated.pdf'))
+    await waitForExpectation(() => expect(result.current.workspaceRevision).toBe(1))
+    await act(async () => { await result.current.refreshWorkspaceData() })
+    await waitForExpectation(() => expect(result.current.workspaceRevision).toBe(2))
+    expect(result.current.documentsById['doc-1'].fileName).toBe('updated.pdf')
     expect(result.current.placements[0].title).toBe('Updated title')
-    expect(placementsRequestCount).toBe(2)
-    expect(documentsRequestCount).toBe(2)
-    expect(structureRequestCount).toBe(1)
+    expect(snapshots).toBe(2)
+    expect(structures).toBe(1)
     result.unmount()
   })
 
   it('stores visible placement and document load errors', async () => {
     const apiFetch = vi.fn()
       .mockImplementation((url: string) => {
-        if (url === '/api/document-placements?applicationId=app-1') {
-          return Promise.reject(new Error('placements unavailable'))
-        }
-
-        if (url === '/api/documents?applicationId=app-1') {
-          return Promise.reject(new Error('documents unavailable'))
+        if (url.endsWith('/workspace')) {
+          return Promise.reject(new Error('workspace unavailable'))
         }
 
         if (url === '/api/applications/app-1/ectd-structure') {
@@ -264,8 +233,9 @@ describe('useWorkspaceData', () => {
 
     const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
 
-    await waitForExpectation(() => expect(result.current.placementsError).toBe('placements unavailable'))
-    expect(result.current.documentsError).toBe('documents unavailable')
+    await waitForExpectation(() => expect(result.current.placementsError).toBe('workspace unavailable'))
+    expect(result.current.documentsError).toBe('workspace unavailable')
+    expect(result.current.workspaceRevision).toBeUndefined()
     result.unmount()
   })
 })

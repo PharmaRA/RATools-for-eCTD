@@ -8,7 +8,7 @@ public sealed record CtdSequenceWorkspace(CtdNodeGraph Graph, string SequenceNum
 public sealed record CtdBackfillDiagnostic(Guid PlacementId, string Code, string Message);
 
 public sealed class WorkspaceRevisionConflictException(long expectedRevision, long? currentRevision)
-    : InvalidOperationException("The workspace revision changed. Reload it before writing.")
+    : Exception("The workspace revision changed. Reload it before writing.")
 {
     public long ExpectedRevision { get; } = expectedRevision;
     public long? CurrentRevision { get; } = currentRevision;

@@ -28,6 +28,8 @@ public sealed class DocumentSectionTransactionTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => fixture.MoveAsync());
 
         await AssertStateAsync(fixture, moved: false);
+        Assert.Equal(stage == FailureStage.AfterCommit ? 1 : 0,
+            (await fixture.Database.Sequences.SingleAsync()).WorkspaceRevision);
         Assert.False(Assert.Single(fixture.Storage.RestoreCancellationStates));
     }
 
@@ -61,6 +63,7 @@ public sealed class DocumentSectionTransactionTests
 
         Assert.Contains("updated section was preserved", exception.Message);
         await AssertStateAsync(fixture, moved: true);
+        Assert.Equal(1, (await fixture.Database.Sequences.SingleAsync()).WorkspaceRevision);
         var causes = Assert.IsType<AggregateException>(exception.InnerException).Flatten().InnerExceptions;
         Assert.Contains(causes, cause => cause is OperationCanceledException);
         Assert.Contains(causes, cause => cause is IOException);
@@ -74,6 +77,7 @@ public sealed class DocumentSectionTransactionTests
         var result = await fixture.MoveAsync();
 
         Assert.Equal("m1.3", result!.CtdSection);
+        Assert.Equal(1, result.WorkspaceRevision);
         await AssertStateAsync(fixture, moved: true);
         Assert.Empty(fixture.Storage.RestoreCancellationStates);
     }
@@ -133,7 +137,7 @@ public sealed class DocumentSectionTransactionTests
         public string OriginalPath { get; } = originalPath;
 
         public Task<RATools.Application.Documents.Dtos.DocumentPlacementDto?> MoveAsync()
-            => service.UpdateSectionAsync(placementId, new UpdateDocumentPlacementSectionRequest("m1.3"), failure.RequestCancellation.Token);
+            => service.UpdateSectionAsync(placementId, new UpdateDocumentPlacementSectionRequest("m1.3", ExpectedRevision: 0), failure.RequestCancellation.Token);
 
         public static async Task<Fixture> CreateAsync(FailureStage stage, bool failRestore = false, bool sameFolder = false)
         {
@@ -156,7 +160,8 @@ public sealed class DocumentSectionTransactionTests
             IEctdWorkspacePathResolver resolver = sameFolder ? new SameFolderResolver() : new EctdWorkspacePathResolver();
             var service = new DocumentPlacementService(new PlacementRepository(placements, failure),
                 new DocumentRepository(documents, failure), storage, applications, new InMemoryPublishJobRepository(), resolver,
-                new DocumentStorageBoundary(workspace.PathPolicy), new Transaction(new EfCorePersistenceTransaction(database), failure));
+                new DocumentStorageBoundary(workspace.PathPolicy), TestWorkspaceMutations.Create(applications,
+                    new Transaction(new EfCorePersistenceTransaction(database), failure), database));
             return new Fixture(workspace, connection, database, failure, storage, service, source.Placement.Id, source.Document.StoragePath);
         }
 

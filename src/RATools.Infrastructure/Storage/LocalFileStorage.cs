@@ -27,34 +27,46 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
         var storedFileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}_{safeFileName}";
         var fullPath = Path.Combine(fullRootPath, storedFileName);
 
-        await using var destination = File.Create(fullPath);
-        using var sha256 = SHA256.Create();
-        using var md5 = MD5.Create();
-
-        var buffer = new byte[81920];
-        long totalBytes = 0;
-        int bytesRead;
-
-        while ((bytesRead = await request.Content.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+        var created = false;
+        try
         {
-            await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-            sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
-            md5.TransformBlock(buffer, 0, bytesRead, null, 0);
-            totalBytes += bytesRead;
+            await using var destination = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            created = true;
+            using var sha256 = SHA256.Create();
+            using var md5 = MD5.Create();
+
+            var buffer = new byte[81920];
+            long totalBytes = 0;
+            int bytesRead;
+
+            while ((bytesRead = await request.Content.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+            {
+                await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+                md5.TransformBlock(buffer, 0, bytesRead, null, 0);
+                totalBytes += bytesRead;
+            }
+
+            sha256.TransformFinalBlock([], 0, 0);
+            md5.TransformFinalBlock([], 0, 0);
+            var hash = Convert.ToHexString(sha256.Hash!).ToLowerInvariant();
+            var md5Hash = Convert.ToHexString(md5.Hash!).ToLowerInvariant();
+
+            return new FileUploadResult(
+                safeFileName,
+                request.MediaType.Trim(),
+                totalBytes,
+                hash,
+                md5Hash,
+                fullPath);
         }
-
-        sha256.TransformFinalBlock([], 0, 0);
-        md5.TransformFinalBlock([], 0, 0);
-        var hash = Convert.ToHexString(sha256.Hash!).ToLowerInvariant();
-        var md5Hash = Convert.ToHexString(md5.Hash!).ToLowerInvariant();
-
-        return new FileUploadResult(
-            safeFileName,
-            request.MediaType.Trim(),
-            totalBytes,
-            hash,
-            md5Hash,
-            fullPath);
+        catch
+        {
+            // The stream is disposed before cleanup, including on Windows and
+            // cancellation. Never remove a file we did not create.
+            if (created) File.Delete(fullPath);
+            throw;
+        }
     }
 
     public Task<string> MoveAsync(string sourcePath, string destinationDirectoryPath, CancellationToken cancellationToken = default)

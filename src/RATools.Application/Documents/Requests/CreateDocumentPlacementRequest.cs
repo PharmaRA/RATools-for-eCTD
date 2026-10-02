@@ -6,4 +6,5 @@ public sealed record CreateDocumentPlacementRequest(
     string SequenceNumber,
     string CtdSection,
     string Operation,
-    string? Title);
+    string? Title,
+    long? ExpectedRevision = null);

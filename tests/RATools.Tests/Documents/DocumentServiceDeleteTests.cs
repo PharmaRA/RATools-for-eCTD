@@ -74,7 +74,8 @@ public sealed class DocumentServiceDeleteTests
             new EmptyApplicationRepository(),
             new StubWorkspaceService(),
             new StubWorkspacePathResolver(),
-            documentStorageBoundary ?? PermissiveDocumentStorageBoundary.Instance);
+            documentStorageBoundary ?? PermissiveDocumentStorageBoundary.Instance,
+            TestWorkspaceMutations.Create(new EmptyApplicationRepository()));
 
     private static SubmissionDocument Document(Guid id, string storagePath)
         => SubmissionDocument.Rehydrate(

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Documents;
 
@@ -6,34 +6,28 @@ namespace RATools.Infrastructure.Persistence.InMemory;
 
 public sealed class InMemoryDocumentRepository : IDocumentRepository, IDocumentLookupRepository
 {
-    private readonly ConcurrentDictionary<Guid, SubmissionDocument> _items = new();
+    private readonly TransactionalMemoryCollection<SubmissionDocument> _items = new(item => item.ToRecord().ToDomain());
 
     public Task AddAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
     {
-        _items[document.Id] = document;
+        _items.Set(document.Id, document);
         return Task.CompletedTask;
     }
 
     public Task<bool> UpdateAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
     {
-        if (!_items.ContainsKey(document.Id))
-        {
-            return Task.FromResult(false);
-        }
-
-        _items[document.Id] = document;
-        return Task.FromResult(true);
+        return Task.FromResult(_items.Update(document.Id, document));
     }
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        _items.TryRemove(id, out _);
+        _items.Remove(id);
         return Task.CompletedTask;
     }
 
     public Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        _items.TryGetValue(id, out var document);
+        var document = _items.Get(id);
         return Task.FromResult(document);
     }
 

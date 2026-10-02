@@ -48,6 +48,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         var placementResponse = await client.PostAsJsonAsync("/api/document-placements", new
         {
             DocumentId = document!.Id,
+            ExpectedRevision = 1,
             ApplicationId = application.Id,
             SequenceNumber = "0001",
             CtdSection = "m1.2",
@@ -176,6 +177,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         var placementResponse = await client.PostAsJsonAsync("/api/document-placements", new
         {
             DocumentId = document!.Id,
+            ExpectedRevision = 1,
             ApplicationId = application.Id,
             SequenceNumber = "0001",
             CtdSection = "m1.2",
@@ -194,6 +196,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
         form.Add(file, "File", "cover.pdf");
         form.Add(new StringContent("m1.2"), "CtdSection");
+        form.Add(new StringContent("0"), "ExpectedRevision");
 
         var response = await client.PostAsync(
             $"/api/applications/{applicationId}/sequences/0001/documents/upload",

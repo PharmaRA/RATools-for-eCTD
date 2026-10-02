@@ -4,6 +4,8 @@ namespace RATools.Api.Contracts;
 
 public sealed class CreateDocumentPlacementRequestBody
 {
+    public long? ExpectedRevision { get; init; }
+
     [Required]
     public Guid DocumentId { get; init; }
 

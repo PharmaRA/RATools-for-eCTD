@@ -28,6 +28,7 @@ describe('sequencePublishingMetadataActions', () => {
       telephone: '301-555-0100',
       telephoneNumberType: 'office',
       email: 'jane.regulatory@example.test',
+      workspaceRevision: 0,
     }
     const request = vi.fn().mockResolvedValue(response)
 
@@ -57,12 +58,14 @@ describe('sequencePublishingMetadataActions', () => {
       telephone: '301-555-0100',
       telephoneNumberType: 'office',
       email: 'jane.regulatory@example.test',
+      expectedRevision: 0,
     }, request)
 
     expect(request).toHaveBeenCalledWith('/api/applications/app-1/sequences/0001/publishing-metadata', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        expectedRevision: 0,
         applicationType: 'IND',
         submissionType: 'supplemental-application',
         submissionSubtype: 'labeling',

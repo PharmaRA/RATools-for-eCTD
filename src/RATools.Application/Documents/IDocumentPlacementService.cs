@@ -15,5 +15,5 @@ public interface IDocumentPlacementService
 
     Task<IReadOnlyCollection<DocumentPlacementDto>> ListByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(Guid id, long? expectedRevision = null, CancellationToken cancellationToken = default);
 }

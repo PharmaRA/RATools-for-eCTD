@@ -101,6 +101,7 @@ describe('workspaceActions', () => {
         placementId: 'placement-1',
         fromSection: 'm1.1',
         toSection: 'm1.2',
+        expectedRevision: 0,
       },
       request,
     )
@@ -108,7 +109,7 @@ describe('workspaceActions', () => {
     expect(request).toHaveBeenCalledWith('/api/document-placements/placement-1/section', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ctdSection: 'm1.2' }),
+      body: JSON.stringify({ ctdSection: 'm1.2', expectedRevision: 0 }),
     })
   })
 
@@ -120,6 +121,7 @@ describe('workspaceActions', () => {
         placementId: 'placement-1',
         fromSection: 'm1.1',
         toSection: 'm1.1',
+        expectedRevision: 0,
       },
       request,
     )
@@ -135,12 +137,13 @@ describe('workspaceActions', () => {
       {
         placementId: 'placement-1',
         documentId: 'document-1',
+        expectedRevision: 0,
       },
       request,
     )
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/document-placements/placement-1', { method: 'DELETE' })
-    expect(request).toHaveBeenNthCalledWith(2, '/api/documents/document-1', { method: 'DELETE' })
+    expect(request).toHaveBeenNthCalledWith(1, '/api/document-placements/placement-1?expectedRevision=0', { method: 'DELETE' })
+    expect(request).toHaveBeenNthCalledWith(2, '/api/documents/document-1?expectedRevision=1', { method: 'DELETE' })
   })
 
   it('updates placement title and file name prefix for revision', async () => {
@@ -153,6 +156,7 @@ describe('workspaceActions', () => {
         operation: 'Replace',
         fileNamePrefix: 'updated-report',
         lifecycleTargetPlacementId: 'target-placement-1',
+        expectedRevision: 0,
       },
       request,
     )
@@ -160,14 +164,14 @@ describe('workspaceActions', () => {
     expect(request).toHaveBeenCalledWith('/api/document-placements/placement-1/metadata', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Updated title', operation: 'Replace', fileNamePrefix: 'updated-report', lifecycleTargetPlacementId: 'target-placement-1' }),
+      body: JSON.stringify({ expectedRevision: 0, title: 'Updated title', operation: 'Replace', fileNamePrefix: 'updated-report', lifecycleTargetPlacementId: 'target-placement-1' }),
     })
   })
 
   it('uploads a document file then maps it to the target section', async () => {
     const request = vi
       .fn()
-      .mockResolvedValueOnce({ id: 'document-1' })
+      .mockResolvedValueOnce({ id: 'document-1', workspaceRevision: 1 })
       .mockResolvedValueOnce({})
     const file = new File(['content'], 'leaf.pdf', { type: 'application/pdf' })
 
@@ -176,6 +180,7 @@ describe('workspaceActions', () => {
       sequenceNumber: '0001',
       file,
       ctdSection: 'm1.2',
+      expectedRevision: 0,
     }, request)
 
     expect(request).toHaveBeenCalledTimes(2)
@@ -184,10 +189,12 @@ describe('workspaceActions', () => {
     const uploadBody = request.mock.calls[0][1].body as FormData
     expect(uploadBody.get('file')).toBe(file)
     expect(uploadBody.get('CtdSection')).toBe('m1.2')
+    expect(uploadBody.get('ExpectedRevision')).toBe('0')
     expect(request).toHaveBeenNthCalledWith(2, '/api/document-placements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        expectedRevision: 1,
         applicationId: 'app-1',
         sequenceNumber: '0001',
         documentId: 'document-1',
@@ -207,9 +214,26 @@ describe('workspaceActions', () => {
       {
         placementId: 'placement-1',
         documentId: 'document-1',
+        expectedRevision: 0,
       },
       request,
     )).rejects.toBeInstanceOf(PlacementDeletePartialFailureError)
+  })
+
+  it('does not replay a conflicted upload against a newer revision', async () => {
+    const conflict = new ApiRequestError(409, 'Workspace changed')
+    const request = vi.fn().mockRejectedValue(conflict)
+    await expect(uploadDocumentToSection({ applicationId: 'app-1', sequenceNumber: '0001',
+      file: new File(['content'], 'leaf.pdf'), ctdSection: 'm1.2', expectedRevision: 7 }, request)).rejects.toBe(conflict)
+    expect(request).toHaveBeenCalledTimes(1)
+    expect((request.mock.calls[0][1].body as FormData).get('ExpectedRevision')).toBe('7')
+  })
+
+  it('stops before attachment when the upload response omits its revision', async () => {
+    const request = vi.fn().mockResolvedValue({ id: 'document-1' })
+    await expect(uploadDocumentToSection({ applicationId: 'app-1', sequenceNumber: '0001',
+      file: new File(['content'], 'leaf.pdf'), ctdSection: 'm1.2', expectedRevision: 7 }, request)).rejects.toThrow('修订号')
+    expect(request).toHaveBeenCalledTimes(1)
   })
 
   it('serializes and parses placement drag payload', () => {

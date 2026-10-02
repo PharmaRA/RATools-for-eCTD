@@ -59,7 +59,7 @@ public sealed class DocumentPlacementServiceTests
                 new StubPublishJobRepository(),
                 new StubWorkspacePathResolver(),
                 boundary,
-                new PassthroughPersistenceTransaction());
+                TestWorkspaceMutations.Create(new StubApplicationRepository(application)));
 
             await Assert.ThrowsAsync<DocumentStorageBoundaryException>(() => service.CreateAsync(
                 new CreateDocumentPlacementRequest(
@@ -68,7 +68,7 @@ public sealed class DocumentPlacementServiceTests
                     "0001",
                     "m1.1",
                     "new",
-                    "Outside")));
+                    "Outside", ExpectedRevision: 0)));
 
             Assert.False(placementRepository.AddCalled);
             Assert.Equal("must remain unchanged", await File.ReadAllTextAsync(outsidePath));
@@ -130,11 +130,11 @@ public sealed class DocumentPlacementServiceTests
                 new StubPublishJobRepository(),
                 new StubWorkspacePathResolver(),
                 PermissiveDocumentStorageBoundary.Instance,
-                new PassthroughPersistenceTransaction());
+                TestWorkspaceMutations.Create(new StubApplicationRepository(application)));
 
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateMetadataAsync(
                 placement.Id,
-                new UpdateDocumentPlacementMetadataRequest("Protocol", "999", "protocol", null)));
+                new UpdateDocumentPlacementMetadataRequest("Protocol", "999", "protocol", null, ExpectedRevision: 0)));
 
             Assert.Contains("Unsupported placement operation", exception.Message);
             Assert.Equal(DocumentPlacementOperation.New, placement.Operation);

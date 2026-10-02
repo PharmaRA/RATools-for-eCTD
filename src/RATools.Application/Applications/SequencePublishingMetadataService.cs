@@ -3,12 +3,14 @@ using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Standards;
 using RATools.Domain.Applications;
+using RATools.Application.Workspaces;
 
 namespace RATools.Application.Applications;
 
 public sealed class SequencePublishingMetadataService(
     IApplicationRepository applicationRepository,
-    IStandardsProfileProvider standardsProfileProvider) : ISequencePublishingMetadataService
+    IStandardsProfileProvider standardsProfileProvider,
+    WorkspaceMutationCoordinator mutations) : ISequencePublishingMetadataService
 {
     public async Task<SequencePublishingMetadataDto?> GetAsync(
         Guid applicationId,
@@ -28,6 +30,7 @@ public sealed class SequencePublishingMetadataService(
         UpdateSequencePublishingMetadataRequest request,
         CancellationToken cancellationToken = default)
     {
+        await using var mutation = await mutations.AcquireAsync(applicationId, sequenceNumber, request.ExpectedRevision, cancellationToken);
         var application = await applicationRepository.GetAsync(applicationId, cancellationToken);
         var sequence = application?.Sequences.SingleOrDefault(x => x.SequenceNumber == sequenceNumber);
         if (application is null || sequence is null)
@@ -48,9 +51,21 @@ public sealed class SequencePublishingMetadataService(
             request.TelephoneNumberType,
             request.Email);
 
-        sequence.RevisePublishingMetadata(metadata);
-        await applicationRepository.UpdateAsync(application, cancellationToken);
-        return ToDto(application, sequence);
+        var previous = sequence.PublishingMetadata;
+        try
+        {
+            await mutation.CommitAsync(async ct =>
+            {
+                sequence.RevisePublishingMetadata(metadata);
+                await applicationRepository.UpdateAsync(application, ct);
+            }, cancellationToken);
+        }
+        catch
+        {
+            sequence.RestorePublishingMetadata(previous);
+            throw;
+        }
+        return ToDto(application, sequence) with { WorkspaceRevision = mutation.Revision };
     }
 
     private SequencePublishingMetadataDto ToDto(SubmissionApplication application, SubmissionSequence sequence)
@@ -72,6 +87,7 @@ public sealed class SequencePublishingMetadataService(
             metadata?.ApplicantContactType,
             metadata?.Telephone,
             metadata?.TelephoneNumberType,
-            metadata?.Email);
+            metadata?.Email,
+            sequence.WorkspaceRevision);
     }
 }

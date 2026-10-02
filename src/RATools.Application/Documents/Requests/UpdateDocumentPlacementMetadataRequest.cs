@@ -1,3 +1,3 @@
 namespace RATools.Application.Documents.Requests;
 
-public sealed record UpdateDocumentPlacementMetadataRequest(string? Title, string Operation, string FileNamePrefix, Guid? LifecycleTargetPlacementId);
+public sealed record UpdateDocumentPlacementMetadataRequest(string? Title, string Operation, string FileNamePrefix, Guid? LifecycleTargetPlacementId, long? ExpectedRevision = null);

@@ -21,6 +21,7 @@ import { getErrorMessage } from '../appShared'
 import type { MetadataFormValues } from './PublishModal'
 import { buildSequencePublishingMetadataUpdateRequest } from './publishingMetadataFormValues'
 import { usePublishJobPolling } from './usePublishJobPolling'
+import { requireWorkspaceRevision } from '../../workspaceActions'
 
 export type SequencePublishingProviders = {
   validateSequenceProvider?: typeof validateSequence
@@ -33,11 +34,13 @@ export type SequencePublishingProviders = {
 type UseSequencePublishingOptions = SequencePublishingProviders & {
   appId: string
   seqNumber: string
+  onWorkspaceChanged?: () => Promise<void>
 }
 
 export const useSequencePublishing = ({
   appId,
   seqNumber,
+  onWorkspaceChanged,
   validateSequenceProvider = validateSequence,
   getPublishReadinessProvider = getPublishReadiness,
   getSequencePublishingMetadataProvider = getSequencePublishingMetadata,
@@ -48,6 +51,13 @@ export const useSequencePublishing = ({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
   const [validationResult, setValidationResult] = useState<ValidationReport | null>(null)
   const [publishReadiness, setPublishReadiness] = useState<PublishReadinessReport | null>(null)
+  const [metadataRevision, setMetadataRevision] = useState<number | undefined>(undefined)
+  const invalidateValidation = () => {
+    setValidationResult(null)
+    setPublishReadiness(null)
+    setMetadataRevision(undefined)
+    setIsPublishModalOpen(false)
+  }
   const [publishForm] = Form.useForm()
   const [publishMetadataForm] = Form.useForm<MetadataFormValues>()
   const {
@@ -97,6 +107,7 @@ export const useSequencePublishing = ({
         }),
       ])
 
+      setMetadataRevision(metadata.workspaceRevision)
       publishMetadataForm.setFieldsValue({
         applicationType: metadata.applicationType || '',
         submissionType: metadata.submissionType,
@@ -161,7 +172,10 @@ export const useSequencePublishing = ({
           appId,
           sequenceNumber,
           metadataValues,
+          requireWorkspaceRevision(metadataRevision),
         ))
+        setValidationResult(null)
+        await onWorkspaceChanged?.()
         const updatedReadiness = await getPublishReadinessProvider({
           applicationId: appId,
           sequenceNumber,
@@ -188,6 +202,8 @@ export const useSequencePublishing = ({
         startPublishPolling(String(startedJob.id))
       }
     } catch (error) {
+      invalidateValidation()
+      await onWorkspaceChanged?.()
       message.error('发布失败：' + getErrorMessage(error))
     } finally {
       setPublishing(false)
@@ -197,6 +213,7 @@ export const useSequencePublishing = ({
   const validationDisplay = validationSummary ? buildPrePublishChecklistDisplay(validationSummary) : null
 
   return {
+    invalidateValidation,
     publishing,
     isPublishModalOpen,
     validationSummary,

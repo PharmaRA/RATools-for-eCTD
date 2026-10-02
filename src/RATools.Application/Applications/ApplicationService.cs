@@ -149,7 +149,8 @@ internal static class ApplicationMapping
                     x.SubmissionType,
                     x.Description,
                     Path.Combine(application.WorkingDirectoryPath, x.SequenceNumber),
-                    x.CreatedUtc))
+                    x.CreatedUtc,
+                    x.WorkspaceRevision))
                 .ToArray());
     }
 

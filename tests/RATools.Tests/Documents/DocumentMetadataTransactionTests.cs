@@ -29,7 +29,7 @@ public sealed class DocumentMetadataTransactionTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.UpdateMetadataAsync(
             fixture.PlacementId,
-            new UpdateDocumentPlacementMetadataRequest("Updated title", "replace", fileNamePrefix, Guid.NewGuid())));
+            new UpdateDocumentPlacementMetadataRequest("Updated title", "replace", fileNamePrefix, Guid.NewGuid(), ExpectedRevision: 0)));
 
         Assert.Contains("source workspace file", exception.Message);
         Assert.Contains(fixture.SourcePath, exception.Message);
@@ -172,7 +172,7 @@ public sealed class DocumentMetadataTransactionTests
         public string SourcePath { get; }
         public string TargetPath { get; }
         public UpdateDocumentPlacementMetadataRequest Request { get; } =
-            new("Updated title", "new", "renamed", null);
+            new("Updated title", "new", "renamed", null, ExpectedRevision: 0);
 
         public static async Task<TestFixture> CreateAsync(
             SnapshotPlacementRepository? placementRepository = null,
@@ -236,7 +236,7 @@ public sealed class DocumentMetadataTransactionTests
                 new StubPublishJobRepository(),
                 new StubWorkspacePathResolver(),
                 PermissiveDocumentStorageBoundary.Instance,
-                persistenceTransaction ?? new PassthroughPersistenceTransaction());
+                TestWorkspaceMutations.Create(new StubApplicationRepository(application), persistenceTransaction));
 
             return new TestFixture(rootPath, documents, placements, storage, service, placementId, sourcePath, targetPath);
         }

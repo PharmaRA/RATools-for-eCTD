@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -65,7 +66,8 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
             ApplicantContactType = "regulatory",
             Telephone = "301-555-0100",
             TelephoneNumberType = "office",
-            Email = "jane.regulatory@example.test"
+            Email = "jane.regulatory@example.test",
+            ExpectedRevision = 0
         });
         var updated = await updateResponse.Content.ReadFromJsonAsync<PublishingMetadataResponse>();
 
@@ -82,6 +84,23 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
         Assert.Equal("301-555-0100", updated.Telephone);
         Assert.Equal("office", updated.TelephoneNumberType);
         Assert.Equal("jane.regulatory@example.test", updated.Email);
+
+        var metadataUrl = $"/api/applications/{application.Id}/sequences/0000/publishing-metadata";
+        var missingRevision = await client.PutAsJsonAsync(metadataUrl, new { ApplicantName = "Must not overwrite" });
+        Assert.Equal((HttpStatusCode)428, missingRevision.StatusCode);
+        var missingError = await missingRevision.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("WorkspaceRevisionRequired", missingError.GetProperty("code").GetString());
+
+        var staleRevision = await client.PutAsJsonAsync(metadataUrl, new { ApplicantName = "Stale edit", ExpectedRevision = 0 });
+        Assert.Equal(HttpStatusCode.Conflict, staleRevision.StatusCode);
+        var conflict = await staleRevision.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("WorkspaceRevisionConflict", conflict.GetProperty("code").GetString());
+        Assert.Equal(1, conflict.GetProperty("currentRevision").GetInt64());
+        var unchanged = await client.GetFromJsonAsync<PublishingMetadataResponse>(metadataUrl);
+        Assert.Equal("Updated Applicant", unchanged!.ApplicantName);
+        var snapshot = await client.GetFromJsonAsync<JsonElement>($"/api/applications/{application.Id}/sequences/0000/workspace");
+        Assert.Equal(1, snapshot.GetProperty("workspaceRevision").GetInt64());
+        Assert.Empty(snapshot.GetProperty("placements").EnumerateArray());
     }
 
     [Fact]
