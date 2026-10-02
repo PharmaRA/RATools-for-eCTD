@@ -75,7 +75,9 @@ public static class DependencyInjection
         {
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
             services.AddSingleton<IWorkspaceRevisionStore, InMemoryWorkspaceRevisionStore>();
-            services.AddSingleton<ICtdNodeRepository, InMemoryCtdNodeRepository>();
+            services.AddSingleton<InMemoryCtdNodeRepository>();
+            services.AddSingleton<ICtdNodeRepository>(provider => provider.GetRequiredService<InMemoryCtdNodeRepository>());
+            services.AddSingleton<IApplicationImportStore, InMemoryApplicationImportStore>();
             services.AddScoped<IPersistenceTransaction, InMemoryPersistenceTransaction>();
             services.AddSingleton<IDocumentRepository, InMemoryDocumentRepository>();
             services.AddSingleton<IDocumentPlacementRepository, InMemoryDocumentPlacementRepository>();
@@ -95,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();
         services.AddScoped<ICtdNodeRepository, EfCoreCtdNodeRepository>();
+        services.AddScoped<IApplicationImportStore, EfCoreApplicationImportStore>();
         services.AddScoped<IWorkspaceRevisionStore, EfCoreWorkspaceRevisionStore>();
         services.AddScoped<IPublishJobRepository, EfCorePublishJobRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();

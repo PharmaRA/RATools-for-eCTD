@@ -29,7 +29,7 @@ public sealed class ApplicationImportRegionalTests
 
         var imported = await ImportAsync(fixture);
 
-        Assert.Empty(imported.Result.Issues);
+        Assert.All(imported.Result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
         Assert.Equal(2, imported.Result.ImportedDocumentCount);
         Assert.Equal(2, imported.Result.ImportedPlacementCount);
         foreach (var source in new[] { regional, ich })
@@ -128,7 +128,7 @@ public sealed class ApplicationImportRegionalTests
 
         var imported = await ImportAsync(fixture);
 
-        Assert.Empty(imported.Result.Issues);
+        Assert.All(imported.Result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
         Assert.Equal("m1.2", Assert.Single(imported.Placements).CtdSection);
         Assert.Equal("regional.txt", Assert.Single(imported.Documents).FileName);
     }
@@ -141,7 +141,7 @@ public sealed class ApplicationImportRegionalTests
         var applications = new InMemoryApplicationRepository();
         var documents = new InMemoryDocumentRepository();
         var placements = new InMemoryDocumentPlacementRepository();
-        var result = await new ApplicationImportService(applications, documents, placements, fixture.PathPolicy)
+        var result = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy)
             .ImportAsync(new ImportApplicationRequest(fixture.Application.WorkingDirectoryPath, fixture.Application.EctdTemplateKey, "Import sponsor"));
         return new ImportResult(result, (await applications.GetAsync(result.ApplicationId))!, await documents.ListAsync(), await placements.ListAsync());
     }

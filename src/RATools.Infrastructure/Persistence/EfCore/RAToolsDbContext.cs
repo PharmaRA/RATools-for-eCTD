@@ -19,12 +19,23 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
     public DbSet<CtdDefinitionRecord> CtdDefinitions => Set<CtdDefinitionRecord>();
     public DbSet<CtdNodeInstanceRecord> CtdNodeInstances => Set<CtdNodeInstanceRecord>();
     public DbSet<SequenceNodeRecord> SequenceNodes => Set<SequenceNodeRecord>();
+    public DbSet<ImportedBackboneRecord> ImportedBackbones => Set<ImportedBackboneRecord>();
     public DbSet<NodeBackfillCheckpointRecord> NodeBackfillCheckpoints => Set<NodeBackfillCheckpointRecord>();
     public DbSet<NodeBackfillDiagnosticRecord> NodeBackfillDiagnostics => Set<NodeBackfillDiagnosticRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         CtdModelConfiguration.Configure(modelBuilder);
+        modelBuilder.Entity<ImportedBackboneRecord>(entity =>
+        {
+            entity.ToTable("imported_backbones");
+            entity.HasKey(row => new { row.ApplicationId, row.SequenceNumber, row.RelativePath });
+            entity.Property(row => row.SequenceNumber).HasMaxLength(16);
+            entity.Property(row => row.RelativePath).HasMaxLength(230);
+            entity.Property(row => row.Xml).IsRequired();
+            entity.HasOne<SequenceRecord>().WithMany()
+                .HasForeignKey(row => new { row.ApplicationId, row.SequenceNumber }).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<ApplicationRecord>(entity =>
         {
             entity.ToTable("applications");

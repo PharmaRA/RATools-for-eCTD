@@ -6,6 +6,7 @@ using RATools.Application.Applications.Dtos;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Applications.Requests;
 using RATools.Application.Documents;
+using RATools.Application.Ctd;
 using RATools.Application.Standards;
 using RATools.Application.Validation;
 using RATools.Application.Validation.Profiles;
@@ -13,13 +14,13 @@ using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
 using RATools.Domain.Common;
 using RATools.Domain.Documents;
+using RATools.Domain.Ctd;
 
 namespace RATools.Application.Applications;
 
 public sealed class ApplicationImportService(
     IApplicationRepository applicationRepository,
-    IDocumentRepository documentRepository,
-    IDocumentPlacementRepository placementRepository,
+    IApplicationImportStore importStore,
     IWorkspacePathPolicy workspacePathPolicy) : IApplicationImportService
 {
     private static readonly SectionDictionaryProfile EuSections = EuEctd322.ToProfile();
@@ -53,6 +54,9 @@ public sealed class ApplicationImportService(
         var importedPlacements = new List<DocumentPlacement>();
         var importedLeafIndex = new ImportedLeafIndex(workingDirectoryPath);
         var fileHashes = new ImportFileHashCache();
+        var graph = new CtdNodeGraph(application.Id, IchSectionDefinitions.Current);
+        var importedNodes = new List<SequenceNode>();
+        var importedBackbones = new List<ImportedBackbone>();
 
         string[] sequenceDirectories;
         try
@@ -66,6 +70,7 @@ public sealed class ApplicationImportService(
 
         foreach (var sequenceDirectory in sequenceDirectories.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var normalizedSequenceDirectory = workspacePathPolicy.EnsureAllowed(sequenceDirectory);
             var sequenceNumber = Path.GetFileName(normalizedSequenceDirectory);
             if (!IsSequenceDirectory(sequenceNumber))
@@ -80,7 +85,7 @@ public sealed class ApplicationImportService(
                 continue;
             }
 
-            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedLeafIndex, cancellationToken);
+            var parsed = await TryImportSequenceAsync(application, sequenceNumber, indexXmlPath, workspacePathPolicy, fileHashes, importedDocuments, importedPlacements, importedLeafIndex, graph, cancellationToken);
             if (parsed is not null)
             {
                 if (parsed.Issues.All(issue => issue.Severity != "Error"))
@@ -90,45 +95,20 @@ public sealed class ApplicationImportService(
                     {
                         sequence.RevisePublishingMetadata(parsed.PublishingMetadata);
                     }
+                    graph = parsed.Tree!.Graph;
+                    importedNodes.AddRange(parsed.Tree.Nodes);
+                    importedBackbones.AddRange(parsed.Backbones!);
                 }
                 issues.AddRange(parsed.Issues);
             }
         }
 
-        var persistedDocumentIds = new List<Guid>();
-        var persistedPlacementIds = new List<Guid>();
-
-        try
-        {
-            await applicationRepository.AddAsync(application, cancellationToken);
-
-            foreach (var document in importedDocuments.Values)
-            {
-                await documentRepository.AddAsync(document, cancellationToken);
-                persistedDocumentIds.Add(document.Id);
-            }
-
-            foreach (var placement in importedPlacements)
-            {
-                await placementRepository.AddAsync(placement, cancellationToken);
-                persistedPlacementIds.Add(placement.Id);
-            }
-        }
-        catch
-        {
-            foreach (var placementId in persistedPlacementIds)
-            {
-                await placementRepository.DeleteAsync(placementId, cancellationToken);
-            }
-
-            foreach (var documentId in persistedDocumentIds)
-            {
-                await documentRepository.DeleteAsync(documentId, cancellationToken);
-            }
-
-            await applicationRepository.DeleteAsync(application.Id, cancellationToken);
-            throw;
-        }
+        // Later sequences can establish that a previously unique identity was
+        // ambiguous. Recompute statuses against the final, still-unpersisted graph.
+        var finalNodes = importedNodes.Select(node => new SequenceNode(graph, node.SequenceNumber, node.NodeInstanceId,
+            node.Attributes, node.Title, node.SortOrder, node.StorageSegment)).ToArray();
+        await importStore.SaveAsync(new ApplicationImportBatch(application, graph, finalNodes,
+            importedDocuments.Values, importedPlacements, importedBackbones), cancellationToken);
 
         var importedSequenceCount = application.Sequences.Count;
         var issueSummary = ApplicationImportIssueSummary.Create(issues);
@@ -154,12 +134,12 @@ public sealed class ApplicationImportService(
         Dictionary<string, SubmissionDocument> importedDocuments,
         List<DocumentPlacement> importedPlacements,
         ImportedLeafIndex importedLeafIndex,
+        CtdNodeGraph previousGraph,
         CancellationToken cancellationToken)
     {
         var issues = new List<ApplicationImportIssueDto>();
         var sequenceDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
-        var sequenceLeaves = new List<(string SourcePath, string? Href, DocumentPlacement Placement, SubmissionDocument Document)>();
-        var leafIds = new HashSet<(string SourcePath, string LeafId)>();
+        var sequenceLeaves = new List<(string SourcePath, string? Href, DocumentPlacement Placement, SubmissionDocument Document, string? Context)>();
 
         try
         {
@@ -169,49 +149,81 @@ public sealed class ApplicationImportService(
             var profile = isEu ? BackboneXmlProfiles.EuEctd322Regional : BackboneXmlProfiles.FdaEctd322UsRegional33;
             var sections = isEu ? EuSections : SectionDictionaryProfiles.FdaEctd32;
             var regionalPath = workspacePathPolicy.EnsureAllowed(Path.Combine(sequenceRoot, profile.Regional.RelativePath!));
+            var regionalReferences = xml.Root?.Elements().Where(element => element.Name.LocalName == "m1-administrative-information-and-prescribing-information")
+                .Elements().Where(element => element.Name.LocalName == "leaf")
+                .Select(element => element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName == "href")?.Value)
+                .Where(href => href?.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) == true).ToArray() ?? [];
+            if (regionalReferences.Length > 1) throw new XmlException("Multiple regional backbones require a region-specific import profile.");
+            if (regionalReferences.Length == 1)
+            {
+                if (!TryResolveLeafPath(indexXmlPath, regionalReferences[0]!, sequenceRoot, out var referencedPath))
+                    throw new XmlException("The regional backbone reference is outside this sequence or is not a local file URI.");
+                regionalPath = workspacePathPolicy.EnsureAllowed(referencedPath!);
+            }
             var sources = new List<(string Path, XDocument Xml)> { (indexXmlPath, xml) };
             SequencePublishingMetadata? publishingMetadata = null;
             if (File.Exists(regionalPath))
             {
                 var regionalXml = await LoadXmlAsync(regionalPath, cancellationToken);
+                if (regionalXml.Root?.Name.LocalName != profile.Regional.RootElementName)
+                    throw new XmlException($"Regional backbone '{Path.GetRelativePath(sequenceRoot, regionalPath)}' has an unexpected root element.");
                 sources.Add((regionalPath, regionalXml));
                 publishingMetadata = ReadPublishingMetadata(regionalXml, isEu, application.SponsorName, sequenceNumber);
             }
             else
             {
                 issues.Add(new ApplicationImportIssueDto("Warning", "SEQUENCE_REGIONAL_MISSING", sequenceNumber,
-                    $"Regional backbone '{profile.Regional.RelativePath}' was not found; regional documents and metadata could not be imported."));
+                    $"Regional backbone '{Path.GetRelativePath(sequenceRoot, regionalPath)}' was not found; regional documents and metadata could not be imported."));
             }
 
+            foreach (var source in sources)
+            {
+                var ids = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var id in source.Xml.Descendants().Attributes("ID"))
+                    if (!ids.Add(id.Value)) throw new XmlException($"Duplicate XML ID '{id.Value}' in '{Path.GetFileName(source.Path)}'.");
+            }
+            var tree = new ImportedNodeTree(previousGraph, sequenceNumber, importedLeafIndex, issues);
+            tree.Read(xml, indexXmlPath, cancellationToken);
             foreach (var (sourcePath, leaf) in sources.SelectMany(source => source.Xml.Descendants()
                 .Where(element => element.Name.LocalName == "leaf")
                 .Select(element => (source.Path, Leaf: element))))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var operation = ParseOperation(leaf.Attribute("operation")?.Value);
-                var section = ExtractSectionPath(leaf, sections, isEu);
+                var node = tree.ParentOf(leaf);
+                var section = node?.CtdSection ?? ExtractSectionPath(leaf, sections, isEu);
+                var backbonePath = Path.GetRelativePath(sequenceRoot, sourcePath).Replace('\\', '/');
+                var context = node is null ? ImportedNodeTree.UnboundContext(leaf) : null;
+                var sortOrder = leaf.ElementsBeforeSelf().Count(element => element.Name.LocalName != "title");
                 var leafId = leaf.Attribute("ID")?.Value;
-                if (!string.IsNullOrWhiteSpace(leafId) && !leafIds.Add((sourcePath, leafId)))
-                {
-                    throw new XmlException($"Duplicate leaf ID '{leafId}' in '{Path.GetFileName(sourcePath)}'.");
-                }
 
                 var href = leaf.Attributes().FirstOrDefault(x => x.Name.LocalName == "href")?.Value;
+                var modifiedFile = leaf.Attribute("modified-file")?.Value;
+                var source = new ImportedLeafSource(backbonePath, href, modifiedFile);
+                void Bind(DocumentPlacement item)
+                {
+                    item.PreserveImportedSource(source, sortOrder);
+                    if (node is not null) item.BindToNode(node, sortOrder);
+                    else issues.Add(new ApplicationImportIssueDto("Warning", "NODE_SCHEMA_NOT_AVAILABLE", sequenceNumber,
+                        $"Leaf '{item.LeafId}' in '{source.BackboneRelativePath}' retains section '{section}' and archived XML context; a compatible node schema is required to bind it."));
+                }
                 ImportedLeaf? target = null;
                 if (operation != DocumentPlacementOperation.New)
                 {
-                    var modifiedFile = leaf.Attribute("modified-file")?.Value;
                     if (!string.IsNullOrWhiteSpace(modifiedFile))
                     {
-                        target = importedLeafIndex.Resolve(sourcePath, modifiedFile, sequenceNumber, section);
+                        target = importedLeafIndex.Resolve(sourcePath, modifiedFile, sequenceNumber, section,
+                            node?.NodeInstanceId, context, node is not null && tree.Graph.HasUnresolvedIdentity(node.NodeInstanceId), backbonePath);
                     }
                     if (target is null)
                     {
                         var missing = string.IsNullOrWhiteSpace(modifiedFile);
-                        issues.Add(new ApplicationImportIssueDto(operation == DocumentPlacementOperation.Delete ? "Error" : "Warning",
+                        var fatal = node is not null || operation == DocumentPlacementOperation.Delete;
+                        issues.Add(new ApplicationImportIssueDto(fatal ? "Error" : "Warning",
                             missing ? "LIFECYCLE_TARGET_MISSING" : "LIFECYCLE_TARGET_NOT_IMPORTED", sequenceNumber,
                             missing ? $"Lifecycle leaf '{href ?? leafId}' is missing modified-file."
                                 : $"Lifecycle leaf '{href ?? leafId}' references modified-file '{modifiedFile}', but no unique imported historical leaf matched it."));
-                        if (operation == DocumentPlacementOperation.Delete)
+                        if (fatal)
                         {
                             return new SequenceImportResult(issues);
                         }
@@ -223,7 +235,8 @@ public sealed class ApplicationImportService(
                 {
                     var deletion = new DocumentPlacement(target!.Document.Id, application.Id, sequenceNumber, section, operation, title, leafId);
                     deletion.ReviseLifecycleTarget(target.Placement.Id);
-                    sequenceLeaves.Add((sourcePath, null, deletion, target.Document));
+                    Bind(deletion);
+                    sequenceLeaves.Add((sourcePath, null, deletion, target.Document, context));
                     continue;
                 }
 
@@ -233,16 +246,15 @@ public sealed class ApplicationImportService(
                     return new SequenceImportResult(issues);
                 }
 
-                var resolvedPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourcePath)!, href.Replace('\\', '/').Replace('/', Path.DirectorySeparatorChar)));
-                if (!WorkspacePathGuard.IsInsideScope(resolvedPath, sequenceRoot))
+                if (!TryResolveLeafPath(sourcePath, href, sequenceRoot, out var resolvedPath))
                 {
                     issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_FILE_OUTSIDE_WORKSPACE", sequenceNumber, $"File '{href}' resolves outside the sequence workspace."));
                     return new SequenceImportResult(issues);
                 }
 
-                var leafParentPath = Path.GetDirectoryName(resolvedPath)!;
+                var leafParentPath = Path.GetDirectoryName(resolvedPath!)!;
                 workspacePathPolicy.EnsureAllowed(leafParentPath);
-                resolvedPath = workspacePathPolicy.EnsureAllowed(resolvedPath);
+                resolvedPath = workspacePathPolicy.EnsureAllowed(resolvedPath!);
 
                 if (!File.Exists(resolvedPath))
                 {
@@ -287,7 +299,8 @@ public sealed class ApplicationImportService(
                     title,
                     leafId);
                 placement.ReviseLifecycleTarget(target?.Placement.Id);
-                sequenceLeaves.Add((sourcePath, href, placement, document));
+                Bind(placement);
+                sequenceLeaves.Add((sourcePath, href, placement, document, context));
             }
 
             // Publish a sequence to the import state only after every backbone
@@ -299,14 +312,21 @@ public sealed class ApplicationImportService(
             foreach (var entry in sequenceLeaves)
             {
                 importedPlacements.Add(entry.Placement);
-                importedLeafIndex.Add(entry.SourcePath, entry.Href, entry.Placement, entry.Document);
+                importedLeafIndex.Add(entry.SourcePath, entry.Href, entry.Placement, entry.Document, entry.Context);
             }
 
-            return new SequenceImportResult(issues, publishingMetadata);
+            return new SequenceImportResult(issues, publishingMetadata, tree,
+                sources.Select(source => new ImportedBackbone(sequenceNumber,
+                    Path.GetRelativePath(sequenceRoot, source.Path).Replace('\\', '/'), source.Xml.ToString(SaveOptions.DisableFormatting))).ToArray());
         }
-        catch (XmlException exception)
+        catch (Exception exception) when (exception is XmlException or CtdNodeConstraintException)
         {
             issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_INDEX_INVALID", sequenceNumber, exception.Message));
+            return new SequenceImportResult(issues);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            issues.Add(new ApplicationImportIssueDto("Error", "SEQUENCE_READ_FAILED", sequenceNumber, exception.Message));
             return new SequenceImportResult(issues);
         }
     }
@@ -325,7 +345,7 @@ public sealed class ApplicationImportService(
         return await XDocument.LoadAsync(reader, LoadOptions.None, cancellationToken);
     }
 
-    private static bool IsSequenceDirectory(string name) => name.Length == 4 && name.All(char.IsDigit);
+    private static bool IsSequenceDirectory(string name) => name.Length == 4 && name.All(character => character is >= '0' and <= '9');
 
     private static string ExtractSectionPath(XElement leaf, SectionDictionaryProfile sections, bool isEu)
     {
@@ -351,6 +371,16 @@ public sealed class ApplicationImportService(
         }
 
         throw new XmlException("Leaf parent section element is missing.");
+    }
+
+    private static bool TryResolveLeafPath(string sourcePath, string href, string sequenceRoot, out string? path)
+    {
+        path = null;
+        var source = new UriBuilder(Uri.UriSchemeFile, string.Empty) { Path = sourcePath }.Uri;
+        if (href != href.Trim() || !Uri.TryCreate(source, href.Replace('\\', '/'), out var uri) ||
+            !uri.IsFile || uri.Query.Length > 0 || uri.Fragment.Length > 0) return false;
+        path = Path.GetFullPath(uri.LocalPath);
+        return WorkspacePathGuard.IsInsideScope(path, sequenceRoot);
     }
 
     private static SequencePublishingMetadata? ReadPublishingMetadata(XDocument xml, bool isEu, string sponsor, string sequenceNumber)
@@ -439,5 +469,7 @@ public sealed class ApplicationImportService(
 
     private sealed record SequenceImportResult(
         IReadOnlyCollection<ApplicationImportIssueDto> Issues,
-        SequencePublishingMetadata? PublishingMetadata = null);
+        SequencePublishingMetadata? PublishingMetadata = null,
+        ImportedNodeTree? Tree = null,
+        IReadOnlyList<ImportedBackbone>? Backbones = null);
 }

@@ -18,6 +18,10 @@ public sealed class DocumentPlacementRecord
 
     public int SortOrder { get; set; }
 
+    public string? ImportedBackbonePath { get; set; }
+    public string? ImportedHref { get; set; }
+    public string? ImportedModifiedFile { get; set; }
+
     public string Operation { get; set; } = string.Empty;
 
     public string? Title { get; set; }

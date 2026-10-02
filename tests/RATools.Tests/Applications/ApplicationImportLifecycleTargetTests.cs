@@ -17,7 +17,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         await WriteSequenceAsync(workspace.Path, "0002", "m1-1", "m1/us/11-forms/replacement.txt", "replace", "m1/us/11-forms/original.txt", "Replacement Leaf", "replacement content");
 
         var placementRepository = new CapturingDocumentPlacementRepository();
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new CapturingApplicationRepository(),
             new CapturingDocumentRepository(),
             placementRepository,
@@ -38,7 +38,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         await WriteSequenceAsync(workspace.Path, "0001", "m1-1", "m1/us/11-forms/replacement.txt", "replace", null, "Replacement Leaf", "replacement content");
 
         var placementRepository = new CapturingDocumentPlacementRepository();
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new CapturingApplicationRepository(),
             new CapturingDocumentRepository(),
             placementRepository,
@@ -61,7 +61,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         await WriteSequenceAsync(workspace.Path, "0001", "m1-1", "m1/us/11-forms/replacement.txt", "replace", "m1/us/11-forms/missing.txt", "Replacement Leaf", "replacement content");
 
         var placementRepository = new CapturingDocumentPlacementRepository();
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new CapturingApplicationRepository(),
             new CapturingDocumentRepository(),
             placementRepository,
@@ -85,7 +85,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         await WriteSequenceAsync(workspace.Path, "0002", "m1-1", "m1/us/11-forms/replacement.txt", "replace", " M1/us/11-forms/original.txt ", "Replacement Leaf", "replacement content");
 
         var placementRepository = new CapturingDocumentPlacementRepository();
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new CapturingApplicationRepository(),
             new CapturingDocumentRepository(),
             placementRepository,
@@ -106,7 +106,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         await WriteSequenceAsync(workspace.Path, "0002", "m1-1", "m1/us/11-forms/replacement.txt", "replace", ".\\m1\\us\\11-forms\\original.txt", "Replacement Leaf", "replacement content");
 
         var placementRepository = new CapturingDocumentPlacementRepository();
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new CapturingApplicationRepository(),
             new CapturingDocumentRepository(),
             placementRepository,

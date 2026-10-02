@@ -38,7 +38,7 @@ public sealed class CtdNodePlacementService(ICtdNodeRepository nodes, IDocumentP
             throw new CtdNodeConstraintException("PlacementNodeSectionMismatch", "The supplied section differs from the target node definition.", request.NodeInstanceId);
         var updated = DocumentPlacement.Rehydrate(original.Id, original.DocumentId, original.ApplicationId, original.SequenceNumber,
             original.CtdSection, original.Operation, original.Title, original.LifecycleTargetPlacementId, original.CreatedUtc,
-            original.LeafId, original.NodeInstanceId, original.SortOrder);
+            original.LeafId, original.NodeInstanceId, original.SortOrder, original.ImportedSource);
         updated.BindToNode(targetNode, request.SortOrder);
         if (original.LifecycleTargetPlacementId is { } targetId)
         {

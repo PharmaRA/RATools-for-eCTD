@@ -11,6 +11,19 @@ public sealed class InMemoryCtdNodeRepository(IWorkspaceRevisionStore revisions,
 {
     private readonly ConcurrentDictionary<(Guid, string), CtdSequenceWorkspace> _workspaces = new();
 
+    internal async Task StageImportAsync(CtdNodeGraph graph, string sequenceNumber, IReadOnlyList<SequenceNode> nodes,
+        long expectedRevision, IReadOnlyList<CtdBackfillDiagnostic> diagnostics, CancellationToken cancellationToken)
+    {
+        var transaction = InMemoryPersistenceTransaction.Current.Value
+            ?? throw new InvalidOperationException("Imported nodes require a transaction.");
+        if (_workspaces.ContainsKey((graph.ApplicationId, sequenceNumber)))
+            throw new InvalidOperationException("An import cannot overwrite existing nodes.");
+        if (!await revisions.AdvanceAsync(graph.ApplicationId, sequenceNumber, expectedRevision, cancellationToken))
+            throw new WorkspaceRevisionConflictException(expectedRevision, null);
+        var saved = new CtdSequenceWorkspace(graph, sequenceNumber, expectedRevision + 1, nodes.ToArray(), diagnostics);
+        transaction.Commits.Add(() => _workspaces[(graph.ApplicationId, sequenceNumber)] = saved);
+    }
+
     public async Task<CtdSequenceWorkspace?> GetSequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
     {
         var revision = await revisions.GetRevisionAsync(applicationId, sequenceNumber, cancellationToken);

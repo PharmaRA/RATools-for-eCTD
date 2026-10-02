@@ -17,6 +17,8 @@ public sealed class CtdNodeMoveTests
         await scope.SeedAsync();
         var first = await scope.AddAsync("first");
         var second = await scope.AddAsync("second");
+        first.Placement.PreserveImportedSource(new("index.xml", "first/specification.pdf", null), 0);
+        await scope.Placements.UpdateAsync(first.Placement);
         var preview = await scope.Service.MoveAsync(first.Placement.Id, new(scope.Alpha.NodeInstanceId, 4, 1), previewOnly: true);
         Assert.Equal(first.Document.StoragePath, preview.SourcePath);
         Assert.False(Directory.Exists(Path.GetDirectoryName(preview.TargetPath)));
@@ -26,6 +28,7 @@ public sealed class CtdNodeMoveTests
         Assert.Equal("Synthetic PDF payload first", await File.ReadAllTextAsync(scope.Destination(scope.Alpha.NodeInstanceId)));
         Assert.Equal("Synthetic PDF payload second", await File.ReadAllTextAsync(scope.Destination(scope.Beta.NodeInstanceId)));
         Assert.Equal(first.Placement.LeafId, (await scope.Placements.GetAsync(first.Placement.Id))!.LeafId);
+        Assert.Equal(first.Placement.ImportedSource, (await scope.Placements.GetAsync(first.Placement.Id))!.ImportedSource);
         Assert.Equal(3, await scope.RevisionAsync());
         Assert.Empty(scope.Journal.Read(scope.Application));
     }

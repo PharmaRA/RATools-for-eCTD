@@ -53,9 +53,7 @@ public sealed class EfCorePersistenceTransaction(RAToolsDbContext dbContext) : I
         }
         catch (Exception rollbackException)
         {
-            throw new InvalidOperationException(
-                "The persistence operation failed and its transaction could not be rolled back.",
-                new AggregateException(originalException, rollbackException));
+            throw new PersistenceRollbackException(originalException, rollbackException);
         }
         finally
         {

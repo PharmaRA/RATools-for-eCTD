@@ -8,9 +8,9 @@ internal sealed class ImportedLeafIndex(string applicationRoot)
     private readonly Dictionary<string, List<ImportedLeaf>> references = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<ImportedLeaf>> legacyHrefs = new(StringComparer.Ordinal);
 
-    public void Add(string sourcePath, string? href, DocumentPlacement placement, SubmissionDocument document)
+    public void Add(string sourcePath, string? href, DocumentPlacement placement, SubmissionDocument document, string? unboundContext)
     {
-        var entry = new ImportedLeaf(placement, document);
+        var entry = new ImportedLeaf(placement, document, unboundContext);
         Add(references, ReferenceKey(new Uri(FileUri(sourcePath), $"#{Uri.EscapeDataString(placement.LeafId)}")), entry);
         if (placement.Operation != DocumentPlacementOperation.Delete)
         {
@@ -22,7 +22,37 @@ internal sealed class ImportedLeafIndex(string applicationRoot)
         }
     }
 
-    public ImportedLeaf? Resolve(string sourcePath, string reference, string sequenceNumber, string section)
+    public ImportedLeaf? ResolveAddress(string sourcePath, string reference, string sequenceNumber)
+    {
+        var uri = ResolveUri(sourcePath, reference);
+        return uri is not null && references.TryGetValue(ReferenceKey(uri), out var matches)
+            ? UniqueHistoricalMatch(matches, sequenceNumber) : null;
+    }
+
+    public ImportedLeaf? Resolve(string sourcePath, string reference, string sequenceNumber, string section,
+        Guid? nodeInstanceId, string? unboundContext, bool unresolvedIdentity, string backboneRelativePath)
+    {
+        var uri = ResolveUri(sourcePath, reference);
+        if (uri is null) return null;
+        bool SameContext(ImportedLeaf entry) => entry.Placement.CtdSection == section &&
+            entry.Placement.NodeInstanceId == nodeInstanceId &&
+            (nodeInstanceId is not null || entry.UnboundContext == unboundContext);
+        if (references.TryGetValue(ReferenceKey(uri), out var matches))
+        {
+            // Explicit addresses are resolved before context is checked. Filtering
+            // first would conceal an address that is itself ambiguous.
+            var target = UniqueHistoricalMatch(matches, sequenceNumber);
+            return target is not null && SameContext(target) ? target : null;
+        }
+        var normalized = NormalizeHref(reference);
+        // A failed explicit path/fragment never falls back to a same-named file.
+        return !unresolvedIdentity && uri.Fragment.Length == 0 && !normalized.Split('/').Contains("..") &&
+            !Uri.TryCreate(normalized, UriKind.Absolute, out _) && legacyHrefs.TryGetValue(normalized, out var legacyMatches)
+            ? UniqueHistoricalMatch(legacyMatches.Where(entry => SameContext(entry) &&
+                entry.Placement.ImportedSource?.BackboneRelativePath == backboneRelativePath), sequenceNumber) : null;
+    }
+
+    private Uri? ResolveUri(string sourcePath, string reference)
     {
         var normalized = NormalizeHref(reference);
         if (normalized != normalized.Trim()
@@ -33,23 +63,13 @@ internal sealed class ImportedLeafIndex(string applicationRoot)
             return null;
         }
 
-        if (references.TryGetValue(ReferenceKey(uri), out var matches))
-        {
-            return UniqueHistoricalMatch(matches, sequenceNumber, section);
-        }
-
-        // Earlier workspaces stored bare document hrefs. Preserve exact, unique
-        // matches without letting repeated names overwrite historical identity.
-        return uri.Fragment.Length == 0 && legacyHrefs.TryGetValue(normalized, out var legacyMatches)
-            ? UniqueHistoricalMatch(legacyMatches, sequenceNumber, section)
-            : null;
+        return uri;
     }
 
-    private static ImportedLeaf? UniqueHistoricalMatch(IEnumerable<ImportedLeaf> entries, string sequenceNumber, string section)
+    private static ImportedLeaf? UniqueHistoricalMatch(IEnumerable<ImportedLeaf> entries, string sequenceNumber)
     {
         var matches = entries.Where(entry => entry.Placement.Operation != DocumentPlacementOperation.Delete
-                && string.CompareOrdinal(entry.Placement.SequenceNumber, sequenceNumber) < 0
-                && string.Equals(entry.Placement.CtdSection, section, StringComparison.OrdinalIgnoreCase))
+                && string.CompareOrdinal(entry.Placement.SequenceNumber, sequenceNumber) < 0)
             .Take(2).ToArray();
         return matches.Length == 1 ? matches[0] : null;
     }
@@ -82,4 +102,4 @@ internal sealed class ImportedLeafIndex(string applicationRoot)
     }
 }
 
-internal sealed record ImportedLeaf(DocumentPlacement Placement, SubmissionDocument Document);
+internal sealed record ImportedLeaf(DocumentPlacement Placement, SubmissionDocument Document, string? UnboundContext);

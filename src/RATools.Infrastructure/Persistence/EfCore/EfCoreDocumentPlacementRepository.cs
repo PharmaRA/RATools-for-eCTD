@@ -99,6 +99,9 @@ internal static class DocumentPlacementRecordMapping
             CtdSection = placement.CtdSection,
             NodeInstanceId = placement.NodeInstanceId,
             SortOrder = placement.SortOrder,
+            ImportedBackbonePath = placement.ImportedSource?.BackboneRelativePath,
+            ImportedHref = placement.ImportedSource?.Href,
+            ImportedModifiedFile = placement.ImportedSource?.ModifiedFile,
             Operation = placement.Operation.ToString(),
             Title = placement.Title,
             LifecycleTargetPlacementId = placement.LifecycleTargetPlacementId,
@@ -121,6 +124,8 @@ internal static class DocumentPlacementRecordMapping
             record.CreatedUtc,
             record.LeafId,
             record.NodeInstanceId,
-            record.SortOrder);
+            record.SortOrder,
+            record.ImportedBackbonePath is null ? null : new ImportedLeafSource(record.ImportedBackbonePath,
+                record.ImportedHref, record.ImportedModifiedFile));
     }
 }

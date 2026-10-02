@@ -59,6 +59,8 @@ public sealed class DocumentPlacement : Entity
 
     public int SortOrder { get; private set; }
 
+    public ImportedLeafSource? ImportedSource { get; private set; }
+
     public DocumentPlacementOperation Operation { get; private set; }
 
     public string? Title { get; private set; }
@@ -79,15 +81,26 @@ public sealed class DocumentPlacement : Entity
         DateTime createdUtc,
         string? leafId = null,
         Guid? nodeInstanceId = null,
-        int sortOrder = 0)
+        int sortOrder = 0,
+        ImportedLeafSource? importedSource = null)
     {
         if (nodeInstanceId == Guid.Empty) throw new ArgumentException("A node identity must be nonempty.", nameof(nodeInstanceId));
         ArgumentOutOfRangeException.ThrowIfNegative(sortOrder);
         return new DocumentPlacement(id, documentId, applicationId, sequenceNumber, ctdSection, operation, title, lifecycleTargetPlacementId, createdUtc, leafId)
         {
             NodeInstanceId = nodeInstanceId,
-            SortOrder = sortOrder
+            SortOrder = sortOrder,
+            ImportedSource = importedSource
         };
+    }
+
+    public void PreserveImportedSource(ImportedLeafSource source, int sortOrder)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentOutOfRangeException.ThrowIfNegative(sortOrder);
+        _ = new LeafAddress(ApplicationId, SequenceNumber, source.BackboneRelativePath, LeafId);
+        ImportedSource = source;
+        SortOrder = sortOrder;
     }
 
     public void BindToNode(SequenceNode node, int sortOrder = 0)

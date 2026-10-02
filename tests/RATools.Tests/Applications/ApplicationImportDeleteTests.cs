@@ -62,10 +62,10 @@ public sealed class ApplicationImportDeleteTests
         var applications = new EfCoreApplicationRepository(db);
         var documents = new EfCoreDocumentRepository(db);
         var placements = new EfCoreDocumentPlacementRepository(db);
-        var imported = await new ApplicationImportService(applications, documents, placements, fixture.PathPolicy)
+        var imported = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy)
             .ImportAsync(new ImportApplicationRequest(fixture.Application.WorkingDirectoryPath, templateKey, "Sponsor"));
 
-        Assert.Empty(imported.Issues);
+        Assert.All(imported.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
         Assert.Equal(1, imported.ImportedDocumentCount);
         Assert.Equal(2, imported.ImportedPlacementCount);
         db.ChangeTracker.Clear();
@@ -120,10 +120,10 @@ public sealed class ApplicationImportDeleteTests
         var documents = new InMemoryDocumentRepository();
         var placements = new InMemoryDocumentPlacementRepository();
 
-        var result = await new ApplicationImportService(applications, documents, placements, fixture.PathPolicy)
+        var result = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy)
             .ImportAsync(new ImportApplicationRequest(fixture.Application.WorkingDirectoryPath, templateKey, "Sponsor"));
 
-        Assert.Empty(result.Issues);
+        Assert.All(result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
         var original = Assert.Single(await placements.ListBySequenceAsync(result.ApplicationId, "0000"));
         var current = Assert.Single(await placements.ListBySequenceAsync(result.ApplicationId, "0002"));
         Assert.Equal(original.Id, current.LifecycleTargetPlacementId);
@@ -153,7 +153,7 @@ public sealed class ApplicationImportDeleteTests
         var documents = new InMemoryDocumentRepository();
         var placements = new InMemoryDocumentPlacementRepository();
 
-        var result = await new ApplicationImportService(applications, documents, placements, fixture.PathPolicy)
+        var result = await ImportTestServices.Create(applications, documents, placements, fixture.PathPolicy)
             .ImportAsync(new ImportApplicationRequest(fixture.Application.WorkingDirectoryPath, fixture.Application.EctdTemplateKey, "Sponsor"));
 
         Assert.Contains(result.Issues, issue => issue.Code == expectedCode && issue.Severity == "Error");

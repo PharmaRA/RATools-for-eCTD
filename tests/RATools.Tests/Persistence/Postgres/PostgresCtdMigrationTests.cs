@@ -72,7 +72,7 @@ public sealed class PostgresCtdMigrationTests
                 command.Parameters.AddWithValue("path", path);
                 await command.ExecuteNonQueryAsync();
             }
-            Assert.Contains("Applied 1", await database.RunMigratorAsync());
+            Assert.Contains("Applied 2", await database.RunMigratorAsync());
             await using var upgraded = database.CreateContext();
             Assert.Null((await upgraded.DocumentPlacements.AsNoTracking().SingleAsync()).NodeInstanceId);
             Assert.Equal(0, (await upgraded.Sequences.AsNoTracking().SingleAsync()).WorkspaceRevision);
@@ -93,9 +93,13 @@ public sealed class PostgresCtdMigrationTests
             Assert.Equal(sha256, document.Sha256);
             Assert.Equal(md5, document.Md5);
             Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
+            // EF commits individual migrations. Remove the empty provenance layer
+            // first, then test the populated node migration's own downgrade guard.
+            await upgraded.GetService<IMigrator>().MigrateAsync("20260908131138_AddCtdNodeInstances");
             var error = await Assert.ThrowsAsync<PostgresException>(() => upgraded.GetService<IMigrator>().MigrateAsync(PreviousMigration));
             Assert.Equal("55000", error.SqlState);
             Assert.Equal(ids.Length, await upgraded.CtdNodeInstances.CountAsync());
+            Assert.Contains("Applied 1", await database.RunMigratorAsync());
             Assert.Empty(await upgraded.Database.GetPendingMigrationsAsync());
         }
         finally { Directory.Delete(directory, recursive: true); }

@@ -16,7 +16,7 @@ public sealed class ApplicationImportSecurityTests
     [Fact]
     public async Task ImportAsync_RejectsWorkingDirectoryOutsideConfiguredRootsBeforeReadingDirectory()
     {
-        var service = new ApplicationImportService(
+        var service = ImportTestServices.Create(
             new StubApplicationRepository(),
             new StubDocumentRepository(),
             new StubDocumentPlacementRepository(),
@@ -150,7 +150,7 @@ public sealed class ApplicationImportSecurityTests
 
     private static ApplicationImportService CreateImportService(string allowedRoot)
     {
-        return new ApplicationImportService(
+        return ImportTestServices.Create(
             new StubApplicationRepository(),
             new StubDocumentRepository(),
             new StubDocumentPlacementRepository(),
