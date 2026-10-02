@@ -16,7 +16,8 @@ public sealed class DocumentPlacementService(
     IPublishJobRepository publishJobRepository,
     IEctdWorkspacePathResolver workspacePathResolver,
     IDocumentStorageBoundary documentStorageBoundary,
-    WorkspaceMutationCoordinator mutations) : IDocumentPlacementService
+    WorkspaceMutationCoordinator mutations,
+    RATools.Application.Ctd.CtdNodePlacementService? nodePlacements = null) : IDocumentPlacementService
 {
     private static readonly TimeSpan FileOperationCleanupTimeout = TimeSpan.FromSeconds(30);
 
@@ -67,6 +68,17 @@ public sealed class DocumentPlacementService(
         {
             return null;
         }
+
+        if (request.NodeInstanceId is { } nodeId)
+        {
+            var mover = nodePlacements ?? throw new InvalidOperationException("Node placement service is unavailable.");
+            var result = await mover.MoveAsync(id, new(nodeId, request.SortOrder, request.ExpectedRevision, request.CtdSection),
+                cancellationToken: cancellationToken);
+            return result.Placement ?? throw new InvalidOperationException("The node move did not return its committed placement.");
+        }
+
+        if (placement.NodeInstanceId is not null && placement.CtdSection != request.CtdSection.Trim())
+            throw new InvalidOperationException("Select a target node instance when moving a bound placement.");
 
         await using var mutation = await mutations.AcquireAsync(placement.ApplicationId, placement.SequenceNumber, request.ExpectedRevision, cancellationToken);
         placement = await placementRepository.GetAsync(id, cancellationToken);
@@ -527,6 +539,8 @@ internal static class DocumentPlacementMapping
             placement.Operation.ToString(),
             placement.Title,
             placement.LifecycleTargetPlacementId,
-            placement.CreatedUtc);
+            placement.CreatedUtc,
+            NodeInstanceId: placement.NodeInstanceId,
+            SortOrder: placement.SortOrder);
     }
 }

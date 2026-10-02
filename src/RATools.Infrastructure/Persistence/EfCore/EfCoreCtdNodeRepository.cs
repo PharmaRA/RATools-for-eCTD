@@ -6,7 +6,7 @@ using RATools.Domain.Ctd;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
-public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext) : ICtdNodeRepository
+public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext, NodeFileMoveGuard? moveGuard = null) : ICtdNodeRepository
 {
     public async Task<CtdSequenceWorkspace?> GetSequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default)
     {
@@ -39,6 +39,7 @@ public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext) : ICtdNo
     {
         await using var applicationLock = await new EfCoreWorkspaceRevisionStore(dbContext)
             .LockApplicationAsync(graph.ApplicationId, cancellationToken);
+        if (moveGuard is not null) await moveGuard.EnsureReadyAsync(graph.ApplicationId, cancellationToken);
         return await new EfCorePersistenceTransaction(dbContext).ExecuteAsync(
             ct => SaveWithinTransactionAsync(graph, sequenceNumber, nodes, expectedRevision, ct), cancellationToken);
     }

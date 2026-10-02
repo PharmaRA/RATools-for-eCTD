@@ -10,4 +10,6 @@ public sealed record DocumentPlacementDto(
     string? Title,
     Guid? LifecycleTargetPlacementId,
     DateTime CreatedUtc,
-    long? WorkspaceRevision = null);
+    long? WorkspaceRevision = null,
+    Guid? NodeInstanceId = null,
+    int SortOrder = 0);

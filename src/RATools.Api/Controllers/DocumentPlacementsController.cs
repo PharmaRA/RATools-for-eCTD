@@ -3,12 +3,14 @@ using RATools.Api.Contracts;
 using RATools.Application.Documents;
 using RATools.Application.Documents.Dtos;
 using RATools.Application.Documents.Requests;
+using RATools.Application.Ctd;
+using RATools.Domain.Ctd;
 
 namespace RATools.Api.Controllers;
 
 [ApiController]
 [Route("api/document-placements")]
-public sealed class DocumentPlacementsController(IDocumentPlacementService placementService) : ControllerBase
+public sealed class DocumentPlacementsController(IDocumentPlacementService placementService, CtdNodePlacementService nodePlacements) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(DocumentPlacementDto[]), StatusCodes.Status200OK)]
@@ -70,12 +72,46 @@ public sealed class DocumentPlacementsController(IDocumentPlacementService place
     {
         try
         {
-            var updated = await placementService.UpdateSectionAsync(id, new UpdateDocumentPlacementSectionRequest(request.CtdSection, request.ExpectedRevision), cancellationToken);
+            var updated = await placementService.UpdateSectionAsync(id, new UpdateDocumentPlacementSectionRequest(
+                request.CtdSection, request.ExpectedRevision, request.NodeInstanceId, request.SortOrder ?? 0), cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (CtdNodeConstraintException exception)
+        {
+            return Conflict(new { message = exception.Message, code = exception.Code, nodeInstanceId = exception.NodeInstanceId });
+        }
+        catch (IOException exception)
+        {
+            return Conflict(new { message = exception.Message, code = "NodeMoveFileConflict" });
         }
         catch (InvalidOperationException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/section/preview")]
+    [ProducesResponseType(typeof(NodePlacementMovePreview), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PreviewSection(Guid id, [FromBody] UpdateDocumentPlacementSectionRequestBody request, CancellationToken cancellationToken)
+    {
+        if (request.NodeInstanceId is not { } nodeId)
+            return BadRequest(new { message = "Select a target node instance.", code = "NodeSelectionRequired" });
+        try
+        {
+            return Ok(await nodePlacements.MoveAsync(id, new(nodeId, request.SortOrder ?? 0, request.ExpectedRevision, request.CtdSection),
+                previewOnly: true, cancellationToken));
+        }
+        catch (CtdNodeConstraintException exception)
+        {
+            return Conflict(new { message = exception.Message, code = exception.Code, nodeInstanceId = exception.NodeInstanceId });
+        }
+        catch (IOException exception)
+        {
+            return Conflict(new { message = exception.Message, code = "NodeMoveFileConflict" });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message, code = "NodeMoveConflict" });
         }
     }
 

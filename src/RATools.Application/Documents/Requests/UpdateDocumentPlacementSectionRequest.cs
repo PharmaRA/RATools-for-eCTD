@@ -1,3 +1,4 @@
 namespace RATools.Application.Documents.Requests;
 
-public sealed record UpdateDocumentPlacementSectionRequest(string CtdSection, long? ExpectedRevision = null);
+public sealed record UpdateDocumentPlacementSectionRequest(string CtdSection, long? ExpectedRevision = null,
+    Guid? NodeInstanceId = null, int SortOrder = 0);

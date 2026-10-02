@@ -828,6 +828,65 @@
         }
       }
     },
+    "/api/document-placements/{id}/section/preview": {
+      "post": {
+        "tags": [
+          "DocumentPlacements"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentPlacementSectionRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePlacementMovePreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePlacementMovePreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePlacementMovePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/document-placements/{id}/metadata": {
       "put": {
         "tags": [
@@ -2493,8 +2552,10 @@
           "documentId",
           "id",
           "lifecycleTargetPlacementId",
+          "nodeInstanceId",
           "operation",
           "sequenceNumber",
+          "sortOrder",
           "title",
           "workspaceRevision"
         ],
@@ -2538,6 +2599,15 @@
             "type": "integer",
             "format": "int64",
             "nullable": true
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -2702,6 +2772,37 @@
             "maxLength": 128,
             "minLength": 2,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NodePlacementMovePreview": {
+        "required": [
+          "nodeInstanceId",
+          "placementId",
+          "sourcePath",
+          "targetPath",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourcePath": {
+            "type": "string"
+          },
+          "targetPath": {
+            "type": "string"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -3446,6 +3547,18 @@
           "expectedRevision": {
             "type": "integer",
             "format": "int64",
+            "nullable": true
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sortOrder": {
+            "maximum": 2147483647,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "ctdSection": {

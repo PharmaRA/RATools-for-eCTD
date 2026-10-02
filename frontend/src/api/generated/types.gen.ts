@@ -187,6 +187,8 @@ export type DocumentPlacementDto = {
     lifecycleTargetPlacementId: string | null;
     createdUtc: string;
     workspaceRevision: number | null;
+    nodeInstanceId: string | null;
+    sortOrder: number;
 };
 
 export type EctdStructureDto = {
@@ -230,6 +232,14 @@ export type ImportApplicationRequestBody = {
     workingDirectoryPath: string;
     ectdTemplateKey: string;
     sponsorName: string;
+};
+
+export type NodePlacementMovePreview = {
+    placementId: string;
+    nodeInstanceId: string;
+    sourcePath: string;
+    targetPath: string;
+    workspaceRevision: number;
 };
 
 export type ProblemDetails = {
@@ -414,6 +424,8 @@ export type UpdateDocumentPlacementMetadataRequestBody = {
 
 export type UpdateDocumentPlacementSectionRequestBody = {
     expectedRevision?: number | null;
+    nodeInstanceId?: string | null;
+    sortOrder?: number | null;
     ctdSection: string;
 };
 
@@ -786,6 +798,24 @@ export type PutApiDocumentPlacementsByIdSectionResponses = {
 };
 
 export type PutApiDocumentPlacementsByIdSectionResponse = PutApiDocumentPlacementsByIdSectionResponses[keyof PutApiDocumentPlacementsByIdSectionResponses];
+
+export type PostApiDocumentPlacementsByIdSectionPreviewData = {
+    body?: UpdateDocumentPlacementSectionRequestBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/document-placements/{id}/section/preview';
+};
+
+export type PostApiDocumentPlacementsByIdSectionPreviewResponses = {
+    /**
+     * OK
+     */
+    200: NodePlacementMovePreview;
+};
+
+export type PostApiDocumentPlacementsByIdSectionPreviewResponse = PostApiDocumentPlacementsByIdSectionPreviewResponses[keyof PostApiDocumentPlacementsByIdSectionPreviewResponses];
 
 export type PutApiDocumentPlacementsByIdMetadataData = {
     body?: UpdateDocumentPlacementMetadataRequestBody;

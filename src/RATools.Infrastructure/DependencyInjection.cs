@@ -56,6 +56,7 @@ public static class DependencyInjection
         // 注册顺序即启动顺序：先原子回收租约已过期的 Running 作业，再启动队列消费。
         // 是否真正执行回收由服务在 StartAsync 里按运行时配置判断（注册阶段读不到
         // WebApplicationFactory 等宿主在 ConfigureAppConfiguration 中的覆盖值）。
+        services.AddHostedService<NodeFileMoveRecoveryService>();
         services.AddHostedService<StalePublishJobRecoveryService>();
         services.AddHostedService<PublishJobBackgroundService>();
         services.AddHostedService<PublishQueueMetricsService>();
@@ -74,6 +75,7 @@ public static class DependencyInjection
         {
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
             services.AddSingleton<IWorkspaceRevisionStore, InMemoryWorkspaceRevisionStore>();
+            services.AddSingleton<ICtdNodeRepository, InMemoryCtdNodeRepository>();
             services.AddScoped<IPersistenceTransaction, InMemoryPersistenceTransaction>();
             services.AddSingleton<IDocumentRepository, InMemoryDocumentRepository>();
             services.AddSingleton<IDocumentPlacementRepository, InMemoryDocumentPlacementRepository>();

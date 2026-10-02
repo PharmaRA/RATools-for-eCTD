@@ -27,6 +27,11 @@ public static class DependencyInjection
         services.AddScoped<IPersistenceTransaction, PassthroughPersistenceTransaction>();
         services.AddScoped<WorkspaceMutationCoordinator>();
         services.AddScoped<WorkspaceSnapshotService>();
+        services.AddSingleton<RATools.Application.Ctd.CtdNodePathResolver>();
+        services.AddScoped<RATools.Application.Ctd.CtdNodePlacementService>();
+        services.AddSingleton<RATools.Application.Ctd.NodeFileMoveJournal>();
+        services.AddTransient<RATools.Application.Ctd.NodeFileMoveGuard>();
+        services.AddScoped<RATools.Application.Ctd.NodeFileMoveRecovery>();
         services.AddScoped<IApplicationDeletionTransaction, PassthroughApplicationDeletionTransaction>();
         services.AddScoped<IApplicationDeletionCoordinator, ApplicationDeletionCoordinator>();
         services.AddScoped<IApplicationService, ApplicationService>();

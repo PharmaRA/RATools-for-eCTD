@@ -16,7 +16,8 @@ const flushPromises = async () => {
 }
 
 const waitForElement = async (getElement: () => HTMLElement | undefined, label: string) => {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  const deadline = Date.now() + 3000
+  while (Date.now() < deadline) {
     await flushPromises()
     const element = getElement()
     if (element) return element

@@ -6,7 +6,8 @@ public sealed class WorkspaceRevisionRequiredException() : Exception("Workspace 
 public sealed class WorkspaceRevisionTargetNotFoundException() : Exception("The target workspace no longer exists.");
 public sealed class WorkspaceRevisionInvalidException() : Exception("Workspace revision must be a nonnegative safe integer below the revision limit.");
 
-public sealed class WorkspaceMutationCoordinator(IWorkspaceRevisionStore revisions, IPersistenceTransaction transactions)
+public sealed class WorkspaceMutationCoordinator(IWorkspaceRevisionStore revisions, IPersistenceTransaction transactions,
+    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null)
 {
     public async Task<WorkspaceMutation> AcquireAsync(Guid applicationId, string sequenceNumber, long? expectedRevision,
         CancellationToken cancellationToken = default)
@@ -16,6 +17,7 @@ public sealed class WorkspaceMutationCoordinator(IWorkspaceRevisionStore revisio
         var heldLock = await revisions.LockApplicationAsync(applicationId, cancellationToken);
         try
         {
+            if (moveGuard is not null) await moveGuard.EnsureReadyAsync(applicationId, cancellationToken);
             var current = await revisions.GetRevisionAsync(applicationId, sequenceNumber, cancellationToken)
                 ?? throw new WorkspaceRevisionTargetNotFoundException();
             if (current != expectedRevision) throw new WorkspaceRevisionConflictException(expectedRevision.Value, current);

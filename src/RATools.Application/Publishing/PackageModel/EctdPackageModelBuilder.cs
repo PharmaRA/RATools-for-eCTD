@@ -10,11 +10,12 @@ public sealed class EctdPackageModelBuilder(
     IDocumentPlacementRepository placementRepository,
     IDocumentRepository documentRepository,
     IStandardsProfileProvider standardsProfileProvider,
-    IDocumentStorageBoundary documentStorageBoundary) : IEctdPackageModelBuilder
+    IDocumentStorageBoundary documentStorageBoundary, RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IEctdPackageModelBuilder
 {
     public async Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (moveGuard is not null) await moveGuard.EnsureReadyAsync(request.ApplicationId, cancellationToken);
 
         var application = await applicationRepository.GetAsync(request.ApplicationId, cancellationToken);
         if (application is null)

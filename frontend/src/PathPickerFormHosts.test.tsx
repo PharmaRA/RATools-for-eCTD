@@ -32,15 +32,15 @@ const flushPromises = async () => {
 
 const waitFor = async (assertion: () => void) => {
   let lastError: unknown
-
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  const deadline = Date.now() + 3000
+  while (Date.now() < deadline) {
     try {
       assertion()
       return
     } catch (error) {
       lastError = error
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0))
+        await new Promise((resolve) => setTimeout(resolve, 10))
       })
     }
   }
@@ -72,7 +72,8 @@ const renderApp = () => {
 const clickByText = async (text: string) => {
   // 懒加载路由下按钮出现的时机取决于动态 import 完成，带重试等待。
   let element: HTMLButtonElement | undefined
-  for (let attempt = 0; attempt < 40 && !element; attempt += 1) {
+  const deadline = Date.now() + 3000
+  while (!element && Date.now() < deadline) {
     element = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.includes(text)) as HTMLButtonElement | undefined
     if (!element) {
       await act(async () => {
