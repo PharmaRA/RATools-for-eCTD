@@ -21,6 +21,7 @@ public sealed class LeafAddressTests
     [InlineData("index.xml", "index.xml", "../0000/index.xml#alpha")]
     [InlineData("m1/us/us-regional.xml", "index.xml", "../../../0000/index.xml#alpha")]
     [InlineData("index.xml", "m1/us/us-regional.xml", "../0000/m1/us/us-regional.xml#alpha")]
+    [InlineData("index.xml", "m1/us/regional#v.xml", "../0000/m1/us/regional%23v.xml#alpha")]
     [InlineData("m1/us/us-regional.xml", "m1/us/us-regional.xml", "../../../0000/m1/us/us-regional.xml#alpha")]
     public void HistoricalReferencesUseBothBackbonePaths(string sourcePath, string targetPath, string expected)
     {

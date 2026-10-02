@@ -7,6 +7,8 @@ reference/eu-m1/3.1.1/util/style/* -text -whitespace
 
 # The validation rule catalog pins the exact project policy source bytes.
 reference/publisher/contracts-v1.json -text
+reference/publisher/package-xml-assets-v1.json -text whitespace=cr-at-eol
+reference/publisher/ich-3.2.2-nodes.json -text whitespace=cr-at-eol
 
 # Qualification inputs are hashed packages, including their XML and checksum files.
 tests/RATools.Tests/Fixtures/Publisher/sequences/** -text

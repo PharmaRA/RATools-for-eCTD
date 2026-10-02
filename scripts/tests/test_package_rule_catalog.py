@@ -27,8 +27,14 @@ def verify_package_rule_catalog() -> None:
                 assert source[field] == original[field], (source["id"], field)
             assert source["verificationStatus"] == original["retrievalStatus"]
         else:
-            assert source["id"] == "ratools-publisher-contract-v1"
-            assert source["sha256"] == hashlib.sha256((ROOT / "reference/publisher/contracts-v1.json").read_bytes()).hexdigest()
+            project_sources = {"ratools-publisher-contract-v1": "reference/publisher/contracts-v1.json",
+                               "ratools-package-xml-assets-v1": "reference/publisher/package-xml-assets-v1.json"}
+            assert source["sha256"] == hashlib.sha256((ROOT / project_sources[source["id"]]).read_bytes()).hexdigest()
+
+    xml_assets = json.loads((ROOT / "reference/publisher/package-xml-assets-v1.json").read_text(encoding="utf-8"))
+    for asset in xml_assets["assets"]:
+        assert hashlib.sha256((ROOT / asset["path"]).read_bytes()).hexdigest() == asset["sha256"], asset["id"]
+    assert hashlib.sha256((ROOT / xml_assets["nodeSchemaPath"]).read_bytes()).hexdigest() == xml_assets["nodeSchemaSha256"]
 
     profiles = {profile["profileSnapshotId"]: profile for profile in catalog["profiles"]}
     assert len(profiles) == len(catalog["profiles"]) == 3

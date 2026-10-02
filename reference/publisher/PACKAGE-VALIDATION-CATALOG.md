@@ -97,3 +97,9 @@ history reading, including an always-applicable `INPUT-LIMITS` check in addition
 to ZIP metadata limits. These input entries now link to the actual reader and
 rejection tests, while per-run report integration and Linux qualification remain
 pending. P2-03/04 add XML inspection and lifecycle resolution.
+
+P2-03 now implements seven independent XML checks and pins their embedded assets
+through the catalog's `ratools-package-xml-assets-v1` source. Node context and
+extension criteria retain their outstanding mapping/regional qualification gaps.
+See [PACKAGE-XML-INSPECTION.md](PACKAGE-XML-INSPECTION.md) for execution boundaries
+and the independent libxml fixture checks.

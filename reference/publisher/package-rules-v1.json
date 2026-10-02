@@ -35,6 +35,14 @@
       "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/3098a56c22d3ff636d28b7b8298a47b961c11e9b/reference/publisher/contracts-v1.json",
       "sha256": "a29fc9412c7a3b099264b078f7464aa4d16fa2c511be855180ca6a5a8fcb2a83",
       "verificationStatus": "Verified"
+    },
+    {
+      "id": "ratools-package-xml-assets-v1",
+      "kind": "ProjectPolicy",
+      "version": "package-xml-assets-v1",
+      "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/package-xml-assets-v1.json",
+      "sha256": "c168ef2def9a31fcea026ca3bdbb3772ced5d4821f4c8b58535513d6b5b6682c",
+      "verificationStatus": "Verified"
     }
   ],
   "profiles": [
@@ -291,11 +299,11 @@
     {
       "internalRuleId": "XML-OFFLINE",
       "authorityRuleId": null,
-      "sourceId": "ratools-publisher-contract-v1",
-      "sourceSection": "validationBinding.profileSnapshotId; validationBinding.resourceLimitsDigest",
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "resolutionPolicy; profiles; assets",
       "title": "Only pinned offline XML resources are resolved",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -306,16 +314,21 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#unknown-external-dtd"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#unknown-external-dtd",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "componentEvidence": [
-        "src/RATools.Application/Publishing/Validation/EctdXmlValidator.cs"
+        "src/RATools.Application/Publishing/Validation/EctdXmlValidator.cs",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -326,7 +339,7 @@
       "sourceSection": "validationBinding.resourceLimitsDigest",
       "title": "Bounded XML depth, node count and entity expansion",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -337,11 +350,19 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
-      "positiveFixtures": [],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -351,7 +372,7 @@
       "sourceSection": "validationBinding.profileSnapshotId",
       "title": "Declared XML versions match explicit profile snapshot",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -362,14 +383,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Standards/BackboneXmlProfile.cs"
+        "src/RATools.Application/Standards/BackboneXmlProfile.cs",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -380,7 +407,7 @@
       "sourceSection": "Appendix 2, Structure; Appendix 8, XML eCTD DTD",
       "title": "ICH backbone structure and mandatory attributes",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -391,17 +418,22 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "componentEvidence": [
         "src/RATools.Application/Publishing/Validation/EctdXmlValidator.cs",
-        "reference/publisher/ich-3.2.2-nodes.json"
+        "reference/publisher/ich-3.2.2-nodes.json",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -412,7 +444,7 @@
       "sourceSection": "Bundled US M1 3.3 DTD; official version/source verification pending",
       "title": "US regional backbone structure",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "us-fda-3.2.2-m1-3.3-development-v1"
       ],
@@ -421,14 +453,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "reference/dtd/us-regional-v3-3.dtd"
+        "reference/dtd/us-regional-v3-3.dtd",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -439,7 +477,7 @@
       "sourceSection": "EU M1 3.1.1 asset manifest and published implementation timeline",
       "title": "EU regional backbone structure",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "eu-3.2.2-m1-3.1.1-development-v1"
       ],
@@ -448,12 +486,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
-      "positiveFixtures": [],
-      "negativeFixtures": [],
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/PackageValidation/eu-regional.xml",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "reference/eu-m1/3.1.1/manifest.json"
+        "reference/eu-m1/3.1.1/manifest.json",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -464,7 +510,7 @@
       "sourceSection": "Appendix 6, ID attribute; Appendix 8, ID declarations",
       "title": "Document-scoped unique XML IDs",
       "category": "XML",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -475,16 +521,22 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent, bounded inspection against exact hash-verified embedded assets is implemented and tested. This validates the declared development XML scope, not current regional business criteria or whole-package regulatory qualification.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "negativeFixtures": [
         "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#duplicate-xml-id",
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -494,7 +546,7 @@
       "sourceSection": "nodeIdentity; identities.CtdNodeInstance",
       "title": "Unambiguous attributed CTD node identities",
       "category": "Nodes",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -506,15 +558,20 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "Independent ICH attributes, parent/content constraints, repeated-node ambiguity and extension structure are inspected. Stable mapping for unresolved extension identities and regional business/extension acceptance still require later P2/P6 work.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
       "componentEvidence": [
-        "reference/publisher/ich-3.2.2-nodes.json"
+        "reference/publisher/ich-3.2.2-nodes.json",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },
@@ -525,7 +582,7 @@
       "sourceSection": "Appendix 6, Example 6-5; Appendix 8, node-extension",
       "title": "Permitted extension positions and regional acceptance",
       "category": "Nodes",
-      "ruleVersion": "1",
+      "ruleVersion": "2",
       "profileSnapshotIds": [
         "ich-3.2.2-development-v1",
         "us-fda-3.2.2-m1-3.3-development-v1",
@@ -537,13 +594,19 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "DTD node schema exists. Independent inspection and region-specific extension policy qualification remain incomplete.",
+      "implementationNote": "Independent ICH attributes, parent/content constraints, repeated-node ambiguity and extension structure are inspected. Stable mapping for unresolved extension identities and regional business/extension acceptance still require later P2/P6 work.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "reference/publisher/standards-scope.json"
+        "reference/publisher/standards-scope.json",
+        "src/RATools.Application/PackageValidation/PackageXmlInspector.cs",
+        "reference/publisher/package-xml-assets-v1.json",
+        "scripts/tests/test_package_xml_contract.py"
       ],
       "externalComparisonEvidence": []
     },

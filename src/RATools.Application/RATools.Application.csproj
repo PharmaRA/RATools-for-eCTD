@@ -9,6 +9,12 @@
     <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-nodes.json" LogicalName="RATools.IchNodeSchema" />
     <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-node-paths.json" LogicalName="RATools.IchNodePaths" />
     <EmbeddedResource Include="..\..\reference\publisher\package-rules-v1.json" LogicalName="RATools.PackageValidationCatalog" />
+    <EmbeddedResource Include="..\..\reference\publisher\package-xml-assets-v1.json" LogicalName="RATools.PackageXmlAssetManifest" />
+    <EmbeddedResource Include="..\..\reference\dtd\ich-ectd-3-2.dtd" LogicalName="RATools.PackageXml.ich-dtd" />
+    <EmbeddedResource Include="..\..\reference\dtd\us-regional-v3-3.dtd" LogicalName="RATools.PackageXml.us-dtd" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\util\dtd\eu-regional.dtd" LogicalName="RATools.PackageXml.eu-dtd" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\util\dtd\eu-envelope.mod" LogicalName="RATools.PackageXml.eu-envelope" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\util\dtd\eu-leaf.mod" LogicalName="RATools.PackageXml.eu-leaf" />
   </ItemGroup>
 
   <ItemGroup>

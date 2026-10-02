@@ -31,6 +31,7 @@ jobs:
         run: |
           python3 -m pip install -r scripts/standards/requirements.txt
           python3 scripts/standards/generate_ich_node_schema.py --check
+          python3 scripts/tests/test_package_xml_contract.py
 
       - name: Repository hygiene
         run: |

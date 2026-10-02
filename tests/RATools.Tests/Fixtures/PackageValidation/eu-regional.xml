@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE eu:eu-backbone SYSTEM "../../util/dtd/eu-regional.dtd">
+<eu:eu-backbone xmlns:eu="http://europa.eu.int" xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.1">
+  <eu-envelope>
+    <envelope country="ema">
+      <identifier>synthetic-independent-xml-fixture</identifier>
+      <submission type="maa" mode="single"><procedure-tracking><number>EMEA/H/C/000001</number></procedure-tracking></submission>
+      <submission-unit type="initial" />
+      <applicant>Synthetic Applicant</applicant>
+      <agency code="EU-EMA" />
+      <procedure type="centralised" />
+      <invented-name>Synthetic Product</invented-name>
+      <inn>Synthetic Substance</inn>
+      <sequence>0000</sequence>
+      <related-sequence>0000</related-sequence>
+      <submission-description>Hand-authored structural fixture; no regulatory qualification claimed.</submission-description>
+    </envelope>
+  </eu-envelope>
+  <m1-eu><m1-0-cover><specific country="common">
+    <leaf ID="eu-cover" operation="new" checksum="00000000000000000000000000000000" checksum-type="md5" xlink:href="cover.pdf">
+      <title>Hand-authored EU cover leaf</title>
+    </leaf>
+  </specific></m1-0-cover></m1-eu>
+</eu:eu-backbone>

@@ -41,9 +41,15 @@ public sealed class PackageRuleCatalogTests
             Assert.All(rule.ProfileSnapshotIds, profile => Assert.Contains(profile, catalog.Profiles.Keys));
             Assert.NotEmpty(rule.SourceSection);
             Assert.NotEmpty(rule.ImplementationNote);
-            Assert.NotEqual(ImplementationStatus.Implemented, rule.ImplementationStatus);
+            if (rule.ImplementationStatus == ImplementationStatus.Implemented)
+            {
+                Assert.NotEmpty(rule.PositiveFixtures);
+                Assert.NotEmpty(rule.NegativeFixtures);
+            }
         });
         Assert.Null(catalog.Rules["FILE-NAMING"].AuthorityRuleId);
+        Assert.NotEqual(ImplementationStatus.Implemented, catalog.Rules["FILE-NAMING"].ImplementationStatus);
+        Assert.NotEqual(ImplementationStatus.Implemented, catalog.Rules["PDF-SECURITY"].ImplementationStatus);
         Assert.Equal("Unverified", catalog.Sources["fda-us-m1-3.3"].VerificationStatus);
         Assert.Contains(catalog.ForProfile(PackageValidationCatalog.UsProfile), rule => rule.InternalRuleId == "US-CRITERIA-INVENTORY");
         Assert.DoesNotContain(catalog.ForProfile(PackageValidationCatalog.IchProfile), rule => rule.InternalRuleId == "US-CRITERIA-INVENTORY");

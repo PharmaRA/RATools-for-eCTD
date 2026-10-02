@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "version": "package-xml-assets-v1",
+  "resolutionPolicy": "Only these hash-verified embedded DTD assets may be resolved at their exact sequence-relative logical paths. Unknown or absolute external identifiers and nonempty internal subsets are rejected. Do not fetch network or package-provided DTD bytes. Regional business criteria qualification remains separate.",
+  "assets": [
+    {
+      "id": "ich-dtd",
+      "path": "reference/dtd/ich-ectd-3-2.dtd",
+      "logicalPath": "util/dtd/ich-ectd-3-2.dtd",
+      "sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+    },
+    {
+      "id": "us-dtd",
+      "path": "reference/dtd/us-regional-v3-3.dtd",
+      "logicalPath": "util/dtd/us-regional-v3-3.dtd",
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec"
+    },
+    {
+      "id": "eu-dtd",
+      "path": "reference/eu-m1/3.1.1/util/dtd/eu-regional.dtd",
+      "logicalPath": "util/dtd/eu-regional.dtd",
+      "sha256": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759"
+    },
+    {
+      "id": "eu-envelope",
+      "path": "reference/eu-m1/3.1.1/util/dtd/eu-envelope.mod",
+      "logicalPath": "util/dtd/eu-envelope.mod",
+      "sha256": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73"
+    },
+    {
+      "id": "eu-leaf",
+      "path": "reference/eu-m1/3.1.1/util/dtd/eu-leaf.mod",
+      "logicalPath": "util/dtd/eu-leaf.mod",
+      "sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+    }
+  ],
+  "profiles": [
+    {
+      "profileSnapshotId": "ich-3.2.2-development-v1",
+      "backbones": [
+        {
+          "role": "Ich",
+          "documentTypeName": "ectd:ectd",
+          "rootLocalName": "ectd",
+          "namespaceUri": "http://www.ich.org/ectd",
+          "dtdVersion": "3.2",
+          "mainAssetId": "ich-dtd",
+          "allowedAssetIds": [
+            "ich-dtd"
+          ],
+          "defaultRelativePath": "index.xml",
+          "ruleId": "ICH-DTD"
+        }
+      ]
+    },
+    {
+      "profileSnapshotId": "us-fda-3.2.2-m1-3.3-development-v1",
+      "backbones": [
+        {
+          "role": "Ich",
+          "documentTypeName": "ectd:ectd",
+          "rootLocalName": "ectd",
+          "namespaceUri": "http://www.ich.org/ectd",
+          "dtdVersion": "3.2",
+          "mainAssetId": "ich-dtd",
+          "allowedAssetIds": [
+            "ich-dtd"
+          ],
+          "defaultRelativePath": "index.xml",
+          "ruleId": "ICH-DTD"
+        },
+        {
+          "role": "UsRegional",
+          "documentTypeName": "fda-regional:fda-regional",
+          "rootLocalName": "fda-regional",
+          "namespaceUri": "http://www.ich.org/fda",
+          "dtdVersion": "3.3",
+          "mainAssetId": "us-dtd",
+          "allowedAssetIds": [
+            "us-dtd"
+          ],
+          "defaultRelativePath": "m1/us/us-regional.xml",
+          "ruleId": "US-REGIONAL-DTD"
+        }
+      ]
+    },
+    {
+      "profileSnapshotId": "eu-3.2.2-m1-3.1.1-development-v1",
+      "backbones": [
+        {
+          "role": "Ich",
+          "documentTypeName": "ectd:ectd",
+          "rootLocalName": "ectd",
+          "namespaceUri": "http://www.ich.org/ectd",
+          "dtdVersion": "3.2",
+          "mainAssetId": "ich-dtd",
+          "allowedAssetIds": [
+            "ich-dtd"
+          ],
+          "defaultRelativePath": "index.xml",
+          "ruleId": "ICH-DTD"
+        },
+        {
+          "role": "EuRegional",
+          "documentTypeName": "eu:eu-backbone",
+          "rootLocalName": "eu-backbone",
+          "namespaceUri": "http://europa.eu.int",
+          "dtdVersion": "3.1",
+          "mainAssetId": "eu-dtd",
+          "allowedAssetIds": [
+            "eu-dtd",
+            "eu-envelope",
+            "eu-leaf"
+          ],
+          "defaultRelativePath": "m1/eu/eu-regional.xml",
+          "ruleId": "EU-REGIONAL-DTD"
+        }
+      ]
+    }
+  ],
+  "nodeSchemaPath": "reference/publisher/ich-3.2.2-nodes.json",
+  "nodeSchemaSha256": "12822ec730f9efcdd75ebf1e2d917c8f75878b4f3c49d389eff0a02ee5d67805"
+}

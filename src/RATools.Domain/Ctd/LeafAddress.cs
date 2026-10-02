@@ -11,8 +11,10 @@ public sealed record LeafAddress
         if (sequenceNumber is null || sequenceNumber.Length != 4 || sequenceNumber.Any(character => character is < '0' or > '9'))
             throw new ArgumentException("A sequence number must contain exactly four ASCII digits.", nameof(sequenceNumber));
         ArgumentException.ThrowIfNullOrWhiteSpace(backboneRelativePath);
-        if (backboneRelativePath.Contains('#') || !backboneRelativePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("A backbone must be a logical XML path without a fragment.", nameof(backboneRelativePath));
+        // This is a decoded physical file component. A literal '#' in a file
+        // name is escaped by BackboneUri; the leaf fragment is stored separately.
+        if (!backboneRelativePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("A backbone must be a logical XML file path.", nameof(backboneRelativePath));
         foreach (var segment in backboneRelativePath.Split('/'))
             if (PortablePathSegment.NormalizeAndValidate(segment, nameof(backboneRelativePath)) != segment)
                 throw new ArgumentException("A backbone path must retain its exact valid segments.", nameof(backboneRelativePath));
