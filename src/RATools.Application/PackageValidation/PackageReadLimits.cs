@@ -20,6 +20,10 @@ public sealed record PackageReadLimits
     public long MaxXmlEntityCharacters { get; init; } = 1024 * 1024;
     public int MaxXmlFindings { get; init; } = 10_000;
     public int MaxBackbones { get; init; } = 1000;
+    public int MaxPdfPages { get; init; } = 10_000;
+    public int MaxPdfObjects { get; init; } = 200_000;
+    public int MaxPdfDepth { get; init; } = 64;
+    public int MaxPdfLinks { get; init; } = 50_000;
 
     public void Validate()
     {
@@ -28,7 +32,8 @@ public sealed record PackageReadLimits
             MaxFileBytes > 9_007_199_254_740_991 || MaxExpandedBytes > 9_007_199_254_740_991 ||
             MaxArchiveBytes > 9_007_199_254_740_991 || MaxCentralDirectoryBytes > 9_007_199_254_740_991 ||
             MaxXmlDepth < 1 || MaxXmlNodes < 1 || MaxXmlCharacters is < 1 or > 9_007_199_254_740_991 ||
-            MaxXmlEntityCharacters is < 1 or > 9_007_199_254_740_991 || MaxXmlFindings < 2 || MaxBackbones < 1)
+            MaxXmlEntityCharacters is < 1 or > 9_007_199_254_740_991 || MaxXmlFindings < 2 || MaxBackbones < 1 ||
+            MaxPdfPages < 1 || MaxPdfObjects < 1 || MaxPdfDepth < 1 || MaxPdfLinks < 1)
             throw new ArgumentException("Read limits must be explicit positive bounded values.");
     }
 
@@ -42,7 +47,8 @@ public sealed record PackageReadLimits
             maxCompressionRatio = MaxCompressionRatio, maxPathLength = MaxPathLength, maxPathDepth = MaxPathDepth,
             maxElapsedSeconds = MaxElapsedSeconds, maxXmlDepth = MaxXmlDepth, maxXmlNodes = MaxXmlNodes,
             maxXmlCharacters = MaxXmlCharacters, maxXmlEntityCharacters = MaxXmlEntityCharacters,
-            maxXmlFindings = MaxXmlFindings, maxBackbones = MaxBackbones
+            maxXmlFindings = MaxXmlFindings, maxBackbones = MaxBackbones, maxPdfPages = MaxPdfPages,
+            maxPdfObjects = MaxPdfObjects, maxPdfDepth = MaxPdfDepth, maxPdfLinks = MaxPdfLinks
         }));
     }
 }

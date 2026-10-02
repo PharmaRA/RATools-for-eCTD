@@ -18,52 +18,63 @@ public sealed class PdfPigPdfInspector : IPdfInspector
         try
         {
             using var document = PdfDocument.Open(pdfStream);
-            var pages = document.GetPages().ToArray();
-            var hasSearchableText = pages.Any(page => !string.IsNullOrWhiteSpace(page.Text));
-            var links = pages
-                .SelectMany(page => page.GetHyperlinks().Select(link => MapHyperlink(link.Uri, page.Number)))
-                .Where(link => link is not null)
-                .Cast<PdfLinkReference>()
-                .ToArray();
-            var bookmarksRead = document.TryGetBookmarks(out var bookmarks);
-            IReadOnlyList<BookmarkNode> bookmarkRoots = bookmarksRead && bookmarks is not null
-                ? bookmarks.Roots
-                : [];
-            var hasBookmarks = bookmarkRoots.Count > 0;
-            // 读不到书签结构时深度未知（null）；读到了则 0 层也是事实。
-            var bookmarkMaxDepth = bookmarksRead ? ComputeBookmarkMaxDepth(bookmarkRoots) : (int?)null;
-            var fontEmbedding = InspectFontEmbedding(document, pages);
-
-            return new PdfInspectionResult(
-                document.Version.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture),
-                document.IsEncrypted,
-                // 权限限制存在的前提是加密字典存在：无 /Encrypt 即无限制（事实），
-                // 有 /Encrypt 即存在安全处理器（按限制处理，避免读不到 P 位时误报合规）。
-                HasSecurityRestrictions: document.IsEncrypted,
-                hasSearchableText,
-                fontEmbedding.AllEmbedded,
-                fontEmbedding.NonEmbeddedFonts,
-                hasBookmarks,
-                links,
-                PageCount: pages.Length,
-                BookmarkMaxDepth: bookmarkMaxDepth,
-                PageMode: ReadPageMode(document));
+            return InspectDocument(document, CancellationToken.None);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // 解析失败时所有"合规位"必须是未知/不利值：ParseError 会触发 PDF_PARSE_FAILED（High），
-            // 三态字段报 null 而非假 true。
-            return new PdfInspectionResult(
-                null,
-                IsEncrypted: false,
-                HasSecurityRestrictions: null,
-                HasSearchableText: false,
-                AllFontsEmbedded: null,
-                [],
-                HasBookmarks: false,
-                [],
-                exception.Message);
+            return ParseFailure(exception.Message);
         }
+    }
+
+    internal static PdfInspectionResult InspectDocument(PdfDocument document, CancellationToken cancellationToken, bool inspectBookmarks = true)
+    {
+        var pages = document.GetPages().Select(page => { cancellationToken.ThrowIfCancellationRequested(); return page; }).ToArray();
+        var hasSearchableText = pages.Any(page => !string.IsNullOrWhiteSpace(page.Text));
+        var links = pages
+            .SelectMany(page => page.GetHyperlinks().Select(link => MapHyperlink(link.Uri, page.Number)))
+            .Where(link => link is not null)
+            .Cast<PdfLinkReference>()
+            .ToArray();
+        Bookmarks? bookmarks = null;
+        var bookmarksRead = inspectBookmarks && document.TryGetBookmarks(out bookmarks);
+        IReadOnlyList<BookmarkNode> bookmarkRoots = bookmarksRead && bookmarks is not null
+            ? bookmarks.Roots
+            : [];
+        var hasBookmarks = bookmarkRoots.Count > 0;
+        // 读不到书签结构时深度未知（null）；读到了则 0 层也是事实。
+        var bookmarkMaxDepth = bookmarksRead ? ComputeBookmarkMaxDepth(bookmarkRoots) : (int?)null;
+        var fontEmbedding = InspectFontEmbedding(document, pages);
+
+        return new PdfInspectionResult(
+            document.Version.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture),
+            document.IsEncrypted,
+            // 权限限制存在的前提是加密字典存在：无 /Encrypt 即无限制（事实），
+            // 有 /Encrypt 即存在安全处理器（按限制处理，避免读不到 P 位时误报合规）。
+            HasSecurityRestrictions: document.IsEncrypted,
+            hasSearchableText,
+            fontEmbedding.AllEmbedded,
+            fontEmbedding.NonEmbeddedFonts,
+            hasBookmarks,
+            links,
+            PageCount: pages.Length,
+            BookmarkMaxDepth: bookmarkMaxDepth,
+            PageMode: ReadPageMode(document));
+    }
+
+    internal static PdfInspectionResult ParseFailure(string message)
+    {
+        // 解析失败时所有"合规位"必须是未知/不利值：ParseError 会触发 PDF_PARSE_FAILED（High），
+        // 三态字段报 null 而非假 true。
+        return new PdfInspectionResult(
+            null,
+            IsEncrypted: false,
+            HasSecurityRestrictions: null,
+            HasSearchableText: false,
+            AllFontsEmbedded: null,
+            [],
+            HasBookmarks: false,
+            [],
+            message);
     }
 
     /// <summary>

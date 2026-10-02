@@ -129,7 +129,8 @@ internal static class PackageXmlIdentityInspector
         ParsedBackbone Build() => new(logicalPath, profileSnapshotId, kind, document.Complete,
             findings.Items.Any(finding => finding.RuleId == dtdRuleId && finding.Location.LogicalPath == logicalPath && finding.CheckStatus == CheckStatus.Fail)
                 ? CheckStatus.Fail : document.Complete ? CheckStatus.Pass : CheckStatus.NotEvaluated, document.DocumentTypeName,
-            document.SystemId, document.PublicId, elements, nodes, leaves, ids, document.ResolvedAssets);
+            document.SystemId, document.PublicId, elements, nodes, leaves, ids, document.ResolvedAssets,
+            document.Complete ? document.ProcessingInstructions : []);
     }
 
     private static string? Title(ParsedXmlElement element, Dictionary<string, ParsedXmlElement> byPath) => element.Children.Select(path => byPath[path])

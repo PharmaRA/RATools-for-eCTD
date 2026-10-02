@@ -40,7 +40,7 @@ internal sealed class XmlInspectionFindings(PackageReadLimits limits)
 }
 
 internal sealed record ReadXmlDocument(bool Complete, string? DocumentTypeName, string? SystemId, string? PublicId,
-    IReadOnlyList<ParsedXmlElement> Elements, IReadOnlyList<string> ResolvedAssets);
+    IReadOnlyList<ParsedXmlElement> Elements, IReadOnlyList<string> ResolvedAssets, IReadOnlyList<ParsedXmlProcessingInstruction> ProcessingInstructions);
 
 internal static class PackageXmlDocumentReader
 {
@@ -48,6 +48,7 @@ internal static class PackageXmlDocumentReader
         PackageXmlAssets assets, PackageXmlBackboneProfile profile, XmlInspectionFindings findings, CancellationToken cancellationToken)
     {
         var builders = new List<ElementBuilder>();
+        var instructions = new List<ParsedXmlProcessingInstruction>();
         var stack = new Stack<ElementBuilder>();
         var sequence = input.Manifest.SequenceNumber;
         var relative = logicalPath[(sequence.Length + 1)..];
@@ -126,6 +127,8 @@ internal static class PackageXmlDocumentReader
                     if (!reader.IsEmptyElement) stack.Push(node);
                 }
                 else if (reader.NodeType == XmlNodeType.EndElement) stack.Pop();
+                else if (reader.NodeType == XmlNodeType.ProcessingInstruction)
+                    instructions.Add(new(reader.Name, reader.Value, location));
                 else if (reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.SignificantWhitespace)
                 {
                     if (stack.TryPeek(out var parent)) parent.Text.Append(reader.Value);
@@ -148,7 +151,7 @@ internal static class PackageXmlDocumentReader
         }
         return new(complete, documentType, systemId, publicId, Array.AsReadOnly(builders.Select(builder =>
             { cancellationToken.ThrowIfCancellationRequested(); return builder.Freeze(); }).ToArray()),
-            Array.AsReadOnly(resolver.ResolvedAssets.ToArray()));
+            Array.AsReadOnly(resolver.ResolvedAssets.ToArray()), Array.AsReadOnly(instructions.ToArray()));
 
         void TryAdd(ValidationFinding finding)
         {

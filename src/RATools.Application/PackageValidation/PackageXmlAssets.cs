@@ -9,7 +9,7 @@ public enum BackboneKind { Ich, UsRegional, EuRegional }
 
 public sealed record PackageXmlBackboneProfile(BackboneKind Kind, string DocumentTypeName, string RootLocalName,
     string NamespaceUri, string DtdVersion, string MainAssetId, IReadOnlyList<string> AllowedAssetIds,
-    string DefaultRelativePath, string RuleId);
+    string DefaultRelativePath, string RuleId, IReadOnlyList<string> StylesheetAssetIds);
 
 public sealed record PackageXmlAsset(string Id, string Path, string LogicalPath, string Sha256);
 
@@ -32,7 +32,8 @@ public sealed class PackageXmlAssets
         _profiles = file.Profiles.ToFrozenDictionary(profile => profile.ProfileSnapshotId,
             profile => (IReadOnlyList<PackageXmlBackboneProfile>)Array.AsReadOnly(profile.Backbones.Select(backbone =>
                 new PackageXmlBackboneProfile(backbone.Role, backbone.DocumentTypeName, backbone.RootLocalName, backbone.NamespaceUri,
-                    backbone.DtdVersion, backbone.MainAssetId, Array.AsReadOnly(backbone.AllowedAssetIds), backbone.DefaultRelativePath, backbone.RuleId)).ToArray()), StringComparer.Ordinal);
+                    backbone.DtdVersion, backbone.MainAssetId, Array.AsReadOnly(backbone.AllowedAssetIds), backbone.DefaultRelativePath, backbone.RuleId,
+                    Array.AsReadOnly(backbone.StylesheetAssetIds))).ToArray()), StringComparer.Ordinal);
     }
 
     public static PackageXmlAssets Current => Snapshot.Value;
@@ -68,7 +69,8 @@ public sealed class PackageXmlAssets
             if (profile.Backbones.Count(backbone => backbone.Role == BackboneKind.Ich) != 1)
                 throw new InvalidOperationException("Every XML profile requires exactly one ICH backbone definition.");
             foreach (var backbone in profile.Backbones)
-                if (!backbone.AllowedAssetIds.Contains(backbone.MainAssetId, StringComparer.Ordinal) || backbone.AllowedAssetIds.Any(id => !bytes.ContainsKey(id)))
+                if (!backbone.AllowedAssetIds.Contains(backbone.MainAssetId, StringComparer.Ordinal) || backbone.AllowedAssetIds.Any(id => !bytes.ContainsKey(id)) ||
+                    backbone.StylesheetAssetIds.Any(id => !bytes.ContainsKey(id)))
                     throw new InvalidOperationException("XML profile contains an unresolved asset reference.");
         }
         return new(digest, file, bytes);
@@ -88,5 +90,5 @@ public sealed class PackageXmlAssets
         ProfileFile[] Profiles, string NodeSchemaPath, string NodeSchemaSha256);
     private sealed record ProfileFile(string ProfileSnapshotId, BackboneFile[] Backbones);
     private sealed record BackboneFile(BackboneKind Role, string DocumentTypeName, string RootLocalName, string NamespaceUri,
-        string DtdVersion, string MainAssetId, string[] AllowedAssetIds, string DefaultRelativePath, string RuleId);
+        string DtdVersion, string MainAssetId, string[] AllowedAssetIds, string DefaultRelativePath, string RuleId, string[] StylesheetAssetIds);
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "version": "package-xml-assets-v1",
-  "resolutionPolicy": "Only these hash-verified embedded DTD assets may be resolved at their exact sequence-relative logical paths. Unknown or absolute external identifiers and nonempty internal subsets are rejected. Do not fetch network or package-provided DTD bytes. Regional business criteria qualification remains separate.",
+  "resolutionPolicy": "Only these hash-verified embedded DTD assets may be resolved at their exact sequence-relative logical paths. Unknown or absolute external identifiers and nonempty internal subsets are rejected. Do not fetch network or package-provided DTD bytes. Regional business criteria qualification remains separate. Stylesheet assets are pinned separately for delivered-byte checks; they are never admitted to the DTD resolver or executed.",
   "assets": [
     {
       "id": "ich-dtd",
@@ -32,6 +32,18 @@
       "path": "reference/eu-m1/3.1.1/util/dtd/eu-leaf.mod",
       "logicalPath": "util/dtd/eu-leaf.mod",
       "sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+    },
+    {
+      "id": "ich-style",
+      "path": "reference/eu-m1/3.1.1/util/style/ectd-2-0.xsl",
+      "logicalPath": "util/style/ectd-2-0.xsl",
+      "sha256": "41bf6aaf78fa1ba736951174c5e3dc6724410f4d5d9332034dac9b2c8d34dcd1"
+    },
+    {
+      "id": "eu-style",
+      "path": "reference/eu-m1/3.1.1/util/style/eu-regional.xsl",
+      "logicalPath": "util/style/eu-regional.xsl",
+      "sha256": "f212c58519b1d4e37a7152e9a6cf0ca4f335fccc8212b1f616e4c998b2f7ea81"
     }
   ],
   "profiles": [
@@ -49,7 +61,10 @@
             "ich-dtd"
           ],
           "defaultRelativePath": "index.xml",
-          "ruleId": "ICH-DTD"
+          "ruleId": "ICH-DTD",
+          "stylesheetAssetIds": [
+            "ich-style"
+          ]
         }
       ]
     },
@@ -67,7 +82,10 @@
             "ich-dtd"
           ],
           "defaultRelativePath": "index.xml",
-          "ruleId": "ICH-DTD"
+          "ruleId": "ICH-DTD",
+          "stylesheetAssetIds": [
+            "ich-style"
+          ]
         },
         {
           "role": "UsRegional",
@@ -80,7 +98,8 @@
             "us-dtd"
           ],
           "defaultRelativePath": "m1/us/us-regional.xml",
-          "ruleId": "US-REGIONAL-DTD"
+          "ruleId": "US-REGIONAL-DTD",
+          "stylesheetAssetIds": []
         }
       ]
     },
@@ -98,7 +117,10 @@
             "ich-dtd"
           ],
           "defaultRelativePath": "index.xml",
-          "ruleId": "ICH-DTD"
+          "ruleId": "ICH-DTD",
+          "stylesheetAssetIds": [
+            "ich-style"
+          ]
         },
         {
           "role": "EuRegional",
@@ -113,7 +135,10 @@
             "eu-leaf"
           ],
           "defaultRelativePath": "m1/eu/eu-regional.xml",
-          "ruleId": "EU-REGIONAL-DTD"
+          "ruleId": "EU-REGIONAL-DTD",
+          "stylesheetAssetIds": [
+            "eu-style"
+          ]
         }
       ]
     }

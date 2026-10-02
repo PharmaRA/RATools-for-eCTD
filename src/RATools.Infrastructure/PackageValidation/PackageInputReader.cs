@@ -362,6 +362,7 @@ public sealed class PackageInputReader : IPackageInputReader
             }
             catch (IOException exception) when (exception is not PackageInputChangedException)
             { throw new PackageInputChangedException(selection.SourceId); }
+            catch (InvalidDataException) { throw new PackageInputChangedException(selection.SourceId); }
             catch (UnauthorizedAccessException) { throw new PackageInputChangedException(selection.SourceId); }
         }
 

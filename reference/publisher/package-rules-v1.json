@@ -41,7 +41,7 @@
       "kind": "ProjectPolicy",
       "version": "package-xml-assets-v1",
       "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/package-xml-assets-v1.json",
-      "sha256": "c168ef2def9a31fcea026ca3bdbb3772ced5d4821f4c8b58535513d6b5b6682c",
+      "sha256": "71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1",
       "verificationStatus": "Verified"
     }
   ],
@@ -805,15 +805,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Independent exact captured-file resolution covers current/historical hrefs, application/future escape, missing history and external classification; query and unavailable-history semantics remain explicitly NotEvaluated.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#broken-link"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#broken-link",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -834,15 +839,20 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Declared MD5 is compared with reverified captured physical bytes, including historical payloads and regional XML; missing files remain unresolved. Delete checksum semantics are checked by lifecycle rules.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#file-hash-mismatch"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#file-hash-mismatch",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -863,13 +873,19 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks checksum-file presence, bounded ASCII MD5 syntax and the actual captured index.xml MD5; positive four-sequence and physical-corruption cases execute independently of the writer.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -891,14 +907,21 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "Independent pinned DTD/module and declared XSL byte checks, processing instructions and bounded import/include traversal implemented. Creation-time stylesheet evidence, generated presentation-resource bases and regional style policy remain unqualified.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageDeliveryInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageDeliveryInspectorTests.cs"
+      ],
       "componentEvidence": [
         "reference/publisher/standards-scope.json",
-        "reference/eu-m1/3.1.1/manifest.json"
+        "reference/eu-m1/3.1.1/manifest.json",
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -920,13 +943,21 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent inventory/rules pending. Exact recommended directory spellings must not be promoted to mandatory errors without selected-profile evidence.",
+      "implementationStatus": "Partial",
+      "implementationNote": "Records empty directories, surrounding files and reachability from backbones/known utility assets; disconnected PDF cycles cannot qualify themselves. Regional structure and orphan-content acceptance remain unqualified.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageDeliveryInspectorTests.cs"
       ],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageDeliveryInspectorTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
@@ -947,22 +978,27 @@
       "severity": "Error",
       "requiredForReadiness": true,
       "allowsManualClosure": false,
-      "implementationStatus": "NotImplemented",
-      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "implementationStatus": "Implemented",
+      "implementationNote": "Explicit directory/ZIP pairs compare exact paths, lengths, SHA-256, empty directories and extra ZIP content. Both captures bind the report; standalone ZIP parity remains NotEvaluated.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
       "negativeFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#directory-zip-inconsistent"
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#directory-zip-inconsistent",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
-      "componentEvidence": [],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
+      ],
       "externalComparisonEvidence": []
     },
     {
       "internalRuleId": "FILE-NAMING",
       "authorityRuleId": null,
       "sourceId": "ich-ectd-3.2.2",
-      "sourceSection": "Appendix 3, Folder and File Naming Conventions",
+      "sourceSection": "Appendix 2, pp. 2-3 to 2-4; Appendix 3, Folder and File Naming Conventions",
       "title": "Profile-scoped file and folder naming rules",
       "category": "Files",
       "ruleVersion": "1",
@@ -977,13 +1013,18 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Legacy naming check consumes EctdPackageModel. FDA-NAMING-1 is an internal label, not a verified authority rule ID. Independent rules and current regional limits remain pending.",
+      "implementationNote": "Independent captured-path checks implement pinned ICH lowercase tokens, one extension, 64-character names and 230-character paths. Regional limits/exceptions and acceptance remain unqualified; recommended directory spellings are not mandatory.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/Rules/FileNamingConventionRule.cs"
+        "src/RATools.Application/Validation/Rules/FileNamingConventionRule.cs",
+        "src/RATools.Application/PackageValidation/PackageFileInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1006,14 +1047,22 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "Every selected current/history PDF is inspected with PdfPig 0.1.15 strict parsing, bounded navigation and cooperative cancellation. Parse failures and unknown conditions remain explicit. Hard parser process isolation and external qualification remain pending.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
         "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs",
-        "tests/RATools.Tests/Publishing/Validation/Pdf/PdfPigPdfInspectorTests.cs"
+        "tests/RATools.Tests/Publishing/Validation/Pdf/PdfPigPdfInspectorTests.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1036,13 +1085,21 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "Independent captured-PDF facts reject observed encryption/restrictions and preserve unknown permission state. Complete parser/security coverage and regional external qualification remain pending.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1065,13 +1122,21 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "implementationNote": "Observed additional unembedded fonts fail while ICH common-font exceptions are retained. Nested resources, full/subset embedding and regional exceptions always retain unresolved coverage.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1094,13 +1159,21 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Existing page-count and bookmark-depth heuristics are reusable observations, not independently verified current regional rules. Thresholds need source qualification.",
+      "implementationNote": "Bounded raw outline traversal preserves destinations and reports the four-level recommendation without a hard failure. TOC/bookmark correspondence, page labels and initial-view consistency remain unevaluated.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1123,11 +1196,20 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
-      "positiveFixtures": [],
-      "negativeFixtures": [],
+      "implementationNote": "Raw GoTo/GoToR/URI, outlines, OpenAction and named destination tables resolve against the explicit capture set with exact page/name checks. Literal file specifications and once-decoded URIs are distinct. Unknown/chained/additional actions and unreadable targets remain unevaluated; external URLs are never fetched.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs"
+        "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },
@@ -1150,13 +1232,21 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Existing 1.4-1.7 range is not proof of current regulatory acceptance. Regional source verification and independent version check remain pending.",
+      "implementationNote": "Independent parsed-version facts support the jointly accepted ICH PDF 1.4. Other versions remain NotEvaluated until regional evidence is qualified; the legacy 1.4-1.7 heuristic is not reused.",
       "positiveFixtures": [
-        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000",
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
       ],
-      "negativeFixtures": [],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackagePdfValidatorTests.cs",
+        "tests/RATools.Tests/PackageValidation/PdfPigPackageInspectorTests.cs"
+      ],
       "componentEvidence": [
-        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs",
+        "src/RATools.Application/PackageValidation/PackagePdfValidator.cs",
+        "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+        "reference/publisher/PACKAGE-DELIVERY-INSPECTION.md"
       ],
       "externalComparisonEvidence": []
     },

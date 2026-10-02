@@ -38,6 +38,7 @@ public sealed class ParsedXmlElement
 }
 
 public sealed record ParsedXmlId(string Id, string NodePath, string ElementName, bool IsLeaf, ValidationLocation Location);
+public sealed record ParsedXmlProcessingInstruction(string Target, string Data, ValidationLocation Location);
 
 public sealed record ParsedCtdNode(string NodePath, string? ParentNodePath, string DefinitionKey, CtdNodeKind Kind,
     string? XmlId, string? Title, IReadOnlyDictionary<string, string?> IdentityAttributes, string? ContextKey,
@@ -52,7 +53,7 @@ public sealed class ParsedBackbone
     internal ParsedBackbone(string logicalPath, string profileSnapshotId, BackboneKind kind, bool readComplete, CheckStatus dtdStatus,
         string? documentTypeName, string? systemIdentifier, string? publicIdentifier,
         IEnumerable<ParsedXmlElement> elements, IEnumerable<ParsedCtdNode> nodes, IEnumerable<ParsedPackageLeaf> leaves,
-        IEnumerable<ParsedXmlId> ids, IEnumerable<string> resolvedAssets)
+        IEnumerable<ParsedXmlId> ids, IEnumerable<string> resolvedAssets, IEnumerable<ParsedXmlProcessingInstruction>? processingInstructions = null)
     {
         LogicalPath = logicalPath;
         ProfileSnapshotId = profileSnapshotId;
@@ -68,6 +69,7 @@ public sealed class ParsedBackbone
         IdIndex = ids.GroupBy(id => id.Id, StringComparer.Ordinal).ToFrozenDictionary(group => group.Key,
             group => (IReadOnlyList<ParsedXmlId>)Array.AsReadOnly(group.ToArray()), StringComparer.Ordinal);
         ResolvedAssets = Array.AsReadOnly(resolvedAssets.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray());
+        ProcessingInstructions = Array.AsReadOnly((processingInstructions ?? []).ToArray());
     }
 
     public string LogicalPath { get; }
@@ -83,6 +85,7 @@ public sealed class ParsedBackbone
     public IReadOnlyList<ParsedPackageLeaf> Leaves { get; }
     public IReadOnlyDictionary<string, IReadOnlyList<ParsedXmlId>> IdIndex { get; }
     public IReadOnlyList<string> ResolvedAssets { get; }
+    public IReadOnlyList<ParsedXmlProcessingInstruction> ProcessingInstructions { get; }
 }
 
 public sealed class PackageXmlInspection
