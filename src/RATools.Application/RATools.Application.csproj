@@ -8,6 +8,7 @@
     <ProjectReference Include="..\RATools.Domain\RATools.Domain.csproj" />
     <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-nodes.json" LogicalName="RATools.IchNodeSchema" />
     <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-node-paths.json" LogicalName="RATools.IchNodePaths" />
+    <EmbeddedResource Include="..\..\reference\publisher\package-rules-v1.json" LogicalName="RATools.PackageValidationCatalog" />
   </ItemGroup>
 
   <ItemGroup>

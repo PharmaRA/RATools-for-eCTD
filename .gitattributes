@@ -5,6 +5,9 @@ reference/dtd/us-regional-v3-3.dtd -text -whitespace
 reference/eu-m1/3.1.1/util/dtd/* -text -whitespace
 reference/eu-m1/3.1.1/util/style/* -text -whitespace
 
+# The validation rule catalog pins the exact project policy source bytes.
+reference/publisher/contracts-v1.json -text
+
 # Qualification inputs are hashed packages, including their XML and checksum files.
 tests/RATools.Tests/Fixtures/Publisher/sequences/** -text
 tests/RATools.Tests/Fixtures/Publisher/sequences/**/*.dtd -whitespace

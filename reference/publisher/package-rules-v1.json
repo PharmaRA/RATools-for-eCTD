@@ -1,0 +1,1084 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "package-rules-v1",
+  "purpose": "Development inventory and fail-closed coverage contract. This is not a complete FDA/EU regulatory criteria inventory or a declaration of formal readiness.",
+  "reviewedOn": "2026-10-03",
+  "sources": [
+    {
+      "id": "ich-ectd-3.2.2",
+      "kind": "RegulatorySpecification",
+      "version": "3.2.2",
+      "url": "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
+      "sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0",
+      "verificationStatus": "Verified"
+    },
+    {
+      "id": "ema-eu-m1-3.1.1",
+      "kind": "RegulatorySpecification",
+      "version": "3.1.1",
+      "url": "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+      "sha256": "30d4e9c37915e42dec56361ec791beddff2583bc7e2476de805b1aa2fff03d0e",
+      "verificationStatus": "Verified"
+    },
+    {
+      "id": "fda-us-m1-3.3",
+      "kind": "RegulatorySpecification",
+      "version": "3.3",
+      "url": "https://www.fda.gov/drugs/electronic-regulatory-submission-and-review/ectd-submission-standards-ectd-v322-and-regional-m1",
+      "sha256": null,
+      "verificationStatus": "Unverified"
+    },
+    {
+      "id": "ratools-publisher-contract-v1",
+      "kind": "ProjectPolicy",
+      "version": "contracts-v1@3098a56",
+      "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/3098a56c22d3ff636d28b7b8298a47b961c11e9b/reference/publisher/contracts-v1.json",
+      "sha256": "a29fc9412c7a3b099264b078f7464aa4d16fa2c511be855180ca6a5a8fcb2a83",
+      "verificationStatus": "Verified"
+    }
+  ],
+  "profiles": [
+    {
+      "profileSnapshotId": "ich-3.2.2-development-v1",
+      "templateKey": "ich-ectd-3.2.2",
+      "description": "ICH 3.2.2 independent validation development scope",
+      "qualifiedForFinalization": false,
+      "qualificationReason": "Independent checks and external qualification are incomplete."
+    },
+    {
+      "profileSnapshotId": "us-fda-3.2.2-m1-3.3-development-v1",
+      "templateKey": "us-fda-ectd-3.2.2",
+      "description": "US M1 3.3 development scope; current FDA source unverified",
+      "qualifiedForFinalization": false,
+      "qualificationReason": "Current FDA sources, complete regional criteria and external qualification remain unverified."
+    },
+    {
+      "profileSnapshotId": "eu-3.2.2-m1-3.1.1-development-v1",
+      "templateKey": "eu-ectd-3.2.2",
+      "description": "EU M1 3.1.1 / criteria 8.2 development scope",
+      "qualifiedForFinalization": false,
+      "qualificationReason": "Atomic EU criteria implementation and external comparison remain incomplete."
+    }
+  ],
+  "rules": [
+    {
+      "internalRuleId": "INPUT-LAYOUT",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "wireTypes.sequenceNumber; identities; owners.P2",
+      "title": "Explicit sequence selection and unambiguous package layout",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All directory and ZIP registrations; multiple candidate sequences require explicit selection.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "INPUT-PATHS",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "wireTypes.relativePath; validationBinding.resourceLimitsDigest",
+      "title": "Controlled directory paths and links",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All physical input roots, children and logical names; portable aliases, reparse points and escaping paths are rejected.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "tests/RATools.Tests/Security/CrossPlatformPathSecurityTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "ZIP-PATHS",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "wireTypes.relativePath; validationBinding.resourceLimitsDigest",
+      "title": "Safe and unique ZIP entries",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Every ZIP entry, including directories and portable name collisions.",
+      "applicability": "ZipPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#zip-traversal",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#zip-duplicate-entry"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "ZIP-LIMITS",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.resourceLimitsDigest",
+      "title": "Bounded archive expansion and execution",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "ZIP entry count, per-file and expanded total bytes, compression ratio and elapsed time; limits are part of report identity.",
+      "applicability": "ZipPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "INPUT-STABLE",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "concurrency.externalChange; validationBinding.inputManifestDigest; states.validationRun",
+      "title": "Input content remains identical throughout validation",
+      "category": "Input",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All input and selected historical content; changes invalidate this run.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "HISTORY-BASELINE",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "historyBaseline; identities.LeafAddress",
+      "title": "Explicit historical source selection and trust",
+      "category": "History",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Required history resolves in explicitly selected versions; no repository or filename fallback.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-history",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "XML-OFFLINE",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.profileSnapshotId; validationBinding.resourceLimitsDigest",
+      "title": "Only pinned offline XML resources are resolved",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All ICH and regional XML resources; unknown network/system resources and external entities are rejected.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#unknown-external-dtd"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/Publishing/Validation/EctdXmlValidator.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "XML-LIMITS",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.resourceLimitsDigest",
+      "title": "Bounded XML depth, node count and entity expansion",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "All backbone XML, including historical XML.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PROFILE-VERSION",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.profileSnapshotId",
+      "title": "Declared XML versions match explicit profile snapshot",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "ICH and regional declarations, namespaces and DTD versions must match the explicit selection.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Standards/BackboneXmlProfile.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "ICH-DTD",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 2, Structure; Appendix 8, XML eCTD DTD",
+      "title": "ICH backbone structure and mandatory attributes",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "ICH backbone content models, child order, required attributes and allowed values.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/Publishing/Validation/EctdXmlValidator.cs",
+        "reference/publisher/ich-3.2.2-nodes.json"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-REGIONAL-DTD",
+      "authorityRuleId": null,
+      "sourceId": "fda-us-m1-3.3",
+      "sourceSection": "Bundled US M1 3.3 DTD; official version/source verification pending",
+      "title": "US regional backbone structure",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US regional backbone only; bundled asset validity does not establish current FDA compliance.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "reference/dtd/us-regional-v3-3.dtd"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EU-REGIONAL-DTD",
+      "authorityRuleId": null,
+      "sourceId": "ema-eu-m1-3.1.1",
+      "sourceSection": "EU M1 3.1.1 asset manifest and published implementation timeline",
+      "title": "EU regional backbone structure",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "EU regional backbone only; business criteria inventory is tracked separately.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "reference/eu-m1/3.1.1/manifest.json"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "XML-IDS",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, ID attribute; Appendix 8, ID declarations",
+      "title": "Document-scoped unique XML IDs",
+      "category": "XML",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Every XML document has its own ID index; references retain backbone and fragment.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#duplicate-xml-id",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "NODE-CONTEXT",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "nodeIdentity; identities.CtdNodeInstance",
+      "title": "Unambiguous attributed CTD node identities",
+      "category": "Nodes",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Ordinal parsed attributes and parent context distinguish repeated nodes; missing or ambiguous contexts remain visible.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-manufacturer"
+      ],
+      "componentEvidence": [
+        "reference/publisher/ich-3.2.2-nodes.json"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "NODE-EXTENSIONS",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, Example 6-5; Appendix 8, node-extension",
+      "title": "Permitted extension positions and regional acceptance",
+      "category": "Nodes",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "DTD-permitted nesting and explicit regional extension policy; DTD validity alone cannot close regional acceptance.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "DTD node schema exists. Independent inspection and region-specific extension policy qualification remain incomplete.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "reference/publisher/standards-scope.json"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "LIFECYCLE-OPERATION",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, Operation Attribute; change history for version 3.2.2",
+      "title": "Leaf operation and modified-file semantics",
+      "category": "Lifecycle",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "new, replace, append and delete; delete delivers no new content; evaluate permitted same-sequence append from pinned ICH source.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent operation validation is pending. Do not treat the editor's conservative earlier-sequence selection as a universal ICH prohibition on same-sequence append.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "LIFECYCLE-URI",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, modified-file attribute and lifecycle examples",
+      "title": "Resolve exact modified-file URI from source backbone",
+      "category": "Lifecycle",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Resolve once against the containing XML; retain selected sequence, backbone and fragment.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "LIFECYCLE-TARGET",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, modified-file attribute and lifecycle examples",
+      "title": "Historical XML and target leaf exist",
+      "category": "Lifecycle",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Resolve the exact XML ID within the explicit history baseline, including href-free delete operations.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#missing-history",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#wrong-backbone-fragment"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "LIFECYCLE-EFFECTIVE",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 6, Operation Attribute; examples of replace, append and delete",
+      "title": "Target effectiveness and operation chains",
+      "category": "Lifecycle",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Evaluate target effectiveness, replacement/deletion chains, append and same-sequence combinations against pinned rules.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#target-already-replaced",
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#target-already-deleted"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "LIFECYCLE-CONTEXT",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "nodeIdentity; identities.LeafAddress; historyBaseline",
+      "title": "Historical target has compatible business context",
+      "category": "Lifecycle",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Application, node ancestry and identity attributes must match the explicit target policy.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Existing resolver depends on business repositories. Independent XML context comparison and ambiguity handling are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#cross-application-target"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/LifecycleTargetResolver.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FILE-HREF",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 2, Links; Appendix 6, xlink:href attribute",
+      "title": "Referenced delivered files exist within scope",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Decode URI paths once, distinguish external links and resolve local leaf files; delete does not require new href.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#broken-link"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FILE-MD5",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 2, Checksums; Appendix 5, Security",
+      "title": "Declared leaf checksums match physical bytes",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Recompute MD5 for referenced physical delivery files, including regional backbone bytes.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#file-hash-mismatch"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "INDEX-MD5",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 5, Security",
+      "title": "index-md5.txt matches the exact index.xml bytes",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "The sequence root checksum file and actual ICH index bytes.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "DELIVERY-ASSETS",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 4, util/dtd and util/style tables; Appendix 8",
+      "title": "Required DTD and stylesheet assets match the profile",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Presence and pinned digests of necessary selected-profile delivery assets.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "reference/publisher/standards-scope.json",
+        "reference/eu-m1/3.1.1/manifest.json"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "DELIVERY-STRUCTURE",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 2, Directory Structure; Appendix 3; Appendix 4",
+      "title": "Package structure and additional content inventory",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Record empty directories, extra top-level files and missing deliveries; distinguish required constraints from recommended folder names.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent inventory/rules pending. Exact recommended directory spellings must not be promoted to mandatory errors without selected-profile evidence.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "ZIP-PARITY",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "validationBinding.inputManifestDigest; finalizationBinding",
+      "title": "Final ZIP paths and bytes equal the delivery directory",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Compare both path sets and content digests when ZIP and corresponding directory are provided.",
+      "applicability": "ZipPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Independent check implementation and execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json#directory-zip-inconsistent"
+      ],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FILE-NAMING",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 3, Folder and File Naming Conventions",
+      "title": "Profile-scoped file and folder naming rules",
+      "category": "Files",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Distinguish ICH recommendations and each region's verified mandatory limits.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Legacy naming check consumes EctdPackageModel. FDA-NAMING-1 is an internal label, not a verified authority rule ID. Independent rules and current regional limits remain pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/Rules/FileNamingConventionRule.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-READABLE",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 7, Specification for Submission Formats, PDF",
+      "title": "PDF content can be parsed completely",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Every delivered PDF; parse errors and unsupported inspection conditions must remain explicit.",
+      "applicability": "PdfPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs",
+        "tests/RATools.Tests/Publishing/Validation/Pdf/PdfPigPdfInspectorTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-SECURITY",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 5, Security; Appendix 7, Security",
+      "title": "PDF encryption and permissions allow review",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Every delivered PDF; inaccessible/unknown permission state cannot be reported as passing.",
+      "applicability": "PdfPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-FONTS",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 7, Fonts; Definition of Subset; Notes on Embedding Japanese Fonts",
+      "title": "PDF font embedding and exceptions",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Applicable font rules and region-specific exceptions; unknown detection requires unresolved coverage.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-NAVIGATION",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 7, Hypertext Linking and Bookmarks; Page Numbering",
+      "title": "Bookmarks and document navigation",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Selected-profile navigation rules for each document and explicit unsupported conditions.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Existing page-count and bookmark-depth heuristics are reusable observations, not independently verified current regional rules. Thresholds need source qualification.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-LINKS",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 7, Hypertext Linking and Bookmarks",
+      "title": "Internal PDF links resolve to files and destinations",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Current and historical files, page numbers and named destinations; external URLs are classified without arbitrary network retrieval.",
+      "applicability": "PdfPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reusable components exist, but the independent package check and its complete positive/negative execution evidence are pending.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "PDF-VERSION",
+      "authorityRuleId": null,
+      "sourceId": "ich-ectd-3.2.2",
+      "sourceSection": "Appendix 7, PDF; regional guidance required for other versions",
+      "title": "PDF format version accepted by selected profile",
+      "category": "PDF",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "PDF versions in the explicitly locked profile, with region-specific evidence.",
+      "applicability": "PdfPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Existing 1.4-1.7 range is not proof of current regulatory acceptance. Regional source verification and independent version check remain pending.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [],
+      "componentEvidence": [
+        "src/RATools.Application/Validation/Rules/Pdf/PdfComplianceRule.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-CRITERIA-INVENTORY",
+      "authorityRuleId": null,
+      "sourceId": "fda-us-m1-3.3",
+      "sourceSection": "Unverified current FDA validation criteria and technical conformance guide",
+      "title": "Complete and verified current FDA criteria inventory",
+      "category": "Qualification",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US profile includes administrative metadata, controlled vocabularies and all remaining regional rules; this explicit gap blocks qualification.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Current source, effective dates and official rule IDs are unverified. Existing labels M1 3.3 / criteria 4.5 / guide 1.9 are not qualification evidence. P6 and external comparison must populate atomic regional criteria.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EU-CRITERIA-INVENTORY",
+      "authorityRuleId": null,
+      "sourceId": "ema-eu-m1-3.1.1",
+      "sourceSection": "EU M1 3.1.1 / validation criteria 8.2 implementation timeline",
+      "title": "Complete EU 3.1.1 / criteria 8.2 rule inventory",
+      "category": "Qualification",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "EU profile includes envelope metadata, controlled vocabularies and all remaining regional checks.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "Version timeline and pinned assets are verified; individual official criteria and external comparison are not yet cataloged. P6 must populate and qualify atomic regional checks.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EXTERNAL-COMPARISON",
+      "authorityRuleId": null,
+      "sourceId": "ratools-publisher-contract-v1",
+      "sourceSection": "historyBaseline.trustStatuses; validationBinding; finalizationBinding",
+      "title": "Profile implementation qualified by external comparison",
+      "category": "Qualification",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "ich-3.2.2-development-v1",
+        "us-fda-3.2.2-m1-3.3-development-v1",
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "External tool/version, exact package digest, actual report and explained rule differences qualify the implementation.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "NotImplemented",
+      "implementationNote": "No actual external package validation report is bound yet. P2-08/09 must qualify implementations and explicitly decide any per-run external evidence policy. A tool installation alone is not evidence.",
+      "positiveFixtures": [],
+      "negativeFixtures": [],
+      "componentEvidence": [],
+      "externalComparisonEvidence": []
+    }
+  ]
+}
