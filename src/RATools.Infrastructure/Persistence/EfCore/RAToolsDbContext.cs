@@ -25,6 +25,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        PackageValidationModelConfiguration.Configure(modelBuilder);
         CtdModelConfiguration.Configure(modelBuilder);
         modelBuilder.Entity<ImportedBackboneRecord>(entity =>
         {

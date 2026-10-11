@@ -1,11 +1,17 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using RATools.Infrastructure.Persistence.EfCore;
+using RATools.Application.PackageValidation;
+using RATools.Domain.PackageValidation;
+using RATools.Tests.PackageValidation;
 
 namespace RATools.Tests.Persistence.Postgres;
 
@@ -13,6 +19,8 @@ namespace RATools.Tests.Persistence.Postgres;
 public sealed class PostgresCtdMigrationTests
 {
     private const string PreviousMigration = "20260905143131_PreserveImportedLeafIds";
+    private static readonly JsonSerializerOptions ValidationJson = new(JsonSerializerDefaults.Web)
+        { Converters = { new JsonStringEnumConverter() } };
 
     [RequiresPostgresFact]
     public async Task IndependentMigratorUpgradesAnEmptyDatabaseTwiceAndEmptySchemaCanBeRolledBack()
@@ -27,6 +35,62 @@ public sealed class PostgresCtdMigrationTests
         await context.GetService<IMigrator>().MigrateAsync(PreviousMigration);
         Assert.Contains("Applied", await database.RunMigratorAsync());
         Assert.Equal(160, await context.CtdDefinitions.CountAsync());
+    }
+
+    [RequiresPostgresFact]
+    public async Task RegisteredExternalInputPreventsDestructiveValidationDowngrade()
+    {
+        await using var database = await TemporaryDatabase.CreateAsync();
+        await database.RunMigratorAsync();
+        await using var context = database.CreateContext();
+        var store = new EfCorePackageValidationStore(context);
+        var input = new RegisteredPackageInput(Guid.NewGuid(), Guid.NewGuid(), "0000", "external-source", null,
+            PackageSourceKind.Directory, new string('a', 64), "{}", new PackageReadLimits(), DateTime.UtcNow, false);
+        await store.RegisterInputAsync(input);
+        var error = await Assert.ThrowsAsync<PostgresException>(() => context.GetService<IMigrator>()
+            .MigrateAsync("20261002170848_PreserveImportedBackbones"));
+        Assert.Equal("55000", error.SqlState);
+        Assert.Equal(input.InputDigest, (await store.GetInputAsync(input.Id))!.InputDigest);
+        Assert.Contains("20261002235629_AddIndependentPackageValidation", await context.Database.GetAppliedMigrationsAsync());
+        // The preceding, empty coverage migration may already have rolled back.
+        await database.RunMigratorAsync();
+        Assert.Empty(await context.Database.GetPendingMigrationsAsync());
+    }
+
+    [RequiresPostgresFact]
+    public async Task CoverageUpgradePreservesLegacyArchiveWithoutInventingSummaryAndRefusesDowngrade()
+    {
+        await using var database = await TemporaryDatabase.CreateAsync();
+        await using var context = database.CreateContext();
+        await context.GetService<IMigrator>().MigrateAsync("20261002235629_AddIndependentPackageValidation");
+        var run = PackageValidationRunTests.NewRun();
+        var report = PackageValidationRunTests.Report(run.Binding);
+        var json = PackageValidationCatalog.SerializeReport(report);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
+        var binding = JsonSerializer.Serialize(run.Binding, ValidationJson);
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO package_validation_runs
+              ("Id", "ApplicationId", "SequenceNumber", "Binding", "RequestJson", "RequestDigest", "IdempotencyKey",
+               "CreatedUtc", "StartedUtc", "CompletedUtc", "Status", "Stage", "AttemptCount", "Revision", "ReportSha256")
+            VALUES ({run.Id}, {run.ApplicationId}, {run.SequenceNumber}, {binding}, {run.RequestJson}, {run.RequestDigest},
+              {run.IdempotencyKey}, {run.CreatedUtc}, {run.CreatedUtc}, {run.CreatedUtc}, 'Completed', 'Completed', 1, 2, {hash});
+            """);
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO package_validation_reports ("RunId", "Json") VALUES ({run.Id}, {json});
+            """);
+        Assert.Contains("Applied 1 database migration(s)", await database.RunMigratorAsync());
+        Assert.Contains("no migrations were applied", await database.RunMigratorAsync());
+        var store = new EfCorePackageValidationStore(context);
+        var migrated = (await store.GetRunAsync(run.Id))!;
+        migrated.VerifyRequestIntegrity();
+        Assert.Null(migrated.CoverageSummary);
+        Assert.Null(Assert.Single((await store.ListRunsAsync(run.ApplicationId, 0, 10)).Items).CoverageSummary);
+        Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
+        var error = await Assert.ThrowsAsync<PostgresException>(() => context.GetService<IMigrator>()
+            .MigrateAsync("20261002235629_AddIndependentPackageValidation"));
+        Assert.Equal("55000", error.SqlState);
+        Assert.Empty(await context.Database.GetPendingMigrationsAsync());
+        Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
     }
 
     [RequiresPostgresFact]
@@ -72,7 +136,12 @@ public sealed class PostgresCtdMigrationTests
                 command.Parameters.AddWithValue("path", path);
                 await command.ExecuteNonQueryAsync();
             }
-            Assert.Contains("Applied 2", await database.RunMigratorAsync());
+            await using (var pending = database.CreateContext())
+            {
+                var count = (await pending.Database.GetPendingMigrationsAsync()).Count();
+                Assert.True(count > 0);
+                Assert.Contains($"Applied {count} database migration(s)", await database.RunMigratorAsync());
+            }
             await using var upgraded = database.CreateContext();
             Assert.Null((await upgraded.DocumentPlacements.AsNoTracking().SingleAsync()).NodeInstanceId);
             Assert.Equal(0, (await upgraded.Sequences.AsNoTracking().SingleAsync()).WorkspaceRevision);
@@ -99,7 +168,9 @@ public sealed class PostgresCtdMigrationTests
             var error = await Assert.ThrowsAsync<PostgresException>(() => upgraded.GetService<IMigrator>().MigrateAsync(PreviousMigration));
             Assert.Equal("55000", error.SqlState);
             Assert.Equal(ids.Length, await upgraded.CtdNodeInstances.CountAsync());
-            Assert.Contains("Applied 1", await database.RunMigratorAsync());
+            var pendingAfterDowngrade = (await upgraded.Database.GetPendingMigrationsAsync()).Count();
+            Assert.True(pendingAfterDowngrade > 0);
+            Assert.Contains($"Applied {pendingAfterDowngrade} database migration(s)", await database.RunMigratorAsync());
             Assert.Empty(await upgraded.Database.GetPendingMigrationsAsync());
         }
         finally { Directory.Delete(directory, recursive: true); }

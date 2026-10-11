@@ -55,6 +55,14 @@ public static class PackageValidationCatalog
 
     public static string SerializeReport(ValidationReport report) => JsonSerializer.Serialize(report, JsonOptions);
 
+    public static JsonElement ExportSnapshot()
+    {
+        using var stream = typeof(PackageValidationCatalog).Assembly.GetManifestResourceStream("RATools.PackageValidationCatalog")
+            ?? throw new InvalidOperationException("The pinned package validation catalog is missing.");
+        using var json = JsonDocument.Parse(stream);
+        return json.RootElement.Clone();
+    }
+
     private static void RequireCatalogMembers(JsonTypeInfo type)
     {
         if (type.Type == typeof(CatalogFile) || type.Type == typeof(RuleFile) ||

@@ -16,6 +16,8 @@ using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Security;
 using RATools.Infrastructure.Storage;
 using RATools.Infrastructure.Validation;
+using RATools.Application.PackageValidation;
+using RATools.Infrastructure.PackageValidation;
 
 namespace RATools.Infrastructure;
 
@@ -23,6 +25,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<PackageValidationOptions>().Bind(configuration.GetSection(PackageValidationOptions.SectionName))
+            .Validate(value => !string.IsNullOrWhiteSpace(value.StorageRoot) && value.PollInterval > TimeSpan.Zero &&
+                value.HeartbeatInterval > TimeSpan.Zero && value.LeaseDuration > value.HeartbeatInterval &&
+                value.ExecutionTimeout > TimeSpan.Zero && value.MaxAttempts > 0, "Invalid independent validation execution options.")
+            .Validate(value => { value.ReadLimits.Validate(); return true; }, "Invalid independent validation read limits.").ValidateOnStart();
+        services.AddSingleton<IPackageInputReader>(provider => new PackageInputReader(Path.Combine(
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PackageValidationOptions>>().Value.StorageRoot, "captures")));
+        services.AddSingleton<IPackagePdfInspector, PdfPigPackageInspector>();
+        services.AddSingleton<PackageDeliveryInspector>();
+        services.AddScoped<PackageValidationInputRegistry>();
+        services.AddScoped<PackageValidationService>();
+        services.AddHostedService<PackageValidationBackgroundService>();
         services.Configure<BackboneOutputOptions>(configuration.GetSection(BackboneOutputOptions.SectionName));
         services.AddOptions<PublishJobExecutionOptions>()
             .Bind(configuration.GetSection(PublishJobExecutionOptions.SectionName))
@@ -73,6 +87,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
+            services.AddSingleton<IPackageValidationStore, InMemoryPackageValidationStore>();
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
             services.AddSingleton<IWorkspaceRevisionStore, InMemoryWorkspaceRevisionStore>();
             services.AddSingleton<InMemoryCtdNodeRepository>();
@@ -93,6 +108,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();

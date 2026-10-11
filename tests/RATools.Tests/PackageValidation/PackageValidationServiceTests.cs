@@ -1,0 +1,183 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using RATools.Application.Abstractions.Security;
+using RATools.Application.PackageValidation;
+using RATools.Domain.PackageValidation;
+using RATools.Infrastructure.PackageValidation;
+using RATools.Infrastructure.Persistence.InMemory;
+using RATools.Infrastructure.Security;
+using RATools.Infrastructure.Storage;
+
+namespace RATools.Tests.PackageValidation;
+
+public sealed class PackageValidationServiceTests
+{
+    [Fact]
+    public async Task FreshAttemptsBindSelectedHistoryAndPreserveArchivedEvidenceAfterSourceRemoval()
+    {
+        await using var fixture = new ServiceFixture();
+        var zero = await fixture.Register("0000");
+        var one = await fixture.Register("0001");
+        var request = new CreatePackageValidationRequest(one.Id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development, "history",
+            History: [new(zero.Id, PackageValidationCatalog.UsProfile)]);
+        var enqueued = await fixture.Service.EnqueueAsync(request);
+        var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
+        var report = await fixture.Service.InspectAsync(lease.Run);
+        Assert.Equal(enqueued.Run.Binding, report.Binding);
+        Assert.Contains(report.Coverage, rule => rule.RuleId == "HISTORY-BASELINE" && rule.CheckStatus == CheckStatus.NotEvaluated);
+        Assert.True(await fixture.Store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report));
+        File.Delete(fixture.Files.PathOf("0001/index.xml"));
+        Assert.NotNull(await fixture.Store.GetReportJsonAsync(lease.Run.Id));
+        Assert.False((await fixture.Service.EnqueueAsync(request)).Created);
+        await Assert.ThrowsAsync<PackageValidationIdempotencyConflictException>(() => fixture.Service.EnqueueAsync(request with { History = [] }));
+    }
+
+    [Fact]
+    public async Task InputChangedIsTerminalAndCannotReuseARegistrationForDifferentBytes()
+    {
+        await using var fixture = new ServiceFixture();
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development, "changed"))).Run;
+        File.AppendAllText(fixture.Files.PathOf("0000/m2/25-clin-over/overview.pdf"), "changed");
+        var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
+        await fixture.Worker.ProcessAsync(lease, CancellationToken.None);
+        Assert.Equal(ValidationRunStatus.InputChanged, (await fixture.Store.GetRunAsync(run.Id))!.Status);
+        Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+        var different = await fixture.Register("0000");
+        Assert.NotEqual(input.InputDigest, different.InputDigest);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancellationAndTimeoutAreQueryableWhileParserCooperates(bool timeout)
+    {
+        var gate = new GateInspector();
+        await using var fixture = new ServiceFixture(gate, timeout ? TimeSpan.FromMilliseconds(150) : TimeSpan.FromSeconds(10));
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development, "cancel"))).Run;
+        var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
+        var processing = fixture.Worker.ProcessAsync(lease, CancellationToken.None);
+        try
+        {
+            if (!timeout)
+            {
+                await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                await fixture.Store.CancelAsync(run.Id, DateTime.UtcNow);
+            }
+            await processing.WaitAsync(TimeSpan.FromSeconds(10));
+            var ended = (await fixture.Store.GetRunAsync(run.Id))!;
+            Assert.Equal(timeout ? ValidationRunStatus.Failed : ValidationRunStatus.Cancelled, ended.Status);
+            Assert.Equal(timeout ? "VALIDATION_TIMEOUT" : "CANCELLED", ended.FailureCode);
+            Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+        }
+        finally { gate.Release.Set(); await processing; }
+    }
+
+    [Fact]
+    public async Task NonCooperativeParserKeepsCapturesAliveAfterCancellationBecomesTerminal()
+    {
+        var gate = new GateInspector(ignoreCancellation: true);
+        await using var fixture = new ServiceFixture(gate);
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile,
+            PackageValidationMode.Development, "noncooperative"))).Run;
+        var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
+        var processing = fixture.Worker.ProcessAsync(lease, CancellationToken.None);
+        try
+        {
+            await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await fixture.Store.CancelAsync(run.Id, DateTime.UtcNow);
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            while ((await fixture.Store.GetRunAsync(run.Id))!.Status == ValidationRunStatus.Running)
+                await Task.Delay(25, deadline.Token);
+            Assert.Equal(ValidationRunStatus.Cancelled, (await fixture.Store.GetRunAsync(run.Id))!.Status);
+            Assert.False(processing.IsCompleted);
+            Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+            Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(fixture.Storage, "captures"), "*", SearchOption.AllDirectories));
+        }
+        finally { gate.Release.Set(); await processing.WaitAsync(TimeSpan.FromSeconds(10)); }
+        Assert.Empty(Directory.EnumerateFileSystemEntries(Path.Combine(fixture.Storage, "captures")));
+    }
+
+    [Fact]
+    public async Task HostShutdownLeavesRecoverableLeaseAndRestartUsesFreshSources()
+    {
+        var gate = new GateInspector();
+        await using var fixture = new ServiceFixture(gate);
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile,
+            PackageValidationMode.Development, "shutdown"))).Run;
+        var now = DateTime.UtcNow;
+        var lease = (await fixture.Store.ClaimAsync("worker", now, TimeSpan.FromSeconds(10)))!;
+        using var shutdown = new CancellationTokenSource();
+        var processing = fixture.Worker.ProcessAsync(lease, shutdown.Token);
+        try
+        {
+            await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            shutdown.Cancel();
+            await processing.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(ValidationRunStatus.Running, (await fixture.Store.GetRunAsync(run.Id))!.Status);
+            Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+            Assert.Equal(1, await fixture.Store.RecoverExpiredAsync(now.AddMinutes(1), 3));
+            var retry = (await fixture.Store.ClaimAsync("replacement", now.AddMinutes(1), TimeSpan.FromSeconds(10)))!;
+            Assert.Equal(2, retry.Run.AttemptCount);
+            Assert.NotEqual(lease.Token, retry.Token);
+            File.Delete(fixture.Files.PathOf("0000/index.xml"));
+            await Assert.ThrowsAsync<PackageInputChangedException>(() => fixture.Service.InspectAsync(retry.Run));
+        }
+        finally { shutdown.Cancel(); gate.Release.Set(); await processing; }
+    }
+
+    [Fact]
+    public async Task RegistryRestrictsServerPathsAndFailedUploadCleansOnlyItsOwnedBytes()
+    {
+        await using var fixture = new ServiceFixture();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Registry.RegisterAsync(new(Guid.NewGuid(), Path.GetPathRoot(fixture.Files.PathOf(""))!)));
+        using var invalid = new MemoryStream("not a zip"u8.ToArray());
+        await Assert.ThrowsAsync<PackageInputException>(() => fixture.Registry.UploadAsync(Guid.NewGuid(), invalid, "0000", null));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(Path.Combine(fixture.Storage, "inputs")));
+        Assert.True(File.Exists(fixture.Files.PathOf("0000/index.xml")));
+    }
+
+    private sealed class GateInspector(bool ignoreCancellation = false) : IPackagePdfInspector
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ManualResetEventSlim Release { get; } = new();
+        public string EngineVersion => "gated-test-pdf";
+        public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
+        {
+            Entered.TrySetResult();
+            Release.Wait(ignoreCancellation ? CancellationToken.None : cancellationToken);
+            return new PdfPigPackageInspector().Inspect(stream, logicalPath, limits, cancellationToken);
+        }
+    }
+
+    private sealed class ServiceFixture : IAsyncDisposable
+    {
+        public PackageFileInspectorTests.Fixture Files { get; } = new();
+        public InMemoryPackageValidationStore Store { get; } = new();
+        public PackageValidationInputRegistry Registry { get; }
+        public PackageValidationService Service { get; }
+        public PackageValidationBackgroundService Worker { get; }
+        public string Storage => Files.ArchivePath("validation");
+        private readonly ServiceProvider _provider;
+        private readonly Guid _application = Guid.NewGuid();
+
+        public ServiceFixture(IPackagePdfInspector? pdf = null, TimeSpan? timeout = null)
+        {
+            var options = Options.Create(new PackageValidationOptions { StorageRoot = Storage,
+                HeartbeatInterval = TimeSpan.FromMilliseconds(25), LeaseDuration = TimeSpan.FromSeconds(10), ExecutionTimeout = timeout ?? TimeSpan.FromSeconds(30) });
+            var policy = new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions { AllowedWorkspaceRoots = [Files.PathOf("")] }));
+            var reader = new PackageInputReader(Path.Combine(Storage, "captures"));
+            var inspector = new PackageDeliveryInspector(pdf ?? new PdfPigPackageInspector());
+            Registry = new(Store, reader, policy, options);
+            Service = new(Store, reader, policy, inspector);
+            _provider = new ServiceCollection().AddSingleton<IPackageValidationStore>(Store).AddSingleton(Service).BuildServiceProvider();
+            Worker = new(_provider.GetRequiredService<IServiceScopeFactory>(), options, NullLogger<PackageValidationBackgroundService>.Instance);
+        }
+        public Task<PackageInputDto> Register(string sequence) => Registry.RegisterAsync(new(_application, Files.PathOf(sequence)));
+        public async ValueTask DisposeAsync() { Worker.Dispose(); await _provider.DisposeAsync(); await Files.DisposeAsync(); }
+    }
+}

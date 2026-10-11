@@ -4,6 +4,9 @@ namespace RATools.Application.PackageValidation;
 
 public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null)
 {
+    public const string DeliveryEngineVersion = "package-delivery-v2";
+    public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v1;package-pdf-validator-v1;" + pdfInspectorVersion;
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
     {
@@ -74,6 +77,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 
 public sealed class PackageDeliveryInspection
 {
+    private static readonly string[] CapturedRuleIds = ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
         PackagePdfInspection pdf, RuleCheckResult structure)
     {
@@ -82,8 +86,12 @@ public sealed class PackageDeliveryInspection
         Files = files;
         Pdf = pdf;
         var scoped = PackageValidationCatalog.Current.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
+        var capturedChecks = CapturedRuleIds.Select(rule =>
+            new RuleCheckResult(rule, rule == "ZIP-PATHS" && input.Comparison?.SourceKind != PackageSourceKind.Zip &&
+                input.Packages.Sequences.Values.All(capture => capture.SourceKind != PackageSourceKind.Zip) ? CheckStatus.NotApplicable : CheckStatus.Pass,
+                "Controlled input capture and final revalidation completed for every explicitly selected source; resource limits bind this run."));
         var observations = lifecycle.XmlInspections.SelectMany(xml => xml.Checks).Where(check => scoped.Contains(check.RuleId))
-            .Concat(lifecycle.Checks).Concat(files.Checks.Where(check => check.RuleId != "DELIVERY-STRUCTURE")).Concat(pdf.Checks).Append(structure);
+            .Concat(lifecycle.Checks).Concat(files.Checks.Where(check => check.RuleId != "DELIVERY-STRUCTURE")).Concat(pdf.Checks).Append(structure).Concat(capturedChecks);
         Checks = Array.AsReadOnly(observations.GroupBy(check => check.RuleId, StringComparer.Ordinal).Select(group =>
         {
             var results = group.ToArray();
@@ -99,7 +107,7 @@ public sealed class PackageDeliveryInspection
     public string ProfileSnapshotId => Lifecycle.ProfileSnapshotId;
     public string RulesDigest => Lifecycle.RulesDigest;
     public string LimitsDigest => Lifecycle.LimitsDigest;
-    public string EngineVersion => "package-delivery-v1;" + Lifecycle.EngineVersion + ";" + Files.EngineVersion + ";" + Pdf.EngineVersion;
+    public string EngineVersion => PackageDeliveryInspector.DeliveryEngineVersion + ";" + Lifecycle.EngineVersion + ";" + Files.EngineVersion + ";" + Pdf.EngineVersion;
     public PackageLifecycleInspection Lifecycle { get; }
     public PackageFileInspection Files { get; }
     public PackagePdfInspection Pdf { get; }

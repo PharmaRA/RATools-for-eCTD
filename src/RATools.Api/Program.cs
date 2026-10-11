@@ -67,12 +67,13 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new PackageValidationEnumJsonConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SupportNonNullableReferenceTypes();
     options.SchemaFilter<NonNullablePropertiesRequiredSchemaFilter>();
+    options.SchemaFilter<PackageValidationEnumSchemaFilter>();
 });
 
 // 健康检查：存活探针不含依赖；就绪探针（ready 标签）在关系型 provider 下探测数据库。

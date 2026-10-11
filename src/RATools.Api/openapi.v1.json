@@ -1851,6 +1851,553 @@
         }
       }
     },
+    "/api/package-validation-inputs": {
+      "post": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPackageInputRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPackageInputRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPackageInputRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validation-inputs/upload": {
+      "post": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ApplicationId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "SequenceNumber": {
+                    "type": "string"
+                  },
+                  "RootRelativePath": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "ApplicationId": {
+                  "style": "form"
+                },
+                "File": {
+                  "style": "form"
+                },
+                "SequenceNumber": {
+                  "style": "form"
+                },
+                "RootRelativePath": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validation-inputs/{id}": {
+      "get": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInputDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validation-inputs/{id}/manifest": {
+      "get": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/package-validations/profiles": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidationProfileScope"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidationProfileScope"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidationProfileScope"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations": {
+      "post": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackageValidationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackageValidationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackageValidationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummaryPackageValidationPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummaryPackageValidationPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummaryPackageValidationPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/cancel": {
+      "post": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageRunSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/report": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/findings": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "RuleId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Severity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ValidationSeverity"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/CheckStatus"
+            }
+          },
+          {
+            "name": "LogicalPath",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationFindingPackageValidationPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationFindingPackageValidationPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationFindingPackageValidationPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/evidence": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/publish-jobs": {
       "get": {
         "tags": [
@@ -2776,6 +3323,15 @@
         },
         "additionalProperties": false
       },
+      "CheckStatus": {
+        "enum": [
+          "Pass",
+          "Fail",
+          "NotEvaluated",
+          "NotApplicable"
+        ],
+        "type": "string"
+      },
       "CreateApplicationRequestBody": {
         "required": [
           "applicationNumber",
@@ -2912,6 +3468,45 @@
             "maxLength": 512,
             "minLength": 0,
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePackageValidationRequest": {
+        "required": [
+          "comparisonInputId",
+          "history",
+          "idempotencyKey",
+          "inputId",
+          "mode",
+          "profileSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "inputId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "profileSnapshotId": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/PackageValidationMode"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "comparisonInputId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageHistorySelection"
+            },
             "nullable": true
           }
         },
@@ -3461,6 +4056,16 @@
         },
         "additionalProperties": false
       },
+      "ImplementationStatus": {
+        "enum": [
+          "Implemented",
+          "Partial",
+          "Manual",
+          "NotImplemented",
+          "NotApplicable"
+        ],
+        "type": "string"
+      },
       "ImportApplicationRequestBody": {
         "required": [
           "ectdTemplateKey",
@@ -3501,6 +4106,39 @@
             "type": "integer",
             "format": "int64",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ManualCheckEvidence": {
+        "required": [
+          "binding",
+          "evidenceId",
+          "outcome",
+          "reason",
+          "recordedUtc",
+          "reviewer"
+        ],
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/ValidationBinding"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CheckStatus"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "recordedUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -3563,6 +4201,203 @@
           }
         },
         "additionalProperties": false
+      },
+      "PackageHistorySelection": {
+        "required": [
+          "inputId",
+          "profileSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "inputId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "profileSnapshotId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageInputDto": {
+        "required": [
+          "applicationId",
+          "createdUtc",
+          "fileCount",
+          "id",
+          "inputDigest",
+          "limitsDigest",
+          "sequenceNumber",
+          "sourceKind",
+          "totalBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "sourceKind": {
+            "$ref": "#/components/schemas/PackageSourceKind"
+          },
+          "inputDigest": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "limitsDigest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageRunSummary": {
+        "required": [
+          "applicationId",
+          "attemptCount",
+          "binding",
+          "cancellationRequested",
+          "completedUtc",
+          "coverageSummary",
+          "createdUtc",
+          "failureCode",
+          "failureMessage",
+          "id",
+          "reportAvailable",
+          "requestDigest",
+          "sequenceNumber",
+          "stage",
+          "startedUtc",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ValidationRunStatus"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellationRequested": {
+            "type": "boolean"
+          },
+          "requestDigest": {
+            "type": "string"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/ValidationBinding"
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportAvailable": {
+            "type": "boolean"
+          },
+          "coverageSummary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValidationCoverageSummary"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageRunSummaryPackageValidationPage": {
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageRunSummary"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageSourceKind": {
+        "enum": [
+          "Directory",
+          "Zip"
+        ],
+        "type": "string"
+      },
+      "PackageValidationMode": {
+        "enum": [
+          "Development",
+          "Formal"
+        ],
+        "type": "string"
       },
       "ProblemDetails": {
         "type": "object",
@@ -3756,6 +4591,7 @@
           "integrityEvidence",
           "integritySummary",
           "message",
+          "packageValidationRunId",
           "publishJob",
           "publishReadiness",
           "reportPath",
@@ -3828,6 +4664,11 @@
           },
           "message": {
             "type": "string",
+            "nullable": true
+          },
+          "packageValidationRunId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -4135,6 +4976,33 @@
         },
         "additionalProperties": false
       },
+      "RegisterPackageInputRequest": {
+        "required": [
+          "applicationId",
+          "path",
+          "rootRelativePath",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sequenceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "rootRelativePath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ResolveDirectoryRequestBody": {
         "required": [
           "path"
@@ -4145,6 +5013,53 @@
             "maxLength": 4096,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuleCoverage": {
+        "required": [
+          "blocksReadiness",
+          "checkStatus",
+          "findings",
+          "implementationStatus",
+          "manualEvidence",
+          "reason",
+          "requiredForReadiness",
+          "ruleId",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "string"
+          },
+          "implementationStatus": {
+            "$ref": "#/components/schemas/ImplementationStatus"
+          },
+          "checkStatus": {
+            "$ref": "#/components/schemas/CheckStatus"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/ValidationSeverity"
+          },
+          "requiredForReadiness": {
+            "type": "boolean"
+          },
+          "blocksReadiness": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationFinding"
+            }
+          },
+          "manualEvidence": {
+            "$ref": "#/components/schemas/ManualCheckEvidence"
           }
         },
         "additionalProperties": false
@@ -4560,6 +5475,182 @@
         },
         "additionalProperties": false
       },
+      "ValidationBinding": {
+        "required": [
+          "engineVersion",
+          "historyBaselineDigest",
+          "inputManifestDigest",
+          "profileSnapshotId",
+          "resourceLimitsDigest",
+          "rulesDigest",
+          "validationMode"
+        ],
+        "type": "object",
+        "properties": {
+          "inputManifestDigest": {
+            "type": "string"
+          },
+          "historyBaselineDigest": {
+            "type": "string"
+          },
+          "profileSnapshotId": {
+            "type": "string"
+          },
+          "rulesDigest": {
+            "type": "string"
+          },
+          "engineVersion": {
+            "type": "string"
+          },
+          "validationMode": {
+            "$ref": "#/components/schemas/PackageValidationMode"
+          },
+          "resourceLimitsDigest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationCoverageSummary": {
+        "required": [
+          "blockingRules",
+          "failed",
+          "implemented",
+          "manual",
+          "notApplicable",
+          "notApplicableImplementation",
+          "notEvaluated",
+          "notImplemented",
+          "partial",
+          "passed",
+          "totalRules"
+        ],
+        "type": "object",
+        "properties": {
+          "totalRules": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "passed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notEvaluated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notApplicable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blockingRules": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "implemented": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "partial": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "manual": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notImplemented": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notApplicableImplementation": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationFinding": {
+        "required": [
+          "actual",
+          "checkStatus",
+          "code",
+          "expected",
+          "location",
+          "message",
+          "recommendedAction",
+          "ruleId",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "string"
+          },
+          "checkStatus": {
+            "$ref": "#/components/schemas/CheckStatus"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/ValidationSeverity"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/ValidationLocation"
+          },
+          "expected": {
+            "type": "string",
+            "nullable": true
+          },
+          "actual": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendedAction": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationFindingPackageValidationPage": {
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationFinding"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidationIssueDto": {
         "required": [
           "code",
@@ -4661,6 +5752,136 @@
         },
         "additionalProperties": false
       },
+      "ValidationLocation": {
+        "required": [
+          "backboneRelativePath",
+          "column",
+          "fieldPath",
+          "leafId",
+          "line",
+          "logicalPath",
+          "nodePath",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "sequenceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "logicalPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "backboneRelativePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "leafId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "fieldPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "column": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationProfileScope": {
+        "required": [
+          "description",
+          "profileSnapshotId",
+          "qualificationReason",
+          "qualifiedForFinalization",
+          "templateKey"
+        ],
+        "type": "object",
+        "properties": {
+          "profileSnapshotId": {
+            "type": "string"
+          },
+          "templateKey": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "qualifiedForFinalization": {
+            "type": "boolean"
+          },
+          "qualificationReason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationReport": {
+        "required": [
+          "binding",
+          "blockingReasons",
+          "coverage",
+          "executionCompleted",
+          "isReadyForFinalization",
+          "runStatus",
+          "schemaVersion",
+          "summary"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "binding": {
+            "$ref": "#/components/schemas/ValidationBinding"
+          },
+          "runStatus": {
+            "$ref": "#/components/schemas/ValidationRunStatus"
+          },
+          "coverage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleCoverage"
+            },
+            "readOnly": true
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ValidationCoverageSummary"
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "executionCompleted": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isReadyForFinalization": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidationReportDto": {
         "required": [
           "applicationId",
@@ -4707,6 +5928,17 @@
         },
         "additionalProperties": false
       },
+      "ValidationRunStatus": {
+        "enum": [
+          "Pending",
+          "Running",
+          "Completed",
+          "Failed",
+          "Cancelled",
+          "InputChanged"
+        ],
+        "type": "string"
+      },
       "ValidationSectionMatchDto": {
         "required": [
           "isStandard",
@@ -4736,6 +5968,14 @@
           }
         },
         "additionalProperties": false
+      },
+      "ValidationSeverity": {
+        "enum": [
+          "Info",
+          "Warning",
+          "Error"
+        ],
+        "type": "string"
       },
       "WorkspaceSnapshotDto": {
         "required": [

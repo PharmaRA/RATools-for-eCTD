@@ -20,4 +20,5 @@ public sealed record PublishExecutionReportDto(
     int WarningCount,
     string? WarningSummary,
     bool Succeeded,
-    string? Message);
+    string? Message,
+    Guid? PackageValidationRunId = null);

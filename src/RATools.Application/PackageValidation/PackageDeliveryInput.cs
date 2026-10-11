@@ -16,9 +16,17 @@ public sealed class PackageDeliveryInput
             throw new ArgumentException("Compare a directory and a ZIP for the same explicit application, sequence and limits.", nameof(comparison));
         Packages = packages;
         Comparison = comparison;
-        InputDigest = comparison is null ? packages.Target.InputDigest : CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
+        InputDigest = ComputeDigest(packages.Target.InputDigest, comparison?.InputDigest);
+    }
+
+    public static string ComputeDigest(string primaryInputDigest, string? comparisonInputDigest)
+    {
+        ValidationBinding.RequireDigest(primaryInputDigest);
+        if (comparisonInputDigest is null) return primaryInputDigest;
+        ValidationBinding.RequireDigest(comparisonInputDigest);
+        return CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
         {
-            schemaVersion = 1, primaryInputDigest = packages.Target.InputDigest, comparisonInputDigest = comparison.InputDigest
+            schemaVersion = 1, primaryInputDigest, comparisonInputDigest
         }));
     }
 

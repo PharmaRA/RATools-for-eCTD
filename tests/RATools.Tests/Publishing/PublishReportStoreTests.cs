@@ -16,6 +16,19 @@ namespace RATools.Tests.Publishing;
 public sealed class PublishReportStoreTests
 {
     [Fact]
+    public void LegacyReportMissingIndependentValidationReferenceRemainsUnvalidated()
+    {
+        var report = CreateReport(CreateCompletedJob(), "report.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(report))!.AsObject();
+        json.Remove(nameof(PublishExecutionReportDto.PackageValidationRunId));
+        var legacy = JsonSerializer.Deserialize<PublishExecutionReportDto>(json.ToJsonString())!;
+        Assert.Null(legacy.PackageValidationRunId);
+        var id = Guid.NewGuid();
+        var current = JsonSerializer.Deserialize<PublishExecutionReportDto>(JsonSerializer.Serialize(report with { PackageValidationRunId = id }))!;
+        Assert.Equal(id, current.PackageValidationRunId);
+    }
+
+    [Fact]
     public async Task ReadAsync_ThrowsWhenReportAndWorkDirectoryAreMissing()
     {
         var store = new InMemoryPublishArtifactStore();

@@ -116,6 +116,8 @@ export type AuditLogPageDto = {
     items: Array<AuditLogDto>;
 };
 
+export type CheckStatus = 'Pass' | 'Fail' | 'NotEvaluated' | 'NotApplicable';
+
 export type CreateApplicationRequestBody = {
     applicationNumber: string;
     ectdTemplateKey: string;
@@ -145,6 +147,15 @@ export type CreateDocumentPlacementRequestBody = {
     ctdSection: string;
     operation: string;
     title?: string | null;
+};
+
+export type CreatePackageValidationRequest = {
+    inputId: string;
+    profileSnapshotId: string;
+    mode: PackageValidationMode;
+    idempotencyKey: string;
+    comparisonInputId: string | null;
+    history: Array<PackageHistorySelection> | null;
 };
 
 export type CreatePublishJobRequestBody = {
@@ -285,6 +296,8 @@ export type GeneratedBackboneDto = {
     xmlContent: string;
 };
 
+export type ImplementationStatus = 'Implemented' | 'Partial' | 'Manual' | 'NotImplemented' | 'NotApplicable';
+
 export type ImportApplicationRequestBody = {
     workingDirectoryPath: string;
     ectdTemplateKey: string;
@@ -294,6 +307,15 @@ export type ImportApplicationRequestBody = {
 export type InheritCtdNodesRequest = {
     sourceSequenceNumber: string;
     expectedRevision: number | null;
+};
+
+export type ManualCheckEvidence = {
+    evidenceId: string;
+    binding: ValidationBinding;
+    outcome: CheckStatus;
+    reason: string;
+    reviewer: string;
+    recordedUtc: string;
 };
 
 export type NodeExtensionPolicy = 0 | 1;
@@ -311,6 +333,53 @@ export type NodeSchemaIssue = {
     fieldPath: string;
     message: string;
 };
+
+export type PackageHistorySelection = {
+    inputId: string;
+    profileSnapshotId: string;
+};
+
+export type PackageInputDto = {
+    id: string;
+    applicationId: string;
+    sequenceNumber: string;
+    sourceKind: PackageSourceKind;
+    inputDigest: string;
+    createdUtc: string;
+    fileCount: number;
+    totalBytes: number;
+    limitsDigest: string;
+};
+
+export type PackageRunSummary = {
+    id: string;
+    applicationId: string;
+    sequenceNumber: string;
+    status: ValidationRunStatus;
+    stage: string;
+    createdUtc: string;
+    startedUtc: string | null;
+    completedUtc: string | null;
+    attemptCount: number;
+    cancellationRequested: boolean;
+    requestDigest: string;
+    binding: ValidationBinding;
+    failureCode: string | null;
+    failureMessage: string | null;
+    reportAvailable: boolean;
+    coverageSummary: ValidationCoverageSummary | null;
+};
+
+export type PackageRunSummaryPackageValidationPage = {
+    items: Array<PackageRunSummary>;
+    totalCount: number;
+    offset: number;
+    limit: number;
+};
+
+export type PackageSourceKind = 'Directory' | 'Zip';
+
+export type PackageValidationMode = 'Development' | 'Formal';
 
 export type ProblemDetails = {
     type?: string | null;
@@ -379,6 +448,7 @@ export type PublishExecutionReportDto = {
     warningSummary: string | null;
     succeeded: boolean;
     message: string | null;
+    packageValidationRunId: string | null;
 };
 
 export type PublishIntegrityEvidenceDto = {
@@ -453,8 +523,27 @@ export type PublishReadinessRequestBody = {
     sequenceNumber: string;
 };
 
+export type RegisterPackageInputRequest = {
+    applicationId: string;
+    path: string;
+    sequenceNumber: string | null;
+    rootRelativePath: string | null;
+};
+
 export type ResolveDirectoryRequestBody = {
     path: string;
+};
+
+export type RuleCoverage = {
+    ruleId: string;
+    implementationStatus: ImplementationStatus;
+    checkStatus: CheckStatus;
+    severity: ValidationSeverity;
+    requiredForReadiness: boolean;
+    blocksReadiness: boolean;
+    reason: string;
+    findings: Array<ValidationFinding>;
+    manualEvidence: ManualCheckEvidence;
 };
 
 export type SectionAttributeDefinition = {
@@ -558,6 +647,49 @@ export type ValidateSequenceRequestBody = {
     sequenceNumber: string;
 };
 
+export type ValidationBinding = {
+    inputManifestDigest: string;
+    historyBaselineDigest: string;
+    profileSnapshotId: string;
+    rulesDigest: string;
+    engineVersion: string;
+    validationMode: PackageValidationMode;
+    resourceLimitsDigest: string;
+};
+
+export type ValidationCoverageSummary = {
+    totalRules: number;
+    passed: number;
+    failed: number;
+    notEvaluated: number;
+    notApplicable: number;
+    blockingRules: number;
+    implemented: number;
+    partial: number;
+    manual: number;
+    notImplemented: number;
+    notApplicableImplementation: number;
+};
+
+export type ValidationFinding = {
+    ruleId: string;
+    checkStatus: CheckStatus;
+    severity: ValidationSeverity;
+    code: string;
+    message: string;
+    location: ValidationLocation;
+    expected: string | null;
+    actual: string | null;
+    recommendedAction: string | null;
+};
+
+export type ValidationFindingPackageValidationPage = {
+    items: Array<ValidationFinding>;
+    totalCount: number;
+    offset: number;
+    limit: number;
+};
+
 export type ValidationIssueDto = {
     severity: string;
     code: string;
@@ -581,6 +713,36 @@ export type ValidationLifecycleMatchDto = {
     historicalFinalState: string;
 };
 
+export type ValidationLocation = {
+    sequenceNumber: string | null;
+    logicalPath: string | null;
+    backboneRelativePath: string | null;
+    leafId: string | null;
+    nodePath: string | null;
+    fieldPath: string | null;
+    line: number | null;
+    column: number | null;
+};
+
+export type ValidationProfileScope = {
+    profileSnapshotId: string;
+    templateKey: string;
+    description: string;
+    qualifiedForFinalization: boolean;
+    qualificationReason: string;
+};
+
+export type ValidationReport = {
+    readonly schemaVersion: number;
+    binding: ValidationBinding;
+    runStatus: ValidationRunStatus;
+    readonly coverage: Array<RuleCoverage>;
+    summary: ValidationCoverageSummary;
+    readonly blockingReasons: Array<string>;
+    readonly executionCompleted: boolean;
+    readonly isReadyForFinalization: boolean;
+};
+
 export type ValidationReportDto = {
     applicationId: string;
     sequenceNumber: string;
@@ -591,6 +753,8 @@ export type ValidationReportDto = {
     lifecycleMatches: Array<ValidationLifecycleMatchDto>;
 };
 
+export type ValidationRunStatus = 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Cancelled' | 'InputChanged';
+
 export type ValidationSectionMatchDto = {
     sectionPath: string;
     isValid: boolean;
@@ -599,6 +763,8 @@ export type ValidationSectionMatchDto = {
     reason: string | null;
 };
 
+export type ValidationSeverity = 'Info' | 'Warning' | 'Error';
+
 export type WorkspaceSnapshotDto = {
     applicationId: string;
     sequenceNumber: string;
@@ -606,6 +772,12 @@ export type WorkspaceSnapshotDto = {
     placements: Array<DocumentPlacementDto>;
     documents: Array<DocumentDto>;
     nodeTree: CtdNodeTreeDto;
+};
+
+export type ValidationReportWritable = {
+    binding: ValidationBinding;
+    runStatus: ValidationRunStatus;
+    summary: ValidationCoverageSummary;
 };
 
 export type GetApiApplicationsData = {
@@ -1250,6 +1422,224 @@ export type PostApiFilesystemResolveDirectoryResponses = {
 };
 
 export type PostApiFilesystemResolveDirectoryResponse = PostApiFilesystemResolveDirectoryResponses[keyof PostApiFilesystemResolveDirectoryResponses];
+
+export type PostApiPackageValidationInputsData = {
+    body?: RegisterPackageInputRequest;
+    path?: never;
+    query?: never;
+    url: '/api/package-validation-inputs';
+};
+
+export type PostApiPackageValidationInputsResponses = {
+    /**
+     * Created
+     */
+    201: PackageInputDto;
+};
+
+export type PostApiPackageValidationInputsResponse = PostApiPackageValidationInputsResponses[keyof PostApiPackageValidationInputsResponses];
+
+export type PostApiPackageValidationInputsUploadData = {
+    body?: {
+        ApplicationId?: string;
+        File?: Blob | File;
+        SequenceNumber?: string;
+        RootRelativePath?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/package-validation-inputs/upload';
+};
+
+export type PostApiPackageValidationInputsUploadResponses = {
+    /**
+     * Created
+     */
+    201: PackageInputDto;
+};
+
+export type PostApiPackageValidationInputsUploadResponse = PostApiPackageValidationInputsUploadResponses[keyof PostApiPackageValidationInputsUploadResponses];
+
+export type GetApiPackageValidationInputsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validation-inputs/{id}';
+};
+
+export type GetApiPackageValidationInputsByIdResponses = {
+    /**
+     * OK
+     */
+    200: PackageInputDto;
+};
+
+export type GetApiPackageValidationInputsByIdResponse = GetApiPackageValidationInputsByIdResponses[keyof GetApiPackageValidationInputsByIdResponses];
+
+export type GetApiPackageValidationInputsByIdManifestData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validation-inputs/{id}/manifest';
+};
+
+export type GetApiPackageValidationInputsByIdManifestResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetApiPackageValidationsProfilesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/package-validations/profiles';
+};
+
+export type GetApiPackageValidationsProfilesResponses = {
+    /**
+     * OK
+     */
+    200: Array<ValidationProfileScope>;
+};
+
+export type GetApiPackageValidationsProfilesResponse = GetApiPackageValidationsProfilesResponses[keyof GetApiPackageValidationsProfilesResponses];
+
+export type GetApiPackageValidationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        applicationId?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/package-validations';
+};
+
+export type GetApiPackageValidationsResponses = {
+    /**
+     * OK
+     */
+    200: PackageRunSummaryPackageValidationPage;
+};
+
+export type GetApiPackageValidationsResponse = GetApiPackageValidationsResponses[keyof GetApiPackageValidationsResponses];
+
+export type PostApiPackageValidationsData = {
+    body?: CreatePackageValidationRequest;
+    path?: never;
+    query?: never;
+    url: '/api/package-validations';
+};
+
+export type PostApiPackageValidationsResponses = {
+    /**
+     * Accepted
+     */
+    202: PackageRunSummary;
+};
+
+export type PostApiPackageValidationsResponse = PostApiPackageValidationsResponses[keyof PostApiPackageValidationsResponses];
+
+export type GetApiPackageValidationsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}';
+};
+
+export type GetApiPackageValidationsByIdResponses = {
+    /**
+     * OK
+     */
+    200: PackageRunSummary;
+};
+
+export type GetApiPackageValidationsByIdResponse = GetApiPackageValidationsByIdResponses[keyof GetApiPackageValidationsByIdResponses];
+
+export type PostApiPackageValidationsByIdCancelData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/cancel';
+};
+
+export type PostApiPackageValidationsByIdCancelResponses = {
+    /**
+     * OK
+     */
+    200: PackageRunSummary;
+};
+
+export type PostApiPackageValidationsByIdCancelResponse = PostApiPackageValidationsByIdCancelResponses[keyof PostApiPackageValidationsByIdCancelResponses];
+
+export type GetApiPackageValidationsByIdReportData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/report';
+};
+
+export type GetApiPackageValidationsByIdReportResponses = {
+    /**
+     * OK
+     */
+    200: ValidationReport;
+};
+
+export type GetApiPackageValidationsByIdReportResponse = GetApiPackageValidationsByIdReportResponses[keyof GetApiPackageValidationsByIdReportResponses];
+
+export type GetApiPackageValidationsByIdFindingsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        Offset?: number;
+        Limit?: number;
+        RuleId?: string;
+        Severity?: ValidationSeverity;
+        Status?: CheckStatus;
+        LogicalPath?: string;
+    };
+    url: '/api/package-validations/{id}/findings';
+};
+
+export type GetApiPackageValidationsByIdFindingsResponses = {
+    /**
+     * OK
+     */
+    200: ValidationFindingPackageValidationPage;
+};
+
+export type GetApiPackageValidationsByIdFindingsResponse = GetApiPackageValidationsByIdFindingsResponses[keyof GetApiPackageValidationsByIdFindingsResponses];
+
+export type GetApiPackageValidationsByIdEvidenceData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/evidence';
+};
+
+export type GetApiPackageValidationsByIdEvidenceResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type GetApiPublishJobsData = {
     body?: never;

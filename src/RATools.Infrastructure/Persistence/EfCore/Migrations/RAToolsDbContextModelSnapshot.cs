@@ -22,6 +22,114 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("RATools.Domain.PackageValidation.PackageValidationRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Binding")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CancellationRequestedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoverageSummary")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FailureMessage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("LeaseExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LeaseOwner")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReportSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RequestDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RequestJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("StartedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "CreatedUtc");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("package_validation_runs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_package_validation_run_completion", "(\"Status\" IN ('Pending', 'Running')) = (\"CompletedUtc\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_package_validation_run_lease", "(\"Status\" = 'Running') = (\"LeaseToken\" IS NOT NULL AND \"LeaseOwner\" IS NOT NULL AND \"LeaseExpiresUtc\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_package_validation_run_report", "(\"Status\" = 'Completed') = (\"ReportSha256\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_package_validation_run_revision", "\"Revision\" >= 0 AND \"AttemptCount\" >= 0");
+
+                            t.HasCheckConstraint("CK_package_validation_run_status", "\"Status\" IN ('Pending', 'Running', 'Completed', 'Failed', 'Cancelled', 'InputChanged')");
+                        });
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2339,6 +2447,111 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("node_backfill_diagnostics", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationFindingRecord", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LogicalPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RuleId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("RunId", "Ordinal");
+
+                    b.HasIndex("RunId", "RuleId", "Severity", "Status");
+
+                    b.ToTable("package_validation_findings", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationInputRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InputDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("IsOwnedUpload")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LimitsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RootRelativePath")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("SourcePath")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "CreatedUtc");
+
+                    b.ToTable("package_validation_inputs", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("RunId");
+
+                    b.ToTable("package_validation_reports", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PublishJobRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2714,6 +2927,24 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasForeignKey("ApplicationId", "SequenceNumber", "PlacementId")
                         .HasPrincipalKey("ApplicationId", "SequenceNumber", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationFindingRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", b =>
+                {
+                    b.HasOne("RATools.Domain.PackageValidation.PackageValidationRun", null)
+                        .WithOne()
+                        .HasForeignKey("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", "RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
