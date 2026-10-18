@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Card, Col, Form, InputNumber, Modal, Row, Select, Space, Tag, message } from 'antd'
 import { ArrowLeft, PlayCircle, Save } from 'lucide-react'
 
@@ -33,6 +33,13 @@ import { WorkspaceTree } from './workspace/WorkspaceTree'
 import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePropertiesPanel'
 import { nodeContext, treeAncestorKeys } from './workspace/nodeTree'
 import type { CtdNodeTreeDto } from '../api/generated'
+
+// Bulk assembly is a separate lazy chunk so the workspace's own bundle stays within
+// budget; the panel is only loaded when the operator opens it.
+const AssemblyPanel = lazy(() =>
+  import('./workspace/AssemblyPanel').then((module) => ({ default: module.AssemblyPanel })))
+
+const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
 type SequenceWorkspacePageProps = SequencePublishingProviders & {
   appId: string
@@ -405,6 +412,14 @@ export const SequenceWorkspacePage = ({
       {nodeTree?.diagnostics.length ? <Alert type="warning" showIcon title="导入或旧数据诊断" description={
         [...new Set(nodeTree.diagnostics.map(issue => issue.message))].join('；')
       } /> : null}
+
+      {nodeTree && <Suspense fallback={<AssemblyPanelFallback />}>
+        <AssemblyPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
+          disabled={loading || workspaceRevision === undefined} onExecuted={async () => {
+            await refreshWorkspaceData()
+            invalidateValidation()
+          }} />
+      </Suspense>}
 
       <Row gutter={16}>
         <Col span={12}>
