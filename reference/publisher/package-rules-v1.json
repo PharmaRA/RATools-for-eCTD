@@ -1329,10 +1329,20 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "NotImplemented",
-      "implementationNote": "No actual external package validation report is bound yet. P2-08/09 must qualify implementations and explicitly decide any per-run external evidence policy. A tool installation alone is not evidence.",
-      "positiveFixtures": [],
-      "negativeFixtures": [],
-      "componentEvidence": [],
+      "implementationNote": "P2-08 adds append-only external evidence bound to the exact completed run and package digest, with per-difference explanations; P2-09 adds the reviewed defect matrix and baseline coverage assertions. No actual external tool report has been registered for a real package yet, and the per-run evidence policy is not decided. A tool installation alone is not evidence.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/invalid-cases.json"
+      ],
+      "componentEvidence": [
+        "src/RATools.Domain/PackageValidation/ExternalComparisonReport.cs",
+        "src/RATools.Infrastructure/Persistence/EfCore/EfCorePackageValidationStore.cs",
+        "src/RATools.Api/Controllers/PackageValidationsController.cs",
+        "tests/RATools.Tests/PackageValidation/ExternalComparisonReportTests.cs",
+        "tests/RATools.Tests/PackageValidation/PackageQualificationTests.cs"
+      ],
       "externalComparisonEvidence": []
     }
   ]
