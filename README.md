@@ -514,6 +514,30 @@ Independent package validation uses a separate queue and storage:
   (tool, version, the run's exact package digest, original report text, one explanation per
   difference) and read back via `/external-report` and `/external-report/text`. An exact replay
   is idempotent; different conclusions conflict. Nothing is inferred from an installed tool.
+
+Finalization records the identity of what was actually validated:
+
+- `POST /api/applications/{id}/sequences/{seq}/finalizations` requires the expected workspace
+  revision, a completed validation run, and that run's exact manifest, history baseline and
+  profile. Readiness and blocking reasons come from the archived report; a formal snapshot
+  requires a ready report, so no current development profile authorizes delivery.
+- `GET /api/finalizations/{id}` and `GET /api/applications/{id}/sequences/{seq}/finalized-versions`
+  return immutable snapshots. A replay with the same idempotency key returns the committed
+  snapshot; changed content conflicts, and one snapshot exists per content digest.
+- Delivery records (`POST /api/finalized-sequences/{id}/deliveries`) and receipts
+  (`POST /api/finalized-deliveries/{id}/receipts`) are append-only and keep transmission,
+  technical validation and business outcome separate. Nothing infers "submitted" from a
+  completed publish job.
+
+Bulk assembly is preview-first:
+
+- `POST /api/applications/{id}/sequences/{seq}/assembly-plans` accepts an RFC 4180 CSV
+  (UTF-8, max 1000 rows) and returns every row with explicit diagnostics. Each row must name
+  the exact node instance and document; lifecycle rows need an explicit earlier-sequence
+  placement id. No file-name or section-number guessing is performed.
+- `POST /api/assembly-plans/execute` requires the previewed revision and plan digest; the plan
+  is regenerated before execution, so a changed manifest or workspace revision is refused.
+  Selected rows commit together with the revision advance or not at all.
 - File/page limits return `413`, capture/engine deadlines return `408`, and unsupported
   preview types or invalid line numbers return `400`.
 - Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;

@@ -510,6 +510,121 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyPlanBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyPlanBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyPlanBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPlan"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPlan"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPlan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assembly-plans/execute": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyExecuteBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyExecuteBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyExecuteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit-logs": {
       "get": {
         "tags": [
@@ -4037,6 +4152,229 @@
           }
         },
         "additionalProperties": false
+      },
+      "AssemblyDiagnostic": {
+        "required": [
+          "code",
+          "lineNumber",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyExecuteBody": {
+        "required": [
+          "applicationId",
+          "expectedRevision",
+          "manifest",
+          "planDigest",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyExecutionResult": {
+        "required": [
+          "applicationId",
+          "placementIds",
+          "planDigest",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "placementIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPlan": {
+        "required": [
+          "applicationId",
+          "csvVersion",
+          "diagnostics",
+          "expectedRevision",
+          "invalidRows",
+          "planDigest",
+          "rows",
+          "sequenceNumber",
+          "totalRows",
+          "validRows"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "totalRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "invalidRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssemblyDiagnostic"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssemblyPlanRow"
+            }
+          },
+          "csvVersion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPlanBody": {
+        "required": [
+          "expectedRevision",
+          "manifest"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPlanRow": {
+        "required": [
+          "diagnostics",
+          "documentId",
+          "lineNumber",
+          "nodeInstanceId",
+          "operation",
+          "sortOrder",
+          "status",
+          "targetLeafAddress",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "targetLeafAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssemblyRowStatus"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssemblyDiagnostic"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyRowStatus": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
       },
       "AuditLogDto": {
         "required": [

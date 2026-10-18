@@ -99,6 +99,60 @@ export type ApplicationPublishHistoryStatusSummaryDto = {
     runningCount: number;
 };
 
+export type AssemblyDiagnostic = {
+    code: string;
+    message: string;
+    lineNumber: number | null;
+};
+
+export type AssemblyExecuteBody = {
+    applicationId: string;
+    sequenceNumber: string;
+    expectedRevision: number;
+    planDigest: string;
+    manifest: string;
+};
+
+export type AssemblyExecutionResult = {
+    applicationId: string;
+    sequenceNumber: string;
+    workspaceRevision: number;
+    planDigest: string;
+    placementIds: Array<string>;
+};
+
+export type AssemblyPlan = {
+    applicationId: string;
+    sequenceNumber: string;
+    expectedRevision: number;
+    planDigest: string;
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+    diagnostics: Array<AssemblyDiagnostic>;
+    rows: Array<AssemblyPlanRow>;
+    csvVersion: string;
+};
+
+export type AssemblyPlanBody = {
+    expectedRevision: number;
+    manifest: string;
+};
+
+export type AssemblyPlanRow = {
+    lineNumber: number;
+    documentId: string | null;
+    nodeInstanceId: string | null;
+    title: string | null;
+    operation: string;
+    targetLeafAddress: string | null;
+    sortOrder: number;
+    status: AssemblyRowStatus;
+    diagnostics: Array<AssemblyDiagnostic>;
+};
+
+export type AssemblyRowStatus = 0 | 1;
+
 export type AuditLogDto = {
     id: string;
     entityType: string;
@@ -1139,6 +1193,41 @@ export type DeleteApiApplicationsByIdSequencesBySequenceNumberResponses = {
 };
 
 export type DeleteApiApplicationsByIdSequencesBySequenceNumberResponse = DeleteApiApplicationsByIdSequencesBySequenceNumberResponses[keyof DeleteApiApplicationsByIdSequencesBySequenceNumberResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansData = {
+    body?: AssemblyPlanBody;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyPlan;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponses];
+
+export type PostApiAssemblyPlansExecuteData = {
+    body?: AssemblyExecuteBody;
+    path?: never;
+    query?: never;
+    url: '/api/assembly-plans/execute';
+};
+
+export type PostApiAssemblyPlansExecuteResponses = {
+    /**
+     * Accepted
+     */
+    202: AssemblyExecutionResult;
+};
+
+export type PostApiAssemblyPlansExecuteResponse = PostApiAssemblyPlansExecuteResponses[keyof PostApiAssemblyPlansExecuteResponses];
 
 export type GetApiAuditLogsData = {
     body?: never;

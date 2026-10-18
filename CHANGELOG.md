@@ -24,6 +24,12 @@ Semantic Versioning, and release dates use ISO 8601.
 - Publish jobs can reference a completed validation run; the reference is verified
   (completed, same application/sequence, readable archived report) and never inferred.
 - Qualification matrix executing every shipped invalid-package fixture case.
+- Immutable finalized-sequence snapshots bound to the exact validation run, manifest,
+  history baseline and standards profile, with append-only delivery records and
+  receipts that keep transmission, technical and business outcomes separate.
+- Preview-first bulk assembly from a bounded RFC 4180 CSV: every row is resolved
+  against an explicit workspace revision with full diagnostics, and execution
+  requires the previewed plan digest.
 
 ### Changed
 

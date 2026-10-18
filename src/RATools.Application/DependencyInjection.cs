@@ -70,6 +70,8 @@ public static class DependencyInjection
         services.AddSingleton<PublishReportStore>();
         services.AddScoped<IPublishJobService, PublishJobService>();
         services.AddScoped<RATools.Application.Finalization.FinalizationService>();
+        services.AddScoped<RATools.Application.Assembly.AssemblyPlanner>();
+        services.AddScoped<RATools.Application.Assembly.AssemblyExecutor>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();
         services.AddScoped<IPublishReadinessService, PublishReadinessService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
