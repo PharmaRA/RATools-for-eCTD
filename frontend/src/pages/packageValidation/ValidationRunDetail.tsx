@@ -5,6 +5,7 @@ import { apiFetch } from '../../apiClient'
 import type { ValidationFinding, ValidationReport } from '../../api/generated'
 import { cancelValidationRun, downloadValidationJson, isValidationActive, loadValidationEvidence,
   loadValidationFindings, loadValidationRun, runUrl, type FindingFilters } from '../../packageValidationActions'
+import { DossierProjectionPanel } from './DossierProjectionPanel'
 import { ExternalComparisonPanel } from './ExternalComparisonPanel'
 import { FindingLocation } from './FindingLocation'
 import { checkLabels, runStatusLabels, severityLabels, stageLabels } from './validationDisplay'
@@ -106,6 +107,7 @@ export const ValidationRunDetail = ({ id }: { id: string }) => {
             {!report.isFetching && !report.data && <Alert type="warning" showIcon className="mt-3" title="尚无归档报告"
               description="此运行没有可用报告或旧记录缺少覆盖统计；不会补写成功结论。" />}
           </> },
+          { key: 'projection', label: '累计生命周期', children: <DossierProjectionPanel runId={id} targetSequence={run.sequenceNumber} /> },
           { key: 'external', label: '外部对照证据', children: <ExternalComparisonPanel runId={id} packageDigest={run.binding.inputManifestDigest} /> },
         ]} />}
       </>}

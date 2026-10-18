@@ -2,8 +2,8 @@ import { apiFetch, apiFetchResponse, ApiRequestError, buildJsonRequestInit } fro
 import { downloadBlob, getDownloadFileName } from './browserDownload'
 import type {
   CheckStatus, CreatePackageValidationRequest, PackageInputDto, PackageRunSummary,
-  PackageRunSummaryPackageValidationPage, RegisterPackageInputRequest, ValidationFindingPackageValidationPage,
-  ValidationProfileScope, ValidationSeverity,
+  PackageRunSummaryPackageValidationPage, RegisterPackageInputRequest, ValidationFinding,
+  ValidationFindingPackageValidationPage, ValidationProfileScope, ValidationSeverity,
 } from './api/generated'
 
 export type FindingFilters = {
@@ -17,6 +17,31 @@ export type ValidationEvidence = {
   historyBaseline: { entries: Array<{ sequenceNumber: string; sourceId: string; trustStatus: string; contentDigest: string }> }
 }
 export type TextPreview = { logicalPath: string; sha256: string; startLine: number; lines: string[]; truncated: boolean }
+export type ProjectionLeafAddress = { applicationId: string; sequenceNumber: string; backboneRelativePath: string; leafId: string }
+export type ProjectionLeafStatus = 'Current' | 'Replaced' | 'Deleted' | 'AppendMember' | 'Unknown'
+export type ProjectionLeaf = {
+  address: ProjectionLeafAddress; title: string | null; operation: string | null; contentLogicalPath: string | null
+  status: ProjectionLeafStatus; replacedBy: string | null; deletedBy: string | null; appendedTo: string | null
+  isRegionalReference: boolean; sourceSequence: string
+}
+export type ProjectionEvent = {
+  source: ProjectionLeafAddress; target: ProjectionLeafAddress | null; operation: string
+  status: CheckStatus; unresolvedReason: string | null
+}
+export type ProjectionBaselineEntry = {
+  sequenceNumber: string; sourceKind: string; sourceId: string; contentDigest: string
+  profileSnapshotId: string; trustStatus: string
+}
+export type ProjectionView = 'history' | 'current' | 'sequence'
+// The archived document is returned as one explicit, paged view. It is derived
+// evidence: an incomplete projection says so and never implies effectiveness.
+export type ValidationProjectionPage = {
+  schemaVersion: number; view: ProjectionView; sequenceNumber: string | null; applicationId: string
+  targetSequence: string; profileSnapshotId: string; inputDigest: string; baselineDigest: string
+  engineVersion: string; isComplete: boolean; incompleteReasons: string[]; appliedSequences: string[]
+  baseline: ProjectionBaselineEntry[]; totalCount: number; offset: number; limit: number
+  leaves: ProjectionLeaf[]; events: ProjectionEvent[]; findings: ValidationFinding[]
+}
 export type ExternalComparisonDifference = { externalRuleId: string; internalRuleId: string | null; externalMessage: string; explanation: string }
 export type ExternalComparisonEvidence = {
   runId: string; toolName: string; toolVersion: string; packageDigest: string
@@ -81,3 +106,9 @@ export const registerExternalComparison = (id: string, body: { toolName: string;
   apiFetch(`${runUrl(id)}/external-reports`, buildJsonRequestInit('POST', body))
 export const loadExternalComparisonText = (id: string, signal?: AbortSignal): Promise<string> =>
   apiFetchResponse(`${runUrl(id)}/external-report/text`, { signal }).then(response => response.text())
+export const loadValidationProjection = (id: string, view: ProjectionView, offset: number, sequenceNumber?: string,
+  signal?: AbortSignal): Promise<ValidationProjectionPage> => {
+  const query = new URLSearchParams({ view, offset: String(offset), limit: '50' })
+  if (view === 'sequence' && sequenceNumber) query.set('sequenceNumber', sequenceNumber)
+  return apiFetch(`${runUrl(id)}/projection?${query}`, { signal })
+}
