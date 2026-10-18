@@ -65,4 +65,36 @@ public sealed class PackageValidationsController(PackageValidationService servic
         run.VerifyRequestIntegrity();
         return Content(run.RequestJson, "application/json");
     });
+
+    [HttpPost("{id:guid}/external-reports")]
+    [ProducesResponseType(typeof(ExternalComparisonEvidence), StatusCodes.Status201Created)]
+    public Task<IActionResult> RegisterExternalReport(Guid id, [FromBody] RegisterExternalComparisonReportRequest request,
+        CancellationToken cancellationToken) => RespondAsync(async () =>
+    {
+        var run = await store.GetRunAsync(id, cancellationToken);
+        if (run is null) return NotFound();
+        var evidence = new ExternalComparisonReport(id, run.Binding, request.ToolName, request.ToolVersion,
+            request.PackageDigest, request.Report, request.Differences ?? [], DateTime.UtcNow);
+        await store.RegisterExternalComparisonAsync(evidence, cancellationToken);
+        var stored = await store.GetExternalComparisonAsync(id, cancellationToken);
+        return CreatedAtAction(nameof(ExternalReport), new { id }, stored);
+    });
+
+    [HttpGet("{id:guid}/external-report")]
+    [ProducesResponseType(typeof(ExternalComparisonEvidence), StatusCodes.Status200OK)]
+    public Task<IActionResult> ExternalReport(Guid id, CancellationToken cancellationToken) => RespondAsync(async () =>
+        await store.GetExternalComparisonAsync(id, cancellationToken) is { } evidence ? Ok(evidence) : NotFound());
+
+    [HttpGet("{id:guid}/external-report/text")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public Task<IActionResult> ExternalReportText(Guid id, CancellationToken cancellationToken) => RespondAsync(async () =>
+    {
+        var text = await store.GetExternalComparisonReportTextAsync(id, cancellationToken);
+        return text is null
+            ? NotFound()
+            : Content(text, "text/plain; charset=utf-8");
+    });
 }
+
+public sealed record RegisterExternalComparisonReportRequest(string ToolName, string ToolVersion, string PackageDigest,
+    string Report, IReadOnlyList<ExternalComparisonDifference>? Differences);

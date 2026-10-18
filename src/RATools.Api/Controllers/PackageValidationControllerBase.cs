@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Application.PackageValidation;
+using RATools.Domain.PackageValidation;
 
 namespace RATools.Api.Controllers;
 
@@ -14,6 +15,8 @@ public abstract class PackageValidationControllerBase : ControllerBase
         { return Conflict(new { code = exception.Code, message = exception.Message, candidates = exception.Candidates }); }
         catch (PackageValidationIdempotencyConflictException exception) when (!Response.HasStarted)
         { return Conflict(new { code = "VALIDATION_IDEMPOTENCY_CONFLICT", message = exception.Message }); }
+        catch (ExternalComparisonEvidenceConflictException exception) when (!Response.HasStarted)
+        { return Conflict(new { code = "EXTERNAL_EVIDENCE_CONFLICT", message = exception.Message }); }
         catch (PackageInputChangedException exception) when (!Response.HasStarted)
         { return Conflict(new { code = exception.Code, message = exception.Message }); }
         catch (PackageInputException exception) when (!Response.HasStarted)

@@ -80,6 +80,28 @@ public sealed class PackageValidationApiTests
         Assert.Equal(HttpStatusCode.NotFound, traversal.StatusCode);
         using var evidence = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/evidence"));
         Assert.Equal("package-rules-v1", evidence.RootElement.GetProperty("ruleCatalog").GetProperty("catalogVersion").GetString());
+        using var missingExternal = await client.GetAsync($"/api/package-validations/{run.Id}/external-report");
+        Assert.Equal(HttpStatusCode.NotFound, missingExternal.StatusCode);
+        using var wrongDigest = await client.PostAsJsonAsync($"/api/package-validations/{run.Id}/external-reports",
+            new { toolName = "eValidator", toolVersion = "22.1", packageDigest = new string('f', 64), report = "<r />", differences = Array.Empty<object>() }, Json);
+        Assert.Equal(HttpStatusCode.BadRequest, wrongDigest.StatusCode);
+        using var external = await client.PostAsJsonAsync($"/api/package-validations/{run.Id}/external-reports", new
+        {
+            toolName = "eValidator", toolVersion = "22.1", packageDigest = run.Binding.InputManifestDigest,
+            report = "<external-report />", differences = new[] { new { externalRuleId = "EXT-1", internalRuleId = "FILE-HREF", externalMessage = "Missing href", explanation = "Same resolved payload." } }
+        }, Json);
+        Assert.Equal(HttpStatusCode.Created, external.StatusCode);
+        using var externalReplay = await client.PostAsJsonAsync($"/api/package-validations/{run.Id}/external-reports", new
+        {
+            toolName = "eValidator", toolVersion = "22.1", packageDigest = run.Binding.InputManifestDigest,
+            report = "<external-report />", differences = new[] { new { externalRuleId = "EXT-1", internalRuleId = "FILE-HREF", externalMessage = "Missing href", explanation = "Same resolved payload." } }
+        }, Json);
+        Assert.Equal(HttpStatusCode.Created, externalReplay.StatusCode);
+        using var externalText = await client.GetAsync($"/api/package-validations/{run.Id}/external-report/text");
+        Assert.Equal(HttpStatusCode.OK, externalText.StatusCode);
+        Assert.Equal("<external-report />", await externalText.Content.ReadAsStringAsync());
+        var externalEvidence = (await client.GetFromJsonAsync<ExternalComparisonEvidence>($"/api/package-validations/{run.Id}/external-report", Json))!;
+        Assert.Equal("eValidator", externalEvidence.ToolName);
         var findings = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>($"/api/package-validations/{run.Id}/findings?limit=1", Json))!;
         Assert.Single(findings.Items);
         Assert.True(findings.TotalCount > 1);

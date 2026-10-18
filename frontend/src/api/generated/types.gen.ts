@@ -281,6 +281,24 @@ export type EctdTemplateDto = {
     standardVersion: string;
 };
 
+export type ExternalComparisonDifference = {
+    externalRuleId: string;
+    internalRuleId: string | null;
+    externalMessage: string;
+    explanation: string;
+};
+
+export type ExternalComparisonEvidence = {
+    runId: string;
+    toolName: string;
+    toolVersion: string;
+    packageDigest: string;
+    reportSha256: string;
+    differences: Array<ExternalComparisonDifference>;
+    recordedUtc: string;
+    digest: string;
+};
+
 export type GenerateBackboneRequestBody = {
     applicationId: string;
     sequenceNumber: string;
@@ -551,6 +569,14 @@ export type PublishReadinessReportDto = {
 export type PublishReadinessRequestBody = {
     applicationId: string;
     sequenceNumber: string;
+};
+
+export type RegisterExternalComparisonReportRequest = {
+    toolName: string;
+    toolVersion: string;
+    packageDigest: string;
+    report: string;
+    differences: Array<ExternalComparisonDifference> | null;
 };
 
 export type RegisterPackageInputRequest = {
@@ -1752,6 +1778,60 @@ export type GetApiPackageValidationsByIdEvidenceResponses = {
 };
 
 export type GetApiPackageValidationsByIdEvidenceResponse = GetApiPackageValidationsByIdEvidenceResponses[keyof GetApiPackageValidationsByIdEvidenceResponses];
+
+export type PostApiPackageValidationsByIdExternalReportsData = {
+    body?: RegisterExternalComparisonReportRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/external-reports';
+};
+
+export type PostApiPackageValidationsByIdExternalReportsResponses = {
+    /**
+     * Created
+     */
+    201: ExternalComparisonEvidence;
+};
+
+export type PostApiPackageValidationsByIdExternalReportsResponse = PostApiPackageValidationsByIdExternalReportsResponses[keyof PostApiPackageValidationsByIdExternalReportsResponses];
+
+export type GetApiPackageValidationsByIdExternalReportData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/external-report';
+};
+
+export type GetApiPackageValidationsByIdExternalReportResponses = {
+    /**
+     * OK
+     */
+    200: ExternalComparisonEvidence;
+};
+
+export type GetApiPackageValidationsByIdExternalReportResponse = GetApiPackageValidationsByIdExternalReportResponses[keyof GetApiPackageValidationsByIdExternalReportResponses];
+
+export type GetApiPackageValidationsByIdExternalReportTextData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/package-validations/{id}/external-report/text';
+};
+
+export type GetApiPackageValidationsByIdExternalReportTextResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type GetApiPackageValidationsByIdExternalReportTextResponse = GetApiPackageValidationsByIdExternalReportTextResponses[keyof GetApiPackageValidationsByIdExternalReportTextResponses];
 
 export type GetApiPublishJobsData = {
     body?: never;

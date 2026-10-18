@@ -2591,6 +2591,145 @@
         }
       }
     },
+    "/api/package-validations/{id}/external-reports": {
+      "post": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterExternalComparisonReportRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterExternalComparisonReportRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterExternalComparisonReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/external-report": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalComparisonEvidence"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validations/{id}/external-report/text": {
+      "get": {
+        "tags": [
+          "PackageValidations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/publish-jobs": {
       "get": {
         "tags": [
@@ -4193,6 +4332,76 @@
         },
         "additionalProperties": false
       },
+      "ExternalComparisonDifference": {
+        "required": [
+          "explanation",
+          "externalMessage",
+          "externalRuleId",
+          "internalRuleId"
+        ],
+        "type": "object",
+        "properties": {
+          "externalRuleId": {
+            "type": "string"
+          },
+          "internalRuleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalMessage": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExternalComparisonEvidence": {
+        "required": [
+          "differences",
+          "digest",
+          "packageDigest",
+          "recordedUtc",
+          "reportSha256",
+          "runId",
+          "toolName",
+          "toolVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toolName": {
+            "type": "string"
+          },
+          "toolVersion": {
+            "type": "string"
+          },
+          "packageDigest": {
+            "type": "string"
+          },
+          "reportSha256": {
+            "type": "string"
+          },
+          "differences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalComparisonDifference"
+            }
+          },
+          "recordedUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "digest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "GenerateBackboneRequestBody": {
         "required": [
           "applicationId",
@@ -5300,6 +5509,38 @@
             "minLength": 1,
             "pattern": "^\\d{4}$",
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterExternalComparisonReportRequest": {
+        "required": [
+          "differences",
+          "packageDigest",
+          "report",
+          "toolName",
+          "toolVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "toolName": {
+            "type": "string"
+          },
+          "toolVersion": {
+            "type": "string"
+          },
+          "packageDigest": {
+            "type": "string"
+          },
+          "report": {
+            "type": "string"
+          },
+          "differences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalComparisonDifference"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false

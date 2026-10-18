@@ -53,6 +53,9 @@ public sealed class ExternalComparisonReport
         ReportSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(reportText))).ToLowerInvariant();
         Differences = Array.AsReadOnly(copy);
         RecordedUtc = recordedUtc;
+        // Identity covers the reviewed evidence, not the registration timestamp: an
+        // exact replay must be recognized as the same evidence, while a changed report,
+        // tool, package digest or explanation must conflict.
         Digest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
         {
             schemaVersion = 1, runId = runId.ToString("D"), binding, toolName = ToolName, toolVersion = ToolVersion,
@@ -61,8 +64,7 @@ public sealed class ExternalComparisonReport
             {
                 externalRuleId = item.ExternalRuleId, internalRuleId = item.InternalRuleId,
                 externalMessage = item.ExternalMessage, explanation = item.Explanation
-            }).ToArray(),
-            recordedUtc
+            }).ToArray()
         }));
     }
 
