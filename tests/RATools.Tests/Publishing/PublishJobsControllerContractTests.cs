@@ -50,6 +50,22 @@ public sealed class PublishJobsControllerContractTests
             service.EnqueuedRequest);
     }
 
+    [Fact]
+    public async Task Execute_PassesAnExplicitValidationReferenceThrough()
+    {
+        var service = new StubPublishJobService();
+        var controller = new PublishJobsController(service);
+        var applicationId = Guid.NewGuid();
+        var runId = Guid.NewGuid();
+
+        var result = await controller.Execute(
+            new CreatePublishJobRequestBody { ApplicationId = applicationId, SequenceNumber = "0001", PackageValidationRunId = runId },
+            CancellationToken.None);
+
+        Assert.IsType<AcceptedAtActionResult>(result);
+        Assert.Equal(runId, service.EnqueuedRequest!.PackageValidationRunId);
+    }
+
     private sealed class StubPublishJobService : IPublishJobService
     {
         public PublishJobDto Job { get; } = new(

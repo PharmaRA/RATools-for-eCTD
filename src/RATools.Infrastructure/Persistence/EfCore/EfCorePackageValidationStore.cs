@@ -247,6 +247,18 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking().Where(row => row.RunId == runId)
             .Select(row => row.ReportText).SingleOrDefaultAsync(cancellationToken)!;
 
+    public Task<Guid?> FindCompletedRunAsync(Guid applicationId, string sequenceNumber, string inputManifestDigest,
+        CancellationToken cancellationToken = default)
+    {
+        ValidationBinding.RequireDigest(inputManifestDigest);
+        // Only a completed run with an archived report can authorize finalization.
+        return Runs.AsNoTracking().Where(row => row.ApplicationId == applicationId && row.SequenceNumber == sequenceNumber &&
+                row.Status == ValidationRunStatus.Completed && row.ReportSha256 != null &&
+                row.Binding.InputManifestDigest == inputManifestDigest)
+            .OrderByDescending(row => row.CompletedUtc).ThenByDescending(row => row.Id)
+            .Select(row => (Guid?)row.Id).FirstOrDefaultAsync(cancellationToken);
+    }
+
     private async Task<PackageValidationRun?> MutateAsync(Guid id, Func<PackageValidationRun, bool> mutation,
         CancellationToken cancellationToken)
     {

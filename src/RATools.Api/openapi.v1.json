@@ -3859,6 +3859,11 @@
             "minLength": 1,
             "pattern": "^\\d{4}$",
             "type": "string"
+          },
+          "packageValidationRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false

@@ -104,7 +104,8 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         try
         {
             var job = await publishJobService.EnqueueExecutionAsync(
-                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, idempotencyKey),
+                new CreatePublishJobRequest(request.ApplicationId, request.SequenceNumber, idempotencyKey,
+                    request.PackageValidationRunId),
                 cancellationToken);
 
             // 发布在后台作业中执行；客户端通过 GetById / report / artifacts 端点轮询状态。
@@ -118,7 +119,7 @@ public sealed class PublishJobsController(IPublishJobService publishJobService) 
         {
             return Conflict(new { message = exception.Message });
         }
-        catch (ArgumentException exception) when (exception.ParamName == "idempotencyKey")
+        catch (ArgumentException exception) when (exception.ParamName is "idempotencyKey" or "request")
         {
             return BadRequest(new { message = exception.Message });
         }

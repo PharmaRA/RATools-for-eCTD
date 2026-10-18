@@ -186,6 +186,20 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
         lock (_gate) return Task.FromResult(_external.TryGetValue(runId, out var evidence) ? evidence.ReportText : null);
     }
 
+    public Task<Guid?> FindCompletedRunAsync(Guid applicationId, string sequenceNumber, string inputManifestDigest,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidationBinding.RequireDigest(inputManifestDigest);
+        lock (_gate)
+            return Task.FromResult(_runs.Values
+                .Where(run => run.ApplicationId == applicationId && run.SequenceNumber == sequenceNumber &&
+                    run.Status == ValidationRunStatus.Completed && run.ReportSha256 is not null &&
+                    run.Binding.InputManifestDigest == inputManifestDigest)
+                .OrderByDescending(run => run.CompletedUtc).ThenByDescending(run => run.Id)
+                .Select(run => (Guid?)run.Id).FirstOrDefault());
+    }
+
     private Task<bool> Mutate(Guid id, Guid token, string owner, DateTime nowUtc, Action<PackageValidationRun> mutation, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -8,9 +8,11 @@ public sealed class PublishDestinationContractTests
 {
     public static TheoryData<Type, string[]> PublishingRequestContracts => new()
     {
-        { typeof(CreatePublishJobRequestBody), ["ApplicationId", "SequenceNumber"] },
+        // PackageValidationRunId is an evidence reference, not a client-selected
+        // destination; the assertion below still forbids path/directory/root members.
+        { typeof(CreatePublishJobRequestBody), ["ApplicationId", "PackageValidationRunId", "SequenceNumber"] },
         { typeof(GenerateBackboneRequestBody), ["ApplicationId", "SequenceNumber"] },
-        { typeof(CreatePublishJobRequest), ["ApplicationId", "IdempotencyKey", "SequenceNumber"] },
+        { typeof(CreatePublishJobRequest), ["ApplicationId", "IdempotencyKey", "PackageValidationRunId", "SequenceNumber"] },
         {
             typeof(GenerateBackboneRequest),
             ["ApplicationId", "PackageFileName", "PublishJobId", "ReportFileName", "SequenceNumber"]

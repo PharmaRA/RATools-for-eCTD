@@ -32,6 +32,10 @@ public interface IPackageValidationStore
     Task<bool> RegisterExternalComparisonAsync(ExternalComparisonReport evidence, CancellationToken cancellationToken = default);
     Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default);
     Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default);
+    // Returns the newest completed run for exactly this application/sequence whose
+    // package digest is still bound to a completed report, if any.
+    Task<Guid?> FindCompletedRunAsync(Guid applicationId, string sequenceNumber, string inputManifestDigest,
+        CancellationToken cancellationToken = default);
 
     Task RegisterInputAsync(RegisteredPackageInput input, CancellationToken cancellationToken = default);
     Task<RegisteredPackageInput?> GetInputAsync(Guid id, CancellationToken cancellationToken = default);

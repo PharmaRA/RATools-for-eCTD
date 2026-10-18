@@ -22,7 +22,8 @@ public sealed class PublishJobService(
     PublishReportStore reportStore,
     PublishOutputVerifier publishOutputVerifier,
     IPublishJobQueue publishJobQueue,
-    ILogger<PublishJobService> logger) : IPublishJobService
+    ILogger<PublishJobService> logger,
+    RATools.Application.PackageValidation.IPackageValidationStore? packageValidationStore = null) : IPublishJobService
 {
     private const string PublishExecutionReportVersion = "1.1";
     private static readonly TimeSpan TerminalCleanupTimeout = TimeSpan.FromSeconds(30);
@@ -86,6 +87,7 @@ public sealed class PublishJobService(
 
     public async Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
+        await EnsurePackageValidationReferenceAsync(request, cancellationToken);
         var enqueueResult = await CreateQueuedPendingJobAsync(request, cancellationToken);
         if (enqueueResult.Created)
         {
@@ -115,6 +117,8 @@ public sealed class PublishJobService(
         var issueSummary = PublishValidationIssueReportSummary.Create(result.ValidationReport.Issues);
         var auditSummary = await BuildAuditSummaryAsync(jobDto, request.SequenceNumber, cancellationToken);
 
+        // The reference is persisted only when the caller supplied it and the service
+        // already verified it. Reports never infer a binding from a matching package.
         var report = new PublishExecutionReportDto(
             PublishExecutionReportVersion,
             request.ApplicationId,
@@ -133,7 +137,8 @@ public sealed class PublishJobService(
             issueSummary.WarningCount,
             issueSummary.WarningSummary,
             result.Job.Status == PublishJobStatus.Completed,
-            result.Message);
+            result.Message,
+            request.PackageValidationRunId);
 
         report = report with { ArtifactSummary = await artifactResolver.BuildArtifactSummaryAsync(jobDto, cancellationToken) };
 
@@ -267,8 +272,26 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
+        await EnsurePackageValidationReferenceAsync(request, cancellationToken);
         var job = await CreatePendingJobAsync(request, cancellationToken);
         return await RunPipelineAsync(job, request, cancellationToken);
+    }
+
+    // A caller-supplied validation reference must name a completed run whose archived
+    // report still exists. This is a reference check, not a promise that the package
+    // passed: findings and readiness stay visible in the validation report.
+    private async Task EnsurePackageValidationReferenceAsync(CreatePublishJobRequest request, CancellationToken cancellationToken)
+    {
+        if (request.PackageValidationRunId is not { } runId) return;
+        var store = packageValidationStore ?? throw new InvalidOperationException("Package validation storage is not configured.");
+        var run = await store.GetRunAsync(runId, cancellationToken)
+            ?? throw new ArgumentException("The referenced package validation run does not exist.", nameof(request));
+        if (run.ApplicationId != request.ApplicationId ||
+            !string.Equals(run.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException("The referenced package validation run belongs to a different application or sequence.", nameof(request));
+        if (run.Status != RATools.Domain.PackageValidation.ValidationRunStatus.Completed || run.ReportSha256 is null ||
+            await store.GetReportJsonAsync(runId, cancellationToken) is null)
+            throw new ArgumentException("The referenced package validation run has no completed, readable report.", nameof(request));
     }
 
     // 创建处于 Pending 的作业并持久化。防重的事实来源是 repository.AddAsync

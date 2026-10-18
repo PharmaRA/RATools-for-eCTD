@@ -161,6 +161,7 @@ export type CreatePackageValidationRequest = {
 export type CreatePublishJobRequestBody = {
     applicationId: string;
     sequenceNumber: string;
+    packageValidationRunId?: string | null;
 };
 
 export type CreateSequenceRequestBody = {
