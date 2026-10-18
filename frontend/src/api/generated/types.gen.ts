@@ -1765,6 +1765,15 @@ export type GetApiFinalizedSequencesByIdDeliveriesData = {
     url: '/api/finalized-sequences/{id}/deliveries';
 };
 
+export type GetApiFinalizedSequencesByIdDeliveriesErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiFinalizedSequencesByIdDeliveriesError = GetApiFinalizedSequencesByIdDeliveriesErrors[keyof GetApiFinalizedSequencesByIdDeliveriesErrors];
+
 export type GetApiFinalizedSequencesByIdDeliveriesResponses = {
     /**
      * OK
@@ -1800,6 +1809,15 @@ export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsData = {
     query?: never;
     url: '/api/finalized-deliveries/{deliveryId}/receipts';
 };
+
+export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsError = GetApiFinalizedDeliveriesByDeliveryIdReceiptsErrors[keyof GetApiFinalizedDeliveriesByDeliveryIdReceiptsErrors];
 
 export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsResponses = {
     /**

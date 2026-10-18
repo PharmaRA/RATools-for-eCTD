@@ -2576,7 +2576,7 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
 
                     b.HasIndex("ApplicationId", "SequenceNumber", "CreatedUtc");
 
-                    b.HasIndex("ApplicationId", "SequenceNumber", "ManifestDigest")
+                    b.HasIndex("ApplicationId", "SequenceNumber", "ManifestDigest", "ValidationMode")
                         .IsUnique()
                         .HasDatabaseName("IX_finalized_sequences_content");
 

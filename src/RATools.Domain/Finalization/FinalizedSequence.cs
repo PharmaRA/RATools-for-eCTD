@@ -29,8 +29,11 @@ public sealed class FinalizedSequence : Entity
         ArgumentOutOfRangeException.ThrowIfNegative(sourceWorkspaceRevision);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(sourceWorkspaceRevision, LargestRevision);
         ValidationBinding.RequireDigest(manifestDigest);
-        ArgumentException.ThrowIfNullOrWhiteSpace(standardsProfileSnapshotId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ichEctdVersion);
+        // Length limits mirror the persisted columns so an overlong value is a clear
+        // argument error instead of an opaque database failure at commit time.
+        FinalizationFields.RequireText(standardsProfileSnapshotId, 128, nameof(standardsProfileSnapshotId));
+        FinalizationFields.RequireText(ichEctdVersion, 64, nameof(ichEctdVersion));
+        FinalizationFields.RequireOptionalText(regionalModule1Version, 64, nameof(regionalModule1Version));
         ValidationBinding.RequireDigest(historyBaselineDigest);
         if (validationRunId == Guid.Empty) throw new ArgumentException("A completed validation run reference is required.", nameof(validationRunId));
         ValidationBinding.RequireDigest(validationInputManifestDigest);
@@ -43,7 +46,7 @@ public sealed class FinalizedSequence : Entity
         var reasons = blockingReasons.ToArray();
         if (reasons.Length > MaxBlockingReasons || reasons.Any(string.IsNullOrWhiteSpace))
             throw new ArgumentException("Blocking reasons must be bounded, nonblank entries.", nameof(blockingReasons));
-        ArgumentException.ThrowIfNullOrWhiteSpace(createdByToolVersion);
+        FinalizationFields.RequireText(createdByToolVersion, 64, nameof(createdByToolVersion));
         ArgumentException.ThrowIfNullOrWhiteSpace(idempotencyKey);
         if (idempotencyKey.Length > 200 || idempotencyKey != idempotencyKey.Trim())
             throw new ArgumentException("Use an exact idempotency key of at most 200 characters without surrounding whitespace.", nameof(idempotencyKey));

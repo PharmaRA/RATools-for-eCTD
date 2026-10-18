@@ -10,7 +10,7 @@ public sealed class InMemoryFinalizationStore : IFinalizationStore
 {
     private readonly Dictionary<Guid, FinalizedSequence> _sequences = [];
     private readonly Dictionary<string, Guid> _byKey = new(StringComparer.Ordinal);
-    private readonly Dictionary<(Guid ApplicationId, string SequenceNumber, string Digest), Guid> _byContent = [];
+    private readonly Dictionary<(Guid ApplicationId, string SequenceNumber, string Digest, string Mode), Guid> _byContent = [];
     private readonly List<DeliveryRecord> _deliveries = [];
     private readonly List<DeliveryReceipt> _receipts = [];
     private readonly object _gate = new();
@@ -27,7 +27,8 @@ public sealed class InMemoryFinalizationStore : IFinalizationStore
                     throw new FinalizationIdempotencyConflictException(sequence.IdempotencyKey);
                 return Task.FromResult(new FinalizationRegisterResult(existing, false));
             }
-            var contentKey = (sequence.ApplicationId, sequence.SequenceNumber, sequence.ManifestDigest);
+            var contentKey = (sequence.ApplicationId, sequence.SequenceNumber, sequence.ManifestDigest,
+                sequence.ValidationMode.ToString());
             if (_byContent.TryGetValue(contentKey, out var contentId))
                 throw new FinalizationSnapshotExistsException(contentId);
             _sequences[sequence.Id] = sequence;
@@ -79,6 +80,12 @@ public sealed class InMemoryFinalizationStore : IFinalizationStore
             _deliveries.Add(record);
             return Task.CompletedTask;
         }
+    }
+
+    public Task<bool> DeliveryExistsAsync(Guid deliveryRecordId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate) return Task.FromResult(_deliveries.Any(row => row.Id == deliveryRecordId));
     }
 
     public Task<IReadOnlyList<DeliveryReceipt>> ListReceiptsAsync(Guid deliveryRecordId,

@@ -57,6 +57,43 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
     }
 
     [RequiresPostgresFact]
+    public async Task SubMicrosecondTimestampsRoundTripAndContentMayBeFinalizedPerMode()
+    {
+        var applicationId = Guid.NewGuid();
+        var sequenceNumber = UniqueSequence();
+        var run = await SeedCompletedRunAsync(applicationId, sequenceNumber);
+        var snapshot = Snapshot(applicationId, sequenceNumber, run.Id, run.Binding);
+        var delivery = DeliveryRecord.Create(snapshot.Id, Digest("package"), "gateway", null, null, "operator",
+            Now.AddTicks(7));
+        await using (var append = fixture.CreateDbContext())
+        {
+            var store = new EfCoreFinalizationStore(append);
+            await store.RegisterAsync(snapshot);
+            await store.AppendDeliveryAsync(delivery);
+            await store.AppendReceiptAsync(DeliveryReceipt.Create(delivery.Id, DeliveryReceiptKind.Transmission,
+                "Accepted", "<ack />", null, "operator", Now.AddTicks(9)));
+        }
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var store = new EfCoreFinalizationStore(verify);
+            // Reloading must reproduce the committed digests after PostgreSQL truncates
+            // the timestamp to microseconds.
+            var storedDelivery = Assert.Single(await store.ListDeliveriesAsync(snapshot.Id));
+            Assert.Equal(delivery.Digest, storedDelivery.Digest);
+            var storedReceipt = Assert.Single(await store.ListReceiptsAsync(storedDelivery.Id));
+            Assert.Equal(0, storedReceipt.RecordedUtc.Ticks % 10);
+            Assert.True(await store.DeliveryExistsAsync(storedDelivery.Id));
+            // The same content may also be finalized formally: a development snapshot is
+            // not delivery authorization and must not block a formal finalization.
+            var formal = Snapshot(applicationId, sequenceNumber, run.Id, run.Binding,
+                key: "formal-same-content-" + sequenceNumber, mode: PackageValidationMode.Formal);
+            var result = await store.RegisterAsync(formal);
+            Assert.True(result.Created);
+            Assert.Equal(PackageValidationMode.Formal, result.Sequence.ValidationMode);
+        }
+    }
+
+    [RequiresPostgresFact]
     public async Task SnapshotOfAnotherSequencesDigestIsRejectedByTheContentConstraint()
     {
         var applicationId = Guid.NewGuid();
@@ -112,11 +149,12 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
     }
 
     private static FinalizedSequence Snapshot(Guid applicationId, string sequenceNumber, Guid runId,
-        ValidationBinding binding, string? key = null, string? manifestSeed = null) =>
+        ValidationBinding binding, string? key = null, string? manifestSeed = null,
+        PackageValidationMode mode = PackageValidationMode.Development) =>
         FinalizedSequence.Create(applicationId, sequenceNumber, 1, Digest(manifestSeed ?? binding.InputManifestDigest),
             PackageValidationCatalog.UsProfile, "3.2.2", "3.3", binding.HistoryBaselineDigest, runId,
-            binding.InputManifestDigest, Digest("report"), PackageValidationMode.Development, false,
-            ["ProfileNotQualified: test"], FinalizationService.ToolVersion, key ?? Guid.NewGuid().ToString("N"), Now);
+            binding.InputManifestDigest, Digest("report"), mode, mode == PackageValidationMode.Formal, [],
+            FinalizationService.ToolVersion, key ?? Guid.NewGuid().ToString("N"), Now);
 
     private static string Digest(string seed) =>
         Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(seed))).ToLowerInvariant();

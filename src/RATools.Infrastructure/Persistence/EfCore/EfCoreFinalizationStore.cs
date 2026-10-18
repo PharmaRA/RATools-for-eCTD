@@ -19,21 +19,17 @@ public sealed class EfCoreFinalizationStore(RAToolsDbContext dbContext) : IFinal
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return new(sequence, Created: true);
         }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception, "IX_finalized_sequences_IdempotencyKey"))
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
         {
-            // A concurrent registration with the same key won. Re-read and decide whether
-            // this is the same committed request or a conflict.
+            // A concurrent registration won. PostgreSQL reports only one violated index,
+            // and a same-key/same-content retry violates both; always re-read the key
+            // first so an identical retry is replayed rather than rejected.
             dbContext.ChangeTracker.Clear();
-            var winner = await FindByIdempotencyKeyAsync(sequence.IdempotencyKey, cancellationToken).ConfigureAwait(false)
-                ?? throw new FinalizationIdempotencyConflictException(sequence.IdempotencyKey);
-            return Replay(winner, sequence);
-        }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception, "IX_finalized_sequences_content"))
-        {
-            dbContext.ChangeTracker.Clear();
+            var winner = await FindByIdempotencyKeyAsync(sequence.IdempotencyKey, cancellationToken).ConfigureAwait(false);
+            if (winner is not null) return Replay(winner, sequence);
             var content = await dbContext.Set<FinalizedSequenceRecord>().AsNoTracking()
                 .Where(row => row.ApplicationId == sequence.ApplicationId && row.SequenceNumber == sequence.SequenceNumber &&
-                    row.ManifestDigest == sequence.ManifestDigest)
+                    row.ManifestDigest == sequence.ManifestDigest && row.ValidationMode == sequence.ValidationMode.ToString())
                 .Select(row => row.Id).SingleAsync(cancellationToken).ConfigureAwait(false);
             throw new FinalizationSnapshotExistsException(content);
         }
@@ -79,6 +75,9 @@ public sealed class EfCoreFinalizationStore(RAToolsDbContext dbContext) : IFinal
             throw new FinalizationNotFoundException($"Finalized sequence {record.FinalizedSequenceId} was not found.");
         await AppendAsync(record.ToRecord(), cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<bool> DeliveryExistsAsync(Guid deliveryRecordId, CancellationToken cancellationToken = default) =>
+        dbContext.Set<DeliveryRecordRow>().AsNoTracking().AnyAsync(row => row.Id == deliveryRecordId, cancellationToken);
 
     public async Task<IReadOnlyList<DeliveryReceipt>> ListReceiptsAsync(Guid deliveryRecordId,
         CancellationToken cancellationToken = default)
@@ -128,8 +127,12 @@ public sealed class EfCoreFinalizationStore(RAToolsDbContext dbContext) : IFinal
         return new(existing, Created: false);
     }
 
-    private static bool IsUniqueViolation(DbUpdateException exception, string constraint) =>
+    // Any unique violation on this table means a concurrent registration won one of the
+    // two unique constraints; the caller re-reads to decide which outcome applies.
+    private static bool IsUniqueViolation(DbUpdateException exception) =>
         exception.InnerException is PostgresException postgres &&
         postgres.SqlState == PostgresErrorCodes.UniqueViolation &&
-        string.Equals(postgres.ConstraintName, constraint, StringComparison.Ordinal);
+        // The content index is filtered to this table's schema; its reported constraint
+        // name is stable. The idempotency index is the only other unique constraint.
+        postgres.ConstraintName is "IX_finalized_sequences_content" or "IX_finalized_sequences_IdempotencyKey";
 }

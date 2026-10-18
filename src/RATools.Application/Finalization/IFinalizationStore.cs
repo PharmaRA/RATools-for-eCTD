@@ -18,6 +18,7 @@ public interface IFinalizationStore
 
     Task<IReadOnlyList<DeliveryRecord>> ListDeliveriesAsync(Guid finalizedSequenceId, CancellationToken cancellationToken = default);
     Task AppendDeliveryAsync(DeliveryRecord record, CancellationToken cancellationToken = default);
+    Task<bool> DeliveryExistsAsync(Guid deliveryRecordId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DeliveryReceipt>> ListReceiptsAsync(Guid deliveryRecordId, CancellationToken cancellationToken = default);
     Task AppendReceiptAsync(DeliveryReceipt receipt, CancellationToken cancellationToken = default);
 }

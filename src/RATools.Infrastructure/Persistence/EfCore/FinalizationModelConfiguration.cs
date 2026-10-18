@@ -31,9 +31,10 @@ internal static class FinalizationModelConfiguration
             entity.Property(row => row.RequestDigest).HasMaxLength(64).IsRequired();
             entity.HasIndex(row => row.IdempotencyKey).IsUnique();
             entity.HasIndex(row => new { row.ApplicationId, row.SequenceNumber, row.CreatedUtc });
-            // The same captured content may only be finalized once. A new draft revision
-            // with different content has a different manifest digest and is allowed.
-            entity.HasIndex(row => new { row.ApplicationId, row.SequenceNumber, row.ManifestDigest })
+            // The same captured content may only be finalized once per validation mode.
+            // A development snapshot is not delivery authorization, so it must not block a
+            // later formal finalization of the same bytes; a formal snapshot is unique.
+            entity.HasIndex(row => new { row.ApplicationId, row.SequenceNumber, row.ManifestDigest, row.ValidationMode })
                 .IsUnique().HasDatabaseName("IX_finalized_sequences_content");
             // The validation run that authorized a snapshot is evidence; deleting it in
             // another module must not silently detach the snapshot.

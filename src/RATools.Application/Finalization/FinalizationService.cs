@@ -47,7 +47,7 @@ public sealed class FinalizationService(
             throw new FinalizationNotAuthorizedException("The selected manifest digest is not the exact package validated by this run.");
         if (!string.Equals(run.Binding.HistoryBaselineDigest, request.HistoryBaselineDigest, StringComparison.Ordinal))
             throw new FinalizationNotAuthorizedException("The requested history baseline is not the baseline validated by this run.");
-        if (!string.Equals(run.Binding.ProfileSnapshotId, request.StandardsProfileSnapshotId, StringComparison.Ordinal))
+        if (!string.Equals(run.Binding.ProfileSnapshotId, request.StandardsProfileSnapshotId.Trim(), StringComparison.Ordinal))
             throw new FinalizationNotAuthorizedException("The requested standards snapshot is not the profile validated by this run.");
 
         var reportJson = await packageValidationStore.GetReportJsonAsync(run.Id, cancellationToken).ConfigureAwait(false)
@@ -103,6 +103,8 @@ public sealed class FinalizationService(
         string rawText, string? externalReference, string recordedBy, CancellationToken cancellationToken = default)
     {
         if (deliveryRecordId == Guid.Empty) throw new ArgumentException("A delivery record is required.", nameof(deliveryRecordId));
+        if (!await store.DeliveryExistsAsync(deliveryRecordId, cancellationToken).ConfigureAwait(false))
+            throw new FinalizationNotFoundException($"Delivery record {deliveryRecordId} was not found.");
         var receipt = DeliveryReceipt.Create(deliveryRecordId, kind, outcome, rawText, externalReference, recordedBy,
             DateTime.UtcNow);
         await store.AppendReceiptAsync(receipt, cancellationToken).ConfigureAwait(false);
@@ -117,8 +119,10 @@ public sealed class FinalizationService(
             !string.Equals(existing.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal) ||
             existing.SourceWorkspaceRevision != request.ExpectedRevision ||
             !string.Equals(existing.ManifestDigest, request.ManifestDigest, StringComparison.Ordinal) ||
-            !string.Equals(existing.StandardsProfileSnapshotId, request.StandardsProfileSnapshotId, StringComparison.Ordinal) ||
-            !string.Equals(existing.IchEctdVersion, request.IchEctdVersion, StringComparison.Ordinal) ||
+            !string.Equals(existing.StandardsProfileSnapshotId, request.StandardsProfileSnapshotId.Trim(), StringComparison.Ordinal) ||
+            // The stored value is trimmed; compare the normalized request so surrounding
+            // whitespace cannot turn an identical retry into a conflict.
+            !string.Equals(existing.IchEctdVersion, request.IchEctdVersion.Trim(), StringComparison.Ordinal) ||
             !string.Equals(existing.RegionalModule1Version, string.IsNullOrWhiteSpace(request.RegionalModule1Version)
                 ? null : request.RegionalModule1Version.Trim(), StringComparison.Ordinal) ||
             !string.Equals(existing.HistoryBaselineDigest, request.HistoryBaselineDigest, StringComparison.Ordinal) ||

@@ -66,9 +66,11 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
 
     [HttpGet("finalized-sequences/{id:guid}/deliveries")]
     [ProducesResponseType(typeof(IReadOnlyList<DeliveryRecord>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deliveries(Guid id, CancellationToken cancellationToken)
     {
-        _ = await service.GetAsync(id, cancellationToken);
+        if (await store.GetAsync(id, cancellationToken) is null)
+            return NotFound(new { message = $"Finalized sequence {id} was not found." });
         return Ok(await store.ListDeliveriesAsync(id, cancellationToken));
     }
 
@@ -99,8 +101,13 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
 
     [HttpGet("finalized-deliveries/{deliveryId:guid}/receipts")]
     [ProducesResponseType(typeof(IReadOnlyList<DeliveryReceipt>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Receipts(Guid deliveryId, CancellationToken cancellationToken) =>
-        Ok(await store.ListReceiptsAsync(deliveryId, cancellationToken));
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Receipts(Guid deliveryId, CancellationToken cancellationToken)
+    {
+        if (!await store.DeliveryExistsAsync(deliveryId, cancellationToken))
+            return NotFound(new { message = $"Delivery record {deliveryId} was not found." });
+        return Ok(await store.ListReceiptsAsync(deliveryId, cancellationToken));
+    }
 
     [HttpPost("finalized-deliveries/{deliveryId:guid}/receipts")]
     [ProducesResponseType(typeof(DeliveryReceipt), StatusCodes.Status201Created)]

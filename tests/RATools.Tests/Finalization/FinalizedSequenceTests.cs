@@ -87,4 +87,43 @@ public sealed class FinalizedSequenceTests
         Assert.Throws<ArgumentException>(() => DeliveryReceipt.Create(record.Id, DeliveryReceiptKind.Transmission,
             "Accepted", "<ack />", null, "operator", DateTime.Now));
     }
+
+    [Fact]
+    public void TimestampDigestsSurviveTheDatabaseMicrosecondPrecision()
+    {
+        // PostgreSQL timestamptz keeps microseconds only; the committed digest must be
+        // reproducible from the reloaded value, while the returned row keeps the stored
+        // (truncated) timestamp.
+        var subMicrosecond = Now.AddTicks(7);
+        var snapshot = Create(PackageValidationMode.Formal, ready: true);
+        var record = DeliveryRecord.Create(snapshot.Id, Digest("package"), "gateway", null, null, "operator", subMicrosecond);
+        Assert.Equal(0, record.RecordedUtc.Ticks % 10);
+        var replay = DeliveryRecord.Rehydrate(record.Id, record.FinalizedSequenceId, record.PackageSha256, record.Channel,
+            record.ExternalReference, record.Note, record.RecordedBy, record.RecordedUtc, record.Digest, record.SchemaVersion);
+        Assert.Equal(record.Digest, replay.Digest);
+        var receipt = DeliveryReceipt.Create(record.Id, DeliveryReceiptKind.Transmission, "Accepted", "<ack />",
+            null, "operator", subMicrosecond);
+        Assert.Equal(0, receipt.RecordedUtc.Ticks % 10);
+        Assert.Equal(receipt.Digest, DeliveryReceipt.Rehydrate(receipt.Id, receipt.DeliveryRecordId, receipt.Kind,
+            receipt.Outcome, receipt.RawText, receipt.RawTextSha256, receipt.ExternalReference, receipt.RecordedBy,
+            receipt.RecordedUtc, receipt.Digest, receipt.SchemaVersion).Digest);
+    }
+
+    [Fact]
+    public void OverlongEvidenceFieldsAreRejectedBeforeTheDatabase()
+    {
+        var snapshot = Create(PackageValidationMode.Formal, ready: true);
+        Assert.Throws<ArgumentException>(() => DeliveryRecord.Create(snapshot.Id, Digest("package"),
+            new string('c', 65), null, null, "operator", Now));
+        Assert.Throws<ArgumentException>(() => DeliveryRecord.Create(snapshot.Id, Digest("package"),
+            "gateway", null, null, new string('r', 129), Now));
+        Assert.Throws<ArgumentException>(() => DeliveryRecord.Create(snapshot.Id, Digest("package"),
+            "gateway", new string('e', 257), null, "operator", Now));
+        Assert.Throws<ArgumentException>(() => DeliveryReceipt.Create(snapshot.Id, DeliveryReceiptKind.Transmission,
+            "Accepted", "<ack />", null, new string('r', 129), Now));
+        Assert.Throws<ArgumentException>(() => FinalizedSequence.Create(Guid.NewGuid(), "0001", 1, Digest("manifest"),
+            PackageValidationCatalog.UsProfile, new string('v', 65), new string('m', 65), new string('h', 64),
+            Guid.NewGuid(), Digest("input"), Digest("report"), PackageValidationMode.Development, false, [],
+            "ratools-finalization-v1", Guid.NewGuid().ToString("N"), Now));
+    }
 }

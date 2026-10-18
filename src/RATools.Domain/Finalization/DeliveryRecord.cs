@@ -18,20 +18,22 @@ public sealed class DeliveryRecord : Entity
             throw new ArgumentException("This delivery record schema is not supported; it cannot be consumed partially.", nameof(schemaVersion));
         if (finalizedSequenceId == Guid.Empty) throw new ArgumentException("A finalized sequence is required.", nameof(finalizedSequenceId));
         ValidationBinding.RequireDigest(packageSha256);
-        ArgumentException.ThrowIfNullOrWhiteSpace(channel);
-        ArgumentException.ThrowIfNullOrWhiteSpace(recordedBy);
+        FinalizationFields.RequireText(channel, 64, nameof(channel));
+        FinalizationFields.RequireText(recordedBy, 128, nameof(recordedBy));
         if (recordedUtc.Kind != DateTimeKind.Utc) throw new ArgumentException("Delivery timestamps must be UTC.", nameof(recordedUtc));
-        if (note is { Length: > 2048 }) throw new ArgumentException("A delivery note must be at most 2048 characters.", nameof(note));
-        if (externalReference is { Length: > 256 }) throw new ArgumentException("An external reference must be at most 256 characters.", nameof(externalReference));
+        FinalizationFields.RequireOptionalText(externalReference, 256, nameof(externalReference));
+        FinalizationFields.RequireOptionalText(note, 2048, nameof(note));
 
         Id = id;
         FinalizedSequenceId = finalizedSequenceId;
         PackageSha256 = packageSha256;
         Channel = channel.Trim();
-        ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null : externalReference.Trim();
-        Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        ExternalReference = FinalizationFields.NormalizeOptional(externalReference);
+        Note = FinalizationFields.NormalizeOptional(note);
         RecordedBy = recordedBy.Trim();
-        RecordedUtc = recordedUtc;
+        // PostgreSQL timestamptz preserves microseconds, not the 100 ns tick remainder.
+        // Truncate before hashing so a reload reproduces the committed digest exactly.
+        RecordedUtc = FinalizationFields.TruncateToMicroseconds(recordedUtc);
         SchemaVersion = schemaVersion;
         Digest = ComputeDigest();
     }
@@ -86,12 +88,12 @@ public sealed class DeliveryReceipt : Entity
             throw new ArgumentException("This delivery receipt schema is not supported; it cannot be consumed partially.", nameof(schemaVersion));
         if (deliveryRecordId == Guid.Empty) throw new ArgumentException("A delivery record is required.", nameof(deliveryRecordId));
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
-        ArgumentException.ThrowIfNullOrWhiteSpace(outcome);
-        if (outcome.Length > 64) throw new ArgumentException("A receipt outcome must be at most 64 characters.", nameof(outcome));
+        FinalizationFields.RequireText(outcome, 64, nameof(outcome));
         ArgumentException.ThrowIfNullOrWhiteSpace(rawText);
         if (rawText.Length > 512 * 1024) throw new ArgumentException("A receipt body must be at most 512 KiB.", nameof(rawText));
-        ArgumentException.ThrowIfNullOrWhiteSpace(recordedBy);
+        FinalizationFields.RequireText(recordedBy, 128, nameof(recordedBy));
         if (recordedUtc.Kind != DateTimeKind.Utc) throw new ArgumentException("Receipt timestamps must be UTC.", nameof(recordedUtc));
+        FinalizationFields.RequireOptionalText(externalReference, 256, nameof(externalReference));
 
         Id = id;
         DeliveryRecordId = deliveryRecordId;
@@ -100,9 +102,9 @@ public sealed class DeliveryReceipt : Entity
         RawText = rawText;
         RawTextSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(rawText))).ToLowerInvariant();
-        ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null : externalReference.Trim();
+        ExternalReference = FinalizationFields.NormalizeOptional(externalReference);
         RecordedBy = recordedBy.Trim();
-        RecordedUtc = recordedUtc;
+        RecordedUtc = FinalizationFields.TruncateToMicroseconds(recordedUtc);
         SchemaVersion = schemaVersion;
         Digest = ComputeDigest();
     }
@@ -141,4 +143,26 @@ public sealed class DeliveryReceipt : Entity
         outcome = Outcome, rawTextSha256 = RawTextSha256, externalReference = ExternalReference,
         recordedBy = RecordedBy, recordedUtc = RecordedUtc.ToString("O")
     }));
+}
+
+// Shared field rules for finalization evidence. Length limits mirror the persisted
+// column widths so an overlong value is a clear argument error, never a database 500.
+internal static class FinalizationFields
+{
+    public static DateTime TruncateToMicroseconds(DateTime value) => new(value.Ticks - value.Ticks % 10, value.Kind);
+
+    public static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    public static void RequireText(string? value, int maximumLength, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        if (value.Trim().Length > maximumLength)
+            throw new ArgumentException($"The value must be at most {maximumLength} characters.", parameterName);
+    }
+
+    public static void RequireOptionalText(string? value, int maximumLength, string parameterName)
+    {
+        if (value is not null && value.Trim().Length > maximumLength)
+            throw new ArgumentException($"The value must be at most {maximumLength} characters.", parameterName);
+    }
 }
