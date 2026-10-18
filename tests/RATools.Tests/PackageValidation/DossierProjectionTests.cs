@@ -13,7 +13,7 @@ public sealed class DossierProjectionTests
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();
         var (input, lifecycle) = await fixture.SelectAsync("0003");
-        var projection = DossierProjectionBuilder.Build(lifecycle, input.Packages);
+        var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
         Assert.Equal(AllSequences, projection.AppliedSequences);
 
@@ -38,7 +38,7 @@ public sealed class DossierProjectionTests
         Assert.Equal("0000/index.xml", beta.ContentLogicalPath);
         await using var earlier = new PackageFileInspectorTests.Fixture();
         var (asOfTwo, lifecycleTwo) = await earlier.SelectAsync("0002");
-        var projectionAsOfTwo = DossierProjectionBuilder.Build(lifecycleTwo, asOfTwo.Packages);
+        var projectionAsOfTwo = DossierProjectionBuilder.Build(lifecycleTwo, asOfTwo);
         Assert.Contains(projectionAsOfTwo.EffectiveLeaves, leaf => leaf.Address.LeafId == "beta-spec-v1");
         Assert.DoesNotContain(projection.Leaves, leaf => leaf.Address.LeafId == "beta-delete" && leaf.ContentLogicalPath is not null);
 
@@ -53,7 +53,7 @@ public sealed class DossierProjectionTests
         await using var fixture = new PackageFileInspectorTests.Fixture();
         // Select 0002 while omitting 0001 from the explicit baseline.
         var (input, lifecycle) = await fixture.SelectAsync("0002", history: ["0000"]);
-        var projection = DossierProjectionBuilder.Build(lifecycle, input.Packages);
+        var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.False(projection.IsComplete);
         Assert.NotEmpty(projection.IncompleteReasons);
         Assert.DoesNotContain(projection.EffectiveLeaves, leaf => leaf.Address.LeafId == "alpha-spec-v2");
@@ -66,7 +66,7 @@ public sealed class DossierProjectionTests
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();
         var (input, lifecycle) = await fixture.SelectAsync("0001");
-        var projection = DossierProjectionBuilder.Build(lifecycle, input.Packages);
+        var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.Equal(input.InputDigest, projection.InputDigest);
         Assert.Equal(input.Packages.Baseline.Digest, projection.BaselineDigest);
         Assert.Equal(input.Packages.Target.Limits.Digest(), projection.LimitsDigest);
@@ -74,7 +74,7 @@ public sealed class DossierProjectionTests
         Assert.All(projection.Baseline, entry => Assert.False(string.IsNullOrWhiteSpace(entry.SourceKind)));
         // Rebuilding from the same facts is deterministic: same leaves, statuses and
         // event order, not merely the same digest.
-        var rebuilt = DossierProjectionBuilder.Build(lifecycle, input.Packages);
+        var rebuilt = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.Equal(projection.Leaves, rebuilt.Leaves);
         Assert.Equal(projection.Events, rebuilt.Events);
         Assert.Equal(projection.IsComplete, rebuilt.IsComplete);
@@ -82,7 +82,21 @@ public sealed class DossierProjectionTests
         File.AppendAllText(fixture.PathOf("0001/index.xml"), "\n");
         var (changedInput, changedLifecycle) = await fixture.SelectAsync("0001");
         Assert.NotEqual(projection.InputDigest,
-            DossierProjectionBuilder.Build(changedLifecycle, changedInput.Packages).InputDigest);
+            DossierProjectionBuilder.Build(changedLifecycle, changedInput).InputDigest);
+    }
+
+    [Fact]
+    public async Task ComparisonInputBindsTheCombinedDeliveryDigest()
+    {
+        await using var fixture = new PackageFileInspectorTests.Fixture();
+        fixture.CreateZip("0000", "same");
+        var (input, lifecycle) = await fixture.SelectAsync("0000", comparison: true);
+        var projection = DossierProjectionBuilder.Build(lifecycle, input);
+        // The archived projection must bind the report's exact input manifest digest,
+        // which includes the explicit comparison input.
+        Assert.Equal(input.InputDigest, projection.InputDigest);
+        Assert.NotEqual(input.Packages.Target.InputDigest, projection.InputDigest);
+        Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
     }
 
     [Fact]
@@ -90,7 +104,7 @@ public sealed class DossierProjectionTests
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();
         var (input, lifecycle) = await fixture.SelectAsync("0001");
-        var projection = DossierProjectionBuilder.Build(lifecycle, input.Packages);
+        var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.Contains(projection.ChangedInTarget, leaf => leaf.Address.LeafId == "alpha-spec-v2");
         Assert.Contains(projection.ChangedInTarget, leaf => leaf.Address.LeafId == "alpha-spec-v1");
     }

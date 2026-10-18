@@ -27,9 +27,19 @@ public sealed class PackageValidationStoreTests
         Assert.Equal(run.Id, lease.Run.Id);
         Assert.Null(await store.ClaimAsync("second-worker", now, TimeSpan.FromMinutes(1)));
         var report = PackageValidationRunTests.Report(run.Binding);
-        Assert.False(await store.CompleteAsync(run.Id, Guid.NewGuid(), "test-worker", now, report));
-        Assert.True(await store.CompleteAsync(run.Id, lease.Token, lease.Owner, now.AddSeconds(1), report));
-        Assert.False(await store.CompleteAsync(run.Id, lease.Token, lease.Owner, now.AddSeconds(2), report));
+        var projection = DossierProjection.Create(run.ApplicationId, "0000", PackageValidationCatalog.IchProfile,
+            run.Binding.InputManifestDigest, run.Binding.HistoryBaselineDigest, run.Binding.ResourceLimitsDigest, "projection-test-v1",
+            true, [], new HistoryBaselineManifest(run.ApplicationId, "0000", []), [], [], [], ["0000"]);
+        Assert.False(await store.CompleteAsync(run.Id, Guid.NewGuid(), "test-worker", now, report, projection));
+        Assert.True(await store.CompleteAsync(run.Id, lease.Token, lease.Owner, now.AddSeconds(1), report, projection));
+        Assert.False(await store.CompleteAsync(run.Id, lease.Token, lease.Owner, now.AddSeconds(2), report, projection));
+        // The projection is archived with the same commit and bound to the report.
+        using (var archived = JsonDocument.Parse((await store.GetProjectionJsonAsync(run.Id))!))
+            Assert.Equal("0000", archived.RootElement.GetProperty("targetSequence").GetString());
+        var mismatched = DossierProjection.Create(run.ApplicationId, "0000", PackageValidationCatalog.IchProfile,
+            new string('c', 64), run.Binding.HistoryBaselineDigest, run.Binding.ResourceLimitsDigest, "projection-test-v1",
+            true, [], new HistoryBaselineManifest(run.ApplicationId, "0000", []), [], [], [], ["0000"]);
+        await Assert.ThrowsAsync<ArgumentException>(() => store.CompleteAsync(run.Id, lease.Token, lease.Owner, now.AddSeconds(3), report, mismatched));
         var persisted = Assert.IsType<PackageValidationRun>(await store.GetRunAsync(run.Id));
         Assert.Equal(ValidationRunStatus.Completed, persisted.Status);
         Assert.Equal(report.Summary, persisted.CoverageSummary);

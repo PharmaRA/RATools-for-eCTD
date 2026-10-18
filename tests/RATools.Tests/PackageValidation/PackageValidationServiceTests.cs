@@ -23,8 +23,14 @@ public sealed class PackageValidationServiceTests
             History: [new(zero.Id, PackageValidationCatalog.UsProfile)]);
         var enqueued = await fixture.Service.EnqueueAsync(request);
         var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
-        var report = await fixture.Service.InspectAsync(lease.Run);
+        DossierProjection? projection = null;
+        var report = await fixture.Service.InspectAsync(lease.Run, null,
+            (DossierProjection value) => { projection = value; return Task.CompletedTask; });
         Assert.Equal(enqueued.Run.Binding, report.Binding);
+        Assert.NotNull(projection);
+        Assert.Equal(report.Binding.InputManifestDigest, projection!.InputDigest);
+        Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
+        Assert.Contains(projection.EffectiveLeaves, leaf => leaf.Address.SequenceNumber == "0001");
         Assert.Contains(report.Coverage, rule => rule.RuleId == "HISTORY-BASELINE" && rule.CheckStatus == CheckStatus.NotEvaluated);
         Assert.True(await fixture.Store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report));
         File.Delete(fixture.Files.PathOf("0001/index.xml"));

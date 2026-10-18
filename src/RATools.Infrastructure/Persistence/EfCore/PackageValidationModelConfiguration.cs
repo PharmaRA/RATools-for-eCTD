@@ -63,6 +63,14 @@ internal static class PackageValidationModelConfiguration
             entity.HasIndex(row => new { row.RunId, row.RuleId, row.Severity, row.Status });
             entity.HasOne<PackageValidationReportRecord>().WithMany().HasForeignKey(row => row.RunId).OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<PackageValidationProjectionRecord>(entity =>
+        {
+            entity.ToTable("package_validation_projections");
+            entity.HasKey(row => row.RunId);
+            entity.Property(row => row.Sha256).HasMaxLength(64).IsRequired();
+            entity.HasOne<PackageValidationReportRecord>().WithOne().HasForeignKey<PackageValidationProjectionRecord>(row => row.RunId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<PackageValidationExternalComparisonRecord>(entity =>
         {
             entity.ToTable("package_validation_external_comparisons");

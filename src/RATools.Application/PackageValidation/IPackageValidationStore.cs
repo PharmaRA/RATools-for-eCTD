@@ -45,7 +45,12 @@ public interface IPackageValidationStore
     Task<PackageValidationRun?> CancelAsync(Guid id, DateTime nowUtc, CancellationToken cancellationToken = default);
     Task<PackageValidationLease?> ClaimAsync(string owner, DateTime nowUtc, TimeSpan leaseDuration, CancellationToken cancellationToken = default);
     Task<bool> HeartbeatAsync(Guid id, Guid token, string owner, DateTime nowUtc, TimeSpan leaseDuration, string stage, CancellationToken cancellationToken = default);
-    Task<bool> CompleteAsync(Guid id, Guid token, string owner, DateTime nowUtc, ValidationReport report, CancellationToken cancellationToken = default);
+    Task<bool> CompleteAsync(Guid id, Guid token, string owner, DateTime nowUtc, ValidationReport report,
+        DossierProjection? projection = null, CancellationToken cancellationToken = default);
+    // The archived cumulative view is optional evidence: a run completed before P3, or
+    // one whose projection was incomplete, simply has no projection to return. The
+    // archived document is returned as canonical JSON bound to the run's binding.
+    Task<string?> GetProjectionJsonAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> FailAsync(Guid id, Guid token, string owner, DateTime nowUtc, ValidationRunStatus status, string code, string message, CancellationToken cancellationToken = default);
     Task<int> RecoverExpiredAsync(DateTime nowUtc, int maxAttempts, CancellationToken cancellationToken = default);
     Task<string?> GetReportJsonAsync(Guid id, CancellationToken cancellationToken = default);

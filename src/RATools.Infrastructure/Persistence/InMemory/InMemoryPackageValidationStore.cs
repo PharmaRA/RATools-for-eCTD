@@ -13,6 +13,7 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
     private readonly Dictionary<Guid, string> _reports = [];
     private readonly Dictionary<Guid, ValidationFinding[]> _findings = [];
     private readonly Dictionary<Guid, ExternalComparisonReport> _external = [];
+    private readonly Dictionary<Guid, DossierProjection> _projections = [];
 
     public Task RegisterInputAsync(RegisteredPackageInput input, CancellationToken cancellationToken = default)
     {
@@ -100,9 +101,12 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
             run => run.Fail(token, owner, nowUtc, status, code, message), cancellationToken);
 
     public Task<bool> CompleteAsync(Guid id, Guid token, string owner, DateTime nowUtc, ValidationReport report,
-        CancellationToken cancellationToken = default)
+        DossierProjection? projection = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (projection is not null && (projection.BaselineDigest != report.Binding.HistoryBaselineDigest ||
+            projection.InputDigest != report.Binding.InputManifestDigest))
+            throw new ArgumentException("An archived projection must bind the completed report's exact input and baseline.", nameof(projection));
         lock (_gate)
         {
             var run = _runs.GetValueOrDefault(id);
@@ -111,8 +115,17 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
             run.Complete(token, owner, nowUtc, report, PackageValidationJson.Hash(json));
             _reports.Add(id, json);
             _findings.Add(id, report.Coverage.SelectMany(rule => rule.Findings).ToArray());
+            if (projection is not null) _projections.Add(id, projection);
             return Task.FromResult(true);
         }
+    }
+
+    public Task<string?> GetProjectionJsonAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+            return Task.FromResult(_projections.TryGetValue(id, out var projection)
+                ? PackageValidationJson.Write(projection) : null);
     }
 
     public Task<int> RecoverExpiredAsync(DateTime nowUtc, int maxAttempts, CancellationToken cancellationToken = default)

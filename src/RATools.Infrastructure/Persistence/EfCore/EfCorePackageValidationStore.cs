@@ -127,10 +127,13 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
     }
 
     public async Task<bool> CompleteAsync(Guid id, Guid token, string owner, DateTime nowUtc, ValidationReport report,
-        CancellationToken cancellationToken = default)
+        DossierProjection? projection = null, CancellationToken cancellationToken = default)
     {
         var json = PackageValidationJson.Write(report);
         var hash = PackageValidationJson.Hash(json);
+        if (projection is not null && (projection.BaselineDigest != report.Binding.HistoryBaselineDigest ||
+            projection.InputDigest != report.Binding.InputManifestDigest))
+            throw new ArgumentException("An archived projection must bind the completed report's exact input and baseline.", nameof(projection));
         // Lock the run during final archival. Heartbeat/cancellation updates then
         // serialize against this commit instead of invalidating large finding batches.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -139,6 +142,11 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         if (run is null || !run.OwnsLease(token, owner, nowUtc) || run.CancellationRequestedUtc is not null) return false;
         dbContext.Attach(run);
         var archive = new PackageValidationReportRecord { RunId = id, Json = json };
+        var projectionJson = projection is null ? null : PackageValidationJson.Write(projection);
+        var projectionRecord = projectionJson is null ? null : new PackageValidationProjectionRecord
+        {
+            RunId = id, Json = projectionJson, Sha256 = PackageValidationJson.Hash(projectionJson)
+        };
         var findings = report.Coverage.SelectMany(rule => rule.Findings).Select((finding, ordinal) =>
             new PackageValidationFindingRecord
             {
@@ -151,6 +159,7 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         {
             run.Complete(token, owner, nowUtc, report, hash);
             dbContext.Add(archive);
+            if (projectionRecord is not null) dbContext.Add(projectionRecord);
             dbContext.AddRange(findings);
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -160,6 +169,7 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         {
             dbContext.Entry(run).State = EntityState.Detached;
             dbContext.Entry(archive).State = EntityState.Detached;
+            if (projectionRecord is not null) dbContext.Entry(projectionRecord).State = EntityState.Detached;
             foreach (var finding in findings) dbContext.Entry(finding).State = EntityState.Detached;
         }
     }
@@ -230,6 +240,17 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
             return false;
         }
         finally { dbContext.Entry(record).State = EntityState.Detached; }
+    }
+
+    public async Task<string?> GetProjectionJsonAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var row = await dbContext.Set<PackageValidationProjectionRecord>().AsNoTracking()
+            .Where(item => item.RunId == id).Select(item => new { item.Json, item.Sha256 })
+            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        if (row is null) return null;
+        if (PackageValidationJson.Hash(row.Json) != row.Sha256)
+            throw new InvalidDataException("The archived projection digest differs from its committed hash.");
+        return row.Json;
     }
 
     public async Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default)

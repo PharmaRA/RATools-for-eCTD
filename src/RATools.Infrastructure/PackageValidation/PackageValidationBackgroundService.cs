@@ -68,13 +68,17 @@ public sealed partial class PackageValidationBackgroundService(IServiceScopeFact
             var service = scope.ServiceProvider.GetRequiredService<PackageValidationService>();
             // Keep parser CPU work off the hosted-service startup thread. Inputs are owned
             // until this task finishes, even if the monitor has already recorded a timeout.
+            // The projection derived from the same inspection facts is archived with the
+            // report; if projection construction fails, the run fails rather than storing
+            // a report whose cumulative view silently differs.
+            DossierProjection? projection = null;
             var report = await Task.Run(() => service.InspectAsync(lease.Run, async stage =>
             {
                 using var progressScope = scopeFactory.CreateScope();
                 if (!await progressScope.ServiceProvider.GetRequiredService<IPackageValidationStore>().HeartbeatAsync(
                     lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, options.Value.LeaseDuration, stage, execution.Token).ConfigureAwait(false))
                 { execution.Cancel(); execution.Token.ThrowIfCancellationRequested(); }
-            }, execution.Token), execution.Token).ConfigureAwait(false);
+            }, value => { projection = value; return Task.CompletedTask; }, execution.Token), execution.Token).ConfigureAwait(false);
             if (DateTime.UtcNow >= deadline)
             {
                 await RecordFailureAsync(lease, ValidationRunStatus.Failed, "VALIDATION_TIMEOUT", "Validation exceeded its execution deadline.").ConfigureAwait(false);
@@ -84,7 +88,7 @@ public sealed partial class PackageValidationBackgroundService(IServiceScopeFact
             var store = archiveScope.ServiceProvider.GetRequiredService<IPackageValidationStore>();
             if (!await store.HeartbeatAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow,
                 options.Value.LeaseDuration, "Archiving", execution.Token).ConfigureAwait(false)) return;
-            if (!await store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report, execution.Token).ConfigureAwait(false))
+            if (!await store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report, projection, execution.Token).ConfigureAwait(false))
                 await RecordFailureAsync(lease, ValidationRunStatus.Cancelled, "CANCELLED", "Cancellation prevented report publication.").ConfigureAwait(false);
         }
         catch (Exception exception)

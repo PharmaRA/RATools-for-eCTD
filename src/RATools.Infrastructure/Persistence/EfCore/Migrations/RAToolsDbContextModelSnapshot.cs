@@ -2590,6 +2590,25 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("package_validation_inputs", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationProjectionRecord", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("RunId");
+
+                    b.ToTable("package_validation_projections", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", b =>
                 {
                     b.Property<Guid>("RunId")
@@ -2996,6 +3015,15 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.HasOne("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", null)
                         .WithMany()
                         .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationProjectionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", null)
+                        .WithOne()
+                        .HasForeignKey("RATools.Infrastructure.Persistence.EfCore.PackageValidationProjectionRecord", "RunId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

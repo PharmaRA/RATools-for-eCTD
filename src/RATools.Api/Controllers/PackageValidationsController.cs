@@ -66,6 +66,18 @@ public sealed class PackageValidationsController(PackageValidationService servic
         return Content(run.RequestJson, "application/json");
     });
 
+    [HttpGet("{id:guid}/projection")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> Projection(Guid id, [FromQuery] string view = "history", [FromQuery] string? sequenceNumber = null,
+        [FromQuery] int offset = 0, [FromQuery] int limit = 200, CancellationToken cancellationToken = default) => RespondAsync(async () =>
+    {
+        PackageValidationPaging.Validate(offset, limit);
+        var json = await store.GetProjectionJsonAsync(id, cancellationToken);
+        if (json is null) return NotFound(new { message = "This run has no archived dossier projection." });
+        return Content(PackageProjectionView.Render(json, view, sequenceNumber, offset, limit), "application/json");
+    });
+
     [HttpPost("{id:guid}/external-reports")]
     [ProducesResponseType(typeof(ExternalComparisonEvidence), StatusCodes.Status201Created)]
     public Task<IActionResult> RegisterExternalReport(Guid id, [FromBody] RegisterExternalComparisonReportRequest request,

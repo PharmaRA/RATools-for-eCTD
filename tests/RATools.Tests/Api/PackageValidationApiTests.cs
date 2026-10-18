@@ -15,6 +15,7 @@ namespace RATools.Tests.Api;
 public sealed class PackageValidationApiTests
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
+    private static readonly string[] EffectiveStatuses = ["Current", "AppendMember"];
 
     [Fact]
     public async Task ExternalZipAndDirectoryProduceQueryableReportFindingsAndExactIdempotency()
@@ -80,6 +81,20 @@ public sealed class PackageValidationApiTests
         Assert.Equal(HttpStatusCode.NotFound, traversal.StatusCode);
         using var evidence = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/evidence"));
         Assert.Equal("package-rules-v1", evidence.RootElement.GetProperty("ruleCatalog").GetProperty("catalogVersion").GetString());
+        using var projection = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/projection?view=current&limit=50"));
+        Assert.Equal("current", projection.RootElement.GetProperty("view").GetString());
+        Assert.True(projection.RootElement.GetProperty("isComplete").GetBoolean());
+        var projected = projection.RootElement.GetProperty("leaves").EnumerateArray().ToArray();
+        Assert.NotEmpty(projected);
+        Assert.All(projected, leaf => Assert.Contains(leaf.GetProperty("status").GetString(), EffectiveStatuses));
+        Assert.Equal(projected.Length, projection.RootElement.GetProperty("totalCount").GetInt32());
+        using var history = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/projection?view=history&limit=50"));
+        Assert.True(history.RootElement.GetProperty("totalCount").GetInt32() >= projected.Length);
+        using var sequenceView = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/projection?view=sequence&sequenceNumber=0000"));
+        Assert.All(sequenceView.RootElement.GetProperty("leaves").EnumerateArray(),
+            leaf => Assert.Equal("0000", leaf.GetProperty("address").GetProperty("sequenceNumber").GetString()));
+        using var badView = await client.GetAsync($"/api/package-validations/{run.Id}/projection?view=guess");
+        Assert.Equal(HttpStatusCode.BadRequest, badView.StatusCode);
         using var missingExternal = await client.GetAsync($"/api/package-validations/{run.Id}/external-report");
         Assert.Equal(HttpStatusCode.NotFound, missingExternal.StatusCode);
         using var wrongDigest = await client.PostAsJsonAsync($"/api/package-validations/{run.Id}/external-reports",

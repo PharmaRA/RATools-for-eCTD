@@ -36,9 +36,14 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
     }
 
     // Each attempt reads fresh captures and verifies the full registration/request binding.
-    // It never adopts partial parser output from an interrupted attempt.
-    public async Task<ValidationReport> InspectAsync(PackageValidationRun run, Func<string, Task>? stageChanged = null,
-        CancellationToken cancellationToken = default)
+    // It never adopts partial parser output from an interrupted attempt. When a projection
+    // observer is supplied it receives the cumulative view derived from the same facts.
+    public Task<ValidationReport> InspectAsync(PackageValidationRun run, Func<string, Task>? stageChanged = null,
+        CancellationToken cancellationToken = default) =>
+        InspectAsync(run, stageChanged, null, cancellationToken);
+
+    public async Task<ValidationReport> InspectAsync(PackageValidationRun run, Func<string, Task>? stageChanged,
+        Func<DossierProjection, Task>? projectionReady, CancellationToken cancellationToken = default)
     {
         run.VerifyRequestIntegrity();
         if (run.Binding.RulesDigest != PackageValidationCatalog.Current.Digest || run.Binding.EngineVersion != inspector.EngineVersion)
@@ -85,6 +90,8 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
                 throw new PackageInputChangedException(target.SourceId);
             if (stageChanged is not null) await stageChanged("Inspecting").ConfigureAwait(false);
             var result = await inspector.InspectAsync(input, run.Binding.ProfileSnapshotId, cancellationToken).ConfigureAwait(false);
+            if (projectionReady is not null)
+                await projectionReady(DossierProjectionBuilder.Build(result.Lifecycle, input)).ConfigureAwait(false);
             var report = result.CreateReport(run.Binding.ValidationMode);
             if (report.Binding != run.Binding) throw new PackageValidationVersionChangedException();
             return report;

@@ -12,10 +12,11 @@ namespace RATools.Application.PackageValidation;
 // Unknown/NotEvaluated so an incomplete view cannot masquerade as an effective dossier.
 public static class DossierProjectionBuilder
 {
-    public static DossierProjection Build(PackageLifecycleInspection lifecycle, PackageInputSet inputs)
+    public static DossierProjection Build(PackageLifecycleInspection lifecycle, PackageDeliveryInput delivery)
     {
         ArgumentNullException.ThrowIfNull(lifecycle);
-        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(delivery);
+        PackageInputSet inputs = delivery.Packages;
         var reasons = new List<string>();
         var sequences = inputs.Sequences.Keys.Order(StringComparer.Ordinal).ToArray();
         if (lifecycle.InputDigest != inputs.Target.InputDigest || lifecycle.HistoryManifestDigest != inputs.Baseline.Digest)
@@ -115,7 +116,7 @@ public static class DossierProjectionBuilder
 
         var profile = lifecycle.ProfileSnapshotId;
         return DossierProjection.Create(inputs.Target.Manifest.ApplicationId, inputs.Target.Manifest.SequenceNumber, profile,
-            inputs.Target.InputDigest, inputs.Baseline.Digest, inputs.Target.Limits.Digest(),
+            delivery.InputDigest, inputs.Baseline.Digest, inputs.Target.Limits.Digest(),
             lifecycle.EngineVersion + ";" + DossierProjectionVersion.Current, reasons.Count == 0, reasons,
             inputs.Baseline, leaves.Values.Select(leaf => leaf.ToLeaf()), events,
             lifecycle.Checks.SelectMany(check => check.Findings), sequences);

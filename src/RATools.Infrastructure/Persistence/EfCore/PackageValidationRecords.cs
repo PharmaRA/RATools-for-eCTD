@@ -33,6 +33,15 @@ public sealed class PackageValidationFindingRecord
     public string Json { get; set; } = "";
 }
 
+// The cumulative view is archived beside the report so later reads cannot be
+// re-derived from a changed workspace. It is evidence, not a mutable current state.
+public sealed class PackageValidationProjectionRecord
+{
+    public Guid RunId { get; set; }
+    public string Json { get; set; } = "";
+    public string Sha256 { get; set; } = "";
+}
+
 public sealed class PackageValidationExternalComparisonRecord
 {
     public Guid RunId { get; set; }

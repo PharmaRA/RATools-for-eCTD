@@ -1780,6 +1780,36 @@ export type GetApiPackageValidationsByIdEvidenceResponses = {
 
 export type GetApiPackageValidationsByIdEvidenceResponse = GetApiPackageValidationsByIdEvidenceResponses[keyof GetApiPackageValidationsByIdEvidenceResponses];
 
+export type GetApiPackageValidationsByIdProjectionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        view?: string;
+        sequenceNumber?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/package-validations/{id}/projection';
+};
+
+export type GetApiPackageValidationsByIdProjectionErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiPackageValidationsByIdProjectionError = GetApiPackageValidationsByIdProjectionErrors[keyof GetApiPackageValidationsByIdProjectionErrors];
+
+export type GetApiPackageValidationsByIdProjectionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type PostApiPackageValidationsByIdExternalReportsData = {
     body?: RegisterExternalComparisonReportRequest;
     path: {
