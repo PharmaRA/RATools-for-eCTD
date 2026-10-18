@@ -19,8 +19,20 @@ public sealed record PackageFindingQuery(int Offset = 0, int Limit = 100, string
     ValidationSeverity? Severity = null, CheckStatus? Status = null, string? LogicalPath = null,
     string? Category = null, string? NodePath = null);
 
+// External evidence is returned without the (potentially large) report body; the
+// report is fetched separately so evidence lists stay bounded.
+public sealed record ExternalComparisonEvidence(Guid RunId, string ToolName, string ToolVersion, string PackageDigest,
+    string ReportSha256, IReadOnlyList<ExternalComparisonDifference> Differences, DateTime RecordedUtc, string Digest);
+
+public sealed record RegisterExternalComparisonRequest(string ToolName, string ToolVersion,
+    IReadOnlyList<ExternalComparisonDifference> Differences, string ReportText);
+
 public interface IPackageValidationStore
 {
+    Task<bool> RegisterExternalComparisonAsync(ExternalComparisonReport evidence, CancellationToken cancellationToken = default);
+    Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default);
+    Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default);
+
     Task RegisterInputAsync(RegisteredPackageInput input, CancellationToken cancellationToken = default);
     Task<RegisteredPackageInput?> GetInputAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PackageRunEnqueueResult> EnqueueAsync(PackageValidationRun run, CancellationToken cancellationToken = default);

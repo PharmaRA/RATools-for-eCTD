@@ -12,6 +12,7 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
     private readonly Dictionary<Guid, PackageValidationRun> _runs = [];
     private readonly Dictionary<Guid, string> _reports = [];
     private readonly Dictionary<Guid, ValidationFinding[]> _findings = [];
+    private readonly Dictionary<Guid, ExternalComparisonReport> _external = [];
 
     public Task RegisterInputAsync(RegisteredPackageInput input, CancellationToken cancellationToken = default)
     {
@@ -147,6 +148,42 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
                 (query.NodePath is null || finding.Location.NodePath?.Contains(query.NodePath, StringComparison.Ordinal) == true)).ToArray();
             return Task.FromResult(new PackageValidationPage<ValidationFinding>(items.Skip(query.Offset).Take(query.Limit).ToArray(), items.Length, query.Offset, query.Limit));
         }
+    }
+
+    public Task<bool> RegisterExternalComparisonAsync(ExternalComparisonReport evidence, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(evidence);
+        lock (_gate)
+        {
+            if (!_runs.TryGetValue(evidence.RunId, out var run) || run.Status != ValidationRunStatus.Completed)
+                throw new InvalidOperationException("External evidence requires a completed validation run.");
+            if (run.Binding != evidence.Binding || run.ReportSha256 is null)
+                throw new InvalidOperationException("External evidence must bind the completed run exactly.");
+            if (_external.TryGetValue(evidence.RunId, out var existing))
+            {
+                if (existing.Digest != evidence.Digest) throw new ExternalComparisonEvidenceConflictException(evidence.RunId);
+                return Task.FromResult(false);
+            }
+            _external.Add(evidence.RunId, evidence);
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+            return Task.FromResult(_external.TryGetValue(runId, out var evidence)
+                ? new ExternalComparisonEvidence(evidence.RunId, evidence.ToolName, evidence.ToolVersion, evidence.PackageDigest,
+                    evidence.ReportSha256, evidence.Differences, evidence.RecordedUtc, evidence.Digest)
+                : null);
+    }
+
+    public Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate) return Task.FromResult(_external.TryGetValue(runId, out var evidence) ? evidence.ReportText : null);
     }
 
     private Task<bool> Mutate(Guid id, Guid token, string owner, DateTime nowUtc, Action<PackageValidationRun> mutation, CancellationToken cancellationToken)

@@ -2447,6 +2447,55 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("node_backfill_diagnostics", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationExternalComparisonRecord", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DifferencesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PackageDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("RecordedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReportSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ReportText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ToolName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ToolVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("RunId");
+
+                    b.ToTable("package_validation_external_comparisons", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationFindingRecord", b =>
                 {
                     b.Property<Guid>("RunId")
@@ -2930,6 +2979,15 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasForeignKey("ApplicationId", "SequenceNumber", "PlacementId")
                         .HasPrincipalKey("ApplicationId", "SequenceNumber", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PackageValidationExternalComparisonRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", null)
+                        .WithOne()
+                        .HasForeignKey("RATools.Infrastructure.Persistence.EfCore.PackageValidationExternalComparisonRecord", "RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

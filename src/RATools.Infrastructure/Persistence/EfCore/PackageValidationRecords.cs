@@ -32,3 +32,17 @@ public sealed class PackageValidationFindingRecord
     public string? NodePath { get; set; }
     public string Json { get; set; } = "";
 }
+
+public sealed class PackageValidationExternalComparisonRecord
+{
+    public Guid RunId { get; set; }
+    public Guid Id { get; set; }
+    public string ToolName { get; set; } = "";
+    public string ToolVersion { get; set; } = "";
+    public string PackageDigest { get; set; } = "";
+    public string ReportSha256 { get; set; } = "";
+    public string Digest { get; set; } = "";
+    public DateTime RecordedUtc { get; set; }
+    public string DifferencesJson { get; set; } = "";
+    public string ReportText { get; set; } = "";
+}

@@ -63,5 +63,20 @@ internal static class PackageValidationModelConfiguration
             entity.HasIndex(row => new { row.RunId, row.RuleId, row.Severity, row.Status });
             entity.HasOne<PackageValidationReportRecord>().WithMany().HasForeignKey(row => row.RunId).OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<PackageValidationExternalComparisonRecord>(entity =>
+        {
+            entity.ToTable("package_validation_external_comparisons");
+            // One reviewed external report per run; a corrected report requires a new run.
+            entity.HasKey(row => row.RunId);
+            entity.Property(row => row.Id).IsRequired();
+            entity.Property(row => row.ToolName).HasMaxLength(128).IsRequired();
+            entity.Property(row => row.ToolVersion).HasMaxLength(64).IsRequired();
+            entity.Property(row => row.PackageDigest).HasMaxLength(64).IsRequired();
+            entity.Property(row => row.ReportSha256).HasMaxLength(64).IsRequired();
+            entity.Property(row => row.Digest).HasMaxLength(64).IsRequired();
+            entity.Property(row => row.RecordedUtc).IsRequired();
+            entity.HasOne<PackageValidationReportRecord>().WithOne().HasForeignKey<PackageValidationExternalComparisonRecord>(row => row.RunId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

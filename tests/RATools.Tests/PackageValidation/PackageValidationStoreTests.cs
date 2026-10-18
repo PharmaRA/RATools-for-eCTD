@@ -49,6 +49,18 @@ public sealed class PackageValidationStoreTests
         Assert.Equal(run.Id, Assert.Single((await store.ListRunsAsync(run.ApplicationId, 0, 10)).Items).Id);
         Assert.Equal(ValidationRunStatus.Completed, (await store.CancelAsync(run.Id, now.AddSeconds(3)))!.Status);
         Assert.Equal(0, await store.RecoverExpiredAsync(now.AddMinutes(2), 3));
+
+        var evidence = new ExternalComparisonReport(run.Id, run.Binding, "eValidator", "22.1", run.Binding.InputManifestDigest,
+            "<external-report />", [new("EXT-1", "FILE-HREF", "Missing payload", "Both tools resolve the same absent file.")], now);
+        Assert.True(await store.RegisterExternalComparisonAsync(evidence));
+        Assert.False(await store.RegisterExternalComparisonAsync(evidence));
+        var stored = Assert.IsType<ExternalComparisonEvidence>(await store.GetExternalComparisonAsync(run.Id));
+        Assert.Equal(evidence.Digest, stored.Digest);
+        Assert.Equal("<external-report />", await store.GetExternalComparisonReportTextAsync(run.Id));
+        Assert.Null(await store.GetExternalComparisonAsync(Guid.NewGuid()));
+        var conflicting = new ExternalComparisonReport(run.Id, run.Binding, "eValidator", "22.1", run.Binding.InputManifestDigest,
+            "<external-report />", [new("EXT-1", "FILE-HREF", "Missing payload", "A different review conclusion.")], now);
+        await Assert.ThrowsAsync<ExternalComparisonEvidenceConflictException>(() => store.RegisterExternalComparisonAsync(conflicting));
     }
 
     [Fact]

@@ -194,6 +194,59 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         return new(json.Select(PackageValidationJson.Read<ValidationFinding>).ToArray(), count, query.Offset, query.Limit);
     }
 
+    public async Task<bool> RegisterExternalComparisonAsync(ExternalComparisonReport evidence, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        if (await GetRunAsync(evidence.RunId, cancellationToken).ConfigureAwait(false) is not { Status: ValidationRunStatus.Completed, ReportSha256: not null } run)
+            throw new InvalidOperationException("External evidence requires a completed validation run.");
+        if (run.Binding != evidence.Binding)
+            throw new InvalidOperationException("External evidence must bind the completed run exactly.");
+        var existing = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
+            .SingleOrDefaultAsync(row => row.RunId == evidence.RunId, cancellationToken).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            if (existing.Digest != evidence.Digest) throw new ExternalComparisonEvidenceConflictException(evidence.RunId);
+            return false;
+        }
+        var record = new PackageValidationExternalComparisonRecord
+        {
+            RunId = evidence.RunId, Id = evidence.Id, ToolName = evidence.ToolName, ToolVersion = evidence.ToolVersion,
+            PackageDigest = evidence.PackageDigest, ReportSha256 = evidence.ReportSha256, Digest = evidence.Digest,
+            RecordedUtc = evidence.RecordedUtc, DifferencesJson = PackageValidationJson.Write(evidence.Differences),
+            ReportText = evidence.ReportText
+        };
+        dbContext.Add(record);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+            { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            var committed = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
+                .SingleAsync(row => row.RunId == evidence.RunId, cancellationToken).ConfigureAwait(false);
+            if (committed.Digest != evidence.Digest) throw new ExternalComparisonEvidenceConflictException(evidence.RunId);
+            return false;
+        }
+        finally { dbContext.Entry(record).State = EntityState.Detached; }
+    }
+
+    public async Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default)
+    {
+        var row = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
+            .Where(row => row.RunId == runId)
+            .Select(row => new { row.RunId, row.ToolName, row.ToolVersion, row.PackageDigest, row.ReportSha256,
+                row.RecordedUtc, row.Digest, row.DifferencesJson })
+            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return row is null ? null : new(row.RunId, row.ToolName, row.ToolVersion, row.PackageDigest, row.ReportSha256,
+            PackageValidationJson.Read<ExternalComparisonDifference[]>(row.DifferencesJson), row.RecordedUtc, row.Digest);
+    }
+
+    public Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default) =>
+        dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking().Where(row => row.RunId == runId)
+            .Select(row => row.ReportText).SingleOrDefaultAsync(cancellationToken)!;
+
     private async Task<PackageValidationRun?> MutateAsync(Guid id, Func<PackageValidationRun, bool> mutation,
         CancellationToken cancellationToken)
     {

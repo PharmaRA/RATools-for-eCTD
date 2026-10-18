@@ -121,6 +121,44 @@ public sealed class PostgresPackageValidationTests(PostgresFixture fixture)
     }
 
     [RequiresPostgresFact]
+    public async Task ExternalEvidenceSurvivesIndependentInstancesAndRejectsCorrections()
+    {
+        var now = PackageValidationRunTests.Now;
+        var run = PackageValidationRunTests.NewRun();
+        var evidence = new ExternalComparisonReport(run.Id, run.Binding, "eValidator", "22.1", run.Binding.InputManifestDigest,
+            "<external-report />", [new("EXT-1", "FILE-HREF", "Missing payload", "Reviewed against the same captured bytes.")], now);
+        await using (var setup = fixture.CreateDbContext())
+        {
+            var store = new EfCorePackageValidationStore(setup);
+            await store.EnqueueAsync(run);
+            var lease = (await store.ClaimAsync("worker", now, TimeSpan.FromMinutes(1)))!;
+            Assert.True(await store.CompleteAsync(run.Id, lease.Token, lease.Owner, now, PackageValidationRunTests.Report(run.Binding)));
+            Assert.True(await store.RegisterExternalComparisonAsync(evidence));
+        }
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var store = new EfCorePackageValidationStore(verify);
+            var stored = Assert.IsType<ExternalComparisonEvidence>(await store.GetExternalComparisonAsync(run.Id));
+            Assert.Equal(evidence.Digest, stored.Digest);
+            Assert.Equal("<external-report />", await store.GetExternalComparisonReportTextAsync(run.Id));
+            var correction = new ExternalComparisonReport(run.Id, run.Binding, "eValidator", "22.1", run.Binding.InputManifestDigest,
+                "<external-report />", [new("EXT-1", "FILE-HREF", "Missing payload", "A conflicting correction.")], now);
+            await Assert.ThrowsAsync<ExternalComparisonEvidenceConflictException>(() => store.RegisterExternalComparisonAsync(correction));
+        }
+        // Evidence cannot be attached to a run whose report is not archived.
+        var pending = PackageValidationRunTests.NewRun();
+        await using var other = fixture.CreateDbContext();
+        var otherStore = new EfCorePackageValidationStore(other);
+        await otherStore.EnqueueAsync(pending);
+        var unbacked = new ExternalComparisonReport(pending.Id, pending.Binding, "eValidator", "22.1",
+            pending.Binding.InputManifestDigest, "<report />", [], now);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => otherStore.RegisterExternalComparisonAsync(unbacked));
+        // Leave no Pending row behind: unrelated tests share this database and would
+        // claim it. Cancelling a queued run is a terminal, observable state.
+        Assert.Equal(ValidationRunStatus.Cancelled, (await otherStore.CancelAsync(pending.Id, now))!.Status);
+    }
+
+    [RequiresPostgresFact]
     public async Task NewRepositoryRecoversExpiredAttemptsWithoutReusingOldWorkerToken()
     {
         var now = PackageValidationRunTests.Now;
