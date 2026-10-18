@@ -18,7 +18,7 @@ export type ValidationEvidence = {
 }
 export type TextPreview = { logicalPath: string; sha256: string; startLine: number; lines: string[]; truncated: boolean }
 export type ProjectionLeafAddress = { applicationId: string; sequenceNumber: string; backboneRelativePath: string; leafId: string }
-export type ProjectionLeafStatus = 'Current' | 'Replaced' | 'Deleted' | 'AppendMember' | 'Unknown'
+export type ProjectionLeafStatus = 'Current' | 'Replaced' | 'Deleted' | 'DeleteEvent' | 'AppendMember' | 'Unknown'
 export type ProjectionLeaf = {
   address: ProjectionLeafAddress; title: string | null; operation: string | null; contentLogicalPath: string | null
   status: ProjectionLeafStatus; replacedBy: string | null; deletedBy: string | null; appendedTo: string | null
