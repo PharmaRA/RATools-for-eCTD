@@ -213,6 +213,35 @@ export type CtdNodeTreeDto = {
     diagnostics: Array<CtdBackfillDiagnostic>;
 };
 
+export type DeliveryReceipt = {
+    readonly id: string;
+    readonly schemaVersion: number;
+    readonly deliveryRecordId: string;
+    kind: DeliveryReceiptKind;
+    readonly outcome: string;
+    readonly rawText: string;
+    readonly rawTextSha256: string;
+    readonly externalReference?: string | null;
+    readonly recordedBy: string;
+    readonly recordedUtc: string;
+    readonly digest: string;
+};
+
+export type DeliveryReceiptKind = 0 | 1 | 2;
+
+export type DeliveryRecord = {
+    readonly id: string;
+    readonly schemaVersion: number;
+    readonly finalizedSequenceId: string;
+    readonly packageSha256: string;
+    readonly channel: string;
+    readonly externalReference?: string | null;
+    readonly note?: string | null;
+    readonly recordedBy: string;
+    readonly recordedUtc: string;
+    readonly digest: string;
+};
+
 export type DirectoryBrowseEntry = {
     name: string;
     fullPath: string;
@@ -298,6 +327,45 @@ export type ExternalComparisonEvidence = {
     differences: Array<ExternalComparisonDifference>;
     recordedUtc: string;
     digest: string;
+};
+
+export type FinalizationResult = {
+    sequence: FinalizedSequence;
+    created: boolean;
+};
+
+export type FinalizeSequenceBody = {
+    expectedRevision: number;
+    packageValidationRunId: string;
+    manifestDigest: string;
+    standardsProfileSnapshotId: string;
+    ichEctdVersion: string;
+    regionalModule1Version: string | null;
+    historyBaselineDigest: string;
+    idempotencyKey: string;
+};
+
+export type FinalizedSequence = {
+    readonly id: string;
+    readonly schemaVersion: number;
+    readonly applicationId: string;
+    readonly sequenceNumber: string;
+    readonly sourceWorkspaceRevision: number;
+    readonly manifestDigest: string;
+    readonly standardsProfileSnapshotId: string;
+    readonly ichEctdVersion: string;
+    readonly regionalModule1Version?: string | null;
+    readonly historyBaselineDigest: string;
+    readonly validationRunId: string;
+    readonly validationInputManifestDigest: string;
+    readonly validationReportSha256: string;
+    validationMode: PackageValidationMode;
+    readonly isReadyForFinalization: boolean;
+    readonly blockingReasons: Array<string>;
+    readonly createdByToolVersion: string;
+    readonly idempotencyKey: string;
+    readonly createdUtc: string;
+    readonly requestDigest: string;
 };
 
 export type GenerateBackboneRequestBody = {
@@ -572,6 +640,14 @@ export type PublishReadinessRequestBody = {
     sequenceNumber: string;
 };
 
+export type RegisterDeliveryBody = {
+    packageSha256: string;
+    channel: string;
+    externalReference: string | null;
+    note: string | null;
+    recordedBy: string;
+};
+
 export type RegisterExternalComparisonReportRequest = {
     toolName: string;
     toolVersion: string;
@@ -585,6 +661,14 @@ export type RegisterPackageInputRequest = {
     path: string;
     sequenceNumber: string | null;
     rootRelativePath: string | null;
+};
+
+export type RegisterReceiptBody = {
+    kind: DeliveryReceiptKind;
+    outcome: string;
+    rawText: string;
+    externalReference: string | null;
+    recordedBy: string;
 };
 
 export type ResolveDirectoryRequestBody = {
@@ -846,6 +930,19 @@ export type WorkspaceSnapshotDto = {
     placements: Array<DocumentPlacementDto>;
     documents: Array<DocumentDto>;
     nodeTree: CtdNodeTreeDto;
+};
+
+export type DeliveryReceiptWritable = {
+    kind: DeliveryReceiptKind;
+};
+
+export type FinalizationResultWritable = {
+    sequence: FinalizedSequenceWritable;
+    created: boolean;
+};
+
+export type FinalizedSequenceWritable = {
+    validationMode: PackageValidationMode;
 };
 
 export type ValidationReportWritable = {
@@ -1496,6 +1593,134 @@ export type PostApiFilesystemResolveDirectoryResponses = {
 };
 
 export type PostApiFilesystemResolveDirectoryResponse = PostApiFilesystemResolveDirectoryResponses[keyof PostApiFilesystemResolveDirectoryResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsData = {
+    body?: FinalizeSequenceBody;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/finalizations';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponses = {
+    /**
+     * Created
+     */
+    201: FinalizationResult;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponses];
+
+export type GetApiFinalizationsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalizations/{id}';
+};
+
+export type GetApiFinalizationsByIdResponses = {
+    /**
+     * OK
+     */
+    200: FinalizedSequence;
+};
+
+export type GetApiFinalizationsByIdResponse = GetApiFinalizationsByIdResponses[keyof GetApiFinalizationsByIdResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/finalized-versions';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponses = {
+    /**
+     * OK
+     */
+    200: Array<FinalizedSequence>;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponses];
+
+export type GetApiFinalizedSequencesByIdDeliveriesData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalized-sequences/{id}/deliveries';
+};
+
+export type GetApiFinalizedSequencesByIdDeliveriesResponses = {
+    /**
+     * OK
+     */
+    200: Array<DeliveryRecord>;
+};
+
+export type GetApiFinalizedSequencesByIdDeliveriesResponse = GetApiFinalizedSequencesByIdDeliveriesResponses[keyof GetApiFinalizedSequencesByIdDeliveriesResponses];
+
+export type PostApiFinalizedSequencesByIdDeliveriesData = {
+    body?: RegisterDeliveryBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalized-sequences/{id}/deliveries';
+};
+
+export type PostApiFinalizedSequencesByIdDeliveriesResponses = {
+    /**
+     * Created
+     */
+    201: DeliveryRecord;
+};
+
+export type PostApiFinalizedSequencesByIdDeliveriesResponse = PostApiFinalizedSequencesByIdDeliveriesResponses[keyof PostApiFinalizedSequencesByIdDeliveriesResponses];
+
+export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsData = {
+    body?: never;
+    path: {
+        deliveryId: string;
+    };
+    query?: never;
+    url: '/api/finalized-deliveries/{deliveryId}/receipts';
+};
+
+export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsResponses = {
+    /**
+     * OK
+     */
+    200: Array<DeliveryReceipt>;
+};
+
+export type GetApiFinalizedDeliveriesByDeliveryIdReceiptsResponse = GetApiFinalizedDeliveriesByDeliveryIdReceiptsResponses[keyof GetApiFinalizedDeliveriesByDeliveryIdReceiptsResponses];
+
+export type PostApiFinalizedDeliveriesByDeliveryIdReceiptsData = {
+    body?: RegisterReceiptBody;
+    path: {
+        deliveryId: string;
+    };
+    query?: never;
+    url: '/api/finalized-deliveries/{deliveryId}/receipts';
+};
+
+export type PostApiFinalizedDeliveriesByDeliveryIdReceiptsResponses = {
+    /**
+     * Created
+     */
+    201: DeliveryReceipt;
+};
+
+export type PostApiFinalizedDeliveriesByDeliveryIdReceiptsResponse = PostApiFinalizedDeliveriesByDeliveryIdReceiptsResponses[keyof PostApiFinalizedDeliveriesByDeliveryIdReceiptsResponses];
 
 export type PostApiPackageValidationInputsData = {
     body?: RegisterPackageInputRequest;

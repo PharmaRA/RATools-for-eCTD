@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddSingleton<PublishArtifactResolver>();
         services.AddSingleton<PublishReportStore>();
         services.AddScoped<IPublishJobService, PublishJobService>();
+        services.AddScoped<RATools.Application.Finalization.FinalizationService>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();
         services.AddScoped<IPublishReadinessService, PublishReadinessService>();
         services.AddScoped<IAuditLogService, AuditLogService>();

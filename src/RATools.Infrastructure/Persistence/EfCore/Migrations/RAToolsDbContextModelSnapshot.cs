@@ -2254,6 +2254,119 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DeliveryReceiptRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeliveryRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RawText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RawTextSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("RecordedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliveryRecordId", "RecordedUtc");
+
+                    b.ToTable("finalized_delivery_receipts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_delivery_receipts_kind", "\"Kind\" IN ('Transmission', 'TechnicalValidation', 'BusinessOutcome')");
+
+                            t.HasCheckConstraint("CK_delivery_receipts_schema", "\"SchemaVersion\" = 1");
+                        });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DeliveryRecordRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("FinalizedSequenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("PackageSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("RecordedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalizedSequenceId", "RecordedUtc");
+
+                    b.ToTable("finalized_delivery_records", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_delivery_records_schema", "\"SchemaVersion\" = 1");
+                        });
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DocumentPlacementRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2365,6 +2478,116 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BlockingReasonsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CreatedByToolVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HistoryBaselineDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IchEctdVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsReadyForFinalization")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ManifestDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RegionalModule1Version")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RequestDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long>("SourceWorkspaceRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StandardsProfileSnapshotId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ValidationInputManifestDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ValidationMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ValidationReportSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ValidationRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ValidationRunId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "CreatedUtc");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "ManifestDigest")
+                        .IsUnique()
+                        .HasDatabaseName("IX_finalized_sequences_content");
+
+                    b.ToTable("finalized_sequences", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_finalized_sequences_ready", "(\"ValidationMode\" <> 'Formal') OR \"IsReadyForFinalization\"");
+
+                            t.HasCheckConstraint("CK_finalized_sequences_revision", "\"SourceWorkspaceRevision\" >= 0 AND \"SourceWorkspaceRevision\" <= 9007199254740991");
+
+                            t.HasCheckConstraint("CK_finalized_sequences_schema", "\"SchemaVersion\" = 1");
+                        });
                 });
 
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.ImportedBackboneRecord", b =>
@@ -2946,6 +3169,24 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DeliveryReceiptRow", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DeliveryRecordRow", null)
+                        .WithMany()
+                        .HasForeignKey("DeliveryRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DeliveryRecordRow", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("FinalizedSequenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DocumentPlacementRecord", b =>
                 {
                     b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
@@ -2971,6 +3212,15 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasForeignKey("ApplicationId", "SequenceNumber", "NodeInstanceId", "CtdSection")
                         .HasPrincipalKey("ApplicationId", "SequenceNumber", "NodeInstanceId", "CtdSection")
                         .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", b =>
+                {
+                    b.HasOne("RATools.Domain.PackageValidation.PackageValidationRun", null)
+                        .WithMany()
+                        .HasForeignKey("ValidationRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.ImportedBackboneRecord", b =>

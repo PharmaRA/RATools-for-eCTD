@@ -88,6 +88,7 @@ public static class DependencyInjection
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IPackageValidationStore, InMemoryPackageValidationStore>();
+            services.AddSingleton<RATools.Application.Finalization.IFinalizationStore, InMemoryFinalizationStore>();
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
             services.AddSingleton<IWorkspaceRevisionStore, InMemoryWorkspaceRevisionStore>();
             services.AddSingleton<InMemoryCtdNodeRepository>();
@@ -109,6 +110,7 @@ public static class DependencyInjection
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
+        services.AddScoped<RATools.Application.Finalization.IFinalizationStore, EfCoreFinalizationStore>();
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();
         services.AddScoped<IDocumentPlacementRepository, EfCoreDocumentPlacementRepository>();

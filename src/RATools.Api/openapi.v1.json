@@ -1851,6 +1851,382 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/finalizations": {
+      "post": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeSequenceBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeSequenceBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeSequenceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finalizations/{id}": {
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedSequence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedSequence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedSequence"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/finalized-versions": {
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinalizedSequence"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinalizedSequence"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinalizedSequence"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finalized-sequences/{id}/deliveries": {
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryRecord"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryRecord"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryRecord"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeliveryBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeliveryBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeliveryBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryRecord"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryRecord"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finalized-deliveries/{deliveryId}/receipts": {
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryReceipt"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryReceipt"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryReceipt"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterReceiptBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterReceiptBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterReceiptBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryReceipt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/package-validation-inputs": {
       "post": {
         "tags": [
@@ -4141,6 +4517,143 @@
         },
         "additionalProperties": false
       },
+      "DeliveryReceipt": {
+        "required": [
+          "deliveryRecordId",
+          "digest",
+          "id",
+          "kind",
+          "outcome",
+          "rawText",
+          "rawTextSha256",
+          "recordedBy",
+          "recordedUtc",
+          "schemaVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "deliveryRecordId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DeliveryReceiptKind"
+          },
+          "outcome": {
+            "type": "string",
+            "readOnly": true
+          },
+          "rawText": {
+            "type": "string",
+            "readOnly": true
+          },
+          "rawTextSha256": {
+            "type": "string",
+            "readOnly": true
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "recordedBy": {
+            "type": "string",
+            "readOnly": true
+          },
+          "recordedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "digest": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeliveryReceiptKind": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "DeliveryRecord": {
+        "required": [
+          "channel",
+          "digest",
+          "finalizedSequenceId",
+          "id",
+          "packageSha256",
+          "recordedBy",
+          "recordedUtc",
+          "schemaVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "finalizedSequenceId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "packageSha256": {
+            "type": "string",
+            "readOnly": true
+          },
+          "channel": {
+            "type": "string",
+            "readOnly": true
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "recordedBy": {
+            "type": "string",
+            "readOnly": true
+          },
+          "recordedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "digest": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DirectoryBrowseEntry": {
         "required": [
           "canBrowse",
@@ -4479,6 +4992,181 @@
           },
           "digest": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinalizationResult": {
+        "required": [
+          "created",
+          "sequence"
+        ],
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "$ref": "#/components/schemas/FinalizedSequence"
+          },
+          "created": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinalizeSequenceBody": {
+        "required": [
+          "expectedRevision",
+          "historyBaselineDigest",
+          "ichEctdVersion",
+          "idempotencyKey",
+          "manifestDigest",
+          "packageValidationRunId",
+          "regionalModule1Version",
+          "standardsProfileSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "packageValidationRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "manifestDigest": {
+            "type": "string"
+          },
+          "standardsProfileSnapshotId": {
+            "type": "string"
+          },
+          "ichEctdVersion": {
+            "type": "string"
+          },
+          "regionalModule1Version": {
+            "type": "string",
+            "nullable": true
+          },
+          "historyBaselineDigest": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinalizedSequence": {
+        "required": [
+          "applicationId",
+          "blockingReasons",
+          "createdByToolVersion",
+          "createdUtc",
+          "historyBaselineDigest",
+          "ichEctdVersion",
+          "id",
+          "idempotencyKey",
+          "isReadyForFinalization",
+          "manifestDigest",
+          "requestDigest",
+          "schemaVersion",
+          "sequenceNumber",
+          "sourceWorkspaceRevision",
+          "standardsProfileSnapshotId",
+          "validationInputManifestDigest",
+          "validationMode",
+          "validationReportSha256",
+          "validationRunId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "sequenceNumber": {
+            "type": "string",
+            "readOnly": true
+          },
+          "sourceWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "readOnly": true
+          },
+          "manifestDigest": {
+            "type": "string",
+            "readOnly": true
+          },
+          "standardsProfileSnapshotId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "ichEctdVersion": {
+            "type": "string",
+            "readOnly": true
+          },
+          "regionalModule1Version": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "historyBaselineDigest": {
+            "type": "string",
+            "readOnly": true
+          },
+          "validationRunId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "validationInputManifestDigest": {
+            "type": "string",
+            "readOnly": true
+          },
+          "validationReportSha256": {
+            "type": "string",
+            "readOnly": true
+          },
+          "validationMode": {
+            "$ref": "#/components/schemas/PackageValidationMode"
+          },
+          "isReadyForFinalization": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "createdByToolVersion": {
+            "type": "string",
+            "readOnly": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "readOnly": true
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "requestDigest": {
+            "type": "string",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -5594,6 +6282,36 @@
         },
         "additionalProperties": false
       },
+      "RegisterDeliveryBody": {
+        "required": [
+          "channel",
+          "externalReference",
+          "note",
+          "packageSha256",
+          "recordedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "packageSha256": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordedBy": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "RegisterExternalComparisonReportRequest": {
         "required": [
           "differences",
@@ -5649,6 +6367,35 @@
           "rootRelativePath": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterReceiptBody": {
+        "required": [
+          "externalReference",
+          "kind",
+          "outcome",
+          "rawText",
+          "recordedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DeliveryReceiptKind"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "rawText": {
+            "type": "string"
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordedBy": {
+            "type": "string"
           }
         },
         "additionalProperties": false
