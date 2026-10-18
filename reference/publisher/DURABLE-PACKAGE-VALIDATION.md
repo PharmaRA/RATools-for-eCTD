@@ -74,14 +74,18 @@ are queryable terminal states. A successful execution can contain failing rules;
 Completed is separate from readiness, and all current profiles remain unqualified.
 
 Migrations `20261002235629_AddIndependentPackageValidation`,
-`20261003003246_AddPackageValidationCoverageSummary` and
-`20261011023436_AddPackageFindingNodePath` add the storage, summary projection and
-indexable finding NodePath. The last migration backfills existing finding rows from
-their archived JSON `location.nodePath`; it never invents a node for rule-level
-findings. Run the independent database migrator before API startup. Downgrade is
-refused with SQLSTATE 55000 when it would remove registered input or run evidence.
-The InMemory provider follows the same behavioral contract for development/tests;
-it is not durable storage.
+`20261003003246_AddPackageValidationCoverageSummary`,
+`20261011023436_AddPackageFindingNodePath`, `20261018025650_AddPackageExternalComparison`
+and `20261018042240_AddPackageValidationProjection` add the storage, summary projection,
+indexable finding NodePath, append-only external comparison evidence and the archived
+cumulative dossier projection. The NodePath migration backfills existing finding rows
+from their archived JSON `location.nodePath`; it never invents a node for rule-level
+findings. The projection is stored as the exact canonical JSON produced by the
+completion commit, hash-verified on read, and bound to the report's input manifest and
+history baseline digests; it is derived evidence, never a mutable current-state table.
+Each downgrade is refused with SQLSTATE 55000 when it would remove committed evidence.
+Run the independent database migrator before API startup. The InMemory provider
+follows the same behavioral contract for development/tests; it is not durable storage.
 
 ## Configuration and execution limits
 
@@ -115,6 +119,16 @@ rather than guessing a same-named file. The engine versions in this change are
 `package-delivery-v3` and `package-file-inspector-v2`: queued runs bound to older
 versions fail with `VALIDATION_VERSION_CHANGED` and need a new run key.
 
+A completed run also archives its derived cumulative dossier projection. `GET
+/api/package-validations/{id}/projection` renders one explicit view (`history`,
+`current` or `sequence`) and pages leaves; the complete archived document remains the
+single source of truth, so no view is recomputed from the workspace. A projection
+whose events could not all be resolved is archived as incomplete with its reasons and
+retains unresolved events instead of presenting them as effective. External comparison
+evidence is append-only: it binds the run's exact package digest, keeps the original
+report text, requires an explanation per difference, and treats an exact replay as
+idempotent while rejecting a different conclusion for the same run.
+
 ## Verification scope
 
 Domain/store tests cover exact idempotency, expiry, retries, stale tokens, cancellation,
@@ -129,8 +143,11 @@ parser exits. Shutdown/recovery tests verify a new attempt rereads changed sourc
 Migration tests exercise empty/old database upgrades, repeat invocation, preservation
 of an older archived report with a null coverage summary, and downgrade refusal for
 registered input or run evidence. API tests cover authentication, exact file/text
-scope, traversal rejection, download headers, category/node filtering, paging bounds
-and input-change conflicts. Engine-version changes are tested as a terminal
-`VALIDATION_VERSION_CHANGED` result, and `PackageValidation:Enabled=false` is tested
-to leave queued runs visibly Pending. Windows evidence does not substitute for Linux,
-external-validator or regional qualification.
+scope, traversal rejection, download headers, category/node filtering, paging bounds,
+input-change conflicts, projection views/paging and external evidence register/replay.
+Projection tests exercise replace/append/delete chains, a missing baseline, a combined
+target+comparison digest, deterministic replay and change attribution. Engine-version
+changes are tested as a terminal `VALIDATION_VERSION_CHANGED` result, and
+`PackageValidation:Enabled=false` is tested to leave queued runs visibly Pending.
+Windows evidence does not substitute for Linux, external-validator or regional
+qualification.

@@ -507,6 +507,13 @@ Independent package validation uses a separate queue and storage:
 - Findings can be filtered by rule, severity, check status, exact `logicalPath`, archived
   rule `category` and a `nodePath` substring. `GET .../inputs/{id}/file` and `/text` return
   only exact captured manifest members; text is a bounded escaped preview, never executable.
+- Completed runs archive a derived cumulative projection (`GET /api/package-validations/{id}/projection`)
+  with `view=history|current|sequence`, `sequenceNumber` for the sequence view, and bounded
+  `offset`/`limit` paging. It is derived evidence: unusable history stays explicitly incomplete.
+- External comparison evidence is registered explicitly with `POST .../{id}/external-reports`
+  (tool, version, the run's exact package digest, original report text, one explanation per
+  difference) and read back via `/external-report` and `/external-report/text`. An exact replay
+  is idempotent; different conclusions conflict. Nothing is inferred from an installed tool.
 - File/page limits return `413`, capture/engine deadlines return `408`, and unsupported
   preview types or invalid line numbers return `400`.
 - Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;

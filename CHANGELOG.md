@@ -16,6 +16,14 @@ Semantic Versioning, and release dates use ISO 8601.
 - Finding filters by archived rule category and node-path substring, backed by the
   `20261011023436_AddPackageFindingNodePath` migration and its JSON backfill.
 - `ZIP-LIMITS` per-run coverage observation (NotApplicable when no source is a ZIP).
+- Append-only external comparison evidence per validation run (`/external-reports`,
+  `/external-report`, `/external-report/text`) bound to the run's exact package digest,
+  with required per-difference explanations and idempotent exact replay.
+- Archived cumulative dossier projection with `history`, `current` and `sequence`
+  views, bounded paging and explicit incompleteness instead of inferred effectiveness.
+- Publish jobs can reference a completed validation run; the reference is verified
+  (completed, same application/sequence, readable archived report) and never inferred.
+- Qualification matrix executing every shipped invalid-package fixture case.
 
 ### Changed
 
