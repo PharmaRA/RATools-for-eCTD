@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchResponse, buildJsonRequestInit } from './apiClient'
+import { apiFetch, apiFetchResponse, ApiRequestError, buildJsonRequestInit } from './apiClient'
 import { downloadBlob, getDownloadFileName } from './browserDownload'
 import type {
   CheckStatus, CreatePackageValidationRequest, PackageInputDto, PackageRunSummary,
@@ -17,6 +17,11 @@ export type ValidationEvidence = {
   historyBaseline: { entries: Array<{ sequenceNumber: string; sourceId: string; trustStatus: string; contentDigest: string }> }
 }
 export type TextPreview = { logicalPath: string; sha256: string; startLine: number; lines: string[]; truncated: boolean }
+export type ExternalComparisonDifference = { externalRuleId: string; internalRuleId: string | null; externalMessage: string; explanation: string }
+export type ExternalComparisonEvidence = {
+  runId: string; toolName: string; toolVersion: string; packageDigest: string
+  reportSha256: string; differences: ExternalComparisonDifference[]; recordedUtc: string; digest: string
+}
 
 const runs = '/api/package-validations'
 const inputs = '/api/package-validation-inputs'
@@ -63,3 +68,16 @@ export const downloadValidationJson = async (id: string, kind: 'report' | 'evide
   const response = await apiFetchResponse(`${kind === 'manifest' ? inputUrl(id) : runUrl(id)}/${kind}`)
   downloadBlob(await response.blob(), `validation-${id}-${kind}.json`)
 }
+export const loadExternalComparison = async (id: string, signal?: AbortSignal): Promise<ExternalComparisonEvidence | null> => {
+  try {
+    return await apiFetch(`${runUrl(id)}/external-report`, { signal })
+  } catch (caught) {
+    if (caught instanceof ApiRequestError && caught.status === 404) return null
+    throw caught
+  }
+}
+export const registerExternalComparison = (id: string, body: { toolName: string; toolVersion: string; packageDigest: string
+  report: string; differences: ExternalComparisonDifference[] }): Promise<ExternalComparisonEvidence> =>
+  apiFetch(`${runUrl(id)}/external-reports`, buildJsonRequestInit('POST', body))
+export const loadExternalComparisonText = (id: string, signal?: AbortSignal): Promise<string> =>
+  apiFetchResponse(`${runUrl(id)}/external-report/text`, { signal }).then(response => response.text())
