@@ -13,6 +13,7 @@ RUNTIME_PREFIXES = (
     "deploy/production/runtime/",
     "src/RATools.Api/App_Data/uploads/",
     "src/RATools.Api/App_Data/publish/",
+    "src/RATools.Api/App_Data/package-validation/",
 )
 RUNTIME_ALLOWLIST = {
     "src/RATools.Api/App_Data/publish/.gitkeep",
@@ -126,6 +127,7 @@ def verify_policy_examples() -> None:
         "src/RATools.Api/App_Data/uploads/document.pdf": True,
         "src/RATools.Api/App_Data/publish/job/report.json": True,
         "src/RATools.Api/App_Data/publish/.gitkeep": False,
+        "src/RATools.Api/App_Data/package-validation/inputs/id/package.zip": True,
         "src/RATools.Api/bin/Release/RATools.Api.dll": True,
         "frontend/node_modules/react/index.js": True,
         "local.sqlite3": True,

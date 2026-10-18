@@ -59,6 +59,25 @@ public sealed class PackageValidationApiTests
         Assert.Equal("Completed", report.RootElement.GetProperty("runStatus").GetString());
         Assert.False(report.RootElement.GetProperty("isReadyForFinalization").GetBoolean());
         Assert.Equal(run.Binding.InputManifestDigest, report.RootElement.GetProperty("binding").GetProperty("inputManifestDigest").GetString());
+        var xmlPath = Uri.EscapeDataString("0000/index.xml");
+        using var preview = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validation-inputs/{zip.Id}/text?logicalPath={xmlPath}&line=2"));
+        Assert.Equal("0000/index.xml", preview.RootElement.GetProperty("logicalPath").GetString());
+        Assert.Contains("<?xml", preview.RootElement.GetProperty("lines")[0].GetString());
+        using var downloaded = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/file?logicalPath={xmlPath}");
+        Assert.Equal("attachment", downloaded.Content.Headers.ContentDisposition!.DispositionType);
+        Assert.Equal("application/octet-stream", downloaded.Content.Headers.ContentType!.MediaType);
+        Assert.True(downloaded.Headers.TryGetValues("X-Content-Type-Options", out var nosniff));
+        Assert.Equal("nosniff", Assert.Single(nosniff!));
+        Assert.True(downloaded.Headers.CacheControl!.NoStore);
+        Assert.Equal(await File.ReadAllBytesAsync(fixture.PathOf("0000/index.xml")), await downloaded.Content.ReadAsByteArrayAsync());
+        using var binaryPreview = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/text?logicalPath={Uri.EscapeDataString("0000/m2/25-clin-over/overview.pdf")}");
+        Assert.Equal(HttpStatusCode.BadRequest, binaryPreview.StatusCode);
+        using var badLine = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/text?logicalPath={xmlPath}&line=0");
+        Assert.Equal(HttpStatusCode.BadRequest, badLine.StatusCode);
+        using var absent = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/file?logicalPath=0000%2Fnot-there.xml");
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+        using var traversal = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/file?logicalPath=0000%2F..%2Findex.xml");
+        Assert.Equal(HttpStatusCode.NotFound, traversal.StatusCode);
         using var evidence = JsonDocument.Parse(await client.GetStringAsync($"/api/package-validations/{run.Id}/evidence"));
         Assert.Equal("package-rules-v1", evidence.RootElement.GetProperty("ruleCatalog").GetProperty("catalogVersion").GetString());
         var findings = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>($"/api/package-validations/{run.Id}/findings?limit=1", Json))!;
@@ -66,9 +85,56 @@ public sealed class PackageValidationApiTests
         Assert.True(findings.TotalCount > 1);
         using var badPage = await client.GetAsync($"/api/package-validations/{run.Id}/findings?limit=0");
         Assert.Equal(HttpStatusCode.BadRequest, badPage.StatusCode);
+        using var badLimit = await client.GetAsync($"/api/package-validations/{run.Id}/findings?limit=501");
+        Assert.Equal(HttpStatusCode.BadRequest, badLimit.StatusCode);
+        using var negativeOffset = await client.GetAsync($"/api/package-validations/{run.Id}/findings?offset=-1");
+        Assert.Equal(HttpStatusCode.BadRequest, negativeOffset.StatusCode);
+        // Category membership comes from the run's archived catalog, not today's rules.
+        var all = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>(
+            $"/api/package-validations/{run.Id}/findings?limit=500", Json))!;
+        var category = PackageValidationCatalog.Current.Rules[all.Items[0].RuleId].Category;
+        var expected = all.Items.Count(finding => PackageValidationCatalog.Current.Rules[finding.RuleId].Category == category);
+        var filtered = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>(
+            $"/api/package-validations/{run.Id}/findings?category={Uri.EscapeDataString(category)}&limit=500", Json))!;
+        Assert.Equal(expected, filtered.TotalCount);
+        Assert.All(filtered.Items, finding => Assert.Equal(category, PackageValidationCatalog.Current.Rules[finding.RuleId].Category));
+        var unknownCategory = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>(
+            $"/api/package-validations/{run.Id}/findings?category=NoSuchCategory", Json))!;
+        Assert.Equal(0, unknownCategory.TotalCount);
         File.Delete(fixture.PathOf("0000/index.xml"));
+        using var changed = await client.GetAsync($"/api/package-validation-inputs/{directory.Id}/text?logicalPath={xmlPath}");
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+        using var retainedZip = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/text?logicalPath={xmlPath}");
+        Assert.Equal(HttpStatusCode.OK, retainedZip.StatusCode);
         using var retained = await client.GetAsync($"/api/package-validations/{run.Id}/report");
         Assert.Equal(HttpStatusCode.OK, retained.StatusCode);
+    }
+
+    [Fact]
+    public async Task SameSpellingInSequenceAndSurroundingInventoryReturnsOnlyTheExplicitScope()
+    {
+        await using var fixture = new PackageFileInspectorTests.Fixture();
+        var surroundingBytes = await File.ReadAllBytesAsync(fixture.PathOf("0000/index.xml"));
+        Directory.CreateDirectory(fixture.PathOf("delivery/0000"));
+        var selectedBytes = "<selected-root />"u8.ToArray();
+        await File.WriteAllBytesAsync(fixture.PathOf("delivery/0000/index.xml"), selectedBytes);
+        await using var factory = Factory(fixture, enabled: false);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "test-key");
+        using var response = await client.PostAsJsonAsync("/api/package-validation-inputs",
+            new RegisterPackageInputRequest(Guid.NewGuid(), fixture.PathOf(""), "0000", "delivery/0000"));
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var input = (await response.Content.ReadFromJsonAsync<PackageInputDto>(Json))!;
+        var prefix = $"/api/package-validation-inputs/{input.Id}/file?logicalPath=";
+        Assert.Equal(selectedBytes, await client.GetByteArrayAsync(prefix + "0000%2Findex.xml"));
+        Assert.Equal(surroundingBytes, await client.GetByteArrayAsync(prefix + "0000%2Findex.xml&surrounding=true"));
+        using var wrongScope = await client.GetAsync(prefix + "delivery%2F0000%2Findex.xml&surrounding=true");
+        Assert.Equal(HttpStatusCode.NotFound, wrongScope.StatusCode);
+        using var traversal = await client.GetAsync(prefix + "..%2F0000%2Findex.xml&surrounding=true");
+        Assert.Equal(HttpStatusCode.NotFound, traversal.StatusCode);
+        using var changedClient = factory.CreateClient();
+        using var denied = await changedClient.GetAsync(prefix + "0000%2Findex.xml&surrounding=true");
+        Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
     }
 
     [Fact]

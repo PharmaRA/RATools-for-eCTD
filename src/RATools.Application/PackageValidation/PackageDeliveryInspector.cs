@@ -4,9 +4,9 @@ namespace RATools.Application.PackageValidation;
 
 public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null)
 {
-    public const string DeliveryEngineVersion = "package-delivery-v2";
+    public const string DeliveryEngineVersion = "package-delivery-v3";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
-    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v1;package-pdf-validator-v1;" + pdfInspectorVersion;
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v1;" + pdfInspectorVersion;
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
     {
@@ -77,7 +77,8 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 
 public sealed class PackageDeliveryInspection
 {
-    private static readonly string[] CapturedRuleIds = ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS"];
+    private static readonly string[] CapturedRuleIds =
+        ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS", "ZIP-LIMITS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
         PackagePdfInspection pdf, RuleCheckResult structure)
     {
@@ -86,9 +87,12 @@ public sealed class PackageDeliveryInspection
         Files = files;
         Pdf = pdf;
         var scoped = PackageValidationCatalog.Current.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
+        // ZIP-only rules are explicitly NotApplicable when every selected source is a
+        // directory; otherwise an absent observation would read as an unexplained gap.
+        var zipPresent = input.Comparison?.SourceKind == PackageSourceKind.Zip ||
+            input.Packages.Sequences.Values.Any(capture => capture.SourceKind == PackageSourceKind.Zip);
         var capturedChecks = CapturedRuleIds.Select(rule =>
-            new RuleCheckResult(rule, rule == "ZIP-PATHS" && input.Comparison?.SourceKind != PackageSourceKind.Zip &&
-                input.Packages.Sequences.Values.All(capture => capture.SourceKind != PackageSourceKind.Zip) ? CheckStatus.NotApplicable : CheckStatus.Pass,
+            new RuleCheckResult(rule, rule is "ZIP-PATHS" or "ZIP-LIMITS" && !zipPresent ? CheckStatus.NotApplicable : CheckStatus.Pass,
                 "Controlled input capture and final revalidation completed for every explicitly selected source; resource limits bind this run."));
         var observations = lifecycle.XmlInspections.SelectMany(xml => xml.Checks).Where(check => scoped.Contains(check.RuleId))
             .Concat(lifecycle.Checks).Concat(files.Checks.Where(check => check.RuleId != "DELIVERY-STRUCTURE")).Concat(pdf.Checks).Append(structure).Concat(capturedChecks);

@@ -13,13 +13,15 @@ application UUID groups external sequences and is part of every input digest.
 | `POST /api/package-validation-inputs/upload` | Stream multipart ZIP bytes (`file`, `applicationId`, optional `sequenceNumber`/`rootRelativePath`) to server-owned input storage, subject to upload and capture limits. |
 | `GET /api/package-validation-inputs/{id}` | Public identity, digest, size/count and resource-limit digest; no server storage path. |
 | `GET /api/package-validation-inputs/{id}/manifest` | Captured logical file/directory inventory, hashes and surrounding content. |
+| `GET /api/package-validation-inputs/{id}/file?logicalPath=…&surrounding=…` | Exact manifest-member bytes only; never resolves caller paths against disk. Returns `application/octet-stream` with `nosniff` and `no-store`. |
+| `GET /api/package-validation-inputs/{id}/text?logicalPath=…&line=…&surrounding=…` | Escaped, bounded text window for `.xml/.xsl/.txt/.dtd/.mod` only; never executes or fetches delivered XML/XSL. |
 | `GET /api/package-validations/profiles` | Explicit development profile scopes and qualification status. |
 | `POST /api/package-validations` | Enqueue input/profile/mode/idempotency key plus optional comparison input and historical input/profile selections; return 202 and the stable run identity. |
 | `GET /api/package-validations` | Paginated run summaries with optional application filter; no report or request-manifest payloads are loaded for this query. |
 | `GET /api/package-validations/{id}` | State, phase, attempts, cancellation request, exact binding and persisted coverage counts. |
 | `POST /api/package-validations/{id}/cancel` | Cancel queued work immediately or request/acknowledge running cancellation. Terminal states are unchanged. |
 | `GET /api/package-validations/{id}/report` | Versioned full report, digest-verified against its run; 409 while active, 410 for a terminal run without a completed report. |
-| `GET /api/package-validations/{id}/findings` | Stable ordinal pagination, filtered by rule, severity, check status and exact logical path. Limits are 1–500. |
+| `GET /api/package-validations/{id}/findings` | Stable ordinal pagination, filtered by rule, severity, check status, exact logical path, archived rule category and node-path substring. Limits are 1–500; offsets must be nonnegative. |
 | `GET /api/package-validations/{id}/evidence` | Archived request, exact rule catalog, explicit history manifest and configured read limits. Input IDs resolve to their independent manifests. |
 
 All endpoints use the existing API-key authentication boundary. New validation
@@ -71,9 +73,12 @@ leaves an interrupted lease recoverable; ordinary input/version/execution failur
 are queryable terminal states. A successful execution can contain failing rules;
 Completed is separate from readiness, and all current profiles remain unqualified.
 
-Migrations `20261002235629_AddIndependentPackageValidation` and
-`20261003003246_AddPackageValidationCoverageSummary` add the storage and summary
-projection. Run the independent database migrator before API startup. Downgrade is
+Migrations `20261002235629_AddIndependentPackageValidation`,
+`20261003003246_AddPackageValidationCoverageSummary` and
+`20261011023436_AddPackageFindingNodePath` add the storage, summary projection and
+indexable finding NodePath. The last migration backfills existing finding rows from
+their archived JSON `location.nodePath`; it never invents a node for rule-level
+findings. Run the independent database migrator before API startup. Downgrade is
 refused with SQLSTATE 55000 when it would remove registered input or run evidence.
 The InMemory provider follows the same behavioral contract for development/tests;
 it is not durable storage.
@@ -96,7 +101,19 @@ remains an explicit operational limitation, not a qualified safety guarantee.
 
 `PublishExecutionReportDto.PackageValidationRunId` is an optional reference. Old
 reports lacking it deserialize as null and do not imply independent validation.
-Automatic publication/finalization binding is later roadmap work.
+Automatic publication/finalization binding is later roadmap work; the review UI
+must show an explicit "not bound" state until it is implemented, never a dead link.
+
+## Review UI (P2-07)
+
+`/package-validations` provides input registration (upload, authorized server path,
+or existing input ID), explicit target/comparison/history selection with per-history
+profiles, idempotent run creation, run history and findings review. Findings expose
+the archived explicit file addresses (`ValidationFileAddress`) so the UI can open the
+exact input/address space; legacy or ambiguous locations deliberately show no file
+rather than guessing a same-named file. The engine versions in this change are
+`package-delivery-v3` and `package-file-inspector-v2`: queued runs bound to older
+versions fail with `VALIDATION_VERSION_CHANGED` and need a new run key.
 
 ## Verification scope
 
@@ -111,5 +128,9 @@ checks that cancellation becomes queryable while captures remain alive until the
 parser exits. Shutdown/recovery tests verify a new attempt rereads changed sources.
 Migration tests exercise empty/old database upgrades, repeat invocation, preservation
 of an older archived report with a null coverage summary, and downgrade refusal for
-registered input or run evidence. Windows evidence does not substitute for Linux,
+registered input or run evidence. API tests cover authentication, exact file/text
+scope, traversal rejection, download headers, category/node filtering, paging bounds
+and input-change conflicts. Engine-version changes are tested as a terminal
+`VALIDATION_VERSION_CHANGED` result, and `PackageValidation:Enabled=false` is tested
+to leave queued runs visibly Pending. Windows evidence does not substitute for Linux,
 external-validator or regional qualification.

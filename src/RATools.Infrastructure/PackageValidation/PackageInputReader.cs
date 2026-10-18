@@ -334,6 +334,18 @@ public sealed class PackageInputReader : IPackageInputReader
             return OpenSource(captured);
         }
 
+        public Stream OpenAdditionalRead(string relativePath)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            PackageLogicalPath.Validate(relativePath, limits.MaxPathLength, limits.MaxPathDepth);
+            // Surrounding inventory paths are source-root relative, not sequence-normalized.
+            if (!manifest.AdditionalFiles.Any(file => file.LogicalPath == relativePath) ||
+                !inventory.CapturedPaths.TryGetValue(relativePath, out var captured))
+                throw new FileNotFoundException("The input does not contain this exact surrounding file.", relativePath);
+            EnsureNoLinks(captured);
+            return OpenSource(captured);
+        }
+
         public async Task VerifyUnchangedAsync(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);

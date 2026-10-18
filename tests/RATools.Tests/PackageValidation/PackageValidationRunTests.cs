@@ -12,7 +12,7 @@ public sealed class PackageValidationRunTests
         string request = "{\"inputId\":\"external-input\"}") => new(applicationId ?? Guid.NewGuid(), "0000", binding ?? Binding(), request, key ?? Guid.NewGuid().ToString("N"), Now);
     internal static ValidationReport Report(ValidationBinding binding) => ValidationReport.Create(PackageValidationCatalog.Current, binding,
         ValidationRunStatus.Completed, [new RuleCheckResult("FILE-HREF", CheckStatus.Fail, "Missing payloads", [
-            new("FILE-HREF", CheckStatus.Fail, ValidationSeverity.Error, "MISSING_A", "A is missing.", new("0000", "0000/a.pdf")),
+            new("FILE-HREF", CheckStatus.Fail, ValidationSeverity.Error, "MISSING_A", "A is missing.", new("0000", "0000/a.pdf", NodePath: "/ectd/m3-quality/m3-2-s-4-1")),
             new("FILE-HREF", CheckStatus.Fail, ValidationSeverity.Error, "MISSING_B", "B is missing.", new("0000", "0000/b.pdf"))])]);
 
     [Fact]

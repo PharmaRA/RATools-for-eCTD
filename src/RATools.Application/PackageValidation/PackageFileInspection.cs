@@ -21,7 +21,7 @@ public sealed class PackageFileInspection
     }
 
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-file-inspector-v1";
+    public string EngineVersion { get; } = "package-file-inspector-v2";
     public string RulesDigest { get; } = PackageValidationCatalog.Current.Digest;
     public string AssetManifestDigest { get; } = PackageXmlAssets.Current.Digest;
     public string InputDigest { get; }

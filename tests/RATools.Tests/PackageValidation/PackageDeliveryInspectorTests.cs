@@ -8,6 +8,34 @@ namespace RATools.Tests.PackageValidation;
 public sealed class PackageDeliveryInspectorTests
 {
     [Fact]
+    public async Task ZipOnlyRulesAreExplicitlyEvaluatedOrNotApplicable()
+    {
+        await using var directoryFixture = new PackageFileInspectorTests.Fixture();
+        var (directory, _) = await directoryFixture.SelectAsync("0000");
+        var directoryResult = await new PackageDeliveryInspector(new PdfPigPackageInspector())
+            .InspectAsync(directory, PackageValidationCatalog.UsProfile, CancellationToken.None);
+        Assert.Equal(CheckStatus.NotApplicable, directoryResult.Checks.Single(check => check.RuleId == "ZIP-LIMITS").Status);
+        Assert.Equal(CheckStatus.NotApplicable, directoryResult.Checks.Single(check => check.RuleId == "ZIP-PATHS").Status);
+        var directoryReport = directoryResult.CreateReport(PackageValidationMode.Development);
+        Assert.Equal(CheckStatus.NotApplicable, directoryReport.Coverage.Single(rule => rule.RuleId == "ZIP-LIMITS").CheckStatus);
+
+        await using var archiveFixture = new PackageFileInspectorTests.Fixture();
+        archiveFixture.CreateZip("0000", "same");
+        var (archive, _) = await archiveFixture.SelectAsync("0000", comparison: true);
+        var archiveResult = await new PackageDeliveryInspector(new PdfPigPackageInspector())
+            .InspectAsync(archive, PackageValidationCatalog.UsProfile, CancellationToken.None);
+        Assert.Equal(CheckStatus.Pass, archiveResult.Checks.Single(check => check.RuleId == "ZIP-LIMITS").Status);
+        Assert.Equal(CheckStatus.Pass, archiveResult.Checks.Single(check => check.RuleId == "ZIP-PATHS").Status);
+        // ZIP-LIMITS is a Partial implementation: a passing observation is preserved but
+        // cannot become full-rule coverage. The gap must be explained, not "not executed".
+        var archiveReport = archiveResult.CreateReport(PackageValidationMode.Development);
+        var coverage = archiveReport.Coverage.Single(rule => rule.RuleId == "ZIP-LIMITS");
+        Assert.Equal(CheckStatus.NotEvaluated, coverage.CheckStatus);
+        Assert.Contains("Partial:", coverage.Reason, StringComparison.Ordinal);
+        Assert.DoesNotContain("was not executed", coverage.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CompleteDeliveryPipelineBindsBothArtifactsAndPreservesCoverageGaps()
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();

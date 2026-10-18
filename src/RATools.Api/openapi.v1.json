@@ -2026,6 +2026,168 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validation-inputs/{id}/file": {
+      "get": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "logicalPath",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "surrounding",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/package-validation-inputs/{id}/text": {
+      "get": {
+        "tags": [
+          "PackageValidationInputs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "logicalPath",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "line",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "surrounding",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageTextPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageTextPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageTextPreview"
+                }
+              }
+            }
           }
         }
       }
@@ -2349,6 +2511,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "NodePath",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2393,7 +2569,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredPackageValidationRequest"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredPackageValidationRequest"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredPackageValidationRequest"
+                }
+              }
+            }
           }
         }
       }
@@ -4268,6 +4461,109 @@
         },
         "additionalProperties": false
       },
+      "PackageReadLimits": {
+        "required": [
+          "maxArchiveBytes",
+          "maxBackbones",
+          "maxCentralDirectoryBytes",
+          "maxCompressionRatio",
+          "maxElapsedSeconds",
+          "maxEntries",
+          "maxExpandedBytes",
+          "maxFileBytes",
+          "maxPathDepth",
+          "maxPathLength",
+          "maxPdfDepth",
+          "maxPdfLinks",
+          "maxPdfObjects",
+          "maxPdfPages",
+          "maxXmlCharacters",
+          "maxXmlDepth",
+          "maxXmlEntityCharacters",
+          "maxXmlFindings",
+          "maxXmlNodes"
+        ],
+        "type": "object",
+        "properties": {
+          "maxEntries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxFileBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxExpandedBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxArchiveBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxCentralDirectoryBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxCompressionRatio": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPathLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPathDepth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxElapsedSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxXmlDepth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxXmlNodes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxXmlCharacters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxXmlEntityCharacters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxXmlFindings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxBackbones": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPdfPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPdfObjects": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPdfDepth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPdfLinks": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PackageRunSummary": {
         "required": [
           "applicationId",
@@ -4391,6 +4687,38 @@
           "Zip"
         ],
         "type": "string"
+      },
+      "PackageTextPreview": {
+        "required": [
+          "lines",
+          "logicalPath",
+          "sha256",
+          "startLine",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "logicalPath": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "startLine": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "PackageValidationMode": {
         "enum": [
@@ -5293,6 +5621,45 @@
         },
         "additionalProperties": false
       },
+      "StoredPackageValidationRequest": {
+        "required": [
+          "comparisonInputId",
+          "history",
+          "historyBaseline",
+          "inputId",
+          "readLimits",
+          "ruleCatalog",
+          "schemaVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inputId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comparisonInputId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageHistorySelection"
+            }
+          },
+          "ruleCatalog": {},
+          "historyBaseline": {},
+          "readLimits": {
+            "$ref": "#/components/schemas/PackageReadLimits"
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateCtdNodeRequest": {
         "required": [
           "attributes",
@@ -5574,6 +5941,26 @@
         },
         "additionalProperties": false
       },
+      "ValidationFileAddress": {
+        "required": [
+          "isSurrounding",
+          "logicalPath",
+          "sourceId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "logicalPath": {
+            "type": "string"
+          },
+          "isSurrounding": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidationFinding": {
         "required": [
           "actual",
@@ -5757,6 +6144,7 @@
           "backboneRelativePath",
           "column",
           "fieldPath",
+          "files",
           "leafId",
           "line",
           "logicalPath",
@@ -5797,6 +6185,13 @@
           "column": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationFileAddress"
+            },
             "nullable": true
           }
         },

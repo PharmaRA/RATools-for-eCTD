@@ -78,7 +78,14 @@ public sealed class PostgresCtdMigrationTests
         await context.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO package_validation_reports ("RunId", "Json") VALUES ({run.Id}, {json});
             """);
-        Assert.Contains("Applied 1 database migration(s)", await database.RunMigratorAsync());
+        var finding = report.Coverage.SelectMany(rule => rule.Findings).First(item => item.Code == "MISSING_A");
+        var findingJson = JsonSerializer.Serialize(finding, ValidationJson);
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO package_validation_findings ("RunId", "Ordinal", "RuleId", "Severity", "Status", "LogicalPath", "Json")
+            VALUES ({run.Id}, 0, {finding.RuleId}, 'Error', 'Fail', {finding.Location.LogicalPath}, {findingJson});
+            """);
+        var pending = (await context.Database.GetPendingMigrationsAsync()).Count();
+        Assert.Contains($"Applied {pending} database migration(s)", await database.RunMigratorAsync());
         Assert.Contains("no migrations were applied", await database.RunMigratorAsync());
         var store = new EfCorePackageValidationStore(context);
         var migrated = (await store.GetRunAsync(run.Id))!;
@@ -86,9 +93,11 @@ public sealed class PostgresCtdMigrationTests
         Assert.Null(migrated.CoverageSummary);
         Assert.Null(Assert.Single((await store.ListRunsAsync(run.ApplicationId, 0, 10)).Items).CoverageSummary);
         Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
+        Assert.Equal("MISSING_A", Assert.Single((await store.GetFindingsAsync(run.Id, new(NodePath: "m3-2-s-4-1"))).Items).Code);
         var error = await Assert.ThrowsAsync<PostgresException>(() => context.GetService<IMigrator>()
             .MigrateAsync("20261002235629_AddIndependentPackageValidation"));
         Assert.Equal("55000", error.SqlState);
+        await database.RunMigratorAsync();
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
         Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
     }

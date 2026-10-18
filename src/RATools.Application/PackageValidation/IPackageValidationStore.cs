@@ -16,7 +16,8 @@ public sealed record PackageRunSummary(Guid Id, Guid ApplicationId, string Seque
     bool CancellationRequested, string RequestDigest, ValidationBinding Binding, string? FailureCode,
     string? FailureMessage, bool ReportAvailable, ValidationCoverageSummary? CoverageSummary);
 public sealed record PackageFindingQuery(int Offset = 0, int Limit = 100, string? RuleId = null,
-    ValidationSeverity? Severity = null, CheckStatus? Status = null, string? LogicalPath = null);
+    ValidationSeverity? Severity = null, CheckStatus? Status = null, string? LogicalPath = null,
+    string? Category = null, string? NodePath = null);
 
 public interface IPackageValidationStore
 {

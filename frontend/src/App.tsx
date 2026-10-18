@@ -42,7 +42,7 @@ const RoutedAppShell = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10">
+      <header className="bg-slate-900 text-white p-4 shadow-md flex flex-wrap gap-3 justify-between items-center z-10">
         <button
           type="button"
           className="flex items-center gap-2 bg-transparent border-0 text-white cursor-pointer select-none p-0"
@@ -53,6 +53,9 @@ const RoutedAppShell = () => {
           <h1 className="text-xl font-bold m-0 tracking-wide">RATools Admin</h1>
         </button>
         <nav className="flex items-center gap-4 text-sm" aria-label="主导航">
+          <button type="button" className="bg-transparent border-0 text-gray-300 hover:text-white cursor-pointer p-0" onClick={() => navigate('/package-validations')}>
+            验证已有申报包
+          </button>
           <button
             type="button"
             className="flex items-center gap-1 bg-transparent border-0 text-gray-300 hover:text-white cursor-pointer p-0"

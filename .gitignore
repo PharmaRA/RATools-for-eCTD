@@ -16,7 +16,12 @@ obj/
 /src/RATools.Api/App_Data/uploads/
 /src/RATools.Api/App_Data/publish/*
 !/src/RATools.Api/App_Data/publish/.gitkeep
+/src/RATools.Api/App_Data/package-validation/
 /src/RATools.Api/App_Data/ratools-api.lock
+
+# Local pre-change backups and agent/tool state must never enter the public index.
+/backups/
+/.claude/
 
 # Local tooling and generated dependencies
 /frontend/node_modules/

@@ -268,10 +268,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
         private void Inventory(ICapturedPackageInput capture)
         {
             foreach (var directory in capture.Manifest.Directories.Where(directory => directory.IsEmpty))
-                Add("DELIVERY-STRUCTURE", CheckStatus.Pass, "EMPTY_DELIVERY_DIRECTORY", "The selected delivery contains an empty directory.", Locate(directory.LogicalPath), severity: ValidationSeverity.Info);
+                Add("DELIVERY-STRUCTURE", CheckStatus.Pass, "EMPTY_DELIVERY_DIRECTORY", "The selected delivery contains an empty directory.", Locate(directory.LogicalPath) with { Files = [] }, severity: ValidationSeverity.Info);
             foreach (var file in capture.Manifest.AdditionalFiles)
                 Add("DELIVERY-STRUCTURE", CheckStatus.Pass, "SURROUNDING_INPUT_FILE", "This captured surrounding file is outside the selected sequence and is not adopted as delivery or history.",
-                    new(capture.Manifest.SequenceNumber, file.LogicalPath), severity: ValidationSeverity.Info);
+                    Address(capture, file.LogicalPath, surrounding: true), severity: ValidationSeverity.Info);
             foreach (var path in capture.Manifest.Files.Select(file => (file.LogicalPath, IsFile: true))
                          .Concat(capture.Manifest.Directories.Select(directory => (directory.LogicalPath, IsFile: false))))
             {
@@ -290,27 +290,31 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
             if (input.Comparison is null) return;
             var primary = input.Packages.Target.Manifest;
             var other = input.Comparison.Manifest;
-            var archive = input.Packages.Target.SourceKind == PackageSourceKind.Zip ? primary : other;
-            foreach (var file in archive.AdditionalFiles)
+            var archive = input.Packages.Target.SourceKind == PackageSourceKind.Zip ? input.Packages.Target : input.Comparison;
+            foreach (var file in archive.Manifest.AdditionalFiles)
                 Add("ZIP-PARITY", CheckStatus.Fail, "ZIP_EXTRA_CONTENT", "The compared final ZIP contains content outside the selected sequence.",
-                    new(archive.SequenceNumber, file.LogicalPath));
-            foreach (var directory in archive.AdditionalDirectories.Where(directory => directory.IsEmpty))
+                    Address(archive, file.LogicalPath, surrounding: true));
+            foreach (var directory in archive.Manifest.AdditionalDirectories.Where(directory => directory.IsEmpty))
                 Add("ZIP-PARITY", CheckStatus.Fail, "ZIP_EXTRA_CONTENT", "The compared final ZIP contains an empty directory outside the selected sequence.",
-                    new(archive.SequenceNumber, directory.LogicalPath));
+                    new(archive.Manifest.SequenceNumber, directory.LogicalPath, Files: []));
             var left = primary.Files.ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
             var right = other.Files.ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
             foreach (var path in left.Keys.Union(right.Keys, StringComparer.Ordinal).Order(StringComparer.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!left.TryGetValue(path, out var first) || !right.TryGetValue(path, out var second))
-                    Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_PATH_MISMATCH", "A file is present in only one explicitly selected delivery.", Locate(path));
+                left.TryGetValue(path, out var first);
+                right.TryGetValue(path, out var second);
+                if (first is null || second is null)
+                    Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_PATH_MISMATCH", "A file is present in only one explicitly selected delivery.",
+                        Address(first is not null ? input.Packages.Target : input.Comparison, path));
                 else if (first.Length != second.Length || first.Sha256 != second.Sha256)
-                    Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_CONTENT_MISMATCH", "The same logical filename has different bytes in the directory and ZIP.", Locate(path), first.Sha256, second.Sha256);
+                    Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_CONTENT_MISMATCH", "The same logical filename has different bytes in the directory and ZIP.",
+                        Locate(path) with { Files = [new(input.Packages.Target.SourceId, path), new(input.Comparison.SourceId, path)] }, first.Sha256, second.Sha256);
             }
             var leftEmpty = primary.Directories.Where(directory => directory.IsEmpty).Select(directory => directory.LogicalPath).ToHashSet(StringComparer.Ordinal);
             var rightEmpty = other.Directories.Where(directory => directory.IsEmpty).Select(directory => directory.LogicalPath).ToHashSet(StringComparer.Ordinal);
             foreach (var path in leftEmpty.Except(rightEmpty, StringComparer.Ordinal).Concat(rightEmpty.Except(leftEmpty, StringComparer.Ordinal)).Order(StringComparer.Ordinal))
-                Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_EMPTY_DIRECTORY_MISMATCH", "An empty delivery directory is present in only one input.", Locate(path));
+                Add("ZIP-PARITY", CheckStatus.Fail, "DIRECTORY_ZIP_EMPTY_DIRECTORY_MISMATCH", "An empty delivery directory is present in only one input.", Locate(path) with { Files = [] });
         }
 
         public PackageFileInspection Finish()
@@ -334,5 +338,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
         private static bool IsMd5(string? value) => value is { Length: 32 } && value.All(Uri.IsHexDigit);
         private static bool IsName(string value) => value.Length > 0 && value.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
         private static ValidationLocation Locate(string path) => new(path.Split('/')[0], path);
+        private static ValidationLocation Address(ICapturedPackageInput capture, string path, bool surrounding = false) =>
+            new(capture.Manifest.SequenceNumber, path, Files: [new(capture.SourceId, path, surrounding)]);
     }
 }

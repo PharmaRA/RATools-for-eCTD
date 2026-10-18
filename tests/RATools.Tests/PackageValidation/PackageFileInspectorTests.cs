@@ -60,6 +60,7 @@ public sealed class PackageFileInspectorTests
     [InlineData("same", null)]
     [InlineData("changed-content", "DIRECTORY_ZIP_CONTENT_MISMATCH")]
     [InlineData("missing-path", "DIRECTORY_ZIP_PATH_MISMATCH")]
+    [InlineData("extra-path", "DIRECTORY_ZIP_PATH_MISMATCH")]
     [InlineData("empty-directory", "DIRECTORY_ZIP_EMPTY_DIRECTORY_MISMATCH")]
     [InlineData("extra-root", "ZIP_EXTRA_CONTENT")]
     public async Task RealZipParityComparesPathSetsAndBytes(string variant, string? expectedCode)
@@ -70,7 +71,20 @@ public sealed class PackageFileInspectorTests
         var result = await new PackageFileInspector().InspectAsync(input, lifecycle);
         var parity = result.Checks.Single(check => check.RuleId == "ZIP-PARITY");
         Assert.Equal(expectedCode is null ? CheckStatus.Pass : CheckStatus.Fail, parity.Status);
-        if (expectedCode is not null) Assert.Contains(parity.Findings, finding => finding.Code == expectedCode);
+        if (expectedCode is not null)
+        {
+            var finding = Assert.Single(parity.Findings, finding => finding.Code == expectedCode);
+            Assert.NotNull(finding.Location.Files);
+            if (variant == "changed-content")
+                Assert.Equal(new[] { input.Packages.Target.SourceId, input.Comparison!.SourceId }, finding.Location.Files.Select(file => file.SourceId));
+            else if (variant == "empty-directory") Assert.Empty(finding.Location.Files);
+            else
+            {
+                var address = Assert.Single(finding.Location.Files);
+                Assert.Equal(variant == "missing-path" ? input.Packages.Target.SourceId : input.Comparison!.SourceId, address.SourceId);
+                Assert.Equal(variant == "extra-root", address.IsSurrounding);
+            }
+        }
         Assert.NotEqual(result.PrimaryInputDigest, result.InputDigest);
         Assert.Equal(input.Comparison!.InputDigest, result.ComparisonInputDigest);
     }
@@ -145,6 +159,13 @@ public sealed class PackageFileInspectorTests
         var result = await new PackageFileInspector().InspectAsync(input, lifecycle);
         Assert.Contains(Findings(result), finding => finding.Code == "EMPTY_DELIVERY_DIRECTORY");
         Assert.Contains(Findings(result), finding => finding.Code == "SURROUNDING_INPUT_FILE");
+        Assert.All(Findings(result).Where(finding => finding.Code == "SURROUNDING_INPUT_FILE"), finding =>
+        {
+            var address = Assert.Single(finding.Location.Files!);
+            Assert.Equal(input.Packages.Target.SourceId, address.SourceId);
+            Assert.True(address.IsSurrounding);
+            Assert.Equal(finding.Location.LogicalPath, address.LogicalPath);
+        });
         Assert.All(result.References, reference => Assert.StartsWith("0000/", reference.SourceLogicalPath));
     }
 
@@ -207,6 +228,11 @@ public sealed class PackageFileInspectorTests
             {
                 using var output = archive.CreateEntry("unexpected.txt").Open();
                 output.WriteByte(1);
+            }
+            if (variant == "extra-path")
+            {
+                using var output = archive.CreateEntry(sequence + "/zip-only.txt").Open();
+                output.WriteByte(2);
             }
         }
         public async Task<(PackageDeliveryInput Input, PackageLifecycleInspection Lifecycle)> SelectAsync(string sequence, bool comparison = false,

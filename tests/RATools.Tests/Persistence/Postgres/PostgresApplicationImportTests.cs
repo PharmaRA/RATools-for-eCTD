@@ -34,6 +34,10 @@ public sealed class PostgresApplicationImportTests(PostgresFixture fixture)
             .MigrateAsync("20260908131138_AddCtdNodeInstances"));
         Assert.Equal("55000", downgrade.SqlState);
         Assert.Equal(8, await verify.ImportedBackbones.CountAsync(row => row.ApplicationId == result.ApplicationId));
+        // EF applies each migration's Down independently, so migrations newer than the
+        // guarded one are already reverted before the guard aborts the downgrade.
+        // Restore the shared test database before asserting that it is current again.
+        await verify.GetService<IMigrator>().MigrateAsync();
         Assert.Empty(await verify.Database.GetPendingMigrationsAsync());
     }
 

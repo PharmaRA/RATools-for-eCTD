@@ -11,13 +11,22 @@ public sealed partial class PackageValidationBackgroundService(IServiceScopeFact
     IOptions<PackageValidationOptions> options, ILogger<PackageValidationBackgroundService> logger) : BackgroundService
 {
     private readonly string _owner = $"validation:{Environment.MachineName}:{Environment.ProcessId}:{Guid.NewGuid():N}";
+    private static readonly TimeSpan RecoveryInterval = TimeSpan.FromSeconds(30);
 
     [LoggerMessage(EventId = 2201, Level = LogLevel.Error, Message = "Independent validation worker failed; persisted leases remain recoverable.")]
     private static partial void LogWorkerFailure(ILogger logger, Exception exception);
 
+    [LoggerMessage(EventId = 2202, Level = LogLevel.Warning, Message = "PackageValidation:Enabled is false; queued runs will remain Pending until a worker is enabled.")]
+    private static partial void LogWorkerDisabled(ILogger logger);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!options.Value.Enabled) return;
+        if (!options.Value.Enabled)
+        {
+            LogWorkerDisabled(logger);
+            return;
+        }
+        var lastRecovery = DateTime.MinValue;
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -26,7 +35,13 @@ public sealed partial class PackageValidationBackgroundService(IServiceScopeFact
                 using (var scope = scopeFactory.CreateScope())
                 {
                     var store = scope.ServiceProvider.GetRequiredService<IPackageValidationStore>();
-                    await store.RecoverExpiredAsync(DateTime.UtcNow, options.Value.MaxAttempts, stoppingToken).ConfigureAwait(false);
+                    // Expiry recovery only matters on a coarse cadence; scanning every
+                    // poll interval would issue tens of thousands of useless updates a day.
+                    if (DateTime.UtcNow - lastRecovery >= RecoveryInterval)
+                    {
+                        await store.RecoverExpiredAsync(DateTime.UtcNow, options.Value.MaxAttempts, stoppingToken).ConfigureAwait(false);
+                        lastRecovery = DateTime.UtcNow;
+                    }
                     lease = await store.ClaimAsync(_owner, DateTime.UtcNow, options.Value.LeaseDuration, stoppingToken).ConfigureAwait(false);
                 }
                 if (lease is not null) await ProcessAsync(lease, stoppingToken).ConfigureAwait(false);

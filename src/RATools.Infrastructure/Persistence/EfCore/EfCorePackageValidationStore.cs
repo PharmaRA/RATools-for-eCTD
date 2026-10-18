@@ -144,6 +144,7 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
             {
                 RunId = id, Ordinal = ordinal, RuleId = finding.RuleId, Severity = finding.Severity.ToString(),
                 Status = finding.CheckStatus.ToString(), LogicalPath = finding.Location.LogicalPath,
+                NodePath = finding.Location.NodePath,
                 Json = PackageValidationJson.Write(finding)
             }).ToArray();
         try
@@ -181,9 +182,12 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
             throw new ArgumentException("Unknown finding filter.", nameof(query));
         var severityText = query.Severity?.ToString();
         var statusText = query.Status?.ToString();
+        var ruleIds = PackageFindingFilters.RuleIds(query.Category is null ? null : await GetRunAsync(id, cancellationToken).ConfigureAwait(false), query.Category);
         var rows = dbContext.Set<PackageValidationFindingRecord>().AsNoTracking().Where(row => row.RunId == id &&
             (query.RuleId == null || row.RuleId == query.RuleId) && (severityText == null || row.Severity == severityText) &&
-            (statusText == null || row.Status == statusText) && (query.LogicalPath == null || row.LogicalPath == query.LogicalPath));
+            (statusText == null || row.Status == statusText) && (query.LogicalPath == null || row.LogicalPath == query.LogicalPath) &&
+            (query.NodePath == null || row.NodePath != null && row.NodePath.Contains(query.NodePath)));
+        if (ruleIds is not null) rows = rows.Where(row => ruleIds.Contains(row.RuleId));
         var count = await rows.CountAsync(cancellationToken).ConfigureAwait(false);
         var json = await rows.OrderBy(row => row.Ordinal).Skip(query.Offset).Take(query.Limit).Select(row => row.Json)
             .ToArrayAsync(cancellationToken).ConfigureAwait(false);

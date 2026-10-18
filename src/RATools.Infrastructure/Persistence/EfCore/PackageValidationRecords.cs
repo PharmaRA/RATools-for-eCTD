@@ -29,5 +29,6 @@ public sealed class PackageValidationFindingRecord
     public string Severity { get; set; } = "";
     public string Status { get; set; } = "";
     public string? LogicalPath { get; set; }
+    public string? NodePath { get; set; }
     public string Json { get; set; } = "";
 }

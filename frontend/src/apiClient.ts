@@ -7,6 +7,7 @@ type ProblemDetails = {
   message?: string;
   code?: string;
   currentRevision?: number | null;
+  candidates?: Array<{ sequenceNumber: string; rootRelativePath: string }>;
 };
 
 let runtimeApiKey: string | undefined;
@@ -22,8 +23,9 @@ export class ApiRequestError extends Error {
   readonly traceId?: string;
   readonly code?: string;
   readonly currentRevision?: number | null;
+  readonly candidates?: ProblemDetails['candidates'];
 
-  constructor(status: number, message: string, details?: Pick<ProblemDetails, 'title' | 'type' | 'traceId' | 'code' | 'currentRevision'>) {
+  constructor(status: number, message: string, details?: Pick<ProblemDetails, 'title' | 'type' | 'traceId' | 'code' | 'currentRevision' | 'candidates'>) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
@@ -32,6 +34,7 @@ export class ApiRequestError extends Error {
     this.traceId = details?.traceId;
     this.code = details?.code;
     this.currentRevision = details?.currentRevision;
+    this.candidates = details?.candidates;
   }
 }
 
@@ -94,6 +97,7 @@ export const apiFetchResponse = async (url: string, options?: RequestInit) => {
       traceId: data?.traceId,
       code: data?.code,
       currentRevision: data?.currentRevision,
+      candidates: data?.candidates,
     });
   }
 

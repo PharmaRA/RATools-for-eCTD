@@ -19,6 +19,7 @@ public interface ICapturedPackageInput : IAsyncDisposable
     string InputDigest { get; }
     PackageReadLimits Limits { get; }
     Stream OpenRead(string logicalPath);
+    Stream OpenAdditionalRead(string relativePath) => throw new NotSupportedException("This capture does not expose surrounding-file bytes.");
     Task VerifyUnchangedAsync(CancellationToken cancellationToken = default);
 }
 

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Security;
 using RATools.Infrastructure.Storage;
@@ -92,9 +93,30 @@ public sealed class StartupConfigurationValidatorTests
         var fileStorage = Options.Create(new FileStorageOptions { RootPath = fileStoragePath });
         var backbone = Options.Create(new BackboneOutputOptions { RootPath = backbonePath });
 
-        var validator = new StartupConfigurationValidator(policy, Options.Create(new SecurityOptions { ApiKey = "test-key" }), fileStorage, backbone);
+        var validator = new StartupConfigurationValidator(policy, Options.Create(new SecurityOptions { ApiKey = "test-key" }), fileStorage, backbone,
+            Options.Create(new PackageValidationOptions { StorageRoot = Path.Combine(allowed.Path, "package-validation") }));
 
         validator.Validate();
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenPackageValidationStorageRootIsOutsideAllowedRoots()
+    {
+        using var allowed = new TempDir();
+        using var outside = new TempDir();
+
+        var policy = new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions
+        {
+            AllowedWorkspaceRoots = [allowed.Path]
+        }));
+        var fileStorage = Options.Create(new FileStorageOptions { RootPath = allowed.Path });
+        var backbone = Options.Create(new BackboneOutputOptions { RootPath = allowed.Path });
+
+        var validator = new StartupConfigurationValidator(policy, Options.Create(new SecurityOptions { ApiKey = "test-key" }), fileStorage, backbone,
+            Options.Create(new PackageValidationOptions { StorageRoot = outside.Path }));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => { validator.Validate(); });
+        Assert.Contains("PackageValidation:StorageRoot", ex.Message);
     }
 
     private sealed class TempDir : IDisposable

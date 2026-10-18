@@ -227,14 +227,18 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "P2-02 controlled capture and rejection tests are implemented. Per-run coverage integration and complete cross-platform qualification remain pending; no formal readiness is claimed.",
-      "positiveFixtures": [],
+      "implementationNote": "P2-02 controlled capture and rejection tests are implemented, and P2-07 integrates a per-run ZIP-LIMITS observation (NotApplicable when no selected source is a ZIP). Complete cross-platform qualification remains pending; no formal readiness is claimed.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/Fixtures/Publisher/sequences/0000"
+      ],
       "negativeFixtures": [
         "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
       ],
       "componentEvidence": [
         "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
-        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs"
+        "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs",
+        "tests/RATools.Tests/PackageValidation/PackageDeliveryInspectorTests.cs"
       ],
       "externalComparisonEvidence": []
     },

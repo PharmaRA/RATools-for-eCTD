@@ -1,8 +1,10 @@
 namespace RATools.Domain.PackageValidation;
 
+public sealed record ValidationFileAddress(string SourceId, string LogicalPath, bool IsSurrounding = false);
+
 public sealed record ValidationLocation(string? SequenceNumber = null, string? LogicalPath = null,
     string? BackboneRelativePath = null, string? LeafId = null, string? NodePath = null, string? FieldPath = null,
-    int? Line = null, int? Column = null);
+    int? Line = null, int? Column = null, IReadOnlyList<ValidationFileAddress>? Files = null);
 
 public sealed record ValidationFinding(string RuleId, CheckStatus CheckStatus, ValidationSeverity Severity,
     string Code, string Message, ValidationLocation Location, string? Expected = null, string? Actual = null,

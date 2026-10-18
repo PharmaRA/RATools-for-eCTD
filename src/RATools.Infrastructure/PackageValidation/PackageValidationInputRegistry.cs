@@ -68,6 +68,36 @@ public sealed class PackageValidationInputRegistry(IPackageValidationStore store
         return input is null ? null : ToDto(input);
     }
 
+    public async Task<T> ReadFileAsync<T>(Guid id, string logicalPath, Func<PackageInputFile, Stream, Task<T>> read,
+        bool surrounding = false, CancellationToken cancellationToken = default)
+    {
+        var input = await store.GetInputAsync(id, cancellationToken).ConfigureAwait(false)
+            ?? throw new KeyNotFoundException("The registered input does not exist.");
+        // Only exact manifest members are addressable; never resolve caller paths against disk.
+        using var manifest = System.Text.Json.JsonDocument.Parse(input.ManifestJson);
+        if (!manifest.RootElement.GetProperty(surrounding ? "additionalFiles" : "files").EnumerateArray()
+            .Any(file => file.GetProperty("logicalPath").GetString() == logicalPath))
+            throw new KeyNotFoundException("The exact file is not in this input's selected inventory scope.");
+        if (!input.IsOwnedUpload) pathPolicy.EnsureAllowed(input.SourcePath);
+        ICapturedPackageInput capture;
+        try
+        {
+            capture = await reader.ReadAsync(new(input.ApplicationId, input.Id.ToString("D"), input.SourcePath,
+                input.SequenceNumber, input.RootRelativePath), input.Limits, cancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException exception) when (exception is not PackageInputException { RuleId: "INPUT-LIMITS" })
+        { throw new PackageInputChangedException(input.Id.ToString("D")); }
+        await using (capture.ConfigureAwait(false))
+        {
+            if (capture.InputDigest != input.InputDigest || capture.SourceKind != input.SourceKind)
+                throw new PackageInputChangedException(input.Id.ToString("D"));
+            await capture.VerifyUnchangedAsync(cancellationToken).ConfigureAwait(false);
+            var file = (surrounding ? capture.Manifest.AdditionalFiles : capture.Manifest.Files).Single(file => file.LogicalPath == logicalPath);
+            await using var stream = surrounding ? capture.OpenAdditionalRead(logicalPath) : capture.OpenRead(logicalPath);
+            return await read(file, stream).ConfigureAwait(false);
+        }
+    }
+
     private async Task<PackageInputDto> CaptureAsync(Guid id, RegisterPackageInputRequest request, bool owned, CancellationToken cancellationToken,
         Action? beforeRegistration = null)
     {

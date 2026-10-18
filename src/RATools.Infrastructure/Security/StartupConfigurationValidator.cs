@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Security;
+using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Publishing;
 using RATools.Infrastructure.Storage;
 
@@ -11,17 +12,22 @@ public sealed class StartupConfigurationValidator
     private readonly IOptions<SecurityOptions> _securityOptions;
     private readonly IOptions<FileStorageOptions> _fileStorageOptions;
     private readonly IOptions<BackboneOutputOptions> _backboneOptions;
+    private readonly IOptions<PackageValidationOptions> _packageValidationOptions;
 
     public StartupConfigurationValidator(
         IWorkspacePathPolicy policy,
         IOptions<SecurityOptions> securityOptions,
         IOptions<FileStorageOptions> fileStorageOptions,
-        IOptions<BackboneOutputOptions> backboneOptions)
+        IOptions<BackboneOutputOptions> backboneOptions,
+        IOptions<PackageValidationOptions>? packageValidationOptions = null)
     {
         _policy = policy;
         _securityOptions = securityOptions;
         _fileStorageOptions = fileStorageOptions;
         _backboneOptions = backboneOptions;
+        // Optional so existing composition and tests that never enable package
+        // validation do not need to construct unrelated options.
+        _packageValidationOptions = packageValidationOptions ?? Options.Create(new PackageValidationOptions());
     }
 
     public void Validate()
@@ -41,6 +47,7 @@ public sealed class StartupConfigurationValidator
 
         EnsureAllowedConfigurationPath("FileStorage:RootPath", _fileStorageOptions.Value.RootPath);
         EnsureAllowedConfigurationPath("BackboneOutput:RootPath", _backboneOptions.Value.RootPath);
+        EnsureAllowedConfigurationPath("PackageValidation:StorageRoot", _packageValidationOptions.Value.StorageRoot);
     }
 
     private void EnsureAllowedConfigurationPath(string configurationKey, string path)

@@ -131,6 +131,55 @@ public sealed class PackageValidationServiceTests
     }
 
     [Fact]
+    public async Task VersionChangeIsQueryableAndRequiresANewRun()
+    {
+        await using var fixture = new ServiceFixture();
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile,
+            PackageValidationMode.Development, "version-change"))).Run;
+        // A queued run whose archived engine version no longer matches the current
+        // inspector must fail with an explicit, queryable code instead of reusing
+        // partial or stale observations.
+        var stale = new PackageValidationRun(run.ApplicationId, run.SequenceNumber,
+            new(run.Binding.InputManifestDigest, run.Binding.HistoryBaselineDigest, run.Binding.ProfileSnapshotId,
+                run.Binding.RulesDigest, "package-delivery-v0", run.Binding.ValidationMode, run.Binding.ResourceLimitsDigest),
+            run.RequestJson, "version-change-stale", DateTime.UtcNow);
+        var enqueued = await fixture.Store.EnqueueAsync(stale);
+        // Claim exactly this run; an earlier enqueue may still be pending in the shared
+        // in-memory store and ClaimAsync would otherwise take the oldest row.
+        var lease = await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10));
+        Assert.NotNull(lease);
+        while (lease!.Run.Id != enqueued.Run.Id)
+        {
+            await fixture.Store.FailAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow,
+                ValidationRunStatus.Failed, "TEST_SKIP", "Skipped an unrelated queued run.");
+            lease = await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10));
+            Assert.NotNull(lease);
+        }
+        await fixture.Worker.ProcessAsync(lease, CancellationToken.None);
+        var ended = (await fixture.Store.GetRunAsync(enqueued.Run.Id))!;
+        Assert.Equal(ValidationRunStatus.Failed, ended.Status);
+        Assert.Equal("VALIDATION_VERSION_CHANGED", ended.FailureCode);
+        Assert.Null(await fixture.Store.GetReportJsonAsync(enqueued.Run.Id));
+    }
+
+    [Fact]
+    public async Task DisabledWorkerLeavesQueuedRunsObservablyPending()
+    {
+        await using var fixture = new ServiceFixture(enabled: false);
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile,
+            PackageValidationMode.Development, "disabled-worker"))).Run;
+        await fixture.Worker.StartAsync(CancellationToken.None);
+        await Task.Delay(200);
+        await fixture.Worker.StopAsync(CancellationToken.None);
+        // The API still accepts work; without a worker the run remains Pending and
+        // never fabricates a terminal result.
+        Assert.Equal(ValidationRunStatus.Pending, (await fixture.Store.GetRunAsync(run.Id))!.Status);
+        Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+    }
+
+    [Fact]
     public async Task RegistryRestrictsServerPathsAndFailedUploadCleansOnlyItsOwnedBytes()
     {
         await using var fixture = new ServiceFixture();
@@ -165,9 +214,9 @@ public sealed class PackageValidationServiceTests
         private readonly ServiceProvider _provider;
         private readonly Guid _application = Guid.NewGuid();
 
-        public ServiceFixture(IPackagePdfInspector? pdf = null, TimeSpan? timeout = null)
+        public ServiceFixture(IPackagePdfInspector? pdf = null, TimeSpan? timeout = null, bool enabled = true)
         {
-            var options = Options.Create(new PackageValidationOptions { StorageRoot = Storage,
+            var options = Options.Create(new PackageValidationOptions { StorageRoot = Storage, Enabled = enabled,
                 HeartbeatInterval = TimeSpan.FromMilliseconds(25), LeaseDuration = TimeSpan.FromSeconds(10), ExecutionTimeout = timeout ?? TimeSpan.FromSeconds(30) });
             var policy = new ConfiguredWorkspacePathPolicy(Options.Create(new SecurityOptions { AllowedWorkspaceRoots = [Files.PathOf("")] }));
             var reader = new PackageInputReader(Path.Combine(Storage, "captures"));

@@ -2462,6 +2462,9 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.Property<string>("LogicalPath")
                         .HasColumnType("text");
 
+                    b.Property<string>("NodePath")
+                        .HasColumnType("text");
+
                     b.Property<string>("RuleId")
                         .IsRequired()
                         .HasMaxLength(128)

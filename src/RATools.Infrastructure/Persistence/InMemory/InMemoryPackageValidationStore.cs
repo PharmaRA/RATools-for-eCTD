@@ -139,9 +139,12 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
             throw new ArgumentException("Unknown finding filter.", nameof(query));
         lock (_gate)
         {
+            var ruleIds = PackageFindingFilters.RuleIds(_runs.GetValueOrDefault(id), query.Category);
             var items = _findings.GetValueOrDefault(id, []).Where(finding =>
                 (query.RuleId is null || finding.RuleId == query.RuleId) && (query.Severity is null || finding.Severity == query.Severity) &&
-                (query.Status is null || finding.CheckStatus == query.Status) && (query.LogicalPath is null || finding.Location.LogicalPath == query.LogicalPath)).ToArray();
+                (query.Status is null || finding.CheckStatus == query.Status) && (query.LogicalPath is null || finding.Location.LogicalPath == query.LogicalPath) &&
+                (ruleIds is null || ruleIds.Contains(finding.RuleId, StringComparer.Ordinal)) &&
+                (query.NodePath is null || finding.Location.NodePath?.Contains(query.NodePath, StringComparison.Ordinal) == true)).ToArray();
             return Task.FromResult(new PackageValidationPage<ValidationFinding>(items.Skip(query.Offset).Take(query.Limit).ToArray(), items.Length, query.Offset, query.Limit));
         }
     }

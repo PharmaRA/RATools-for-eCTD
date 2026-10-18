@@ -351,6 +351,28 @@ export type PackageInputDto = {
     limitsDigest: string;
 };
 
+export type PackageReadLimits = {
+    maxEntries: number;
+    maxFileBytes: number;
+    maxExpandedBytes: number;
+    maxArchiveBytes: number;
+    maxCentralDirectoryBytes: number;
+    maxCompressionRatio: number;
+    maxPathLength: number;
+    maxPathDepth: number;
+    maxElapsedSeconds: number;
+    maxXmlDepth: number;
+    maxXmlNodes: number;
+    maxXmlCharacters: number;
+    maxXmlEntityCharacters: number;
+    maxXmlFindings: number;
+    maxBackbones: number;
+    maxPdfPages: number;
+    maxPdfObjects: number;
+    maxPdfDepth: number;
+    maxPdfLinks: number;
+};
+
 export type PackageRunSummary = {
     id: string;
     applicationId: string;
@@ -378,6 +400,14 @@ export type PackageRunSummaryPackageValidationPage = {
 };
 
 export type PackageSourceKind = 'Directory' | 'Zip';
+
+export type PackageTextPreview = {
+    logicalPath: string;
+    sha256: string;
+    startLine: number;
+    lines: Array<string>;
+    truncated: boolean;
+};
 
 export type PackageValidationMode = 'Development' | 'Formal';
 
@@ -602,6 +632,16 @@ export type SequencePublishingMetadataDto = {
     workspaceRevision: number;
 };
 
+export type StoredPackageValidationRequest = {
+    schemaVersion: number;
+    inputId: string;
+    comparisonInputId: string | null;
+    history: Array<PackageHistorySelection>;
+    ruleCatalog: unknown;
+    historyBaseline: unknown;
+    readLimits: PackageReadLimits;
+};
+
 export type UpdateCtdNodeRequest = {
     expectedRevision?: number | null;
     attributes: {
@@ -671,6 +711,12 @@ export type ValidationCoverageSummary = {
     notApplicableImplementation: number;
 };
 
+export type ValidationFileAddress = {
+    sourceId: string;
+    logicalPath: string;
+    isSurrounding: boolean;
+};
+
 export type ValidationFinding = {
     ruleId: string;
     checkStatus: CheckStatus;
@@ -722,6 +768,7 @@ export type ValidationLocation = {
     fieldPath: string | null;
     line: number | null;
     column: number | null;
+    files: Array<ValidationFileAddress> | null;
 };
 
 export type ValidationProfileScope = {
@@ -1487,12 +1534,73 @@ export type GetApiPackageValidationInputsByIdManifestData = {
     url: '/api/package-validation-inputs/{id}/manifest';
 };
 
+export type GetApiPackageValidationInputsByIdManifestErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiPackageValidationInputsByIdManifestError = GetApiPackageValidationInputsByIdManifestErrors[keyof GetApiPackageValidationInputsByIdManifestErrors];
+
 export type GetApiPackageValidationInputsByIdManifestResponses = {
     /**
      * OK
      */
     200: unknown;
 };
+
+export type GetApiPackageValidationInputsByIdFileData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        logicalPath?: string;
+        surrounding?: boolean;
+    };
+    url: '/api/package-validation-inputs/{id}/file';
+};
+
+export type GetApiPackageValidationInputsByIdFileErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiPackageValidationInputsByIdFileError = GetApiPackageValidationInputsByIdFileErrors[keyof GetApiPackageValidationInputsByIdFileErrors];
+
+export type GetApiPackageValidationInputsByIdFileResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type GetApiPackageValidationInputsByIdFileResponse = GetApiPackageValidationInputsByIdFileResponses[keyof GetApiPackageValidationInputsByIdFileResponses];
+
+export type GetApiPackageValidationInputsByIdTextData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        logicalPath?: string;
+        line?: number;
+        surrounding?: boolean;
+    };
+    url: '/api/package-validation-inputs/{id}/text';
+};
+
+export type GetApiPackageValidationInputsByIdTextResponses = {
+    /**
+     * OK
+     */
+    200: PackageTextPreview;
+};
+
+export type GetApiPackageValidationInputsByIdTextResponse = GetApiPackageValidationInputsByIdTextResponses[keyof GetApiPackageValidationInputsByIdTextResponses];
 
 export type GetApiPackageValidationsProfilesData = {
     body?: never;
@@ -1612,6 +1720,8 @@ export type GetApiPackageValidationsByIdFindingsData = {
         Severity?: ValidationSeverity;
         Status?: CheckStatus;
         LogicalPath?: string;
+        Category?: string;
+        NodePath?: string;
     };
     url: '/api/package-validations/{id}/findings';
 };
@@ -1638,8 +1748,10 @@ export type GetApiPackageValidationsByIdEvidenceResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: StoredPackageValidationRequest;
 };
+
+export type GetApiPackageValidationsByIdEvidenceResponse = GetApiPackageValidationsByIdEvidenceResponses[keyof GetApiPackageValidationsByIdEvidenceResponses];
 
 export type GetApiPublishJobsData = {
     body?: never;

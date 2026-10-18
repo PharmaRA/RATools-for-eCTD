@@ -57,6 +57,7 @@ public sealed class PackageValidationsController(PackageValidationService servic
     });
 
     [HttpGet("{id:guid}/evidence")]
+    [ProducesResponseType(typeof(StoredPackageValidationRequest), StatusCodes.Status200OK)]
     public Task<IActionResult> Evidence(Guid id, CancellationToken cancellationToken) => RespondAsync(async () =>
     {
         var run = await store.GetRunAsync(id, cancellationToken);

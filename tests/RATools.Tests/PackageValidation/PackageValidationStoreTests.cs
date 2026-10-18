@@ -12,9 +12,10 @@ public sealed class PackageValidationStoreTests
 
     internal static async Task ExerciseAsync(IPackageValidationStore store)
     {
-        var run = PackageValidationRunTests.NewRun();
+        const string request = """{"ruleCatalog":{"rules":[{"internalRuleId":"FILE-HREF","category":"ArchivedFiles"}]}}""";
+        var run = PackageValidationRunTests.NewRun(request: request);
         var created = await store.EnqueueAsync(run);
-        var duplicate = await store.EnqueueAsync(PackageValidationRunTests.NewRun(run.IdempotencyKey, run.ApplicationId));
+        var duplicate = await store.EnqueueAsync(PackageValidationRunTests.NewRun(run.IdempotencyKey, run.ApplicationId, request: request));
         Assert.True(created.Created);
         Assert.False(duplicate.Created);
         Assert.Equal(run.Id, duplicate.Run.Id);
@@ -41,6 +42,10 @@ public sealed class PackageValidationStoreTests
         var path = await store.GetFindingsAsync(run.Id, new(LogicalPath: "0000/a.pdf"));
         Assert.Equal("MISSING_A", Assert.Single(path.Items).Code);
         Assert.Empty((await store.GetFindingsAsync(run.Id, new(Severity: ValidationSeverity.Info))).Items);
+        Assert.Equal(2, (await store.GetFindingsAsync(run.Id, new(Category: "ArchivedFiles"))).TotalCount);
+        Assert.Empty((await store.GetFindingsAsync(run.Id, new(Category: "Unknown"))).Items);
+        Assert.Equal("MISSING_A", Assert.Single((await store.GetFindingsAsync(run.Id, new(Category: "ArchivedFiles", NodePath: "m3-2-s-4-1"))).Items).Code);
+        Assert.Empty((await store.GetFindingsAsync(run.Id, new(NodePath: "M3-2-S"))).Items);
         Assert.Equal(run.Id, Assert.Single((await store.ListRunsAsync(run.ApplicationId, 0, 10)).Items).Id);
         Assert.Equal(ValidationRunStatus.Completed, (await store.CancelAsync(run.Id, now.AddSeconds(3)))!.Status);
         Assert.Equal(0, await store.RecoverExpiredAsync(now.AddMinutes(2), 3));

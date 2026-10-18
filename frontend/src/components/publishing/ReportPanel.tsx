@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Card, Col, Descriptions, Drawer, Row, Spin, Table, Tabs } from 'antd'
 import { CheckCircle, Download, XCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { loadPublishJobReport } from '../../publishActions'
 import { getLifecycleMatches, summarizeLifecycleMatches } from '../../publishLifecycleSummary'
@@ -74,6 +75,7 @@ type ArtifactEvidence = {
 }
 
 type PublishReport = {
+  packageValidationRunId?: string | null
   succeeded?: boolean
   message?: string
   validationProfile?: string
@@ -200,6 +202,9 @@ export const ReportPanel = ({ jobId, onClose }: { jobId: string | null, onClose:
               下载 JSON
             </ArtifactDownloadButton>
           </div>
+          {report.packageValidationRunId
+            ? <Link to={`/package-validations?run=${encodeURIComponent(report.packageValidationRunId)}`}>查看绑定的独立验包运行</Link>
+            : <Alert type="info" title="此发布报告未绑定独立验包运行" description="旧报告或仅执行快速完整性检查的发布，不代表已执行独立验包。" />}
           <Descriptions
             bordered
             size="small"

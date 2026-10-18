@@ -32,30 +32,43 @@ Support maturity is tracked per region and capability. "Production-ready" means 
 path is exercised by the smoke test and covered by regression tests against the
 official DTDs. "Controlled skeleton" means the architecture, wiring, and readiness
 dry-run exist and are tested, but the feature is intentionally minimal and not a
-complete official regulatory rule set.
+complete official regulatory rule set. "Controlled implementation" means the
+officially sourced assets are wired and tested, while the standards profile remains
+explicitly inactive until regulatory metadata, certification evidence, and a
+maintenance process are approved.
 
 | Capability | US FDA eCTD 3.2.2 (`us-fda-ectd-3.2.2`) | EU eCTD 3.2.2 (`eu-ectd-3.2.2`) |
 | --- | --- | --- |
 | Application / sequence lifecycle | Production-ready | Production-ready |
 | Workspace import | Production-ready | Production-ready |
-| Document upload / placement | Production-ready (full CTD section dictionary) | Controlled skeleton (Module 1 top-level sections only) |
-| Section structure tree | Production-ready | Controlled skeleton (minimal EU M1 tree) |
-| Sequence validation (sections, lifecycle, readiness) | Production-ready | Production-ready (shared checks; EU sections validated against the skeleton dictionary) |
+| Document upload / placement | Production-ready (full CTD section dictionary) | Controlled implementation (official EU M1 v3.1.1 dictionary) |
+| Section structure tree | Production-ready | Controlled implementation (official EU M1 v3.1.1 tree) |
+| Sequence validation (sections, lifecycle, readiness) | Production-ready | Controlled implementation (shared checks plus official EU section paths) |
 | ICH M2–M5 backbone (`index.xml`) | Production-ready | Production-ready (shared writer) |
-| Regional Module 1 backbone | Production-ready (`us-regional.xml`) | Controlled skeleton (`eu-regional.xml`, bundled placeholder DTD) |
-| Publish job execution + artifacts | Production-ready | Controlled skeleton (end-to-end publish covered by regression test against the placeholder DTD) |
+| Regional Module 1 backbone | Production-ready (`us-regional.xml`) | Controlled implementation (`eu-regional.xml`, official EMA v3.1.1 modular DTD/XSL) |
+| Publish job execution + artifacts | Production-ready | Controlled implementation (EU end-to-end publish and official DTD fixture pass) |
 | PDF compliance rules | Production-ready (rule engine) | Shared rules apply |
 | Publish history / audit | Production-ready | Production-ready |
+| Independent package validation (P2) | Development scope (versioned rule catalog; no profile is qualified for formal finalization) | Development scope (shared engine) |
 
 Notes:
 
-- EU support is an intentionally narrow second region added to prove the multi-region
-  architecture. The bundled `reference/dtd/eu-regional.dtd` is a test/architecture
-  placeholder, not the full official EU Module 1 validation rule set. A dated official
-  source snapshot is now recorded under `reference/eu-m1/3.1.1/` with the EMA source
-  URLs, package digest, per-file digests, and implementation timeline. The snapshot is
-  acquired but not active: the EU section dictionary and regional writer still need to
-  be adapted and tested before the capability matrix can claim formal EU support.
+- Independent package validation reads a delivered directory or ZIP (plus explicit
+  historical inputs) without requiring business workspace records. It covers input
+  capture limits, offline XML/DTD parsing, lifecycle references, delivered bytes,
+  MD5/index-md5, ZIP parity and PDF links. All three rule profiles remain
+  `qualifiedForFinalization: false`; "Completed" means the inspection finished, not
+  that the package passed or was submitted/ accepted.
+
+- EU support is an intentionally controlled second region. A dated official EMA
+  source snapshot is recorded under `reference/eu-m1/3.1.1/` with source URLs,
+  package and per-file digests, implementation material, licensing terms, and
+  lifecycle metadata. The official modular DTD/XSL assets, full M1 dictionary,
+  regional writer, and EU end-to-end fixture are covered by the backend regression
+  suite and the dedicated CI regional gate. The snapshot remains `acquired-not-active`;
+  this repository therefore does not claim formal EU production or regulatory
+  compliance until the remaining metadata, certification, and maintenance stop-gate
+  evidence is approved.
 - PDF compliance runs through the shared eCTD validation rule engine
   (`IEctdValidationRule`), so region-specific PDF policies can be layered on later
   without bespoke checks in the readiness service. Font-embedding and security
@@ -94,7 +107,7 @@ npm run dev
 
 Frontend development requires Node.js 22.18 or newer.
 
-Open `http://localhost:3000`. The Vite dev server proxies `/api` and `/health` to the backend at `http://localhost:5000`.
+Open `http://localhost:3000`. The Vite dev server proxies `/api`, `/health` and `/runtime-config` to the backend at `http://localhost:5000`.
 
 Default backend configuration is in `src/RATools.Api/appsettings.json`.
 
@@ -322,6 +335,15 @@ file-secret, TLS, security-header, and persistent-volume controls described abov
 - `FileStorage:MaxUploadBytes` (default 500 MB): request body / multipart upload limit.
 - `BackboneOutput:RootPath`: server-controlled publish output root. It must be inside a
   `Security:AllowedWorkspaceRoots` entry; publish requests cannot override this physical path.
+- `PackageValidation:StorageRoot` (default `App_Data/package-validation`): uploaded ZIP and
+  capture storage. It must be inside a `Security:AllowedWorkspaceRoots` entry and is covered
+  by backups of `App_Data`. `PackageValidation:Enabled` (default `true`) controls the
+  background worker only: with `false`, accepted runs remain `Pending` by design.
+- `PackageValidation:ReadLimits`: per-input capture limits (entries, per-file/total/archive
+  bytes, compression ratio, path depth, XML/PDF limits). They are archived in each run's
+  binding. The API request-size limit (`FileStorage:MaxUploadBytes`, 500 MB) still applies
+  first to multipart uploads; a larger configured archive limit only affects registered
+  server-side directories/ZIPs.
 - `BackboneOutput:RetainJobRuns` (default 5): publish keeps the newest N `_jobs/{jobId}`
   delivery copies per application and prunes older ones; `_artifacts` and `_packages`
   are never pruned. Set `0` or negative to disable pruning.
@@ -472,6 +494,21 @@ Publish jobs use one asynchronous command:
   command. Reusing the key for the same application/sequence returns the original job; using
   it for different request data returns `409 Conflict`.
 - The former synchronous `POST /api/publish-jobs` endpoint is deprecated and returns `410 Gone`; it never starts a publish.
+
+Independent package validation uses a separate queue and storage:
+
+- Register a directory/ZIP with `POST /api/package-validation-inputs` (authorized server path)
+  or `POST /api/package-validation-inputs/upload` (multipart ZIP; streamed and size-limited).
+  Multi-root layouts return `409` with explicit `candidates`; resubmit with
+  `sequenceNumber`/`rootRelativePath`.
+- Create a run with `POST /api/package-validations` (`inputId`, explicit `profileSnapshotId`,
+  `mode`, `idempotencyKey`, optional `comparisonInputId` and explicit `history` entries).
+  Poll `GET /api/package-validations/{id}`; read `/report`, `/findings` and `/evidence`.
+- Findings can be filtered by rule, severity, check status, exact `logicalPath`, archived
+  rule `category` and a `nodePath` substring. `GET .../inputs/{id}/file` and `/text` return
+  only exact captured manifest members; text is a bounded escaped preview, never executable.
+- File/page limits return `413`, capture/engine deadlines return `408`, and unsupported
+  preview types or invalid line numbers return `400`.
 - Publish files are isolated under `BackboneOutput:RootPath/{applicationId-no-dashes}`;
   the business-facing application number is never used as the publish storage path segment.
 
