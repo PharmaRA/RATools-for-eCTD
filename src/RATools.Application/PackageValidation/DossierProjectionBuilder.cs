@@ -46,9 +46,11 @@ public static class DossierProjectionBuilder
                         continue;
                     }
                     // Historical leaves participate in the projection: replace/delete
-                    // events from later sequences must update their status.
+                    // events from later sequences must update their status. A delete
+                    // instruction is retained as a DeleteEvent, never as delivered content.
                     if (!leaves.TryAdd(address, new MutableLeaf(address, leaf.Title, leaf.Operation, ContentPath(leaf),
-                            leaf.IsRegionalReference, sequence)))
+                            leaf.IsRegionalReference, sequence,
+                            leaf.Operation == "delete" ? DossierLeafStatus.DeleteEvent : DossierLeafStatus.Current)))
                         reasons.Add($"{document.LogicalPath}: duplicate leaf address {Address(address)}.");
                 }
             }
@@ -130,7 +132,7 @@ public static class DossierProjectionBuilder
         $"{address.SequenceNumber}/{address.BackboneRelativePath}#{address.LeafId}";
 
     private sealed class MutableLeaf(LeafAddress address, string? title, string? operation, string? contentPath,
-        bool isRegionalReference, string sourceSequence)
+        bool isRegionalReference, string sourceSequence, DossierLeafStatus status)
     {
         public LeafAddress Address { get; } = address;
         public string? Title { get; } = title;
@@ -138,7 +140,7 @@ public static class DossierProjectionBuilder
         public string? ContentPath { get; } = contentPath;
         public bool IsRegionalReference { get; } = isRegionalReference;
         public string SourceSequence { get; } = sourceSequence;
-        public DossierLeafStatus Status { get; set; } = DossierLeafStatus.Current;
+        public DossierLeafStatus Status { get; set; } = status;
         public string? ReplacedBy { get; set; }
         public string? DeletedBy { get; set; }
         public string? AppendedTo { get; set; }

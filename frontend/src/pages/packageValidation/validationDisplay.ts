@@ -9,7 +9,8 @@ export const checkLabels = { Pass: '通过', Fail: '失败', NotEvaluated: '未�
 export const severityLabels = { Error: '错误', Warning: '警告', Info: '信息' }
 export const stageLabels: Record<string, string> = { Queued: '排队', ReadingInputs: '读取输入', Inspecting: '解析与规则检查', Archiving: '归档报告' }
 export const projectionStatusLabels = {
-  Current: '当前有效', AppendMember: '追加成员', Replaced: '已被替换', Deleted: '已被删除', Unknown: '无法确定',
+  Current: '当前有效', AppendMember: '追加成员', Replaced: '已被替换', Deleted: '已被删除',
+  DeleteEvent: '删除指令（无交付内容）', Unknown: '无法确定',
 }
 export const projectionViewLabels = { history: '完整历史', current: '累计有效资料', sequence: '本次序列' }
 

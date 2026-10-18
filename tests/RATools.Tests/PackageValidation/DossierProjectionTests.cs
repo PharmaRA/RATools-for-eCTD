@@ -34,8 +34,12 @@ public sealed class DossierProjectionTests
         Assert.Equal(DossierLeafStatus.Deleted, beta.Status);
         Assert.Equal("0003/index.xml#beta-delete", beta.DeletedBy);
         // The historical leaf keeps its own delivered content address; the delete
-        // event itself must not invent a new one.
+        // event itself must not invent a new one and is never effective content.
         Assert.Equal("0000/index.xml", beta.ContentLogicalPath);
+        var delete = projection.Leaves.Single(leaf => leaf.Address.LeafId == "beta-delete");
+        Assert.Equal(DossierLeafStatus.DeleteEvent, delete.Status);
+        Assert.Null(delete.ContentLogicalPath);
+        Assert.DoesNotContain(projection.EffectiveLeaves, leaf => leaf.Address.LeafId == "beta-delete");
         await using var earlier = new PackageFileInspectorTests.Fixture();
         var (asOfTwo, lifecycleTwo) = await earlier.SelectAsync("0002");
         var projectionAsOfTwo = DossierProjectionBuilder.Build(lifecycleTwo, asOfTwo);

@@ -11,7 +11,9 @@ public static class DossierProjectionVersion
 
 public enum DossierView { Sequence, Current, History }
 
-public enum DossierLeafStatus { Current, Replaced, Deleted, AppendMember, Unknown }
+// DeleteEvent is the delete instruction itself: retained in the history as an event,
+// never an effective delivered leaf. Unknown covers leaves whose event did not resolve.
+public enum DossierLeafStatus { Current, Replaced, Deleted, DeleteEvent, AppendMember, Unknown }
 
 // One effective (or historical) leaf in the cumulative view. Address is the immutable
 // LeafAddress; Title/File come from the source XML facts and are never re-derived from
