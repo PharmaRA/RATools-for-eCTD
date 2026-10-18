@@ -694,6 +694,23 @@ export type PublishReadinessRequestBody = {
     sequenceNumber: string;
 };
 
+export type RegionalCapability = {
+    region: string;
+    templateKey: string;
+    profileSnapshotId: string;
+    applicationType: string;
+    procedureType: string;
+    sectionScope: string;
+    createDraft: RegionalCapabilityState;
+    trialPublish: RegionalCapabilityState;
+    finalize: RegionalCapabilityState;
+    standardsStatus: string;
+    evidenceStatus: string;
+    limitations: Array<string>;
+};
+
+export type RegionalCapabilityState = 0 | 1 | 2 | 3;
+
 export type RegisterDeliveryBody = {
     packageSha256: string;
     channel: string;
@@ -2341,6 +2358,22 @@ export type GetVersionResponses = {
      */
     200: unknown;
 };
+
+export type GetApiRegionalCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/regional-capabilities';
+};
+
+export type GetApiRegionalCapabilitiesResponses = {
+    /**
+     * OK
+     */
+    200: Array<RegionalCapability>;
+};
+
+export type GetApiRegionalCapabilitiesResponse = GetApiRegionalCapabilitiesResponses[keyof GetApiRegionalCapabilitiesResponses];
 
 export type PostApiValidationSequenceData = {
     body?: ValidateSequenceRequestBody;
