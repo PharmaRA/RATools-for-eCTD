@@ -2033,6 +2033,66 @@
         }
       }
     },
+    "/api/finalizations/{id}/manifest": {
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseManifest"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseManifest"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseManifest"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/finalizations/{id}": {
       "get": {
         "tags": [
@@ -5567,7 +5627,6 @@
           "historyBaselineDigest",
           "ichEctdVersion",
           "idempotencyKey",
-          "manifestDigest",
           "packageValidationRunId",
           "regionalModule1Version",
           "standardsProfileSnapshotId"
@@ -5581,9 +5640,6 @@
           "packageValidationRunId": {
             "type": "string",
             "format": "uuid"
-          },
-          "manifestDigest": {
-            "type": "string"
           },
           "standardsProfileSnapshotId": {
             "type": "string"
@@ -7096,6 +7152,377 @@
           },
           "recordedBy": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseFileKind": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ReleaseHistoryReference": {
+        "required": [
+          "contentDigest",
+          "finalizedSequenceId",
+          "profileSnapshotId",
+          "sequenceNumber",
+          "sourceId",
+          "sourceKind",
+          "trustStatus",
+          "validationRunId"
+        ],
+        "type": "object",
+        "properties": {
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "sourceKind": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "contentDigest": {
+            "type": "string"
+          },
+          "profileSnapshotId": {
+            "type": "string"
+          },
+          "trustStatus": {
+            "type": "string"
+          },
+          "validationRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "finalizedSequenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseLifecycleEdge": {
+        "required": [
+          "operation",
+          "sourceLeafId",
+          "targetBackboneRelativePath",
+          "targetContentDigest",
+          "targetLeafId",
+          "targetSequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceLeafId": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "targetSequenceNumber": {
+            "type": "string"
+          },
+          "targetBackboneRelativePath": {
+            "type": "string"
+          },
+          "targetLeafId": {
+            "type": "string"
+          },
+          "targetContentDigest": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseManifest": {
+        "required": [
+          "applicationId",
+          "assets",
+          "createdByToolVersion",
+          "digest",
+          "files",
+          "historyBaseline",
+          "historyBaselineDigest",
+          "historyReferences",
+          "leaves",
+          "lifecycle",
+          "nodes",
+          "schemaVersion",
+          "sequenceNumber",
+          "sourceWorkspaceRevision",
+          "validatedInputManifestDigest",
+          "validation"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "sourceWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdByToolVersion": {
+            "type": "string"
+          },
+          "validatedInputManifestDigest": {
+            "type": "string"
+          },
+          "historyBaselineDigest": {
+            "type": "string"
+          },
+          "historyBaseline": {},
+          "historyReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseHistoryReference"
+            },
+            "readOnly": true
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ReleaseValidationReference"
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseManifestAsset"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseManifestFile"
+            }
+          },
+          "lifecycle": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseLifecycleEdge"
+            }
+          },
+          "leaves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseManifestLeaf"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseManifestNode"
+            }
+          },
+          "digest": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseManifestAsset": {
+        "required": [
+          "category",
+          "key",
+          "path",
+          "sha256",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseManifestFile": {
+        "required": [
+          "kind",
+          "length",
+          "md5",
+          "relativePath",
+          "sha256"
+        ],
+        "type": "object",
+        "properties": {
+          "relativePath": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ReleaseFileKind"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseManifestLeaf": {
+        "required": [
+          "ctdSection",
+          "documentId",
+          "href",
+          "leafId",
+          "nodeInstanceId",
+          "operation",
+          "placementId",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "leafId": {
+            "type": "string"
+          },
+          "ctdSection": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseManifestNode": {
+        "required": [
+          "attributes",
+          "definitionKey",
+          "definitionVersion",
+          "metadataStatus",
+          "nodeInstanceId",
+          "parentInstanceId",
+          "sortOrder",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "definitionKey": {
+            "type": "string"
+          },
+          "definitionVersion": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "metadataStatus": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseValidationReference": {
+        "required": [
+          "comparisonInputDigest",
+          "engineVersion",
+          "ichEctdVersion",
+          "regionalModule1Version",
+          "reportSha256",
+          "rulesDigest",
+          "standardsProfileSnapshotId",
+          "validationMode"
+        ],
+        "type": "object",
+        "properties": {
+          "reportSha256": {
+            "type": "string"
+          },
+          "validationMode": {
+            "type": "string"
+          },
+          "standardsProfileSnapshotId": {
+            "type": "string"
+          },
+          "ichEctdVersion": {
+            "type": "string"
+          },
+          "regionalModule1Version": {
+            "type": "string",
+            "nullable": true
+          },
+          "rulesDigest": {
+            "type": "string"
+          },
+          "engineVersion": {
+            "type": "string"
+          },
+          "comparisonInputDigest": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

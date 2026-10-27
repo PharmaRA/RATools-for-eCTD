@@ -95,6 +95,29 @@ public sealed class FinalizedWorkspaceApiTests : IClassFixture<WebApplicationFac
         Assert.Equal("continue-1", read.GetProperty("idempotencyKey").GetString());
     }
 
+    [Fact]
+    public async Task ManifestRequiresAReadableCaptureAndAnExistingSnapshot()
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var host = CreateHost(tempRoot.Path);
+        using var client = host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "test-key");
+        var application = await CreateApplicationAsync(client, tempRoot.Path);
+        var store = host.Services.GetRequiredService<IFinalizationStore>();
+        var snapshot = FinalizedSequence.Create(application.Id, "0000", 0, Digest("manifest"),
+            PackageValidationCatalog.UsProfile, "3.2.2", null, Digest("history"), Guid.NewGuid(),
+            Digest("input"), Digest("report"), PackageValidationMode.Development, false, [],
+            FinalizationService.ToolVersion, "manifest-api", Now);
+        await store.RegisterAsync(snapshot);
+
+        // A development snapshot registered by a fixture has no captured release; the
+        // endpoint reports the missing evidence instead of inventing a manifest.
+        var missing = await client.GetAsync($"/api/finalizations/{snapshot.Id}/manifest");
+        Assert.Equal(HttpStatusCode.Conflict, missing.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/finalizations/{Guid.NewGuid()}/manifest")).StatusCode);
+    }
+
     private WebApplicationFactory<Program> CreateHost(string root) =>
         _factory.WithWebHostBuilder(builder =>
         {

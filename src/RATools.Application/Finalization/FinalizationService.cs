@@ -1,19 +1,17 @@
-using System.Text.Json;
 using RATools.Application.Abstractions.Persistence;
-using RATools.Application.PackageValidation;
 using RATools.Domain.Finalization;
 using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.Finalization;
 
-// Finalization records the identity of content that was actually validated. It re-reads
-// the completed run, verifies that the run's binding names exactly the requested content
-// and history, and archives the report's readiness verbatim. It never upgrades a
-// development or incomplete report into a finalizable one and never re-runs validation
-// against a different package.
+// Finalization records the identity of content that was actually validated. It captures
+// the workspace bytes itself, verifies the completed run, its archived report and its
+// captured input against those bytes, and archives the report's readiness verbatim. The
+// manifest digest is derived from the capture - never accepted from the caller - so a
+// snapshot cannot claim content that was not delivered.
 public sealed class FinalizationService(
     IFinalizationStore store,
-    IPackageValidationStore packageValidationStore,
+    IFinalizationCaptureProvider captures,
     IWorkspaceRevisionStore revisions)
 {
     // The tool version participates in the snapshot identity. Bump it whenever the
@@ -23,73 +21,77 @@ public sealed class FinalizationService(
     public async Task<FinalizationResult> FinalizeAsync(FinalizeSequenceRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var sequenceNumber = request.SequenceNumber.Trim();
         var existing = await store.FindByIdempotencyKeyAsync(request.IdempotencyKey, cancellationToken).ConfigureAwait(false);
         if (existing is not null) return Replay(existing, request);
 
-        // The revision check and the snapshot registration must be one decision under the
-        // same application lock used by workspace writers; otherwise an edit could advance
-        // the revision between the check and the commit and finalize a later workspace.
-        var heldLock = await revisions.LockApplicationAsync(request.ApplicationId, cancellationToken).ConfigureAwait(false);
+        // Fail before copying gigabytes: a request that already names a stale revision is
+        // decided by the cheap check, not by reading the whole workspace.
+        var startingRevision = await revisions.GetRevisionAsync(request.ApplicationId, sequenceNumber, cancellationToken)
+            .ConfigureAwait(false);
+        if (startingRevision is null)
+            throw new FinalizationNotFoundException(
+                $"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
+        if (startingRevision != request.ExpectedRevision)
+            throw new WorkspaceRevisionConflictException(request.ExpectedRevision, startingRevision.Value);
+
+        // The capture reads the workspace under the same application lock writers use and
+        // re-hashes every byte it writes. It must not run inside the lock below: the package
+        // model builder takes that lock itself.
+        var capture = await captures.CaptureAsync(request with { SequenceNumber = sequenceNumber }, cancellationToken)
+            .ConfigureAwait(false);
+        // The registration decision runs under the lock: the revision the operator saw must
+        // still be current, so no edit can slip between the capture and the commit. A late
+        // edit is detected here because revisions only move forward. Acquiring the lock is
+        // inside the try so a cancelled or failed acquisition still discards the staging
+        // bytes this request created.
+        IAsyncDisposable? heldLock = null;
         try
         {
-            return await FinalizeUnderLockAsync(request, cancellationToken).ConfigureAwait(false);
+            heldLock = await revisions.LockApplicationAsync(request.ApplicationId, cancellationToken).ConfigureAwait(false);
+            var currentRevision = await revisions.GetRevisionAsync(request.ApplicationId, sequenceNumber, cancellationToken)
+                .ConfigureAwait(false);
+            if (currentRevision is null)
+                throw new FinalizationNotFoundException(
+                    $"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
+            if (currentRevision != request.ExpectedRevision)
+                throw new WorkspaceRevisionConflictException(request.ExpectedRevision, currentRevision.Value);
+
+            var sequence = FinalizedSequence.Create(request.ApplicationId, sequenceNumber, request.ExpectedRevision,
+                capture.ManifestDigest, request.StandardsProfileSnapshotId, request.IchEctdVersion,
+                request.RegionalModule1Version, request.HistoryBaselineDigest, capture.ValidationRunId,
+                capture.ValidationInputManifestDigest, capture.ReportSha256, capture.ValidationMode,
+                capture.ReportReady, capture.BlockingReasons, ToolVersion, request.IdempotencyKey, DateTime.UtcNow);
+            // Publish before registration: a registered snapshot must always have its bytes.
+            await capture.PublishAsync(cancellationToken).ConfigureAwait(false);
+            var registered = await store.RegisterAsync(sequence, cancellationToken).ConfigureAwait(false);
+            return new FinalizationResult(registered.Sequence, registered.Created);
         }
-        finally { await heldLock.DisposeAsync().ConfigureAwait(false); }
+        catch
+        {
+            // Cleanup must not be skipped because the request was cancelled: the release is
+            // shared evidence as soon as any snapshot records its digest - including one a
+            // concurrent request registered while this one held the lock.
+            var referenced = await IsReferencedAsync(request.ApplicationId, sequenceNumber, capture.ManifestDigest)
+                .ConfigureAwait(false);
+            await capture.DiscardAsync(removePublishedDirectory: !referenced).ConfigureAwait(false);
+            throw;
+        }
+        finally
+        {
+            if (heldLock is not null) await heldLock.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
-    private async Task<FinalizationResult> FinalizeUnderLockAsync(FinalizeSequenceRequest request,
-        CancellationToken cancellationToken)
+    // Read under the application lock on the failure path, so a snapshot committed by a
+    // concurrent request for the same digest is visible before any directory is removed.
+    // Deliberately not cancellable: this decides whether cleanup may delete committed
+    // evidence, and a cancelled read must not answer "no".
+    private async Task<bool> IsReferencedAsync(Guid applicationId, string sequenceNumber, string manifestDigest)
     {
-        var currentRevision = await revisions.GetRevisionAsync(request.ApplicationId, request.SequenceNumber.Trim(), cancellationToken)
+        var snapshots = await store.ListBySequenceAsync(applicationId, sequenceNumber, CancellationToken.None)
             .ConfigureAwait(false);
-        if (currentRevision is null)
-            throw new FinalizationNotFoundException($"Sequence {request.SequenceNumber} does not exist on application {request.ApplicationId}.");
-        if (currentRevision != request.ExpectedRevision)
-            throw new WorkspaceRevisionConflictException(request.ExpectedRevision, currentRevision.Value);
-
-        var run = await packageValidationStore.GetRunAsync(request.PackageValidationRunId, cancellationToken).ConfigureAwait(false)
-            ?? throw new FinalizationNotAuthorizedException("The referenced package validation run does not exist.");
-        if (run.ApplicationId != request.ApplicationId ||
-            !string.Equals(run.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal))
-            throw new FinalizationNotAuthorizedException("The referenced validation run belongs to a different application or sequence.");
-        if (run.Status != ValidationRunStatus.Completed || run.ReportSha256 is null)
-            throw new FinalizationNotAuthorizedException("Only a completed validation run can be finalized.");
-        // The manifest digest the operator selected must be the exact package the report
-        // validated. A matching application/sequence is not enough: a different package
-        // for the same sequence is still a different input.
-        if (!string.Equals(run.Binding.InputManifestDigest, request.ManifestDigest, StringComparison.Ordinal))
-            throw new FinalizationNotAuthorizedException("The selected manifest digest is not the exact package validated by this run.");
-        if (!string.Equals(run.Binding.HistoryBaselineDigest, request.HistoryBaselineDigest, StringComparison.Ordinal))
-            throw new FinalizationNotAuthorizedException("The requested history baseline is not the baseline validated by this run.");
-        if (!string.Equals(run.Binding.ProfileSnapshotId, request.StandardsProfileSnapshotId.Trim(), StringComparison.Ordinal))
-            throw new FinalizationNotAuthorizedException("The requested standards snapshot is not the profile validated by this run.");
-
-        var reportJson = await packageValidationStore.GetReportJsonAsync(run.Id, cancellationToken).ConfigureAwait(false)
-            ?? throw new FinalizationNotAuthorizedException("The validation run has no readable archived report.");
-        // Only the report's own recorded outcome is used. The JSON is parsed rather than
-        // reinterpreting the run: readiness and blocking reasons must be the archived
-        // facts, never a fresh evaluation from today's rules.
-        using var reportDocument = JsonDocument.Parse(reportJson);
-        var reportRoot = reportDocument.RootElement;
-        if (reportRoot.GetProperty("schemaVersion").GetInt32() != 1 ||
-            !string.Equals(reportRoot.GetProperty("runStatus").GetString(), "Completed", StringComparison.Ordinal))
-            throw new FinalizationNotAuthorizedException("The archived report is not a completed schema-1 report.");
-        var reportReady = reportRoot.GetProperty("isReadyForFinalization").GetBoolean();
-        var reportReasons = reportRoot.GetProperty("blockingReasons").EnumerateArray()
-            .Select(reason => reason.GetString() ?? string.Empty).ToArray();
-        // A formal snapshot is authorization to deliver; the service refuses an
-        // unready formal report here instead of surfacing a domain argument error.
-        if (run.Binding.ValidationMode == PackageValidationMode.Formal && !reportReady)
-            throw new FinalizationNotAuthorizedException(
-                "A formal finalization requires a report that is ready for finalization: " + string.Join(" | ", reportReasons));
-
-        var sequence = FinalizedSequence.Create(request.ApplicationId, request.SequenceNumber.Trim(),
-            request.ExpectedRevision, request.ManifestDigest, request.StandardsProfileSnapshotId, request.IchEctdVersion,
-            request.RegionalModule1Version, request.HistoryBaselineDigest, run.Id, run.Binding.InputManifestDigest,
-            run.ReportSha256, run.Binding.ValidationMode, reportReady, reportReasons, ToolVersion,
-            request.IdempotencyKey, DateTime.UtcNow);
-        var registered = await store.RegisterAsync(sequence, cancellationToken).ConfigureAwait(false);
-        return new FinalizationResult(registered.Sequence, registered.Created);
+        return snapshots.Any(snapshot => string.Equals(snapshot.ManifestDigest, manifestDigest, StringComparison.Ordinal));
     }
 
     public async Task<IReadOnlyList<FinalizedSequence>> ListAsync(Guid applicationId, string sequenceNumber,
@@ -99,6 +101,16 @@ public sealed class FinalizationService(
     public async Task<FinalizedSequence> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
         await store.GetAsync(id, cancellationToken).ConfigureAwait(false)
         ?? throw new FinalizationNotFoundException($"Finalized sequence {id} was not found.");
+
+    // The captured manifest is read from disk and re-verified against the snapshot's
+    // recorded digest. A snapshot whose bytes are missing or edited is an error, never a
+    // silently partial answer.
+    public async Task<ReleaseManifest> GetManifestAsync(Guid finalizedSequenceId,
+        CancellationToken cancellationToken = default)
+    {
+        var snapshot = await GetAsync(finalizedSequenceId, cancellationToken).ConfigureAwait(false);
+        return await captures.ReadManifestAsync(snapshot, cancellationToken).ConfigureAwait(false);
+    }
 
     public async Task<DeliveryRecord> RegisterDeliveryAsync(Guid finalizedSequenceId, string packageSha256, string channel,
         string? externalReference, string? note, string recordedBy, CancellationToken cancellationToken = default)
@@ -125,14 +137,13 @@ public sealed class FinalizationService(
         return receipt;
     }
 
-    // Replaying an idempotency key returns the committed snapshot only when every
-    // request claim matches; a changed request must never silently reuse old content.
+    // Replaying an idempotency key returns the committed snapshot only when every request
+    // claim matches; a changed request must never silently reuse old content.
     private static FinalizationResult Replay(FinalizedSequence existing, FinalizeSequenceRequest request)
     {
         if (existing.ApplicationId != request.ApplicationId ||
             !string.Equals(existing.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal) ||
             existing.SourceWorkspaceRevision != request.ExpectedRevision ||
-            !string.Equals(existing.ManifestDigest, request.ManifestDigest, StringComparison.Ordinal) ||
             !string.Equals(existing.StandardsProfileSnapshotId, request.StandardsProfileSnapshotId.Trim(), StringComparison.Ordinal) ||
             // The stored value is trimmed; compare the normalized request so surrounding
             // whitespace cannot turn an identical retry into a conflict.

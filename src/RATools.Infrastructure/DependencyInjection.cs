@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.Configure<DeploymentOptions>(configuration.GetSection(DeploymentOptions.SectionName));
         services.Configure<ValidationProfileOptions>(configuration.GetSection(ValidationProfileOptions.SectionName));
         services.AddSingleton<IBackboneFileWriter, LocalBackboneFileWriter>();
+        services.AddSingleton<RATools.Application.Finalization.IReleaseCaptureStore, LocalReleaseCaptureStore>();
         services.AddSingleton<IPublishArtifactStore, LocalPublishArtifactStore>();
         services.AddSingleton<IPdfInspector, PdfPigPdfInspector>();
         services.AddSingleton<IPublishJobQueue, ChannelPublishJobQueue>();

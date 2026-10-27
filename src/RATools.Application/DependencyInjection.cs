@@ -71,6 +71,10 @@ public static class DependencyInjection
         services.AddSingleton<PublishArtifactResolver>();
         services.AddSingleton<PublishReportStore>();
         services.AddScoped<IPublishJobService, PublishJobService>();
+        services.AddScoped<RATools.Application.Finalization.IReleaseCapturePlanner,
+            RATools.Application.Finalization.EctdReleaseCapturePlanner>();
+        services.AddScoped<RATools.Application.Finalization.IFinalizationCaptureProvider,
+            RATools.Application.Finalization.ReleaseCaptureService>();
         services.AddScoped<RATools.Application.Finalization.FinalizationService>();
         services.AddScoped<RATools.Application.Assembly.AssemblyPlanner>();
         services.AddScoped<RATools.Application.Assembly.AssemblyExecutor>();

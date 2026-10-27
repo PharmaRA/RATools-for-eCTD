@@ -396,7 +396,6 @@ export type FinalizationResult = {
 export type FinalizeSequenceBody = {
     expectedRevision: number;
     packageValidationRunId: string;
-    manifestDigest: string;
     standardsProfileSnapshotId: string;
     ichEctdVersion: string;
     regionalModule1Version: string | null;
@@ -765,6 +764,98 @@ export type RegisterReceiptBody = {
     recordedBy: string;
 };
 
+export type ReleaseFileKind = 0 | 1;
+
+export type ReleaseHistoryReference = {
+    sequenceNumber: string;
+    sourceKind: string;
+    sourceId: string;
+    contentDigest: string;
+    profileSnapshotId: string;
+    trustStatus: string;
+    validationRunId: string | null;
+    finalizedSequenceId: string | null;
+};
+
+export type ReleaseLifecycleEdge = {
+    sourceLeafId: string;
+    operation: string;
+    targetSequenceNumber: string;
+    targetBackboneRelativePath: string;
+    targetLeafId: string;
+    targetContentDigest: string | null;
+};
+
+export type ReleaseManifest = {
+    readonly schemaVersion: number;
+    applicationId: string;
+    sequenceNumber: string;
+    sourceWorkspaceRevision: number;
+    createdByToolVersion: string;
+    validatedInputManifestDigest: string;
+    historyBaselineDigest: string;
+    historyBaseline: unknown;
+    readonly historyReferences: Array<ReleaseHistoryReference>;
+    validation: ReleaseValidationReference;
+    assets: Array<ReleaseManifestAsset>;
+    files: Array<ReleaseManifestFile>;
+    lifecycle: Array<ReleaseLifecycleEdge>;
+    leaves: Array<ReleaseManifestLeaf>;
+    nodes: Array<ReleaseManifestNode>;
+    readonly digest: string;
+};
+
+export type ReleaseManifestAsset = {
+    key: string;
+    category: string;
+    version: string;
+    path: string;
+    sha256: string;
+};
+
+export type ReleaseManifestFile = {
+    relativePath: string;
+    length: number;
+    sha256: string;
+    md5: string;
+    kind: ReleaseFileKind;
+};
+
+export type ReleaseManifestLeaf = {
+    placementId: string;
+    documentId: string;
+    leafId: string;
+    ctdSection: string;
+    operation: string;
+    href: string;
+    nodeInstanceId: string | null;
+    sortOrder: number;
+};
+
+export type ReleaseManifestNode = {
+    nodeInstanceId: string;
+    parentInstanceId: string | null;
+    definitionKey: string;
+    definitionVersion: string;
+    title: string | null;
+    sortOrder: number;
+    metadataStatus: string;
+    attributes: {
+        [key: string]: string;
+    };
+};
+
+export type ReleaseValidationReference = {
+    reportSha256: string;
+    validationMode: string;
+    standardsProfileSnapshotId: string;
+    ichEctdVersion: string;
+    regionalModule1Version: string | null;
+    rulesDigest: string;
+    engineVersion: string;
+    comparisonInputDigest: string | null;
+};
+
 export type ResolveDirectoryRequestBody = {
     path: string;
 };
@@ -1049,6 +1140,22 @@ export type FinalizationResultWritable = {
 
 export type FinalizedSequenceWritable = {
     validationMode: PackageValidationMode;
+};
+
+export type ReleaseManifestWritable = {
+    applicationId: string;
+    sequenceNumber: string;
+    sourceWorkspaceRevision: number;
+    createdByToolVersion: string;
+    validatedInputManifestDigest: string;
+    historyBaselineDigest: string;
+    historyBaseline: unknown;
+    validation: ReleaseValidationReference;
+    assets: Array<ReleaseManifestAsset>;
+    files: Array<ReleaseManifestFile>;
+    lifecycle: Array<ReleaseLifecycleEdge>;
+    leaves: Array<ReleaseManifestLeaf>;
+    nodes: Array<ReleaseManifestNode>;
 };
 
 export type ValidationReportWritable = {
@@ -1753,6 +1860,33 @@ export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizat
 };
 
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizationsResponses];
+
+export type GetApiFinalizationsByIdManifestData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalizations/{id}/manifest';
+};
+
+export type GetApiFinalizationsByIdManifestErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiFinalizationsByIdManifestError = GetApiFinalizationsByIdManifestErrors[keyof GetApiFinalizationsByIdManifestErrors];
+
+export type GetApiFinalizationsByIdManifestResponses = {
+    /**
+     * OK
+     */
+    200: ReleaseManifest;
+};
+
+export type GetApiFinalizationsByIdManifestResponse = GetApiFinalizationsByIdManifestResponses[keyof GetApiFinalizationsByIdManifestResponses];
 
 export type GetApiFinalizationsByIdData = {
     body?: never;

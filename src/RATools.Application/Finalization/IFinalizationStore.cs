@@ -42,9 +42,10 @@ public interface IFinalizationStore
 
 // A snapshot request names a completed validation run whose archived report is the
 // readiness evidence for the exact captured content. Development runs may be archived as
-// incomplete snapshots; only a formal, ready report authorizes delivery records.
+// incomplete snapshots; only a formal, ready report authorizes delivery records. The
+// manifest digest is not part of the request: it is derived from the captured bytes.
 public sealed record FinalizeSequenceRequest(Guid ApplicationId, string SequenceNumber, long ExpectedRevision,
-    Guid PackageValidationRunId, string ManifestDigest, string StandardsProfileSnapshotId, string IchEctdVersion,
+    Guid PackageValidationRunId, string StandardsProfileSnapshotId, string IchEctdVersion,
     string? RegionalModule1Version, string HistoryBaselineDigest, string IdempotencyKey);
 
 public sealed record FinalizationResult(FinalizedSequence Sequence, bool Created);

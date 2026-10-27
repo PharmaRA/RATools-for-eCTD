@@ -147,15 +147,24 @@ Cancellation after commit returns the committed snapshot. Cleanup failure never
 turns a committed snapshot into a failed job or authorizes deleting its files.
 
 Document versions and snapshot payloads use independent copies under a controlled
-root, not links to mutable source files. Snapshot storage is internal:
+root, not links to mutable source files. Snapshot storage is internal and addressed
+by the manifest digest, so identical validated content is one release:
 
 ```text
-<application-output>/_releases/<sequence>/<snapshot-id>/
-  payload/<sequence>/...
-  manifest.json
-  validation-report.json
-  delivery-package.zip
+<application-output>/_releases/<sequence>/<manifest-digest>/
+  payload/<sequence>/...        delivered sequence content (documents, backbones,
+                                index-md5.txt, pinned util/dtd and util/style assets)
+  manifest.json                 files + hashes, standards, history, validation evidence
+  validation-report.json        archived report bytes bound by the snapshot
+  delivery-package.zip          payload/ only (the manifest is not inside itself)
 ```
+
+The manifest digest is computed by the server from the captured bytes and the
+evidence they were validated against. A request cannot choose it. Every capture
+re-hashes what it writes, so a source that changes between planning and copying is
+refused, and every delivered document must match the validation run's captured
+input manifest. Reading a stored manifest recomputes its digest; a missing or edited
+release is a conflict, never a partial snapshot.
 
 External packages contain only the selected profile's regulatory layout.
 Public APIs accept authorized artifact/workspace/version IDs; the server maps

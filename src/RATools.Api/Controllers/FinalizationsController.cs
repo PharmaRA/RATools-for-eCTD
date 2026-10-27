@@ -20,13 +20,24 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
     {
         try
         {
+            // The captured manifest digest is not accepted from the caller: finalization
+            // derives it from the bytes it captures and refuses a workspace that no longer
+            // matches the validated input.
             var result = await service.FinalizeAsync(new FinalizeSequenceRequest(applicationId, sequenceNumber,
-                body.ExpectedRevision, body.PackageValidationRunId, body.ManifestDigest, body.StandardsProfileSnapshotId,
+                body.ExpectedRevision, body.PackageValidationRunId, body.StandardsProfileSnapshotId,
                 body.IchEctdVersion, body.RegionalModule1Version, body.HistoryBaselineDigest, body.IdempotencyKey),
                 cancellationToken);
             return result.Created
                 ? CreatedAtAction(nameof(Get), new { id = result.Sequence.Id }, result)
                 : Ok(result);
+        }
+        catch (ReleaseCaptureSourceChangedException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_SOURCE_CHANGED", message = exception.Message });
+        }
+        catch (ReleaseCaptureConflictException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_RELEASE_CONFLICT", message = exception.Message });
         }
         catch (WorkspaceRevisionConflictException exception)
         {
@@ -52,6 +63,34 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
         catch (ArgumentException exception)
         {
             return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    // The captured manifest is the authoritative description of the delivered bytes: it is
+    // re-read from the release directory and re-verified against the snapshot's digest.
+    // Callers never pass a path, so no endpoint can read outside a known release.
+    [HttpGet("finalizations/{id:guid}/manifest")]
+    [ProducesResponseType(typeof(ReleaseManifest), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Manifest(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await service.GetManifestAsync(id, cancellationToken));
+        }
+        catch (FinalizationNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (ReleaseCaptureMissingException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content is missing",
+                detail: exception.Message);
+        }
+        catch (InvalidDataException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content was modified",
+                detail: exception.Message);
         }
     }
 
@@ -185,7 +224,7 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
     }
 }
 
-public sealed record FinalizeSequenceBody(long ExpectedRevision, Guid PackageValidationRunId, string ManifestDigest,
+public sealed record FinalizeSequenceBody(long ExpectedRevision, Guid PackageValidationRunId,
     string StandardsProfileSnapshotId, string IchEctdVersion, string? RegionalModule1Version,
     string HistoryBaselineDigest, string IdempotencyKey);
 

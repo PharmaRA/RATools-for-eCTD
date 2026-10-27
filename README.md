@@ -518,12 +518,20 @@ Independent package validation uses a separate queue and storage:
 Finalization records the identity of what was actually validated:
 
 - `POST /api/applications/{id}/sequences/{seq}/finalizations` requires the expected workspace
-  revision, a completed validation run, and that run's exact manifest, history baseline and
-  profile. Readiness and blocking reasons come from the archived report; a formal snapshot
-  requires a ready report, so no current development profile authorizes delivery.
+  revision, a completed validation run, and that run's exact history baseline and profile.
+  Readiness and blocking reasons come from the archived report; a formal snapshot requires a
+  ready report, so no current development profile authorizes delivery.
+- The snapshot's manifest digest is **derived, not accepted**: finalization copies the
+  deliverable into `<application-output>/_releases/<sequence>/<manifestDigest>/` (independent
+  bytes under `payload/`, generated backbones and `index-md5.txt`, the pinned standards DTDs,
+  the archived `validation-report.json` and a `delivery-package.zip` over the payload) and
+  records the digest of the resulting `manifest.json`. Every delivered document must still
+  match the bytes the validation run captured; a workspace edited after validation is refused.
 - `GET /api/finalizations/{id}` and `GET /api/applications/{id}/sequences/{seq}/finalized-versions`
-  return immutable snapshots. A replay with the same idempotency key returns the committed
-  snapshot; changed content conflicts, and one snapshot exists per content digest.
+  return immutable snapshots; `GET /api/finalizations/{id}/manifest` re-reads the captured
+  manifest and re-verifies it against the snapshot digest (missing or edited evidence is
+  `409`). A replay with the same idempotency key returns the committed snapshot; changed
+  content conflicts, and identical content is one snapshot and one release directory.
 - Once a sequence has a finalized snapshot, every draft write (nodes, publishing metadata,
   upload, placement, rename, move, delete, bulk assembly) is refused with `409 WorkspaceFinalized`
   naming the snapshot and its revision. `GET .../workspace` reports the same state as

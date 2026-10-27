@@ -35,6 +35,13 @@ Semantic Versioning, and release dates use ISO 8601.
   and becomes editable only through `POST /api/finalized-sequences/{id}/draft-revisions`,
   an idempotent continuation that is unique per snapshot and records the source revision.
   Sequences and applications with finalized evidence refuse draft-path deletion.
+- Immutable release capture (P4-02/P4-03): finalization copies the deliverable into
+  `_releases/<sequence>/<manifest-digest>/` with an independent payload, the pinned
+  standards assets, the archived report and a delivery package, and records a manifest
+  digest it derives from those bytes instead of accepting one from the caller. Each
+  delivered document is verified against the validation run's captured input, each copy
+  is re-hashed while it is written, and `GET /api/finalizations/{id}/manifest` re-verifies
+  the stored manifest against the snapshot.
 
 ### Changed
 
