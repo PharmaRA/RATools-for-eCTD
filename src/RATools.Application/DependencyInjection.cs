@@ -25,6 +25,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IPersistenceTransaction, PassthroughPersistenceTransaction>();
+        services.AddScoped<RATools.Application.Finalization.FinalizedWorkspaceGuard>();
+        services.AddScoped<RATools.Application.Finalization.FinalizationDraftService>();
         services.AddScoped<WorkspaceMutationCoordinator>();
         services.AddScoped<WorkspaceSnapshotService>();
         services.AddScoped<RATools.Application.Ctd.CtdNodeService>();

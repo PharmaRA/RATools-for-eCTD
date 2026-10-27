@@ -127,8 +127,86 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
         var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => context.GetService<
             Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync("20261018042240_AddPackageValidationProjection"));
         Assert.Equal("55000", error.SqlState);
+        // EF applies each migration's Down independently: the newer, unguarded draft
+        // migration was already reverted before the snapshot guard aborted the downgrade.
+        // Restore the shared test database before asserting that it is current again.
+        await context.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync();
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
         Assert.NotNull(await store.GetAsync((await store.ListBySequenceAsync(applicationId, sequenceNumber))[0].Id));
+    }
+
+    [RequiresPostgresFact]
+    public async Task DraftContinuationIsUniquePerSnapshotAndRefusesDowngrade()
+    {
+        var applicationId = Guid.NewGuid();
+        var sequenceNumber = UniqueSequence();
+        var run = await SeedCompletedRunAsync(applicationId, sequenceNumber);
+        var snapshot = Snapshot(applicationId, sequenceNumber, run.Id, run.Binding);
+        var draft = FinalizedDraftRevision.Create(snapshot.Id, applicationId, sequenceNumber,
+            snapshot.SourceWorkspaceRevision, snapshot.SourceWorkspaceRevision + 1, "draft-" + sequenceNumber, Now);
+        await using (var append = fixture.CreateDbContext())
+        {
+            var store = new EfCoreFinalizationStore(append);
+            await store.RegisterAsync(snapshot);
+            Assert.Equal(draft.Id, (await store.AppendDraftAsync(draft)).Id);
+        }
+        await using (var replay = fixture.CreateDbContext())
+        {
+            var store = new EfCoreFinalizationStore(replay);
+            // Outside an ambient transaction, both unique keys resolve to the committed
+            // row: an exact key replay and a competing continuation of the same snapshot
+            // must not create a second row.
+            Assert.Equal(draft.Id, (await store.AppendDraftAsync(FinalizedDraftRevision.Create(snapshot.Id,
+                applicationId, sequenceNumber, snapshot.SourceWorkspaceRevision, snapshot.SourceWorkspaceRevision + 1,
+                "draft-" + sequenceNumber, Now.AddMinutes(1)))).Id);
+            Assert.Equal(draft.Id, (await store.AppendDraftAsync(FinalizedDraftRevision.Create(snapshot.Id,
+                applicationId, sequenceNumber, snapshot.SourceWorkspaceRevision, snapshot.SourceWorkspaceRevision + 2,
+                "other-draft-" + sequenceNumber, Now.AddMinutes(2)))).Id);
+            var loaded = await store.FindDraftAsync(snapshot.Id);
+            Assert.NotNull(loaded);
+            Assert.Equal(draft.Digest, loaded!.Digest);
+            Assert.Equal("draft-" + sequenceNumber, loaded.IdempotencyKey);
+        }
+        await using (var transactional = fixture.CreateDbContext())
+        {
+            var store = new EfCoreFinalizationStore(transactional);
+            // Inside the coordinator's transaction PostgreSQL aborts on the violation;
+            // the conflict must be classified, not surfaced as a database 500.
+            var duplicateKey = FinalizedDraftRevision.Create(snapshot.Id, applicationId, sequenceNumber,
+                snapshot.SourceWorkspaceRevision, snapshot.SourceWorkspaceRevision + 1, "another-key-" + sequenceNumber,
+                Now.AddMinutes(3));
+            await Assert.ThrowsAsync<FinalizationDraftAlreadyOpenException>(() =>
+                new EfCorePersistenceTransaction(transactional).ExecuteAsync(
+                    ct => store.AppendDraftAsync(duplicateKey, ct)));
+            Assert.Empty((await transactional.Database.GetPendingMigrationsAsync()).ToArray());
+
+            var otherSnapshot = Snapshot(applicationId, UniqueSequence(), run.Id, run.Binding,
+                key: "transactional-" + sequenceNumber);
+            await store.RegisterAsync(otherSnapshot);
+            var reused = FinalizedDraftRevision.Create(otherSnapshot.Id, applicationId, otherSnapshot.SequenceNumber,
+                otherSnapshot.SourceWorkspaceRevision, otherSnapshot.SourceWorkspaceRevision + 1,
+                "draft-" + sequenceNumber, Now.AddMinutes(4));
+            await Assert.ThrowsAsync<FinalizationIdempotencyConflictException>(() =>
+                new EfCorePersistenceTransaction(transactional).ExecuteAsync(
+                    ct => store.AppendDraftAsync(reused, ct)));
+        }
+        await using var downgrade = fixture.CreateDbContext();
+        try
+        {
+            var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => downgrade.GetService<
+                Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync("20261018071412_RefineFinalizationUniqueness"));
+            Assert.Equal("55000", error.SqlState);
+            await downgrade.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync();
+            Assert.Empty(await downgrade.Database.GetPendingMigrationsAsync());
+            Assert.NotNull(await new EfCoreFinalizationStore(downgrade).FindDraftAsync(snapshot.Id));
+        }
+        finally
+        {
+            // Drafts are guarded evidence on downgrade; remove this test's row so later
+            // downgrade tests in the shared database exercise their own guard.
+            await downgrade.Set<FinalizedDraftRevisionRecord>().Where(row => row.FinalizedSequenceId == snapshot.Id)
+                .ExecuteDeleteAsync();
+        }
     }
 
     private async Task<PackageValidationRun> SeedCompletedRunAsync(Guid applicationId, string sequenceNumber)

@@ -1,16 +1,19 @@
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Documents;
 using RATools.Application.Documents.Dtos;
+using RATools.Application.Finalization;
 
 namespace RATools.Application.Workspaces;
 
+// Finalization makes the displayed draft read-only until an explicit continuation
+// exists. The client must not have to infer that from a failed edit.
 public sealed record WorkspaceSnapshotDto(Guid ApplicationId, string SequenceNumber, long WorkspaceRevision,
     IReadOnlyCollection<DocumentPlacementDto> Placements, IReadOnlyCollection<DocumentDto> Documents,
-    RATools.Application.Ctd.CtdNodeTreeDto? NodeTree = null);
+    RATools.Application.Ctd.CtdNodeTreeDto? NodeTree = null, WorkspaceFinalizationState? Finalization = null);
 
 public sealed class WorkspaceSnapshotService(IWorkspaceRevisionStore revisions,
     IDocumentPlacementService placements, IDocumentService documents, RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null,
-    ICtdNodeRepository? nodes = null)
+    ICtdNodeRepository? nodes = null, FinalizedWorkspaceGuard? finalization = null)
 {
     public async Task<WorkspaceSnapshotDto?> GetAsync(Guid applicationId, string sequenceNumber,
         CancellationToken cancellationToken = default)
@@ -24,7 +27,8 @@ public sealed class WorkspaceSnapshotService(IWorkspaceRevisionStore revisions,
         var applicationPlacements = await placements.ListByApplicationAsync(applicationId, cancellationToken);
         var applicationDocuments = await documents.ListByApplicationAsync(applicationId, null, cancellationToken);
         var nodeWorkspace = nodes is null ? null : await nodes.GetSequenceAsync(applicationId, sequenceNumber, cancellationToken);
+        var state = finalization is null ? null : await finalization.GetStateAsync(applicationId, sequenceNumber, cancellationToken);
         return new WorkspaceSnapshotDto(applicationId, sequenceNumber, revision.Value, applicationPlacements, applicationDocuments,
-            nodeWorkspace is null ? null : RATools.Application.Ctd.CtdNodeService.Project(nodeWorkspace));
+            nodeWorkspace is null ? null : RATools.Application.Ctd.CtdNodeService.Project(nodeWorkspace), state);
     }
 }

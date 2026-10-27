@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Finalization;
 using RATools.Application.Workspaces;
 using RATools.Domain.Applications;
 
@@ -10,13 +11,19 @@ public sealed class ApplicationDeletionCoordinator(
     IDocumentPlacementRepository placementRepository,
     IPublishJobRepository publishJobRepository,
     IWorkspaceDeletionService workspaceDeletionService,
-    IApplicationDeletionTransaction transaction) : IApplicationDeletionCoordinator
+    IApplicationDeletionTransaction transaction,
+    IFinalizationStore? finalizations = null) : IApplicationDeletionCoordinator
 {
     public async Task DeleteApplicationAsync(
         SubmissionApplication application,
         ApplicationDeleteMode deleteMode,
         CancellationToken cancellationToken = default)
     {
+        // Finalized snapshots and their delivery evidence are the record of what was
+        // submitted; the ordinary draft-deletion path must not orphan them.
+        if (finalizations is not null && await finalizations.AnyByApplicationAsync(application.Id, null, cancellationToken))
+            throw new ApplicationDeleteConflictException(
+                $"Application {application.Id} has finalized sequence evidence and cannot be deleted through the draft path.");
         var workspacePath = application.WorkingDirectoryPath;
         var purgePaths = new List<string>();
 
@@ -67,6 +74,10 @@ public sealed class ApplicationDeletionCoordinator(
         {
             return false;
         }
+
+        if (finalizations is not null && await finalizations.AnyByApplicationAsync(application.Id, sequenceNumber, cancellationToken))
+            throw new SequenceDeleteConflictException(
+                $"Sequence {sequenceNumber} has finalized evidence and cannot be deleted through the draft path.");
 
         var workspacePath = application.WorkingDirectoryPath;
         var purgePaths = new List<string>();

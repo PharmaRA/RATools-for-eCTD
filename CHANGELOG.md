@@ -30,6 +30,11 @@ Semantic Versioning, and release dates use ISO 8601.
 - Preview-first bulk assembly from a bounded RFC 4180 CSV: every row is resolved
   against an explicit workspace revision with full diagnostics, and execution
   requires the previewed plan digest.
+- Finalized write boundary (P4-07): a sequence with a finalized snapshot rejects every
+  draft write with `409 WorkspaceFinalized`, reports the state on the workspace snapshot,
+  and becomes editable only through `POST /api/finalized-sequences/{id}/draft-revisions`,
+  an idempotent continuation that is unique per snapshot and records the source revision.
+  Sequences and applications with finalized evidence refuse draft-path deletion.
 
 ### Changed
 

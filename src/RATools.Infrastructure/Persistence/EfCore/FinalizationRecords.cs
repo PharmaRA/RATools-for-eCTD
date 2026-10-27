@@ -57,3 +57,19 @@ public sealed class DeliveryReceiptRow
     public string Digest { get; set; } = "";
     public int SchemaVersion { get; set; }
 }
+
+// The explicit continuation of one finalized snapshot. One row per snapshot; it records
+// which revision the operator continued from and is never rewritten.
+public sealed class FinalizedDraftRevisionRecord
+{
+    public Guid Id { get; set; }
+    public Guid FinalizedSequenceId { get; set; }
+    public Guid ApplicationId { get; set; }
+    public string SequenceNumber { get; set; } = "";
+    public long BaseWorkspaceRevision { get; set; }
+    public long WorkspaceRevision { get; set; }
+    public string IdempotencyKey { get; set; } = "";
+    public DateTime OpenedUtc { get; set; }
+    public string Digest { get; set; } = "";
+    public int SchemaVersion { get; set; }
+}

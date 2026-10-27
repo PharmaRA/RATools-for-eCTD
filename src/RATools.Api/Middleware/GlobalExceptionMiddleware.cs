@@ -47,6 +47,23 @@ public sealed partial class GlobalExceptionMiddleware
                 location = context.Request.Path.Value
             });
         }
+        catch (RATools.Domain.Finalization.WorkspaceFinalizedException ex)
+        {
+            // A finalized sequence is a permanent, explicit boundary, not a stale client:
+            // the body names the snapshot and revision that must be continued.
+            if (context.Response.HasStarted) throw;
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = ex.Message,
+                code = "WorkspaceFinalized",
+                finalizedSequenceId = ex.FinalizedSequenceId,
+                sourceWorkspaceRevision = ex.SourceWorkspaceRevision,
+                traceId = context.TraceIdentifier,
+                location = context.Request.Path.Value
+            });
+        }
         catch (RATools.Domain.Ctd.CtdNodeConstraintException ex)
         {
             if (context.Response.HasStarted) throw;

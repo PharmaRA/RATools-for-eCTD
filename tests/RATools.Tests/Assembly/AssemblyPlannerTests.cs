@@ -1,9 +1,13 @@
 using RATools.Application.Assembly;
 using RATools.Application.Documents;
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Finalization;
+using RATools.Application.PackageValidation;
 using RATools.Domain.Applications;
 using RATools.Domain.Ctd;
 using RATools.Domain.Documents;
+using RATools.Domain.Finalization;
+using RATools.Domain.PackageValidation;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Application.Persistence;
 using RATools.Application.Ctd;
@@ -120,6 +124,27 @@ public sealed class AssemblyPlannerTests
         Assert.Empty(await fixture.Placements.ListBySequenceAsync(fixture.ApplicationId, "0001"));
     }
 
+    [Fact]
+    public async Task ExecuteRefusesAFinalizedSequenceWithoutAContinuationDraft()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var finalizations = new InMemoryFinalizationStore();
+        await finalizations.RegisterAsync(FinalizedSequence.Create(fixture.ApplicationId, "0001", fixture.Revision,
+            new string('c', 64), PackageValidationCatalog.UsProfile, "3.2.2", null, new string('d', 64), Guid.NewGuid(),
+            new string('e', 64), new string('f', 64), PackageValidationMode.Development, false, [],
+            FinalizationService.ToolVersion, "assembly-boundary", DateTime.UtcNow));
+        var guarded = new AssemblyExecutor(fixture.Planner, fixture.Placements, fixture.Nodes, fixture.Revisions,
+            new PassthroughPersistenceTransaction(), new FinalizedWorkspaceGuard(finalizations));
+        var csv = $"documentId,nodeInstanceId,operation\n{fixture.DocumentId},{fixture.LeafNodeId},new";
+        var plan = await fixture.Planner.PlanAsync(fixture.ApplicationId, "0001", fixture.Revision, csv);
+        // The plan previews fine; only execution is a write and must be refused. The
+        // sequence revision must not advance and no placement may be created.
+        await Assert.ThrowsAsync<WorkspaceFinalizedException>(() => guarded.ExecuteAsync(
+            fixture.ApplicationId, "0001", fixture.Revision, plan.PlanDigest, csv));
+        Assert.Equal(fixture.Revision, await fixture.Revisions.GetRevisionAsync(fixture.ApplicationId, "0001"));
+        Assert.Empty(await fixture.Placements.ListBySequenceAsync(fixture.ApplicationId, "0001"));
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly NodeImportWorkspace _workspace = new();
@@ -133,6 +158,7 @@ public sealed class AssemblyPlannerTests
         public InMemoryDocumentRepository Documents => (InMemoryDocumentRepository)_workspace.Documents;
         public ImportFaultingPlacements Placements => _workspace.Placements;
         public IWorkspaceRevisionStore Revisions => _workspace.Revisions;
+        public ICtdNodeRepository Nodes => _workspace.Nodes;
         public AssemblyPlanner Planner { get; }
         public AssemblyExecutor Executor { get; }
 

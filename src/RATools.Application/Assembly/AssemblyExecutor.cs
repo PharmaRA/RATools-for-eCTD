@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Finalization;
 using RATools.Domain.Documents;
 
 namespace RATools.Application.Assembly;
@@ -12,7 +13,8 @@ public sealed class AssemblyExecutor(
     IDocumentPlacementRepository placementRepository,
     ICtdNodeRepository nodeRepository,
     IWorkspaceRevisionStore revisions,
-    IPersistenceTransaction transactions)
+    IPersistenceTransaction transactions,
+    FinalizedWorkspaceGuard? finalization = null)
 {
     public async Task<AssemblyExecutionResult> ExecuteAsync(Guid applicationId, string sequenceNumber,
         long expectedRevision, string planDigest, string csv, CancellationToken cancellationToken = default)
@@ -32,6 +34,10 @@ public sealed class AssemblyExecutor(
         var lockScope = await revisions.LockApplicationAsync(applicationId, cancellationToken).ConfigureAwait(false);
         try
         {
+            // Bulk assembly is an ordinary draft write: finalized content must stay frozen
+            // until an explicit continuation exists.
+            if (finalization is not null)
+                await finalization.EnsureEditableAsync(applicationId, sequenceNumber, cancellationToken).ConfigureAwait(false);
             return await transactions.ExecuteAsync(async ct =>
             {
                 var current = await revisions.GetRevisionAsync(applicationId, sequenceNumber, ct).ConfigureAwait(false);

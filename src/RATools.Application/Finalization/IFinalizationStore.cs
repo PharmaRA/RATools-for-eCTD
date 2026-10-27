@@ -15,6 +15,23 @@ public interface IFinalizationStore
     Task<FinalizedSequence?> FindByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FinalizedSequence>> ListBySequenceAsync(Guid applicationId, string sequenceNumber,
         CancellationToken cancellationToken = default);
+    // The newest snapshot for a sequence: the boundary that decides whether editing is
+    // still allowed and which snapshot a new draft continues.
+    Task<FinalizedSequence?> LatestBySequenceAsync(Guid applicationId, string sequenceNumber,
+        CancellationToken cancellationToken = default);
+    // Retention guard: a sequence (or application) that owns finalized evidence cannot be
+    // deleted through the ordinary draft-deletion path.
+    Task<bool> AnyByApplicationAsync(Guid applicationId, string? sequenceNumber = null,
+        CancellationToken cancellationToken = default);
+
+    // A snapshot can continue in at most one draft; the store enforces this for
+    // concurrent requests, and the finder drives both the write boundary and replay.
+    Task<FinalizedDraftRevision?> FindDraftAsync(Guid finalizedSequenceId,
+        CancellationToken cancellationToken = default);
+    Task<FinalizedDraftRevision?> FindDraftByIdempotencyKeyAsync(string idempotencyKey,
+        CancellationToken cancellationToken = default);
+    Task<FinalizedDraftRevision> AppendDraftAsync(FinalizedDraftRevision draft,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<DeliveryRecord>> ListDeliveriesAsync(Guid finalizedSequenceId, CancellationToken cancellationToken = default);
     Task AppendDeliveryAsync(DeliveryRecord record, CancellationToken cancellationToken = default);
@@ -41,3 +58,7 @@ public sealed class FinalizationSnapshotExistsException(Guid finalizedSequenceId
     : InvalidOperationException($"Sequence content is already finalized as snapshot {finalizedSequenceId}; create a new draft revision to change it.");
 
 public sealed class FinalizationNotFoundException(string message) : KeyNotFoundException(message);
+
+public sealed record FinalizationDraftRequest(Guid FinalizedSequenceId, long ExpectedRevision, string IdempotencyKey);
+
+public sealed record FinalizationDraftResult(FinalizedDraftRevision Draft, bool Created);

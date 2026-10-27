@@ -10,7 +10,8 @@ namespace RATools.Api.Controllers;
 // immutable: corrections are new delivery/receipt rows.
 [ApiController]
 [Route("api")]
-public sealed class FinalizationsController(FinalizationService service, IFinalizationStore store) : ControllerBase
+public sealed class FinalizationsController(FinalizationService service, IFinalizationStore store,
+    FinalizationDraftService drafts) : ControllerBase
 {
     [HttpPost("applications/{applicationId:guid}/sequences/{sequenceNumber}/finalizations")]
     [ProducesResponseType(typeof(FinalizationResult), StatusCodes.Status201Created)]
@@ -63,6 +64,59 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
     [ProducesResponseType(typeof(IReadOnlyList<FinalizedSequence>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken) =>
         Ok(await store.ListBySequenceAsync(applicationId, sequenceNumber.Trim(), cancellationToken));
+
+    // The explicit continuation of a finalized version. Every workspace write stays
+    // refused until this has succeeded; it records which snapshot the new edits follow.
+    [HttpPost("finalized-sequences/{id:guid}/draft-revisions")]
+    [ProducesResponseType(typeof(FinalizationDraftResult), StatusCodes.Status201Created)]
+    public async Task<IActionResult> OpenDraft(Guid id, [FromBody] OpenDraftBody body, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await drafts.OpenAsync(new FinalizationDraftRequest(id, body.ExpectedRevision, body.IdempotencyKey),
+                cancellationToken);
+            return result.Created
+                ? CreatedAtAction(nameof(Draft), new { id }, result)
+                : Ok(result);
+        }
+        catch (FinalizationDraftRequiresLatestException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_DRAFT_REQUIRES_LATEST", message = exception.Message,
+                latestFinalizedSequenceId = exception.LatestFinalizedSequenceId });
+        }
+        catch (FinalizationDraftAlreadyOpenException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_DRAFT_ALREADY_OPEN", message = exception.Message,
+                workspaceRevision = exception.WorkspaceRevision });
+        }
+        catch (FinalizationIdempotencyConflictException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_IDEMPOTENCY_CONFLICT", message = exception.Message });
+        }
+        catch (WorkspaceRevisionConflictException exception)
+        {
+            return Conflict(new { code = "WorkspaceRevisionConflict", message = exception.Message,
+                expectedRevision = exception.ExpectedRevision, currentRevision = exception.CurrentRevision });
+        }
+        catch (FinalizationNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpGet("finalized-sequences/{id:guid}/draft-revisions")]
+    [ProducesResponseType(typeof(FinalizedDraftRevision), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Draft(Guid id, CancellationToken cancellationToken)
+    {
+        if (await store.GetAsync(id, cancellationToken) is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, detail: $"Finalized sequence {id} was not found.");
+        return await drafts.FindAsync(id, cancellationToken) is { } draft ? Ok(draft) : NotFound();
+    }
 
     [HttpGet("finalized-sequences/{id:guid}/deliveries")]
     [ProducesResponseType(typeof(IReadOnlyList<DeliveryRecord>), StatusCodes.Status200OK)]
@@ -134,6 +188,8 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
 public sealed record FinalizeSequenceBody(long ExpectedRevision, Guid PackageValidationRunId, string ManifestDigest,
     string StandardsProfileSnapshotId, string IchEctdVersion, string? RegionalModule1Version,
     string HistoryBaselineDigest, string IdempotencyKey);
+
+public sealed record OpenDraftBody(long ExpectedRevision, string IdempotencyKey);
 
 public sealed record RegisterDeliveryBody(string PackageSha256, string Channel, string? ExternalReference,
     string? Note, string RecordedBy);

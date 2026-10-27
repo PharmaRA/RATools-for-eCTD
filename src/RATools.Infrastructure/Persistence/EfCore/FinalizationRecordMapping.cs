@@ -78,4 +78,23 @@ internal static class FinalizationRecordMapping
     public static DeliveryReceipt ToDomain(this DeliveryReceiptRow row) => DeliveryReceipt.Rehydrate(row.Id,
         row.DeliveryRecordId, Enum.Parse<DeliveryReceiptKind>(row.Kind), row.Outcome, row.RawText, row.RawTextSha256,
         row.ExternalReference, row.RecordedBy, row.RecordedUtc, row.Digest, row.SchemaVersion);
+
+    public static FinalizedDraftRevisionRecord ToRecord(this FinalizedDraftRevision draft) => new()
+    {
+        Id = draft.Id,
+        FinalizedSequenceId = draft.FinalizedSequenceId,
+        ApplicationId = draft.ApplicationId,
+        SequenceNumber = draft.SequenceNumber,
+        BaseWorkspaceRevision = draft.BaseWorkspaceRevision,
+        WorkspaceRevision = draft.WorkspaceRevision,
+        IdempotencyKey = draft.IdempotencyKey,
+        OpenedUtc = draft.OpenedUtc,
+        Digest = draft.Digest,
+        SchemaVersion = draft.SchemaVersion
+    };
+
+    public static FinalizedDraftRevision ToDomain(this FinalizedDraftRevisionRecord row) =>
+        FinalizedDraftRevision.Rehydrate(row.Id, row.FinalizedSequenceId, row.ApplicationId, row.SequenceNumber,
+            row.BaseWorkspaceRevision, row.WorkspaceRevision, row.IdempotencyKey, row.OpenedUtc, row.Digest,
+            row.SchemaVersion);
 }

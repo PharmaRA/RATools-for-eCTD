@@ -40,13 +40,24 @@ public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext, NodeFile
         await using var applicationLock = await new EfCoreWorkspaceRevisionStore(dbContext)
             .LockApplicationAsync(graph.ApplicationId, cancellationToken);
         if (moveGuard is not null) await moveGuard.EnsureReadyAsync(graph.ApplicationId, cancellationToken);
+        // The guarded coordinator checks before this repository is called, but the actual
+        // write re-checks under the same lock: a finalization may have committed between
+        // the two calls and must not be overwritten by an already-authorized edit.
+        await EnsureEditableAsync(graph.ApplicationId, sequenceNumber, cancellationToken);
         return await new EfCorePersistenceTransaction(dbContext).ExecuteAsync(
             ct => SaveWithinTransactionAsync(graph, sequenceNumber, nodes, expectedRevision, ct), cancellationToken);
     }
 
+    // Applied inside an outer transaction too (import and backfill), so a legacy write
+    // cannot mutate a sequence whose latest finalization has no continuation draft.
+    private async Task EnsureEditableAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken) =>
+        await new RATools.Application.Finalization.FinalizedWorkspaceGuard(new EfCoreFinalizationStore(dbContext))
+            .EnsureEditableAsync(applicationId, sequenceNumber, cancellationToken).ConfigureAwait(false);
+
     internal async Task<long> SaveWithinTransactionAsync(CtdNodeGraph graph, string sequenceNumber, IReadOnlyCollection<SequenceNode> nodes,
         long expectedRevision, CancellationToken cancellationToken)
     {
+        await EnsureEditableAsync(graph.ApplicationId, sequenceNumber, cancellationToken).ConfigureAwait(false);
         if (dbContext.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Node writes require an explicit database transaction.");
         ArgumentOutOfRangeException.ThrowIfNegative(expectedRevision);

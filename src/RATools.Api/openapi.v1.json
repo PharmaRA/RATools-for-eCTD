@@ -2130,6 +2130,123 @@
         }
       }
     },
+    "/api/finalized-sequences/{id}/draft-revisions": {
+      "post": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDraftBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDraftBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDraftBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationDraftResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationDraftResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizationDraftResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Finalizations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedDraftRevision"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedDraftRevision"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizedDraftRevision"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/finalized-sequences/{id}/deliveries": {
       "get": {
         "tags": [
@@ -5412,6 +5529,22 @@
         },
         "additionalProperties": false
       },
+      "FinalizationDraftResult": {
+        "required": [
+          "created",
+          "draft"
+        ],
+        "type": "object",
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/FinalizedDraftRevision"
+          },
+          "created": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "FinalizationResult": {
         "required": [
           "created",
@@ -5467,6 +5600,71 @@
           },
           "idempotencyKey": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinalizedDraftRevision": {
+        "required": [
+          "applicationId",
+          "baseWorkspaceRevision",
+          "digest",
+          "finalizedSequenceId",
+          "id",
+          "idempotencyKey",
+          "openedUtc",
+          "schemaVersion",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "finalizedSequenceId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "sequenceNumber": {
+            "type": "string",
+            "readOnly": true
+          },
+          "baseWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "readOnly": true
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "readOnly": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "readOnly": true
+          },
+          "openedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "digest": {
+            "type": "string",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -5784,6 +5982,23 @@
             "type": "string"
           },
           "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OpenDraftBody": {
+        "required": [
+          "expectedRevision",
+          "idempotencyKey"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "idempotencyKey": {
             "type": "string"
           }
         },
@@ -7926,10 +8141,39 @@
         ],
         "type": "string"
       },
+      "WorkspaceFinalizationState": {
+        "required": [
+          "draftWorkspaceRevision",
+          "finalizedSequenceId",
+          "isEditable",
+          "sourceWorkspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "finalizedSequenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isEditable": {
+            "type": "boolean"
+          },
+          "draftWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WorkspaceSnapshotDto": {
         "required": [
           "applicationId",
           "documents",
+          "finalization",
           "nodeTree",
           "placements",
           "sequenceNumber",
@@ -7962,6 +8206,9 @@
           },
           "nodeTree": {
             "$ref": "#/components/schemas/CtdNodeTreeDto"
+          },
+          "finalization": {
+            "$ref": "#/components/schemas/WorkspaceFinalizationState"
           }
         },
         "additionalProperties": false

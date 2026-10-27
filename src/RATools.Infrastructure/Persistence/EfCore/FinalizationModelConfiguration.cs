@@ -58,6 +58,27 @@ internal static class FinalizationModelConfiguration
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<FinalizedDraftRevisionRecord>(entity =>
+        {
+            entity.ToTable("finalized_draft_revisions", table =>
+            {
+                table.HasCheckConstraint("CK_finalized_draft_schema", "\"SchemaVersion\" = 1");
+                table.HasCheckConstraint("CK_finalized_draft_revision",
+                    "\"BaseWorkspaceRevision\" >= 0 AND \"WorkspaceRevision\" > \"BaseWorkspaceRevision\"");
+            });
+            entity.HasKey(row => row.Id);
+            // One continuation per snapshot: two drafts would split the editable content
+            // of one delivered version.
+            entity.HasIndex(row => row.FinalizedSequenceId).IsUnique().HasDatabaseName("IX_finalized_draft_revisions_Snapshot");
+            entity.HasIndex(row => row.IdempotencyKey).IsUnique().HasDatabaseName("IX_finalized_draft_revisions_IdempotencyKey");
+            entity.HasIndex(row => new { row.ApplicationId, row.SequenceNumber, row.OpenedUtc });
+            entity.Property(row => row.SequenceNumber).HasMaxLength(16).IsRequired();
+            entity.Property(row => row.IdempotencyKey).HasMaxLength(200).IsRequired();
+            entity.Property(row => row.Digest).HasMaxLength(64).IsRequired();
+            entity.HasOne<FinalizedSequenceRecord>().WithMany().HasForeignKey(row => row.FinalizedSequenceId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<DeliveryReceiptRow>(entity =>
         {
             entity.ToTable("finalized_delivery_receipts", table =>

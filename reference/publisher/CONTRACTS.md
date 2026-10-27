@@ -130,6 +130,16 @@ Editing again explicitly creates a new draft identity and the next workspace
 revision; the source snapshot remains unchanged. An observed input change prevents
 commit even if the database revision appears unchanged.
 
+The write boundary is enforced at the coordination point every draft write shares:
+once the sequence has a latest finalized snapshot with no continuation draft, node,
+metadata, upload, placement, rename, move, delete and bulk-assembly writes are
+refused with `409 WorkspaceFinalized` (snapshot id and source revision in the body).
+`POST /api/finalized-sequences/{id}/draft-revisions` is the only write allowed; it
+requires the current revision and an idempotency key, is unique per snapshot, only
+accepts the latest snapshot, and advances the workspace revision in the same
+transaction as the continuation record. Drafts are append-only evidence: the
+snapshot they continue is never modified, and a downgrade refuses while any exists.
+
 The fixed content protocol is Requested → Captured → Staged → Validated →
 Materialized → Committed. Each phase records task ownership and digests. Recovery
 after a directory rename checks those facts before committing or quarantining.

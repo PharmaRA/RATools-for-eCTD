@@ -524,6 +524,14 @@ Finalization records the identity of what was actually validated:
 - `GET /api/finalizations/{id}` and `GET /api/applications/{id}/sequences/{seq}/finalized-versions`
   return immutable snapshots. A replay with the same idempotency key returns the committed
   snapshot; changed content conflicts, and one snapshot exists per content digest.
+- Once a sequence has a finalized snapshot, every draft write (nodes, publishing metadata,
+  upload, placement, rename, move, delete, bulk assembly) is refused with `409 WorkspaceFinalized`
+  naming the snapshot and its revision. `GET .../workspace` reports the same state as
+  `finalization.isEditable`. Editing resumes only through
+  `POST /api/finalized-sequences/{id}/draft-revisions` (expected revision + idempotency key),
+  which is unique per snapshot and advances the workspace revision; the snapshot itself is
+  never modified. A sequence or application with finalized evidence cannot be deleted through
+  the draft deletion path.
 - Delivery records (`POST /api/finalized-sequences/{id}/deliveries`) and receipts
   (`POST /api/finalized-deliveries/{id}/receipts`) are append-only and keep transmission,
   technical validation and business outcome separate. Nothing infers "submitted" from a

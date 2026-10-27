@@ -26,6 +26,20 @@ public sealed class FinalizationService(
         var existing = await store.FindByIdempotencyKeyAsync(request.IdempotencyKey, cancellationToken).ConfigureAwait(false);
         if (existing is not null) return Replay(existing, request);
 
+        // The revision check and the snapshot registration must be one decision under the
+        // same application lock used by workspace writers; otherwise an edit could advance
+        // the revision between the check and the commit and finalize a later workspace.
+        var heldLock = await revisions.LockApplicationAsync(request.ApplicationId, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await FinalizeUnderLockAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        finally { await heldLock.DisposeAsync().ConfigureAwait(false); }
+    }
+
+    private async Task<FinalizationResult> FinalizeUnderLockAsync(FinalizeSequenceRequest request,
+        CancellationToken cancellationToken)
+    {
         var currentRevision = await revisions.GetRevisionAsync(request.ApplicationId, request.SequenceNumber.Trim(), cancellationToken)
             .ConfigureAwait(false);
         if (currentRevision is null)

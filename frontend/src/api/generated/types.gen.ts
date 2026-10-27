@@ -383,6 +383,11 @@ export type ExternalComparisonEvidence = {
     digest: string;
 };
 
+export type FinalizationDraftResult = {
+    draft: FinalizedDraftRevision;
+    created: boolean;
+};
+
 export type FinalizationResult = {
     sequence: FinalizedSequence;
     created: boolean;
@@ -397,6 +402,19 @@ export type FinalizeSequenceBody = {
     regionalModule1Version: string | null;
     historyBaselineDigest: string;
     idempotencyKey: string;
+};
+
+export type FinalizedDraftRevision = {
+    readonly id: string;
+    readonly schemaVersion: number;
+    readonly finalizedSequenceId: string;
+    readonly applicationId: string;
+    readonly sequenceNumber: string;
+    readonly baseWorkspaceRevision: number;
+    readonly workspaceRevision: number;
+    readonly idempotencyKey: string;
+    readonly openedUtc: string;
+    readonly digest: string;
 };
 
 export type FinalizedSequence = {
@@ -473,6 +491,11 @@ export type NodeSchemaIssue = {
     code: string;
     fieldPath: string;
     message: string;
+};
+
+export type OpenDraftBody = {
+    expectedRevision: number;
+    idempotencyKey: string;
 };
 
 export type PackageHistorySelection = {
@@ -994,6 +1017,13 @@ export type ValidationSectionMatchDto = {
 
 export type ValidationSeverity = 'Info' | 'Warning' | 'Error';
 
+export type WorkspaceFinalizationState = {
+    finalizedSequenceId: string;
+    sourceWorkspaceRevision: number;
+    isEditable: boolean;
+    draftWorkspaceRevision: number | null;
+};
+
 export type WorkspaceSnapshotDto = {
     applicationId: string;
     sequenceNumber: string;
@@ -1001,10 +1031,15 @@ export type WorkspaceSnapshotDto = {
     placements: Array<DocumentPlacementDto>;
     documents: Array<DocumentDto>;
     nodeTree: CtdNodeTreeDto;
+    finalization: WorkspaceFinalizationState;
 };
 
 export type DeliveryReceiptWritable = {
     kind: DeliveryReceiptKind;
+};
+
+export type FinalizationDraftResultWritable = {
+    created: boolean;
 };
 
 export type FinalizationResultWritable = {
@@ -1755,6 +1790,51 @@ export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedV
 };
 
 export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberFinalizedVersionsResponses];
+
+export type GetApiFinalizedSequencesByIdDraftRevisionsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalized-sequences/{id}/draft-revisions';
+};
+
+export type GetApiFinalizedSequencesByIdDraftRevisionsErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiFinalizedSequencesByIdDraftRevisionsError = GetApiFinalizedSequencesByIdDraftRevisionsErrors[keyof GetApiFinalizedSequencesByIdDraftRevisionsErrors];
+
+export type GetApiFinalizedSequencesByIdDraftRevisionsResponses = {
+    /**
+     * OK
+     */
+    200: FinalizedDraftRevision;
+};
+
+export type GetApiFinalizedSequencesByIdDraftRevisionsResponse = GetApiFinalizedSequencesByIdDraftRevisionsResponses[keyof GetApiFinalizedSequencesByIdDraftRevisionsResponses];
+
+export type PostApiFinalizedSequencesByIdDraftRevisionsData = {
+    body?: OpenDraftBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/finalized-sequences/{id}/draft-revisions';
+};
+
+export type PostApiFinalizedSequencesByIdDraftRevisionsResponses = {
+    /**
+     * Created
+     */
+    201: FinalizationDraftResult;
+};
+
+export type PostApiFinalizedSequencesByIdDraftRevisionsResponse = PostApiFinalizedSequencesByIdDraftRevisionsResponses[keyof PostApiFinalizedSequencesByIdDraftRevisionsResponses];
 
 export type GetApiFinalizedSequencesByIdDeliveriesData = {
     body?: never;

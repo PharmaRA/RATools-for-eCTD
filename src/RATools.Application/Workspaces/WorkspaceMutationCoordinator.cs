@@ -1,4 +1,5 @@
 using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Finalization;
 
 namespace RATools.Application.Workspaces;
 
@@ -7,10 +8,24 @@ public sealed class WorkspaceRevisionTargetNotFoundException() : Exception("The 
 public sealed class WorkspaceRevisionInvalidException() : Exception("Workspace revision must be a nonnegative safe integer below the revision limit.");
 
 public sealed class WorkspaceMutationCoordinator(IWorkspaceRevisionStore revisions, IPersistenceTransaction transactions,
-    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null)
+    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null, FinalizedWorkspaceGuard? finalizedGuard = null)
 {
-    public async Task<WorkspaceMutation> AcquireAsync(Guid applicationId, string sequenceNumber, long? expectedRevision,
-        CancellationToken cancellationToken = default)
+    // Every draft write funnels through here, so this is the single place that proves the
+    // sequence is still editable. The check runs under the application lock: a concurrent
+    // finalization either completes first (and this write is refused) or cannot start
+    // until this revision has advanced.
+    public Task<WorkspaceMutation> AcquireAsync(Guid applicationId, string sequenceNumber, long? expectedRevision,
+        CancellationToken cancellationToken = default) =>
+        AcquireCoreAsync(applicationId, sequenceNumber, expectedRevision, requireEditable: true, cancellationToken);
+
+    // Only opening a finalized draft may write to a sequence that the guard would refuse;
+    // it is the explicit continuation action, not an ordinary edit.
+    public Task<WorkspaceMutation> AcquireContinuationAsync(Guid applicationId, string sequenceNumber,
+        long? expectedRevision, CancellationToken cancellationToken = default) =>
+        AcquireCoreAsync(applicationId, sequenceNumber, expectedRevision, requireEditable: false, cancellationToken);
+
+    private async Task<WorkspaceMutation> AcquireCoreAsync(Guid applicationId, string sequenceNumber,
+        long? expectedRevision, bool requireEditable, CancellationToken cancellationToken)
     {
         if (expectedRevision is null) throw new WorkspaceRevisionRequiredException();
         if (expectedRevision.Value is < 0 or >= 9007199254740991L) throw new WorkspaceRevisionInvalidException();
@@ -18,6 +33,8 @@ public sealed class WorkspaceMutationCoordinator(IWorkspaceRevisionStore revisio
         try
         {
             if (moveGuard is not null) await moveGuard.EnsureReadyAsync(applicationId, cancellationToken);
+            if (requireEditable && finalizedGuard is not null)
+                await finalizedGuard.EnsureEditableAsync(applicationId, sequenceNumber, cancellationToken);
             var current = await revisions.GetRevisionAsync(applicationId, sequenceNumber, cancellationToken)
                 ?? throw new WorkspaceRevisionTargetNotFoundException();
             if (current != expectedRevision) throw new WorkspaceRevisionConflictException(expectedRevision.Value, current);

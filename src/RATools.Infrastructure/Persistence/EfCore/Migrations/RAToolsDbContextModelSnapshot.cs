@@ -2480,6 +2480,65 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("documents", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedDraftRevisionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("BaseWorkspaceRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("FinalizedSequenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("OpenedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long>("WorkspaceRevision")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalizedSequenceId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_finalized_draft_revisions_Snapshot");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_finalized_draft_revisions_IdempotencyKey");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "OpenedUtc");
+
+                    b.ToTable("finalized_draft_revisions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_finalized_draft_revision", "\"BaseWorkspaceRevision\" >= 0 AND \"WorkspaceRevision\" > \"BaseWorkspaceRevision\"");
+
+                            t.HasCheckConstraint("CK_finalized_draft_schema", "\"SchemaVersion\" = 1");
+                        });
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3212,6 +3271,15 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasForeignKey("ApplicationId", "SequenceNumber", "NodeInstanceId", "CtdSection")
                         .HasPrincipalKey("ApplicationId", "SequenceNumber", "NodeInstanceId", "CtdSection")
                         .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedDraftRevisionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("FinalizedSequenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", b =>

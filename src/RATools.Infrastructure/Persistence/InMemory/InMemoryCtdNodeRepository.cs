@@ -1,13 +1,15 @@
 using System.Collections.Concurrent;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Ctd;
+using RATools.Application.Finalization;
 using RATools.Application.Workspaces;
 using RATools.Domain.Ctd;
 
 namespace RATools.Infrastructure.Persistence.InMemory;
 
 public sealed class InMemoryCtdNodeRepository(IWorkspaceRevisionStore revisions,
-    IDocumentPlacementRepository placements, NodeFileMoveGuard? moveGuard = null) : ICtdNodeRepository
+    IDocumentPlacementRepository placements, NodeFileMoveGuard? moveGuard = null,
+    IFinalizationStore? finalizations = null) : ICtdNodeRepository
 {
     private readonly ConcurrentDictionary<(Guid, string), CtdSequenceWorkspace> _workspaces = new();
 
@@ -39,8 +41,10 @@ public sealed class InMemoryCtdNodeRepository(IWorkspaceRevisionStore revisions,
     public async Task<long> SaveSequenceAsync(CtdNodeGraph graph, string sequenceNumber, IReadOnlyCollection<SequenceNode> nodes,
         long expectedRevision, CancellationToken cancellationToken = default)
     {
-        // The singleton repository shares the same application lock as document edits.
-        var coordinator = new WorkspaceMutationCoordinator(revisions, new InMemoryPersistenceTransaction(), moveGuard);
+        // The singleton repository shares the same application lock as document edits and
+        // the same finalized boundary: finalized content stays read-only until continued.
+        var coordinator = new WorkspaceMutationCoordinator(revisions, new InMemoryPersistenceTransaction(), moveGuard,
+            finalizations is null ? null : new FinalizedWorkspaceGuard(finalizations));
         await using var mutation = await coordinator.AcquireAsync(graph.ApplicationId, sequenceNumber, expectedRevision, cancellationToken);
         var old = await GetSequenceAsync(graph.ApplicationId, sequenceNumber, cancellationToken)
             ?? throw new WorkspaceRevisionTargetNotFoundException();
