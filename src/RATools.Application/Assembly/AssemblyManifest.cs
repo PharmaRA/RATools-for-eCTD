@@ -22,8 +22,7 @@ public sealed record AssemblyPlan(Guid ApplicationId, string SequenceNumber, lon
 public sealed record AssemblyManifestParseResult(IReadOnlyList<AssemblyManifestRow> Rows,
     IReadOnlyList<AssemblyDiagnostic> Diagnostics)
 {
-    public bool Succeeded => Diagnostics.All(diagnostic => diagnostic.Code is not (
-        "ASSEMBLY_HEADER_MISSING" or "ASSEMBLY_ROW_LIMIT" or "ASSEMBLY_CSV_UNTERMINATED_QUOTE"));
+    public bool Succeeded => Diagnostics.All(diagnostic => diagnostic.Code == "ASSEMBLY_COLUMN_UNKNOWN");
 }
 
 public sealed record AssemblyManifestRow(int LineNumber, IReadOnlyDictionary<string, string> Fields);
@@ -88,6 +87,7 @@ public static class AssemblyManifest
         var fields = new List<string>();
         var field = new StringBuilder();
         var inQuotes = false;
+        var quoteClosed = false;
         var line = 1;
         var recordLine = 1;
         for (var index = 0; index < csv.Length; index++)
@@ -102,12 +102,22 @@ public static class AssemblyManifest
                         field.Append('"');
                         index++;
                     }
-                    else inQuotes = false;
+                    else
+                    {
+                        inQuotes = false;
+                        quoteClosed = true;
+                    }
                     continue;
                 }
                 if (character == '\n') line++;
                 field.Append(character);
                 continue;
+            }
+            if (quoteClosed && character is not (',' or '\r' or '\n'))
+            {
+                diagnostics.Add(new("ASSEMBLY_CSV_CHARACTERS_AFTER_QUOTE",
+                    $"Unexpected text follows a quoted field on line {line}.", line));
+                return false;
             }
             switch (character)
             {
@@ -121,6 +131,7 @@ public static class AssemblyManifest
                 case ',':
                     fields.Add(field.ToString());
                     field.Clear();
+                    quoteClosed = false;
                     break;
                 case '\r':
                     break;
@@ -129,6 +140,7 @@ public static class AssemblyManifest
                     field.Clear();
                     records.Add((recordLine, fields));
                     fields = [];
+                    quoteClosed = false;
                     line++;
                     recordLine = line;
                     break;

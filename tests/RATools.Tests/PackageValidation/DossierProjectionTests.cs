@@ -12,7 +12,7 @@ public sealed class DossierProjectionTests
     public async Task FourSequencesExplainEffectiveLeavesAndTheirHistory()
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();
-        var (input, lifecycle) = await fixture.SelectAsync("0003");
+        var (input, lifecycle) = await fixture.SelectAsync("0003", historyTrust: HistoryTrustStatus.VerifiedForScope);
         var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
         Assert.Equal(AllSequences, projection.AppliedSequences);
@@ -35,7 +35,8 @@ public sealed class DossierProjectionTests
         Assert.Equal("0003/index.xml#beta-delete", beta.DeletedBy);
         // The historical leaf keeps its own delivered content address; the delete
         // event itself must not invent a new one and is never effective content.
-        Assert.Equal("0000/index.xml", beta.ContentLogicalPath);
+        Assert.Equal("0000/m3/32-body-data/32s-drug-sub/drug-a-beta/32s4-contr-drug-sub/32s41-spec/specification.pdf",
+            beta.ContentLogicalPath);
         var delete = projection.Leaves.Single(leaf => leaf.Address.LeafId == "beta-delete");
         Assert.Equal(DossierLeafStatus.DeleteEvent, delete.Status);
         Assert.Null(delete.ContentLogicalPath);
@@ -61,8 +62,18 @@ public sealed class DossierProjectionTests
         Assert.False(projection.IsComplete);
         Assert.NotEmpty(projection.IncompleteReasons);
         Assert.DoesNotContain(projection.EffectiveLeaves, leaf => leaf.Address.LeafId == "alpha-spec-v2");
+        Assert.DoesNotContain(projection.EffectiveLeaves, leaf => leaf.Address.LeafId == "alpha-addendum");
         // The unresolved event is preserved for review rather than dropped.
         Assert.Contains(projection.Events, item => item.Status != CheckStatus.Pass && item.UnresolvedReason is not null);
+    }
+
+    [Fact]
+    public async Task UnverifiedHistoryCannotClaimACompleteProjection()
+    {
+        await using var fixture = new PackageFileInspectorTests.Fixture();
+        var (input, lifecycle) = await fixture.SelectAsync("0001");
+        Assert.Contains(lifecycle.Checks, check => check.RuleId == "HISTORY-BASELINE" && check.Status == CheckStatus.NotEvaluated);
+        Assert.False(DossierProjectionBuilder.Build(lifecycle, input).IsComplete);
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public sealed class LifecycleProjectionAlignmentTests
     public async Task EffectiveLeavesAndInvalidationStatesMatchLifecycleChecks(string sequence)
     {
         await using var fixture = new PackageFileInspectorTests.Fixture();
-        var (input, lifecycle) = await fixture.SelectAsync(sequence);
+        var (input, lifecycle) = await fixture.SelectAsync(sequence, historyTrust: HistoryTrustStatus.VerifiedForScope);
         var projection = DossierProjectionBuilder.Build(lifecycle, input);
         Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
 

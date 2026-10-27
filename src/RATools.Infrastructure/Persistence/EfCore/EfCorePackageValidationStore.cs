@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using RATools.Application.PackageValidation;
@@ -215,6 +216,9 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
             .SingleOrDefaultAsync(row => row.RunId == evidence.RunId, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
+            // A row altered outside the application is corrupt evidence, not a better
+            // report: it must never be replayed as if it were the committed record.
+            VerifyExternalComparison(run, existing);
             if (existing.Digest != evidence.Digest) throw new ExternalComparisonEvidenceConflictException(evidence.RunId);
             return false;
         }
@@ -255,18 +259,51 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
 
     public async Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default)
     {
-        var row = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
-            .Where(row => row.RunId == runId)
-            .Select(row => new { row.RunId, row.ToolName, row.ToolVersion, row.PackageDigest, row.ReportSha256,
-                row.RecordedUtc, row.Digest, row.DifferencesJson })
-            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-        return row is null ? null : new(row.RunId, row.ToolName, row.ToolVersion, row.PackageDigest, row.ReportSha256,
-            PackageValidationJson.Read<ExternalComparisonDifference[]>(row.DifferencesJson), row.RecordedUtc, row.Digest);
+        var report = await ReadVerifiedExternalComparisonAsync(runId, cancellationToken).ConfigureAwait(false);
+        return report is null ? null : new(report.RunId, report.ToolName, report.ToolVersion, report.PackageDigest,
+            report.ReportSha256, report.Differences, report.RecordedUtc, report.Digest);
     }
 
-    public Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default) =>
-        dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking().Where(row => row.RunId == runId)
-            .Select(row => row.ReportText).SingleOrDefaultAsync(cancellationToken)!;
+    public async Task<string?> GetExternalComparisonReportTextAsync(Guid runId, CancellationToken cancellationToken = default) =>
+        (await ReadVerifiedExternalComparisonAsync(runId, cancellationToken).ConfigureAwait(false))?.ReportText;
+
+    private async Task<ExternalComparisonReport?> ReadVerifiedExternalComparisonAsync(Guid runId, CancellationToken cancellationToken)
+    {
+        var row = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
+            .SingleOrDefaultAsync(item => item.RunId == runId, cancellationToken).ConfigureAwait(false);
+        if (row is null) return null;
+        // Evidence without its completed run cannot be authenticated against a binding.
+        if (await GetRunAsync(runId, cancellationToken).ConfigureAwait(false) is not { } run)
+            throw new InvalidDataException("External comparison evidence exists without its validation run.");
+        return VerifyExternalComparison(run, row);
+    }
+
+    // Persisted evidence is part of the audit trail. It is returned or replayed only
+    // when its own fields still reproduce the committed digest and report hash.
+    private static ExternalComparisonReport VerifyExternalComparison(PackageValidationRun run,
+        PackageValidationExternalComparisonRecord row)
+    {
+        ExternalComparisonDifference[] differences;
+        try { differences = PackageValidationJson.Read<ExternalComparisonDifference[]>(row.DifferencesJson); }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException("The persisted external comparison evidence is malformed.", exception);
+        }
+        ExternalComparisonReport report;
+        try
+        {
+            report = new ExternalComparisonReport(row.RunId, run.Binding, row.ToolName, row.ToolVersion,
+                row.PackageDigest, row.ReportText, differences, row.RecordedUtc);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidDataException("The persisted external comparison evidence is malformed.", exception);
+        }
+        if (!string.Equals(report.Digest, row.Digest, StringComparison.Ordinal) ||
+            !string.Equals(report.ReportSha256, row.ReportSha256, StringComparison.Ordinal))
+            throw new InvalidDataException("The persisted external comparison evidence differs from its committed digest.");
+        return report;
+    }
 
     public Task<Guid?> FindCompletedRunAsync(Guid applicationId, string sequenceNumber, string inputManifestDigest,
         CancellationToken cancellationToken = default)

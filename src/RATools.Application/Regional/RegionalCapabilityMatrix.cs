@@ -72,10 +72,11 @@ public static class RegionalCapabilityMatrix
             ApplicationType: "NotEvaluated",
             ProcedureType: "NotEvaluated",
             SectionScope: sectionScope,
-            // Existing editor/publish paths work for both regions; formal delivery does not.
-            CreateDraft: RegionalCapabilityState.Supported,
-            TrialPublish: RegionalCapabilityState.Supported,
-            Finalize: profile.QualifiedForFinalization ? RegionalCapabilityState.Supported : RegionalCapabilityState.Blocked,
+            // An inspection-only catalog entry does not provide a publishing implementation.
+            CreateDraft: standardsProfile is null ? RegionalCapabilityState.NotImplemented : RegionalCapabilityState.Supported,
+            TrialPublish: standardsProfile is null ? RegionalCapabilityState.NotImplemented : RegionalCapabilityState.Supported,
+            Finalize: standardsProfile is not null && profile.QualifiedForFinalization
+                ? RegionalCapabilityState.Supported : RegionalCapabilityState.Blocked,
             StandardsStatus: standardsStatus,
             EvidenceStatus: evidence,
             Limitations: limitations);

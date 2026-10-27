@@ -11,22 +11,32 @@ public abstract class PackageValidationControllerBase : ControllerBase
         try { return await action().ConfigureAwait(false); }
         // Streaming endpoints (file download) may fail after headers are sent. Re-throw
         // then instead of appending a JSON error body to a partial binary response.
-        catch (PackageSelectionRequiredException exception) when (!Response.HasStarted)
+        catch (PackageSelectionRequiredException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = exception.Code, message = exception.Message, candidates = exception.Candidates }); }
-        catch (PackageValidationIdempotencyConflictException exception) when (!Response.HasStarted)
+        catch (PackageValidationIdempotencyConflictException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = "VALIDATION_IDEMPOTENCY_CONFLICT", message = exception.Message }); }
-        catch (ExternalComparisonEvidenceConflictException exception) when (!Response.HasStarted)
+        catch (ExternalComparisonEvidenceConflictException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = "EXTERNAL_EVIDENCE_CONFLICT", message = exception.Message }); }
-        catch (PackageInputChangedException exception) when (!Response.HasStarted)
+        catch (PackageInputChangedException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = exception.Code, message = exception.Message }); }
-        catch (PackageInputException exception) when (!Response.HasStarted)
+        catch (PackageInputException exception) when (PrepareErrorResponse())
         { return StatusCode(LimitStatus(exception), new { code = exception.Code, message = exception.Message, logicalPath = exception.LogicalPath }); }
-        catch (KeyNotFoundException exception) when (!Response.HasStarted) { return NotFound(new { message = exception.Message }); }
-        catch (ArgumentException exception) when (!Response.HasStarted) { return BadRequest(new { message = exception.Message }); }
-        catch (UnauthorizedAccessException) when (!Response.HasStarted) { return StatusCode(403, new { message = "Access to the selected input is denied." }); }
-        catch (InvalidDataException exception) when (!Response.HasStarted) { return UnprocessableEntity(new { message = exception.Message }); }
-        catch (IOException) when (!Response.HasStarted) { return UnprocessableEntity(new { message = "The selected input or archived evidence is unavailable." }); }
-        catch (InvalidOperationException exception) when (!Response.HasStarted) { return BadRequest(new { message = exception.Message }); }
+        catch (KeyNotFoundException exception) when (PrepareErrorResponse()) { return NotFound(new { message = exception.Message }); }
+        catch (ArgumentException exception) when (PrepareErrorResponse()) { return BadRequest(new { message = exception.Message }); }
+        catch (UnauthorizedAccessException) when (PrepareErrorResponse()) { return StatusCode(403, new { message = "Access to the selected input is denied." }); }
+        catch (InvalidDataException exception) when (PrepareErrorResponse()) { return UnprocessableEntity(new { message = exception.Message }); }
+        catch (IOException) when (PrepareErrorResponse()) { return UnprocessableEntity(new { message = "The selected input or archived evidence is unavailable." }); }
+        catch (InvalidOperationException exception) when (PrepareErrorResponse()) { return BadRequest(new { message = exception.Message }); }
+    }
+
+    private bool PrepareErrorResponse()
+    {
+        if (Response.HasStarted) return false;
+        // A failed first read may leave binary headers even though no bytes were sent.
+        Response.ContentType = null;
+        Response.ContentLength = null;
+        Response.Headers.Remove("Content-Disposition");
+        return true;
     }
 
     // Size/count limits are payload-too-large; elapsed deadlines are timeouts, not

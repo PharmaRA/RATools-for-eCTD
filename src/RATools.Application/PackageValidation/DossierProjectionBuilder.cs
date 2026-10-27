@@ -21,6 +21,8 @@ public static class DossierProjectionBuilder
         var sequences = inputs.Sequences.Keys.Order(StringComparer.Ordinal).ToArray();
         if (lifecycle.InputDigest != inputs.Target.InputDigest || lifecycle.HistoryManifestDigest != inputs.Baseline.Digest)
             throw new ArgumentException("The lifecycle facts do not belong to this exact input set.", nameof(lifecycle));
+        if (!lifecycle.ResolutionComplete)
+            reasons.Add("Lifecycle resolution did not complete successfully for the selected input set.");
 
         // Expand every event into the effective leaf map, in sequence order. Within one
         // sequence all references are resolved before effectiveness is applied; the
@@ -38,6 +40,8 @@ public static class DossierProjectionBuilder
             }
             foreach (var document in xml.Backbones.Where(document => document.LogicalPath.Split('/')[0] == sequence))
             {
+                if (!document.ReadComplete || document.DtdStatus != CheckStatus.Pass)
+                    reasons.Add($"{document.LogicalPath}: backbone inspection was incomplete or failed validation.");
                 foreach (var leaf in document.Leaves)
                 {
                     if (leaf.Address is not { } address)
@@ -116,6 +120,24 @@ public static class DossierProjectionBuilder
             }
         }
 
+        // Events annotate relationships; only the inspector's final state proves effectiveness.
+        // Replaying them independently can revive a leaf made uncertain by another event.
+        var states = lifecycle.States.ToDictionary(state => state.Address);
+        foreach (var leaf in leaves.Values)
+        {
+            leaf.Status = states.TryGetValue(leaf.Address, out var state) ? state.Effectiveness switch
+            {
+                PackageLeafEffectiveness.Current when leaf.Status == DossierLeafStatus.AppendMember => DossierLeafStatus.AppendMember,
+                PackageLeafEffectiveness.Current => DossierLeafStatus.Current,
+                PackageLeafEffectiveness.Replaced => DossierLeafStatus.Replaced,
+                PackageLeafEffectiveness.Deleted => DossierLeafStatus.Deleted,
+                PackageLeafEffectiveness.DeleteEvent => DossierLeafStatus.DeleteEvent,
+                _ => DossierLeafStatus.Unknown
+            } : DossierLeafStatus.Unknown;
+            if (leaf.Status == DossierLeafStatus.Unknown)
+                reasons.Add($"{Address(leaf.Address)}: final effectiveness could not be established.");
+        }
+
         var profile = lifecycle.ProfileSnapshotId;
         return DossierProjection.Create(inputs.Target.Manifest.ApplicationId, inputs.Target.Manifest.SequenceNumber, profile,
             delivery.InputDigest, inputs.Baseline.Digest, inputs.Target.Limits.Digest(),
@@ -124,9 +146,20 @@ public static class DossierProjectionBuilder
             lifecycle.Checks.SelectMany(check => check.Findings), sequences);
     }
 
-    private static string? ContentPath(ParsedPackageLeaf leaf) => leaf.Href is null
-        ? null
-        : leaf.Address is null ? null : leaf.Address.SequenceNumber + "/" + leaf.Address.BackboneRelativePath;
+    private static string? ContentPath(ParsedPackageLeaf leaf)
+    {
+        if (leaf.Operation == "delete" || leaf.Href is null || leaf.Address is null) return null;
+        try
+        {
+            return PackageLogicalPath.ResolveReference(leaf.Address.SequenceNumber + "/" + leaf.Address.BackboneRelativePath,
+                leaf.Href).LogicalPath;
+        }
+        catch (ArgumentException)
+        {
+            // An invalid href remains a located finding, not an invented content address.
+            return null;
+        }
+    }
 
     private static string Address(LeafAddress address) =>
         $"{address.SequenceNumber}/{address.BackboneRelativePath}#{address.LeafId}";

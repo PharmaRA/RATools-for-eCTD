@@ -29,7 +29,10 @@ public sealed class PackageValidationServiceTests
         Assert.Equal(enqueued.Run.Binding, report.Binding);
         Assert.NotNull(projection);
         Assert.Equal(report.Binding.InputManifestDigest, projection!.InputDigest);
-        Assert.True(projection.IsComplete, string.Join(" | ", projection.IncompleteReasons));
+        // Selected history is bound but its trust is unverified, so the projection must
+        // report itself incomplete rather than authorize a cumulative claim.
+        Assert.False(projection.IsComplete);
+        Assert.Contains(projection.IncompleteReasons, reason => reason.Contains("Lifecycle resolution", StringComparison.Ordinal));
         Assert.Contains(projection.EffectiveLeaves, leaf => leaf.Address.SequenceNumber == "0001");
         Assert.Contains(report.Coverage, rule => rule.RuleId == "HISTORY-BASELINE" && rule.CheckStatus == CheckStatus.NotEvaluated);
         Assert.True(await fixture.Store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report));

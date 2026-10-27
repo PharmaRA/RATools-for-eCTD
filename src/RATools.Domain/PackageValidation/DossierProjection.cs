@@ -6,7 +6,7 @@ namespace RATools.Domain.PackageValidation;
 // value so cached or archived projections are visibly stale rather than silently mixed.
 public static class DossierProjectionVersion
 {
-    public const string Current = "dossier-projection-v1";
+    public const string Current = "dossier-projection-v2";
 }
 
 public enum DossierView { Sequence, Current, History }

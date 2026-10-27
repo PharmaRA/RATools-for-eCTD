@@ -236,7 +236,8 @@ public sealed class PackageFileInspectorTests
             }
         }
         public async Task<(PackageDeliveryInput Input, PackageLifecycleInspection Lifecycle)> SelectAsync(string sequence, bool comparison = false,
-            string archive = "package.zip", string[]? history = null, bool applicationRoot = false, PackageReadLimits? limits = null)
+            string archive = "package.zip", string[]? history = null, bool applicationRoot = false, PackageReadLimits? limits = null,
+            HistoryTrustStatus historyTrust = HistoryTrustStatus.Unverified)
         {
             async Task<ICapturedPackageInput> Capture(string path, string number)
             {
@@ -249,7 +250,8 @@ public sealed class PackageFileInspectorTests
             foreach (var number in history ?? HistoricalSequences.Where(number => string.CompareOrdinal(number, sequence) < 0).ToArray())
                 selected.Add(await Capture(PathOf(number), number));
             var baseline = new HistoryBaselineManifest(ApplicationId, sequence, selected.Select(capture => new HistoryBaselineEntry(capture.Manifest.SequenceNumber,
-                HistorySourceKind.ImportedExternal, capture.SourceId, capture.InputDigest, PackageValidationCatalog.UsProfile, HistoryTrustStatus.Unverified)));
+                HistorySourceKind.ImportedExternal, capture.SourceId, capture.InputDigest, PackageValidationCatalog.UsProfile, historyTrust,
+                ValidationRunId: historyTrust == HistoryTrustStatus.VerifiedForScope ? Guid.NewGuid() : null)));
             var packages = new PackageInputSet(target, baseline, selected);
             var lifecycle = await new PackageLifecycleInspector().InspectAsync(packages, PackageValidationCatalog.UsProfile);
             return (new(packages, comparison ? await Capture(ArchivePath(archive), sequence) : null), lifecycle);

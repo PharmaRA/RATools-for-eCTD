@@ -62,4 +62,16 @@ public sealed class AssemblyManifestTests
         Assert.NotEqual(digest, AssemblyManifest.ComputeDigest(app, "0001", 4,
             [rows[0] with { SortOrder = 1 }]));
     }
+
+    [Theory]
+    [InlineData("documentId,nodeInstanceId,operation,operation\nid,node,new,new")]
+    [InlineData("documentId,nodeInstanceId,operation\nid,node,n\"ew")]
+    [InlineData("documentId,nodeInstanceId,operation\nid,node,new,discarded")]
+    [InlineData("documentId,nodeInstanceId,operation\nid,node,\"new\"discarded")]
+    public void MalformedManifestsCannotBeExecutedAsSuccessfulParses(string csv)
+    {
+        var parsed = AssemblyManifest.Parse(csv);
+        Assert.False(parsed.Succeeded);
+        Assert.NotEmpty(parsed.Diagnostics);
+    }
 }

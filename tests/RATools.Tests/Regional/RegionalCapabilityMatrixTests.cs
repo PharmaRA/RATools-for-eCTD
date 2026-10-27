@@ -39,9 +39,10 @@ public sealed class RegionalCapabilityMatrixTests
             PackageValidationCatalog.Current);
         var ich = Assert.Single(matrix, capability => capability.Region == "ICH");
         Assert.Equal("ICH M2-M5", ich.SectionScope);
-        // Draft and trial publishing exist for every profile; only regional M1 scope
-        // differs and must be explicit.
-        Assert.Equal(RegionalCapabilityState.Supported, ich.CreateDraft);
-        Assert.Equal(RegionalCapabilityState.Supported, ich.TrialPublish);
+        // The independent ICH inspection profile has no publishing standards provider.
+        Assert.Equal(RegionalCapabilityState.NotImplemented, ich.CreateDraft);
+        Assert.Equal(RegionalCapabilityState.NotImplemented, ich.TrialPublish);
+        Assert.Equal(RegionalCapabilityState.Blocked, ich.Finalize);
+        Assert.Contains(ich.Limitations, reason => reason.Contains("could not be resolved", StringComparison.Ordinal));
     }
 }

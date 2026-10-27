@@ -70,7 +70,7 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
     public async Task<IActionResult> Deliveries(Guid id, CancellationToken cancellationToken)
     {
         if (await store.GetAsync(id, cancellationToken) is null)
-            return NotFound(new { message = $"Finalized sequence {id} was not found." });
+            return Problem(statusCode: StatusCodes.Status404NotFound, detail: $"Finalized sequence {id} was not found.");
         return Ok(await store.ListDeliveriesAsync(id, cancellationToken));
     }
 
@@ -105,7 +105,7 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
     public async Task<IActionResult> Receipts(Guid deliveryId, CancellationToken cancellationToken)
     {
         if (!await store.DeliveryExistsAsync(deliveryId, cancellationToken))
-            return NotFound(new { message = $"Delivery record {deliveryId} was not found." });
+            return Problem(statusCode: StatusCodes.Status404NotFound, detail: $"Delivery record {deliveryId} was not found.");
         return Ok(await store.ListReceiptsAsync(deliveryId, cancellationToken));
     }
 

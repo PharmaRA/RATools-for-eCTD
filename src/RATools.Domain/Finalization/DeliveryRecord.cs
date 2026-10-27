@@ -31,26 +31,27 @@ public sealed class DeliveryRecord : Entity
         ExternalReference = FinalizationFields.NormalizeOptional(externalReference);
         Note = FinalizationFields.NormalizeOptional(note);
         RecordedBy = recordedBy.Trim();
-        // PostgreSQL timestamptz preserves microseconds, not the 100 ns tick remainder.
-        // Truncate before hashing so a reload reproduces the committed digest exactly.
-        RecordedUtc = FinalizationFields.TruncateToMicroseconds(recordedUtc);
+        RecordedUtc = recordedUtc;
         SchemaVersion = schemaVersion;
-        Digest = ComputeDigest();
+        Digest = ComputeDigest(RecordedUtc);
     }
 
     public static DeliveryRecord Create(Guid finalizedSequenceId, string packageSha256, string channel,
         string? externalReference, string? note, string recordedBy, DateTime recordedUtc) =>
-        new(Guid.NewGuid(), finalizedSequenceId, packageSha256, channel, externalReference, note, recordedBy, recordedUtc,
-            CurrentSchemaVersion);
+        new(Guid.NewGuid(), finalizedSequenceId, packageSha256, channel, externalReference, note, recordedBy,
+            FinalizationFields.TruncateToMicroseconds(recordedUtc), CurrentSchemaVersion);
 
     public static DeliveryRecord Rehydrate(Guid id, Guid finalizedSequenceId, string packageSha256, string channel,
         string? externalReference, string? note, string recordedBy, DateTime recordedUtc, string digest, int schemaVersion)
     {
         var record = new DeliveryRecord(id, finalizedSequenceId, packageSha256, channel, externalReference, note,
             recordedBy, recordedUtc, schemaVersion);
-        if (!string.Equals(record.Digest, digest, StringComparison.Ordinal))
+        if (string.Equals(record.Digest, digest, StringComparison.Ordinal)) return record;
+        var originalUtc = FinalizationFields.RestoreLegacyTimestamp(recordedUtc, digest, record.ComputeDigest);
+        if (originalUtc is null)
             throw new InvalidDataException("The persisted delivery record differs from its committed digest.");
-        return record;
+        return new DeliveryRecord(id, finalizedSequenceId, packageSha256, channel, externalReference, note,
+            recordedBy, originalUtc.Value, schemaVersion);
     }
 
     public int SchemaVersion { get; }
@@ -65,11 +66,11 @@ public sealed class DeliveryRecord : Entity
     public DateTime RecordedUtc { get; }
     public string Digest { get; }
 
-    private string ComputeDigest() => CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
+    private string ComputeDigest(DateTime recordedUtc) => CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
     {
         schemaVersion = SchemaVersion, finalizedSequenceId = FinalizedSequenceId.ToString("D"),
         packageSha256 = PackageSha256, channel = Channel, externalReference = ExternalReference, note = Note,
-        recordedBy = RecordedBy, recordedUtc = RecordedUtc.ToString("O")
+        recordedBy = RecordedBy, recordedUtc = recordedUtc.ToString("O")
     }));
 }
 
@@ -104,15 +105,15 @@ public sealed class DeliveryReceipt : Entity
             System.Text.Encoding.UTF8.GetBytes(rawText))).ToLowerInvariant();
         ExternalReference = FinalizationFields.NormalizeOptional(externalReference);
         RecordedBy = recordedBy.Trim();
-        RecordedUtc = FinalizationFields.TruncateToMicroseconds(recordedUtc);
+        RecordedUtc = recordedUtc;
         SchemaVersion = schemaVersion;
-        Digest = ComputeDigest();
+        Digest = ComputeDigest(RecordedUtc);
     }
 
     public static DeliveryReceipt Create(Guid deliveryRecordId, DeliveryReceiptKind kind, string outcome, string rawText,
         string? externalReference, string recordedBy, DateTime recordedUtc) =>
-        new(Guid.NewGuid(), deliveryRecordId, kind, outcome, rawText, externalReference, recordedBy, recordedUtc,
-            CurrentSchemaVersion);
+        new(Guid.NewGuid(), deliveryRecordId, kind, outcome, rawText, externalReference, recordedBy,
+            FinalizationFields.TruncateToMicroseconds(recordedUtc), CurrentSchemaVersion);
 
     public static DeliveryReceipt Rehydrate(Guid id, Guid deliveryRecordId, DeliveryReceiptKind kind, string outcome,
         string rawText, string rawTextSha256, string? externalReference, string recordedBy, DateTime recordedUtc,
@@ -120,10 +121,14 @@ public sealed class DeliveryReceipt : Entity
     {
         var receipt = new DeliveryReceipt(id, deliveryRecordId, kind, outcome, rawText, externalReference, recordedBy,
             recordedUtc, schemaVersion);
-        if (!string.Equals(receipt.RawTextSha256, rawTextSha256, StringComparison.Ordinal) ||
-            !string.Equals(receipt.Digest, digest, StringComparison.Ordinal))
+        if (!string.Equals(receipt.RawTextSha256, rawTextSha256, StringComparison.Ordinal))
             throw new InvalidDataException("The persisted delivery receipt differs from its committed digests.");
-        return receipt;
+        if (string.Equals(receipt.Digest, digest, StringComparison.Ordinal)) return receipt;
+        var originalUtc = FinalizationFields.RestoreLegacyTimestamp(recordedUtc, digest, receipt.ComputeDigest);
+        if (originalUtc is null)
+            throw new InvalidDataException("The persisted delivery receipt differs from its committed digests.");
+        return new DeliveryReceipt(id, deliveryRecordId, kind, outcome, rawText, externalReference, recordedBy,
+            originalUtc.Value, schemaVersion);
     }
 
     public int SchemaVersion { get; }
@@ -137,11 +142,11 @@ public sealed class DeliveryReceipt : Entity
     public DateTime RecordedUtc { get; }
     public string Digest { get; }
 
-    private string ComputeDigest() => CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
+    private string ComputeDigest(DateTime recordedUtc) => CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
     {
         schemaVersion = SchemaVersion, deliveryRecordId = DeliveryRecordId.ToString("D"), kind = Kind.ToString(),
         outcome = Outcome, rawTextSha256 = RawTextSha256, externalReference = ExternalReference,
-        recordedBy = RecordedBy, recordedUtc = RecordedUtc.ToString("O")
+        recordedBy = RecordedBy, recordedUtc = recordedUtc.ToString("O")
     }));
 }
 
@@ -149,7 +154,28 @@ public sealed class DeliveryReceipt : Entity
 // column widths so an overlong value is a clear argument error, never a database 500.
 internal static class FinalizationFields
 {
+    // Normalize only new evidence; rehydration must retain the timestamp committed by its digest.
     public static DateTime TruncateToMicroseconds(DateTime value) => new(value.Ticks - value.Ticks % 10, value.Kind);
+
+    public static DateTime? RestoreLegacyTimestamp(DateTime storedUtc, string digest, Func<DateTime, string> computeDigest)
+    {
+        if (storedUtc.Ticks % 10 != 0) return null;
+        // Legacy schema-1 digests included 100 ns ticks. Npgsql truncates signed
+        // microseconds toward its 2000 epoch; only restore a lost remainder when
+        // the original digest proves it, without rewriting any committed evidence.
+        var epoch = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var firstOffset = storedUtc <= epoch ? -9 : 1;
+        var lastOffset = storedUtc >= epoch ? 9 : -1;
+        for (var offset = firstOffset; offset <= lastOffset; offset++)
+        {
+            if (offset == 0) continue;
+            var ticks = storedUtc.Ticks + offset;
+            if (ticks < DateTime.MinValue.Ticks || ticks > DateTime.MaxValue.Ticks) continue;
+            var candidate = new DateTime(ticks, storedUtc.Kind);
+            if (string.Equals(computeDigest(candidate), digest, StringComparison.Ordinal)) return candidate;
+        }
+        return null;
+    }
 
     public static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
