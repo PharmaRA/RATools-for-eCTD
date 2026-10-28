@@ -39,10 +39,14 @@ before registration could have committed; ambiguous database outcomes retain byt
 The persisted manifest's `capture` metadata retains the original ZIP SHA-256,
 source kind, combined input digest and limits digest for later comparison evidence.
 
-Requests cannot assert trusted/finalized history. External historical registrations
-remain `ImportedExternal` / `Unverified`. A future trusted-input path must verify
-persisted evidence rather than accept caller-provided trust enums. The full history
-manifest, including trust and exact source identities, binds each run.
+Requests cannot assert trusted/finalized history. A selected historical input whose
+bytes match a finalized snapshot's recorded `ValidationInputManifestDigest` becomes a
+`Finalized` / `VerifiedForScope` entry naming that snapshot and its validation run;
+every other selection stays `ImportedExternal` / `Unverified`, and its source id is the
+captured input the baseline was built from. Each inspection re-reads that snapshot and
+re-proves its application, sequence, content digest and run, so removed or replaced
+evidence fails the run (`InvalidDataException`) instead of downgrading the claim. The
+full history manifest, including trust and exact source identities, binds each run.
 
 ## Persistence and concurrency
 

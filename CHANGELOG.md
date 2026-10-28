@@ -42,6 +42,11 @@ Semantic Versioning, and release dates use ISO 8601.
   delivered document is verified against the validation run's captured input, each copy
   is re-hashed while it is written, and `GET /api/finalizations/{id}/manifest` re-verifies
   the stored manifest against the snapshot.
+- Finalized history binding (P3-07): a selected historical input becomes a
+  `HistorySourceKind.Finalized` baseline entry with its snapshot and validation-run
+  identity only when a finalized snapshot recorded exactly those bytes; nothing the
+  caller sends can assert trust. Each inspection re-verifies that evidence, so a lost or
+  replaced snapshot fails the run instead of silently downgrading verified history.
 
 ### Changed
 

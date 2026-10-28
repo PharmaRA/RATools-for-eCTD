@@ -510,6 +510,10 @@ Independent package validation uses a separate queue and storage:
 - Completed runs archive a derived cumulative projection (`GET /api/package-validations/{id}/projection`)
   with `view=history|current|sequence`, `sequenceNumber` for the sequence view, and bounded
   `offset`/`limit` paging. It is derived evidence: unusable history stays explicitly incomplete.
+- A selected historical input is recorded as verified history only when a finalized snapshot
+  of exactly those bytes exists: the baseline entry then names that snapshot and its
+  validation run. The client cannot assert trust, and every inspection re-proves the
+  evidence, so a lost snapshot fails the run instead of leaving an unqualified claim.
 - External comparison evidence is registered explicitly with `POST .../{id}/external-reports`
   (tool, version, the run's exact package digest, original report text, one explanation per
   difference) and read back via `/external-report` and `/external-report/text`. An exact replay

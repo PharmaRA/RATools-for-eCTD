@@ -13,7 +13,8 @@ public sealed record StoredPackageValidationRequest(int SchemaVersion, Guid Inpu
     IReadOnlyList<PackageHistorySelection> History, JsonElement RuleCatalog, JsonElement HistoryBaseline, PackageReadLimits ReadLimits);
 
 public sealed class PackageValidationService(IPackageValidationStore store, IPackageInputReader reader,
-    IWorkspacePathPolicy pathPolicy, PackageDeliveryInspector inspector, TimeProvider? timeProvider = null)
+    IWorkspacePathPolicy pathPolicy, PackageDeliveryInspector inspector, TimeProvider? timeProvider = null,
+    FinalizedHistoryResolver? finalizedHistory = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     { Converters = { new JsonStringEnumConverter(allowIntegerValues: false) } };
@@ -58,6 +59,19 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
             RATools.Domain.Common.CanonicalJson.Digest(request.HistoryBaseline) !=
             RATools.Domain.Common.CanonicalJson.Digest(JsonSerializer.SerializeToElement(selected.Baseline, JsonOptions)))
             throw new InvalidDataException("The archived history or resource limits differ from the selected request.");
+        if (finalizedHistory is not null)
+        {
+            // A verified entry is evidence, so it must still be provable now: the snapshot
+            // and the run it named must both exist and still bind these exact bytes. A
+            // removed or replaced snapshot invalidates the run rather than downgrading the
+            // claim silently.
+            foreach (var entry in selected.Baseline.Entries)
+            {
+                if (!await finalizedHistory.VerifyAsync(entry, run.ApplicationId, cancellationToken).ConfigureAwait(false))
+                    throw new InvalidDataException(
+                        $"The archived finalized history for sequence {entry.SequenceNumber} can no longer be verified.");
+            }
+        }
         var captures = new List<ICapturedPackageInput>();
         try
         {
@@ -123,11 +137,26 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
             selected.Add((input, entry.ProfileSnapshotId));
         }
         selected.Sort((left, right) => string.CompareOrdinal(left.Input.SequenceNumber, right.Input.SequenceNumber));
-        // The external-input API cannot assert trust. Future finalized/evidence inputs need
-        // separate authenticated persisted provenance, not a caller-supplied enum.
-        var baseline = new HistoryBaselineManifest(target.ApplicationId, target.SequenceNumber, selected.Select(pair =>
-            new HistoryBaselineEntry(pair.Input.SequenceNumber, HistorySourceKind.ImportedExternal, pair.Input.Id.ToString("D"),
-                pair.Input.InputDigest, pair.Profile, HistoryTrustStatus.Unverified)));
+        // The external-input API cannot assert trust: a verified entry is derived only from
+        // a finalized snapshot that recorded exactly these bytes, and carries that snapshot
+        // and run so the claim can be re-proved later.
+        var entries = new List<HistoryBaselineEntry>(selected.Count);
+        foreach (var (input, profile) in selected)
+        {
+            var finalized = finalizedHistory is null
+                ? null
+                : await finalizedHistory.ResolveAsync(target.ApplicationId, input.SequenceNumber, input.InputDigest,
+                    cancellationToken).ConfigureAwait(false);
+            // SourceId always names the captured input the baseline was built from; the
+            // finalized snapshot and run are recorded separately as the trust evidence.
+            entries.Add(finalized is null
+                ? new HistoryBaselineEntry(input.SequenceNumber, HistorySourceKind.ImportedExternal, input.Id.ToString("D"),
+                    input.InputDigest, profile, HistoryTrustStatus.Unverified)
+                : new HistoryBaselineEntry(input.SequenceNumber, HistorySourceKind.Finalized, input.Id.ToString("D"),
+                    input.InputDigest, profile, HistoryTrustStatus.VerifiedForScope, finalized.ValidationRunId,
+                    finalized.FinalizedSequenceId));
+        }
+        var baseline = new HistoryBaselineManifest(target.ApplicationId, target.SequenceNumber, entries);
         return new(target, comparison, selected, baseline);
 
         async Task<RegisteredPackageInput> RequiredInput(Guid id) => await store.GetInputAsync(id, cancellationToken).ConfigureAwait(false)

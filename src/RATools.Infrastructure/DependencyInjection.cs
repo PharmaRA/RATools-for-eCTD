@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddSingleton<IPackagePdfInspector, PdfPigPackageInspector>();
         services.AddSingleton<PackageDeliveryInspector>();
         services.AddScoped<PackageValidationInputRegistry>();
+        services.AddScoped<FinalizedHistoryResolver>();
         services.AddScoped<PackageValidationService>();
         services.AddHostedService<PackageValidationBackgroundService>();
         services.Configure<BackboneOutputOptions>(configuration.GetSection(BackboneOutputOptions.SectionName));
