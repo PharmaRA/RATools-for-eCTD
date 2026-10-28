@@ -112,6 +112,16 @@ public sealed class FinalizationService(
         return await captures.ReadManifestAsync(snapshot, cancellationToken).ConfigureAwait(false);
     }
 
+    // The immutable content address for a preview of one delivered file. The reader gets
+    // the captured release member, not the document's current workspace path, so an old
+    // snapshot keeps showing the bytes it actually delivered.
+    public async Task<ReleaseFileContent> GetReleaseFileAsync(Guid finalizedSequenceId, string relativePath,
+        CancellationToken cancellationToken = default)
+    {
+        var snapshot = await GetAsync(finalizedSequenceId, cancellationToken).ConfigureAwait(false);
+        return await captures.OpenFileAsync(snapshot, relativePath, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<DeliveryRecord> RegisterDeliveryAsync(Guid finalizedSequenceId, string packageSha256, string channel,
         string? externalReference, string? note, string recordedBy, CancellationToken cancellationToken = default)
     {

@@ -536,6 +536,13 @@ Finalization records the identity of what was actually validated:
   manifest and re-verifies it against the snapshot digest (missing or edited evidence is
   `409`). A replay with the same idempotency key returns the committed snapshot; changed
   content conflicts, and identical content is one snapshot and one release directory.
+- `GET /api/finalizations/{id}/files?path=…` previews one delivered file of that release
+  (P5-04). The address is a manifest member, never a workspace path; the bytes are re-measured
+  against the recorded SHA-256 before they are served, so an edited or missing release is a
+  `409` and an unknown member is a `404`. Responses carry a strong `ETag` (the recorded
+  SHA-256), `Cache-Control: private, no-cache` and `nosniff`, support HTTP Range (`206`), and
+  are inline only for PDF; every other type is sent as an attachment. A history preview
+  therefore always shows the bytes the snapshot delivered, even after the workspace changes.
 - Once a sequence has a finalized snapshot, every draft write (nodes, publishing metadata,
   upload, placement, rename, move, delete, bulk assembly) is refused with `409 WorkspaceFinalized`
   naming the snapshot and its revision. `GET .../workspace` reports the same state as

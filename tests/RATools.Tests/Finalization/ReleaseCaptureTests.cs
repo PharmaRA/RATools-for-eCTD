@@ -102,6 +102,44 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task APreviewAddressesOnlyVerifiedManifestMembersAndRefusesTamperedBytes()
+    {
+        var (staging, manifest) = await CaptureAsync();
+        var published = await _store.CommitAsync(staging, manifest.Digest);
+
+        // The served path is resolved from the verified manifest, and the recorded digest is
+        // re-measured, so the reader receives the exact captured bytes.
+        var pdf = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/m2/file.pdf");
+        Assert.Equal("payload/0001/m2/file.pdf", pdf.RelativePath);
+        Assert.Equal("application/pdf", pdf.MediaType);
+        Assert.Equal("stable content", await File.ReadAllTextAsync(pdf.Path));
+        Assert.Equal(manifest.Files.Single(file => file.RelativePath == pdf.RelativePath).Sha256, pdf.Sha256);
+
+        var index = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/index.xml");
+        Assert.Equal("application/xml", index.MediaType);
+        var report = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "validation-report.json");
+        Assert.Equal("application/octet-stream", report.MediaType);
+
+        // A file that exists in the release directory but is not a manifest member is not
+        // previewable: the manifest, not the directory listing, is the address space.
+        await File.WriteAllTextAsync(Path.Combine(published.Directory, "payload", "0001", "extra.txt"), "unlisted");
+        await Assert.ThrowsAsync<ReleaseFileNotFoundException>(() =>
+            _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/extra.txt"));
+        // Paths outside the manifest grammar are rejected before any disk access.
+        await Assert.ThrowsAnyAsync<ArgumentException>(() =>
+            _store.OpenFileAsync(_application, "0001", manifest.Digest, "../manifest.json"));
+        // A release directory that does not exist is missing evidence, not an empty preview.
+        await Assert.ThrowsAsync<ReleaseCaptureMissingException>(() =>
+            _store.OpenFileAsync(_application, "0001", new string('0', 64), "payload/0001/m2/file.pdf"));
+
+        // Bytes edited after capture no longer reproduce the recorded digest; the preview
+        // fails instead of serving content the snapshot never committed.
+        await File.AppendAllTextAsync(Path.Combine(published.Directory, "payload", "0001", "m2", "file.pdf"), " tampered");
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/m2/file.pdf"));
+    }
+
+    [Fact]
     public void TheBaselineMustBeTheArchivedSelectionTheRunBound()
     {
         var baseline = JsonSerializer.SerializeToElement(new

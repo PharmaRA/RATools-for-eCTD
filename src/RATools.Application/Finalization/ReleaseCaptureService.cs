@@ -89,6 +89,14 @@ public sealed class ReleaseCaptureService(
             ?? throw new ReleaseCaptureMissingException(snapshot.ManifestDigest);
     }
 
+    public async Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return await store.OpenFileAsync(snapshot.ApplicationId, snapshot.SequenceNumber, snapshot.ManifestDigest,
+            relativePath, cancellationToken).ConfigureAwait(false);
+    }
+
     private static (bool Ready, IReadOnlyList<string> Reasons) ReadReadiness(string reportJson)
     {
         using var document = JsonDocument.Parse(reportJson);

@@ -1888,6 +1888,37 @@ export type GetApiFinalizationsByIdManifestResponses = {
 
 export type GetApiFinalizationsByIdManifestResponse = GetApiFinalizationsByIdManifestResponses[keyof GetApiFinalizationsByIdManifestResponses];
 
+export type GetApiFinalizationsByIdFilesData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        path?: string;
+    };
+    url: '/api/finalizations/{id}/files';
+};
+
+export type GetApiFinalizationsByIdFilesErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetApiFinalizationsByIdFilesError = GetApiFinalizationsByIdFilesErrors[keyof GetApiFinalizationsByIdFilesErrors];
+
+export type GetApiFinalizationsByIdFilesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+    /**
+     * Partial Content
+     */
+    206: unknown;
+};
+
 export type GetApiFinalizationsByIdData = {
     body?: never;
     path: {

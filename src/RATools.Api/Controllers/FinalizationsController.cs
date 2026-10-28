@@ -94,6 +94,77 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
         }
     }
 
+    // P5-04: immutable history preview. The file is addressed by its manifest-relative
+    // path inside this snapshot's release, served with Range support, a strong ETag
+    // derived from the recorded SHA-256, and no caching of a stale workspace path. A name
+    // that is not a captured member is simply not found.
+    [HttpGet("finalizations/{id:guid}/files")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status206PartialContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> File(Guid id, [FromQuery] string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var file = await service.GetReleaseFileAsync(id, path, cancellationToken);
+            // The handle is opened here, inside the guards: if the release member vanished
+            // after verification, the client gets the documented 404/409 instead of a 500
+            // raised later by the result executor, and the bytes served are the bytes just
+            // measured.
+            var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            Response.Headers.CacheControl = "private, no-cache";
+            Response.Headers.ETag = $"\"{file.Sha256}\"";
+            Response.Headers.XContentTypeOptions = "nosniff";
+            // A PDF renders inline so it can be previewed; every other type is downloaded
+            // as an attachment, so a crafted name cannot make the browser execute released
+            // bytes as page content. The result disposes the verified handle.
+            return string.Equals(file.MediaType, "application/pdf", StringComparison.Ordinal)
+                ? File(stream, file.MediaType, enableRangeProcessing: true)
+                : File(stream, file.MediaType, Path.GetFileName(file.RelativePath), enableRangeProcessing: true);
+        }
+        catch (FinalizationNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (ReleaseFileNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (FileNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (DirectoryNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (IOException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content is unavailable",
+                detail: exception.Message);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content is unavailable",
+                detail: exception.Message);
+        }
+        catch (ReleaseCaptureMissingException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content is missing",
+                detail: exception.Message);
+        }
+        catch (InvalidDataException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Release content was modified",
+                detail: exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [HttpGet("finalizations/{id:guid}")]
     [ProducesResponseType(typeof(FinalizedSequence), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken) =>

@@ -267,6 +267,10 @@ public sealed class FinalizationServiceTests
         public Task<ReleaseManifest> ReadManifestAsync(FinalizedSequence snapshot,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException("This fake does not store captured releases.");
+
+        public Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("This fake does not store captured releases.");
     }
 
     private sealed class Capture(FakeCapture facts) : IFinalizationCapture

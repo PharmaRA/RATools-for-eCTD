@@ -47,6 +47,11 @@ Semantic Versioning, and release dates use ISO 8601.
   identity only when a finalized snapshot recorded exactly those bytes; nothing the
   caller sends can assert trust. Each inspection re-verifies that evidence, so a lost or
   replaced snapshot fails the run instead of silently downgrading verified history.
+- Immutable preview of finalized content (P5-04): `GET /api/finalizations/{id}/files?path=…`
+  serves one captured release member with a strong ETag from its recorded SHA-256, HTTP Range
+  support, `private, no-cache` and `nosniff`. Only manifest members are addressable; a path
+  outside the manifest is `404`, and a missing or edited release is `409`. PDFs render inline,
+  every other type is an attachment, and history previews never read the current workspace file.
 
 ### Changed
 

@@ -194,5 +194,8 @@ public sealed class ReleaseCaptureServiceTests
             CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<ReleaseManifest?> ReadManifestAsync(Guid applicationId, string sequenceNumber, string manifestDigest,
             CancellationToken cancellationToken = default) => Task.FromResult<ReleaseManifest?>(null);
+        public Task<ReleaseFileContent> OpenFileAsync(Guid applicationId, string sequenceNumber, string manifestDigest,
+            string relativePath, CancellationToken cancellationToken = default) =>
+            throw new ReleaseCaptureMissingException(manifestDigest);
     }
 }

@@ -200,6 +200,63 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         return ReleaseManifest.FromJson(bytes, applicationId, sequence, manifestDigest);
     }
 
+    // A preview reader addresses one file of a verified release. The manifest is re-read
+    // and re-hashed first, so a tampered release cannot serve bytes; only then is the
+    // member resolved inside the release directory.
+    public async Task<ReleaseFileContent> OpenFileAsync(Guid applicationId, string sequenceNumber, string manifestDigest,
+        string relativePath, CancellationToken cancellationToken = default)
+    {
+        ReleaseManifest.RequireRelativePath(relativePath, nameof(relativePath));
+        var manifest = await ReadManifestAsync(applicationId, sequenceNumber, manifestDigest, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new ReleaseCaptureMissingException(manifestDigest);
+        var file = manifest.Files.SingleOrDefault(candidate =>
+            string.Equals(candidate.RelativePath, relativePath, StringComparison.Ordinal))
+            ?? throw new ReleaseFileNotFoundException(relativePath);
+        var directory = ResolveReleaseDirectory(applicationId, sequenceNumber, manifestDigest);
+        var path = ResolveDescendantPath(directory, file.RelativePath, "Release file path");
+        if (!File.Exists(path)) throw new ReleaseFileNotFoundException(relativePath);
+        // The bytes must still be the ones the manifest recorded; a modified preview file
+        // is missing evidence, not a different version.
+        var (length, sha256) = await MeasureFileAsync(path, cancellationToken).ConfigureAwait(false);
+        if (length != file.Length || !string.Equals(sha256, file.Sha256, StringComparison.Ordinal))
+            throw new InvalidDataException($"Captured release file '{relativePath}' no longer matches its recorded digest.");
+        return new ReleaseFileContent(path, file.RelativePath, length, sha256, MediaTypeFor(file.RelativePath));
+    }
+
+    // Preview content types are derived from the recorded path, never from a caller
+    // header; an unknown extension is served as bytes so it is downloaded, not interpreted.
+    private static string MediaTypeFor(string relativePath) => Path.GetExtension(relativePath).ToLowerInvariant() switch
+    {
+        ".pdf" => "application/pdf",
+        ".xml" => "application/xml",
+        ".txt" => "text/plain",
+        ".csv" => "text/csv",
+        ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".tif" or ".tiff" => "image/tiff",
+        _ => "application/octet-stream"
+    };
+
+    // Only the recorded SHA-256 gates a preview, so the verification read hashes once.
+    private static async Task<(long Length, string Sha256)> MeasureFileAsync(string path,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[65536];
+        long length = 0;
+        while (true)
+        {
+            var read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            length += read;
+            sha.AppendData(buffer, 0, read);
+        }
+        return (length, Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant());
+    }
+
     private string ResolveReleaseDirectory(Guid applicationId, string sequenceNumber, string manifestDigest)
     {
         RequireDigest(manifestDigest, nameof(manifestDigest));

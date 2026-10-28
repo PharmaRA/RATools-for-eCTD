@@ -59,7 +59,18 @@ public interface IReleaseCaptureStore
     // Reads a materialized manifest and proves it is the one the snapshot recorded.
     Task<ReleaseManifest?> ReadManifestAsync(Guid applicationId, string sequenceNumber, string manifestDigest,
         CancellationToken cancellationToken = default);
+    // Resolves one captured file of a materialized release. The path must be a member of
+    // the verified manifest, so a caller can never address the workspace or another file.
+    Task<ReleaseFileContent> OpenFileAsync(Guid applicationId, string sequenceNumber, string manifestDigest,
+        string relativePath, CancellationToken cancellationToken = default);
 }
+
+// A captured release file that a reader may stream. Path is server-resolved from the
+// manifest; Sha256 is the strong validator a reader may cache on.
+public sealed record ReleaseFileContent(string Path, string RelativePath, long Length, string Sha256, string MediaType);
+
+public sealed class ReleaseFileNotFoundException(string relativePath)
+    : KeyNotFoundException($"The release does not contain '{relativePath}'.");
 
 public interface IFinalizationCaptureProvider
 {
@@ -68,6 +79,11 @@ public interface IFinalizationCaptureProvider
     // Reads the release a committed snapshot recorded and re-verifies it against the
     // snapshot's digest. The store is the authority; a caller cannot ask for another path.
     Task<ReleaseManifest> ReadManifestAsync(FinalizedSequence snapshot, CancellationToken cancellationToken = default);
+
+    // Resolves one captured member of a committed snapshot for preview. History previews
+    // read the release, never the current workspace file.
+    Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath,
+        CancellationToken cancellationToken = default);
 }
 
 // A capture in progress. It owns the staged bytes until the snapshot is registered, so a

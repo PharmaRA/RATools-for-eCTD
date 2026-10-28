@@ -166,6 +166,13 @@ refused, and every delivered document must match the validation run's captured
 input manifest. Reading a stored manifest recomputes its digest; a missing or edited
 release is a conflict, never a partial snapshot.
 
+Preview reads the release, never the workspace: `GET /api/finalizations/{id}/files?path=…`
+accepts only a manifest member, re-verifies the manifest digest and re-measures the
+member against its recorded SHA-256 before serving it. The response carries that
+SHA-256 as a strong `ETag`, `Cache-Control: private, no-cache`, `nosniff` and HTTP
+Range support; PDFs are inline and all other types are attachments. A non-member path
+is `404`; missing or edited release evidence is `409`.
+
 External packages contain only the selected profile's regulatory layout.
 Public APIs accept authorized artifact/workspace/version IDs; the server maps
 them to these paths. Export verifies stored content. It does not reconstruct a

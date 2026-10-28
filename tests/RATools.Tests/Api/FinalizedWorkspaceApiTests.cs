@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -116,6 +117,85 @@ public sealed class FinalizedWorkspaceApiTests : IClassFixture<WebApplicationFac
         Assert.Equal(HttpStatusCode.Conflict, missing.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,
             (await client.GetAsync($"/api/finalizations/{Guid.NewGuid()}/manifest")).StatusCode);
+    }
+
+    // P5-04 at the HTTP boundary: the preview serves the captured bytes of one verified
+    // release, supports Range, and refuses anything the snapshot did not record.
+    [Fact]
+    public async Task PreviewServesOnlyCapturedReleaseMembersWithARangeAndAStrongEtag()
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var host = CreateHost(tempRoot.Path);
+        using var client = host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "test-key");
+        var application = await CreateApplicationAsync(client, tempRoot.Path);
+
+        var captureStore = host.Services.GetRequiredService<IReleaseCaptureStore>();
+        var staging = await captureStore.SaveAsync(new ReleaseCapturePlan(application.Id, "0000",
+        [
+            ReleaseCaptureFile.Generated("payload/0000/index.xml", Encoding.UTF8.GetBytes("<index />")),
+            ReleaseCaptureFile.Generated("payload/0000/m2/overview.pdf", Encoding.UTF8.GetBytes("%PDF-1.4 preview bytes")),
+            ReleaseCaptureFile.Generated("validation-report.json", Encoding.UTF8.GetBytes("{}"),
+                ReleaseFileKind.ValidationReport)
+        ]));
+        var manifest = new ReleaseManifest(application.Id, "0000", 0, FinalizationService.ToolVersion,
+            Digest("input"), JsonSerializer.SerializeToElement(new
+            {
+                applicationId = application.Id.ToString("D"), targetSequence = "0000", digest = Digest("history"),
+                entries = Array.Empty<object>()
+            }), Digest("history"),
+            new ReleaseValidationReference(Digest("report"), "Development", PackageValidationCatalog.UsProfile, "3.2.2",
+                null, Digest("rules"), "engine", null), [], staging.Files, [], [], []);
+        await captureStore.CompleteAsync(staging, manifest);
+        await captureStore.CommitAsync(staging, manifest.Digest);
+
+        var store = host.Services.GetRequiredService<IFinalizationStore>();
+        var snapshot = FinalizedSequence.Create(application.Id, "0000", 0, manifest.Digest,
+            PackageValidationCatalog.UsProfile, "3.2.2", null, Digest("history"), Guid.NewGuid(),
+            Digest("input"), Digest("report"), PackageValidationMode.Development, false, [],
+            FinalizationService.ToolVersion, "preview-api", Now);
+        await store.RegisterAsync(snapshot);
+
+        var xmlSha = manifest.Files.Single(file => file.RelativePath == "payload/0000/index.xml").Sha256;
+        var preview = await client.GetAsync(
+            $"/api/finalizations/{snapshot.Id}/files?path=payload/0000/index.xml");
+        Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
+        Assert.Equal("application/xml", preview.Content.Headers.ContentType!.MediaType);
+        Assert.Equal($"\"{xmlSha}\"", preview.Headers.ETag!.Tag);
+        // The response may be cached only by this authenticated client, and must be
+        // revalidated against the strong ETag before any reuse.
+        Assert.True(preview.Headers.CacheControl!.NoCache);
+        Assert.True(preview.Headers.CacheControl!.Private);
+        Assert.Equal("<index />", await preview.Content.ReadAsStringAsync());
+        // A non-PDF is delivered as an attachment, so released bytes are never rendered.
+        Assert.Equal("attachment", preview.Content.Headers.ContentDisposition!.DispositionType);
+        Assert.Equal("index.xml", preview.Content.Headers.ContentDisposition.FileName);
+
+        // A Range read of the PDF is a partial response from the same immutable bytes.
+        using var ranged = new HttpRequestMessage(HttpMethod.Get,
+            $"/api/finalizations/{snapshot.Id}/files?path=payload/0000/m2/overview.pdf");
+        ranged.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 3);
+        var partial = await client.SendAsync(ranged);
+        Assert.Equal(HttpStatusCode.PartialContent, partial.StatusCode);
+        Assert.Equal("application/pdf", partial.Content.Headers.ContentType!.MediaType);
+        Assert.Equal("%PDF", await partial.Content.ReadAsStringAsync());
+        // The PDF is meant to render in a viewer, so it is served inline without a download name.
+        Assert.Null(partial.Content.Headers.ContentDisposition);
+
+        // A directory entry that is not a manifest member is a 404, not a directory listing.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(
+            $"/api/finalizations/{snapshot.Id}/files?path=payload/0000/m3")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(
+            $"/api/finalizations/{snapshot.Id}/files?path=../manifest.json")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(
+            $"/api/finalizations/{Guid.NewGuid()}/files?path=payload/0000/index.xml")).StatusCode);
+
+        // Editing delivered bytes after capture makes the release unreadable evidence.
+        var releaseDirectory = Path.Combine(tempRoot.Path, application.Id.ToString("N"), "_releases", "0000",
+            manifest.Digest, "payload", "0000");
+        await File.WriteAllTextAsync(Path.Combine(releaseDirectory, "index.xml"), "<index>edited</index>");
+        Assert.Equal(HttpStatusCode.Conflict, (await client.GetAsync(
+            $"/api/finalizations/{snapshot.Id}/files?path=payload/0000/index.xml")).StatusCode);
     }
 
     private WebApplicationFactory<Program> CreateHost(string root) =>
