@@ -182,7 +182,14 @@ reports, standards and every referenced historical source.
 Delivery is an append-only event stream. Exported bytes, manual submission
 registration and typed transport/technical/business receipts are distinct facts.
 Corrections refer to previous events. No publish, validation or snapshot success
-automatically records submission or acceptance.
+automatically records submission or acceptance. PostgreSQL enforces this for
+`finalized_sequences`, `finalized_delivery_records` and `finalized_delivery_receipts`:
+row-level triggers reject `UPDATE`/`DELETE` (including an upsert's `ON CONFLICT DO
+UPDATE` branch) and statement-level triggers reject `TRUNCATE`, all with SQLSTATE `55000`.
+Only inserts are accepted; the guard is removed by a downgrade without touching rows.
+This is a guard against ordinary application and maintenance statements, not against
+a superuser: a role that may disable triggers or set `session_replication_role` can
+still bypass it, so least-privilege database roles remain the real boundary.
 
 P5 previews bind a complete atomic selected batch, revision, content versions,
 history baseline and expiry to a plan digest. Selecting a subset creates a new

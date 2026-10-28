@@ -56,6 +56,59 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
         Assert.Single(await reloaded.ListReceiptsAsync((await reloaded.ListDeliveriesAsync(snapshot.Id))[0].Id));
     }
 
+    // The store only inserts, but a manual UPDATE/DELETE would rewrite committed evidence
+    // without any application code being involved. The database itself must refuse it.
+    [RequiresPostgresFact]
+    public async Task FinalizedEvidenceCannotBeUpdatedDeletedOrTruncated()
+    {
+        var applicationId = Guid.NewGuid();
+        var sequenceNumber = UniqueSequence();
+        var run = await SeedCompletedRunAsync(applicationId, sequenceNumber);
+        var snapshot = Snapshot(applicationId, sequenceNumber, run.Id, run.Binding);
+        await using var context = fixture.CreateDbContext();
+        var store = new EfCoreFinalizationStore(context);
+        await store.RegisterAsync(snapshot);
+        var delivery = DeliveryRecord.Create(snapshot.Id, Digest("package"), "gateway", "EXT-1", null, "operator", Now);
+        await store.AppendDeliveryAsync(delivery);
+        await store.AppendReceiptAsync(DeliveryReceipt.Create(delivery.Id, DeliveryReceiptKind.Transmission,
+            "Accepted", "<ack />", "EXT-1", "operator", Now));
+
+        var update = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE finalized_sequences SET \"ManifestDigest\" = {Digest("rewritten")} WHERE \"Id\" = {snapshot.Id}"));
+        Assert.Equal("55000", update.SqlState);
+        var delete = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => context.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM finalized_delivery_records WHERE \"Id\" = {delivery.Id}"));
+        Assert.Equal("55000", delete.SqlState);
+        // TRUNCATE bypasses row triggers; the statement-level guard must cover it too.
+        var truncate = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+            context.Database.ExecuteSqlRawAsync("TRUNCATE finalized_delivery_receipts"));
+        Assert.Equal("55000", truncate.SqlState);
+        // An upsert is still an INSERT statement, so only the row-level trigger stops the
+        // conflict branch from rewriting a committed snapshot.
+        var upsert = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO finalized_sequences ("Id", "ApplicationId", "SequenceNumber", "SourceWorkspaceRevision",
+                  "ManifestDigest", "StandardsProfileSnapshotId", "IchEctdVersion", "RegionalModule1Version",
+                  "HistoryBaselineDigest", "ValidationRunId", "ValidationInputManifestDigest", "ValidationReportSha256",
+                  "ValidationMode", "IsReadyForFinalization", "BlockingReasonsJson", "CreatedByToolVersion",
+                  "IdempotencyKey", "CreatedUtc", "RequestDigest", "SchemaVersion")
+                VALUES ({snapshot.Id}, {snapshot.ApplicationId}, {snapshot.SequenceNumber}, {snapshot.SourceWorkspaceRevision},
+                  {Digest("rewritten")}, {snapshot.StandardsProfileSnapshotId}, {snapshot.IchEctdVersion},
+                  {snapshot.RegionalModule1Version}, {snapshot.HistoryBaselineDigest}, {snapshot.ValidationRunId},
+                  {snapshot.ValidationInputManifestDigest}, {snapshot.ValidationReportSha256}, {snapshot.ValidationMode.ToString()},
+                  {snapshot.IsReadyForFinalization}, CAST({"[]"} AS jsonb), {snapshot.CreatedByToolVersion}, {snapshot.IdempotencyKey},
+                  {snapshot.CreatedUtc}, {snapshot.RequestDigest}, {1})
+                ON CONFLICT ("Id") DO UPDATE SET "ManifestDigest" = EXCLUDED."ManifestDigest"
+                """));
+        Assert.Equal("55000", upsert.SqlState);
+
+        // Nothing was rewritten, and new append-only facts are still recorded normally.
+        var reloaded = (await new EfCoreFinalizationStore(context).GetAsync(snapshot.Id))!;
+        Assert.Equal(snapshot.ManifestDigest, reloaded.ManifestDigest);
+        Assert.Single(await store.ListDeliveriesAsync(snapshot.Id));
+        Assert.Single(await store.ListReceiptsAsync(delivery.Id));
+    }
+
     [RequiresPostgresFact]
     public async Task SubMicrosecondTimestampsRoundTripAndContentMayBeFinalizedPerMode()
     {

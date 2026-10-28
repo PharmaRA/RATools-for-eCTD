@@ -554,7 +554,11 @@ Finalization records the identity of what was actually validated:
 - Delivery records (`POST /api/finalized-sequences/{id}/deliveries`) and receipts
   (`POST /api/finalized-deliveries/{id}/receipts`) are append-only and keep transmission,
   technical validation and business outcome separate. Nothing infers "submitted" from a
-  completed publish job.
+  completed publish job. PostgreSQL also refuses `UPDATE`/`DELETE`/`TRUNCATE` on the
+  finalized snapshot, delivery and receipt tables with SQLSTATE `55000` (including an
+  upsert's conflict branch), so ordinary statements cannot rewrite committed evidence.
+  A superuser can still disable triggers, so least-privilege roles remain the real
+  boundary.
 
 Bulk assembly is preview-first:
 

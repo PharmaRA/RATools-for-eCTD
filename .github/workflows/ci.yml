@@ -39,6 +39,7 @@ jobs:
           python3 scripts/tests/test_repository_hygiene.py
           python3 scripts/tests/test_database_migration_contract.py
           python3 scripts/tests/test_publisher_reference_contract.py
+          python3 scripts/tests/test_qualification_evidence_contract.py
           python3 scripts/fixtures/materialize_publisher_fixture.py --output .artifacts/publisher-qualification
 
       - name: Setup .NET
@@ -82,6 +83,21 @@ jobs:
           dotnet test tests/RATools.Tests/RATools.Tests.csproj
           --configuration Release --no-build
           --filter "FullyQualifiedName~RATools.Tests.Publishing.UsRegional|FullyQualifiedName~RATools.Tests.Publishing.EuRegional"
+          --logger "trx;LogFileName=regional.trx" --results-directory ./TestResults
+        env:
+          # 与上一测试步骤使用同一数据库：区域用例现在不依赖 PostgreSQL，但如果将来加入
+          # 条件用例，缺少该变量会变成静默跳过，而回执步骤会因此判为不完整。
+          RATOOLS_TEST_POSTGRES: Host=localhost;Port=5432;Database=ratools_tests;Username=postgres;Password=postgres
+
+      # 资格证据：把这次 Linux 实跑的计数、平台、SDK 和 TRX 摘要写成机器可读回执。
+      # 配置好的 workflow 不等于通过的证据；回执只在真实运行后生成，跳过/失败会返回非零。
+      - name: Record environment evidence
+        run: |
+          python3 scripts/record_environment_receipt.py \
+            --trx TestResults/backend.trx --trx TestResults/regional.trx \
+            --output TestResults/environment-receipt.json \
+            --platform linux --dotnet-version "$(dotnet --version)" \
+            --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
 
       # 测试失败时把失败用例名与消息打进日志——否则只剩 "exit code 1"，
       # 而 job 日志需要仓库 admin 权限才能下载，排障会卡在拿不到信息上。

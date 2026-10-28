@@ -88,3 +88,29 @@ P1-03 and later database tasks must add their own empty/legacy-data upgrades,
 idempotent backfills and rollback evidence. This baseline does not prequalify
 future migrations. API startup continues to check migration state only; all
 schema changes run through `RATools.DatabaseMigrator`.
+
+## CI run receipts
+
+The backend job writes `TestResults/environment-receipt.json` from the TRX files
+the same run produced:
+
+```text
+python3 scripts/record_environment_receipt.py \
+  --trx TestResults/backend.trx --trx TestResults/regional.trx \
+  --output TestResults/environment-receipt.json \
+  --platform linux --dotnet-version "$(dotnet --version)" \
+  --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+```
+
+The receipt records the platform, SDK version, commit, run id and per-file TRX
+counts plus their SHA-256. It returns a non-zero exit code when any test failed
+or was skipped, so a receipt cannot label an incomplete run as passing. Both the
+receipt and the TRX files are uploaded with `backend-test-results`.
+
+A receipt proves that one run happened on one platform. It does not qualify
+different platforms, regional scope or an external validator:
+`environment-evidence.json` keeps `linux.status` and the LORENZ eValidator
+candidate at `NotEvaluated` until their own evidence exists, and
+`scripts/tests/test_qualification_evidence_contract.py` fails if either is
+silently upgraded or if the recorder, the CI wiring or the finalized-evidence
+append-only guard is removed.

@@ -52,6 +52,18 @@ Semantic Versioning, and release dates use ISO 8601.
   support, `private, no-cache` and `nosniff`. Only manifest members are addressable; a path
   outside the manifest is `404`, and a missing or edited release is `409`. PDFs render inline,
   every other type is an attachment, and history previews never read the current workspace file.
+- Database-level append-only guard for finalized evidence: `UPDATE`, `DELETE` and `TRUNCATE`
+  on `finalized_sequences`, `finalized_delivery_records` and `finalized_delivery_receipts`
+  raise SQLSTATE `55000` from statement-level triggers, so committed snapshots and delivery
+  facts cannot be rewritten by a manual statement the store never issues.
+- `scripts/record_environment_receipt.py` records what a CI run actually executed
+  (platform, SDK, commit, run id, TRX counts and hashes) and fails on skipped or failed
+  tests, so a configured workflow is never mistaken for a passing qualification receipt.
+
+### Fixed
+
+- Page-level frontend tests no longer flake under parallel worker contention: the vitest
+  per-test timeout is raised to 20 s instead of the 5 s default, without adding retries.
 
 ### Changed
 

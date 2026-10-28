@@ -34,7 +34,11 @@ const config = {
   },
   test: {
     environment: 'jsdom',
-    setupFiles: './src/testSetup.ts'
+    setupFiles: './src/testSetup.ts',
+    // 页面级测试要等待懒加载 chunk 与多轮数据查询；默认 5s 在并行 worker 争用 CPU
+    // 时会偶发超时（同一文件单独运行则通过）。放宽单用例时限，而不是加重试掩盖问题。
+    testTimeout: 20000,
+    hookTimeout: 20000
   },
   server: {
     port: 3000, // 我们把前端端口固定在 3000
