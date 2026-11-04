@@ -1,0 +1,92 @@
+{
+  "qpdf": [
+    {
+      "jsonversion": 2
+    },
+    {
+      "obj:1 0 R": {
+        "value": {
+          "/Dests": {
+            "/overview": [
+              "4 0 R",
+              "/Fit"
+            ]
+          },
+          "/Outlines": "9 0 R",
+          "/PageMode": "/UseOutlines",
+          "/Pages": "2 0 R",
+          "/Type": "/Catalog"
+        }
+      },
+      "obj:8 0 R": {
+        "value": {
+          "/A": {
+            "/D": [
+              "4 0 R",
+              "/Fit"
+            ],
+            "/S": "/GoTo"
+          },
+          "/Border": [
+            0,
+            0,
+            0
+          ],
+          "/Rect": [
+            70,
+            650,
+            220,
+            675
+          ],
+          "/Subtype": "/Link",
+          "/Type": "/Annot"
+        }
+      },
+      "obj:10 0 R": {
+        "value": {
+          "/Count": 1,
+          "/Dest": [
+            "4 0 R",
+            "/Fit"
+          ],
+          "/First": "11 0 R",
+          "/Last": "11 0 R",
+          "/Parent": "9 0 R",
+          "/Title": "u:总览"
+        }
+      },
+      "obj:11 0 R": {
+        "value": {
+          "/Dest": [
+            "3 0 R",
+            "/Fit"
+          ],
+          "/Parent": "10 0 R",
+          "/Title": "u:详细资料"
+        }
+      },
+      "obj:12 0 R": {
+        "value": {
+          "/A": {
+            "/D": "u:overview",
+            "/F": "u:renamed.pdf",
+            "/S": "/GoToR"
+          },
+          "/Border": [
+            0,
+            0,
+            0
+          ],
+          "/Rect": [
+            70,
+            600,
+            220,
+            625
+          ],
+          "/Subtype": "/Link",
+          "/Type": "/Annot"
+        }
+      }
+    }
+  ]
+}

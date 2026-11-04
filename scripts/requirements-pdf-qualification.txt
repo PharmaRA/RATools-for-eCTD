@@ -1,0 +1,3 @@
+# Independent local qualification reader/renderer, not a runtime application dependency.
+# AGPL-3.0 or Artifex commercial terms; see reference/publisher/PDF-ENGINE-QUALIFICATION.md.
+PyMuPDF==1.28.2

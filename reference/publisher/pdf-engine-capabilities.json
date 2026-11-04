@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "task": "P5-05",
+  "reviewedOn": "2026-11-04",
+  "selection": "qpdf JSON update primitive for navigation; production adapter remains P5-06",
+  "engine": {
+    "name": "qpdf",
+    "version": "12.4.1",
+    "license": "Apache-2.0",
+    "source": "https://github.com/qpdf/qpdf/releases/tag/v12.4.1",
+    "windowsAsset": "qpdf-12.4.1-msvc64.zip",
+    "windowsAssetSha256": "3cd016cd433ef7232e42f4c13348a49cc14907a3c7278ef4f99120593126f7a6",
+    "checksumSource": "https://github.com/qpdf/qpdf/releases/download/v12.4.1/qpdf-12.4.1.sha256",
+    "executableSha256": "57c003e868fb66cd343fd5afb91be8c2277f56434eea8635762499731bf9f60d",
+    "licenseSource": "qpdf-12.4.1-msvc64/share/doc/qpdf/manual-html/_sources/license.rst.txt and qpdf --copyright",
+    "bundledLicenseTextSha256": "6bd81aa03c651c1a88b50ec99dc060d458a4c6439f46bf109afa6a7178538a90",
+    "deployment": "Externally installed CLI, structured arguments, no shell, pinned version; no binaries redistributed by this change",
+    "redistribution": "NotQualified: review qpdf third-party notices and Microsoft runtime redistribution terms before bundling"
+  },
+  "independentOracle": {
+    "name": "PyMuPDF",
+    "version": "1.28.2",
+    "license": "AGPL-3.0 or Artifex commercial license",
+    "use": "Local test-only reader and renderer; not linked into or distributed with the application"
+  },
+  "platforms": {
+    "Windows": "NavigationTrialPassed",
+    "Linux": "NotEvaluated"
+  },
+  "capabilities": [
+    {"id": "bookmarks", "status": "WindowsFixturePassed", "scope": "Read and edit nested Unicode titles and explicit page destinations"},
+    {"id": "named-destinations", "status": "WindowsFixturePassed", "scope": "Update the fixture's catalog Dests dictionary and independently resolve the target page"},
+    {"id": "initial-view", "status": "WindowsFixturePassed", "scope": "UseNone to UseOutlines with unchanged page content"},
+    {"id": "internal-links", "status": "WindowsFixturePassed", "scope": "GoTo named destination to explicit page destination"},
+    {"id": "remote-links", "status": "WindowsFixturePassed", "scope": "GoToR filename change; named destination resolves in the captured target file"},
+    {"id": "uri-preservation", "status": "WindowsFixturePassed", "scope": "Existing HTTPS URI remains unchanged"},
+    {"id": "source-and-render-fidelity", "status": "WindowsFixturePassed", "scope": "Two pages: source bytes, decoded streams, extracted text and 72 dpi RGB render hashes"},
+    {"id": "encryption", "status": "DetectionAndRejectionTested", "scope": "AES-256 input with empty user password; password-protected input is not qualified for processing"},
+    {"id": "signatures", "status": "DetectionAndRejectionTested", "scope": "Synthetic signature dictionary; no cryptographic signature validity claim"},
+    {"id": "process-timeout", "status": "DirectProcessTimeoutTested", "scope": "Python timeout kills and waits for the direct qpdf process; no production worker cancellation qualification"},
+    {"id": "resource-isolation", "status": "NotEvaluated", "scope": "Fixture input limited to 1 MiB; no hard memory, CPU or production output limit qualification"},
+    {"id": "font-conformance", "status": "NotEvaluated", "scope": "Navigation editing does not embed fonts or establish PDF/A or regional conformance"},
+    {"id": "ocr", "status": "UnsupportedBySelectedEngine", "scope": "Requires a separately qualified P5-08 engine"}
+  ],
+  "evidence": {
+    "input": "tests/RATools.Tests/Fixtures/PdfProcessing/navigation-source.pdf",
+    "windowsReceipt": "reference/publisher/pdf-navigation-qualification/windows-20261104/receipt.json",
+    "output": "reference/publisher/pdf-navigation-qualification/windows-20261104/navigation.pdf",
+    "remoteTarget": "reference/publisher/pdf-navigation-qualification/windows-20261104/renamed.pdf",
+    "patch": "reference/publisher/pdf-navigation-qualification/windows-20261104/navigation.update.json",
+    "regressions": "scripts/tests/test_pdf_navigation_qualification.py"
+  },
+  "remainingQualification": [
+    "Linux execution and deployment",
+    "Production generic object resolution, bound plans, durable tasks, cancellation and adoption in P5-06",
+    "Complex destination name trees, broader documents, scale and resource isolation",
+    "Runtime redistribution approval before bundling external tools",
+    "OCR and conformance engine qualification in P5-08",
+    "Regional and external validator acceptance"
+  ]
+}

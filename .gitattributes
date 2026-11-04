@@ -14,3 +14,9 @@ reference/publisher/ich-3.2.2-nodes.json -text whitespace=cr-at-eol
 tests/RATools.Tests/Fixtures/Publisher/sequences/** -text
 tests/RATools.Tests/Fixtures/Publisher/sequences/**/*.dtd -whitespace
 tests/RATools.Tests/Fixtures/Publisher/external/*.xml -text
+
+# PDF engine qualification receipts bind the exact fixture and output bytes.
+tests/RATools.Tests/Fixtures/PdfProcessing/** -text
+reference/publisher/pdf-navigation-qualification/** -text
+reference/publisher/pdf-navigation-qualification/**/*.json whitespace=cr-at-eol
+scripts/qualify_pdf_navigation.py text eol=lf

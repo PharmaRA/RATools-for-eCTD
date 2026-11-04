@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "task": "P5-05",
+  "platform": "Windows",
+  "recordedUtc": "2026-11-04T14:47:34.619628+00:00",
+  "pythonVersion": "3.11.9",
+  "scriptSha256": "54f2f3b0bb6c121f51c7ddc7aa3346df6ef2fec6dfe083b17b8dbe79e6c95895",
+  "engineExecutableSha256": "57c003e868fb66cd343fd5afb91be8c2277f56434eea8635762499731bf9f60d",
+  "engine": "qpdf version 12.4.1",
+  "independentReader": "PyMuPDF 1.28.2",
+  "sourceSha256": "11a5534ee4b790e96e5953168ba68dd9810e48776afd2473cfad8a07e8dae705",
+  "outputSha256": "bfc477603cef66968cb6029caee6b942768352e7de8cdd1455648e944c756a33",
+  "remoteTargetSha256": "11a5534ee4b790e96e5953168ba68dd9810e48776afd2473cfad8a07e8dae705",
+  "updateSha256": "34e8b2d2ff30d4b2fc4b98a1e31b1db42bb4fa18e67d806f6d38b56a1b7340ef",
+  "checks": {
+    "sourcePreserved": true,
+    "nestedUnicodeBookmarks": true,
+    "initialView": true,
+    "namedDestination": true,
+    "pageCount": true,
+    "internalLink": true,
+    "remoteLink": true,
+    "uriPreserved": true,
+    "pageFidelity": true
+  },
+  "pages": [
+    {
+      "page": 1,
+      "sourceRenderSha256": "bd6614746f4701e929c2a96da17efa657c5aa3f163c91372b3eb038848356c60",
+      "outputRenderSha256": "bd6614746f4701e929c2a96da17efa657c5aa3f163c91372b3eb038848356c60",
+      "textUnchanged": true,
+      "decodedStreamsUnchanged": true
+    },
+    {
+      "page": 2,
+      "sourceRenderSha256": "9fe3d210278198107e0fd5010e07b34464810f5659da6b4b4359dda5eeb3463d",
+      "outputRenderSha256": "9fe3d210278198107e0fd5010e07b34464810f5659da6b4b4359dda5eeb3463d",
+      "textUnchanged": true,
+      "decodedStreamsUnchanged": true
+    }
+  ],
+  "elapsedSeconds": 0.156,
+  "status": "Passed",
+  "scope": "Frozen two-page navigation fixture only; no production, OCR, font or regulatory qualification"
+}
