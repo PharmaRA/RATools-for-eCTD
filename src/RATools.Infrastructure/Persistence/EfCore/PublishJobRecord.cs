@@ -22,6 +22,8 @@ public sealed class PublishJobRecord
 
     public string IdempotencyKey { get; set; } = string.Empty;
 
+    public Guid? PackageValidationRunId { get; set; }
+
     public int AttemptCount { get; set; }
 
     public DateTime NextAttemptUtc { get; set; }

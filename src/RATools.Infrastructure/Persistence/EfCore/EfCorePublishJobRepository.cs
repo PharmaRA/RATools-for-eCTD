@@ -41,6 +41,7 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
                 .SingleAsync(x => x.IdempotencyKey == job.IdempotencyKey, cancellationToken);
 
             if (existing.ApplicationId != job.ApplicationId
+                || existing.PackageValidationRunId != job.PackageValidationRunId
                 || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
             {
                 throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
@@ -57,6 +58,7 @@ public sealed class EfCorePublishJobRepository(RAToolsDbContext dbContext) : IPu
             if (existing is not null)
             {
                 if (existing.ApplicationId != job.ApplicationId
+                    || existing.PackageValidationRunId != job.PackageValidationRunId
                     || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
                 {
                     throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
@@ -595,6 +597,7 @@ internal static class PublishJobRecordMapping
             CompletedUtc = job.CompletedUtc,
             FailureReason = job.FailureReason,
             IdempotencyKey = job.IdempotencyKey,
+            PackageValidationRunId = job.PackageValidationRunId,
             AttemptCount = job.AttemptCount,
             NextAttemptUtc = job.NextAttemptUtc,
             LeaseOwner = job.LeaseOwner,
@@ -623,7 +626,8 @@ internal static class PublishJobRecordMapping
             record.LeaseOwner,
             record.LeaseToken,
             record.LeaseExpiresUtc,
-            record.LastHeartbeatUtc);
+            record.LastHeartbeatUtc,
+            record.PackageValidationRunId);
     }
 
     public static PublishJobHistorySummary? ToHistorySummary(this PublishJobRecord record)

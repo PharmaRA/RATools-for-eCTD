@@ -4,7 +4,7 @@ namespace RATools.Domain.Publishing;
 
 public sealed class PublishJob : Entity
 {
-    public PublishJob(Guid applicationId, string sequenceNumber, string? idempotencyKey = null)
+    public PublishJob(Guid applicationId, string sequenceNumber, string? idempotencyKey = null, Guid? packageValidationRunId = null)
         : this(
             Guid.NewGuid(),
             applicationId,
@@ -21,7 +21,8 @@ public sealed class PublishJob : Entity
             null,
             null,
             null,
-            null)
+            null,
+            packageValidationRunId)
     {
     }
 
@@ -41,7 +42,8 @@ public sealed class PublishJob : Entity
         string? leaseOwner,
         Guid? leaseToken,
         DateTime? leaseExpiresUtc,
-        DateTime? lastHeartbeatUtc)
+        DateTime? lastHeartbeatUtc,
+        Guid? packageValidationRunId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
 
@@ -61,6 +63,7 @@ public sealed class PublishJob : Entity
         LeaseToken = leaseToken;
         LeaseExpiresUtc = leaseExpiresUtc;
         LastHeartbeatUtc = lastHeartbeatUtc;
+        PackageValidationRunId = packageValidationRunId;
     }
 
     public Guid ApplicationId { get; private set; }
@@ -80,6 +83,8 @@ public sealed class PublishJob : Entity
     public string? FailureReason { get; private set; }
 
     public string IdempotencyKey { get; private set; }
+
+    public Guid? PackageValidationRunId { get; private set; }
 
     public int AttemptCount { get; private set; }
 
@@ -201,7 +206,8 @@ public sealed class PublishJob : Entity
         string? leaseOwner = null,
         Guid? leaseToken = null,
         DateTime? leaseExpiresUtc = null,
-        DateTime? lastHeartbeatUtc = null)
+        DateTime? lastHeartbeatUtc = null,
+        Guid? packageValidationRunId = null)
     {
         return new PublishJob(
             id,
@@ -219,7 +225,8 @@ public sealed class PublishJob : Entity
             leaseOwner,
             leaseToken,
             leaseExpiresUtc,
-            lastHeartbeatUtc);
+            lastHeartbeatUtc,
+            packageValidationRunId);
     }
 
     private void EnsureLease(Guid leaseToken, string owner)

@@ -54,6 +54,7 @@ public sealed class PublishJobService(
         using var lookupCts = new CancellationTokenSource(TerminalCleanupTimeout);
         var job = await repository.GetAsync(jobId, lookupCts.Token)
             ?? throw new InvalidOperationException($"Publish job {jobId} was not found for queued execution.");
+        EnsureIdempotencyRequestMatches(job, request);
 
         var stopwatch = Stopwatch.StartNew();
         var result = await RunPipelineAsync(job, request, cancellationToken);
@@ -77,7 +78,8 @@ public sealed class PublishJobService(
         var request = new CreatePublishJobRequest(
             lease.Job.ApplicationId,
             lease.Job.SequenceNumber,
-            lease.Job.IdempotencyKey);
+            lease.Job.IdempotencyKey,
+            lease.Job.PackageValidationRunId);
         var stopwatch = Stopwatch.StartNew();
         var result = await RunPipelineAsync(lease.Job, request, cancellationToken, lease);
         stopwatch.Stop();
@@ -302,7 +304,7 @@ public sealed class PublishJobService(
     {
         await EnsureNoActivePublishAsync(request, cancellationToken);
 
-        var job = new PublishJob(request.ApplicationId, request.SequenceNumber);
+        var job = new PublishJob(request.ApplicationId, request.SequenceNumber, packageValidationRunId: request.PackageValidationRunId);
         await repository.AddAsync(job, cancellationToken);
         PublishPipelineLog.JobCreated(logger, job.Id, request.ApplicationId, request.SequenceNumber);
         await TryWriteAuditAsync(
@@ -320,7 +322,7 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
-        var candidate = new PublishJob(request.ApplicationId, request.SequenceNumber, request.IdempotencyKey);
+        var candidate = new PublishJob(request.ApplicationId, request.SequenceNumber, request.IdempotencyKey, request.PackageValidationRunId);
         var existing = await repository.GetByIdempotencyKeyAsync(candidate.IdempotencyKey, cancellationToken);
         if (existing is not null)
         {
@@ -349,6 +351,7 @@ public sealed class PublishJobService(
     private static void EnsureIdempotencyRequestMatches(PublishJob job, CreatePublishJobRequest request)
     {
         if (job.ApplicationId != request.ApplicationId
+            || job.PackageValidationRunId != request.PackageValidationRunId
             || !string.Equals(job.SequenceNumber, request.SequenceNumber.Trim(), StringComparison.Ordinal))
         {
             throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);

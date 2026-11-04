@@ -39,6 +39,7 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
             if (existing is not null)
             {
                 if (existing.ApplicationId != job.ApplicationId
+                    || existing.PackageValidationRunId != job.PackageValidationRunId
                     || !string.Equals(existing.SequenceNumber, job.SequenceNumber, StringComparison.Ordinal))
                 {
                     throw new PublishJobIdempotencyConflictException(job.IdempotencyKey);
@@ -399,5 +400,6 @@ public sealed class InMemoryPublishJobRepository : IPublishJobRepository
             job.LeaseOwner,
             job.LeaseToken,
             job.LeaseExpiresUtc,
-            job.LastHeartbeatUtc);
+            job.LastHeartbeatUtc,
+            job.PackageValidationRunId);
 }
