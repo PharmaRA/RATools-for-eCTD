@@ -11,18 +11,34 @@ type Props = { runId: string; packageDigest: string }
 // External evidence is expert-supplied: a tool/version, its actual report, and an
 // explanation for every observed difference. The panel never infers evidence from a
 // matching digest or from the presence of an installed tool.
-export const ExternalComparisonPanel = ({ runId, packageDigest }: Props) => {
+export const ExternalComparisonPanel = (props: Props) => <ExternalComparisonContent key={props.runId} {...props} />
+
+const ExternalComparisonContent = ({ runId, packageDigest }: Props) => {
   const queryClient = useQueryClient()
+  const [form] = Form.useForm()
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState('')
   const [differences, setDifferences] = useState<ExternalComparisonDifference[]>([])
   const [difference, setDifference] = useState<ExternalComparisonDifference>({ externalRuleId: '', internalRuleId: null, externalMessage: '', explanation: '' })
-  const evidence = useQuery({ queryKey: ['package-validation-external', runId], queryFn: ({ signal }) => loadExternalComparison(runId, signal) })
+  const evidence = useQuery({ queryKey: ['package-validation-external', runId], queryFn: ({ signal }) => loadExternalComparison(runId, signal), retry: false })
   const text = useQuery({
     queryKey: ['package-validation-external-text', runId], enabled: evidence.data != null,
     queryFn: ({ signal }) => loadExternalComparisonText(runId, signal),
+    retry: false,
   })
+  const missing = evidence.isSuccess && evidence.data === null && !evidence.isFetching && !busy
+  const verified = evidence.isSuccess && !evidence.isFetching && text.isSuccess && !text.isFetching && !busy
+  const readError = evidence.error || text.error
+  const retry = async () => {
+    setBusy(true); setError(undefined)
+    const hadEvidence = evidence.data != null
+    try {
+      const refreshed = await evidence.refetch({ throwOnError: true })
+      if (refreshed.data && hadEvidence) await text.refetch({ throwOnError: true })
+    } catch (caught) { setError(caught instanceof Error ? caught.message : '读取外部证据失败') }
+    finally { setBusy(false) }
+  }
   const submit = async (values: { toolName: string; toolVersion: string }) => {
     setBusy(true); setError(undefined)
     try {
@@ -36,8 +52,10 @@ export const ExternalComparisonPanel = ({ runId, packageDigest }: Props) => {
     <Alert type="info" showIcon title="外部对照是资格证据，不是通过证明"
       description="必须登记实际工具版本、同一包摘要对应的真实报告，并逐条解释与本引擎的差异。工具已安装或包摘要相同都不构成证据。" />
     {error && <Alert type="error" showIcon title="外部证据操作失败" description={error} />}
-    {evidence.isFetching && <Spin aria-label="正在读取外部对照证据" />}
-    {evidence.data ? <>
+    {readError && <Alert type="error" showIcon title="外部证据读取失败" description={readError instanceof Error ? readError.message : '读取失败'} />}
+    {(readError || error) && <Button loading={busy} onClick={() => void retry()}>重新读取外部证据</Button>}
+    {(evidence.isFetching || text.isFetching || busy) && <Spin aria-label="正在读取外部对照证据" />}
+    {verified && evidence.data && <>
       <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="break-all" items={[
         { key: 'tool', label: '工具 / 版本', children: `${evidence.data.toolName} ${evidence.data.toolVersion}` },
         { key: 'recorded', label: '登记时间', children: evidence.data.recordedUtc },
@@ -53,8 +71,9 @@ export const ExternalComparisonPanel = ({ runId, packageDigest }: Props) => {
       {text.data && <details><summary className="cursor-pointer">外部工具原始报告（只读）</summary>
         <pre className="bg-slate-50 border border-slate-200 rounded p-3 text-xs overflow-auto max-h-96" data-testid="external-report-text">{text.data}</pre>
       </details>}
-    </> : !evidence.isFetching && <Tag color="orange">此运行尚无外部对照证据</Tag>}
-    {!evidence.data && <Form layout="vertical" disabled={busy} onFinish={values => void submit(values as { toolName: string; toolVersion: string })}>
+    </>}
+    {missing && <Tag color="orange">此运行尚无外部对照证据</Tag>}
+    {missing && <Form form={form} layout="vertical" disabled={busy} onFinish={values => void submit(values as { toolName: string; toolVersion: string })}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
         <Form.Item name="toolName" label="外部工具" rules={[{ required: true, message: '请输入工具名称' }]}><Input /></Form.Item>
         <Form.Item name="toolVersion" label="工具版本" rules={[{ required: true, message: '请输入工具版本' }]}><Input /></Form.Item>

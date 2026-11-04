@@ -240,6 +240,7 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         {
             var committed = await dbContext.Set<PackageValidationExternalComparisonRecord>().AsNoTracking()
                 .SingleAsync(row => row.RunId == evidence.RunId, cancellationToken).ConfigureAwait(false);
+            VerifyExternalComparison(run, committed);
             if (committed.Digest != evidence.Digest) throw new ExternalComparisonEvidenceConflictException(evidence.RunId);
             return false;
         }

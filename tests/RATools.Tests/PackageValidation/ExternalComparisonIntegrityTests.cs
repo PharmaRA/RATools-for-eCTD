@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Npgsql;
 using RATools.Application.PackageValidation;
 using RATools.Domain.PackageValidation;
 using RATools.Infrastructure.Persistence.EfCore;
@@ -75,6 +77,56 @@ public sealed class ExternalComparisonIntegrityTests
 
     private static RAToolsDbContext CreateContext() => new(new DbContextOptionsBuilder<RAToolsDbContext>()
         .UseInMemoryDatabase("external-integrity-" + Guid.NewGuid().ToString("N")).Options);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentReplayVerifiesTheWinnerBeforeAcceptingItsDigest(bool corrupt)
+    {
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>()
+            .UseInMemoryDatabase("external-race-" + Guid.NewGuid().ToString("N")).Options;
+        await using var seeded = new RAToolsDbContext(options);
+        var (_, evidence) = await SeedAsync(seeded);
+        // Use a separate empty database for the contender; the interceptor commits the
+        // winner there only after the contender has observed that no evidence exists.
+        var contenderOptions = new DbContextOptionsBuilder<RAToolsDbContext>()
+            .UseInMemoryDatabase("external-contender-" + Guid.NewGuid().ToString("N")).Options;
+        await using (var setup = new RAToolsDbContext(contenderOptions))
+        {
+            setup.Add((await seeded.Set<PackageValidationRun>().AsNoTracking().SingleAsync()).Copy());
+            await setup.SaveChangesAsync();
+        }
+        var interceptor = new ConcurrentEvidence(contenderOptions, corrupt);
+        await using var contender = new RAToolsDbContext(new DbContextOptionsBuilder<RAToolsDbContext>(contenderOptions)
+            .AddInterceptors(interceptor).Options);
+        var store = new EfCorePackageValidationStore(contender);
+        if (corrupt)
+            await Assert.ThrowsAsync<InvalidDataException>(() => store.RegisterExternalComparisonAsync(evidence));
+        else
+            Assert.False(await store.RegisterExternalComparisonAsync(evidence));
+        Assert.Empty(contender.ChangeTracker.Entries<PackageValidationExternalComparisonRecord>());
+    }
+
+    private sealed class ConcurrentEvidence(DbContextOptions<RAToolsDbContext> options, bool corrupt) : SaveChangesInterceptor
+    {
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+            InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            var pending = eventData.Context!.ChangeTracker.Entries<PackageValidationExternalComparisonRecord>()
+                .Single(entry => entry.State == EntityState.Added).Entity;
+            await using var winner = new RAToolsDbContext(options);
+            winner.Add(new PackageValidationExternalComparisonRecord
+            {
+                RunId = pending.RunId, Id = Guid.NewGuid(), ToolName = pending.ToolName, ToolVersion = pending.ToolVersion,
+                PackageDigest = pending.PackageDigest, ReportSha256 = pending.ReportSha256, Digest = pending.Digest,
+                RecordedUtc = pending.RecordedUtc, DifferencesJson = pending.DifferencesJson,
+                ReportText = corrupt ? "Altered after the original digest was computed." : pending.ReportText
+            });
+            await winner.SaveChangesAsync(cancellationToken);
+            throw new DbUpdateException("Concurrent winner.", new PostgresException("Unique key", "ERROR", "ERROR",
+                PostgresErrorCodes.UniqueViolation));
+        }
+    }
 
     private static async Task<(EfCorePackageValidationStore Store, ExternalComparisonReport Evidence)> SeedAsync(RAToolsDbContext context)
     {
