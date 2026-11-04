@@ -50,7 +50,20 @@ public sealed class AssemblyExecutor(
                 foreach (var row in selected)
                 {
                     var node = nodes[Guid.Parse(row.NodeInstanceId!)];
-                    var placement = new DocumentPlacement(Guid.Parse(row.DocumentId!), applicationId, sequenceNumber,
+                    Guid documentId;
+                    if (row.Operation == "delete")
+                    {
+                        var historicalTarget = await placementRepository.GetAsync(Guid.Parse(row.TargetLeafAddress!), ct).ConfigureAwait(false);
+                        if (historicalTarget is null || historicalTarget.ApplicationId != applicationId || historicalTarget.NodeInstanceId != node.NodeInstanceId ||
+                            historicalTarget.Operation == DocumentPlacementOperation.Delete ||
+                            string.CompareOrdinal(historicalTarget.SequenceNumber, sequenceNumber) >= 0)
+                            throw new AssemblyPlanStaleException("The historical delete target changed; regenerate the preview.");
+                        // A delete instruction carries no new payload; retain the target's
+                        // document identity for the placement's existing relational contract.
+                        documentId = historicalTarget.DocumentId;
+                    }
+                    else documentId = Guid.Parse(row.DocumentId!);
+                    var placement = new DocumentPlacement(documentId, applicationId, sequenceNumber,
                         node.CtdSection, Enum.Parse<DocumentPlacementOperation>(row.Operation, ignoreCase: true), row.Title,
                         NewLeafId(usedLeafIds));
                     placement.BindToNode(node, row.SortOrder);

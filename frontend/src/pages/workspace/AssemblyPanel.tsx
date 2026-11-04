@@ -1,44 +1,41 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Table, Tag } from 'antd'
 import { apiFetch, buildJsonRequestInit } from '../../apiClient'
-
-type Diagnostic = { code: string; message: string; lineNumber?: number | null }
-type PlanRow = {
-  lineNumber: number; documentId: string | null; nodeInstanceId: string | null; title: string | null
-  operation: string; targetLeafAddress: string | null; sortOrder: number
-  status: 'Valid' | 'Invalid'; diagnostics: Diagnostic[]
-}
-type AssemblyPlan = {
-  applicationId: string; sequenceNumber: string; expectedRevision: number; planDigest: string
-  totalRows: number; validRows: number; invalidRows: number; diagnostics: Diagnostic[]; rows: PlanRow[]
-}
-type ExecutionResult = { applicationId: string; sequenceNumber: string; workspaceRevision: number
-  planDigest: string; placementIds: string[] }
+import type { AssemblyPlan, AssemblyExecutionResult as ExecutionResult } from '../../api/generated'
 
 const planUrl = (appId: string, seq: string) =>
   `/api/applications/${encodeURIComponent(appId)}/sequences/${encodeURIComponent(seq)}/assembly-plans`
 
 // Bulk assembly is preview-first. The panel never executes on behalf of the operator:
 // the returned plan must be reviewed and the exact digest is what execution submits.
-export const AssemblyPanel = ({ appId, seqNumber, workspaceRevision, disabled, onExecuted }: {
+type Props = {
   appId: string; seqNumber: string; workspaceRevision?: number; disabled: boolean; onExecuted: () => Promise<void> | void
-}) => {
+}
+export const AssemblyPanel = (props: Props) => <AssemblyEditor
+  key={JSON.stringify([props.appId, props.seqNumber, props.workspaceRevision, props.disabled])} {...props} />
+
+const AssemblyEditor = ({ appId, seqNumber, workspaceRevision, disabled, onExecuted }: Props) => {
   const [manifest, setManifest] = useState('')
   const [plan, setPlan] = useState<AssemblyPlan>()
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [executed, setExecuted] = useState<ExecutionResult>()
+  const inputRevision = useRef(0)
+  const executable = !disabled && !busy && plan && plan.invalidRows === 0 && plan.validRows > 0 && plan.planDigest.length > 0
   const preview = async () => {
+    if (disabled || busy) return
     if (workspaceRevision === undefined) { setError('工作区修订尚未加载，暂不能预览装配计划。'); return }
     setBusy(true); setError(undefined); setPlan(undefined); setExecuted(undefined)
+    const requestedRevision = inputRevision.current
     try {
-      setPlan(await apiFetch(planUrl(appId, seqNumber), buildJsonRequestInit('POST',
-        { expectedRevision: workspaceRevision, manifest })))
-    } catch (caught) { setError(caught instanceof Error ? caught.message : '生成装配预览失败') }
+      const result = await apiFetch(planUrl(appId, seqNumber), buildJsonRequestInit('POST',
+        { expectedRevision: workspaceRevision, manifest })) as AssemblyPlan
+      if (requestedRevision === inputRevision.current) setPlan(result)
+    } catch (caught) { if (requestedRevision === inputRevision.current) setError(caught instanceof Error ? caught.message : '生成装配预览失败') }
     finally { setBusy(false) }
   }
   const execute = async () => {
-    if (!plan) return
+    if (!executable || !plan) return
     setBusy(true); setError(undefined)
     try {
       const result = await apiFetch('/api/assembly-plans/execute', buildJsonRequestInit('POST', {
@@ -58,11 +55,13 @@ export const AssemblyPanel = ({ appId, seqNumber, workspaceRevision, disabled, o
       {error && <Alert type="error" showIcon title="装配操作失败" description={error} />}
       {executed && <Alert type="success" showIcon title="装配已提交"
         description={`工作区修订已更新为 ${executed.workspaceRevision}，创建 ${executed.placementIds.length} 个挂载。`} />}
-      <Input.TextArea aria-label="装配清单 CSV" rows={5} value={manifest} onChange={event => setManifest(event.target.value)}
+      <Input.TextArea aria-label="装配清单 CSV" rows={5} value={manifest} onChange={event => {
+        inputRevision.current++; setManifest(event.target.value); setPlan(undefined); setExecuted(undefined); setError(undefined)
+      }}
         placeholder={'documentId,nodeInstanceId,operation,title,sortOrder\n<doc-id>,<node-id>,new,Specification,0'} />
       <Space>
         <Button type="primary" loading={busy} disabled={disabled || !manifest.trim()} onClick={() => void preview()}>生成装配预览</Button>
-        <Button loading={busy} disabled={!plan || plan.invalidRows > 0} onClick={() => void execute()}>执行已预览计划</Button>
+        <Button loading={busy} disabled={!executable} onClick={() => void execute()}>执行已预览计划</Button>
       </Space>
       {plan && <>
         <Space wrap size="small">
@@ -75,8 +74,8 @@ export const AssemblyPanel = ({ appId, seqNumber, workspaceRevision, disabled, o
         <Table size="small" rowKey="lineNumber" dataSource={plan.rows} pagination={{ pageSize: 10, showSizeChanger: false }} scroll={{ x: 780 }}
           columns={[
             { title: '行', dataIndex: 'lineNumber', width: 60 },
-            { title: '状态', width: 90, render: (_, row) => <Tag color={row.status === 'Valid' ? 'green' : 'red'}>
-              {row.status === 'Valid' ? '有效' : '无效'}</Tag> },
+            { title: '状态', width: 90, render: (_, row) => <Tag color={row.status === 0 ? 'green' : 'red'}>
+              {row.status === 0 ? '有效' : '无效'}</Tag> },
             { title: '操作 / 标题', render: (_, row) => <span className="break-all">{row.operation}{row.title ? ` · ${row.title}` : ''}</span> },
             { title: '文档 / 节点', render: (_, row) => <span className="break-all text-xs">
               {row.documentId || '无文档'}<br />{row.nodeInstanceId || '无节点'}</span> },
