@@ -91,7 +91,7 @@ public sealed class ParsedBackbone
 public sealed class PackageXmlInspection
 {
     internal PackageXmlInspection(string inputDigest, string profileSnapshotId, string assetManifestDigest, string limitsDigest,
-        IEnumerable<ParsedBackbone> backbones, IEnumerable<RuleCheckResult> checks)
+        IEnumerable<ParsedBackbone> backbones, IEnumerable<RuleCheckResult> checks, string? rulesDigest = null)
     {
         InputDigest = inputDigest;
         ProfileSnapshotId = profileSnapshotId;
@@ -99,12 +99,13 @@ public sealed class PackageXmlInspection
         LimitsDigest = limitsDigest;
         Backbones = Array.AsReadOnly(backbones.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        RulesDigest = rulesDigest ?? PackageValidationCatalog.Current.Digest;
     }
 
     public string InputDigest { get; }
     public int SchemaVersion { get; } = 1;
     public string EngineVersion { get; } = "package-xml-inspector-v1";
-    public string RulesDigest { get; } = PackageValidationCatalog.Current.Digest;
+    public string RulesDigest { get; }
     public string ProfileSnapshotId { get; }
     public string AssetManifestDigest { get; }
     public string LimitsDigest { get; }

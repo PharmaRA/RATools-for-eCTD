@@ -4,6 +4,7 @@ using System.Text.Json;
 using RATools.Application.PackageValidation;
 using RATools.Domain.Finalization;
 using RATools.Domain.PackageValidation;
+using RATools.Application.Standards;
 
 namespace RATools.Application.Finalization;
 
@@ -14,8 +15,10 @@ namespace RATools.Application.Finalization;
 public sealed class ReleaseCaptureService(
     IPackageValidationStore validationStore,
     IReleaseCapturePlanner planner,
-    IReleaseCaptureStore store) : IFinalizationCaptureProvider
+    IReleaseCaptureStore store, StandardsSnapshotService? snapshots = null) : IFinalizationCaptureProvider
 {
+    private static readonly JsonSerializerOptions BindingJsonOptions = new(JsonSerializerDefaults.Web)
+    { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false) } };
     public async Task<IFinalizationCapture> CaptureAsync(FinalizeSequenceRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -41,11 +44,27 @@ public sealed class ReleaseCaptureService(
                 run.ReportSha256, StringComparison.Ordinal))
             throw new FinalizationNotAuthorizedException("The archived report bytes do not match the run's committed hash.");
         var (ready, reasons) = ReadReadiness(reportJson);
+        if (run.Binding.StandardsSnapshotId is not null)
+        {
+            using var report = JsonDocument.Parse(reportJson);
+            var binding = report.RootElement.GetProperty("binding").Deserialize<ValidationBinding>(BindingJsonOptions);
+            if (binding != run.Binding) throw new FinalizationNotAuthorizedException("The report does not carry the exact run standards selection.");
+        }
         if (run.Binding.ValidationMode == PackageValidationMode.Formal && !ready)
             throw new FinalizationNotAuthorizedException(
                 "A formal finalization requires a report that is ready for finalization: " + string.Join(" | ", reasons));
 
         var stored = StoredPackageValidationRequestReader.Read(run);
+        if (stored.StandardsSnapshotId != run.Binding.StandardsSnapshotId || stored.SelectionDate != run.Binding.SelectionDate || stored.StandardsBusinessContext != run.Binding.StandardsBusinessContext)
+            throw new FinalizationNotAuthorizedException("The archived standards selection differs from the validated request.");
+        if (run.Binding.ValidationMode == PackageValidationMode.Formal)
+        {
+            if (snapshots is null || run.Binding.StandardsSnapshotId is null || run.Binding.SelectionDate is null)
+                throw new FinalizationNotAuthorizedException("A new formal capture requires exact standards evidence and its original selection date.");
+            var snapshot = await snapshots.GetAsync(run.Binding.StandardsSnapshotId, cancellationToken).ConfigureAwait(false);
+            var eligibilityReasons = snapshot.Evaluate(run.Binding.StandardsBusinessContext, DateOnly.FromDateTime(DateTime.UtcNow), snapshot.TemplateKey);
+            if (eligibilityReasons.Count > 0) throw new FinalizationNotAuthorizedException(string.Join(" | ", eligibilityReasons));
+        }
         var input = await validationStore.GetInputAsync(stored.InputId, cancellationToken).ConfigureAwait(false)
             ?? throw new FinalizationNotAuthorizedException("The validation run's captured input no longer exists.");
         var validatedDocuments = ReadValidatedDocuments(input.ManifestJson);

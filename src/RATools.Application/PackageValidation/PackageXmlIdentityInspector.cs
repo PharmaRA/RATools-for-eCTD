@@ -11,7 +11,7 @@ namespace RATools.Application.PackageValidation;
 internal static class PackageXmlIdentityInspector
 {
     public static ParsedBackbone Inspect(ReadXmlDocument document, Guid applicationId, string sequence, string logicalPath,
-        string profileSnapshotId, BackboneKind kind, string dtdRuleId, XmlInspectionFindings findings, CancellationToken cancellationToken)
+        string profileSnapshotId, BackboneKind kind, string dtdRuleId, XmlInspectionFindings findings, SectionDefinitionSet schema, CancellationToken cancellationToken)
     {
         var elements = document.Elements;
         var nodes = new List<ParsedCtdNode>();
@@ -19,7 +19,6 @@ internal static class PackageXmlIdentityInspector
         var ids = new List<ParsedXmlId>();
         if (!document.Complete) return Build();
         var byPath = elements.ToDictionary(element => element.NodePath, StringComparer.Ordinal);
-        var schema = IchSectionDefinitions.Current;
         var nodeMap = new Dictionary<string, ParsedCtdNode>(StringComparer.Ordinal);
 
         foreach (var element in elements)

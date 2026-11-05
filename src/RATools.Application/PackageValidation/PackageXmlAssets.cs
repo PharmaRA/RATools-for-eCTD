@@ -2,6 +2,8 @@ using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using RATools.Domain.Standards;
+using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
@@ -44,6 +46,31 @@ public sealed class PackageXmlAssets
         ? profile : throw new ArgumentException("Select a supported explicit XML profile snapshot.", nameof(profileSnapshotId));
 
     internal Stream Open(string assetId) => new MemoryStream(_bytes[assetId], writable: false);
+
+    public static PackageXmlAssets FromSnapshot(StandardsProfileSnapshot snapshot, ValidationRuleCatalog catalog)
+    {
+        snapshot.Verify();
+        byte[] Read(string key) => snapshot.Resources.SingleOrDefault(resource => resource.Key == key)?.ReadBytes() ?? throw new InvalidDataException("The archived XML resource is missing: " + key);
+        var manifest = Read("xml-manifest"); var digest = Hash(manifest);
+        if (catalog.Sources["ratools-package-xml-assets-v1"].Sha256 != digest) throw new InvalidDataException("The archived XML inventory differs from its archived rule mapping.");
+        var file = JsonSerializer.Deserialize<AssetFile>(manifest, JsonOptions) ?? throw new InvalidDataException("The archived XML inventory is empty.");
+        if (file.SchemaVersion != 1 || Hash(Read("node-schema")) != file.NodeSchemaSha256) throw new InvalidDataException("Archived XML/schema binding failed.");
+        var bytes = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var asset in file.Assets)
+        {
+            PackageLogicalPath.Validate(asset.LogicalPath); var content = Read("xml-" + asset.Id);
+            if (Hash(content) != asset.Sha256) throw new InvalidDataException("An archived XML asset differs from its inventory.");
+            bytes.Add(asset.Id, content);
+        }
+        foreach (var profile in file.Profiles)
+        {
+            _ = catalog.ForProfile(profile.ProfileSnapshotId);
+            if (profile.Backbones.Count(backbone => backbone.Role == BackboneKind.Ich) != 1 || profile.Backbones.Any(backbone =>
+                !backbone.AllowedAssetIds.Contains(backbone.MainAssetId, StringComparer.Ordinal) || backbone.AllowedAssetIds.Concat(backbone.StylesheetAssetIds).Any(id => !bytes.ContainsKey(id))))
+                throw new InvalidDataException("The archived XML profile contains unresolved resource references.");
+        }
+        return new(digest, file, bytes);
+    }
 
     private static PackageXmlAssets Load()
     {

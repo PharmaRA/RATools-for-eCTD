@@ -1,6 +1,8 @@
 using System.Text.Json;
 using RATools.Domain.Common;
 using RATools.Domain.PackageValidation;
+using RATools.Domain.Standards;
+using System.Text.Json.Serialization;
 
 namespace RATools.Domain.Finalization;
 
@@ -24,7 +26,10 @@ public sealed record ReleaseManifestAsset(string Key, string Category, string Ve
 // second run.
 public sealed record ReleaseValidationReference(string ReportSha256, string ValidationMode,
     string StandardsProfileSnapshotId, string IchEctdVersion, string? RegionalModule1Version, string RulesDigest,
-    string EngineVersion, string? ComparisonInputDigest);
+    string EngineVersion, string? ComparisonInputDigest,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? StandardsSnapshotId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateOnly? SelectionDate = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] StandardsBusinessContext? StandardsBusinessContext = null);
 
 // One selected historical version from the archived baseline: the exact earlier content
 // the validated package referred to. Finalized sources keep their snapshot identity so a
@@ -64,6 +69,7 @@ public sealed class ReleaseManifest
 {
     public const int CurrentSchemaVersion = 1;
     private const int MaxEntries = 100_000;
+    private static readonly JsonSerializerOptions BusinessJsonOptions = new(JsonSerializerDefaults.Web);
 
     public ReleaseManifest(Guid applicationId, string sequenceNumber, long sourceWorkspaceRevision,
         string createdByToolVersion, string validatedInputManifestDigest, JsonElement historyBaseline,
@@ -275,17 +281,7 @@ public sealed class ReleaseManifest
         sequenceNumber = SequenceNumber,
         validatedInputManifestDigest = ValidatedInputManifestDigest,
         historyBaseline = HistoryBaseline,
-        validation = new
-        {
-            reportSha256 = Validation.ReportSha256,
-            validationMode = Validation.ValidationMode,
-            standardsProfileSnapshotId = Validation.StandardsProfileSnapshotId,
-            ichEctdVersion = Validation.IchEctdVersion,
-            regionalModule1Version = Validation.RegionalModule1Version,
-            rulesDigest = Validation.RulesDigest,
-            engineVersion = Validation.EngineVersion,
-            comparisonInputDigest = Validation.ComparisonInputDigest
-        },
+        validation = ValidationContent(),
         assets = Assets.Select(asset => new
         {
             key = asset.Key, category = asset.Category, version = asset.Version,
@@ -319,6 +315,18 @@ public sealed class ReleaseManifest
                 .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal)
         })
     });
+
+    private Dictionary<string, object?> ValidationContent()
+    {
+        var content = new Dictionary<string, object?> { ["reportSha256"] = Validation.ReportSha256, ["validationMode"] = Validation.ValidationMode,
+            ["standardsProfileSnapshotId"] = Validation.StandardsProfileSnapshotId, ["ichEctdVersion"] = Validation.IchEctdVersion,
+            ["regionalModule1Version"] = Validation.RegionalModule1Version, ["rulesDigest"] = Validation.RulesDigest,
+            ["engineVersion"] = Validation.EngineVersion, ["comparisonInputDigest"] = Validation.ComparisonInputDigest };
+        if (Validation.StandardsSnapshotId is not null) content["standardsSnapshotId"] = Validation.StandardsSnapshotId;
+        if (Validation.SelectionDate is not null) content["selectionDate"] = Validation.SelectionDate;
+        if (Validation.StandardsBusinessContext is not null) content["standardsBusinessContext"] = JsonSerializer.SerializeToElement(Validation.StandardsBusinessContext, BusinessJsonOptions);
+        return content;
+    }
 
     // The bytes written to manifest.json. Canonical encoding sorts object keys and keeps
     // the validated array order, so the same captured content always produces one file.
@@ -363,7 +371,10 @@ public sealed class ReleaseManifest
                     regional.ValueKind == JsonValueKind.Null ? null : regional.GetString(),
                     validation.GetProperty("rulesDigest").GetString() ?? throw new InvalidDataException("Missing rules digest."),
                     validation.GetProperty("engineVersion").GetString() ?? throw new InvalidDataException("Missing engine version."),
-                    comparison.ValueKind == JsonValueKind.Null ? null : comparison.GetString()),
+                    comparison.ValueKind == JsonValueKind.Null ? null : comparison.GetString(),
+                    validation.TryGetProperty("standardsSnapshotId", out var snapshotId) ? snapshotId.GetString() : null,
+                    validation.TryGetProperty("selectionDate", out var selectionDate) ? DateOnly.ParseExact(selectionDate.GetString()!, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : null,
+                    validation.TryGetProperty("standardsBusinessContext", out var business) ? business.Deserialize<StandardsBusinessContext>(BusinessJsonOptions) : null),
                 content.GetProperty("assets").EnumerateArray().Select(asset => new ReleaseManifestAsset(
                     asset.GetProperty("key").GetString()!, asset.GetProperty("category").GetString()!,
                     asset.GetProperty("version").GetString()!, asset.GetProperty("path").GetString()!,

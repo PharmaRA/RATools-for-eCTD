@@ -57,6 +57,8 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
 
     public Task<PackageValidationRun?> GetRunAsync(Guid id, CancellationToken cancellationToken = default) =>
         Runs.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id, cancellationToken);
+    public Task<PackageValidationRun?> FindByIdempotencyKeyAsync(string key, CancellationToken cancellationToken = default) =>
+        Runs.AsNoTracking().SingleOrDefaultAsync(row => row.IdempotencyKey == key, cancellationToken);
 
     public async Task<PackageValidationPage<PackageRunSummary>> ListRunsAsync(Guid? applicationId, int offset, int limit,
         CancellationToken cancellationToken = default)

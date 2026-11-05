@@ -55,7 +55,9 @@ export const ValidationRunDetail = ({ id }: { id: string }) => {
           { key: 'id', label: '运行 ID', children: run.id }, { key: 'app', label: '申请标识 / 序列', children: `${run.applicationId} / ${run.sequenceNumber}` },
           { key: 'stage', label: '阶段 / 尝试', children: `${stageLabels[run.stage] || runStatusLabels[run.status]} / ${run.attemptCount}` },
           { key: 'created', label: '创建时间', children: run.createdUtc },
-          ...Object.entries(run.binding).map(([key, value]) => ({ key, label: key, children: value })),
+          ...Object.entries(run.binding).map(([key, value]) => ({ key, label: key,
+            children: value == null ? '未提供' : typeof value === 'object'
+              ? Object.entries(value).map(([field, text]) => `${field}: ${text}`).join('；') : value })),
         ]} />
         {active && <Space><Button danger loading={cancel.isPending} disabled={run.cancellationRequested} onClick={() => cancel.mutate()}>请求取消</Button>
           {run.cancellationRequested && <span role="status">已请求取消，等待后台确认终态。</span>}</Space>}

@@ -60,7 +60,10 @@ public static class DependencyInjection
         services.AddSingleton<PackageDeliveryInspector>();
         services.AddScoped<PackageValidationInputRegistry>();
         services.AddScoped<FinalizedHistoryResolver>();
-        services.AddScoped<PackageValidationService>();
+        services.AddScoped(provider => new PackageValidationService(provider.GetRequiredService<IPackageValidationStore>(),
+            provider.GetRequiredService<IPackageInputReader>(), provider.GetRequiredService<IWorkspacePathPolicy>(), provider.GetRequiredService<PackageDeliveryInspector>(),
+            finalizedHistory: provider.GetRequiredService<FinalizedHistoryResolver>(), snapshots: provider.GetRequiredService<RATools.Application.Standards.StandardsSnapshotService>(),
+            applications: provider.GetRequiredService<IApplicationRepository>()));
         services.AddHostedService<PackageValidationBackgroundService>();
         services.Configure<BackboneOutputOptions>(configuration.GetSection(BackboneOutputOptions.SectionName));
         services.AddOptions<PublishJobExecutionOptions>()
@@ -113,6 +116,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
+            services.AddSingleton<RATools.Application.Standards.IStandardsSnapshotStore, InMemoryStandardsSnapshotStore>();
             services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
             services.AddSingleton<RATools.Application.Assembly.IAssemblyStore, InMemoryAssemblyStore>();
             services.AddSingleton<IPdfRenameStore>(provider => new InMemoryPdfRenameStore(provider.GetRequiredService<IDocumentProcessingStore>()));
@@ -142,6 +146,7 @@ public static class DependencyInjection
         services.AddScoped<RATools.Application.Assembly.IAssemblyStore, EfCoreAssemblyStore>();
         services.AddScoped<IPdfRenameStore, EfCorePdfRenameStore>();
         services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
+        services.AddScoped<RATools.Application.Standards.IStandardsSnapshotStore, EfCoreStandardsSnapshotStore>();
         services.AddScoped<RATools.Application.Finalization.IFinalizationStore, EfCoreFinalizationStore>();
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();
         services.AddScoped<IDocumentRepository, EfCoreDocumentRepository>();

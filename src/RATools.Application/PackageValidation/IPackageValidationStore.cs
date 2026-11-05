@@ -41,6 +41,7 @@ public interface IPackageValidationStore
     Task<RegisteredPackageInput?> GetInputAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PackageRunEnqueueResult> EnqueueAsync(PackageValidationRun run, CancellationToken cancellationToken = default);
     Task<PackageValidationRun?> GetRunAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<PackageValidationRun?> FindByIdempotencyKeyAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult<PackageValidationRun?>(null);
     Task<PackageValidationPage<PackageRunSummary>> ListRunsAsync(Guid? applicationId, int offset, int limit, CancellationToken cancellationToken = default);
     Task<PackageValidationRun?> CancelAsync(Guid id, DateTime nowUtc, CancellationToken cancellationToken = default);
     Task<PackageValidationLease?> ClaimAsync(string owner, DateTime nowUtc, TimeSpan leaseDuration, CancellationToken cancellationToken = default);

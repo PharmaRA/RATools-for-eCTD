@@ -5601,6 +5601,137 @@
         }
       }
     },
+    "/api/ectd-templates/{templateKey}/standards-snapshot": {
+      "post": {
+        "tags": [
+          "StandardsSnapshots"
+        ],
+        "parameters": [
+          {
+            "name": "templateKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/standards-snapshots/{snapshotId}": {
+      "get": {
+        "tags": [
+          "StandardsSnapshots"
+        ],
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardsSnapshotView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/standards-snapshots/{snapshotId}/resources/{resourceKey}/content": {
+      "get": {
+        "tags": [
+          "StandardsSnapshots"
+        ],
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        }
+      }
+    },
     "/api/validation/sequence": {
       "post": {
         "tags": [
@@ -7106,6 +7237,18 @@
               "$ref": "#/components/schemas/PackageHistorySelection"
             },
             "nullable": true
+          },
+          "standardsSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "standardsBusinessContext": {
+            "$ref": "#/components/schemas/StandardsBusinessContext"
+          },
+          "selectionDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8368,6 +8511,10 @@
           },
           "profileSnapshotId": {
             "type": "string"
+          },
+          "standardsSnapshotId": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11470,6 +11617,18 @@
           "comparisonInputDigest": {
             "type": "string",
             "nullable": true
+          },
+          "standardsSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectionDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "standardsBusinessContext": {
+            "$ref": "#/components/schemas/StandardsBusinessContext"
           }
         },
         "additionalProperties": false
@@ -11769,6 +11928,300 @@
         },
         "additionalProperties": false
       },
+      "StandardsBusinessContext": {
+        "required": [
+          "applicationType",
+          "country",
+          "language",
+          "operation",
+          "procedureType",
+          "sectionScope"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationType": {
+            "type": "string"
+          },
+          "procedureType": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "sectionScope": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsBusinessScope": {
+        "required": [
+          "applicationType",
+          "country",
+          "createDraft",
+          "evidenceStatus",
+          "finalize",
+          "language",
+          "operation",
+          "procedureType",
+          "sectionScope",
+          "trialPublish"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationType": {
+            "type": "string"
+          },
+          "procedureType": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "sectionScope": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "createDraft": {
+            "type": "boolean"
+          },
+          "trialPublish": {
+            "type": "boolean"
+          },
+          "finalize": {
+            "type": "boolean"
+          },
+          "evidenceStatus": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsSnapshotEvidence": {
+        "required": [
+          "category",
+          "evidenceSha256",
+          "reason",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidenceSha256": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsSnapshotLifecycle": {
+        "required": [
+          "effectiveFrom",
+          "retiredFrom",
+          "retirementPolicy",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "retiredFrom": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StandardsSnapshotStatus"
+          },
+          "retirementPolicy": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsSnapshotProvenance": {
+        "required": [
+          "acquiredOn",
+          "sha256",
+          "sourceUrl",
+          "verificationStatus",
+          "verifiedOn",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceUrl": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "acquiredOn": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "verifiedOn": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "verificationStatus": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsSnapshotResourceView": {
+        "required": [
+          "category",
+          "key",
+          "length",
+          "mediaType",
+          "relativePath",
+          "sha256"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "relativePath": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandardsSnapshotStatus": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "StandardsSnapshotView": {
+        "required": [
+          "acquiredUtc",
+          "criteriaVersion",
+          "evidence",
+          "guideVersion",
+          "ichEctdVersion",
+          "id",
+          "lifecycle",
+          "provenance",
+          "region",
+          "regionalModule1Version",
+          "resources",
+          "ruleProfileAlias",
+          "schemaVersion",
+          "scopes",
+          "templateKey"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "templateKey": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "ichEctdVersion": {
+            "type": "string"
+          },
+          "regionalModule1Version": {
+            "type": "string",
+            "nullable": true
+          },
+          "guideVersion": {
+            "type": "string"
+          },
+          "criteriaVersion": {
+            "type": "string"
+          },
+          "ruleProfileAlias": {
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/StandardsSnapshotLifecycle"
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandardsSnapshotProvenance"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandardsBusinessScope"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandardsSnapshotEvidence"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandardsSnapshotResourceView"
+            }
+          },
+          "acquiredUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "StoredPackageValidationRequest": {
         "required": [
           "comparisonInputId",
@@ -11804,6 +12257,18 @@
           "historyBaseline": {},
           "readLimits": {
             "$ref": "#/components/schemas/PackageReadLimits"
+          },
+          "standardsSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectionDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "standardsBusinessContext": {
+            "$ref": "#/components/schemas/StandardsBusinessContext"
           }
         },
         "additionalProperties": false
@@ -12022,6 +12487,18 @@
           },
           "resourceLimitsDigest": {
             "type": "string"
+          },
+          "standardsSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectionDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "standardsBusinessContext": {
+            "$ref": "#/components/schemas/StandardsBusinessContext"
           }
         },
         "additionalProperties": false

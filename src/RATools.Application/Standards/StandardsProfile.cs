@@ -12,4 +12,7 @@ public sealed record StandardsProfile(
     IReadOnlyCollection<string> OfficialReferences,
     IReadOnlyCollection<StandardsAsset> Assets,
     BackboneXmlProfile? BackboneXml = null,
-    StandardsLifecycle? Lifecycle = null);
+    StandardsLifecycle? Lifecycle = null)
+{
+    public string RegionalModule1Version => UsRegionalModule1Version;
+}

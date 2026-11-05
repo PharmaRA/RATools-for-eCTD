@@ -15,7 +15,8 @@ public sealed record PackageLeafState(LeafAddress Address, PackageLeafEffectiven
 public sealed class PackageLifecycleInspection
 {
     internal PackageLifecycleInspection(PackageInputSet inputs, string profile, IEnumerable<PackageXmlInspection> xml,
-        IEnumerable<PackageLifecycleEvent> events, IEnumerable<PackageLeafState> states, IEnumerable<RuleCheckResult> checks)
+        IEnumerable<PackageLifecycleEvent> events, IEnumerable<PackageLeafState> states, IEnumerable<RuleCheckResult> checks,
+        string? rulesDigest = null, string? assetManifestDigest = null)
     {
         InputDigest = inputs.Target.InputDigest;
         HistoryManifestDigest = inputs.Baseline.Digest;
@@ -27,12 +28,13 @@ public sealed class PackageLifecycleInspection
             .ThenBy(state => state.Address.BackboneRelativePath, StringComparer.Ordinal)
             .ThenBy(state => state.Address.LeafId, StringComparer.Ordinal).ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        RulesDigest = rulesDigest ?? PackageValidationCatalog.Current.Digest; AssetManifestDigest = assetManifestDigest ?? PackageXmlAssets.Current.Digest;
     }
 
     public int SchemaVersion { get; } = 1;
     public string EngineVersion { get; } = "package-lifecycle-inspector-v1";
-    public string RulesDigest { get; } = PackageValidationCatalog.Current.Digest;
-    public string AssetManifestDigest { get; } = PackageXmlAssets.Current.Digest;
+    public string RulesDigest { get; }
+    public string AssetManifestDigest { get; }
     public string InputDigest { get; }
     public string HistoryManifestDigest { get; }
     public string ProfileSnapshotId { get; }

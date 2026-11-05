@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IEctdPackageModelBuilder, EctdPackageModelBuilder>();
         services.AddSingleton<FdaEctd322StandardsProfileProvider>();
         services.AddSingleton<EuEctd322StandardsProfileProvider>();
+        services.AddScoped<StandardsSnapshotService>();
         services.AddSingleton<IStandardsProfileProvider>(provider =>
             new CompositeStandardsProfileProvider(
             [

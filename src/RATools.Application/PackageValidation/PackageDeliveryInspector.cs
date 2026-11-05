@@ -2,11 +2,12 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null)
+public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
     public const string DeliveryEngineVersion = "package-delivery-v3";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
     public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v1;" + pdfInspectorVersion;
+    public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
     {
@@ -15,19 +16,20 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try
         {
-            var lifecycle = await new PackageLifecycleInspector(timeProvider).InspectAsync(input.Packages, profileSnapshotId, linked.Token).ConfigureAwait(false);
-            var files = await new PackageFileInspector(timeProvider).InspectAsync(input, lifecycle, linked.Token).ConfigureAwait(false);
-            var pdf = await new PackagePdfValidator(pdfInspector, timeProvider).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
-            var structure = InspectReachability(input, lifecycle, files, pdf, linked.Token);
+            var context = standards ?? PackageStandardsContext.Current;
+            var lifecycle = await new PackageLifecycleInspector(timeProvider, context).InspectAsync(input.Packages, profileSnapshotId, linked.Token).ConfigureAwait(false);
+            var files = await new PackageFileInspector(timeProvider, context).InspectAsync(input, lifecycle, linked.Token).ConfigureAwait(false);
+            var pdf = await new PackagePdfValidator(pdfInspector, timeProvider, context).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
+            var structure = InspectReachability(input, lifecycle, files, pdf, context, linked.Token);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
-            return new(input, lifecycle, files, pdf, structure);
+            return new(input, lifecycle, files, pdf, structure, context.Catalog);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { throw new PackageInputException("INPUT-LIMITS", "DELIVERY_INSPECTION_TIMEOUT", "The complete delivery inspection exceeded its configured deadline."); }
     }
 
     private static RuleCheckResult InspectReachability(PackageDeliveryInput input, PackageLifecycleInspection lifecycle,
-        PackageFileInspection files, PackagePdfInspection pdf, CancellationToken cancellationToken)
+        PackageFileInspection files, PackagePdfInspection pdf, PackageStandardsContext context, CancellationToken cancellationToken)
     {
         var inventory = input.Packages.Sequences.Values.SelectMany(capture => capture.Manifest.Files).Select(file => file.LogicalPath).ToHashSet(StringComparer.Ordinal);
         var edges = files.References.Where(reference => reference.Exists && reference.Resolved?.LogicalPath is not null)
@@ -42,10 +44,11 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
             roots.Add(number + "/index-md5.txt");
             var profile = input.Packages.Baseline.Entries.SingleOrDefault(entry => entry.SequenceNumber == number)?.ProfileSnapshotId ?? lifecycle.ProfileSnapshotId;
             IReadOnlyList<PackageXmlBackboneProfile> profiles;
-            try { profiles = PackageXmlAssets.Current.ForProfile(profile); }
+            var assets = context.ForSequence(number).Assets;
+            try { profiles = assets.ForProfile(profile); }
             catch (ArgumentException) { continue; }
             foreach (var id in profiles.SelectMany(profile => profile.AllowedAssetIds.Concat(profile.StylesheetAssetIds)).Distinct(StringComparer.Ordinal))
-                roots.Add(number + "/" + PackageXmlAssets.Current.Assets[id].LogicalPath);
+                roots.Add(number + "/" + assets.Assets[id].LogicalPath);
         }
         var queue = new Queue<string>(roots);
         while (queue.TryDequeue(out var source))
@@ -77,16 +80,18 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 
 public sealed class PackageDeliveryInspection
 {
+    private readonly ValidationRuleCatalog _catalog;
     private static readonly string[] CapturedRuleIds =
         ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS", "ZIP-LIMITS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
-        PackagePdfInspection pdf, RuleCheckResult structure)
+        PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null)
     {
         InputDigest = input.InputDigest;
         Lifecycle = lifecycle;
         Files = files;
         Pdf = pdf;
-        var scoped = PackageValidationCatalog.Current.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
+        _catalog = catalog ?? PackageValidationCatalog.Current;
+        var scoped = _catalog.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
         // ZIP-only rules are explicitly NotApplicable when every selected source is a
         // directory; otherwise an absent observation would read as an unexplained gap.
         var zipPresent = input.Comparison?.SourceKind == PackageSourceKind.Zip ||
@@ -116,6 +121,6 @@ public sealed class PackageDeliveryInspection
     public PackageFileInspection Files { get; }
     public PackagePdfInspection Pdf { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
-    public ValidationReport CreateReport(PackageValidationMode mode) => ValidationReport.Create(PackageValidationCatalog.Current,
-        new(InputDigest, HistoryManifestDigest, ProfileSnapshotId, RulesDigest, EngineVersion, mode, LimitsDigest), ValidationRunStatus.Completed, Checks);
+    public ValidationReport CreateReport(PackageValidationMode mode, ValidationBinding? exactBinding = null, IReadOnlyList<string>? standardsBlockingReasons = null) => ValidationReport.Create(_catalog,
+        exactBinding ?? new(InputDigest, HistoryManifestDigest, ProfileSnapshotId, RulesDigest, EngineVersion, mode, LimitsDigest), ValidationRunStatus.Completed, Checks).WithBlockingReasons(standardsBlockingReasons ?? []);
 }

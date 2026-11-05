@@ -3714,6 +3714,25 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                 b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", null).WithMany()
                     .HasForeignKey("JobId").OnDelete(DeleteBehavior.Restrict).IsRequired();
             });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.StandardsSnapshotRecord", b =>
+            {
+                b.Property<string>("Id").HasMaxLength(71).HasColumnType("character varying(71)");
+                b.Property<int>("SchemaVersion").HasColumnType("integer");
+                b.Property<string>("TemplateKey").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.Property<string>("RuleProfileAlias").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
+                b.Property<DateTime>("AcquiredUtc").HasColumnType("timestamp with time zone");
+                b.Property<string>("Data").IsRequired().HasColumnType("text");
+                b.Property<string>("DataSha256").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.HasKey("Id");
+                b.HasIndex("TemplateKey", "RuleProfileAlias", "AcquiredUtc").HasDatabaseName("IX_standards_snapshot_template_profile_acquired");
+                b.ToTable("standards_profile_snapshots", null, table =>
+                {
+                    table.HasCheckConstraint("CK_standards_snapshot_id", "\"Id\" ~ '^sha256:[0-9a-f]{64}$'");
+                    table.HasCheckConstraint("CK_standards_snapshot_schema", "\"SchemaVersion\" = 1");
+                    table.HasCheckConstraint("CK_standards_snapshot_hash", "\"DataSha256\" ~ '^[0-9a-f]{64}$'");
+                    table.HasCheckConstraint("CK_standards_snapshot_size", "octet_length(\"Data\") <= 67108864");
+                });
+            });
         }
     }
 }

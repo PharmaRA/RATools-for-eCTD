@@ -15,9 +15,11 @@ public sealed class EctdPackageModelBuilder(
     ICtdNodeRepository nodeRepository,
     IWorkspaceRevisionStore revisions,
     IApplicationImportStore imports,
-    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IEctdPackageModelBuilder
+    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IStandardsBoundPackageModelBuilder
 {
-    public async Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default)
+    public Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default) => BuildCoreAsync(request, null, cancellationToken);
+    public Task<EctdSequencePackage> BuildWithStandardsAsync(BuildEctdPackageRequest request, StandardsProfile profile, CancellationToken cancellationToken = default) => BuildCoreAsync(request, profile, cancellationToken);
+    private async Task<EctdSequencePackage> BuildCoreAsync(BuildEctdPackageRequest request, StandardsProfile? selectedProfile, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         await using var applicationLock = await revisions.LockApplicationAsync(request.ApplicationId, cancellationToken);
@@ -35,7 +37,8 @@ public sealed class EctdPackageModelBuilder(
             throw new EctdPackageSequenceNotFoundException(request.ApplicationId, request.SequenceNumber);
         }
 
-        var profile = standardsProfileProvider.GetProfile(application.EctdTemplateKey);
+        var profile = selectedProfile ?? standardsProfileProvider.GetProfile(application.EctdTemplateKey);
+        if (profile.TemplateKey != application.EctdTemplateKey) throw new InvalidOperationException("The selected standards snapshot does not belong to this application template.");
         var workspace = await nodeRepository.GetSequenceAsync(application.Id, sequence.SequenceNumber, cancellationToken)
             ?? throw new EctdPackageSequenceNotFoundException(application.Id, sequence.SequenceNumber);
         var backbone = ImportedBackboneProjection.Create(profile.BackboneXml ?? throw new EctdPackageStandardsProfileException(

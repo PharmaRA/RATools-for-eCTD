@@ -5,7 +5,7 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
+public sealed class PackageFileInspector(TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
     private static readonly string[] RuleIds = ["FILE-HREF", "FILE-MD5", "INDEX-MD5", "DELIVERY-ASSETS", "DELIVERY-STRUCTURE", "ZIP-PARITY", "FILE-NAMING"];
 
@@ -14,13 +14,14 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(lifecycle);
+        var context = standards ?? PackageStandardsContext.Current;
         if (lifecycle.InputDigest != input.Packages.Target.InputDigest || lifecycle.HistoryManifestDigest != input.Packages.Baseline.Digest ||
-            lifecycle.LimitsDigest != input.Packages.Target.Limits.Digest() || lifecycle.RulesDigest != PackageValidationCatalog.Current.Digest ||
-            lifecycle.AssetManifestDigest != PackageXmlAssets.Current.Digest)
+            lifecycle.LimitsDigest != input.Packages.Target.Limits.Digest() || lifecycle.RulesDigest != context.Catalog.Digest ||
+            lifecycle.AssetManifestDigest != context.Assets.Digest)
             throw new ArgumentException("XML/lifecycle observations must bind this exact primary input, history, rules, assets and limits.", nameof(lifecycle));
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(input.Packages.Target.Limits.MaxElapsedSeconds), timeProvider ?? TimeProvider.System);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
-        var run = new Inspection(input, lifecycle, linked.Token);
+        var run = new Inspection(input, lifecycle, context, linked.Token);
         try
         {
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -44,7 +45,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
 
     private sealed class FileInspectionLimitException : Exception;
 
-    private sealed class Inspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, CancellationToken cancellationToken)
+    private sealed class Inspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageStandardsContext context, CancellationToken cancellationToken)
     {
         private readonly List<ValidationFinding> _findings = [];
         private readonly List<PackageFileReference> _references = [];
@@ -111,7 +112,8 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
                 var profile = input.Packages.Baseline.Entries.SingleOrDefault(entry => entry.SequenceNumber == capture.Manifest.SequenceNumber)?.ProfileSnapshotId
                     ?? lifecycle.ProfileSnapshotId;
                 IReadOnlyList<PackageXmlBackboneProfile> profiles;
-                try { profiles = PackageXmlAssets.Current.ForProfile(profile); }
+                var assets = context.ForSequence(capture.Manifest.SequenceNumber).Assets;
+                try { profiles = assets.ForProfile(profile); }
                 catch (ArgumentException)
                 {
                     Add("DELIVERY-ASSETS", CheckStatus.NotEvaluated, "DELIVERY_PROFILE_UNSUPPORTED", "The selected historical asset profile is unsupported.", new(capture.Manifest.SequenceNumber));
@@ -119,7 +121,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
                 }
                 foreach (var assetId in profiles.SelectMany(profile => profile.AllowedAssetIds).Distinct(StringComparer.Ordinal))
                 {
-                    var asset = PackageXmlAssets.Current.Assets[assetId];
+                    var asset = assets.Assets[assetId];
                     var path = capture.Manifest.SequenceNumber + "/" + asset.LogicalPath;
                     if (!_files.TryGetValue(path, out var file))
                         Add("DELIVERY-ASSETS", CheckStatus.Fail, "DELIVERY_ASSET_MISSING", "A required pinned DTD or module is not delivered.", Locate(path), asset.Sha256);
@@ -155,8 +157,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null)
                 else queue.Enqueue((document.LogicalPath, href, instruction.Location));
             }
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            var styles = PackageXmlAssets.Current.ForProfile(document.ProfileSnapshotId).SelectMany(profile => profile.StylesheetAssetIds)
-                .Select(id => PackageXmlAssets.Current.Assets[id]).ToArray();
+            var assets = context.ForSequence(document.LogicalPath.Split('/')[0]).Assets;
+            var styles = assets.ForProfile(document.ProfileSnapshotId).SelectMany(profile => profile.StylesheetAssetIds)
+                .Select(id => assets.Assets[id]).ToArray();
             while (queue.TryDequeue(out var item))
             {
                 cancellationToken.ThrowIfCancellationRequested();

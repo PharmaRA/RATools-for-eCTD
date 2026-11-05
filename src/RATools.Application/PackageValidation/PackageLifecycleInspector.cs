@@ -3,7 +3,7 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
+public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
     private static readonly string[] RuleIds = ["HISTORY-BASELINE", "LIFECYCLE-OPERATION", "LIFECYCLE-URI",
         "LIFECYCLE-TARGET", "LIFECYCLE-EFFECTIVE", "LIFECYCLE-CONTEXT"];
@@ -13,10 +13,11 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        _ = PackageXmlAssets.Current.ForProfile(profileSnapshotId);
+        var context = standards ?? PackageStandardsContext.Current;
+        _ = context.Assets.ForProfile(profileSnapshotId);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(inputs.Target.Limits.MaxElapsedSeconds), _timeProvider);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
-        var run = new Inspection(inputs, profileSnapshotId, linked.Token);
+        var run = new Inspection(inputs, profileSnapshotId, context, linked.Token);
         try
         {
             await inputs.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -34,7 +35,8 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
                         run.Add("HISTORY-BASELINE", CheckStatus.NotEvaluated, "HISTORY_PROFILE_COMPATIBILITY_UNQUALIFIED",
                             "Cross-profile lifecycle compatibility requires an explicit qualified policy.", new(sequence));
                 }
-                try { _ = PackageXmlAssets.Current.ForProfile(profile); }
+                var sequenceContext = context.ForSequence(sequence);
+                try { _ = sequenceContext.Assets.ForProfile(profile); }
                 catch (ArgumentException)
                 {
                     run.Incomplete = true;
@@ -42,7 +44,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
                         "The selected historical XML profile is not supported.", new(sequence));
                     continue;
                 }
-                var xml = await new PackageXmlInspector(_timeProvider).InspectAsync(input, profile, linked.Token).ConfigureAwait(false);
+                var xml = await new PackageXmlInspector(_timeProvider, sequenceContext).InspectAsync(input, profile, linked.Token).ConfigureAwait(false);
                 run.Xml.Add(xml);
                 run.CheckLimits();
             }
@@ -65,7 +67,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
 
     private sealed class LifecycleLimitException : Exception;
 
-    private sealed class Inspection(PackageInputSet inputs, string profile, CancellationToken cancellationToken)
+    private sealed class Inspection(PackageInputSet inputs, string profile, PackageStandardsContext context, CancellationToken cancellationToken)
     {
         public List<PackageXmlInspection> Xml { get; } = [];
         public bool Incomplete { get; set; }
@@ -366,7 +368,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null)
                     : "See located observations; unresolved history and unsupported combinations remain incomplete.", findings);
             });
             return new(inputs, profile, Xml, _events.Select(item => new PackageLifecycleEvent(item.Leaf, item.Target,
-                item.ContentPath, item.Status, Array.AsReadOnly(item.Findings.ToArray()))), _states.Values, results);
+                item.ContentPath, item.Status, Array.AsReadOnly(item.Findings.ToArray()))), _states.Values, results, context.Catalog.Digest, context.Assets.Digest);
         }
 
         public sealed class Event(ParsedBackbone document, ParsedPackageLeaf leaf)

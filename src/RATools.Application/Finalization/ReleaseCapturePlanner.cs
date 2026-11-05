@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using RATools.Application.PackageValidation;
+using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Regions;
@@ -9,6 +10,7 @@ using RATools.Application.Standards;
 using RATools.Domain.Common;
 using RATools.Domain.Finalization;
 using RATools.Domain.PackageValidation;
+using RATools.Domain.Standards;
 
 namespace RATools.Application.Finalization;
 
@@ -34,7 +36,7 @@ public sealed class EctdReleaseCapturePlanner(
     IEctdPackageModelBuilder packageModelBuilder,
     IIchIndexXmlWriter ichIndexXmlWriter,
     IRegionalBackboneWriterRegistry regionalBackboneWriterRegistry,
-    IStandardsProfileProvider standardsProfileProvider) : IReleaseCapturePlanner
+    IStandardsProfileProvider standardsProfileProvider, StandardsSnapshotService? snapshots = null) : IReleaseCapturePlanner
 {
     public async Task<ReleaseCapturePreparation> PlanAsync(FinalizeSequenceRequest request, PackageValidationRun run,
         StoredPackageValidationRequest storedRequest, CancellationToken cancellationToken = default)
@@ -43,10 +45,41 @@ public sealed class EctdReleaseCapturePlanner(
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(storedRequest);
 
-        var package = await packageModelBuilder.BuildAsync(
-            new BuildEctdPackageRequest(request.ApplicationId, request.SequenceNumber.Trim()), cancellationToken)
-            .ConfigureAwait(false);
-        var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
+        StandardsProfileSnapshot? snapshot = null; StandardsProfile? profile = null; PackageStandardsContext? standardsContext = null;
+        if (run.Binding.StandardsSnapshotId is { } identity)
+        {
+            snapshot = snapshots is null ? throw new FinalizationNotAuthorizedException("The exact standards snapshot is unavailable.") : await snapshots.GetAsync(identity, cancellationToken).ConfigureAwait(false);
+            standardsContext = PackageStandardsContext.FromSnapshot(snapshot);
+            if (standardsContext.Catalog.Digest != run.Binding.RulesDigest)
+                throw new FinalizationNotAuthorizedException("The archived standards rule mapping is not the validation run's mapping.");
+            profile = StandardsSnapshotService.Profile(snapshot);
+            // The current writer uses the embedded node schema. Refuse a new capture
+            // if it cannot reproduce the archived schema; old release reads never run here.
+            using var current = typeof(EctdReleaseCapturePlanner).Assembly.GetManifestResourceStream("RATools.IchNodeSchema") ?? throw new InvalidDataException();
+            var currentSha = Convert.ToHexString(SHA256.HashData(current)).ToLowerInvariant();
+            if (snapshot.Resources.Single(resource => resource.Key == "node-schema").Sha256 != currentSha)
+                throw new FinalizationNotAuthorizedException("The installed writer cannot reproduce this archived node schema. Read or export the existing immutable release instead.");
+        }
+        else if (run.Binding.ValidationMode == PackageValidationMode.Formal) throw new FinalizationNotAuthorizedException("A legacy rule alias is insufficient for a new formal capture.");
+        var build = new BuildEctdPackageRequest(request.ApplicationId, request.SequenceNumber.Trim());
+        var package = profile is not null && packageModelBuilder is IStandardsBoundPackageModelBuilder bound
+            ? await bound.BuildWithStandardsAsync(build, profile, cancellationToken).ConfigureAwait(false)
+            : await packageModelBuilder.BuildAsync(build, cancellationToken).ConfigureAwait(false);
+        profile ??= standardsProfileProvider.GetProfile(package.Application.TemplateKey);
+        var regionalPath = PackageLogicalPath.Validate(package.BackboneXml.Regional.RelativePath ?? throw new FinalizationNotAuthorizedException("The regional backbone address is missing."));
+        if (!regionalPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || regionalPath == "index.xml")
+            throw new FinalizationNotAuthorizedException("The imported regional backbone address is unsupported.");
+        var projected = ImportedBackboneProjection.Create(profile.BackboneXml ?? throw new FinalizationNotAuthorizedException("The standards backbone metadata is missing."),
+            [new ImportedBackbone(package.SequenceNumber, regionalPath, "")], package.SequenceNumber).Profile;
+        if (profile.TemplateKey != package.Application.TemplateKey || package.BackboneXml != projected ||
+            snapshot is not null && snapshot.RuleProfileAlias != run.Binding.ProfileSnapshotId)
+            throw new FinalizationNotAuthorizedException("The captured application template/backbone is not the run's exact standards selection.");
+        if (snapshot is not null && run.Binding.ValidationMode == PackageValidationMode.Formal)
+        {
+            var reasons = snapshot.Evaluate(run.Binding.StandardsBusinessContext, DateOnly.FromDateTime(DateTime.UtcNow), package.Application.TemplateKey)
+                .Concat(["RegionalBusinessContextUnconfirmed: Formal capture requires persisted, verified regional metadata."]).ToArray();
+            if (reasons.Length > 0) throw new FinalizationNotAuthorizedException(string.Join(" | ", reasons));
+        }
         // The standards versions are properties of the template the content was built
         // from. A request that claims different versions must not be recorded as if the
         // package had been captured against them.
@@ -73,6 +106,14 @@ public sealed class EctdReleaseCapturePlanner(
         }
         foreach (var asset in profile.Assets)
         {
+            if (snapshot is not null)
+            {
+                var resource = snapshot.Resources.Single(resource => resource.Key == "provider-" + asset.Key);
+                if (resource.Sha256 != asset.Sha256) throw new InvalidDataException("Archived asset and profile descriptor disagree.");
+                var snapshotPath = prefix + standardsContext!.Assets.Assets.Values.Single(mapped => mapped.Path == asset.LocalRelativePath).LogicalPath;
+                files.Add(ReleaseCaptureFile.Generated(snapshotPath, resource.ReadBytes()));
+                assets.Add(new ReleaseManifestAsset(asset.Key, asset.Category, asset.Version, snapshotPath, resource.Sha256)); continue;
+            }
             var source = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
                 asset.LocalRelativePath.Replace('/', Path.DirectorySeparatorChar)));
             if (!File.Exists(source))
@@ -101,7 +142,7 @@ public sealed class EctdReleaseCapturePlanner(
         // same content identity as the identical trimmed one.
         var validation = new ReleaseValidationReference(run.ReportSha256!, run.Binding.ValidationMode.ToString(),
             run.Binding.ProfileSnapshotId, profile.IchEctdVersion, requestedRegional,
-            run.Binding.RulesDigest, run.Binding.EngineVersion, comparison);
+            run.Binding.RulesDigest, run.Binding.EngineVersion, comparison, run.Binding.StandardsSnapshotId, run.Binding.SelectionDate, run.Binding.StandardsBusinessContext);
         // The backbone leaves are the delivered ICH + M1 stack; lifecycle targets name the
         // earlier leaf they modify, addressed exactly like the modified-file href.
         var leaves = package.IchBackboneLeaves.Concat(package.Module1Leaves)
@@ -166,6 +207,7 @@ internal static class StoredPackageValidationRequestReader
 
     public static StoredPackageValidationRequest Read(PackageValidationRun run)
     {
+        run.VerifyRequestIntegrity();
         StoredPackageValidationRequest stored;
         try
         {

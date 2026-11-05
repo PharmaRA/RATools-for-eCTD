@@ -2,7 +2,7 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackageXmlInspector(TimeProvider? timeProvider = null)
+public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
     private static readonly string[] CommonRuleIds = ["XML-OFFLINE", "XML-LIMITS", "PROFILE-VERSION", "XML-IDS", "NODE-CONTEXT", "NODE-EXTENSIONS"];
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
@@ -10,7 +10,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null)
     public async Task<PackageXmlInspection> InspectAsync(ICapturedPackageInput input, string profileSnapshotId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var assets = PackageXmlAssets.Current;
+        var context = standards ?? PackageStandardsContext.Current; var assets = context.Assets;
         var profiles = assets.ForProfile(profileSnapshotId);
         input.Limits.Validate();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(input.Limits.MaxElapsedSeconds), _timeProvider);
@@ -94,7 +94,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null)
             }
             results.Add(new(ruleId, status, reason, observations));
         }
-        return new(input.InputDigest, profileSnapshotId, assets.Digest, input.Limits.Digest(), documents, results);
+        return new(input.InputDigest, profileSnapshotId, assets.Digest, input.Limits.Digest(), documents, results, context.Catalog.Digest);
 
         async Task<ParsedBackbone> Read(string path, PackageXmlBackboneProfile profile)
         {
@@ -106,7 +106,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null)
             }
             var document = await PackageXmlDocumentReader.ReadAsync(input, path, assets, profile, findings, linked.Token).ConfigureAwait(false);
             return PackageXmlIdentityInspector.Inspect(document, input.Manifest.ApplicationId, input.Manifest.SequenceNumber,
-                path, profileSnapshotId, profile.Kind, profile.RuleId, findings, linked.Token);
+                path, profileSnapshotId, profile.Kind, profile.RuleId, findings, context.NodeSchema, linked.Token);
         }
     }
 }

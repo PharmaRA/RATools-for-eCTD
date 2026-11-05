@@ -19,10 +19,11 @@ public sealed class PackagePdfInspection
         Documents = Array.AsReadOnly(documents.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        RulesDigest = files.RulesDigest;
     }
     public int SchemaVersion { get; } = 1;
     public string EngineVersion { get; }
-    public string RulesDigest { get; } = PackageValidationCatalog.Current.Digest;
+    public string RulesDigest { get; }
     public string InputDigest { get; }
     public string HistoryManifestDigest { get; }
     public string ProfileSnapshotId { get; }

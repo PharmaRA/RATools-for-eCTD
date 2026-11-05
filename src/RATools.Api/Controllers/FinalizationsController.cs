@@ -56,6 +56,10 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
         {
             return Conflict(new { code = "FINALIZATION_NOT_AUTHORIZED", message = exception.Message });
         }
+        catch (InvalidDataException exception)
+        {
+            return Conflict(new { code = "FINALIZATION_EVIDENCE_INVALID", message = exception.Message });
+        }
         catch (FinalizationNotFoundException exception)
         {
             return NotFound(new { message = exception.Message });

@@ -316,6 +316,9 @@ export type CreatePackageValidationRequest = {
     idempotencyKey: string;
     comparisonInputId: string | null;
     history: Array<PackageHistorySelection> | null;
+    standardsSnapshotId?: string | null;
+    standardsBusinessContext?: StandardsBusinessContext;
+    selectionDate?: string | null;
 };
 
 export type CreateProcessingPlanRequest = {
@@ -626,6 +629,7 @@ export type OpenDraftBody = {
 export type PackageHistorySelection = {
     inputId: string;
     profileSnapshotId: string;
+    standardsSnapshotId?: string | null;
 };
 
 export type PackageInputDto = {
@@ -1358,6 +1362,9 @@ export type ReleaseValidationReference = {
     rulesDigest: string;
     engineVersion: string;
     comparisonInputDigest: string | null;
+    standardsSnapshotId?: string | null;
+    selectionDate?: string | null;
+    standardsBusinessContext?: StandardsBusinessContext;
 };
 
 export type ResolveDirectoryRequestBody = {
@@ -1432,6 +1439,80 @@ export type SequencePublishingMetadataDto = {
     workspaceRevision: number;
 };
 
+export type StandardsBusinessContext = {
+    applicationType: string;
+    procedureType: string;
+    country: string;
+    language: string;
+    sectionScope: string;
+    operation: string;
+};
+
+export type StandardsBusinessScope = {
+    applicationType: string;
+    procedureType: string;
+    country: string;
+    language: string;
+    sectionScope: string;
+    operation: string;
+    createDraft: boolean;
+    trialPublish: boolean;
+    finalize: boolean;
+    evidenceStatus: string;
+};
+
+export type StandardsSnapshotEvidence = {
+    category: string;
+    status: string;
+    reason: string;
+    evidenceSha256: string | null;
+};
+
+export type StandardsSnapshotLifecycle = {
+    effectiveFrom: string;
+    retiredFrom: string | null;
+    status: StandardsSnapshotStatus;
+    retirementPolicy: string;
+};
+
+export type StandardsSnapshotProvenance = {
+    sourceUrl: string;
+    version: string;
+    acquiredOn: string | null;
+    verifiedOn: string | null;
+    verificationStatus: string;
+    sha256: string | null;
+};
+
+export type StandardsSnapshotResourceView = {
+    key: string;
+    category: string;
+    relativePath: string;
+    length: number;
+    sha256: string;
+    mediaType: string;
+};
+
+export type StandardsSnapshotStatus = 0 | 1 | 2;
+
+export type StandardsSnapshotView = {
+    id: string;
+    schemaVersion: number;
+    templateKey: string;
+    region: string;
+    ichEctdVersion: string;
+    regionalModule1Version: string | null;
+    guideVersion: string;
+    criteriaVersion: string;
+    ruleProfileAlias: string;
+    lifecycle: StandardsSnapshotLifecycle;
+    provenance: Array<StandardsSnapshotProvenance>;
+    scopes: Array<StandardsBusinessScope>;
+    evidence: Array<StandardsSnapshotEvidence>;
+    resources: Array<StandardsSnapshotResourceView>;
+    acquiredUtc: string;
+};
+
 export type StoredPackageValidationRequest = {
     schemaVersion: number;
     inputId: string;
@@ -1440,6 +1521,9 @@ export type StoredPackageValidationRequest = {
     ruleCatalog: unknown;
     historyBaseline: unknown;
     readLimits: PackageReadLimits;
+    standardsSnapshotId?: string | null;
+    selectionDate?: string | null;
+    standardsBusinessContext?: StandardsBusinessContext;
 };
 
 export type UpdateCtdNodeRequest = {
@@ -1495,6 +1579,9 @@ export type ValidationBinding = {
     engineVersion: string;
     validationMode: PackageValidationMode;
     resourceLimitsDigest: string;
+    standardsSnapshotId?: string | null;
+    selectionDate?: string | null;
+    standardsBusinessContext?: StandardsBusinessContext;
 };
 
 export type ValidationCoverageSummary = {
@@ -3703,6 +3790,65 @@ export type GetApiRegionalCapabilitiesResponses = {
 };
 
 export type GetApiRegionalCapabilitiesResponse = GetApiRegionalCapabilitiesResponses[keyof GetApiRegionalCapabilitiesResponses];
+
+export type PostApiEctdTemplatesByTemplateKeyStandardsSnapshotData = {
+    body?: never;
+    path: {
+        templateKey: string;
+    };
+    query?: never;
+    url: '/api/ectd-templates/{templateKey}/standards-snapshot';
+};
+
+export type PostApiEctdTemplatesByTemplateKeyStandardsSnapshotResponses = {
+    /**
+     * OK
+     */
+    200: StandardsSnapshotView;
+};
+
+export type PostApiEctdTemplatesByTemplateKeyStandardsSnapshotResponse = PostApiEctdTemplatesByTemplateKeyStandardsSnapshotResponses[keyof PostApiEctdTemplatesByTemplateKeyStandardsSnapshotResponses];
+
+export type GetApiStandardsSnapshotsBySnapshotIdData = {
+    body?: never;
+    path: {
+        snapshotId: string;
+    };
+    query?: never;
+    url: '/api/standards-snapshots/{snapshotId}';
+};
+
+export type GetApiStandardsSnapshotsBySnapshotIdResponses = {
+    /**
+     * OK
+     */
+    200: StandardsSnapshotView;
+};
+
+export type GetApiStandardsSnapshotsBySnapshotIdResponse = GetApiStandardsSnapshotsBySnapshotIdResponses[keyof GetApiStandardsSnapshotsBySnapshotIdResponses];
+
+export type GetApiStandardsSnapshotsBySnapshotIdResourcesByResourceKeyContentData = {
+    body?: never;
+    path: {
+        snapshotId: string;
+        resourceKey: string;
+    };
+    query?: never;
+    url: '/api/standards-snapshots/{snapshotId}/resources/{resourceKey}/content';
+};
+
+export type GetApiStandardsSnapshotsBySnapshotIdResourcesByResourceKeyContentResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+    /**
+     * Partial Content
+     */
+    206: unknown;
+};
+
+export type GetApiStandardsSnapshotsBySnapshotIdResourcesByResourceKeyContentResponse = GetApiStandardsSnapshotsBySnapshotIdResourcesByResourceKeyContentResponses[keyof GetApiStandardsSnapshotsBySnapshotIdResourcesByResourceKeyContentResponses];
 
 export type PostApiValidationSequenceData = {
     body?: ValidateSequenceRequestBody;

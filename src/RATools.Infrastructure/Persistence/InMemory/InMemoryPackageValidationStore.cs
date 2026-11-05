@@ -53,6 +53,8 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate) return Task.FromResult(_runs.GetValueOrDefault(id)?.Copy());
     }
+    public Task<PackageValidationRun?> FindByIdempotencyKeyAsync(string key, CancellationToken cancellationToken = default)
+    { lock (_gate) return Task.FromResult(_runs.Values.SingleOrDefault(run => run.IdempotencyKey == key)?.Copy()); }
 
     public Task<PackageValidationPage<PackageRunSummary>> ListRunsAsync(Guid? applicationId, int offset, int limit,
         CancellationToken cancellationToken = default)

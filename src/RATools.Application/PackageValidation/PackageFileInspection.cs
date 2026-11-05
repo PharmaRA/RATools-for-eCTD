@@ -18,12 +18,13 @@ public sealed class PackageFileInspection
         LimitsDigest = input.Packages.Target.Limits.Digest();
         References = Array.AsReadOnly(references.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        RulesDigest = lifecycle.RulesDigest; AssetManifestDigest = lifecycle.AssetManifestDigest;
     }
 
     public int SchemaVersion { get; } = 1;
     public string EngineVersion { get; } = "package-file-inspector-v2";
-    public string RulesDigest { get; } = PackageValidationCatalog.Current.Digest;
-    public string AssetManifestDigest { get; } = PackageXmlAssets.Current.Digest;
+    public string RulesDigest { get; }
+    public string AssetManifestDigest { get; }
     public string InputDigest { get; }
     public string PrimaryInputDigest { get; }
     public string? ComparisonInputDigest { get; }

@@ -20,6 +20,10 @@ public static class IchSectionDefinitions
     {
         using var stream = typeof(IchSectionDefinitions).Assembly.GetManifestResourceStream("RATools.IchNodeSchema")
             ?? throw new InvalidOperationException("The pinned ICH node schema is missing.");
+        return Load(stream);
+    }
+    public static SectionDefinitionSet Load(Stream stream)
+    {
         var snapshot = JsonSerializer.Deserialize<SnapshotFile>(stream, JsonOptions)
             ?? throw new InvalidOperationException("The pinned ICH node schema is empty.");
         if (snapshot.SchemaVersion != 1 || snapshot.DefinitionVersion != Version || snapshot.DtdVersion != "3.2" ||

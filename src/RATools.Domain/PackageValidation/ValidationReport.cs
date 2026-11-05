@@ -71,6 +71,8 @@ public sealed class ValidationReport
     public IReadOnlyList<string> BlockingReasons { get; }
     public bool ExecutionCompleted => RunStatus == ValidationRunStatus.Completed;
     public bool IsReadyForFinalization => BlockingReasons.Count == 0;
+    public ValidationReport WithBlockingReasons(IEnumerable<string> reasons) => new(Binding, RunStatus, Coverage, Summary,
+        Array.AsReadOnly(BlockingReasons.Concat(reasons).Distinct(StringComparer.Ordinal).ToArray()));
 
     public static ValidationReport Create(ValidationRuleCatalog catalog, ValidationBinding binding, ValidationRunStatus status,
         IEnumerable<RuleCheckResult> results)

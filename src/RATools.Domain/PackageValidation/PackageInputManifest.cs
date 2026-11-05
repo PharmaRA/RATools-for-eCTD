@@ -53,7 +53,8 @@ public sealed class PackageInputManifest
 
 public sealed record HistoryBaselineEntry(string SequenceNumber, HistorySourceKind SourceKind, string SourceId,
     string ContentDigest, string ProfileSnapshotId, HistoryTrustStatus TrustStatus,
-    Guid? ValidationRunId = null, Guid? FinalizedSequenceId = null);
+    Guid? ValidationRunId = null, Guid? FinalizedSequenceId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? StandardsSnapshotId = null);
 
 public sealed class HistoryBaselineManifest
 {
@@ -85,12 +86,7 @@ public sealed class HistoryBaselineManifest
         Digest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
         {
             schemaVersion = 1, applicationId = applicationId.ToString("D"),
-            entries = copy.Select(entry => new
-            {
-                sequenceNumber = entry.SequenceNumber, sourceKind = entry.SourceKind.ToString(), sourceId = entry.SourceId,
-                contentDigest = entry.ContentDigest, profileSnapshotId = entry.ProfileSnapshotId, trustStatus = entry.TrustStatus.ToString(),
-                validationRunId = entry.ValidationRunId?.ToString("D"), finalizedSequenceId = entry.FinalizedSequenceId?.ToString("D")
-            })
+            entries = copy.Select(EntryContent)
         }));
     }
 
@@ -98,4 +94,12 @@ public sealed class HistoryBaselineManifest
     public string TargetSequence { get; }
     public IReadOnlyList<HistoryBaselineEntry> Entries { get; }
     public string Digest { get; }
+    private static Dictionary<string, object?> EntryContent(HistoryBaselineEntry entry)
+    {
+        var content = new Dictionary<string, object?> { ["sequenceNumber"] = entry.SequenceNumber, ["sourceKind"] = entry.SourceKind.ToString(), ["sourceId"] = entry.SourceId,
+            ["contentDigest"] = entry.ContentDigest, ["profileSnapshotId"] = entry.ProfileSnapshotId, ["trustStatus"] = entry.TrustStatus.ToString(),
+            ["validationRunId"] = entry.ValidationRunId?.ToString("D"), ["finalizedSequenceId"] = entry.FinalizedSequenceId?.ToString("D") };
+        if (entry.StandardsSnapshotId is not null) content["standardsSnapshotId"] = entry.StandardsSnapshotId;
+        return content;
+    }
 }

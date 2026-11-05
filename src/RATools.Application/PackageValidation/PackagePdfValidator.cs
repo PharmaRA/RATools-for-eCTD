@@ -3,7 +3,7 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProvider? timeProvider = null)
+public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
     private static readonly string[] RuleIds = ["PDF-READABLE", "PDF-SECURITY", "PDF-FONTS", "PDF-NAVIGATION", "PDF-LINKS", "PDF-VERSION"];
     private static readonly HashSet<string> CommonFonts = new(StringComparer.Ordinal)
@@ -20,7 +20,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(files);
         if (files.InputDigest != input.InputDigest || files.HistoryManifestDigest != input.Packages.Baseline.Digest ||
-            files.LimitsDigest != input.Packages.Target.Limits.Digest() || files.RulesDigest != PackageValidationCatalog.Current.Digest)
+            files.LimitsDigest != input.Packages.Target.Limits.Digest() || files.RulesDigest != (standards ?? PackageStandardsContext.Current).Catalog.Digest)
             throw new ArgumentException("File observations must bind this exact delivery pair, history, rules and limits.", nameof(files));
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(input.Packages.Target.Limits.MaxElapsedSeconds), timeProvider ?? TimeProvider.System);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
