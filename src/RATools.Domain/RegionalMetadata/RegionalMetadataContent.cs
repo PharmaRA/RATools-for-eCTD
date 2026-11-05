@@ -57,7 +57,12 @@ public static class RegionalMetadataJson
 internal static class RegionalMetadataRules
 {
     internal static void Text(string? value)
-    { if (value is null) return; if (value.Length > 4096) throw new ArgumentException("Regional metadata text exceeds 4096 characters."); XmlConvert.VerifyXmlChars(value); }
+    {
+        if (value is null) return;
+        if (value.Length > 4096) throw new ArgumentException("Regional metadata text exceeds 4096 characters.");
+        try { XmlConvert.VerifyXmlChars(value); }
+        catch (XmlException error) { throw new ArgumentException("Regional metadata text contains characters forbidden in XML.", nameof(value), error); }
+    }
     internal static void Id(Guid id) { if (id == Guid.Empty) throw new ArgumentException("Regional metadata identities cannot be empty."); }
     internal static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> items, Func<T, Guid> identity, Func<T, T>? copy = null)
     {

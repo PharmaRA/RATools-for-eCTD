@@ -9,7 +9,7 @@ using RATools.Domain.Standards;
 
 namespace RATools.Application.RegionalMetadata;
 
-public sealed class RegionalMetadataService(IRegionalMetadataStore store, IApplicationRepository applications, ICtdNodeRepository nodes,
+public sealed partial class RegionalMetadataService(IRegionalMetadataStore store, IApplicationRepository applications, ICtdNodeRepository nodes,
     IDocumentPlacementRepository placements, StandardsSnapshotService snapshots, WorkspaceMutationCoordinator mutations,
     IWorkspaceRevisionStore revisions, IPersistenceTransaction transactions, TimeProvider? clock = null)
 {
@@ -26,6 +26,7 @@ public sealed class RegionalMetadataService(IRegionalMetadataStore store, IAppli
         await using var held = await revisions.LockApplicationAsync(appId, cancellationToken).ConfigureAwait(false);
         RegionalMetadataJson.VerifyBudget(defaults);
         var app = await ApplicationAsync(appId, null, cancellationToken).ConfigureAwait(false); var snapshot = await SnapshotAsync(app, snapshotId, defaults.RegionKey, cancellationToken).ConfigureAwait(false);
+        defaults = RegionalMetadataRevision.Create(Guid.NewGuid(), appId, null, 1, null, snapshotId, null, defaults, [], [], null, null, [], [], null, null, Now).Defaults!;
         var previous = await store.GetHeadAsync(appId, null, cancellationToken).ConfigureAwait(false);
         if ((previous?.MetadataRevision ?? 0) != expectedDefaultsRevision) throw new RegionalMetadataConflictException();
         var diagnostics = RegionalMetadataValidation.Defaults(defaults, snapshot);
@@ -97,11 +98,19 @@ public sealed class RegionalMetadataService(IRegionalMetadataStore store, IAppli
         var evidence = Provenance(content, null, null).Select(item => item with { Origin = "LegacyUnknown" }).ToArray();
         return await SaveWithinAsync(currentApp, sequence, mutation, null, snapshot.Id, content, [], [], null, null, evidence, raw, digest, cancellationToken).ConfigureAwait(false);
     }
-    private async Task<RegionalMetadataRevision> SaveWithinAsync(SubmissionApplication app, string sequence, WorkspaceMutation mutation, RegionalMetadataRevision? previous,
+    private Task<RegionalMetadataRevision> SaveWithinAsync(SubmissionApplication app, string sequence, WorkspaceMutation mutation, RegionalMetadataRevision? previous,
         string snapshotId, RegionalMetadataContent content, IReadOnlyList<RegionalNodeContext> nodeContexts, IReadOnlyList<RegionalDocumentContext> documentContexts,
         Guid? defaultsId, string? defaultsDigest, IReadOnlyList<RegionalMetadataProvenance>? provenance, string? legacyJson, string? legacyDigest, CancellationToken cancellationToken)
+        => SaveWithinAsync(app, sequence, mutation, previous, snapshotId, content, nodeContexts, documentContexts, defaultsId, defaultsDigest, provenance, legacyJson, legacyDigest, null, cancellationToken);
+    private async Task<RegionalMetadataRevision> SaveWithinAsync(SubmissionApplication app, string sequence, WorkspaceMutation mutation, RegionalMetadataRevision? previous,
+        string snapshotId, RegionalMetadataContent content, IReadOnlyList<RegionalNodeContext> nodeContexts, IReadOnlyList<RegionalDocumentContext> documentContexts,
+        Guid? defaultsId, string? defaultsDigest, IReadOnlyList<RegionalMetadataProvenance>? provenance, string? legacyJson, string? legacyDigest,
+        SequencePublishingMetadata? shared, CancellationToken cancellationToken)
     {
         RegionalMetadataJson.VerifyBudget(new { content, nodeContexts, documentContexts });
+        var structural = RegionalMetadataRevision.Create(Guid.NewGuid(), app.Id, sequence, 1, mutation.Revision + 1,
+            snapshotId, content, null, nodeContexts, documentContexts, defaultsId, defaultsDigest, [], [], null, null, Now);
+        content = structural.Content!; nodeContexts = structural.NodeContexts; documentContexts = structural.DocumentContexts;
         var snapshot = await SnapshotAsync(app, snapshotId, content.RegionKey, cancellationToken).ConfigureAwait(false);
         var sections = await ScopeAsync(app, sequence, nodeContexts, documentContexts, cancellationToken).ConfigureAwait(false);
         var issues = RegionalMetadataValidation.Sequence(content, snapshot, app.Sequences.Select(item => item.SequenceNumber).ToHashSet(StringComparer.Ordinal), sequence, nodeContexts, documentContexts, sections).ToList();
@@ -110,7 +119,16 @@ public sealed class RegionalMetadataService(IRegionalMetadataStore store, IAppli
             Provenance(new { NodeContexts = nodeContexts, DocumentContexts = documentContexts }, previous is null ? null : new { previous.NodeContexts, previous.DocumentContexts }, previous?.Provenance)).ToArray();
         var revision = RegionalMetadataRevision.Create(Guid.NewGuid(), app.Id, sequence, (previous?.MetadataRevision ?? 0) + 1, mutation.Revision + 1,
             snapshotId, content, null, nodeContexts, documentContexts, defaultsId, defaultsDigest, evidence, issues, legacyJson, legacyDigest, Now);
-        return await mutation.CommitAsync(ct => store.AppendAsync(revision, previous?.Id, ct), cancellationToken).ConfigureAwait(false);
+        var target = app.Sequences.Single(item => item.SequenceNumber == sequence); var original = target.PublishingMetadata;
+        try
+        {
+            return await mutation.CommitAsync(async ct =>
+            {
+                if (shared is not null) { target.RevisePublishingMetadata(shared); await applications.UpdateAsync(app, ct).ConfigureAwait(false); }
+                return await store.AppendAsync(revision, previous?.Id, ct).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch { if (shared is not null) target.RestorePublishingMetadata(original); throw; }
     }
     private async Task<Dictionary<Guid, string>> ScopeAsync(SubmissionApplication app, string sequence, IReadOnlyList<RegionalNodeContext> nodeContexts,
         IReadOnlyList<RegionalDocumentContext> documentContexts, CancellationToken cancellationToken)

@@ -44,6 +44,8 @@ const PdfProcessingPanel = lazy(() =>
   import('./workspace/PdfProcessingPanel').then(module => ({ default: module.PdfProcessingPanel })))
 const PdfRenamePanel = lazy(() =>
   import('./workspace/PdfRenamePanel').then(module => ({ default: module.PdfRenamePanel })))
+const RegionalMetadataPanel = lazy(() =>
+  import('./workspace/RegionalMetadataPanel').then(module => ({ default: module.RegionalMetadataPanel })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -419,6 +421,15 @@ export const SequenceWorkspacePage = ({
       {nodeTree?.diagnostics.length ? <Alert type="warning" showIcon title="导入或旧数据诊断" description={
         [...new Set(nodeTree.diagnostics.map(issue => issue.message))].join('；')
       } /> : null}
+
+      <Suspense fallback={<p role="status">正在加载区域元数据面板…</p>}>
+        <RegionalMetadataPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
+          disabled={loading || workspaceRevision === undefined || finalization?.isEditable === false}
+          nodes={nodeTree?.nodes.map(node => ({ id: node.nodeInstanceId, ctdSection: node.ctdSection, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` })) ?? []}
+          placements={placements.map(placement => ({ id: placement.id, nodeInstanceId: placement.nodeInstanceId, ctdSection: placement.ctdSection,
+            label: `${placement.ctdSection.toUpperCase()} · ${documentsById[placement.documentId]?.fileName ?? placement.id}` }))}
+          onChanged={async () => { invalidateValidation(); await refreshWorkspaceData() }} />
+      </Suspense>
 
       {nodeTree && <Suspense fallback={<AssemblyPanelFallback />}>
         <AssemblyPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}

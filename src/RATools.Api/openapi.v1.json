@@ -5601,6 +5601,667 @@
         }
       }
     },
+    "/api/applications/{id}/regional-metadata/schema": {
+      "get": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "standardsSnapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataSchemaDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataSchemaDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataSchemaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/regional-metadata/defaults": {
+      "get": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/regional-metadata/defaults/preflight": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalDefaultsRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/regional-metadata/revisions/{revisionId}": {
+      "get": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/preflight": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalPreflightRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalPreflightRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalPreflightRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreflightDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/inheritance/preview": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/inheritance": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalInheritanceRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/node-context-copy/preview": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataPreviewDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/node-context-copy": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalNodeContextCopyRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/legacy-upgrade": {
+      "post": {
+        "tags": [
+          "RegionalMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalLegacyUpgradeRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalLegacyUpgradeRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalLegacyUpgradeRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ectd-templates/{templateKey}/standards-snapshot": {
       "post": {
         "tags": [
@@ -7953,6 +8614,146 @@
           },
           "idempotencyKey": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EuApplicationDefaults": {
+        "required": [
+          "applicant",
+          "inns",
+          "inventedNames",
+          "procedureTrackingNumbers"
+        ],
+        "type": "object",
+        "properties": {
+          "applicant": {
+            "type": "string",
+            "nullable": true
+          },
+          "procedureTrackingNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          },
+          "inventedNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          },
+          "inns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EuEnvelope": {
+        "required": [
+          "agency",
+          "applicant",
+          "country",
+          "description",
+          "id",
+          "identifier",
+          "inns",
+          "inventedNames",
+          "procedure",
+          "procedureTrackingNumbers",
+          "relatedSequences",
+          "submissionMode",
+          "submissionNumber",
+          "submissionType",
+          "submissionUnit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "agency": {
+            "type": "string",
+            "nullable": true
+          },
+          "procedure": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionUnit": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicant": {
+            "type": "string",
+            "nullable": true
+          },
+          "procedureTrackingNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          },
+          "inventedNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          },
+          "inns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTextEntry"
+            }
+          },
+          "relatedSequences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalRelatedSequence"
+            }
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EuRegionalMetadata": {
+        "required": [
+          "envelopes"
+        ],
+        "type": "object",
+        "properties": {
+          "envelopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EuEnvelope"
+            }
           }
         },
         "additionalProperties": false
@@ -11063,6 +11864,41 @@
         },
         "additionalProperties": false
       },
+      "RegionalApplicationDefaultsContent": {
+        "required": [
+          "eu",
+          "regionKey",
+          "schemaVersion",
+          "us"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "regionKey": {
+            "type": "string"
+          },
+          "us": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsApplicationDefaults"
+              }
+            ],
+            "nullable": true
+          },
+          "eu": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EuApplicationDefaults"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RegionalCapability": {
         "required": [
           "applicationType",
@@ -11131,6 +11967,850 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "RegionalContact": {
+        "required": [
+          "emails",
+          "id",
+          "name",
+          "phones",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "phones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalTelephone"
+            }
+          },
+          "emails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalEmail"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalDefaultsRequestBody": {
+        "required": [
+          "defaults",
+          "standardsSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedDefaultsRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/RegionalApplicationDefaultsContent"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalDiagnosticDto": {
+        "required": [
+          "code",
+          "fieldPath",
+          "message",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "fieldPath": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalSourceReferenceDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalDocumentContext": {
+        "required": [
+          "country",
+          "formType",
+          "language",
+          "nodeInstanceId",
+          "placementId",
+          "productInformationType"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "productInformationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "formType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalEmail": {
+        "required": [
+          "id",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalFieldConditionDto": {
+        "required": [
+          "description",
+          "effect",
+          "fieldPath",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldPath": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalFieldDescriptor": {
+        "required": [
+          "businessEvidence",
+          "conditions",
+          "fields",
+          "identityField",
+          "key",
+          "kind",
+          "label",
+          "options",
+          "required",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldDescriptor"
+            }
+          },
+          "identityField": {
+            "type": "string",
+            "nullable": true
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldConditionDto"
+            },
+            "nullable": true
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalSourceReferenceDto"
+              }
+            ],
+            "nullable": true
+          },
+          "businessEvidence": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalInheritanceRequestBody": {
+        "required": [
+          "defaultsRevisionId"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "defaultsRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalLegacyUpgradeRequestBody": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataContent": {
+        "required": [
+          "eu",
+          "regionKey",
+          "schemaVersion",
+          "us"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "regionKey": {
+            "type": "string"
+          },
+          "us": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsRegionalMetadata"
+              }
+            ],
+            "nullable": true
+          },
+          "eu": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EuRegionalMetadata"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataDiagnostic": {
+        "required": [
+          "code",
+          "fieldPath",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "fieldPath": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataFieldDiff": {
+        "required": [
+          "after",
+          "before",
+          "fieldPath"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldPath": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string",
+            "nullable": true
+          },
+          "after": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataPreflightDto": {
+        "required": [
+          "diagnostics",
+          "standardsSnapshotId",
+          "summary"
+        ],
+        "type": "object",
+        "properties": {
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDiagnosticDto"
+            }
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalMetadataSummaryEntry"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataPreviewDto": {
+        "required": [
+          "documentContexts",
+          "expectedRevision",
+          "fieldDiffs",
+          "nodeContexts",
+          "proposedContent",
+          "sourceDigest",
+          "sourceRevisionId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDigest": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "proposedContent": {
+            "$ref": "#/components/schemas/RegionalMetadataContent"
+          },
+          "nodeContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalNodeContext"
+            }
+          },
+          "documentContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDocumentContext"
+            }
+          },
+          "fieldDiffs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalMetadataFieldDiff"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataProvenance": {
+        "required": [
+          "fieldPath",
+          "origin",
+          "sourceDigest",
+          "sourceRevisionId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldPath": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sourceDigest": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataRevisionDto": {
+        "required": [
+          "applicationId",
+          "content",
+          "createdUtc",
+          "defaults",
+          "diagnostics",
+          "digest",
+          "documentContexts",
+          "id",
+          "inheritedDefaultsDigest",
+          "inheritedDefaultsId",
+          "metadataRevision",
+          "nodeContexts",
+          "provenance",
+          "sequenceNumber",
+          "standardsSnapshotId",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadataRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalMetadataContent"
+              }
+            ],
+            "nullable": true
+          },
+          "defaults": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalApplicationDefaultsContent"
+              }
+            ],
+            "nullable": true
+          },
+          "nodeContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalNodeContext"
+            }
+          },
+          "documentContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDocumentContext"
+            }
+          },
+          "inheritedDefaultsId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "inheritedDefaultsDigest": {
+            "type": "string",
+            "nullable": true
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalMetadataProvenance"
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalMetadataDiagnostic"
+            }
+          },
+          "digest": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataSchemaDto": {
+        "required": [
+          "defaultsFields",
+          "documentContextFields",
+          "nodeContextFields",
+          "qualificationStatus",
+          "regionKey",
+          "schemaVersion",
+          "sequenceFields",
+          "sources",
+          "standardsSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "regionKey": {
+            "type": "string"
+          },
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "sequenceFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldDescriptor"
+            }
+          },
+          "defaultsFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldDescriptor"
+            }
+          },
+          "nodeContextFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldDescriptor"
+            }
+          },
+          "documentContextFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalFieldDescriptor"
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalSourceReferenceDto"
+            }
+          },
+          "qualificationStatus": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataSummaryEntry": {
+        "required": [
+          "fieldPath",
+          "source",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldPath": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalSourceReferenceDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalMetadataUpdate": {
+        "required": [
+          "content",
+          "documentContexts",
+          "nodeContexts",
+          "standardsSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/RegionalMetadataContent"
+          },
+          "nodeContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalNodeContext"
+            },
+            "nullable": true
+          },
+          "documentContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDocumentContext"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalNodeContext": {
+        "required": [
+          "country",
+          "formType",
+          "language",
+          "nodeInstanceId",
+          "productInformationType"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "productInformationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "formType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalNodeContextCopyRequestBody": {
+        "required": [
+          "nodeInstanceId",
+          "placementIds",
+          "sourceRevisionId"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "placementIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalPreflightRequestBody": {
+        "required": [
+          "content",
+          "standardsSnapshotId"
+        ],
+        "type": "object",
+        "properties": {
+          "standardsSnapshotId": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/RegionalMetadataContent"
+          },
+          "nodeContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalNodeContext"
+            },
+            "nullable": true
+          },
+          "documentContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDocumentContext"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalRelatedSequence": {
+        "required": [
+          "id",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalSourceReferenceDto": {
+        "required": [
+          "locator",
+          "resourceKey",
+          "sha256",
+          "sourceUri"
+        ],
+        "type": "object",
+        "properties": {
+          "resourceKey": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "sourceUri": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalTelephone": {
+        "required": [
+          "id",
+          "number",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalTextEntry": {
+        "required": [
+          "id",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "RegisterDeliveryBody": {
         "required": [
@@ -11859,6 +13539,7 @@
           "applicationType",
           "email",
           "formType",
+          "regional",
           "sequenceDescription",
           "sequenceNumber",
           "standardsProfile",
@@ -11924,6 +13605,14 @@
           "workspaceRevision": {
             "type": "integer",
             "format": "int64"
+          },
+          "regional": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegionalMetadataRevisionDto"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -12387,6 +14076,9 @@
         ],
         "type": "object",
         "properties": {
+          "regional": {
+            "$ref": "#/components/schemas/RegionalMetadataUpdate"
+          },
           "expectedRevision": {
             "type": "integer",
             "format": "int64",
@@ -12430,6 +14122,86 @@
             "nullable": true
           },
           "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UsApplicationDefaults": {
+        "required": [
+          "applicantName",
+          "applicationIdentifier",
+          "applicationType",
+          "contacts"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalContact"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UsRegionalMetadata": {
+        "required": [
+          "applicantName",
+          "applicationIdentifier",
+          "applicationType",
+          "contacts",
+          "description",
+          "formType",
+          "submissionSubtype",
+          "submissionType"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionalContact"
+            }
+          },
+          "submissionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionSubtype": {
+            "type": "string",
+            "nullable": true
+          },
+          "formType": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
             "type": "string",
             "nullable": true
           }

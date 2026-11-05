@@ -10,7 +10,8 @@ namespace RATools.Application.Applications;
 public sealed class SequencePublishingMetadataService(
     IApplicationRepository applicationRepository,
     IStandardsProfileProvider standardsProfileProvider,
-    WorkspaceMutationCoordinator mutations) : ISequencePublishingMetadataService
+    WorkspaceMutationCoordinator mutations,
+    RATools.Application.RegionalMetadata.RegionalMetadataService? regionalMetadata = null) : ISequencePublishingMetadataService
 {
     public async Task<SequencePublishingMetadataDto?> GetAsync(
         Guid applicationId,
@@ -19,9 +20,11 @@ public sealed class SequencePublishingMetadataService(
     {
         var application = await applicationRepository.GetAsync(applicationId, cancellationToken);
         var sequence = application?.Sequences.SingleOrDefault(x => x.SequenceNumber == sequenceNumber);
-        return application is null || sequence is null
+        var result = application is null || sequence is null
             ? null
             : ToDto(application, sequence);
+        return result is null || regionalMetadata is null ? result : result with
+        { Regional = RATools.Application.RegionalMetadata.RegionalMetadataRevisionDto.From(await regionalMetadata.GetScopedHeadAsync(applicationId, sequenceNumber, cancellationToken)) };
     }
 
     public async Task<SequencePublishingMetadataDto?> UpdateAsync(
@@ -30,6 +33,21 @@ public sealed class SequencePublishingMetadataService(
         UpdateSequencePublishingMetadataRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.Regional is not null)
+        {
+            if (regionalMetadata is null) throw new InvalidOperationException("Regional metadata service is unavailable.");
+            var mixedApplication = await applicationRepository.GetAsync(applicationId, cancellationToken);
+            if (mixedApplication is null) return null;
+            var capturedProfile = standardsProfileProvider.GetProfile(mixedApplication.EctdTemplateKey).DisplayName;
+            var shared = SequencePublishingMetadata.Create(request.ApplicationType, request.SubmissionType, request.SubmissionSubtype,
+                request.SequenceDescription, request.ApplicantName, request.FormType, request.ApplicantContactName, request.ApplicantContactType,
+                request.Telephone, request.TelephoneNumberType, request.Email);
+            var committed = await regionalMetadata.SaveMixedAsync(applicationId, sequenceNumber, request.ExpectedRevision, request.Regional, shared, cancellationToken);
+            return new SequencePublishingMetadataDto(applicationId, sequenceNumber, capturedProfile, shared.ApplicationType,
+                shared.SubmissionType, shared.SubmissionSubtype, shared.SequenceDescription, shared.ApplicantName, shared.FormType,
+                shared.ApplicantContactName, shared.ApplicantContactType, shared.Telephone, shared.TelephoneNumberType, shared.Email,
+                committed.WorkspaceRevision!.Value, RATools.Application.RegionalMetadata.RegionalMetadataRevisionDto.From(committed));
+        }
         await using var mutation = await mutations.AcquireAsync(applicationId, sequenceNumber, request.ExpectedRevision, cancellationToken);
         var application = await applicationRepository.GetAsync(applicationId, cancellationToken);
         var sequence = application?.Sequences.SingleOrDefault(x => x.SequenceNumber == sequenceNumber);
@@ -65,7 +83,9 @@ public sealed class SequencePublishingMetadataService(
             sequence.RestorePublishingMetadata(previous);
             throw;
         }
-        return ToDto(application, sequence) with { WorkspaceRevision = mutation.Revision };
+        return ToDto(application, sequence) with { WorkspaceRevision = mutation.Revision,
+            Regional = regionalMetadata is null ? null : RATools.Application.RegionalMetadata.RegionalMetadataRevisionDto.From(
+                await regionalMetadata.GetScopedHeadAsync(applicationId, sequenceNumber, cancellationToken)) };
     }
 
     private SequencePublishingMetadataDto ToDto(SubmissionApplication application, SubmissionSequence sequence)

@@ -12,4 +12,5 @@ public sealed record UpdateSequencePublishingMetadataRequest(
     string? Telephone,
     string? TelephoneNumberType,
     string? Email,
-    long? ExpectedRevision = null);
+    long? ExpectedRevision = null,
+    RATools.Application.RegionalMetadata.RegionalMetadataUpdate? Regional = null);

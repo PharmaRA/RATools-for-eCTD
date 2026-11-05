@@ -172,7 +172,8 @@ public sealed class ApplicationsController(
                     request.Telephone,
                     request.TelephoneNumberType,
                     request.Email,
-                    request.ExpectedRevision),
+                    request.ExpectedRevision,
+                    request.Regional),
                 cancellationToken);
 
             return updated is null ? NotFound() : Ok(updated);
@@ -180,6 +181,10 @@ public sealed class ApplicationsController(
         catch (ArgumentException exception)
         {
             return BadRequest(new { message = exception.Message });
+        }
+        catch (RATools.Application.RegionalMetadata.RegionalMetadataScopeException exception)
+        {
+            return BadRequest(new { code = "RegionalMetadataScope", message = exception.Message });
         }
     }
 

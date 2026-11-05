@@ -15,4 +15,5 @@ public sealed record SequencePublishingMetadataDto(
     string? Telephone,
     string? TelephoneNumberType,
     string? Email,
-    long WorkspaceRevision = 0);
+    long WorkspaceRevision = 0,
+    RATools.Application.RegionalMetadata.RegionalMetadataRevisionDto? Regional = null);

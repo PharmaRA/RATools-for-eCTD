@@ -1,7 +1,12 @@
+using System.Text.Json.Serialization;
+using RATools.Application.RegionalMetadata;
+
 namespace RATools.Api.Contracts;
 
+[JsonConverter(typeof(StrictRegionalRequestConverter<UpdateSequencePublishingMetadataRequestBody>))]
 public sealed class UpdateSequencePublishingMetadataRequestBody
 {
+    public RegionalMetadataUpdate? Regional { get; set; }
     public long? ExpectedRevision { get; init; }
 
     public string? ApplicationType { get; set; }

@@ -494,6 +494,35 @@ export type EnqueueProcessingRequest = {
     idempotencyKey: string;
 };
 
+export type EuApplicationDefaults = {
+    applicant: string | null;
+    procedureTrackingNumbers: Array<RegionalTextEntry>;
+    inventedNames: Array<RegionalTextEntry>;
+    inns: Array<RegionalTextEntry>;
+};
+
+export type EuEnvelope = {
+    id: string;
+    identifier: string | null;
+    country: string | null;
+    agency: string | null;
+    procedure: string | null;
+    submissionType: string | null;
+    submissionMode: string | null;
+    submissionNumber: string | null;
+    submissionUnit: string | null;
+    applicant: string | null;
+    procedureTrackingNumbers: Array<RegionalTextEntry>;
+    inventedNames: Array<RegionalTextEntry>;
+    inns: Array<RegionalTextEntry>;
+    relatedSequences: Array<RegionalRelatedSequence>;
+    description: string | null;
+};
+
+export type EuRegionalMetadata = {
+    envelopes: Array<EuEnvelope>;
+};
+
 export type ExternalComparisonDifference = {
     externalRuleId: string;
     internalRuleId: string | null;
@@ -1224,6 +1253,13 @@ export type PublishReadinessRequestBody = {
     sequenceNumber: string;
 };
 
+export type RegionalApplicationDefaultsContent = {
+    schemaVersion: number;
+    regionKey: string;
+    us: UsApplicationDefaults | null;
+    eu: EuApplicationDefaults | null;
+};
+
 export type RegionalCapability = {
     region: string;
     templateKey: string;
@@ -1240,6 +1276,202 @@ export type RegionalCapability = {
 };
 
 export type RegionalCapabilityState = 0 | 1 | 2 | 3;
+
+export type RegionalContact = {
+    id: string;
+    name: string | null;
+    type: string | null;
+    phones: Array<RegionalTelephone>;
+    emails: Array<RegionalEmail>;
+};
+
+export type RegionalDefaultsRequestBody = {
+    expectedDefaultsRevision?: number | null;
+    standardsSnapshotId: string;
+    defaults: RegionalApplicationDefaultsContent;
+};
+
+export type RegionalDiagnosticDto = {
+    code: string;
+    fieldPath: string;
+    message: string;
+    source: RegionalSourceReferenceDto | null;
+};
+
+export type RegionalDocumentContext = {
+    placementId: string;
+    nodeInstanceId: string | null;
+    country: string | null;
+    language: string | null;
+    productInformationType: string | null;
+    formType: string | null;
+};
+
+export type RegionalEmail = {
+    id: string;
+    value: string | null;
+};
+
+export type RegionalFieldConditionDto = {
+    fieldPath: string;
+    values: Array<string>;
+    description: string;
+    effect: string;
+};
+
+export type RegionalFieldDescriptor = {
+    key: string;
+    label: string;
+    kind: string;
+    required: boolean;
+    options: Array<string>;
+    fields: Array<RegionalFieldDescriptor>;
+    identityField: string | null;
+    conditions: Array<RegionalFieldConditionDto> | null;
+    source: RegionalSourceReferenceDto | null;
+    businessEvidence: string | null;
+};
+
+export type RegionalInheritanceRequestBody = {
+    expectedRevision?: number | null;
+    defaultsRevisionId: string;
+};
+
+export type RegionalLegacyUpgradeRequestBody = {
+    expectedRevision?: number | null;
+};
+
+export type RegionalMetadataContent = {
+    schemaVersion: number;
+    regionKey: string;
+    us: UsRegionalMetadata | null;
+    eu: EuRegionalMetadata | null;
+};
+
+export type RegionalMetadataDiagnostic = {
+    code: string;
+    fieldPath: string;
+    message: string;
+};
+
+export type RegionalMetadataFieldDiff = {
+    fieldPath: string;
+    before: string | null;
+    after: string | null;
+};
+
+export type RegionalMetadataPreflightDto = {
+    standardsSnapshotId: string;
+    diagnostics: Array<RegionalDiagnosticDto>;
+    summary: Array<RegionalMetadataSummaryEntry>;
+};
+
+export type RegionalMetadataPreviewDto = {
+    sourceRevisionId: string;
+    sourceDigest: string;
+    expectedRevision: number;
+    proposedContent: RegionalMetadataContent;
+    nodeContexts: Array<RegionalNodeContext>;
+    documentContexts: Array<RegionalDocumentContext>;
+    fieldDiffs: Array<RegionalMetadataFieldDiff>;
+};
+
+export type RegionalMetadataProvenance = {
+    fieldPath: string;
+    origin: string;
+    sourceRevisionId: string | null;
+    sourceDigest: string | null;
+    status: string;
+};
+
+export type RegionalMetadataRevisionDto = {
+    id: string;
+    applicationId: string;
+    sequenceNumber: string | null;
+    metadataRevision: number;
+    workspaceRevision: number | null;
+    standardsSnapshotId: string;
+    content: RegionalMetadataContent | null;
+    defaults: RegionalApplicationDefaultsContent | null;
+    nodeContexts: Array<RegionalNodeContext>;
+    documentContexts: Array<RegionalDocumentContext>;
+    inheritedDefaultsId: string | null;
+    inheritedDefaultsDigest: string | null;
+    provenance: Array<RegionalMetadataProvenance>;
+    diagnostics: Array<RegionalMetadataDiagnostic>;
+    digest: string;
+    createdUtc: string;
+};
+
+export type RegionalMetadataSchemaDto = {
+    schemaVersion: number;
+    regionKey: string;
+    standardsSnapshotId: string;
+    sequenceFields: Array<RegionalFieldDescriptor>;
+    defaultsFields: Array<RegionalFieldDescriptor>;
+    nodeContextFields: Array<RegionalFieldDescriptor>;
+    documentContextFields: Array<RegionalFieldDescriptor>;
+    sources: Array<RegionalSourceReferenceDto>;
+    qualificationStatus: string;
+};
+
+export type RegionalMetadataSummaryEntry = {
+    fieldPath: string;
+    value: string | null;
+    source: RegionalSourceReferenceDto | null;
+};
+
+export type RegionalMetadataUpdate = {
+    standardsSnapshotId: string;
+    content: RegionalMetadataContent;
+    nodeContexts: Array<RegionalNodeContext> | null;
+    documentContexts: Array<RegionalDocumentContext> | null;
+};
+
+export type RegionalNodeContext = {
+    nodeInstanceId: string;
+    country: string | null;
+    language: string | null;
+    productInformationType: string | null;
+    formType: string | null;
+};
+
+export type RegionalNodeContextCopyRequestBody = {
+    expectedRevision?: number | null;
+    sourceRevisionId: string;
+    nodeInstanceId: string;
+    placementIds: Array<string>;
+};
+
+export type RegionalPreflightRequestBody = {
+    standardsSnapshotId: string;
+    content: RegionalMetadataContent;
+    nodeContexts?: Array<RegionalNodeContext> | null;
+    documentContexts?: Array<RegionalDocumentContext> | null;
+};
+
+export type RegionalRelatedSequence = {
+    id: string;
+    sequenceNumber: string;
+};
+
+export type RegionalSourceReferenceDto = {
+    resourceKey: string;
+    sha256: string;
+    sourceUri: string;
+    locator: string;
+};
+
+export type RegionalTelephone = {
+    id: string;
+    number: string | null;
+    type: string | null;
+};
+
+export type RegionalTextEntry = {
+    id: string;
+    value: string | null;
+};
 
 export type RegisterDeliveryBody = {
     packageSha256: string;
@@ -1437,6 +1669,7 @@ export type SequencePublishingMetadataDto = {
     telephoneNumberType: string | null;
     email: string | null;
     workspaceRevision: number;
+    regional: RegionalMetadataRevisionDto | null;
 };
 
 export type StandardsBusinessContext = {
@@ -1552,6 +1785,7 @@ export type UpdateDocumentPlacementSectionRequestBody = {
 };
 
 export type UpdateSequencePublishingMetadataRequestBody = {
+    regional?: RegionalMetadataUpdate;
     expectedRevision?: number | null;
     applicationType?: string | null;
     submissionType: string;
@@ -1564,6 +1798,24 @@ export type UpdateSequencePublishingMetadataRequestBody = {
     telephone?: string | null;
     telephoneNumberType?: string | null;
     email?: string | null;
+};
+
+export type UsApplicationDefaults = {
+    applicationIdentifier: string | null;
+    applicationType: string | null;
+    applicantName: string | null;
+    contacts: Array<RegionalContact>;
+};
+
+export type UsRegionalMetadata = {
+    applicationIdentifier: string | null;
+    applicationType: string | null;
+    applicantName: string | null;
+    contacts: Array<RegionalContact>;
+    submissionType: string | null;
+    submissionSubtype: string | null;
+    formType: string | null;
+    description: string | null;
 };
 
 export type ValidateSequenceRequestBody = {
@@ -3790,6 +4042,215 @@ export type GetApiRegionalCapabilitiesResponses = {
 };
 
 export type GetApiRegionalCapabilitiesResponse = GetApiRegionalCapabilitiesResponses[keyof GetApiRegionalCapabilitiesResponses];
+
+export type GetApiApplicationsByIdRegionalMetadataSchemaData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        standardsSnapshotId?: string;
+    };
+    url: '/api/applications/{id}/regional-metadata/schema';
+};
+
+export type GetApiApplicationsByIdRegionalMetadataSchemaResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataSchemaDto;
+};
+
+export type GetApiApplicationsByIdRegionalMetadataSchemaResponse = GetApiApplicationsByIdRegionalMetadataSchemaResponses[keyof GetApiApplicationsByIdRegionalMetadataSchemaResponses];
+
+export type GetApiApplicationsByIdRegionalMetadataDefaultsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/regional-metadata/defaults';
+};
+
+export type GetApiApplicationsByIdRegionalMetadataDefaultsResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type GetApiApplicationsByIdRegionalMetadataDefaultsResponse = GetApiApplicationsByIdRegionalMetadataDefaultsResponses[keyof GetApiApplicationsByIdRegionalMetadataDefaultsResponses];
+
+export type PutApiApplicationsByIdRegionalMetadataDefaultsData = {
+    body?: RegionalDefaultsRequestBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/regional-metadata/defaults';
+};
+
+export type PutApiApplicationsByIdRegionalMetadataDefaultsResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type PutApiApplicationsByIdRegionalMetadataDefaultsResponse = PutApiApplicationsByIdRegionalMetadataDefaultsResponses[keyof PutApiApplicationsByIdRegionalMetadataDefaultsResponses];
+
+export type PostApiApplicationsByIdRegionalMetadataDefaultsPreflightData = {
+    body?: RegionalDefaultsRequestBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/regional-metadata/defaults/preflight';
+};
+
+export type PostApiApplicationsByIdRegionalMetadataDefaultsPreflightResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataPreflightDto;
+};
+
+export type PostApiApplicationsByIdRegionalMetadataDefaultsPreflightResponse = PostApiApplicationsByIdRegionalMetadataDefaultsPreflightResponses[keyof PostApiApplicationsByIdRegionalMetadataDefaultsPreflightResponses];
+
+export type GetApiApplicationsByIdRegionalMetadataRevisionsByRevisionIdData = {
+    body?: never;
+    path: {
+        id: string;
+        revisionId: string;
+    };
+    query?: {
+        sequenceNumber?: string;
+    };
+    url: '/api/applications/{id}/regional-metadata/revisions/{revisionId}';
+};
+
+export type GetApiApplicationsByIdRegionalMetadataRevisionsByRevisionIdResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type GetApiApplicationsByIdRegionalMetadataRevisionsByRevisionIdResponse = GetApiApplicationsByIdRegionalMetadataRevisionsByRevisionIdResponses[keyof GetApiApplicationsByIdRegionalMetadataRevisionsByRevisionIdResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalPreflightData = {
+    body?: RegionalPreflightRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/preflight';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalPreflightResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataPreflightDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalPreflightResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalPreflightResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalPreflightResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritancePreviewData = {
+    body?: RegionalInheritanceRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/inheritance/preview';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritancePreviewResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataPreviewDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritancePreviewResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritancePreviewResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritancePreviewResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritanceData = {
+    body?: RegionalInheritanceRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/inheritance';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritanceResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritanceResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritanceResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalInheritanceResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyPreviewData = {
+    body?: RegionalNodeContextCopyRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/node-context-copy/preview';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyPreviewResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataPreviewDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyPreviewResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyPreviewResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyPreviewResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyData = {
+    body?: RegionalNodeContextCopyRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/node-context-copy';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalNodeContextCopyResponses];
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalLegacyUpgradeData = {
+    body?: RegionalLegacyUpgradeRequestBody;
+    path: {
+        id: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{id}/sequences/{sequenceNumber}/publishing-metadata/regional/legacy-upgrade';
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalLegacyUpgradeResponses = {
+    /**
+     * OK
+     */
+    200: RegionalMetadataRevisionDto;
+};
+
+export type PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalLegacyUpgradeResponse = PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalLegacyUpgradeResponses[keyof PostApiApplicationsByIdSequencesBySequenceNumberPublishingMetadataRegionalLegacyUpgradeResponses];
 
 export type PostApiEctdTemplatesByTemplateKeyStandardsSnapshotData = {
     body?: never;
