@@ -24,7 +24,8 @@ public sealed class DocumentVersion : Entity
         DateTime createdUtc,
         string engineVersion,
         string parametersJson,
-        string planDigest)
+        string planDigest,
+        string evidenceJson = "{}")
     {
         if (id == Guid.Empty) throw new ArgumentException("A document version identity is required.", nameof(id));
         if (applicationId == Guid.Empty) throw new ArgumentException("An application identity is required.", nameof(applicationId));
@@ -54,6 +55,7 @@ public sealed class DocumentVersion : Entity
         EngineVersion = engineVersion.Trim();
         ParametersJson = parametersJson;
         PlanDigest = NormalizeDigest(planDigest, 64, nameof(planDigest));
+        EvidenceJson = evidenceJson;
     }
 
     public Guid ApplicationId { get; }
@@ -70,6 +72,7 @@ public sealed class DocumentVersion : Entity
     public string EngineVersion { get; }
     public string ParametersJson { get; }
     public string PlanDigest { get; }
+    public string EvidenceJson { get; }
 
     public static DocumentVersion CreateSource(
         Guid sourceDocumentId,
@@ -102,12 +105,13 @@ public sealed class DocumentVersion : Entity
         DateTime createdUtc,
         string engineVersion,
         string parametersJson,
-        string planDigest)
+        string planDigest,
+        string evidenceJson = "{}")
     {
         if (sourceDocumentId == Guid.Empty) throw new ArgumentException("A source document identity is required.", nameof(sourceDocumentId));
         if (parentVersionId == Guid.Empty) throw new ArgumentException("A parent version identity is required.", nameof(parentVersionId));
         return new(Guid.NewGuid(), applicationId, sequenceNumber, sourceDocumentId, parentVersionId, fileName, mediaType,
-            fileSize, sha256, md5, storagePath, createdUtc, engineVersion, parametersJson, planDigest);
+            fileSize, sha256, md5, storagePath, createdUtc, engineVersion, parametersJson, planDigest, evidenceJson);
     }
 
     public static DocumentVersion Rehydrate(
@@ -125,9 +129,10 @@ public sealed class DocumentVersion : Entity
         DateTime createdUtc,
         string engineVersion,
         string parametersJson,
-        string planDigest)
+        string planDigest,
+        string evidenceJson = "{}")
         => new(id, applicationId, sequenceNumber, sourceDocumentId, parentVersionId, fileName, mediaType, fileSize,
-            sha256, md5, storagePath, createdUtc, engineVersion, parametersJson, planDigest);
+            sha256, md5, storagePath, createdUtc, engineVersion, parametersJson, planDigest, evidenceJson);
 
     private static string NormalizeDigest(string value, int length, string parameterName)
     {

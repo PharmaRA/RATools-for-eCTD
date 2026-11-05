@@ -13,7 +13,8 @@ namespace RATools.Application.DocumentProcessing;
 public sealed record ProcessingInspection(Guid SourceVersionId, Guid SourceDocumentId, long WorkspaceRevision,
     string Sha256, string Md5, string Href, PdfNavigationInspection Navigation);
 public sealed record CreateProcessingPlanRequest(Guid SourceVersionId, long ExpectedRevision, PdfProcessingParameters Parameters);
-public sealed record ProcessingPlanContext(string SourceHref, IReadOnlyList<ProcessingTargetBinding> Targets);
+public sealed record ProcessingPlanContext(string SourceHref, IReadOnlyList<ProcessingTargetBinding> Targets,
+    PdfContentInspection? ContentInspection = null);
 public sealed record ProcessingTargetBinding(string LogicalPath, Guid PlacementId, Guid VersionId, string Sha256);
 public sealed record ProcessingContent(string Path, string FileName, long Length, string Sha256);
 public sealed record ProcessingJobView(Guid Id, Guid PlanId, PdfProcessingJobStatus Status, string Stage, int AttemptCount,
@@ -24,10 +25,42 @@ public sealed class DocumentProcessingService(
     IDocumentProcessingStore store, IApplicationRepository applications, IDocumentRepository documents,
     IDocumentPlacementRepository placements, WorkspaceMutationCoordinator mutations,
     IDocumentStorageBoundary boundary, ProcessingFileStore files, IPdfProcessingEngine engine,
-    IPackagePdfInspector inspector, PdfProcessingExecutionOptions options)
+    IPackagePdfInspector inspector, PdfProcessingExecutionOptions options, IPdfContentEngine? contentEngine = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private const long MaxJsonBytes = 64 * 1024 * 1024;
+
+    public async Task<PdfContentCapabilities> GetContentCapabilitiesAsync(Guid applicationId, string sequence, CancellationToken cancellationToken = default)
+    {
+        var application = await applications.GetAsync(applicationId, cancellationToken).ConfigureAwait(false);
+        if (application is null || application.Sequences.All(item => item.SequenceNumber != sequence))
+            throw new KeyNotFoundException("The content processing workspace was not found.");
+        return await RequireContentEngine().GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PdfContentInspection> InspectContentAsync(Guid applicationId, string sequence, Guid placementId,
+        PdfContentInspectionRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var mutation = await mutations.AcquireAsync(applicationId, sequence, request.ExpectedRevision, cancellationToken).ConfigureAwait(false);
+        var (application, _, document) = await WorkspaceAsync(applicationId, sequence, placementId, cancellationToken).ConfigureAwait(false);
+        var source = await RequireVersionAsync(request.SourceVersionId, applicationId, sequence, cancellationToken).ConfigureAwait(false);
+        await VerifyCurrentAsync(application, sequence, document, source, cancellationToken).ConfigureAwait(false);
+        return await RequireContentEngine().InspectAsync(source, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PdfContentEvidence> GetContentReceiptAsync(Guid applicationId, string sequence, Guid jobId,
+        CancellationToken cancellationToken = default)
+    {
+        var (job, plan) = await RequireJobAsync(applicationId, sequence, jobId, cancellationToken).ConfigureAwait(false);
+        if (job.Status != PdfProcessingJobStatus.Completed || job.ResultVersionId is null || ReadContext(plan).ContentInspection is null)
+            throw new KeyNotFoundException("This job has no completed content processing evidence.");
+        var result = await RequireVersionAsync(job.ResultVersionId.Value, applicationId, sequence, cancellationToken).ConfigureAwait(false);
+        plan.VerifyResult(result); await files.VerifyAsync(result, cancellationToken).ConfigureAwait(false);
+        var evidence = ReadContentEvidence(result);
+        if (evidence.EngineBinding != plan.EngineVersion || evidence.Receipt.SourceSha256 != plan.SourceSha256 || evidence.Receipt.OutputSha256 != result.Sha256)
+            throw new InvalidDataException("The stored content receipt is bound to a different result.");
+        return evidence;
+    }
 
     public async Task<ProcessingInspection> InspectAsync(Guid applicationId, string sequence, Guid placementId,
         long expectedRevision, CancellationToken cancellationToken = default)
@@ -57,9 +90,16 @@ public sealed class DocumentProcessingService(
         ValidateEdits(navigation, parameters);
         var href = PublishOutputNaming.BuildPublishedDocumentRelativePath(document, sequence);
         var targets = await CaptureTargetsAsync(application, sequence, href, navigation, parameters, cancellationToken).ConfigureAwait(false);
-        var context = new ProcessingPlanContext(href, targets);
+        PdfContentInspection? content = null;
+        if (parameters.Content is not null)
+        {
+            content = await RequireContentEngine().InspectAsync(source, cancellationToken).ConfigureAwait(false);
+            parameters.Content.ValidateAgainst(content);
+            if (content.PageCount != navigation.PageCount) throw new PdfProcessingRejectedException("Independent inspectors disagree on source page count.");
+        }
+        var context = new ProcessingPlanContext(href, targets, content);
         var plan = PdfProcessingPlan.Create(source, applicationId, sequence, placementId, request.ExpectedRevision, parameters,
-            engine.EngineVersion, new(navigation.IsEncrypted, navigation.HasSignature, navigation.PageCount,
+            content?.Capabilities.EngineBinding ?? engine.EngineVersion, new(navigation.IsEncrypted, navigation.HasSignature, navigation.PageCount,
                 navigation.NavigationComplete, navigation.DestinationsComplete), JsonSerializer.Serialize(context, Json));
         await store.AddPlanAsync(plan, cancellationToken).ConfigureAwait(false);
         return plan;
@@ -85,6 +125,9 @@ public sealed class DocumentProcessingService(
         await VerifyCurrentAsync(application, sequence, document, source, cancellationToken).ConfigureAwait(false);
         if (DateTime.UtcNow - plan.CreatedUtc > TimeSpan.FromHours(24))
             throw new PdfProcessingRejectedException("The processing preview expired; create a new plan.");
+        if (ReadContext(plan).ContentInspection is { } content &&
+            (await RequireContentEngine().GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false)).EngineBinding != content.Capabilities.EngineBinding)
+            throw new PdfProcessingRejectedException("Content dependencies changed; create a new inspected plan.");
         return await store.EnqueueAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
@@ -114,24 +157,32 @@ public sealed class DocumentProcessingService(
         var plan = await store.GetPlanAsync(lease.Job.PlanId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("Processing plan is missing.");
         plan.Verify();
-        if (plan.PlanDigest != lease.Job.PlanDigest || plan.EngineVersion != engine.EngineVersion)
+        var parameters = JsonSerializer.Deserialize<PdfProcessingParameters>(plan.ParametersJson, Json)
+            ?? throw new InvalidDataException("Processing parameters are missing.");
+        var content = ReadContext(plan).ContentInspection;
+        if (plan.PlanDigest != lease.Job.PlanDigest || plan.EngineVersion != (parameters.Content is null ? engine.EngineVersion : content?.Capabilities.EngineBinding))
             throw new InvalidDataException("Processing engine or request binding changed.");
         var application = await applications.GetAsync(plan.ApplicationId, cancellationToken).ConfigureAwait(false)
             ?? throw new KeyNotFoundException("Application was not found.");
         var source = await RequireVersionAsync(plan.SourceVersionId, plan.ApplicationId, plan.SequenceNumber, cancellationToken).ConfigureAwait(false);
         await files.VerifyAsync(source, cancellationToken).ConfigureAwait(false);
-        var parameters = JsonSerializer.Deserialize<PdfProcessingParameters>(plan.ParametersJson, Json)
-            ?? throw new InvalidDataException("Processing parameters are missing.");
         var output = files.CreateAttemptOutput(application, lease.Job.Id, lease.Token);
-        var result = await engine.ExecuteAsync(new(source.StoragePath, output, parameters, options.ExecutionTimeout,
-            MaxJsonBytes, options.MaxFileBytes), cancellationToken).ConfigureAwait(false);
-        if (!result.Succeeded) throw new PdfProcessingRejectedException(result.ErrorMessage ?? "The PDF engine did not produce a verified result.");
+        PdfContentEvidence? evidence = null;
+        if (parameters.Content is not null)
+            evidence = await RequireContentEngine().ExecuteAsync(source, output, parameters.Content, content!, options.ExecutionTimeout,
+                options.MaxFileBytes, cancellationToken).ConfigureAwait(false);
+        else
+        {
+            var result = await engine.ExecuteAsync(new(source.StoragePath, output, parameters, options.ExecutionTimeout,
+                MaxJsonBytes, options.MaxFileBytes), cancellationToken).ConfigureAwait(false);
+            if (!result.Succeeded) throw new PdfProcessingRejectedException(result.ErrorMessage ?? "The PDF engine did not produce a verified result.");
+        }
         await files.VerifyAsync(source, cancellationToken).ConfigureAwait(false);
         var hash = await files.MeasureAsync(output, cancellationToken).ConfigureAwait(false);
-        await ValidateOutputAsync(plan, source, output, cancellationToken).ConfigureAwait(false);
+        await ValidateOutputAsync(plan, source, output, evidence, cancellationToken).ConfigureAwait(false);
         var version = DocumentVersion.CreateResult(plan.ApplicationId, plan.SequenceNumber, plan.SourceDocumentId, source.Id,
             source.FileName, source.MediaType, hash.Length, hash.Sha256, hash.Md5, output, DateTime.UtcNow,
-            plan.EngineVersion, plan.ParametersJson, plan.PlanDigest);
+            plan.EngineVersion, plan.ParametersJson, plan.PlanDigest, evidence is null ? "{}" : JsonSerializer.Serialize(evidence, Json));
         await files.VerifyAsync(version, cancellationToken).ConfigureAwait(false);
         if (!await store.CompleteAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow, version, cancellationToken).ConfigureAwait(false))
             throw new PdfProcessingRejectedException("Processing lease was lost or cancellation was requested; output was not registered.");
@@ -173,7 +224,7 @@ public sealed class DocumentProcessingService(
         var context = ReadContext(plan);
         if (context.SourceHref != PublishOutputNaming.BuildPublishedDocumentRelativePath(document, sequence))
             throw new PdfProcessingRejectedException("The source delivery path changed; regenerate the processing plan.");
-        await ValidateOutputAsync(plan, source, result.StoragePath, cancellationToken).ConfigureAwait(false);
+        await ValidateOutputAsync(plan, source, result.StoragePath, context.ContentInspection is null ? null : ReadContentEvidence(result), cancellationToken).ConfigureAwait(false);
         var draft = await files.MaterializeAsync(application, sequence, jobId, result, context.SourceHref, cancellationToken).ConfigureAwait(false);
         var replacement = DocumentPlacement.Rehydrate(placement.Id, draft.Id, placement.ApplicationId, placement.SequenceNumber,
             placement.CtdSection, placement.Operation, placement.Title, placement.LifecycleTargetPlacementId, placement.CreatedUtc,
@@ -190,12 +241,35 @@ public sealed class DocumentProcessingService(
         return adoption;
     }
 
-    private async Task ValidateOutputAsync(PdfProcessingPlan plan, DocumentVersion source, string output, CancellationToken cancellationToken)
+    private async Task ValidateOutputAsync(PdfProcessingPlan plan, DocumentVersion source, string output,
+        PdfContentEvidence? contentEvidence, CancellationToken cancellationToken)
     {
         var context = ReadContext(plan);
         var original = InspectPackage(source.StoragePath, plan.SequenceNumber + "/" + context.SourceHref, cancellationToken);
         var processed = InspectPackage(output, plan.SequenceNumber + "/" + context.SourceHref, cancellationToken);
-        if (processed.Basics.PageCount != original.Basics.PageCount || processed.Basics.HasSearchableText != original.Basics.HasSearchableText ||
+        if (context.ContentInspection is { } content)
+        {
+            var parameters = JsonSerializer.Deserialize<PdfProcessingParameters>(plan.ParametersJson, Json)?.Content
+                ?? throw new InvalidDataException("Content processing parameters are missing.");
+            await RequireContentEngine().VerifyEvidenceAsync(source, output, parameters, content,
+                contentEvidence ?? throw new InvalidDataException("Content processing evidence is missing."), cancellationToken).ConfigureAwait(false);
+            if (processed.Basics.PageCount != original.Basics.PageCount || !original.Links.SequenceEqual(processed.Links) ||
+                !original.Destinations.SequenceEqual(processed.Destinations) ||
+                (original.Basics.HasSearchableText && !processed.Basics.HasSearchableText) ||
+                (parameters.Ocr is null && original.Basics.HasSearchableText != processed.Basics.HasSearchableText) ||
+                (contentEvidence!.Receipt.Ocr?.ProcessedPages.Count > 0 && !processed.Basics.HasSearchableText) ||
+                (parameters.EmbedStandardFonts && (processed.Basics.AllFontsEmbedded != true || processed.Basics.NonEmbeddedFonts.Count > 0)) ||
+                (!parameters.EmbedStandardFonts && !original.Basics.NonEmbeddedFonts.Order(StringComparer.Ordinal).SequenceEqual(processed.Basics.NonEmbeddedFonts.Order(StringComparer.Ordinal))) ||
+                (parameters.TargetVersion is not null && processed.Basics.PdfVersion != parameters.TargetVersion))
+                throw new PdfProcessingRejectedException("Independent P2 facts do not confirm the requested content operation or unchanged navigation.");
+            var before = await engine.InspectAsync(source.StoragePath, MaxJsonBytes, cancellationToken).ConfigureAwait(false);
+            var after = await engine.InspectAsync(output, MaxJsonBytes, cancellationToken).ConfigureAwait(false);
+            EnsureSafeNavigation(after);
+            if (before.PageCount != after.PageCount || before.PageMode != after.PageMode || !before.Bookmarks.SequenceEqual(after.Bookmarks) ||
+                !before.Links.SequenceEqual(after.Links) || !before.NamedDestinations.SequenceEqual(after.NamedDestinations))
+                throw new PdfProcessingRejectedException("The content operation changed unselected PDF navigation.");
+        }
+        else if (processed.Basics.PageCount != original.Basics.PageCount || processed.Basics.HasSearchableText != original.Basics.HasSearchableText ||
             processed.Basics.AllFontsEmbedded != original.Basics.AllFontsEmbedded ||
             !processed.Basics.NonEmbeddedFonts.Order(StringComparer.Ordinal).SequenceEqual(original.Basics.NonEmbeddedFonts.Order(StringComparer.Ordinal)))
             throw new PdfProcessingRejectedException("Page count, searchable text or font facts changed during navigation processing.");
@@ -239,8 +313,11 @@ public sealed class DocumentProcessingService(
                 if (reference.ExternalUri is not null) continue;
                 if (reference.LogicalPath is null || !known.TryGetValue(reference.LogicalPath, out facts))
                     throw new PdfProcessingRejectedException("A relative PDF URI target was not captured by this plan.");
-                if (reference.Fragment is not null)
-                    throw new PdfProcessingRejectedException("Relative URI fragments require explicit GoTo navigation processing.");
+                if (reference.Fragment is { } fragment)
+                {
+                    var destination = ParseRemoteDestination("target.pdf#" + fragment);
+                    target = target with { PageNumber = destination.Page, NamedDestination = destination.Named };
+                }
             }
             if (target.PageNumber is { } page && (page < 1 || page > facts.Basics.PageCount))
                 throw new PdfProcessingRejectedException("An output link page is outside its target document.");
@@ -258,6 +335,15 @@ public sealed class DocumentProcessingService(
         {
             var changed = edits.GetValueOrDefault(link.ObjectPath);
             var kind = changed?.TargetKind ?? link.Kind;
+            if (kind == PdfLinkTargetKind.ExternalUri && changed is null)
+            {
+                var reference = PackageLogicalPath.ResolveReference(sequence + "/" + href, link.Target);
+                if (reference.ExternalUri is not null) continue;
+                if (reference.LogicalPath is null) throw new PdfProcessingRejectedException("A relative URI target could not be resolved.");
+                var uriDestination = reference.Fragment is null ? ((int?)null, (string?)null) : ParseRemoteDestination("target.pdf#" + reference.Fragment);
+                requests.Add((reference.LogicalPath, null, null, uriDestination.Item1, uriDestination.Item2));
+                continue;
+            }
             if (kind != PdfLinkTargetKind.RelativeRemotePdf) continue;
             var file = changed is null ? link.FileSpecification : changed.Target.Split('#', 2)[0];
             if (file is null) throw new PdfProcessingRejectedException("Remote PDF link has no resolvable file specification.");
@@ -424,6 +510,15 @@ public sealed class DocumentProcessingService(
 
     private static ProcessingPlanContext ReadContext(PdfProcessingPlan plan) => JsonSerializer.Deserialize<ProcessingPlanContext>(plan.ContextJson, Json)
         ?? throw new InvalidDataException("Processing plan context is missing.");
+    private IPdfContentEngine RequireContentEngine() => contentEngine
+        ?? throw new PdfProcessingRejectedException("PDF content processing is not configured.");
+    private static PdfContentEvidence ReadContentEvidence(DocumentVersion version)
+    {
+        var evidence = JsonSerializer.Deserialize<PdfContentEvidence>(version.EvidenceJson, Json);
+        if (evidence?.Receipt is null || evidence.Resources is null || string.IsNullOrWhiteSpace(evidence.EngineBinding))
+            throw new InvalidDataException("Immutable content processing evidence is missing.");
+        return evidence;
+    }
     private static PdfProcessingAdoption VerifyReplay(PdfProcessingAdoption adoption, long revision) => adoption.ExpectedRevision == revision
         ? adoption : throw new PdfProcessingRejectedException("An adoption retry must use its original reviewed revision.");
     private static ProcessingJobView View(PdfProcessingJob job, PdfProcessingAdoption? adoption) => new(job.Id, job.PlanId, job.Status,

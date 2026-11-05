@@ -68,12 +68,15 @@ public sealed record PdfProcessingParameters(
     string? PageMode,
     IReadOnlyList<PdfBookmarkEdit>? Bookmarks,
     IReadOnlyList<PdfLinkEdit>? Links,
-    IReadOnlyList<PdfReferenceEdit>? ReferenceEdits = null)
+    IReadOnlyList<PdfReferenceEdit>? ReferenceEdits = null,
+    PdfContentParameters? Content = null)
 {
     public PdfProcessingParameters Normalize()
     {
         if (PageMode is not null && PageMode is not ("UseNone" or "UseOutlines" or "UseThumbs" or "FullScreen" or "UseOC" or "UseAttachments"))
             throw new ArgumentException("Unsupported PDF initial view mode.", nameof(PageMode));
+        if (Content is not null && (PageMode is not null || Bookmarks is not null || Links is not null || ReferenceEdits is not null))
+            throw new ArgumentException("Content processing and navigation edits require separate reviewed plans.");
         foreach (var edit in ReferenceEdits ?? [])
             if (edit.SourcePageNumber < 1 || string.IsNullOrWhiteSpace(edit.ObjectPath) ||
                 string.IsNullOrWhiteSpace(edit.OldReference) || string.IsNullOrWhiteSpace(edit.NewReference))
@@ -86,7 +89,7 @@ public sealed record PdfProcessingParameters(
             PageMode = string.IsNullOrWhiteSpace(PageMode) ? null : PageMode.Trim(),
             Bookmarks = Bookmarks?.Select(item => item.Normalize()).ToArray(),
             Links = Links?.Select(item => item.Normalize()).ToArray(),
-            ReferenceEdits = ReferenceEdits?.ToArray()
+            ReferenceEdits = ReferenceEdits?.ToArray(), Content = Content?.Normalize()
         };
     }
 }

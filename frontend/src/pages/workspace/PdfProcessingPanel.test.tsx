@@ -207,3 +207,107 @@ it('disables inspection and mutation controls for a finalized read-only workspac
   expect(button('读取 PDF 导航').disabled).toBe(true)
   expect(fetch).not.toHaveBeenCalled()
 })
+
+const contentFacts = { sourceVersionId: inspection.sourceVersionId, sha256: inspection.sha256, pageCount: 2,
+  sourceVersion: '1.7', searchablePages: [], scannedPages: [1, 2], missingFonts: [], blockReasons: [],
+  capabilities: { enabled: true, engineBinding: 'content-binding', ocrAvailable: true, fontEmbeddingAvailable: true,
+    versionNormalizationAvailable: true, language: 'eng', dpi: 150, maxPages: 500, maxPixels: 24000000,
+    blockReasons: [], unverifiedProperties: ['PDF/A', '区域合规'] } }
+const contentParameters = { ocr: { language: 'eng', pages: [1, 2], dpi: 150 }, embedStandardFonts: false, targetVersion: null }
+const contentPlan = { ...plan, engineVersion: 'content-binding', parametersJson: JSON.stringify({
+  pageMode: null, bookmarks: null, links: null, referenceEdits: null, content: contentParameters }) }
+const contentEvidence = { engineBinding: 'content-binding', receiptSha256: 'f'.repeat(64),
+  receipt: { sourceSha256: inspection.sha256, outputSha256: completed.resultSha256, parameters: contentParameters,
+    ocr: { processedPages: [1, 2], alreadySearchablePages: [], requiresTextReview: true, language: 'eng', dpi: 150 },
+    fonts: null, outputVersion: '1.7', regulatoryConformance: 'NotEvaluated' },
+  resources: { wallMilliseconds: 2000, peakMemoryBytes: 104857600 } }
+const toggle = (label: string) => act(() => document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!.click())
+async function prepareContent() {
+  await click('读取 PDF 导航'); await click('内容处理'); await click('读取内容处理预检')
+  toggle('对扫描页进行 OCR'); await click('生成处理预览')
+}
+
+it('binds a content-only preview to inspected capabilities and excludes navigation mutations', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts)).mockResolvedValueOnce(json(contentPlan))
+  vi.stubGlobal('fetch', fetch); render(); await prepareContent()
+  expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ sourceVersionId: inspection.sourceVersionId, expectedRevision: 7,
+    parameters: { pageMode: null, bookmarks: null, links: null, referenceEdits: null,
+      content: { ocr: { language: 'eng', pages: [1, 2], dpi: 150 }, embedStandardFonts: false, targetVersion: null } } })
+  expect(button('执行已预览处理').disabled).toBe(false)
+  expect(document.body.textContent).toContain('扫描页：1, 2')
+})
+
+it('requires verified content evidence and explicit OCR review before adoption', async () => {
+  const adopted = vi.fn()
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json(contentPlan)).mockResolvedValueOnce(json(completed)).mockResolvedValueOnce(json(contentEvidence))
+    .mockResolvedValueOnce(json({ jobId: 'job', workspaceRevision: 8 }))
+  vi.stubGlobal('fetch', fetch); render(adopted); await prepareContent(); await click('执行已预览处理')
+  expect(fetch.mock.calls[4][0]).toContain('/jobs/job/content-receipt')
+  expect(button('采用处理结果').disabled).toBe(true)
+  toggle('我已核对 OCR 文本和阅读顺序')
+  expect(button('采用处理结果').disabled).toBe(false)
+  await click('采用处理结果')
+  expect(adopted).toHaveBeenCalledOnce()
+})
+
+it('rejects a mismatched content receipt and keeps adoption blocked', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json(contentPlan)).mockResolvedValueOnce(json(completed))
+    .mockResolvedValueOnce(json({ ...contentEvidence, receipt: { ...contentEvidence.receipt, outputSha256: 'bad-hash' } }))
+  vi.stubGlobal('fetch', fetch); render(); await prepareContent(); await click('执行已预览处理')
+  expect(button('采用处理结果').disabled).toBe(true)
+  expect(document.body.textContent).toContain('处理证据与当前任务不一致')
+})
+
+it('rejects a content plan returned for a different engine binding', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json({ ...contentPlan, engineVersion: 'unexpected-engine' }))
+  vi.stubGlobal('fetch', fetch); render(); await prepareContent()
+  expect(button('执行已预览处理').disabled).toBe(true)
+  expect(document.body.textContent).toContain('处理预览与当前源版本不一致')
+})
+
+it('shows blocked capabilities and does not permit a content preview', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json({ ...contentFacts, pageCount: 0, sourceVersion: 'Unknown',
+    capabilities: { ...contentFacts.capabilities, enabled: false, ocrAvailable: false, fontEmbeddingAvailable: false,
+      versionNormalizationAvailable: false, engineBinding: null, blockReasons: ['内容引擎尚未配置'] } }))
+  vi.stubGlobal('fetch', fetch); render(); await click('读取 PDF 导航'); await click('内容处理'); await click('读取内容处理预检')
+  expect(document.body.textContent).toContain('内容引擎尚未配置')
+  expect(button('生成处理预览').disabled).toBe(true)
+})
+
+it.each([
+  ['different pages', { pageMode: null, content: { ...contentParameters, ocr: { ...contentParameters.ocr, pages: [2] } } }],
+  ['mixed navigation', { pageMode: 'FullScreen', content: contentParameters }],
+  ['missing content', { pageMode: null }],
+])('rejects returned content plans with %s instead of executing different operations', async (_reason, parameters) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json({ ...contentPlan, parametersJson: JSON.stringify(parameters) })))
+  render(); await prepareContent()
+  expect(button('执行已预览处理').disabled).toBe(true)
+  expect(document.body.textContent).toContain('预览参数与已选择的内容操作不一致')
+})
+
+it('rejects a receipt that substitutes another operation for the requested OCR', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json(contentPlan)).mockResolvedValueOnce(json(completed))
+    .mockResolvedValueOnce(json({ ...contentEvidence, receipt: { ...contentEvidence.receipt, ocr: null,
+      parameters: { ocr: null, embedStandardFonts: true, targetVersion: null } } })))
+  render(); await prepareContent(); await click('执行已预览处理')
+  expect(button('采用处理结果').disabled).toBe(true)
+  expect(document.body.textContent).toContain('处理证据与当前任务不一致')
+})
+
+it('keeps the confirmed OCR review gate after response loss and remount even when receipt flags say otherwise', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(inspection)).mockResolvedValueOnce(json(contentFacts))
+    .mockResolvedValueOnce(json(contentPlan)).mockRejectedValueOnce(new TypeError('response lost'))
+    .mockResolvedValueOnce(json(completed)).mockResolvedValueOnce(json({ ...contentEvidence,
+      receipt: { ...contentEvidence.receipt, ocr: { ...contentEvidence.receipt.ocr, requiresTextReview: false } } }))
+  vi.stubGlobal('fetch', fetch); const update = render(); await prepareContent(); await click('执行已预览处理')
+  update(7, 'other-document'); update(); await click('恢复处理任务')
+  expect(JSON.parse(fetch.mock.calls[4][1].body)).toEqual(JSON.parse(fetch.mock.calls[3][1].body))
+  expect(button('采用处理结果').disabled).toBe(true)
+  toggle('我已核对 OCR 文本和阅读顺序')
+  expect(button('采用处理结果').disabled).toBe(false)
+})

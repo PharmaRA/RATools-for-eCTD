@@ -1,0 +1,3 @@
+# Optional separately installed PDF content runtime; AGPL-3.0 or Artifex commercial terms.
+# No engine binaries or OCR models are bundled with the application.
+PyMuPDF==1.28.2

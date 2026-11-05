@@ -57,5 +57,27 @@
     "Runtime redistribution approval before bundling external tools",
     "OCR and conformance engine qualification in P5-08",
     "Regional and external validator acceptance"
-  ]
+  ],
+  "contentAdapter": {
+    "task": "P5-08",
+    "reviewedOn": "2026-11-05",
+    "engine": "pymupdf-1.28.2-content-v1",
+    "pythonVersion": "3.11.9",
+    "license": "Externally installed PyMuPDF: AGPL-3.0 or Artifex commercial terms",
+    "deployment": "Optional Windows adapter; disabled by default; no binaries, fonts or models redistributed",
+    "script": "scripts/pdf_content_worker.py",
+    "scriptSha256": "e2861b16943d3077a1c7a5970e4db52fb688dbca5382c20790cf2a3b50a574f8",
+    "capabilities": [
+      {"id": "ocr", "status": "WindowsScopedSamplesPassed", "scope": "English eng model pinned by SHA256; explicit pages at 150 DPI; original visible content retained; searchable pages skipped; operator text review required"},
+      {"id": "font-embedding", "status": "WindowsScopedSamplesPassed", "scope": "Twelve Helvetica/Times/Courier Type1 WinAnsi variants; output font-program hashes checked; other missing fonts rejected"},
+      {"id": "version-normalization", "status": "WindowsScopedSamplesPassed", "scope": "Supported PDF 1.x to 1.7 using qpdf 12.4.1; no downgrade or PDF/A claim"},
+      {"id": "fidelity", "status": "WindowsScopedSamplesPassed", "scope": "Geometry, page count, navigation, existing text and exact 72/150 DPI RGB pixels; unexpected changes rejected"},
+      {"id": "resource-enforcement", "status": "WindowsScopedTestsPassed", "scope": "Suspended launch into JobObject; job commit/CPU/active-process limits, bounded output/logs/reports, cancellation/deadline and inherited-pipe child termination"}
+    ],
+    "ocrModelSha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "evidence": "reference/publisher/pdf-content-qualification/windows-20261105/qualification.json",
+    "documentation": "reference/publisher/PDF-CONTENT-QUALIFICATION.md",
+    "regressions": ["scripts/tests/test_pdf_content_worker.py", "tests/RATools.Tests/DocumentProcessing/PdfContentWorkflowTests.cs", "tests/RATools.Tests/DocumentProcessing/PdfContentResourceTests.cs"],
+    "notQualified": ["Linux", "non-English OCR", "arbitrary missing fonts or encodings", "PDF/A", "regional compliance", "signature validity", "large-document and combined workflow scale"]
+  }
 }

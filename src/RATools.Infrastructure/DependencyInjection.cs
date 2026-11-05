@@ -37,6 +37,10 @@ public static class DependencyInjection
         services.AddSingleton<IPdfProcessingEngine>(provider => new QpdfProcessingEngine(
             provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
         services.AddSingleton<ProcessingFileStore>();
+        services.AddOptions<PdfContentEngineOptions>().Bind(configuration.GetSection("PdfProcessing:Content"));
+        services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PdfContentEngineOptions>>().Value);
+        services.AddSingleton<IPdfContentEngine>(provider => new PythonPdfContentEngine(
+            provider.GetRequiredService<PdfContentEngineOptions>(), provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
         services.AddHostedService<DocumentProcessingBackgroundService>();
         services.AddHostedService<PdfRenameBackgroundService>();
         services.AddOptions<PackageValidationOptions>().Bind(configuration.GetSection(PackageValidationOptions.SectionName))

@@ -124,7 +124,7 @@ internal static class ProcessingRecordData
     {
         var data = JsonSerializer.Serialize(new VersionData(version.Id, version.ApplicationId, version.SequenceNumber,
             version.SourceDocumentId, version.ParentVersionId, version.FileName, version.MediaType, version.FileSize,
-            version.Sha256, version.Md5, version.StoragePath, version.CreatedUtc, version.EngineVersion, version.ParametersJson, version.PlanDigest));
+            version.Sha256, version.Md5, version.StoragePath, version.CreatedUtc, version.EngineVersion, version.ParametersJson, version.PlanDigest, version.EvidenceJson));
         return new() { Id = version.Id, ApplicationId = version.ApplicationId, SourceDocumentId = version.SourceDocumentId,
             ParentVersionId = version.ParentVersionId, Data = data, Digest = Hash(data) };
     }
@@ -136,7 +136,7 @@ internal static class ProcessingRecordData
             throw new InvalidDataException("Stored PDF version identity changed.");
         return DocumentVersion.Rehydrate(value.Id, value.ApplicationId, value.SequenceNumber, value.SourceDocumentId,
             value.ParentVersionId, value.FileName, value.MediaType, value.FileSize, value.Sha256, value.Md5,
-            value.StoragePath, value.CreatedUtc, value.EngineVersion, value.ParametersJson, value.PlanDigest);
+            value.StoragePath, value.CreatedUtc, value.EngineVersion, value.ParametersJson, value.PlanDigest, value.EvidenceJson ?? "{}");
     }
 
     public static PdfProcessingJob Job(PdfProcessingJobRecord row) => new(row.Id, row.PlanId, row.PlanDigest,
@@ -146,5 +146,5 @@ internal static class ProcessingRecordData
 
     private sealed record VersionData(Guid Id, Guid ApplicationId, string SequenceNumber, Guid SourceDocumentId,
         Guid? ParentVersionId, string FileName, string MediaType, long FileSize, string Sha256, string Md5,
-        string StoragePath, DateTime CreatedUtc, string EngineVersion, string ParametersJson, string PlanDigest);
+        string StoragePath, DateTime CreatedUtc, string EngineVersion, string ParametersJson, string PlanDigest, string? EvidenceJson = null);
 }

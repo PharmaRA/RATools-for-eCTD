@@ -1532,6 +1532,187 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/capabilities": {
+      "get": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentCapabilities"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentCapabilities"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentCapabilities"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/content-inspection": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "placementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfContentInspectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfContentInspectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfContentInspectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentInspection"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentInspection"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentInspection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/content-receipt": {
+      "get": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentEvidence"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentEvidence"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfContentEvidence"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/inspection": {
       "post": {
         "tags": [
@@ -7529,6 +7710,437 @@
         },
         "additionalProperties": false
       },
+      "PdfContentCapabilities": {
+        "required": [
+          "blockReasons",
+          "dpi",
+          "enabled",
+          "engineBinding",
+          "fontEmbeddingAvailable",
+          "language",
+          "maxPages",
+          "maxPixels",
+          "ocrAvailable",
+          "unverifiedProperties",
+          "versionNormalizationAvailable"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "engineBinding": {
+            "type": "string",
+            "nullable": true
+          },
+          "ocrAvailable": {
+            "type": "boolean"
+          },
+          "fontEmbeddingAvailable": {
+            "type": "boolean"
+          },
+          "versionNormalizationAvailable": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "dpi": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPixels": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "blockReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unverifiedProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentEvidence": {
+        "required": [
+          "engineBinding",
+          "receipt",
+          "receiptSha256",
+          "resources"
+        ],
+        "type": "object",
+        "properties": {
+          "engineBinding": {
+            "type": "string"
+          },
+          "receiptSha256": {
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/PdfContentReceipt"
+          },
+          "resources": {
+            "$ref": "#/components/schemas/PdfContentResourceUsage"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentFontEvidence": {
+        "required": [
+          "name",
+          "programBytes",
+          "programSha256"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "programSha256": {
+            "type": "string"
+          },
+          "programBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentFontFact": {
+        "required": [
+          "name",
+          "qualified"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "qualified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentFontsEvidence": {
+        "required": [
+          "embedded",
+          "regulatoryConformance"
+        ],
+        "type": "object",
+        "properties": {
+          "embedded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfContentFontEvidence"
+            }
+          },
+          "regulatoryConformance": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentInspection": {
+        "required": [
+          "blockReasons",
+          "capabilities",
+          "missingFonts",
+          "pageCount",
+          "scannedPages",
+          "searchablePages",
+          "sha256",
+          "sourceVersion",
+          "sourceVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceVersion": {
+            "type": "string"
+          },
+          "searchablePages": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "scannedPages": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "missingFonts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfContentFontFact"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/PdfContentCapabilities"
+          },
+          "blockReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentInspectionRequest": {
+        "required": [
+          "expectedRevision",
+          "sourceVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentOcrEvidence": {
+        "required": [
+          "alreadySearchablePages",
+          "dpi",
+          "language",
+          "modelSha256",
+          "processedPages",
+          "requiresTextReview"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "dpi": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelSha256": {
+            "type": "string"
+          },
+          "processedPages": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "alreadySearchablePages": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "requiresTextReview": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentPageEvidence": {
+        "required": [
+          "page",
+          "renderSha256",
+          "textSha256"
+        ],
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "renderSha256": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "textSha256": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentParameters": {
+        "required": [
+          "embedStandardFonts",
+          "ocr",
+          "targetVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "ocr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfOcrParameters"
+              }
+            ],
+            "nullable": true
+          },
+          "embedStandardFonts": {
+            "type": "boolean"
+          },
+          "targetVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentReceipt": {
+        "required": [
+          "elapsedMilliseconds",
+          "engineVersion",
+          "fonts",
+          "ocr",
+          "outputBytes",
+          "outputSha256",
+          "outputVersion",
+          "pages",
+          "parameters",
+          "regulatoryConformance",
+          "sourceSha256"
+        ],
+        "type": "object",
+        "properties": {
+          "engineVersion": {
+            "type": "string"
+          },
+          "sourceSha256": {
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/PdfContentParameters"
+          },
+          "ocr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfContentOcrEvidence"
+              }
+            ],
+            "nullable": true
+          },
+          "fonts": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfContentFontsEvidence"
+              }
+            ],
+            "nullable": true
+          },
+          "regulatoryConformance": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfContentPageEvidence"
+            }
+          },
+          "outputVersion": {
+            "type": "string"
+          },
+          "outputSha256": {
+            "type": "string"
+          },
+          "outputBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "elapsedMilliseconds": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfContentResourceUsage": {
+        "required": [
+          "cpuLimitMilliseconds",
+          "cpuMilliseconds",
+          "maxInputBytes",
+          "maxOutputBytes",
+          "maxPixels",
+          "maxReportBytes",
+          "memoryLimitBytes",
+          "peakMemoryBytes",
+          "wallMilliseconds"
+        ],
+        "type": "object",
+        "properties": {
+          "peakMemoryBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cpuMilliseconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "wallMilliseconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "memoryLimitBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cpuLimitMilliseconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxInputBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxOutputBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxReportBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxPixels": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "PdfLinkEdit": {
         "required": [
           "objectPath",
@@ -7720,6 +8332,31 @@
         },
         "additionalProperties": false
       },
+      "PdfOcrParameters": {
+        "required": [
+          "dpi",
+          "language",
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "dpi": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PdfProcessingAdoption": {
         "required": [
           "adoptedUtc",
@@ -7787,6 +8424,7 @@
       "PdfProcessingParameters": {
         "required": [
           "bookmarks",
+          "content",
           "links",
           "pageMode",
           "referenceEdits"
@@ -7816,6 +8454,14 @@
             "items": {
               "$ref": "#/components/schemas/PdfReferenceEdit"
             },
+            "nullable": true
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfContentParameters"
+              }
+            ],
             "nullable": true
           }
         },

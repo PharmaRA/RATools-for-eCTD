@@ -8,6 +8,22 @@ namespace RATools.Api.Controllers;
 [Route("api/applications/{applicationId:guid}/sequences/{sequenceNumber}/pdf-processing")]
 public sealed class DocumentProcessingController(DocumentProcessingService service) : ControllerBase
 {
+    [HttpGet("capabilities")]
+    [ProducesResponseType(typeof(PdfContentCapabilities), StatusCodes.Status200OK)]
+    public Task<IActionResult> Capabilities(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken) => RespondAsync(async () =>
+        Ok(await service.GetContentCapabilitiesAsync(applicationId, sequenceNumber, cancellationToken)));
+
+    [HttpPost("placements/{placementId:guid}/content-inspection")]
+    [ProducesResponseType(typeof(PdfContentInspection), StatusCodes.Status200OK)]
+    public Task<IActionResult> ContentInspection(Guid applicationId, string sequenceNumber, Guid placementId,
+        [FromBody] PdfContentInspectionRequest request, CancellationToken cancellationToken) => RespondAsync(async () =>
+            Ok(await service.InspectContentAsync(applicationId, sequenceNumber, placementId, request, cancellationToken)));
+
+    [HttpGet("jobs/{jobId:guid}/content-receipt")]
+    [ProducesResponseType(typeof(PdfContentEvidence), StatusCodes.Status200OK)]
+    public Task<IActionResult> ContentReceipt(Guid applicationId, string sequenceNumber, Guid jobId, CancellationToken cancellationToken) => RespondAsync(async () =>
+        Ok(await service.GetContentReceiptAsync(applicationId, sequenceNumber, jobId, cancellationToken)));
+
     [HttpPost("placements/{placementId:guid}/inspection")]
     [ProducesResponseType(typeof(ProcessingInspection), StatusCodes.Status200OK)]
     public Task<IActionResult> Inspect(Guid applicationId, string sequenceNumber, Guid placementId,

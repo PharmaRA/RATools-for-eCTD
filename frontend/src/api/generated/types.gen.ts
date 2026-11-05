@@ -610,6 +610,109 @@ export type PdfBookmarkInspection = {
     isValid: boolean;
 };
 
+export type PdfContentCapabilities = {
+    enabled: boolean;
+    engineBinding: string | null;
+    ocrAvailable: boolean;
+    fontEmbeddingAvailable: boolean;
+    versionNormalizationAvailable: boolean;
+    language: string;
+    dpi: number;
+    maxPages: number;
+    maxPixels: number;
+    blockReasons: Array<string>;
+    unverifiedProperties: Array<string>;
+};
+
+export type PdfContentEvidence = {
+    engineBinding: string;
+    receiptSha256: string;
+    receipt: PdfContentReceipt;
+    resources: PdfContentResourceUsage;
+};
+
+export type PdfContentFontEvidence = {
+    name: string;
+    programSha256: string;
+    programBytes: number;
+};
+
+export type PdfContentFontFact = {
+    name: string;
+    qualified: boolean;
+};
+
+export type PdfContentFontsEvidence = {
+    embedded: Array<PdfContentFontEvidence>;
+    regulatoryConformance: string;
+};
+
+export type PdfContentInspection = {
+    sourceVersionId: string;
+    sha256: string;
+    pageCount: number;
+    sourceVersion: string;
+    searchablePages: Array<number>;
+    scannedPages: Array<number>;
+    missingFonts: Array<PdfContentFontFact>;
+    capabilities: PdfContentCapabilities;
+    blockReasons: Array<string>;
+};
+
+export type PdfContentInspectionRequest = {
+    sourceVersionId: string;
+    expectedRevision: number;
+};
+
+export type PdfContentOcrEvidence = {
+    language: string;
+    dpi: number;
+    modelSha256: string;
+    processedPages: Array<number>;
+    alreadySearchablePages: Array<number>;
+    requiresTextReview: boolean;
+};
+
+export type PdfContentPageEvidence = {
+    page: number;
+    renderSha256: {
+        [key: string]: string;
+    };
+    textSha256: string;
+};
+
+export type PdfContentParameters = {
+    ocr: PdfOcrParameters | null;
+    embedStandardFonts: boolean;
+    targetVersion: string | null;
+};
+
+export type PdfContentReceipt = {
+    engineVersion: string;
+    sourceSha256: string;
+    parameters: PdfContentParameters;
+    ocr: PdfContentOcrEvidence | null;
+    fonts: PdfContentFontsEvidence | null;
+    regulatoryConformance: string;
+    pages: Array<PdfContentPageEvidence>;
+    outputVersion: string;
+    outputSha256: string;
+    outputBytes: number;
+    elapsedMilliseconds: number;
+};
+
+export type PdfContentResourceUsage = {
+    peakMemoryBytes: number;
+    cpuMilliseconds: number;
+    wallMilliseconds: number;
+    memoryLimitBytes: number;
+    cpuLimitMilliseconds: number;
+    maxInputBytes: number;
+    maxOutputBytes: number;
+    maxReportBytes: number;
+    maxPixels: number;
+};
+
 export type PdfLinkEdit = {
     sourcePageNumber: number;
     target: string;
@@ -654,6 +757,12 @@ export type PdfNavigationInspection = {
     incompleteReasons: Array<string>;
 };
 
+export type PdfOcrParameters = {
+    language: string;
+    pages: Array<number>;
+    dpi: number;
+};
+
 export type PdfProcessingAdoption = {
     jobId: string;
     applicationId: string;
@@ -673,6 +782,7 @@ export type PdfProcessingParameters = {
     bookmarks: Array<PdfBookmarkEdit> | null;
     links: Array<PdfLinkEdit> | null;
     referenceEdits: Array<PdfReferenceEdit> | null;
+    content: PdfContentParameters | null;
 };
 
 export type PdfProcessingPlan = {
@@ -1985,6 +2095,65 @@ export type PutApiDocumentPlacementsByIdMetadataResponses = {
 };
 
 export type PutApiDocumentPlacementsByIdMetadataResponse = PutApiDocumentPlacementsByIdMetadataResponses[keyof PutApiDocumentPlacementsByIdMetadataResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingCapabilitiesData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/capabilities';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingCapabilitiesResponses = {
+    /**
+     * OK
+     */
+    200: PdfContentCapabilities;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingCapabilitiesResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingCapabilitiesResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingCapabilitiesResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdContentInspectionData = {
+    body?: PdfContentInspectionRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        placementId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/content-inspection';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdContentInspectionResponses = {
+    /**
+     * OK
+     */
+    200: PdfContentInspection;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdContentInspectionResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdContentInspectionResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdContentInspectionResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdContentReceiptData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/content-receipt';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdContentReceiptResponses = {
+    /**
+     * OK
+     */
+    200: PdfContentEvidence;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdContentReceiptResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdContentReceiptResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdContentReceiptResponses];
 
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionData = {
     body?: ProcessingRevisionRequest;

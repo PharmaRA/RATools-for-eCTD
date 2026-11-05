@@ -1,0 +1,67 @@
+{
+  "engineVersion": "pymupdf-1.28.2-content-v1",
+  "sourceSha256": "0696229f9771bd8c06d58122269b0736887070b3c4cf533254d791d3cdc35769",
+  "parameters": {
+    "ocr": {
+      "language": "eng",
+      "pages": [
+        1,
+        2,
+        4
+      ],
+      "dpi": 150
+    }
+  },
+  "ocr": {
+    "language": "eng",
+    "dpi": 150,
+    "modelSha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "processedPages": [
+      1,
+      2,
+      4
+    ],
+    "alreadySearchablePages": [],
+    "requiresTextReview": true
+  },
+  "fonts": null,
+  "regulatoryConformance": "NotEvaluated",
+  "pages": [
+    {
+      "page": 1,
+      "renderSha256": {
+        "72": "b102c509a707a61189fd736cd4f86955d276b8718eb835ab3af053c8881de92e",
+        "150": "20b5ffa758a8c6896592cd0d5295454c30040e3dae5fd8f19baaf89264654465"
+      },
+      "textSha256": "f32ed1306037e13f943c3c86350609da4e8344b132fa2e18c83b1bbf169e9d5a"
+    },
+    {
+      "page": 2,
+      "renderSha256": {
+        "72": "e00cb162a2f775f09036c93b979281de73b3a8c097c44edca54c5605959eb6a2",
+        "150": "58786ee9cb0daaee4d8cf36d7e27092bdce774ad1badce20f701b7405ef34406"
+      },
+      "textSha256": "fd027d90c2279512c97567938e0c6fe8279b31420d81ab5ff7429d1521d7b5fe"
+    },
+    {
+      "page": 3,
+      "renderSha256": {
+        "72": "59f145bcc18ab8b39a898d6c733b1f184bd3a8b68b18dab593f7de74ed360391",
+        "150": "d17cd1cd159cb30976b2d75eb431b1ea87b03fbe9281b8bd15e7a392cab6287e"
+      },
+      "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "page": 4,
+      "renderSha256": {
+        "72": "36aff950d75c099faf746bdaa890a11a69952deba87e16c17e8324842e703e7c",
+        "150": "e050a8804bbb8e6dbcca856533d07e10cc2e80ea1b7001feec689b27321dd173"
+      },
+      "textSha256": "fd027d90c2279512c97567938e0c6fe8279b31420d81ab5ff7429d1521d7b5fe"
+    }
+  ],
+  "outputVersion": "1.7",
+  "outputSha256": "cefeb0e3607e57cbe2618fed04facf5c9b8ef012002241541038fbee7834be06",
+  "outputBytes": 65095,
+  "elapsedMilliseconds": 531
+}
