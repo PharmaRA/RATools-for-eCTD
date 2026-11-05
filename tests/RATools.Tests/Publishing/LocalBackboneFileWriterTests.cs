@@ -86,7 +86,7 @@ public sealed class LocalBackboneFileWriterTests
 
             var md5Manifest = await File.ReadAllTextAsync(indexMd5Path);
             var expectedIndexMd5 = ComputeMd5Hex(indexPath);
-            Assert.Equal($"{expectedIndexMd5}  index.xml{Environment.NewLine}", md5Manifest);
+            Assert.Equal($"{expectedIndexMd5}{Environment.NewLine}", md5Manifest);
             Assert.DoesNotContain("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
             Assert.DoesNotContain("m1/us/12-cover-letters/cover.pdf", md5Manifest, StringComparison.Ordinal);
             Assert.DoesNotContain("util/dtd/ich-ectd-3-2.dtd", md5Manifest, StringComparison.Ordinal);

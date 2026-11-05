@@ -21,8 +21,11 @@ public sealed class AssemblyPlanner(
 
     public async Task<AssemblyPlan> PlanAsync(Guid applicationId, string sequenceNumber, long expectedRevision,
         string csv, CancellationToken cancellationToken = default)
+        => await PlanAsync(applicationId, sequenceNumber, expectedRevision, AssemblyManifest.Parse(csv), cancellationToken).ConfigureAwait(false);
+
+    public async Task<AssemblyPlan> PlanAsync(Guid applicationId, string sequenceNumber, long expectedRevision,
+        AssemblyManifestParseResult parsed, CancellationToken cancellationToken = default)
     {
-        var parsed = AssemblyManifest.Parse(csv);
         var diagnostics = parsed.Diagnostics.ToList();
         if (!parsed.Succeeded)
             return Incomplete(applicationId, sequenceNumber, expectedRevision, parsed.Rows.Count, diagnostics);
@@ -54,7 +57,7 @@ public sealed class AssemblyPlanner(
         var historical = allPlacements.Where(placement =>
             string.CompareOrdinal(placement.SequenceNumber, sequenceNumber) < 0).ToDictionary(placement => placement.Id);
         var currentById = currentPlacements.ToDictionary(placement => placement.Id);
-        var documentIds = parsed.Rows.Select(row => row.Fields.GetValueOrDefault("documentId"))
+        var documentIds = parsed.Rows.Select(row => SourceToken(row.Fields.GetValueOrDefault("sourceFile")) ?? row.Fields.GetValueOrDefault("documentId"))
             .Where(value => Guid.TryParse(value, out _)).Select(value => Guid.Parse(value!)).ToArray();
         var documents = (await documentRepository.ListByIdsPreferScopedAsync(documentIds, cancellationToken).ConfigureAwait(false))
             .ToDictionary(document => document.Id);
@@ -62,10 +65,20 @@ public sealed class AssemblyPlanner(
         var rows = new List<AssemblyPlanRow>();
         var seenTargets = new Dictionary<Guid, int>();
         var seenSort = new HashSet<(Guid Node, int Order)>();
+        var nextSort = currentPlacements.Where(item => item.NodeInstanceId is not null)
+            .GroupBy(item => item.NodeInstanceId!.Value).ToDictionary(group => group.Key, group => group.Max(item => item.SortOrder) + 1);
         foreach (var row in parsed.Rows)
         {
-            var rowDiagnostics = new List<AssemblyDiagnostic>();
-            var documentText = row.Fields.GetValueOrDefault("documentId") ?? string.Empty;
+            var rowDiagnostics = row.Diagnostics?.ToList() ?? [];
+            var legacyDocument = row.Fields.GetValueOrDefault("documentId") ?? string.Empty;
+            var sourceFile = NullIfBlank(row.Fields.GetValueOrDefault("sourceFile"));
+            var sourceToken = SourceToken(sourceFile);
+            var documentText = sourceToken ?? legacyDocument;
+            if (sourceFile is not null && sourceToken is null)
+                rowDiagnostics.Add(new("ASSEMBLY_SOURCE_TOKEN_INVALID", "sourceFile must be an authorized uploaded document token (document:UUID or UUID), never a server path.", row.LineNumber));
+            if (sourceToken is not null && legacyDocument.Length > 0 && !string.Equals(sourceToken, legacyDocument, StringComparison.OrdinalIgnoreCase))
+                rowDiagnostics.Add(new("ASSEMBLY_SOURCE_ALIAS_CONFLICT", "sourceFile and documentId refer to different uploaded documents.", row.LineNumber));
+            var fileName = NullIfBlank(row.Fields.GetValueOrDefault("fileName"));
             var nodeText = row.Fields.GetValueOrDefault("nodeInstanceId") ?? string.Empty;
             var operation = (row.Fields.GetValueOrDefault("operation") ?? string.Empty).Trim().ToLowerInvariant();
             var title = NullIfBlank(row.Fields.GetValueOrDefault("title"));
@@ -113,6 +126,8 @@ public sealed class AssemblyPlanner(
             else
             {
                 nodeId = node.NodeInstanceId;
+                if (sortText.Length == 0) sortOrder = nextSort.GetValueOrDefault(node.NodeInstanceId);
+                nextSort[node.NodeInstanceId] = checked(sortOrder + 1);
                 if (!seenSort.Add((node.NodeInstanceId, sortOrder)))
                     rowDiagnostics.Add(new("ASSEMBLY_SORT_CONFLICT",
                         $"Another row already uses sort order {sortOrder} on this node.", row.LineNumber));
@@ -123,7 +138,8 @@ public sealed class AssemblyPlanner(
 
             rows.Add(new AssemblyPlanRow(row.LineNumber, documentId?.ToString("D"), nodeId?.ToString("D"), title,
                 operation, target, sortOrder,
-                rowDiagnostics.Count == 0 ? AssemblyRowStatus.Valid : AssemblyRowStatus.Invalid, rowDiagnostics));
+                rowDiagnostics.Count == 0 ? AssemblyRowStatus.Valid : AssemblyRowStatus.Invalid, rowDiagnostics,
+                sourceFile, fileName));
         }
 
         var digest = AssemblyManifest.ComputeDigest(applicationId, sequenceNumber, expectedRevision, rows);
@@ -170,6 +186,12 @@ public sealed class AssemblyPlanner(
     }
 
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? SourceToken(string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        var value = source.StartsWith("document:", StringComparison.Ordinal) ? source[9..] : source;
+        return Guid.TryParse(value, out var id) ? id.ToString("D") : null;
+    }
 
     private static AssemblyPlan Incomplete(Guid applicationId, string sequenceNumber, long expectedRevision,
         int totalRows, IReadOnlyList<AssemblyDiagnostic> diagnostics) =>

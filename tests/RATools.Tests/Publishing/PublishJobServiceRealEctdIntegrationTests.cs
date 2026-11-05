@@ -153,7 +153,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             Assert.Contains("util/dtd/ich-ectd-3-2.dtd", indexXml, StringComparison.Ordinal);
             Assert.Contains("../../util/dtd/us-regional-v3-3.dtd", usRegionalXml, StringComparison.Ordinal);
             Assert.Contains("jane.regulatory@example.test", usRegionalXml, StringComparison.Ordinal);
-            Assert.Contains("index.xml", md5Manifest, StringComparison.Ordinal);
+            Assert.Matches("^[a-f0-9]{32}\\r?\\n$", md5Manifest);
             Assert.DoesNotContain("m1/us/us-regional.xml", md5Manifest, StringComparison.Ordinal);
             Assert.DoesNotContain("m1/us/12-cover-letters/cover-letter.pdf", md5Manifest, StringComparison.Ordinal);
             Assert.Contains("\"Succeeded\": true", reportJson, StringComparison.Ordinal);

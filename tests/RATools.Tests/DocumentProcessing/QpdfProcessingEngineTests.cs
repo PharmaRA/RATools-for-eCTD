@@ -12,6 +12,53 @@ namespace RATools.Tests.DocumentProcessing;
 public sealed class QpdfProcessingEngineTests
 {
     [Fact]
+    public async Task Execute_PreservesBinaryStreamWithBase64PlusCharacters()
+    {
+        var root = FindRepositoryRoot();
+        var executablePath = Environment.GetEnvironmentVariable("RATOOLS_QPDF")
+            ?? Path.Combine(root, ".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe");
+        var directory = Path.Combine(root, ".artifacts/p5-06-engine-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var source = Path.Combine(directory, "binary-stream.pdf");
+        var output = Path.Combine(directory, "updated.pdf");
+        var bytes = new MemoryStream();
+        void Write(string text) => bytes.Write(System.Text.Encoding.ASCII.GetBytes(text));
+        Write("%PDF-1.4\n");
+        var offsets = new List<long> { 0 };
+        foreach (var body in new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Binary 4 0 R >> >>"
+        })
+        {
+            offsets.Add(bytes.Position);
+            Write($"{offsets.Count - 1} 0 obj\n{body}\nendobj\n");
+        }
+        offsets.Add(bytes.Position);
+        Write("4 0 obj\n<< /Length 3 >>\nstream\n");
+        bytes.Write([0xfb, 0xef, 0xbe]); // ++++ in qpdf's inline base64 stream data.
+        Write("\nendstream\nendobj\n");
+        var xref = bytes.Position;
+        Write("xref\n0 5\n0000000000 65535 f \n");
+        foreach (var offset in offsets.Skip(1)) Write($"{offset:D10} 00000 n \n");
+        Write($"trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        await File.WriteAllBytesAsync(source, bytes.ToArray());
+        var sourceJson = await ReadQpdfJsonAsync(executablePath, source);
+        using var original = JsonDocument.Parse(sourceJson);
+        Assert.Contains("++++", EnumeratePropertyValues(original.RootElement, "data"));
+
+        var engine = new QpdfProcessingEngine(new QpdfProcessingOptions { ExecutablePath = executablePath });
+        var result = await engine.ExecuteAsync(new(source, output, new("UseNone", null, null),
+            TimeSpan.FromSeconds(30), 8 * 1024 * 1024, 64 * 1024));
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        using var reopened = JsonDocument.Parse(await ReadQpdfJsonAsync(executablePath, output));
+        Assert.Contains("++++", EnumeratePropertyValues(reopened.RootElement, "data"));
+        Assert.Equal(bytes.ToArray(), await File.ReadAllBytesAsync(source));
+    }
+
+    [Fact]
     public void VersionCheck_RejectsPrefixVersionFromFakeExecutableOutput()
     {
         var method = typeof(QpdfProcessingEngine).GetMethod("IsSupportedVersion", BindingFlags.Static | BindingFlags.NonPublic)!;

@@ -81,7 +81,8 @@ public static class DependencyInjection
             RATools.Application.Finalization.ReleaseCaptureService>();
         services.AddScoped<RATools.Application.Finalization.FinalizationService>();
         services.AddScoped<RATools.Application.Assembly.AssemblyPlanner>();
-        services.AddScoped<RATools.Application.Assembly.AssemblyExecutor>();
+        services.AddScoped<RATools.Application.Assembly.AssemblyService>();
+        services.AddSingleton<RATools.Application.Assembly.AssemblyFileStore>();
         services.AddScoped<ISequenceValidationService, SequenceValidationService>();
         services.AddScoped<IPublishReadinessService, PublishReadinessService>();
         services.AddScoped<IAuditLogService, AuditLogService>();

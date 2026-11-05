@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Runtime.InteropServices;
@@ -342,7 +343,13 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             var sourceJson = json.DeepClone().AsObject();
             ApplyParameters(json, request.Parameters.Normalize());
             var taskJsonPath = outputPath + ".qpdf.json";
-            await WriteExclusiveAsync(taskJsonPath, json.ToJsonString(new JsonSerializerOptions { WriteIndented = false }), cancellationToken);
+            // qpdf reads inline stream base64 without unescaping JSON unicode escapes.
+            // This file is consumed only by qpdf; keep '+' literal in its stream data.
+            await WriteExclusiveAsync(taskJsonPath, json.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }), cancellationToken);
 
             var stagingPath = outputPath + "." + Guid.NewGuid().ToString("N") + ".qpdf.tmp";
             var updated = await RunToFileAsync(["--update-from-json=" + ToolPath(taskJsonPath), ToolPath(sourcePath), "-"], stagingPath, timeout, maxOutput, cancellationToken);

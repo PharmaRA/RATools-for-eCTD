@@ -372,7 +372,7 @@ public sealed partial class LocalBackboneFileWriter(
         }
     }
 
-    // FDA 惯例：index-md5.txt 仅包含 index.xml 自身的 MD5（格式为 "<md5>  index.xml"）。
+    // index-md5.txt contains only the checksum of index.xml, without a filename.
     private static string BuildIndexMd5(string deliveryRoot)
     {
         var indexPath = ResolveDescendantPath(deliveryRoot, "index.xml", "Backbone index path");
@@ -383,7 +383,7 @@ public sealed partial class LocalBackboneFileWriter(
                 indexPath);
         }
 
-        return $"{ComputeMd5(indexPath)}  index.xml{Environment.NewLine}";
+        return $"{ComputeMd5(indexPath)}{Environment.NewLine}";
     }
 
     private static string ComputeMd5(string path)

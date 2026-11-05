@@ -105,20 +105,46 @@ export type AssemblyDiagnostic = {
     lineNumber: number | null;
 };
 
-export type AssemblyExecuteBody = {
+export type AssemblyEnqueueRequest = {
+    planId: string;
+    planDigest: string;
+    idempotencyKey: string;
+};
+
+export type AssemblyExecutionAudit = {
+    jobId: string;
+    planId: string;
+    planDigest: string;
     applicationId: string;
     sequenceNumber: string;
     expectedRevision: number;
-    planDigest: string;
-    manifest: string;
+    workspaceRevision: number;
+    completedUtc: string;
+    documents: Array<AssemblyExecutionDocument>;
 };
 
-export type AssemblyExecutionResult = {
-    applicationId: string;
-    sequenceNumber: string;
-    workspaceRevision: number;
-    planDigest: string;
-    placementIds: Array<string>;
+export type AssemblyExecutionDocument = {
+    lineNumber: number;
+    placementId: string;
+    documentId: string;
+    versionId: string | null;
+    href: string | null;
+    leafId: string;
+    historicalTargetId: string | null;
+};
+
+export type AssemblyExecutionJobView = {
+    id: string;
+    planId: string;
+    status: PdfProcessingJobStatus;
+    stage: string;
+    attemptCount: number;
+    cancellationRequested: boolean;
+    createdUtc: string;
+    completedUtc: string | null;
+    failureCode: string | null;
+    failureMessage: string | null;
+    result: AssemblyExecutionAudit | null;
 };
 
 export type AssemblyPlan = {
@@ -132,11 +158,10 @@ export type AssemblyPlan = {
     diagnostics: Array<AssemblyDiagnostic>;
     rows: Array<AssemblyPlanRow>;
     csvVersion: string;
-};
-
-export type AssemblyPlanBody = {
-    expectedRevision: number;
-    manifest: string;
+    id: string | null;
+    expiresUtc: string | null;
+    manifestSha256: string | null;
+    selectedRows: Array<number> | null;
 };
 
 export type AssemblyPlanRow = {
@@ -149,9 +174,90 @@ export type AssemblyPlanRow = {
     sortOrder: number;
     status: AssemblyRowStatus;
     diagnostics: Array<AssemblyDiagnostic>;
+    sourceFile: string | null;
+    fileName: string | null;
+    sourceSha256: string | null;
+    sourceLength: number | null;
+    targetHref: string | null;
+};
+
+export type AssemblyPreview = {
+    id: string;
+    plan: AssemblyPlan;
+    createdUtc: string;
+    expiresUtc: string;
+    manifestSha256: string;
+    format: string;
+    selectedRows: Array<number>;
+    sources: Array<AssemblySourceBinding>;
+    selectionConfirmed: boolean;
+    canExecute: boolean;
+    inventoryDigest: string;
+    manifestBase64: string;
+    parentDigest: string | null;
+};
+
+export type AssemblyPreviewPage = {
+    id: string;
+    plan: AssemblyPlan;
+    createdUtc: string;
+    expiresUtc: string;
+    manifestSha256: string;
+    format: string;
+    selectedRows: Array<number>;
+    selectionConfirmed: boolean;
+    canExecute: boolean;
+    offset: number;
+    limit: number;
+    totalRows: number;
+};
+
+export type AssemblyPreviewRequest = {
+    expectedRevision: number;
+    manifest: string;
+    format: string;
+    manifestBase64: string | null;
 };
 
 export type AssemblyRowStatus = 0 | 1;
+
+export type AssemblySelectionRequest = {
+    expectedRevision: number;
+    parentDigest: string;
+    selectedRows: Array<number>;
+};
+
+export type AssemblySourceBinding = {
+    lineNumber: number;
+    documentId: string;
+    versionId: string;
+    sourceFile: string;
+    fileName: string;
+    mediaType: string;
+    length: number;
+    sha256: string;
+    md5: string;
+    targetHref: string;
+    nodeBinding: string;
+    historyBinding: string | null;
+};
+
+export type AssemblySourcePage = {
+    items: Array<AssemblySourceUpload>;
+    offset: number;
+    limit: number;
+    total: number;
+};
+
+export type AssemblySourceUpload = {
+    documentId: string;
+    sourceFile: string;
+    fileName: string;
+    expectedRevision: number;
+    length: number;
+    sha256: string;
+    md5: string;
+};
 
 export type AuditLogDto = {
     id: string;
@@ -1774,8 +1880,52 @@ export type DeleteApiApplicationsByIdSequencesBySequenceNumberResponses = {
 
 export type DeleteApiApplicationsByIdSequencesBySequenceNumberResponse = DeleteApiApplicationsByIdSequencesBySequenceNumberResponses[keyof DeleteApiApplicationsByIdSequencesBySequenceNumberResponses];
 
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: {
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-sources';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses = {
+    /**
+     * OK
+     */
+    200: AssemblySourcePage;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesData = {
+    body?: {
+        expectedRevision: number;
+        file?: Blob | File;
+    };
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-sources';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses = {
+    /**
+     * OK
+     */
+    200: AssemblySourceUpload;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblySourcesResponses];
+
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansData = {
-    body?: AssemblyPlanBody;
+    body?: AssemblyPreviewRequest;
     path: {
         applicationId: string;
         sequenceNumber: string;
@@ -1788,26 +1938,168 @@ export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyP
     /**
      * OK
      */
-    200: AssemblyPlan;
+    200: AssemblyPreview;
 };
 
 export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansResponses];
 
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyPreview;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdRowsData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: {
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/rows';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdRowsResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyPreviewPage;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdRowsResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdRowsResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdRowsResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdSelectionData = {
+    body?: AssemblySelectionRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/selection';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdSelectionResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyPreview;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdSelectionResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdSelectionResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdSelectionResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdExecutionData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/execution';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdExecutionResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyExecutionJobView;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdExecutionResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdExecutionResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyPlansByPlanIdExecutionResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsData = {
+    body?: AssemblyEnqueueRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsResponses = {
+    /**
+     * Accepted
+     */
+    202: AssemblyExecutionJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions/{jobId}';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyExecutionJobView;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdCancelData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions/{jobId}/cancel';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdCancelResponses = {
+    /**
+     * OK
+     */
+    200: AssemblyExecutionJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdCancelResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdCancelResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberAssemblyExecutionsByJobIdCancelResponses];
+
 export type PostApiAssemblyPlansExecuteData = {
-    body?: AssemblyExecuteBody;
+    body?: never;
     path?: never;
     query?: never;
     url: '/api/assembly-plans/execute';
 };
 
-export type PostApiAssemblyPlansExecuteResponses = {
+export type PostApiAssemblyPlansExecuteErrors = {
     /**
-     * Accepted
+     * Gone
      */
-    202: AssemblyExecutionResult;
+    410: ProblemDetails;
 };
 
-export type PostApiAssemblyPlansExecuteResponse = PostApiAssemblyPlansExecuteResponses[keyof PostApiAssemblyPlansExecuteResponses];
+export type PostApiAssemblyPlansExecuteError = PostApiAssemblyPlansExecuteErrors[keyof PostApiAssemblyPlansExecuteErrors];
 
 export type GetApiAuditLogsData = {
     body?: never;

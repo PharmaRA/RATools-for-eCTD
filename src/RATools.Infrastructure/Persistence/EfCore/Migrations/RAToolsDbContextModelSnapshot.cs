@@ -3646,6 +3646,38 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                 {
                     b.Navigation("Sequences");
                 });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("ApplicationId").HasColumnType("uuid");
+                    b.Property<string>("Data").IsRequired().HasColumnType("text");
+                    b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                    b.HasKey("Id"); b.HasIndex("ApplicationId"); b.ToTable("assembly_plans", (string)null);
+                });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("PlanId").HasColumnType("uuid");
+                    b.Property<string>("IdempotencyKey").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<DateTime>("CreatedUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("LeaseExpiresUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("QuarantinedUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("Data").IsRequired().HasColumnType("text");
+                    b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                    b.HasKey("Id"); b.HasIndex("IdempotencyKey").IsUnique(); b.HasIndex("PlanId").IsUnique();
+                    b.HasIndex("Status", "CreatedUtc"); b.ToTable("assembly_executions", (string)null);
+                });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null).WithMany()
+                        .HasForeignKey("ApplicationId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", null).WithMany()
+                        .HasForeignKey("PlanId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
 #pragma warning restore 612, 618
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", b =>
             {

@@ -88,11 +88,11 @@ public sealed class EctdReleaseCapturePlanner(
             files.Add(ReleaseCaptureFile.Copy(path, source, new FileInfo(source).Length, sha256, md5));
             assets.Add(new ReleaseManifestAsset(asset.Key, asset.Category, asset.Version, path, sha256));
         }
-        // FDA convention: index-md5.txt names only index.xml. It is generated from the same
+        // index-md5.txt contains only the index.xml checksum. It is generated from the same
         // bytes written above, so a backbone edit cannot leave a stale checksum list.
         var indexMd5 = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(index.XmlContent))).ToLowerInvariant();
         files.Add(ReleaseCaptureFile.Generated(prefix + "index-md5.txt",
-            Encoding.UTF8.GetBytes($"{indexMd5}  index.xml{Environment.NewLine}")));
+            Encoding.UTF8.GetBytes($"{indexMd5}{Environment.NewLine}")));
 
         // The comparison input digest is part of the run's input identity; the manifest
         // records it so the difference from the target's manifest is explained, not hidden.

@@ -422,9 +422,12 @@ export const SequenceWorkspacePage = ({
 
       {nodeTree && <Suspense fallback={<AssemblyPanelFallback />}>
         <AssemblyPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
-          disabled={loading || workspaceRevision === undefined} onExecuted={async () => {
-            await refreshWorkspaceData()
+          disabled={loading || workspaceRevision === undefined || finalization?.isEditable === false}
+          nodes={nodeTree.nodes.filter(node => node.allowsLeaves && node.metadataStatus === 'Complete')
+            .map(node => ({ id: node.nodeInstanceId, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` }))}
+          onExecuted={async () => {
             invalidateValidation()
+            await refreshWorkspaceData()
           }} />
       </Suspense>}
 

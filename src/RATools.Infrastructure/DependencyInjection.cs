@@ -43,6 +43,12 @@ public static class DependencyInjection
             provider.GetRequiredService<PdfContentEngineOptions>(), provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
         services.AddHostedService<DocumentProcessingBackgroundService>();
         services.AddHostedService<PdfRenameBackgroundService>();
+        services.AddOptions<RATools.Application.Assembly.AssemblyExecutionOptions>().Bind(configuration.GetSection("Assembly"))
+            .Validate(value => value.MaxFileBytes > 0 && value.MaxBatchBytes >= value.MaxFileBytes && value.PlanLifetime > TimeSpan.Zero &&
+                value.ExecutionTimeout > TimeSpan.Zero && value.PollInterval > TimeSpan.Zero && value.HeartbeatInterval > TimeSpan.Zero &&
+                value.LeaseDuration > value.HeartbeatInterval, "Invalid assembly execution limits.").ValidateOnStart();
+        services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RATools.Application.Assembly.AssemblyExecutionOptions>>().Value);
+        services.AddHostedService<RATools.Infrastructure.Assembly.AssemblyBackgroundService>();
         services.AddOptions<PackageValidationOptions>().Bind(configuration.GetSection(PackageValidationOptions.SectionName))
             .Validate(value => !string.IsNullOrWhiteSpace(value.StorageRoot) && value.PollInterval > TimeSpan.Zero &&
                 value.HeartbeatInterval > TimeSpan.Zero && value.LeaseDuration > value.HeartbeatInterval &&
@@ -108,6 +114,7 @@ public static class DependencyInjection
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
+            services.AddSingleton<RATools.Application.Assembly.IAssemblyStore, InMemoryAssemblyStore>();
             services.AddSingleton<IPdfRenameStore>(provider => new InMemoryPdfRenameStore(provider.GetRequiredService<IDocumentProcessingStore>()));
             services.AddSingleton<IPackageValidationStore, InMemoryPackageValidationStore>();
             services.AddSingleton<RATools.Application.Finalization.IFinalizationStore, InMemoryFinalizationStore>();
@@ -132,6 +139,7 @@ public static class DependencyInjection
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IDocumentProcessingStore, EfCoreDocumentProcessingStore>();
+        services.AddScoped<RATools.Application.Assembly.IAssemblyStore, EfCoreAssemblyStore>();
         services.AddScoped<IPdfRenameStore, EfCorePdfRenameStore>();
         services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
         services.AddScoped<RATools.Application.Finalization.IFinalizationStore, EfCoreFinalizationStore>();

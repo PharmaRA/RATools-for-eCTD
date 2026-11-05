@@ -510,6 +510,148 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-sources": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "expectedRevision"
+                ],
+                "type": "object",
+                "properties": {
+                  "expectedRevision": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "expectedRevision": {
+                  "style": "form"
+                },
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourceUpload"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourceUpload"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourceUpload"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourcePage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourcePage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblySourcePage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans": {
       "post": {
         "tags": [
@@ -538,17 +680,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssemblyPlanBody"
+                "$ref": "#/components/schemas/AssemblyPreviewRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssemblyPlanBody"
+                "$ref": "#/components/schemas/AssemblyPreviewRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/AssemblyPlanBody"
+                "$ref": "#/components/schemas/AssemblyPreviewRequest"
               }
             }
           }
@@ -559,17 +701,463 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyPlan"
+                  "$ref": "#/components/schemas/AssemblyPreview"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyPlan"
+                  "$ref": "#/components/schemas/AssemblyPreview"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyPlan"
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}": {
+      "get": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/rows": {
+      "get": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreviewPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreviewPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreviewPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/selection": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblySelectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblySelectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblySelectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-plans/{planId}/execution": {
+      "get": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyEnqueueRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyEnqueueRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssemblyEnqueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions/{jobId}": {
+      "get": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/assembly-executions/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "Assembly"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssemblyExecutionJobView"
                 }
               }
             }
@@ -582,42 +1170,23 @@
         "tags": [
           "Assembly"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssemblyExecuteBody"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssemblyExecuteBody"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssemblyExecuteBody"
-              }
-            }
-          }
-        },
         "responses": {
-          "202": {
-            "description": "Accepted",
+          "410": {
+            "description": "Gone",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssemblyExecutionResult"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -5610,16 +6179,52 @@
         },
         "additionalProperties": false
       },
-      "AssemblyExecuteBody": {
+      "AssemblyEnqueueRequest": {
         "required": [
-          "applicationId",
-          "expectedRevision",
-          "manifest",
+          "idempotencyKey",
           "planDigest",
-          "sequenceNumber"
+          "planId"
         ],
         "type": "object",
         "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyExecutionAudit": {
+        "required": [
+          "applicationId",
+          "completedUtc",
+          "documents",
+          "expectedRevision",
+          "jobId",
+          "planDigest",
+          "planId",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planDigest": {
+            "type": "string"
+          },
           "applicationId": {
             "type": "string",
             "format": "uuid"
@@ -5631,45 +6236,128 @@
             "type": "integer",
             "format": "int64"
           },
-          "planDigest": {
-            "type": "string"
-          },
-          "manifest": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "AssemblyExecutionResult": {
-        "required": [
-          "applicationId",
-          "placementIds",
-          "planDigest",
-          "sequenceNumber",
-          "workspaceRevision"
-        ],
-        "type": "object",
-        "properties": {
-          "applicationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sequenceNumber": {
-            "type": "string"
-          },
           "workspaceRevision": {
             "type": "integer",
             "format": "int64"
           },
-          "planDigest": {
-            "type": "string"
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time"
           },
-          "placementIds": {
+          "documents": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "$ref": "#/components/schemas/AssemblyExecutionDocument"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyExecutionDocument": {
+        "required": [
+          "documentId",
+          "historicalTargetId",
+          "href",
+          "leafId",
+          "lineNumber",
+          "placementId",
+          "versionId"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "href": {
+            "type": "string",
+            "nullable": true
+          },
+          "leafId": {
+            "type": "string"
+          },
+          "historicalTargetId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyExecutionJobView": {
+        "required": [
+          "attemptCount",
+          "cancellationRequested",
+          "completedUtc",
+          "createdUtc",
+          "failureCode",
+          "failureMessage",
+          "id",
+          "planId",
+          "result",
+          "stage",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PdfProcessingJobStatus"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellationRequested": {
+            "type": "boolean"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "result": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssemblyExecutionAudit"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5680,9 +6368,13 @@
           "csvVersion",
           "diagnostics",
           "expectedRevision",
+          "expiresUtc",
+          "id",
           "invalidRows",
+          "manifestSha256",
           "planDigest",
           "rows",
+          "selectedRows",
           "sequenceNumber",
           "totalRows",
           "validRows"
@@ -5729,23 +6421,28 @@
           },
           "csvVersion": {
             "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "AssemblyPlanBody": {
-        "required": [
-          "expectedRevision",
-          "manifest"
-        ],
-        "type": "object",
-        "properties": {
-          "expectedRevision": {
-            "type": "integer",
-            "format": "int64"
           },
-          "manifest": {
-            "type": "string"
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "expiresUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "manifestSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectedRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5754,11 +6451,16 @@
         "required": [
           "diagnostics",
           "documentId",
+          "fileName",
           "lineNumber",
           "nodeInstanceId",
           "operation",
           "sortOrder",
+          "sourceFile",
+          "sourceLength",
+          "sourceSha256",
           "status",
+          "targetHref",
           "targetLeafAddress",
           "title"
         ],
@@ -5799,6 +6501,190 @@
             "items": {
               "$ref": "#/components/schemas/AssemblyDiagnostic"
             }
+          },
+          "sourceFile": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceLength": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "targetHref": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPreview": {
+        "required": [
+          "canExecute",
+          "createdUtc",
+          "expiresUtc",
+          "format",
+          "id",
+          "inventoryDigest",
+          "manifestBase64",
+          "manifestSha256",
+          "parentDigest",
+          "plan",
+          "selectedRows",
+          "selectionConfirmed",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AssemblyPlan"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "manifestSha256": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "selectedRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssemblySourceBinding"
+            }
+          },
+          "selectionConfirmed": {
+            "type": "boolean"
+          },
+          "canExecute": {
+            "type": "boolean"
+          },
+          "inventoryDigest": {
+            "type": "string"
+          },
+          "manifestBase64": {
+            "type": "string"
+          },
+          "parentDigest": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPreviewPage": {
+        "required": [
+          "canExecute",
+          "createdUtc",
+          "expiresUtc",
+          "format",
+          "id",
+          "limit",
+          "manifestSha256",
+          "offset",
+          "plan",
+          "selectedRows",
+          "selectionConfirmed",
+          "totalRows"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AssemblyPlan"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "manifestSha256": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "selectedRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "selectionConfirmed": {
+            "type": "boolean"
+          },
+          "canExecute": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalRows": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblyPreviewRequest": {
+        "required": [
+          "expectedRevision",
+          "format",
+          "manifest",
+          "manifestBase64"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifest": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "manifestBase64": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5810,6 +6696,161 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "AssemblySelectionRequest": {
+        "required": [
+          "expectedRevision",
+          "parentDigest",
+          "selectedRows"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentDigest": {
+            "type": "string"
+          },
+          "selectedRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblySourceBinding": {
+        "required": [
+          "documentId",
+          "fileName",
+          "historyBinding",
+          "length",
+          "lineNumber",
+          "md5",
+          "mediaType",
+          "nodeBinding",
+          "sha256",
+          "sourceFile",
+          "targetHref",
+          "versionId"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceFile": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "targetHref": {
+            "type": "string"
+          },
+          "nodeBinding": {
+            "type": "string"
+          },
+          "historyBinding": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblySourcePage": {
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssemblySourceUpload"
+            }
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssemblySourceUpload": {
+        "required": [
+          "documentId",
+          "expectedRevision",
+          "fileName",
+          "length",
+          "md5",
+          "sha256",
+          "sourceFile"
+        ],
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceFile": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "AuditLogDto": {
         "required": [
