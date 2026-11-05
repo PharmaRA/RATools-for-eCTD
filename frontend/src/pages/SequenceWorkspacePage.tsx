@@ -34,6 +34,7 @@ import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePrope
 import { nodeContext, treeAncestorKeys } from './workspace/nodeTree'
 import type { CtdNodeTreeDto } from '../api/generated'
 import { buildProcessingTargets } from './workspace/pdfProcessingTargets'
+import { buildPublishedHrefPreview } from './publishedHrefPreview'
 
 // Bulk assembly is a separate lazy chunk so the workspace's own bundle stays within
 // budget; the panel is only loaded when the operator opens it.
@@ -41,6 +42,8 @@ const AssemblyPanel = lazy(() =>
   import('./workspace/AssemblyPanel').then((module) => ({ default: module.AssemblyPanel })))
 const PdfProcessingPanel = lazy(() =>
   import('./workspace/PdfProcessingPanel').then(module => ({ default: module.PdfProcessingPanel })))
+const PdfRenamePanel = lazy(() =>
+  import('./workspace/PdfRenamePanel').then(module => ({ default: module.PdfRenamePanel })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -424,6 +427,18 @@ export const SequenceWorkspacePage = ({
             invalidateValidation()
           }} />
       </Suspense>}
+
+      <Suspense fallback={<p role="status">正在加载批量改名面板…</p>}>
+        <PdfRenamePanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
+          disabled={loading || finalization?.isEditable === false} candidates={placements.flatMap(placement => {
+            const document = documentsById[placement.documentId]
+            if (!document || placement.operation.toLowerCase() === 'delete' || !document.fileName.toLowerCase().endsWith('.pdf')) return []
+            return [{ placementId: placement.id, fileName: document.fileName, nodeInstanceId: placement.nodeInstanceId ?? null,
+              href: buildPublishedHrefPreview(document.storagePath, seqNumber, document.fileName) }]
+          })} nodes={nodeTree?.nodes.filter(node => node.allowsLeaves && node.metadataStatus === 'Complete')
+            .map(node => ({ id: node.nodeInstanceId, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` })) ?? []}
+          onAdopted={async () => { invalidateValidation(); await refreshWorkspaceData() }} />
+      </Suspense>
 
       <Row gutter={16}>
         <Col span={12}>

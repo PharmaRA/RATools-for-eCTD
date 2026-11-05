@@ -16,7 +16,8 @@ public sealed record NodePlacementMovePreview(Guid PlacementId, Guid NodeInstanc
 
 public sealed class CtdNodePlacementService(ICtdNodeRepository nodes, IDocumentPlacementRepository placements,
     IDocumentRepository documents, IApplicationRepository applications, IDocumentStorageBoundary boundary,
-    CtdNodePathResolver paths, IFileStorage files, WorkspaceMutationCoordinator mutations, NodeFileMoveJournal journal)
+    CtdNodePathResolver paths, IFileStorage files, WorkspaceMutationCoordinator mutations, NodeFileMoveJournal journal,
+    RATools.Application.DocumentProcessing.PdfRenameImpactGuard? renameImpact = null)
 {
     public async Task<NodePlacementMovePreview> MoveAsync(Guid placementId, NodePlacementMoveRequest request,
         bool previewOnly = false, CancellationToken cancellationToken = default)
@@ -83,6 +84,7 @@ public sealed class CtdNodePlacementService(ICtdNodeRepository nodes, IDocumentP
         EnsurePortableDestination(application.WorkingDirectoryPath, destination, movesFile ? null : source);
         var result = new NodePlacementMovePreview(placementId, request.NodeInstanceId, source, destination, mutation.Revision);
         if (previewOnly) return result;
+        if (renameImpact is not null) await renameImpact.EnsureNoImpactAsync(original, relative, cancellationToken);
         NodeFileMoveIntent? intent = null;
         if (movesFile)
         {

@@ -126,7 +126,7 @@ function ProcessingEditor({ appId, seqNumber, placementId, documentId, workspace
     if (!canPreview || !inspection) return
     const generation = ++inputGeneration.current
     setBusy(true); setError(undefined); setPlan(undefined); enqueueKey.current = undefined
-    const parameters: PdfProcessingParameters = { pageMode, bookmarks: bookmarks === null ? null : [...bookmarks], links: [...links] }
+    const parameters: PdfProcessingParameters = { pageMode, bookmarks: bookmarks === null ? null : [...bookmarks], links: [...links], referenceEdits: null }
     try {
       const result: PdfProcessingPlan = await apiFetch(`${base}/placements/${encodeURIComponent(placementId)}/plans`,
         buildJsonRequestInit('POST', { sourceVersionId: inspection.sourceVersionId, expectedRevision: workspaceRevision, parameters }))

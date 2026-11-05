@@ -25,6 +25,9 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<RATools.Application.DocumentProcessing.DocumentProcessingService>();
+        services.AddScoped<RATools.Application.DocumentProcessing.PdfRenamePreviewService>();
+        services.AddScoped<RATools.Application.DocumentProcessing.PdfRenameService>();
+        services.AddScoped<RATools.Application.DocumentProcessing.PdfRenameImpactGuard>();
         services.AddScoped<IPersistenceTransaction, PassthroughPersistenceTransaction>();
         services.AddScoped<RATools.Application.Finalization.FinalizedWorkspaceGuard>();
         services.AddScoped<RATools.Application.Finalization.FinalizationDraftService>();

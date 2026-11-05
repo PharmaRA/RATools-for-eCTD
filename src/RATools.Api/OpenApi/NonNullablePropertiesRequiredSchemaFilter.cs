@@ -36,9 +36,19 @@ public sealed class NonNullablePropertiesRequiredSchemaFilter : ISchemaFilter
 
             var jsonName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
                 ?? JsonNamingPolicy.CamelCase.ConvertName(property.Name);
-            if (schema.Properties.ContainsKey(jsonName))
+            if (schema.Properties.TryGetValue(jsonName, out var propertySchema))
             {
                 schema.Required.Add(jsonName);
+                if (nullability == NullabilityState.Nullable && propertySchema.Reference is { } reference)
+                {
+                    // OpenAPI 3.0 ignores nullable beside a bare $ref. Compose the
+                    // nullable response value so record properties such as Adoption
+                    // remain present while explicitly allowing their pending null.
+                    schema.Properties[jsonName] = new OpenApiSchema
+                    {
+                        AllOf = [new OpenApiSchema { Reference = reference }], Nullable = true
+                    };
+                }
             }
         }
     }

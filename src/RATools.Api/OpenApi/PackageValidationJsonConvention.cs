@@ -21,24 +21,24 @@ public sealed class PackageValidationEnumSchemaFilter : ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
-        if (context.Type == typeof(RATools.Application.DocumentProcessing.ProcessingJobView))
+        if (context.Type == typeof(RATools.Application.DocumentProcessing.ProcessingJobView) &&
+            schema.Properties["adoption"].Reference is { } adoptionReference)
         {
-            var adoption = schema.Properties["adoption"];
             schema.Properties["adoption"] = new OpenApiSchema
             {
                 Nullable = true,
-                AllOf = [new OpenApiSchema { Reference = adoption.Reference }]
+                AllOf = [new OpenApiSchema { Reference = adoptionReference }]
             };
         }
-        if (context.Type == typeof(PackageRunSummary))
+        if (context.Type == typeof(PackageRunSummary) &&
+            schema.Properties["coverageSummary"].Reference is { } coverageReference)
         {
             // OpenAPI 3.0 ignores nullable next to a bare $ref. Pending and legacy
             // runs really return null, so wrap the reference for generated clients.
-            var summary = schema.Properties["coverageSummary"];
             schema.Properties["coverageSummary"] = new OpenApiSchema
             {
                 Nullable = true,
-                AllOf = [new OpenApiSchema { Reference = summary.Reference }]
+                AllOf = [new OpenApiSchema { Reference = coverageReference }]
             };
         }
         if (!context.Type.IsEnum || context.Type.Namespace != "RATools.Domain.PackageValidation") return;

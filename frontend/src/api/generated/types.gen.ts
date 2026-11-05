@@ -62,10 +62,10 @@ export type ApplicationPublishHistoryEntryDto = {
     errorCount: number | null;
     warningCount: number | null;
     warningSummary: string | null;
-    publishReadiness: ApplicationPublishHistoryReadinessSummaryDto;
+    publishReadiness: ApplicationPublishHistoryReadinessSummaryDto | null;
     lifecycleSummary: ApplicationPublishHistoryLifecycleSummaryDto;
     lifecycleMatches: Array<ValidationLifecycleMatchDto>;
-    artifactSummary: PublishArtifactSummaryDto;
+    artifactSummary: PublishArtifactSummaryDto | null;
     reportPath: string | null;
     packagePath: string | null;
 };
@@ -349,6 +349,8 @@ export type DocumentPlacementDto = {
     sortOrder: number;
 };
 
+export type DocumentPlacementOperation = 1 | 2 | 3 | 4;
+
 export type EctdStructureDto = {
     profileName: string;
     region: string;
@@ -369,6 +371,12 @@ export type EctdTemplateDto = {
     region: string;
     standardName: string;
     standardVersion: string;
+};
+
+export type EnqueuePdfRenameRequest = {
+    planId: string;
+    planDigest: string;
+    idempotencyKey: string;
 };
 
 export type EnqueueProcessingRequest = {
@@ -664,6 +672,7 @@ export type PdfProcessingParameters = {
     pageMode: string | null;
     bookmarks: Array<PdfBookmarkEdit> | null;
     links: Array<PdfLinkEdit> | null;
+    referenceEdits: Array<PdfReferenceEdit> | null;
 };
 
 export type PdfProcessingPlan = {
@@ -682,6 +691,144 @@ export type PdfProcessingPlan = {
     engineVersion: string;
     createdUtc: string;
     contextJson: string;
+};
+
+export type PdfReferenceEdit = {
+    sourcePageNumber: number;
+    objectPath: string;
+    oldReference: string;
+    newReference: string;
+    isUri: boolean;
+};
+
+export type PdfRelocationChange = {
+    placementId: string;
+    fileName: string;
+    targetNodeInstanceId: string | null;
+};
+
+export type PdfRenameAdoptedDocument = {
+    placementId: string;
+    documentId: string;
+    resultVersionId: string;
+    href: string;
+    nodeInstanceId: string | null;
+};
+
+export type PdfRenameAdoption = {
+    jobId: string;
+    applicationId: string;
+    sequenceNumber: string;
+    expectedRevision: number;
+    workspaceRevision: number;
+    adoptedUtc: string;
+    documents: Array<PdfRenameAdoptedDocument>;
+};
+
+export type PdfRenameImpact = {
+    sourcePlacementId: string;
+    targetPlacementId: string;
+    objectPath: string;
+    sourcePageNumber: number | null;
+    oldReference: string;
+    newReference: string;
+    isUri: boolean;
+    targetPageNumber: number | null;
+    namedDestination: string | null;
+};
+
+export type PdfRenameIssue = {
+    code: string;
+    placementId: string | null;
+    objectPath: string | null;
+    message: string;
+};
+
+export type PdfRenameJobView = {
+    id: string;
+    planId: string;
+    status: PdfProcessingJobStatus;
+    stage: string;
+    attemptCount: number;
+    cancellationRequested: boolean;
+    createdUtc: string;
+    completedUtc: string | null;
+    failureCode: string | null;
+    failureMessage: string | null;
+    results: Array<PdfRenameOutput>;
+    adoption: PdfRenameAdoption | null;
+};
+
+export type PdfRenameOutput = {
+    placementId: string;
+    versionId: string;
+    href: string;
+    sha256: string;
+    md5: string;
+};
+
+export type PdfRenamePlacementBinding = {
+    placementId: string;
+    documentId: string;
+    sequenceNumber: string;
+    href: string;
+    sha256: string;
+    md5: string;
+    fileSize: number;
+    mediaType: string;
+    operation: DocumentPlacementOperation;
+    nodeInstanceId: string | null;
+    ctdSection: string;
+    sortOrder: number;
+    leafId: string;
+    lifecycleTargetPlacementId: string | null;
+    title: string | null;
+};
+
+export type PdfRenamePlan = {
+    applicationId: string;
+    sequenceNumber: string;
+    expectedRevision: number;
+    changes: Array<PdfRenameRequest>;
+    confirmedSources: Array<string>;
+    requiredSources: Array<string>;
+    impacts: Array<PdfRenameImpact>;
+    issues: Array<PdfRenameIssue>;
+    planDigest: string;
+    readonly canExecute: boolean;
+};
+
+export type PdfRenamePreview = {
+    id: string;
+    plan: PdfRenamePlan;
+    sources: Array<PdfRenameSource>;
+    changes: Array<PdfRelocationChange>;
+    engineVersion: string;
+    createdUtc: string;
+    expiresUtc: string;
+    inventory: Array<PdfRenamePlacementBinding>;
+};
+
+export type PdfRenamePreviewRequest = {
+    expectedRevision: number;
+    changes: Array<PdfRelocationChange>;
+    confirmedSources: Array<string>;
+};
+
+export type PdfRenameRequest = {
+    placementId: string;
+    newHref: string;
+    targetNodeInstanceId: string | null;
+};
+
+export type PdfRenameSource = {
+    placementId: string;
+    documentId: string;
+    versionId: string;
+    sequenceNumber: string;
+    href: string;
+    sha256: string;
+    editable: boolean;
 };
 
 export type ProblemDetails = {
@@ -772,11 +919,11 @@ export type PublishExecutionReportDto = {
     validationReport: ValidationReportDto;
     publishJob: PublishJobDto;
     durationMs: number;
-    integritySummary: PublishIntegritySummaryDto;
-    integrityEvidence: PublishIntegrityEvidenceDto;
-    publishReadiness: PublishReadinessReportDto;
-    artifactSummary: PublishArtifactSummaryDto;
-    auditSummary: PublishAuditSummaryDto;
+    integritySummary: PublishIntegritySummaryDto | null;
+    integrityEvidence: PublishIntegrityEvidenceDto | null;
+    publishReadiness: PublishReadinessReportDto | null;
+    artifactSummary: PublishArtifactSummaryDto | null;
+    auditSummary: PublishAuditSummaryDto | null;
     errorCount: number;
     warningCount: number;
     warningSummary: string | null;
@@ -1010,7 +1157,7 @@ export type RuleCoverage = {
     blocksReadiness: boolean;
     reason: string;
     findings: Array<ValidationFinding>;
-    manualEvidence: ManualCheckEvidence;
+    manualEvidence: ManualCheckEvidence | null;
 };
 
 export type SectionAttributeDefinition = {
@@ -1262,8 +1409,8 @@ export type WorkspaceSnapshotDto = {
     workspaceRevision: number;
     placements: Array<DocumentPlacementDto>;
     documents: Array<DocumentDto>;
-    nodeTree: CtdNodeTreeDto;
-    finalization: WorkspaceFinalizationState;
+    nodeTree: CtdNodeTreeDto | null;
+    finalization: WorkspaceFinalizationState | null;
 };
 
 export type DeliveryReceiptWritable = {
@@ -1281,6 +1428,29 @@ export type FinalizationResultWritable = {
 
 export type FinalizedSequenceWritable = {
     validationMode: PackageValidationMode;
+};
+
+export type PdfRenamePlanWritable = {
+    applicationId: string;
+    sequenceNumber: string;
+    expectedRevision: number;
+    changes: Array<PdfRenameRequest>;
+    confirmedSources: Array<string>;
+    requiredSources: Array<string>;
+    impacts: Array<PdfRenameImpact>;
+    issues: Array<PdfRenameIssue>;
+    planDigest: string;
+};
+
+export type PdfRenamePreviewWritable = {
+    id: string;
+    plan: PdfRenamePlanWritable;
+    sources: Array<PdfRenameSource>;
+    changes: Array<PdfRelocationChange>;
+    engineVersion: string;
+    createdUtc: string;
+    expiresUtc: string;
+    inventory: Array<PdfRenamePlacementBinding>;
 };
 
 export type ReleaseManifestWritable = {
@@ -2735,6 +2905,163 @@ export type GetApiPackageValidationsByIdExternalReportTextResponses = {
 };
 
 export type GetApiPackageValidationsByIdExternalReportTextResponse = GetApiPackageValidationsByIdExternalReportTextResponses[keyof GetApiPackageValidationsByIdExternalReportTextResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansData = {
+    body?: PdfRenamePreviewRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenamePreview;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans/{planId}';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenamePreview;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdJobData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        planId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans/{planId}/job';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdJobResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenameJobView;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdJobResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdJobResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesPlansByPlanIdJobResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsData = {
+    body?: EnqueuePdfRenameRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsResponses = {
+    /**
+     * Accepted
+     */
+    202: PdfRenameJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenameJobView;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdCancelData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/cancel';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdCancelResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenameJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdCancelResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdCancelResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdCancelResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdAdoptData = {
+    body?: ProcessingRevisionRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/adopt';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdAdoptResponses = {
+    /**
+     * OK
+     */
+    200: PdfRenameAdoption;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdAdoptResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdAdoptResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdAdoptResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdPlacementsByPlacementIdContentData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+        placementId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/placements/{placementId}/content';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfRenamesJobsByJobIdPlacementsByPlacementIdContentResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type GetApiPublishJobsData = {
     body?: never;

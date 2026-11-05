@@ -18,7 +18,8 @@ public sealed class DocumentPlacementService(
     IDocumentStorageBoundary documentStorageBoundary,
     WorkspaceMutationCoordinator mutations,
     RATools.Application.Ctd.CtdNodePlacementService? nodePlacements = null,
-    ICtdNodeRepository? nodes = null) : IDocumentPlacementService
+    ICtdNodeRepository? nodes = null,
+    RATools.Application.DocumentProcessing.PdfRenameImpactGuard? renameImpact = null) : IDocumentPlacementService
 {
     private static readonly TimeSpan FileOperationCleanupTimeout = TimeSpan.FromSeconds(30);
 
@@ -124,6 +125,8 @@ public sealed class DocumentPlacementService(
 
         if (!string.Equals(oldFolder.RelativeFolderPath, newFolder.RelativeFolderPath, StringComparison.OrdinalIgnoreCase))
         {
+            if (renameImpact is not null)
+                await renameImpact.EnsureNoImpactAsync(placement, newFolder.RelativeFolderPath.Replace('\\', '/') + "/" + document.FileName, cancellationToken);
             var targetDirectory = Path.Combine(application.WorkingDirectoryPath, placement.SequenceNumber, newFolder.RelativeFolderPath);
             documentStorageBoundary.EnsurePathOwnedBySequence(targetDirectory, application, placement.SequenceNumber);
             var targetPath = Path.Combine(targetDirectory, Path.GetFileName(originalStoragePath));
@@ -295,6 +298,13 @@ public sealed class DocumentPlacementService(
             ?? throw new InvalidOperationException($"Document {document.Id} storage path does not have a parent directory.");
         var targetPath = Path.Combine(sourceDirectory, targetFileName);
         var movedStoragePath = sourcePath;
+
+        if (renameImpact is not null && document.FileName != targetFileName)
+        {
+            var href = RATools.Application.Publishing.PublishOutputNaming.BuildPublishedDocumentRelativePath(document, placement.SequenceNumber);
+            var slash = href.LastIndexOf('/');
+            await renameImpact.EnsureNoImpactAsync(placement, (slash < 0 ? "" : href[..(slash + 1)]) + targetFileName, cancellationToken);
+        }
 
         if (!string.Equals(sourcePath, Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase))
         {

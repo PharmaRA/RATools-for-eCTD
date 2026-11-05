@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Runtime.InteropServices;
 using RATools.Application.DocumentProcessing;
 
 namespace RATools.Infrastructure.DocumentProcessing;
@@ -29,6 +30,7 @@ public sealed class QpdfProcessingOptions
 
 public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfProcessingEngine
 {
+    private static readonly string[] FileSpecificationKeys = ["/F", "/UF"];
     public string EngineVersion => $"qpdf-{options.SupportedVersion}";
 
     public async Task<PdfNavigationInspection> InspectAsync(string sourcePath, long maxJsonBytes, CancellationToken cancellationToken = default)
@@ -45,7 +47,7 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
         ProcessResult inspected;
         try
         {
-            inspected = await RunAsync(["--json", "--json-stream-data=inline", Path.GetFullPath(sourcePath), "-"], options.ExecutionTimeout,
+            inspected = await RunAsync(["--json", "--json-stream-data=inline", ToolPath(sourcePath), "-"], options.ExecutionTimeout,
                 Math.Min(maxJsonBytes, options.MaxJsonBytes), cancellationToken);
         }
         catch (System.ComponentModel.Win32Exception exception)
@@ -182,7 +184,7 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
         if (string.Equals(actionKind, "/URI", StringComparison.Ordinal))
         {
             var uri = DecodeQpdfString(action?["/URI"]?.GetValue<string>());
-            var valid = Uri.TryCreate(uri, UriKind.Absolute, out _);
+            var valid = !string.IsNullOrWhiteSpace(uri) && Uri.TryCreate(uri, UriKind.RelativeOrAbsolute, out _);
             if (!valid) reasons.Add($"{path} contains an invalid URI action.");
             return new(path, pageNumber, PdfLinkTargetKind.ExternalUri, uri ?? string.Empty, null, null, null, valid);
         }
@@ -318,7 +320,7 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             if (version.ExitCode != 0 || !IsSupportedVersion(version.Stdout, options.SupportedVersion))
                 return Failure(outputPath, "ENGINE_VERSION_UNSUPPORTED", Elapsed(started));
 
-            var inspected = await RunAsync(["--json", "--json-stream-data=inline", sourcePath, "-"], timeout, maxJson, cancellationToken);
+            var inspected = await RunAsync(["--json", "--json-stream-data=inline", ToolPath(sourcePath), "-"], timeout, maxJson, cancellationToken);
             if (inspected.Cancelled) throw new OperationCanceledException(cancellationToken);
             if (inspected.TimedOut) return Failure(outputPath, "ENGINE_TIMEOUT", Elapsed(started));
             if (inspected.OutputLimitExceeded) return Failure(outputPath, "JSON_OUTPUT_LIMIT", Elapsed(started));
@@ -343,14 +345,14 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             await WriteExclusiveAsync(taskJsonPath, json.ToJsonString(new JsonSerializerOptions { WriteIndented = false }), cancellationToken);
 
             var stagingPath = outputPath + "." + Guid.NewGuid().ToString("N") + ".qpdf.tmp";
-            var updated = await RunToFileAsync(["--update-from-json=" + taskJsonPath, sourcePath, "-"], stagingPath, timeout, maxOutput, cancellationToken);
+            var updated = await RunToFileAsync(["--update-from-json=" + ToolPath(taskJsonPath), ToolPath(sourcePath), "-"], stagingPath, timeout, maxOutput, cancellationToken);
             if (updated.Cancelled) throw new OperationCanceledException(cancellationToken);
             if (updated.TimedOut) return Failure(outputPath, "ENGINE_TIMEOUT", Elapsed(started));
             if (updated.OutputLimitExceeded) return Failure(outputPath, "OUTPUT_SIZE_LIMIT", Elapsed(started));
             if (updated.ExitCode != 0 || !File.Exists(stagingPath)) return Failure(outputPath, "ENGINE_UPDATE_FAILED", Elapsed(started));
             var stagedSize = new FileInfo(stagingPath).Length;
             if (stagedSize > maxOutput) return Failure(outputPath, "OUTPUT_SIZE_LIMIT", Elapsed(started));
-            var reopened = await RunAsync(["--json", "--json-stream-data=inline", stagingPath, "-"], timeout, maxJson, cancellationToken);
+            var reopened = await RunAsync(["--json", "--json-stream-data=inline", ToolPath(stagingPath), "-"], timeout, maxJson, cancellationToken);
             if (reopened.Cancelled) throw new OperationCanceledException(cancellationToken);
             if (reopened.TimedOut) return Failure(outputPath, "RESULT_REOPEN_TIMEOUT", Elapsed(started));
             if (reopened.OutputLimitExceeded) return Failure(outputPath, "RESULT_JSON_SIZE_LIMIT", Elapsed(started));
@@ -372,6 +374,30 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             return Failure(outputPath, "ENGINE_ERROR: " + exception.Message, Elapsed(started));
         }
     }
+
+    private static string ToolPath(string path)
+    {
+        var absolute = Path.GetFullPath(path);
+        if (!OperatingSystem.IsWindows() || absolute.Length < 248) return absolute;
+        // The pinned Windows qpdf build rejects extended-length path syntax.
+        // Read an existing DOS alias; this never creates or changes a file/link.
+        var extended = absolute.StartsWith(@"\\?\", StringComparison.Ordinal) ? absolute :
+            absolute.StartsWith(@"\\", StringComparison.Ordinal) ? @"\\?\UNC\" + absolute[2..] : @"\\?\" + absolute;
+        var buffer = new char[32768];
+        var length = GetShortPathName(extended, buffer, (uint)buffer.Length);
+        if (length is > 0 && length < buffer.Length)
+        {
+            var shortened = new string(buffer, 0, (int)length);
+            shortened = shortened.StartsWith(@"\\?\UNC\", StringComparison.Ordinal) ? @"\\" + shortened[8..] :
+                shortened.StartsWith(@"\\?\", StringComparison.Ordinal) ? shortened[4..] : shortened;
+            if (shortened.Length < 248) return shortened;
+        }
+        throw new InvalidOperationException("The native PDF engine cannot open this Windows path. Use a shorter workspace path or a volume with existing short file names.");
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "GetShortPathNameW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern uint GetShortPathName(string longPath, [Out] char[] shortPath, uint bufferLength);
 
     private void ApplyParameters(JsonObject root, PdfProcessingParameters parameters)
     {
@@ -413,6 +439,43 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             annotation["/A"] = ActionFor(edit, pageRefs, linkDestinations);
             annotation.Remove("/Dest");
         }
+        ApplyReferenceEdits(root, parameters.ReferenceEdits ?? []);
+    }
+
+    private static void ApplyReferenceEdits(JsonObject root, IReadOnlyList<PdfReferenceEdit> edits)
+    {
+        var objects = BuildObjectMap(root);
+        var pages = root["pages"]?.AsArray() ?? [];
+        foreach (var edit in edits)
+        {
+            var (pageNumber, annotationNumber) = ParseObjectPath(edit.ObjectPath);
+            if (pageNumber != edit.SourcePageNumber || pageNumber < 1 || pageNumber > pages.Count)
+                throw new InvalidOperationException("The reference selector does not identify a source page.");
+            var page = objects[pages[pageNumber - 1]!["object"]!.GetValue<string>()];
+            var annotations = ResolveOriginalNode(root, page["/Annots"]) as JsonArray ?? [];
+            if (annotationNumber < 1 || annotationNumber > annotations.Count)
+                throw new InvalidOperationException("The selected reference annotation disappeared.");
+            var annotation = ResolveOriginalNode(root, annotations[annotationNumber - 1]) as JsonObject;
+            var action = ResolveOriginalNode(root, annotation?["/A"]) as JsonObject;
+            var expectedKind = edit.IsUri ? "/URI" : "/GoToR";
+            if (annotation?["/Subtype"]?.GetValue<string>() != "/Link" || action?["/S"]?.GetValue<string>() != expectedKind)
+                throw new InvalidOperationException("The selected reference action type changed.");
+            var key = edit.IsUri ? "/URI" : "/F";
+            var file = ResolveOriginalNode(root, action[key]);
+            if (file is JsonObject specification)
+            {
+                var present = FileSpecificationKeys.Where(specification.ContainsKey).ToArray();
+                if (present.Length == 0 || present.Any(name => DecodeQpdfString(specification[name]?.GetValue<string>()) != edit.OldReference))
+                    throw new InvalidOperationException("The file specification no longer matches the reviewed reference.");
+                foreach (var name in present) specification[name] = "u:" + edit.NewReference;
+            }
+            else
+            {
+                if (DecodeQpdfString(file?.GetValue<string>()) != edit.OldReference)
+                    throw new InvalidOperationException("The reference no longer matches the reviewed target.");
+                action[key] = "u:" + edit.NewReference;
+            }
+        }
     }
 
     private void ValidateResult(JsonObject source, JsonObject result, PdfProcessingParameters parameters)
@@ -421,6 +484,10 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
         result = result.DeepClone().AsObject();
         ExpandNavigationObjects(source);
         ExpandNavigationObjects(result);
+        // Compare the reopened file with the original graph after only the exact
+        // approved file/URI fields changed. Destination arrays and action options
+        // remain covered by the ordinary page/annotation fidelity comparison.
+        ApplyReferenceEdits(source, parameters.ReferenceEdits ?? []);
         var sourceObjects = BuildObjectMap(source);
         var resultObjects = BuildObjectMap(result);
         var sourcePages = source["pages"]?.AsArray() ?? [];

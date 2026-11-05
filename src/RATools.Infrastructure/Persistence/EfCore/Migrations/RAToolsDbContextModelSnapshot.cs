@@ -3647,6 +3647,41 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.Navigation("Sequences");
                 });
 #pragma warning restore 612, 618
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", b =>
+            {
+                b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                b.Property<Guid>("ApplicationId").HasColumnType("uuid");
+                b.Property<string>("Data").IsRequired().HasColumnType("text");
+                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.HasKey("Id"); b.HasIndex("ApplicationId"); b.ToTable("pdf_rename_plans");
+                b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null).WithMany()
+                    .HasForeignKey("ApplicationId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", b =>
+            {
+                b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                b.Property<Guid>("PlanId").HasColumnType("uuid");
+                b.Property<string>("IdempotencyKey").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
+                b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                b.Property<DateTime>("CreatedUtc").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("LeaseExpiresUtc").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("QuarantinedUtc").HasColumnType("timestamp with time zone");
+                b.Property<string>("Data").IsRequired().HasColumnType("text");
+                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.HasKey("Id"); b.HasIndex("PlanId").IsUnique(); b.HasIndex("IdempotencyKey").IsUnique();
+                b.HasIndex("Status", "CreatedUtc"); b.ToTable("pdf_rename_jobs");
+                b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", null).WithMany()
+                    .HasForeignKey("PlanId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            });
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameAdoptionRecord", b =>
+            {
+                b.Property<Guid>("JobId").HasColumnType("uuid");
+                b.Property<string>("Data").IsRequired().HasColumnType("text");
+                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.HasKey("JobId"); b.ToTable("pdf_rename_adoptions");
+                b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", null).WithMany()
+                    .HasForeignKey("JobId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            });
         }
     }
 }

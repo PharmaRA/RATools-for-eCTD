@@ -45,6 +45,8 @@ public sealed class DocumentProcessingService(
     public async Task<PdfProcessingPlan> CreatePlanAsync(Guid applicationId, string sequence, Guid placementId,
         CreateProcessingPlanRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.Parameters.ReferenceEdits is { Count: > 0 })
+            throw new PdfProcessingRejectedException("File and URI reference rewrites require a confirmed PDF rename batch.");
         await using var mutation = await mutations.AcquireAsync(applicationId, sequence, request.ExpectedRevision, cancellationToken).ConfigureAwait(false);
         var (application, _, document) = await WorkspaceAsync(applicationId, sequence, placementId, cancellationToken).ConfigureAwait(false);
         var source = await RequireVersionAsync(request.SourceVersionId, applicationId, sequence, cancellationToken).ConfigureAwait(false);

@@ -38,6 +38,7 @@ public static class DependencyInjection
             provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
         services.AddSingleton<ProcessingFileStore>();
         services.AddHostedService<DocumentProcessingBackgroundService>();
+        services.AddHostedService<PdfRenameBackgroundService>();
         services.AddOptions<PackageValidationOptions>().Bind(configuration.GetSection(PackageValidationOptions.SectionName))
             .Validate(value => !string.IsNullOrWhiteSpace(value.StorageRoot) && value.PollInterval > TimeSpan.Zero &&
                 value.HeartbeatInterval > TimeSpan.Zero && value.LeaseDuration > value.HeartbeatInterval &&
@@ -103,6 +104,7 @@ public static class DependencyInjection
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
+            services.AddSingleton<IPdfRenameStore>(provider => new InMemoryPdfRenameStore(provider.GetRequiredService<IDocumentProcessingStore>()));
             services.AddSingleton<IPackageValidationStore, InMemoryPackageValidationStore>();
             services.AddSingleton<RATools.Application.Finalization.IFinalizationStore, InMemoryFinalizationStore>();
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
@@ -126,6 +128,7 @@ public static class DependencyInjection
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IDocumentProcessingStore, EfCoreDocumentProcessingStore>();
+        services.AddScoped<IPdfRenameStore, EfCorePdfRenameStore>();
         services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
         services.AddScoped<RATools.Application.Finalization.IFinalizationStore, EfCoreFinalizationStore>();
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();

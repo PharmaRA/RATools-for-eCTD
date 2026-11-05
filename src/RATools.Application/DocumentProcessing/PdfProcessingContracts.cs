@@ -62,20 +62,31 @@ public sealed record PdfLinkEdit(
     }
 }
 
+public sealed record PdfReferenceEdit(int SourcePageNumber, string ObjectPath, string OldReference, string NewReference, bool IsUri);
+
 public sealed record PdfProcessingParameters(
     string? PageMode,
     IReadOnlyList<PdfBookmarkEdit>? Bookmarks,
-    IReadOnlyList<PdfLinkEdit>? Links)
+    IReadOnlyList<PdfLinkEdit>? Links,
+    IReadOnlyList<PdfReferenceEdit>? ReferenceEdits = null)
 {
     public PdfProcessingParameters Normalize()
     {
         if (PageMode is not null && PageMode is not ("UseNone" or "UseOutlines" or "UseThumbs" or "FullScreen" or "UseOC" or "UseAttachments"))
             throw new ArgumentException("Unsupported PDF initial view mode.", nameof(PageMode));
+        foreach (var edit in ReferenceEdits ?? [])
+            if (edit.SourcePageNumber < 1 || string.IsNullOrWhiteSpace(edit.ObjectPath) ||
+                string.IsNullOrWhiteSpace(edit.OldReference) || string.IsNullOrWhiteSpace(edit.NewReference))
+                throw new ArgumentException("Reference rewrites require an exact annotation and old/new reference.");
+        if ((ReferenceEdits ?? []).Select(edit => edit.ObjectPath).Concat((Links ?? []).Select(edit => edit.ObjectPath))
+            .GroupBy(path => path, StringComparer.Ordinal).Any(group => group.Count() > 1))
+            throw new ArgumentException("An annotation can be selected only once.");
         return this with
         {
             PageMode = string.IsNullOrWhiteSpace(PageMode) ? null : PageMode.Trim(),
             Bookmarks = Bookmarks?.Select(item => item.Normalize()).ToArray(),
-            Links = Links?.Select(item => item.Normalize()).ToArray()
+            Links = Links?.Select(item => item.Normalize()).ToArray(),
+            ReferenceEdits = ReferenceEdits?.ToArray()
         };
     }
 }

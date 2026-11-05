@@ -4016,6 +4016,493 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans": {
+      "post": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfRenamePreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfRenamePreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfRenamePreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans/{planId}": {
+      "get": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenamePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/plans/{planId}/job": {
+      "get": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs": {
+      "post": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueuePdfRenameRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueuePdfRenameRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueuePdfRenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/adopt": {
+      "post": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameAdoption"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameAdoption"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRenameAdoption"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-renames/jobs/{jobId}/placements/{placementId}/content": {
+      "get": {
+        "tags": [
+          "PdfRename"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "placementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/publish-jobs": {
       "get": {
         "tags": [
@@ -4768,7 +5255,12 @@
             "nullable": true
           },
           "publishReadiness": {
-            "$ref": "#/components/schemas/ApplicationPublishHistoryReadinessSummaryDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApplicationPublishHistoryReadinessSummaryDto"
+              }
+            ],
+            "nullable": true
           },
           "lifecycleSummary": {
             "$ref": "#/components/schemas/ApplicationPublishHistoryLifecycleSummaryDto"
@@ -4780,7 +5272,12 @@
             }
           },
           "artifactSummary": {
-            "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+              }
+            ],
+            "nullable": true
           },
           "reportPath": {
             "type": "string",
@@ -5961,6 +6458,16 @@
         },
         "additionalProperties": false
       },
+      "DocumentPlacementOperation": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "EctdStructureDto": {
         "required": [
           "profileName",
@@ -6038,6 +6545,27 @@
             "type": "string"
           },
           "standardVersion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnqueuePdfRenameRequest": {
+        "required": [
+          "idempotencyKey",
+          "planDigest",
+          "planId"
+        ],
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "idempotencyKey": {
             "type": "string"
           }
         },
@@ -7260,7 +7788,8 @@
         "required": [
           "bookmarks",
           "links",
-          "pageMode"
+          "pageMode",
+          "referenceEdits"
         ],
         "type": "object",
         "properties": {
@@ -7279,6 +7808,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PdfLinkEdit"
+            },
+            "nullable": true
+          },
+          "referenceEdits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfReferenceEdit"
             },
             "nullable": true
           }
@@ -7358,6 +7894,602 @@
           },
           "contextJson": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfReferenceEdit": {
+        "required": [
+          "isUri",
+          "newReference",
+          "objectPath",
+          "oldReference",
+          "sourcePageNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "sourcePageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "objectPath": {
+            "type": "string"
+          },
+          "oldReference": {
+            "type": "string"
+          },
+          "newReference": {
+            "type": "string"
+          },
+          "isUri": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRelocationChange": {
+        "required": [
+          "fileName",
+          "placementId",
+          "targetNodeInstanceId"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "targetNodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameAdoptedDocument": {
+        "required": [
+          "documentId",
+          "href",
+          "nodeInstanceId",
+          "placementId",
+          "resultVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "href": {
+            "type": "string"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameAdoption": {
+        "required": [
+          "adoptedUtc",
+          "applicationId",
+          "documents",
+          "expectedRevision",
+          "jobId",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adoptedUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameAdoptedDocument"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameImpact": {
+        "required": [
+          "isUri",
+          "namedDestination",
+          "newReference",
+          "objectPath",
+          "oldReference",
+          "sourcePageNumber",
+          "sourcePlacementId",
+          "targetPageNumber",
+          "targetPlacementId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourcePlacementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetPlacementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objectPath": {
+            "type": "string"
+          },
+          "sourcePageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "oldReference": {
+            "type": "string"
+          },
+          "newReference": {
+            "type": "string"
+          },
+          "isUri": {
+            "type": "boolean"
+          },
+          "targetPageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "namedDestination": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameIssue": {
+        "required": [
+          "code",
+          "message",
+          "objectPath",
+          "placementId"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "objectPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameJobView": {
+        "required": [
+          "adoption",
+          "attemptCount",
+          "cancellationRequested",
+          "completedUtc",
+          "createdUtc",
+          "failureCode",
+          "failureMessage",
+          "id",
+          "planId",
+          "results",
+          "stage",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PdfProcessingJobStatus"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellationRequested": {
+            "type": "boolean"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameOutput"
+            }
+          },
+          "adoption": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfRenameAdoption"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameOutput": {
+        "required": [
+          "href",
+          "md5",
+          "placementId",
+          "sha256",
+          "versionId"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "href": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenamePlacementBinding": {
+        "required": [
+          "ctdSection",
+          "documentId",
+          "fileSize",
+          "href",
+          "leafId",
+          "lifecycleTargetPlacementId",
+          "md5",
+          "mediaType",
+          "nodeInstanceId",
+          "operation",
+          "placementId",
+          "sequenceNumber",
+          "sha256",
+          "sortOrder",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/DocumentPlacementOperation"
+          },
+          "nodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "ctdSection": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "leafId": {
+            "type": "string"
+          },
+          "lifecycleTargetPlacementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenamePlan": {
+        "required": [
+          "applicationId",
+          "canExecute",
+          "changes",
+          "confirmedSources",
+          "expectedRevision",
+          "impacts",
+          "issues",
+          "planDigest",
+          "requiredSources",
+          "sequenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameRequest"
+            }
+          },
+          "confirmedSources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "requiredSources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "impacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameImpact"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameIssue"
+            }
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "canExecute": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenamePreview": {
+        "required": [
+          "changes",
+          "createdUtc",
+          "engineVersion",
+          "expiresUtc",
+          "id",
+          "inventory",
+          "plan",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PdfRenamePlan"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenameSource"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRelocationChange"
+            }
+          },
+          "engineVersion": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRenamePlacementBinding"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenamePreviewRequest": {
+        "required": [
+          "changes",
+          "confirmedSources",
+          "expectedRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfRelocationChange"
+            }
+          },
+          "confirmedSources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameRequest": {
+        "required": [
+          "newHref",
+          "placementId",
+          "targetNodeInstanceId"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newHref": {
+            "type": "string"
+          },
+          "targetNodeInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfRenameSource": {
+        "required": [
+          "documentId",
+          "editable",
+          "href",
+          "placementId",
+          "sequenceNumber",
+          "sha256",
+          "versionId"
+        ],
+        "type": "object",
+        "properties": {
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "editable": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7729,19 +8861,44 @@
             "format": "int64"
           },
           "integritySummary": {
-            "$ref": "#/components/schemas/PublishIntegritySummaryDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishIntegritySummaryDto"
+              }
+            ],
+            "nullable": true
           },
           "integrityEvidence": {
-            "$ref": "#/components/schemas/PublishIntegrityEvidenceDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishIntegrityEvidenceDto"
+              }
+            ],
+            "nullable": true
           },
           "publishReadiness": {
-            "$ref": "#/components/schemas/PublishReadinessReportDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishReadinessReportDto"
+              }
+            ],
+            "nullable": true
           },
           "artifactSummary": {
-            "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishArtifactSummaryDto"
+              }
+            ],
+            "nullable": true
           },
           "auditSummary": {
-            "$ref": "#/components/schemas/PublishAuditSummaryDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishAuditSummaryDto"
+              }
+            ],
+            "nullable": true
           },
           "errorCount": {
             "type": "integer",
@@ -8686,7 +9843,12 @@
             }
           },
           "manualEvidence": {
-            "$ref": "#/components/schemas/ManualCheckEvidence"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ManualCheckEvidence"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9735,10 +10897,20 @@
             }
           },
           "nodeTree": {
-            "$ref": "#/components/schemas/CtdNodeTreeDto"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CtdNodeTreeDto"
+              }
+            ],
+            "nullable": true
           },
           "finalization": {
-            "$ref": "#/components/schemas/WorkspaceFinalizationState"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceFinalizationState"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
