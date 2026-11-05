@@ -65,6 +65,13 @@ public sealed class EctdReleaseCapturePlanner(
         var package = profile is not null && packageModelBuilder is IStandardsBoundPackageModelBuilder bound
             ? await bound.BuildWithStandardsAsync(build, profile, cancellationToken).ConfigureAwait(false)
             : await packageModelBuilder.BuildAsync(build, cancellationToken).ConfigureAwait(false);
+        if (package.RegionalMetadata is { } regionalMetadata)
+        {
+            regionalMetadata.Verify();
+            if (regionalMetadata.ApplicationId != request.ApplicationId || regionalMetadata.SequenceNumber != package.SequenceNumber ||
+                regionalMetadata.StandardsSnapshotId != run.Binding.StandardsSnapshotId || regionalMetadata.WorkspaceRevision > request.ExpectedRevision)
+                throw new FinalizationNotAuthorizedException("The captured regional revision does not match the validated application, sequence, standards snapshot or workspace revision.");
+        }
         profile ??= standardsProfileProvider.GetProfile(package.Application.TemplateKey);
         var regionalPath = PackageLogicalPath.Validate(package.BackboneXml.Regional.RelativePath ?? throw new FinalizationNotAuthorizedException("The regional backbone address is missing."));
         if (!regionalPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || regionalPath == "index.xml")
@@ -95,6 +102,8 @@ public sealed class EctdReleaseCapturePlanner(
         var prefix = "payload/" + package.SequenceNumber + "/";
         var files = new List<ReleaseCaptureFile>();
         var assets = new List<ReleaseManifestAsset>();
+        if (package.RegionalMetadata is { } capturedRegional)
+            files.Add(ReleaseCaptureFile.Generated("regional-metadata.json", JsonSerializer.SerializeToUtf8Bytes(capturedRegional), ReleaseFileKind.RegionalMetadata));
         AddGenerated(files, prefix + index.FileName, index.XmlContent);
         foreach (var regional in regionalFiles) AddGenerated(files, prefix + regional.RelativePath, regional.Content);
         var documents = new Dictionary<string, string>(StringComparer.Ordinal);

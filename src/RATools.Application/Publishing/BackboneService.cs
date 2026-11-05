@@ -15,7 +15,8 @@ public sealed class BackboneService(
     IRegionalBackboneWriterRegistry regionalBackboneWriterRegistry,
     IEctdXmlValidator ectdXmlValidator,
     IStandardsProfileProvider standardsProfileProvider,
-    IBackboneFileWriter backboneFileWriter) : IBackboneService
+    IBackboneFileWriter backboneFileWriter,
+    StandardsSnapshotService? standardsSnapshots = null) : IBackboneService
 {
     public async Task<GeneratedBackboneDto> GenerateAsync(GenerateBackboneRequest request, CancellationToken cancellationToken = default)
     {
@@ -24,7 +25,10 @@ public sealed class BackboneService(
             cancellationToken);
         // 必须传 standards profile：不传时校验器回退到只含 ICH/US 的静态 DTD 白名单，
         // EU 的 eu-regional.dtd 会被拒 —— readiness（传 profile）绿、publish 红的分歧即源于此。
-        var profile = standardsProfileProvider.GetProfile(package.Application.TemplateKey);
+        var profile = package.RegionalMetadata is { } regional
+            ? StandardsSnapshotService.Profile(await (standardsSnapshots ?? throw new InvalidOperationException("The regional revision's exact standards snapshot is unavailable."))
+                .GetAsync(regional.StandardsSnapshotId, cancellationToken).ConfigureAwait(false))
+            : standardsProfileProvider.GetProfile(package.Application.TemplateKey);
         var regionalBackboneWriter = regionalBackboneWriterRegistry.Resolve(package.Application.Region);
         var regionalFiles = regionalBackboneWriter.WriteRegionalBackbones(package);
         var indexXml = ichIndexXmlWriter.Write(EctdBackboneComposition.AttachRegionalFiles(package, regionalFiles));

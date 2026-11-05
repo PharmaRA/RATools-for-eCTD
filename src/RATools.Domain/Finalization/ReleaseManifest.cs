@@ -6,9 +6,9 @@ using System.Text.Json.Serialization;
 
 namespace RATools.Domain.Finalization;
 
-// The role a captured file has in the release. Only the validation report is evidence
-// beside the payload; everything the operator delivers lives under payload/.
-public enum ReleaseFileKind { Payload, ValidationReport }
+// Evidence beside the payload is manifest-bound but excluded from the delivery ZIP.
+// Everything the operator delivers lives under payload/.
+public enum ReleaseFileKind { Payload, ValidationReport, RegionalMetadata }
 
 // One immutable file of a captured release. RelativePath is release-relative: delivered
 // files live under "payload/", the report sits beside the manifest. Length and both hashes

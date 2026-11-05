@@ -76,8 +76,9 @@ public static class RegionalImportParser
                     Children(One(contact, "emails"), "email").Select(value => new RegionalEmail(Id(value), Scalar(value))).ToArray()));
             }
             content = new(1, "US", Us: new(Scalar(number), Attr(number, "application-type"), Value(applicant, "company-name"), contacts,
-                Attr(One(submission, "submission-id"), "submission-type"), Attr(sequence, "submission-sub-type"), Attr(One(submission, "form"), "form-type"), Value(applicant, "submission-description")));
-            foreach (var value in root.Descendants().Where(value => value.Name.LocalName is "id" or "cross-reference-application-number" || value.Name.LocalName == "submission-id" && !string.IsNullOrWhiteSpace(value.Value)))
+                Attr(One(submission, "submission-id"), "submission-type"), Attr(sequence, "submission-sub-type"), Attr(One(submission, "form"), "form-type"), Value(applicant, "submission-description"),
+                Value(applicant, "id"), Value(submission, "submission-id")));
+            foreach (var value in root.Descendants().Where(value => value.Name.LocalName == "cross-reference-application-number"))
                 diagnostics.Add(new("RegionalUnmappedValue", Path(value), "This value has no typed regional field and remains in the hash-bound original XML."));
         }
         var relatedSequences = content.Eu?.Envelopes.SelectMany(item => item.RelatedSequences).Select(item => item.SequenceNumber) ?? [];

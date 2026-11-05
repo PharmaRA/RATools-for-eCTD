@@ -1505,7 +1505,7 @@ export type RegisterReceiptBody = {
     recordedBy: string;
 };
 
-export type ReleaseFileKind = 0 | 1;
+export type ReleaseFileKind = 0 | 1 | 2;
 
 export type ReleaseHistoryReference = {
     sequenceNumber: string;
@@ -1817,6 +1817,8 @@ export type UsRegionalMetadata = {
     submissionSubtype: string | null;
     formType: string | null;
     description: string | null;
+    applicantIdentifier?: string | null;
+    submissionIdentifier?: string | null;
 };
 
 export type ValidateSequenceRequestBody = {

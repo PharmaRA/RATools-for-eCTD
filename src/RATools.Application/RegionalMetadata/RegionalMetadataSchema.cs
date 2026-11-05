@@ -48,7 +48,9 @@ internal static class RegionalMetadataSchema
                 Collection("phones", true, Text("id", true), Text("number", true), Enum("type", us, "telephone", "telephone-number-type", true)),
                 Collection("emails", true, Text("id", true), Text("value", true)));
             shared = [Text("applicationIdentifier", true), Enum("applicationType", us, "application-number", "application-type", true), Text("applicantName", true), contacts];
-            sequence = [Object("us", [.. shared, Enum("submissionType", us, "submission-id", "submission-type", true), Enum("submissionSubtype", us, "sequence-number", "submission-sub-type", true),
+            sequence = [Object("us", [.. shared, Text("applicantIdentifier", true) with { Source = Source(us, "admin/applicant-info/id"), BusinessEvidence = "Explicit applicant business identifier; no internal application identity is inferred." },
+                Text("submissionIdentifier", true) with { Source = Source(us, "admin/application-set/application/submission-information/submission-id"), BusinessEvidence = "Explicit submission business identifier; no sequence number is inferred." },
+                Enum("submissionType", us, "submission-id", "submission-type", true), Enum("submissionSubtype", us, "sequence-number", "submission-sub-type", true),
                 Enum("formType", us, "form", "form-type"), Text("description", true)])];
             shared = [Object("us", shared)];
             context = [Text("country"), Text("language"), Text("productInformationType"), Enum("formType", us, "form", "form-type")];

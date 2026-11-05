@@ -21,8 +21,10 @@ internal static class RegionalMetadataValidation
         var issues = new List<RegionalMetadataDiagnostic>();
         if (content.Us is { } us)
         {
-            foreach (var (value, path) in new[] { (us.ApplicationIdentifier, "applicationIdentifier"), (us.ApplicationType, "applicationType"), (us.ApplicantName, "applicantName"), (us.SubmissionType, "submissionType"), (us.SubmissionSubtype, "submissionSubtype"), (us.Description, "description") }) Required(value, "us." + path, issues);
+            foreach (var (value, path) in new[] { (us.ApplicationIdentifier, "applicationIdentifier"), (us.ApplicationType, "applicationType"), (us.ApplicantName, "applicantName"), (us.ApplicantIdentifier, "applicantIdentifier"), (us.SubmissionIdentifier, "submissionIdentifier"), (us.SubmissionType, "submissionType"), (us.SubmissionSubtype, "submissionSubtype"), (us.Description, "description") }) Required(value, "us." + path, issues);
             Contacts(us.Contacts, issues);
+            for (var index = 0; index < nodes.Count; index++) UsContext(nodes[index].Country, nodes[index].Language, nodes[index].ProductInformationType, nodes[index].FormType, sections[nodes[index].NodeInstanceId], $"nodeContexts[{index}]", issues);
+            for (var index = 0; index < documents.Count; index++) UsContext(documents[index].Country, documents[index].Language, documents[index].ProductInformationType, documents[index].FormType, sections[documents[index].PlacementId], $"documentContexts[{index}]", issues);
         }
         if (content.Eu is { } eu)
         {
@@ -54,6 +56,13 @@ internal static class RegionalMetadataValidation
         }
         issues.Add(new("RegionalQualificationPending", "standardsSnapshotId", "Structured metadata alone does not activate a formally qualified regional profile."));
         return issues;
+    }
+    private static void UsContext(string? country, string? language, string? productInformationType, string? formType, string section, string path, List<RegionalMetadataDiagnostic> issues)
+    {
+        foreach (var (value, field) in new[] { (country, "country"), (productInformationType, "productInformationType") })
+            if (value is not null) issues.Add(new("RegionalFieldNotApplicable", path + "." + field, "This field is outside the scoped US form context."));
+        if (string.Equals(section, "m1.1", StringComparison.OrdinalIgnoreCase)) Required(formType, path + ".formType", issues);
+        else if (formType is not null) issues.Add(new("RegionalFieldNotApplicable", path + ".formType", "US form context applies only to the exact m1.1 placement or node."));
     }
     private static void Context(string? country, string? language, string? piType, string? formType, string section, string path, string dtd, List<RegionalMetadataDiagnostic> issues)
     {

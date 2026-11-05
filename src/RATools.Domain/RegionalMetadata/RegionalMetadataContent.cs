@@ -11,7 +11,9 @@ public sealed record RegionalTelephone(Guid Id, string? Number, string? Type);
 public sealed record RegionalEmail(Guid Id, string? Value);
 public sealed record RegionalContact(Guid Id, string? Name, string? Type, IReadOnlyList<RegionalTelephone> Phones, IReadOnlyList<RegionalEmail> Emails);
 public sealed record UsRegionalMetadata(string? ApplicationIdentifier, string? ApplicationType, string? ApplicantName,
-    IReadOnlyList<RegionalContact> Contacts, string? SubmissionType, string? SubmissionSubtype, string? FormType, string? Description);
+    IReadOnlyList<RegionalContact> Contacts, string? SubmissionType, string? SubmissionSubtype, string? FormType, string? Description,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ApplicantIdentifier = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SubmissionIdentifier = null);
 public sealed record EuEnvelope(Guid Id, string? Identifier, string? Country, string? Agency, string? Procedure, string? SubmissionType,
     string? SubmissionMode, string? SubmissionNumber, string? SubmissionUnit, string? Applicant,
     IReadOnlyList<RegionalTextEntry> ProcedureTrackingNumbers, IReadOnlyList<RegionalTextEntry> InventedNames,
@@ -86,7 +88,7 @@ internal static class RegionalMetadataRules
         Tag(content.SchemaVersion, content.RegionKey, content.Us is not null, content.Eu is not null);
         if (content.Us is { } us)
         {
-            foreach (var value in new[] { us.ApplicationIdentifier, us.ApplicationType, us.ApplicantName, us.SubmissionType, us.SubmissionSubtype, us.FormType, us.Description }) Text(value);
+            foreach (var value in new[] { us.ApplicationIdentifier, us.ApplicationType, us.ApplicantName, us.SubmissionType, us.SubmissionSubtype, us.FormType, us.Description, us.ApplicantIdentifier, us.SubmissionIdentifier }) Text(value);
             return content with { Us = us with { Contacts = Contacts(us.Contacts) } };
         }
         return content with { Eu = new(Copy(content.Eu!.Envelopes, envelope => envelope.Id, envelope =>

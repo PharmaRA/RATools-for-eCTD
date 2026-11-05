@@ -3,7 +3,7 @@ using RATools.Application.Publishing.PackageModel;
 
 namespace RATools.Application.Publishing.UsRegional;
 
-public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
+public sealed partial class UsRegionalXmlWriter : IUsRegionalXmlWriter
 {
     private static readonly XNamespace XlinkNamespace = "http://www.w3c.org/1999/xlink";
 
@@ -13,6 +13,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         var xmlProfile = package.BackboneXml.Regional;
         XNamespace regionalNamespace = xmlProfile.Namespace;
         var relativePath = RequireRelativePath(package, xmlProfile.RelativePath);
+        ValidateLeaves(package);
         ValidateRequiredMetadata(package);
 
         var root = new XElement(regionalNamespace + xmlProfile.RootElementName,
@@ -40,6 +41,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
     private static XElement BuildAdminElement(EctdSequencePackage package, string relativePath)
     {
+        if (package.RegionalMetadata is not null) return BuildTypedAdminElement(package);
         var metadata = package.UsRegional;
         var formLeaves = package.Module1Leaves
             .Where(x => string.Equals(x.CtdSection, "m1.1", StringComparison.OrdinalIgnoreCase))
@@ -102,24 +104,26 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
                 StringComparer.OrdinalIgnoreCase);
 
         var childElements = UsRegionalM1V33.Root.Children
-            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath))
+            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath, package))
             .Where(child => child is not null)
             .Cast<XElement>()
             .ToArray();
 
-        return childElements.Length == 0
+        var forms = package.RegionalMetadata is null ? null : BuildTypedForms(package, regionalRelativePath);
+        return childElements.Length == 0 && forms is null
             ? null
-            : new XElement("m1-regional", childElements);
+            : new XElement("m1-regional", forms, childElements);
     }
 
     private static XElement? BuildSectionElement(
         UsRegionalSectionNode node,
         IReadOnlyDictionary<string, EctdLeaf[]> leavesBySection,
-        string regionalRelativePath)
+        string regionalRelativePath,
+        EctdSequencePackage package)
     {
         leavesBySection.TryGetValue(node.SectionPath, out var leaves);
         var childElements = node.Children
-            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath))
+            .Select(child => BuildSectionElement(child, leavesBySection, regionalRelativePath, package))
             .Where(child => child is not null)
             .Cast<XElement>()
             .ToArray();
@@ -134,7 +138,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         {
             foreach (var leaf in leaves)
             {
-                element.Add(BuildLeafElement(leaf, regionalRelativePath));
+                element.Add(BuildLeafElement(leaf, regionalRelativePath, package));
             }
         }
 
@@ -142,7 +146,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         return element;
     }
 
-    private static XElement BuildLeafElement(EctdLeaf leaf, string regionalRelativePath)
+    private static XElement BuildLeafElement(EctdLeaf leaf, string regionalRelativePath, EctdSequencePackage? package = null)
     {
         var attributes = new List<object>
         {
@@ -163,6 +167,12 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
         {
             attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.BuildModifiedFileHref(regionalRelativePath)));
         }
+        if (package?.RegionalMetadata is { } regional)
+        {
+            var context = regional.DocumentContexts.SingleOrDefault(item => item.PlacementId == leaf.PlacementId);
+            var language = context is not null ? context.Language : regional.NodeContexts.SingleOrDefault(item => item.NodeInstanceId == leaf.NodeInstanceId)?.Language;
+            if (language is not null) attributes.Add(new XAttribute(XNamespace.Xml + "lang", language));
+        }
 
         return new XElement("leaf",
             attributes,
@@ -181,6 +191,7 @@ public sealed class UsRegionalXmlWriter : IUsRegionalXmlWriter
 
     private static void ValidateRequiredMetadata(EctdSequencePackage package)
     {
+        if (package.RegionalMetadata is not null) { ValidateTypedMetadata(package); return; }
         var metadata = package.UsRegional;
         Require(package, nameof(metadata.ApplicantId), metadata.ApplicantId);
         Require(package, nameof(metadata.CompanyName), metadata.CompanyName);

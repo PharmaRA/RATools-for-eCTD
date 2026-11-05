@@ -1,6 +1,8 @@
 using RATools.Application.Standards;
 using RATools.Domain.Ctd;
 using RATools.Domain.Documents;
+using RATools.Domain.RegionalMetadata;
+using System.Text.Json.Serialization;
 
 namespace RATools.Application.Publishing.PackageModel;
 
@@ -21,7 +23,8 @@ public sealed record EctdSequencePackage(
     EctdEuRegionalMetadata? EuRegional = null,
     IReadOnlyList<EctdPackageNode>? Nodes = null,
     long WorkspaceRevision = 0,
-    IReadOnlyList<EctdBackboneReference>? RegionalBackbones = null);
+    IReadOnlyList<EctdBackboneReference>? RegionalBackbones = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RegionalMetadataRevision? RegionalMetadata = null);
 
 public sealed record EctdBackboneReference(string RelativePath, string LeafId, string Title,
     string Operation = "new", string? ModifiedFile = null, string? Md5 = null);

@@ -3,6 +3,10 @@ using RATools.Application.Documents;
 using RATools.Application.Standards;
 using RATools.Domain.Documents;
 using RATools.Domain.Ctd;
+using RATools.Application.RegionalMetadata;
+using RATools.Application.Publishing.UsRegional;
+using RATools.Domain.Common;
+using System.Text.Json;
 
 namespace RATools.Application.Publishing.PackageModel;
 
@@ -15,7 +19,9 @@ public sealed class EctdPackageModelBuilder(
     ICtdNodeRepository nodeRepository,
     IWorkspaceRevisionStore revisions,
     IApplicationImportStore imports,
-    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null) : IStandardsBoundPackageModelBuilder
+    RATools.Application.Ctd.NodeFileMoveGuard? moveGuard = null,
+    IRegionalMetadataStore? regionalMetadataStore = null,
+    StandardsSnapshotService? standardsSnapshots = null) : IStandardsBoundPackageModelBuilder
 {
     public Task<EctdSequencePackage> BuildAsync(BuildEctdPackageRequest request, CancellationToken cancellationToken = default) => BuildCoreAsync(request, null, cancellationToken);
     public Task<EctdSequencePackage> BuildWithStandardsAsync(BuildEctdPackageRequest request, StandardsProfile profile, CancellationToken cancellationToken = default) => BuildCoreAsync(request, profile, cancellationToken);
@@ -37,7 +43,24 @@ public sealed class EctdPackageModelBuilder(
             throw new EctdPackageSequenceNotFoundException(request.ApplicationId, request.SequenceNumber);
         }
 
-        var profile = selectedProfile ?? standardsProfileProvider.GetProfile(application.EctdTemplateKey);
+        var regional = regionalMetadataStore is null ? null : await regionalMetadataStore.GetHeadAsync(application.Id, sequence.SequenceNumber, cancellationToken);
+        StandardsProfile profile;
+        if (regional is not null)
+        {
+            regional.Verify();
+            var region = application.EctdTemplateKey == "us-fda-ectd-3.2.2" ? "US" : application.EctdTemplateKey == "eu-ectd-3.2.2" ? "EU" : "";
+            if (regional.ApplicationId != application.Id || regional.SequenceNumber != sequence.SequenceNumber || regional.RegionKey != region ||
+                regional.WorkspaceRevision > sequence.WorkspaceRevision)
+                throw new RegionalMetadataScopeException("The regional head does not belong to the exact application, sequence, region and workspace scope.");
+            var snapshot = standardsSnapshots is null ? throw new RegionalMetadataScopeException("A regional head requires its exact archived standards snapshot.")
+                : await standardsSnapshots.GetAsync(regional.StandardsSnapshotId, cancellationToken);
+            if (snapshot.TemplateKey != application.EctdTemplateKey) throw new RegionalMetadataScopeException("The regional standards snapshot belongs to another template.");
+            var archived = StandardsSnapshotService.Profile(snapshot);
+            if (selectedProfile is not null && CanonicalJson.Digest(JsonSerializer.SerializeToElement(selectedProfile)) != CanonicalJson.Digest(JsonSerializer.SerializeToElement(archived)))
+                throw new RegionalMetadataScopeException("The supplied standards profile differs from the exact regional revision's archived profile.");
+            profile = archived;
+        }
+        else profile = selectedProfile ?? standardsProfileProvider.GetProfile(application.EctdTemplateKey);
         if (profile.TemplateKey != application.EctdTemplateKey) throw new InvalidOperationException("The selected standards snapshot does not belong to this application template.");
         var workspace = await nodeRepository.GetSequenceAsync(application.Id, sequence.SequenceNumber, cancellationToken)
             ?? throw new EctdPackageSequenceNotFoundException(application.Id, sequence.SequenceNumber);
@@ -87,7 +110,9 @@ public sealed class EctdPackageModelBuilder(
             }
         }
 
-        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById, profile);
+        var regionalOrder = regional?.RegionKey == "US" ? regional.DocumentContexts.Select((context, index) => (context.PlacementId, index))
+            .ToDictionary(item => item.PlacementId, item => item.index) : null;
+        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById, profile, regionalOrder);
         var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
         var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
         var tree = EctdPackageNodeTree.Create(application.Id, workspace.Nodes.Select(node =>
@@ -98,7 +123,7 @@ public sealed class EctdPackageModelBuilder(
         }), ichBackboneLeaves, allowLegacyBinding: true);
         var publishedFiles = BuildPublishedFiles(leaves);
 
-        return new EctdSequencePackage(
+        var package = new EctdSequencePackage(
             application.Id,
             application.ApplicationNumber,
             sequence.SequenceNumber,
@@ -115,7 +140,9 @@ public sealed class EctdPackageModelBuilder(
             BuildEuRegionalMetadata(application.Id, application.ApplicationNumber, sequenceMetadata),
             tree.Nodes.Concat(workspace.Nodes.Where(node => node.CtdSection == "m1").Select(node => new EctdPackageNode(
                 node.NodeInstanceId, null, workspace.Graph.Get(node.NodeInstanceId).DefinitionKey, node.DefinitionVersion,
-                node.Attributes, node.Title, node.SortOrder, node.MetadataStatus))).ToArray(), workspace.WorkspaceRevision, backbone.References);
+                node.Attributes, node.Title, node.SortOrder, node.MetadataStatus))).ToArray(), workspace.WorkspaceRevision, backbone.References, regional);
+        if (regional?.RegionKey == "US") UsRegionalXmlWriter.ValidateTypedMetadata(package);
+        return package;
     }
 
     private static EctdEuRegionalMetadata BuildEuRegionalMetadata(
@@ -165,11 +192,16 @@ public sealed class EctdPackageModelBuilder(
         IReadOnlyCollection<DocumentPlacement> placements,
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
         IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
-        StandardsProfile profile)
+        StandardsProfile profile,
+        IReadOnlyDictionary<Guid, int>? regionalOrder)
     {
         return placements
             .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.SortOrder)
+            // Imported form wrappers have independent local sibling orders. Their persisted
+            // exact placement-context order retains XML traversal order when those values tie.
+            .ThenBy(x => x.ImportedSource is not null && x.CtdSection.StartsWith("m1.", StringComparison.OrdinalIgnoreCase) && regionalOrder is not null
+                ? regionalOrder.GetValueOrDefault(x.Id, int.MaxValue) : int.MaxValue)
             .ThenBy(x => x.Id)
             .Select(placement => BuildLeaf(application, sequenceNumber, placement, placementById, documentById, profile))
             .ToArray();
