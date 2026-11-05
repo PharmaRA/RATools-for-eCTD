@@ -171,6 +171,81 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("applications", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("LeaseExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("QuarantinedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("assembly_executions", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.ToTable("assembly_plans", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AuditLogRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3095,6 +3170,100 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("document_processing_plans", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameAdoptionRecord", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("JobId");
+
+                    b.ToTable("pdf_rename_adoptions", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("LeaseExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("QuarantinedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("pdf_rename_jobs", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.ToTable("pdf_rename_plans", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PublishJobRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3257,6 +3426,198 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("publish_jobs", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalDocumentContextRecord", b =>
+                {
+                    b.Property<Guid>("MetadataId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PlacementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("NodeInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("MetadataId", "PlacementId");
+
+                    b.HasIndex("MetadataId", "Ordinal")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "MetadataId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "NodeInstanceId")
+                        .HasDatabaseName("IX_regional_metadata_document_contexts_ApplicationId_Sequence~1");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "PlacementId")
+                        .HasDatabaseName("IX_regional_metadata_document_contexts_ApplicationId_Sequence~2");
+
+                    b.ToTable("regional_metadata_document_contexts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_regional_document_context_ordinal", "\"Ordinal\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataHeadRecord", b =>
+                {
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScopeKey")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("MetadataId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ApplicationId", "ScopeKey");
+
+                    b.HasIndex("ApplicationId", "ScopeKey", "MetadataId");
+
+                    b.ToTable("regional_metadata_heads", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DataSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("InheritedDefaultsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InheritedDefaultsScope")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("LegacyDigest")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("MetadataRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ScopeKey")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("SequenceNumber")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("StandardsSnapshotId")
+                        .IsRequired()
+                        .HasMaxLength(71)
+                        .HasColumnType("character varying(71)");
+
+                    b.Property<long?>("WorkspaceRevision")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("ApplicationId", "ScopeKey", "Id")
+                        .HasName("AK_regional_metadata_scope_id");
+
+                    b.HasIndex("StandardsSnapshotId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber");
+
+                    b.HasIndex("ApplicationId", "InheritedDefaultsScope", "InheritedDefaultsId");
+
+                    b.HasIndex("ApplicationId", "ScopeKey", "LegacyDigest")
+                        .IsUnique()
+                        .HasDatabaseName("IX_regional_metadata_legacy_digest")
+                        .HasFilter("\"LegacyDigest\" IS NOT NULL");
+
+                    b.HasIndex("ApplicationId", "ScopeKey", "MetadataRevision")
+                        .IsUnique()
+                        .HasDatabaseName("IX_regional_metadata_scope_revision");
+
+                    b.ToTable("regional_metadata_revisions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_regional_metadata_inheritance", "(\"InheritedDefaultsId\" IS NULL AND \"InheritedDefaultsScope\" IS NULL) OR (\"InheritedDefaultsId\" IS NOT NULL AND \"InheritedDefaultsScope\" IS NOT DISTINCT FROM 'application' AND \"SequenceNumber\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_regional_metadata_revision", "\"MetadataRevision\" >= 1 AND \"MetadataRevision\" < 9007199254740991");
+
+                            t.HasCheckConstraint("CK_regional_metadata_scope", "(\"SequenceNumber\" IS NULL AND \"ScopeKey\" = 'application' AND \"WorkspaceRevision\" IS NULL) OR (\"SequenceNumber\" IS NOT NULL AND \"WorkspaceRevision\" IS NOT NULL AND \"SequenceNumber\" ~ '^[0-9]{4}$' AND \"ScopeKey\" = \"SequenceNumber\" AND \"WorkspaceRevision\" >= 1 AND \"WorkspaceRevision\" < 9007199254740991)");
+
+                            t.HasCheckConstraint("CK_regional_metadata_size", "octet_length(\"Data\") <= 8388608");
+                        });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalNodeContextRecord", b =>
+                {
+                    b.Property<Guid>("MetadataId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NodeInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("MetadataId", "NodeInstanceId");
+
+                    b.HasIndex("MetadataId", "Ordinal")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "MetadataId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "NodeInstanceId")
+                        .HasDatabaseName("IX_regional_metadata_node_contexts_ApplicationId_SequenceNumb~1");
+
+                    b.ToTable("regional_metadata_node_contexts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_regional_node_context_ordinal", "\"Ordinal\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.SequenceNodeRecord", b =>
                 {
                     b.Property<Guid>("ApplicationId")
@@ -3397,6 +3758,72 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         {
                             t.HasCheckConstraint("CK_sequences_workspace_revision", "\"WorkspaceRevision\" >= 0 AND \"WorkspaceRevision\" <= 9007199254740991");
                         });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.StandardsSnapshotRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(71)
+                        .HasColumnType("character varying(71)");
+
+                    b.Property<DateTime>("AcquiredUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DataSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RuleProfileAlias")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TemplateKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateKey", "RuleProfileAlias", "AcquiredUtc")
+                        .HasDatabaseName("IX_standards_snapshot_template_profile_acquired");
+
+                    b.ToTable("standards_profile_snapshots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_standards_snapshot_hash", "\"DataSha256\" ~ '^[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("CK_standards_snapshot_id", "\"Id\" ~ '^sha256:[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("CK_standards_snapshot_schema", "\"SchemaVersion\" = 1");
+
+                            t.HasCheckConstraint("CK_standards_snapshot_size", "octet_length(\"Data\") <= 67108864");
+                        });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.CtdNodeInstanceRecord", b =>
@@ -3612,6 +4039,107 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameAdoptionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalDocumentContextRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "MetadataId")
+                        .HasPrincipalKey("ApplicationId", "ScopeKey", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.SequenceNodeRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "NodeInstanceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentPlacementRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "PlacementId")
+                        .HasPrincipalKey("ApplicationId", "SequenceNumber", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataHeadRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "ScopeKey", "MetadataId")
+                        .HasPrincipalKey("ApplicationId", "ScopeKey", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.StandardsSnapshotRecord", null)
+                        .WithMany()
+                        .HasForeignKey("StandardsSnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.SequenceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "InheritedDefaultsScope", "InheritedDefaultsId")
+                        .HasPrincipalKey("ApplicationId", "ScopeKey", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.RegionalNodeContextRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "MetadataId")
+                        .HasPrincipalKey("ApplicationId", "ScopeKey", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.SequenceNodeRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "NodeInstanceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.SequenceNodeRecord", b =>
                 {
                     b.HasOne("RATools.Infrastructure.Persistence.EfCore.SequenceRecord", null)
@@ -3646,93 +4174,7 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                 {
                     b.Navigation("Sequences");
                 });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
-                {
-                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
-                    b.Property<Guid>("ApplicationId").HasColumnType("uuid");
-                    b.Property<string>("Data").IsRequired().HasColumnType("text");
-                    b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                    b.HasKey("Id"); b.HasIndex("ApplicationId"); b.ToTable("assembly_plans", (string)null);
-                });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
-                {
-                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
-                    b.Property<Guid>("PlanId").HasColumnType("uuid");
-                    b.Property<string>("IdempotencyKey").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
-                    b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
-                    b.Property<DateTime>("CreatedUtc").HasColumnType("timestamp with time zone");
-                    b.Property<DateTime?>("LeaseExpiresUtc").HasColumnType("timestamp with time zone");
-                    b.Property<DateTime?>("QuarantinedUtc").HasColumnType("timestamp with time zone");
-                    b.Property<string>("Data").IsRequired().HasColumnType("text");
-                    b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                    b.HasKey("Id"); b.HasIndex("IdempotencyKey").IsUnique(); b.HasIndex("PlanId").IsUnique();
-                    b.HasIndex("Status", "CreatedUtc"); b.ToTable("assembly_executions", (string)null);
-                });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", b =>
-                {
-                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null).WithMany()
-                        .HasForeignKey("ApplicationId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.AssemblyExecutionRecord", b =>
-                {
-                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.AssemblyPlanRecord", null).WithMany()
-                        .HasForeignKey("PlanId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                });
 #pragma warning restore 612, 618
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", b =>
-            {
-                b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
-                b.Property<Guid>("ApplicationId").HasColumnType("uuid");
-                b.Property<string>("Data").IsRequired().HasColumnType("text");
-                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                b.HasKey("Id"); b.HasIndex("ApplicationId"); b.ToTable("pdf_rename_plans");
-                b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null).WithMany()
-                    .HasForeignKey("ApplicationId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-            });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", b =>
-            {
-                b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
-                b.Property<Guid>("PlanId").HasColumnType("uuid");
-                b.Property<string>("IdempotencyKey").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
-                b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
-                b.Property<DateTime>("CreatedUtc").HasColumnType("timestamp with time zone");
-                b.Property<DateTime?>("LeaseExpiresUtc").HasColumnType("timestamp with time zone");
-                b.Property<DateTime?>("QuarantinedUtc").HasColumnType("timestamp with time zone");
-                b.Property<string>("Data").IsRequired().HasColumnType("text");
-                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                b.HasKey("Id"); b.HasIndex("PlanId").IsUnique(); b.HasIndex("IdempotencyKey").IsUnique();
-                b.HasIndex("Status", "CreatedUtc"); b.ToTable("pdf_rename_jobs");
-                b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenamePlanRecord", null).WithMany()
-                    .HasForeignKey("PlanId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-            });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfRenameAdoptionRecord", b =>
-            {
-                b.Property<Guid>("JobId").HasColumnType("uuid");
-                b.Property<string>("Data").IsRequired().HasColumnType("text");
-                b.Property<string>("Digest").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                b.HasKey("JobId"); b.ToTable("pdf_rename_adoptions");
-                b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfRenameJobRecord", null).WithMany()
-                    .HasForeignKey("JobId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-            });
-            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.StandardsSnapshotRecord", b =>
-            {
-                b.Property<string>("Id").HasMaxLength(71).HasColumnType("character varying(71)");
-                b.Property<int>("SchemaVersion").HasColumnType("integer");
-                b.Property<string>("TemplateKey").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                b.Property<string>("RuleProfileAlias").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)");
-                b.Property<DateTime>("AcquiredUtc").HasColumnType("timestamp with time zone");
-                b.Property<string>("Data").IsRequired().HasColumnType("text");
-                b.Property<string>("DataSha256").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
-                b.HasKey("Id");
-                b.HasIndex("TemplateKey", "RuleProfileAlias", "AcquiredUtc").HasDatabaseName("IX_standards_snapshot_template_profile_acquired");
-                b.ToTable("standards_profile_snapshots", null, table =>
-                {
-                    table.HasCheckConstraint("CK_standards_snapshot_id", "\"Id\" ~ '^sha256:[0-9a-f]{64}$'");
-                    table.HasCheckConstraint("CK_standards_snapshot_schema", "\"SchemaVersion\" = 1");
-                    table.HasCheckConstraint("CK_standards_snapshot_hash", "\"DataSha256\" ~ '^[0-9a-f]{64}$'");
-                    table.HasCheckConstraint("CK_standards_snapshot_size", "octet_length(\"Data\") <= 67108864");
-                });
-            });
         }
     }
 }

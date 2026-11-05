@@ -116,6 +116,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
+            services.AddSingleton<RATools.Application.RegionalMetadata.IRegionalMetadataStore, InMemoryRegionalMetadataStore>();
             services.AddSingleton<RATools.Application.Standards.IStandardsSnapshotStore, InMemoryStandardsSnapshotStore>();
             services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
             services.AddSingleton<RATools.Application.Assembly.IAssemblyStore, InMemoryAssemblyStore>();
@@ -142,6 +143,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<RATools.Application.RegionalMetadata.IRegionalMetadataStore, EfCoreRegionalMetadataStore>();
         services.AddScoped<IDocumentProcessingStore, EfCoreDocumentProcessingStore>();
         services.AddScoped<RATools.Application.Assembly.IAssemblyStore, EfCoreAssemblyStore>();
         services.AddScoped<IPdfRenameStore, EfCorePdfRenameStore>();
