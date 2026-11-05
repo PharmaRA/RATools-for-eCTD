@@ -29,7 +29,7 @@ public sealed class ApplicationImportRegionalTests
 
         var imported = await ImportAsync(fixture);
 
-        Assert.All(imported.Result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
+        Assert.All(imported.Result.Issues, AssertExpectedImportWarning);
         Assert.Equal(2, imported.Result.ImportedDocumentCount);
         Assert.Equal(2, imported.Result.ImportedPlacementCount);
         foreach (var source in new[] { regional, ich })
@@ -128,9 +128,17 @@ public sealed class ApplicationImportRegionalTests
 
         var imported = await ImportAsync(fixture);
 
-        Assert.All(imported.Result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
+        Assert.All(imported.Result.Issues, AssertExpectedImportWarning);
         Assert.Equal("m1.2", Assert.Single(imported.Placements).CtdSection);
         Assert.Equal("regional.txt", Assert.Single(imported.Documents).FileName);
+    }
+
+    private static void AssertExpectedImportWarning(ApplicationImportIssueDto issue)
+    {
+        Assert.Equal("Warning", issue.Severity);
+        Assert.Contains(issue.Code, new[] { "NODE_SCHEMA_NOT_AVAILABLE", "RegionalQualificationPending", "RegionalContextUnbound", "RegionalUnmappedValue",
+            "RegionalUnknownAttribute", "RegionalUnknownElement", "RegionalUnsupportedVersion", "RegionalUnsupportedNamespace", "RegionalUnsupportedShape",
+            "RegionalRelatedSequenceUnqualified", "Required", "ControlledValueNotAllowed", "RelatedSequenceNotApplicable", "ProductInformationContextNotApplicable", "RegionalFieldNotApplicable" });
     }
 
     private static string RegionalPath(EctdWorkspaceFixture fixture)

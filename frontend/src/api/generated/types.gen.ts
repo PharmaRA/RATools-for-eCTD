@@ -22,6 +22,7 @@ export type ApplicationImportIssueDto = {
     code: string;
     sequenceNumber: string | null;
     message: string;
+    fieldPath: string | null;
 };
 
 export type ApplicationImportResultDto = {

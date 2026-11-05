@@ -29,6 +29,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
         AssemblyModelConfiguration.Configure(modelBuilder);
         StandardsModelConfiguration.Configure(modelBuilder);
         RegionalMetadataModelConfiguration.Configure(modelBuilder);
+        ImportedRegionalEvidenceModelConfiguration.Configure(modelBuilder);
         PdfRenameModelConfiguration.Configure(modelBuilder);
         PackageValidationModelConfiguration.Configure(modelBuilder);
         FinalizationModelConfiguration.Configure(modelBuilder);

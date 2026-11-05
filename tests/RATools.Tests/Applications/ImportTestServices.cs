@@ -2,6 +2,7 @@ using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Security;
 using RATools.Application.Applications;
 using RATools.Infrastructure.Persistence.InMemory;
+using RATools.Application.Standards;
 
 namespace RATools.Tests.Applications;
 
@@ -18,6 +19,9 @@ internal static class ImportTestServices
         var memoryNodes = new InMemoryCtdNodeRepository(revisions, placements);
         nodes = memoryNodes;
         return new ApplicationImportService(applications,
-            new InMemoryApplicationImportStore(applications, documents, placements, memoryNodes), paths);
+            new InMemoryApplicationImportStore(applications, documents, placements, memoryNodes, new InMemoryRegionalMetadataStore()), paths,
+            new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new CompositeStandardsProfileProvider(
+                [new EuEctd322StandardsProfileProvider(Directory.GetCurrentDirectory()), new FdaEctd322StandardsProfileProvider(Directory.GetCurrentDirectory())]),
+                new StandardsSnapshotOptions { AssetRootPath = Directory.GetCurrentDirectory() }));
     }
 }

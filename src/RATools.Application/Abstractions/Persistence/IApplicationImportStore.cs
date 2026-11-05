@@ -1,6 +1,7 @@
 using RATools.Domain.Applications;
 using RATools.Domain.Ctd;
 using RATools.Domain.Documents;
+using RATools.Domain.RegionalMetadata;
 
 namespace RATools.Application.Abstractions.Persistence;
 
@@ -9,7 +10,9 @@ public sealed record ImportedBackbone(string SequenceNumber, string RelativePath
 
 public sealed record ApplicationImportBatch(SubmissionApplication Application, CtdNodeGraph Graph,
     IReadOnlyList<SequenceNode> Nodes, IReadOnlyCollection<SubmissionDocument> Documents,
-    IReadOnlyList<DocumentPlacement> Placements, IReadOnlyList<ImportedBackbone> Backbones);
+    IReadOnlyList<DocumentPlacement> Placements, IReadOnlyList<ImportedBackbone> Backbones,
+    IReadOnlyList<RegionalMetadataRevision>? RegionalRevisions = null,
+    IReadOnlyList<ImportedRegionalEvidence>? RegionalEvidence = null);
 
 public interface IApplicationImportStore
 {
@@ -17,4 +20,6 @@ public interface IApplicationImportStore
     Task SaveAsync(ApplicationImportBatch batch, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ImportedBackbone>> GetBackbonesAsync(Guid applicationId, string sequenceNumber,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ImportedRegionalEvidence>> GetRegionalEvidenceAsync(Guid applicationId, string sequenceNumber,
+        CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ImportedRegionalEvidence>>([]);
 }

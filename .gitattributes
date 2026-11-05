@@ -15,6 +15,9 @@ tests/RATools.Tests/Fixtures/Publisher/sequences/** -text
 tests/RATools.Tests/Fixtures/Publisher/sequences/**/*.dtd -whitespace
 tests/RATools.Tests/Fixtures/Publisher/external/*.xml -text
 
+# Regional import evidence retains the regulator-published XML bytes.
+tests/RATools.Tests/Fixtures/RegionalImport/*.xml -text -whitespace
+
 # PDF engine qualification receipts bind the exact fixture and output bytes.
 tests/RATools.Tests/Fixtures/PdfProcessing/** -text
 reference/publisher/pdf-navigation-qualification/** -text

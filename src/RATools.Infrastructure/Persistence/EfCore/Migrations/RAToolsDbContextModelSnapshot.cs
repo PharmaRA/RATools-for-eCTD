@@ -2781,6 +2781,57 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("imported_backbones", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.ImportedRegionalEvidenceRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MetadataId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("OriginalBytes")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(230)
+                        .HasColumnType("character varying(230)");
+
+                    b.Property<string>("SequenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("StandardsSnapshotId")
+                        .IsRequired()
+                        .HasMaxLength(71)
+                        .HasColumnType("character varying(71)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StandardsSnapshotId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "MetadataId");
+
+                    b.HasIndex("ApplicationId", "SequenceNumber", "RelativePath")
+                        .IsUnique();
+
+                    b.ToTable("regional_import_evidence", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_regional_import_evidence_size", "octet_length(\"OriginalBytes\") BETWEEN 1 AND 8388608");
+                        });
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.NodeBackfillCheckpointRecord", b =>
                 {
                     b.Property<Guid>("ApplicationId")
@@ -3937,6 +3988,22 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .WithMany()
                         .HasForeignKey("ApplicationId", "SequenceNumber")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.ImportedRegionalEvidenceRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.StandardsSnapshotRecord", null)
+                        .WithMany()
+                        .HasForeignKey("StandardsSnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.RegionalMetadataRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId", "SequenceNumber", "MetadataId")
+                        .HasPrincipalKey("ApplicationId", "ScopeKey", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

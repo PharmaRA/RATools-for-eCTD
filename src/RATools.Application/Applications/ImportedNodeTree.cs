@@ -26,6 +26,7 @@ internal sealed class ImportedNodeTree(CtdNodeGraph previous, string sequenceNum
         ? MakeNode(parent, id, _ordered.Single(item => item.Id == id).Order) : null;
 
     public IReadOnlyList<SequenceNode> Nodes => _ordered.Select(item => MakeNode(item.Element, item.Id, item.Order)).ToArray();
+    public IReadOnlyList<(Guid Id, XElement Element)> RegionalContexts => _ordered.Select(item => (item.Id, item.Element)).ToArray();
 
     private SequenceNode MakeNode(XElement element, Guid id, int order) => new(Graph, sequenceNumber, id,
         Attributes(element), element.Elements().FirstOrDefault(child => child.Name.LocalName == "title")?.Value, order);

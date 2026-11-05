@@ -6596,6 +6596,7 @@
       "ApplicationImportIssueDto": {
         "required": [
           "code",
+          "fieldPath",
           "message",
           "sequenceNumber",
           "severity"
@@ -6614,6 +6615,10 @@
           },
           "message": {
             "type": "string"
+          },
+          "fieldPath": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
