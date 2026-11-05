@@ -20,6 +20,7 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
             return false;
         }
 
+        existing.DocumentId = placement.DocumentId;
         existing.CtdSection = placement.CtdSection;
         existing.NodeInstanceId = placement.NodeInstanceId;
         existing.SortOrder = placement.SortOrder;

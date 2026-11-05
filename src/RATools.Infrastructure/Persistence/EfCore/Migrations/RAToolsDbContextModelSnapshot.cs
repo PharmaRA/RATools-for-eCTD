@@ -2480,6 +2480,41 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("documents", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DocumentVersionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("ParentVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("ParentVersionId");
+
+                    b.HasIndex("SourceDocumentId");
+
+                    b.ToTable("document_versions", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedDraftRevisionRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2905,6 +2940,161 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.ToTable("package_validation_reports", (string)null);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingAdoptionRecord", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("JobId");
+
+                    b.HasIndex("DocumentId");
+
+                    b.ToTable("document_processing_adoptions", (string)null);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingJobRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("CancellationRequested")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("LeaseExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LeaseOwner")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PlanDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResultMd5")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ResultPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResultSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("ResultVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("StartedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId")
+                        .IsUnique();
+
+                    b.HasIndex("ResultVersionId");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("document_processing_jobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_processing_attempts", "\"AttemptCount\" >= 0 AND \"AttemptCount\" <= 3");
+
+                            t.HasCheckConstraint("CK_processing_lease", "\"Status\" <> 'Running' OR (\"LeaseToken\" IS NOT NULL AND \"LeaseOwner\" IS NOT NULL AND \"LeaseExpiresUtc\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingPlanRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SourceVersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("SourceVersionId");
+
+                    b.ToTable("document_processing_plans", (string)null);
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PublishJobRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3024,12 +3214,12 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
-                    b.Property<Guid?>("PackageValidationRunId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("PackagePath")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
+
+                    b.Property<Guid?>("PackageValidationRunId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("SequenceNumber")
                         .IsRequired()
@@ -3276,6 +3466,26 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
                 });
 
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.DocumentVersionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentVersionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ParentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.FinalizedDraftRevisionRecord", b =>
                 {
                     b.HasOne("RATools.Infrastructure.Persistence.EfCore.FinalizedSequenceRecord", null)
@@ -3354,6 +3564,50 @@ namespace RATools.Infrastructure.Persistence.EfCore.Migrations
                     b.HasOne("RATools.Domain.PackageValidation.PackageValidationRun", null)
                         .WithOne()
                         .HasForeignKey("RATools.Infrastructure.Persistence.EfCore.PackageValidationReportRecord", "RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingAdoptionRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfProcessingJobRecord", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingJobRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.PdfProcessingPlanRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentVersionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ResultVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RATools.Infrastructure.Persistence.EfCore.PdfProcessingPlanRecord", b =>
+                {
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.ApplicationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RATools.Infrastructure.Persistence.EfCore.DocumentVersionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SourceVersionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

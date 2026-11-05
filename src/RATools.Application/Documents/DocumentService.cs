@@ -18,7 +18,8 @@ public sealed class DocumentService(
     IDocumentStorageBoundary documentStorageBoundary,
     WorkspaceMutationCoordinator mutations,
     ICtdNodeRepository? nodes = null,
-    RATools.Application.Ctd.CtdNodePathResolver? nodePaths = null) : IDocumentService
+    RATools.Application.Ctd.CtdNodePathResolver? nodePaths = null,
+    RATools.Application.DocumentProcessing.IDocumentProcessingStore? processing = null) : IDocumentService
 {
     public async Task<DocumentDto> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
     {
@@ -177,6 +178,8 @@ public sealed class DocumentService(
         await using var mutation = owner is null ? null : await mutations.AcquireAsync(owner.Value.ApplicationId, owner.Value.SequenceNumber, expectedRevision, cancellationToken);
         document = await repository.GetAsync(id, cancellationToken);
         if (document is null) return false;
+        if (processing is not null && await processing.HasDocumentEvidenceAsync(id, cancellationToken))
+            throw new DocumentDeleteConflictException("This document is retained by PDF processing version or adoption evidence.");
 
         var placements = await placementRepository.ListAsync(cancellationToken);
         if (placements.Any(x => x.DocumentId == id))

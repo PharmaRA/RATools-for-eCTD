@@ -1532,6 +1532,455 @@
         }
       }
     },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/inspection": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "placementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingInspection"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingInspection"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingInspection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/plans": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "placementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProcessingPlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProcessingPlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProcessingPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingPlan"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingPlan"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingPlan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueProcessingRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueProcessingRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueProcessingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingJobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/adopt": {
+      "post": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessingRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingAdoption"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingAdoption"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfProcessingAdoption"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/versions/{versionId}/content": {
+      "get": {
+        "tags": [
+          "DocumentProcessing"
+        ],
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sequenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/documents": {
       "get": {
         "tags": [
@@ -4942,6 +5391,28 @@
         },
         "additionalProperties": false
       },
+      "CreateProcessingPlanRequest": {
+        "required": [
+          "expectedRevision",
+          "parameters",
+          "sourceVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/PdfProcessingParameters"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreatePublishJobRequestBody": {
         "required": [
           "applicationId",
@@ -5567,6 +6038,27 @@
             "type": "string"
           },
           "standardVersion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnqueueProcessingRequest": {
+        "required": [
+          "idempotencyKey",
+          "planDigest",
+          "planId"
+        ],
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "idempotencyKey": {
             "type": "string"
           }
         },
@@ -6445,6 +6937,431 @@
         ],
         "type": "string"
       },
+      "PdfBookmarkEdit": {
+        "required": [
+          "level",
+          "namedDestination",
+          "pageNumber",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "namedDestination": {
+            "type": "string",
+            "nullable": true
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfBookmarkInspection": {
+        "required": [
+          "isValid",
+          "level",
+          "namedDestination",
+          "objectPath",
+          "pageNumber",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "objectPath": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "namedDestination": {
+            "type": "string",
+            "nullable": true
+          },
+          "isValid": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfLinkEdit": {
+        "required": [
+          "objectPath",
+          "originalTarget",
+          "sourcePageNumber",
+          "target",
+          "targetKind",
+          "targetPlacementId",
+          "targetVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourcePageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetKind": {
+            "$ref": "#/components/schemas/PdfLinkTargetKind"
+          },
+          "objectPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalTarget": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetPlacementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "targetVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfLinkInspection": {
+        "required": [
+          "fileSpecification",
+          "isValid",
+          "kind",
+          "namedDestination",
+          "objectPath",
+          "sourcePageNumber",
+          "target",
+          "targetPageNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "objectPath": {
+            "type": "string"
+          },
+          "sourcePageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PdfLinkTargetKind"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetPageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "namedDestination": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSpecification": {
+            "type": "string",
+            "nullable": true
+          },
+          "isValid": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfLinkTargetKind": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PdfNamedDestinationInspection": {
+        "required": [
+          "isValid",
+          "name",
+          "pageNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isValid": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfNavigationInspection": {
+        "required": [
+          "bookmarks",
+          "destinationsComplete",
+          "engineVersion",
+          "hasSignature",
+          "incompleteReasons",
+          "isEncrypted",
+          "links",
+          "namedDestinations",
+          "navigationComplete",
+          "pageCount",
+          "pageMode",
+          "signatureValidityKnown"
+        ],
+        "type": "object",
+        "properties": {
+          "engineVersion": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "pageMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookmarks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfBookmarkInspection"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfLinkInspection"
+            }
+          },
+          "namedDestinations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfNamedDestinationInspection"
+            }
+          },
+          "isEncrypted": {
+            "type": "boolean"
+          },
+          "hasSignature": {
+            "type": "boolean"
+          },
+          "signatureValidityKnown": {
+            "type": "boolean"
+          },
+          "navigationComplete": {
+            "type": "boolean"
+          },
+          "destinationsComplete": {
+            "type": "boolean"
+          },
+          "incompleteReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfProcessingAdoption": {
+        "required": [
+          "adoptedUtc",
+          "applicationId",
+          "documentId",
+          "expectedRevision",
+          "jobId",
+          "placementId",
+          "resultVersionId",
+          "sequenceNumber",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adoptedUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfProcessingJobStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PdfProcessingParameters": {
+        "required": [
+          "bookmarks",
+          "links",
+          "pageMode"
+        ],
+        "type": "object",
+        "properties": {
+          "pageMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookmarks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfBookmarkEdit"
+            },
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PdfLinkEdit"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PdfProcessingPlan": {
+        "required": [
+          "applicationId",
+          "contextJson",
+          "createdUtc",
+          "engineVersion",
+          "expectedWorkspaceRevision",
+          "id",
+          "parametersJson",
+          "placementId",
+          "planDigest",
+          "sequenceNumber",
+          "sourceDocumentId",
+          "sourceMd5",
+          "sourcePageCount",
+          "sourceSha256",
+          "sourceVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDocumentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "placementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "string"
+          },
+          "expectedWorkspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sourceSha256": {
+            "type": "string"
+          },
+          "sourceMd5": {
+            "type": "string"
+          },
+          "sourcePageCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "parametersJson": {
+            "type": "string"
+          },
+          "planDigest": {
+            "type": "string"
+          },
+          "engineVersion": {
+            "type": "string"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contextJson": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -6471,6 +7388,139 @@
           }
         },
         "additionalProperties": {}
+      },
+      "ProcessingInspection": {
+        "required": [
+          "href",
+          "md5",
+          "navigation",
+          "sha256",
+          "sourceDocumentId",
+          "sourceVersionId",
+          "workspaceRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDocumentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "navigation": {
+            "$ref": "#/components/schemas/PdfNavigationInspection"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProcessingJobView": {
+        "required": [
+          "adoption",
+          "attemptCount",
+          "cancellationRequested",
+          "completedUtc",
+          "createdUtc",
+          "failureCode",
+          "failureMessage",
+          "id",
+          "planId",
+          "resultMd5",
+          "resultSha256",
+          "resultVersionId",
+          "stage",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PdfProcessingJobStatus"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellationRequested": {
+            "type": "boolean"
+          },
+          "createdUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "resultVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "resultSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "resultMd5": {
+            "type": "string",
+            "nullable": true
+          },
+          "adoption": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfProcessingAdoption"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProcessingRevisionRequest": {
+        "required": [
+          "expectedRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
       },
       "PublishArtifactDto": {
         "required": [

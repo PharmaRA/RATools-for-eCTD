@@ -191,6 +191,37 @@ describe('useWorkspaceData', () => {
     result.unmount()
   })
 
+  it('exposes the snapshot finalization state to read-only workspace panels', async () => {
+    const apiFetch = vi.fn()
+      .mockImplementation((url: string) => {
+        if (url.endsWith('/workspace')) {
+          return Promise.resolve({
+            workspaceRevision: 7,
+            finalization: {
+              finalizedSequenceId: 'finalized-sequence',
+              sourceWorkspaceRevision: 7,
+              isEditable: false,
+              draftWorkspaceRevision: null,
+            },
+            placements: [],
+            documents: [],
+          })
+        }
+
+        if (url === '/api/applications/app-1/ectd-structure') {
+          return Promise.resolve({ roots: [] })
+        }
+
+        return Promise.reject(new Error(`Unexpected URL ${url}`))
+      })
+
+    const result = renderUseWorkspaceData({ appId: 'app-1', seqNumber: '0000', apiFetch })
+
+    await waitForExpectation(() => expect(result.current.finalization?.isEditable).toBe(false))
+    expect(result.current.finalization?.finalizedSequenceId).toBe('finalized-sequence')
+    result.unmount()
+  })
+
   it('refreshes the documents, placements and revision together', async () => {
     let snapshots = 0
     let structures = 0

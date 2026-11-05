@@ -18,6 +18,8 @@ using RATools.Infrastructure.Storage;
 using RATools.Infrastructure.Validation;
 using RATools.Application.PackageValidation;
 using RATools.Infrastructure.PackageValidation;
+using RATools.Application.DocumentProcessing;
+using RATools.Infrastructure.DocumentProcessing;
 
 namespace RATools.Infrastructure;
 
@@ -25,6 +27,17 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<QpdfProcessingOptions>().Bind(configuration.GetSection("PdfProcessing:Engine"))
+            .Validate(options => { options.Validate(); return true; }, "Invalid qpdf engine settings.").ValidateOnStart();
+        services.AddOptions<PdfProcessingExecutionOptions>().Bind(configuration.GetSection("PdfProcessing"))
+            .Validate(options => options.MaxFileBytes > 0 && options.ExecutionTimeout > TimeSpan.Zero &&
+                options.PollInterval > TimeSpan.Zero && options.HeartbeatInterval > TimeSpan.Zero &&
+                options.LeaseDuration > options.HeartbeatInterval, "Invalid PDF processing execution settings.").ValidateOnStart();
+        services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PdfProcessingExecutionOptions>>().Value);
+        services.AddSingleton<IPdfProcessingEngine>(provider => new QpdfProcessingEngine(
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
+        services.AddSingleton<ProcessingFileStore>();
+        services.AddHostedService<DocumentProcessingBackgroundService>();
         services.AddOptions<PackageValidationOptions>().Bind(configuration.GetSection(PackageValidationOptions.SectionName))
             .Validate(value => !string.IsNullOrWhiteSpace(value.StorageRoot) && value.PollInterval > TimeSpan.Zero &&
                 value.HeartbeatInterval > TimeSpan.Zero && value.LeaseDuration > value.HeartbeatInterval &&
@@ -89,6 +102,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("Persistence:Provider") ?? "PostgreSql";
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
+            services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
             services.AddSingleton<IPackageValidationStore, InMemoryPackageValidationStore>();
             services.AddSingleton<RATools.Application.Finalization.IFinalizationStore, InMemoryFinalizationStore>();
             services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
@@ -111,6 +125,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IDocumentProcessingStore, EfCoreDocumentProcessingStore>();
         services.AddScoped<IPackageValidationStore, EfCorePackageValidationStore>();
         services.AddScoped<RATools.Application.Finalization.IFinalizationStore, EfCoreFinalizationStore>();
         services.AddScoped<IApplicationRepository, EfCoreApplicationRepository>();

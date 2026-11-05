@@ -33,11 +33,14 @@ import { WorkspaceTree } from './workspace/WorkspaceTree'
 import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePropertiesPanel'
 import { nodeContext, treeAncestorKeys } from './workspace/nodeTree'
 import type { CtdNodeTreeDto } from '../api/generated'
+import { buildProcessingTargets } from './workspace/pdfProcessingTargets'
 
 // Bulk assembly is a separate lazy chunk so the workspace's own bundle stays within
 // budget; the panel is only loaded when the operator opens it.
 const AssemblyPanel = lazy(() =>
   import('./workspace/AssemblyPanel').then((module) => ({ default: module.AssemblyPanel })))
+const PdfProcessingPanel = lazy(() =>
+  import('./workspace/PdfProcessingPanel').then(module => ({ default: module.PdfProcessingPanel })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -60,6 +63,7 @@ export const SequenceWorkspacePage = ({
   const [loading, setLoading] = useState(false)
   const {
     workspaceRevision,
+    finalization,
     nodeTree,
     placements,
     applicationPlacements,
@@ -479,6 +483,16 @@ export const SequenceWorkspacePage = ({
             }}
             dropFiles={dragDrop.dropFiles}
           />
+          {selectedPlacement && selectedDocument && selectedPlacement.operation.toLowerCase() !== 'delete'
+            && selectedDocument.fileName.toLowerCase().endsWith('.pdf') && <div className="mt-3">
+            <Suspense fallback={<p role="status">正在加载 PDF 处理面板…</p>}>
+              <PdfProcessingPanel appId={appId} seqNumber={seqNumber} placementId={selectedPlacement.id}
+                documentId={selectedDocument.id} workspaceRevision={workspaceRevision}
+                disabled={loading || finalization?.isEditable === false}
+                remoteTargets={buildProcessingTargets(selectedPlacement, selectedDocument, applicationPlacements, documentsById)}
+                onAdopted={async () => { invalidateValidation(); await refreshWorkspaceData() }} />
+            </Suspense>
+          </div>}
         </Col>
       </Row>
     </div>

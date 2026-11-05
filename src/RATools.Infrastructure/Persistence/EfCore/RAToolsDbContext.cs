@@ -25,6 +25,7 @@ public sealed class RAToolsDbContext(DbContextOptions<RAToolsDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        DocumentProcessingModelConfiguration.Configure(modelBuilder);
         PackageValidationModelConfiguration.Configure(modelBuilder);
         FinalizationModelConfiguration.Configure(modelBuilder);
         CtdModelConfiguration.Configure(modelBuilder);

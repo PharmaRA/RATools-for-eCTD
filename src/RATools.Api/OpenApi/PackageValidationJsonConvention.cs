@@ -21,6 +21,15 @@ public sealed class PackageValidationEnumSchemaFilter : ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
+        if (context.Type == typeof(RATools.Application.DocumentProcessing.ProcessingJobView))
+        {
+            var adoption = schema.Properties["adoption"];
+            schema.Properties["adoption"] = new OpenApiSchema
+            {
+                Nullable = true,
+                AllOf = [new OpenApiSchema { Reference = adoption.Reference }]
+            };
+        }
         if (context.Type == typeof(PackageRunSummary))
         {
             // OpenAPI 3.0 ignores nullable next to a bare $ref. Pending and legacy

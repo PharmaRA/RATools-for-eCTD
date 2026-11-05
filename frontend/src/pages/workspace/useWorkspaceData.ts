@@ -141,6 +141,7 @@ export const useWorkspaceData = ({
   return {
     nodeTree: snapshotQuery.data?.nodeTree,
     workspaceRevision: snapshotQuery.isError ? undefined : snapshotQuery.data?.workspaceRevision,
+    finalization: snapshotQuery.isError ? undefined : snapshotQuery.data?.finalization,
     placements,
     applicationPlacements,
     documentsById,

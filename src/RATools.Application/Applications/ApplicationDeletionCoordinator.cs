@@ -12,13 +12,16 @@ public sealed class ApplicationDeletionCoordinator(
     IPublishJobRepository publishJobRepository,
     IWorkspaceDeletionService workspaceDeletionService,
     IApplicationDeletionTransaction transaction,
-    IFinalizationStore? finalizations = null) : IApplicationDeletionCoordinator
+    IFinalizationStore? finalizations = null,
+    RATools.Application.DocumentProcessing.IDocumentProcessingStore? processing = null) : IApplicationDeletionCoordinator
 {
     public async Task DeleteApplicationAsync(
         SubmissionApplication application,
         ApplicationDeleteMode deleteMode,
         CancellationToken cancellationToken = default)
     {
+        if (processing is not null && await processing.HasApplicationEvidenceAsync(application.Id, null, cancellationToken))
+            throw new ApplicationDeleteConflictException("This application has retained PDF processing evidence and cannot be deleted through the draft path.");
         // Finalized snapshots and their delivery evidence are the record of what was
         // submitted; the ordinary draft-deletion path must not orphan them.
         if (finalizations is not null && await finalizations.AnyByApplicationAsync(application.Id, null, cancellationToken))
@@ -74,6 +77,9 @@ public sealed class ApplicationDeletionCoordinator(
         {
             return false;
         }
+
+        if (processing is not null && await processing.HasApplicationEvidenceAsync(application.Id, sequenceNumber, cancellationToken))
+            throw new SequenceDeleteConflictException("This sequence has retained PDF processing evidence and cannot be deleted through the draft path.");
 
         if (finalizations is not null && await finalizations.AnyByApplicationAsync(application.Id, sequenceNumber, cancellationToken))
             throw new SequenceDeleteConflictException(

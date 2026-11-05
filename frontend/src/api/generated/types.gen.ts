@@ -212,6 +212,12 @@ export type CreatePackageValidationRequest = {
     history: Array<PackageHistorySelection> | null;
 };
 
+export type CreateProcessingPlanRequest = {
+    sourceVersionId: string;
+    expectedRevision: number;
+    parameters: PdfProcessingParameters;
+};
+
 export type CreatePublishJobRequestBody = {
     applicationId: string;
     sequenceNumber: string;
@@ -363,6 +369,12 @@ export type EctdTemplateDto = {
     region: string;
     standardName: string;
     standardVersion: string;
+};
+
+export type EnqueueProcessingRequest = {
+    planId: string;
+    planDigest: string;
+    idempotencyKey: string;
 };
 
 export type ExternalComparisonDifference = {
@@ -574,6 +586,104 @@ export type PackageTextPreview = {
 
 export type PackageValidationMode = 'Development' | 'Formal';
 
+export type PdfBookmarkEdit = {
+    title: string;
+    pageNumber: number | null;
+    namedDestination: string | null;
+    level: number;
+};
+
+export type PdfBookmarkInspection = {
+    objectPath: string;
+    title: string;
+    level: number;
+    pageNumber: number | null;
+    namedDestination: string | null;
+    isValid: boolean;
+};
+
+export type PdfLinkEdit = {
+    sourcePageNumber: number;
+    target: string;
+    targetKind: PdfLinkTargetKind;
+    objectPath: string | null;
+    originalTarget: string | null;
+    targetPlacementId: string | null;
+    targetVersionId: string | null;
+};
+
+export type PdfLinkInspection = {
+    objectPath: string;
+    sourcePageNumber: number;
+    kind: PdfLinkTargetKind;
+    target: string;
+    targetPageNumber: number | null;
+    namedDestination: string | null;
+    fileSpecification: string | null;
+    isValid: boolean;
+};
+
+export type PdfLinkTargetKind = 0 | 1 | 2 | 3;
+
+export type PdfNamedDestinationInspection = {
+    name: string;
+    pageNumber: number | null;
+    isValid: boolean;
+};
+
+export type PdfNavigationInspection = {
+    engineVersion: string;
+    pageCount: number | null;
+    pageMode: string | null;
+    bookmarks: Array<PdfBookmarkInspection>;
+    links: Array<PdfLinkInspection>;
+    namedDestinations: Array<PdfNamedDestinationInspection>;
+    isEncrypted: boolean;
+    hasSignature: boolean;
+    signatureValidityKnown: boolean;
+    navigationComplete: boolean;
+    destinationsComplete: boolean;
+    incompleteReasons: Array<string>;
+};
+
+export type PdfProcessingAdoption = {
+    jobId: string;
+    applicationId: string;
+    sequenceNumber: string;
+    placementId: string;
+    documentId: string;
+    resultVersionId: string;
+    expectedRevision: number;
+    workspaceRevision: number;
+    adoptedUtc: string;
+};
+
+export type PdfProcessingJobStatus = 0 | 1 | 2 | 3 | 4 | 5;
+
+export type PdfProcessingParameters = {
+    pageMode: string | null;
+    bookmarks: Array<PdfBookmarkEdit> | null;
+    links: Array<PdfLinkEdit> | null;
+};
+
+export type PdfProcessingPlan = {
+    id: string;
+    sourceVersionId: string;
+    sourceDocumentId: string;
+    applicationId: string;
+    placementId: string;
+    sequenceNumber: string;
+    expectedWorkspaceRevision: number;
+    sourceSha256: string;
+    sourceMd5: string;
+    sourcePageCount: number | null;
+    parametersJson: string;
+    planDigest: string;
+    engineVersion: string;
+    createdUtc: string;
+    contextJson: string;
+};
+
 export type ProblemDetails = {
     type?: string | null;
     title?: string | null;
@@ -581,6 +691,37 @@ export type ProblemDetails = {
     detail?: string | null;
     instance?: string | null;
     [key: string]: unknown;
+};
+
+export type ProcessingInspection = {
+    sourceVersionId: string;
+    sourceDocumentId: string;
+    workspaceRevision: number;
+    sha256: string;
+    md5: string;
+    href: string;
+    navigation: PdfNavigationInspection;
+};
+
+export type ProcessingJobView = {
+    id: string;
+    planId: string;
+    status: PdfProcessingJobStatus;
+    stage: string;
+    attemptCount: number;
+    cancellationRequested: boolean;
+    createdUtc: string;
+    completedUtc: string | null;
+    failureCode: string | null;
+    failureMessage: string | null;
+    resultVersionId: string | null;
+    resultSha256: string | null;
+    resultMd5: string | null;
+    adoption: PdfProcessingAdoption | null;
+};
+
+export type ProcessingRevisionRequest = {
+    expectedRevision: number;
 };
 
 export type PublishArtifactDto = {
@@ -1674,6 +1815,143 @@ export type PutApiDocumentPlacementsByIdMetadataResponses = {
 };
 
 export type PutApiDocumentPlacementsByIdMetadataResponse = PutApiDocumentPlacementsByIdMetadataResponses[keyof PutApiDocumentPlacementsByIdMetadataResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionData = {
+    body?: ProcessingRevisionRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        placementId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/inspection';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionResponses = {
+    /**
+     * OK
+     */
+    200: ProcessingInspection;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdInspectionResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdPlansData = {
+    body?: CreateProcessingPlanRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        placementId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/placements/{placementId}/plans';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdPlansResponses = {
+    /**
+     * OK
+     */
+    200: PdfProcessingPlan;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdPlansResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdPlansResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingPlacementsByPlacementIdPlansResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsData = {
+    body?: EnqueueProcessingRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsResponses = {
+    /**
+     * Accepted
+     */
+    202: ProcessingJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdResponses = {
+    /**
+     * OK
+     */
+    200: ProcessingJobView;
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdResponse = GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdResponses[keyof GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdCancelData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/cancel';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdCancelResponses = {
+    /**
+     * OK
+     */
+    200: ProcessingJobView;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdCancelResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdCancelResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdCancelResponses];
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdAdoptData = {
+    body?: ProcessingRevisionRequest;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/jobs/{jobId}/adopt';
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdAdoptResponses = {
+    /**
+     * OK
+     */
+    200: PdfProcessingAdoption;
+};
+
+export type PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdAdoptResponse = PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdAdoptResponses[keyof PostApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingJobsByJobIdAdoptResponses];
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingVersionsByVersionIdContentData = {
+    body?: never;
+    path: {
+        applicationId: string;
+        sequenceNumber: string;
+        versionId: string;
+    };
+    query?: never;
+    url: '/api/applications/{applicationId}/sequences/{sequenceNumber}/pdf-processing/versions/{versionId}/content';
+};
+
+export type GetApiApplicationsByApplicationIdSequencesBySequenceNumberPdfProcessingVersionsByVersionIdContentResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type GetApiDocumentsData = {
     body?: never;
