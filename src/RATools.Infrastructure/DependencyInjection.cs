@@ -34,13 +34,16 @@ public static class DependencyInjection
                 options.PollInterval > TimeSpan.Zero && options.HeartbeatInterval > TimeSpan.Zero &&
                 options.LeaseDuration > options.HeartbeatInterval, "Invalid PDF processing execution settings.").ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PdfProcessingExecutionOptions>>().Value);
+        services.AddSingleton(PdfToolProcessBudget.Shared);
         services.AddSingleton<IPdfProcessingEngine>(provider => new QpdfProcessingEngine(
-            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value,
+            provider.GetRequiredService<PdfToolProcessBudget>()));
         services.AddSingleton<ProcessingFileStore>();
         services.AddOptions<PdfContentEngineOptions>().Bind(configuration.GetSection("PdfProcessing:Content"));
         services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PdfContentEngineOptions>>().Value);
         services.AddSingleton<IPdfContentEngine>(provider => new PythonPdfContentEngine(
-            provider.GetRequiredService<PdfContentEngineOptions>(), provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value));
+            provider.GetRequiredService<PdfContentEngineOptions>(), provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<QpdfProcessingOptions>>().Value,
+            provider.GetRequiredService<PdfToolProcessBudget>()));
         services.AddHostedService<DocumentProcessingBackgroundService>();
         services.AddHostedService<PdfRenameBackgroundService>();
         services.AddOptions<RATools.Application.Assembly.AssemblyExecutionOptions>().Bind(configuration.GetSection("Assembly"))

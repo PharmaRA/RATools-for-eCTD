@@ -26,7 +26,7 @@ public sealed class PdfContentResourceTests
             256 * 1024 * 1024, deadline ? TimeSpan.FromMilliseconds(1200) : TimeSpan.FromSeconds(10), 65536, token.Token);
         using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(8));
         while (!File.Exists(ready)) await Task.Delay(20, startup.Token);
-        var childId = int.Parse(await File.ReadAllTextAsync(ready));
+        var childId = int.Parse(await File.ReadAllTextAsync(ready), System.Globalization.CultureInfo.InvariantCulture);
         using var child = Process.GetProcessById(childId);
         if (!deadline) await token.CancelAsync();
         if (deadline) await Assert.ThrowsAsync<TimeoutException>(async () => await task);
@@ -58,7 +58,7 @@ public sealed class PdfContentResourceTests
             256 * 1024 * 1024, TimeSpan.FromSeconds(8), 65536, CancellationToken.None);
         using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(8));
         while (!File.Exists(child)) await Task.Delay(20, startup.Token);
-        var childId = int.Parse(await File.ReadAllTextAsync(child));
+        var childId = int.Parse(await File.ReadAllTextAsync(child), System.Globalization.CultureInfo.InvariantCulture);
         using var childProcess = Process.GetProcessById(childId);
         await Assert.ThrowsAsync<TimeoutException>(async () => await task);
         using var exit = new CancellationTokenSource(TimeSpan.FromSeconds(5));

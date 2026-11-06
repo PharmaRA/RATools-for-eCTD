@@ -25,8 +25,10 @@ public sealed class PdfContentEngineOptions
     public TimeSpan InspectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
 }
 
-public sealed class PythonPdfContentEngine(PdfContentEngineOptions options, QpdfProcessingOptions qpdf) : IPdfContentEngine, IDisposable
+public sealed class PythonPdfContentEngine(PdfContentEngineOptions options, QpdfProcessingOptions qpdf,
+    PdfToolProcessBudget? processBudget = null) : IPdfContentEngine, IDisposable
 {
+    private readonly PdfToolProcessBudget _processBudget = processBudget ?? PdfToolProcessBudget.Shared;
     private const string Engine = "pymupdf-1.28.2-content-v1";
     private const string ModelHash = "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2";
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -164,8 +166,10 @@ public sealed class PythonPdfContentEngine(PdfContentEngineOptions options, Qpdf
         var pythonHash = await HashFileAsync(options.PythonExecutablePath, 128 * 1024 * 1024, cancellationToken).ConfigureAwait(false);
         var qpdfHash = await HashFileAsync(qpdf.ExecutablePath, 256 * 1024 * 1024, cancellationToken).ConfigureAwait(false);
         var prefix = NewPrefix();
-        var qpdfProbe = await PdfContentProcess.RunAsync(qpdf.ExecutablePath, ["--version"], prefix + ".qpdf", options.MaxMemoryBytes,
-            options.MaxCpuTime, options.ProbeTimeout, 65536, options.MaxOutputBytes, options.MaxReportBytes, null, cancellationToken).ConfigureAwait(false);
+        ContentProcessResult qpdfProbe;
+        await using (await _processBudget.AcquireAsync(cancellationToken).ConfigureAwait(false))
+            qpdfProbe = await PdfContentProcess.RunAsync(qpdf.ExecutablePath, ["--version"], prefix + ".qpdf", options.MaxMemoryBytes,
+                options.MaxCpuTime, options.ProbeTimeout, 65536, options.MaxOutputBytes, options.MaxReportBytes, null, cancellationToken).ConfigureAwait(false);
         if (qpdfProbe.ExitCode != 0 || qpdfProbe.Output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() != "qpdf version 12.4.1")
             throw new PdfProcessingRejectedException("The content version tool is not qpdf 12.4.1.");
         _ = await RunWorkerAsync(new { mode = "probe", receiptPath = prefix + ".receipt.json" }, prefix, null, options.ProbeTimeout, cancellationToken).ConfigureAwait(false);
@@ -223,6 +227,7 @@ public sealed class PythonPdfContentEngine(PdfContentEngineOptions options, Qpdf
         var json = JsonSerializer.Serialize(request, Json);
         if (Encoding.UTF8.GetByteCount(json) > 65536) throw new ArgumentException("The content request exceeds its limit.");
         await PdfContentProcess.WriteNewAsync(requestPath, json, cancellationToken).ConfigureAwait(false);
+        await using var slot = await _processBudget.AcquireAsync(cancellationToken).ConfigureAwait(false);
         var result = await PdfContentProcess.RunAsync(options.PythonExecutablePath, ["-I", "-B", options.ScriptPath, "--request", requestPath],
             prefix, options.MaxMemoryBytes, options.MaxCpuTime, timeout, 65536, options.MaxOutputBytes, options.MaxReportBytes, output, cancellationToken).ConfigureAwait(false);
         if (result.ExitCode != 0) throw new PdfProcessingRejectedException("The qualified PDF content process rejected the input or exceeded a host resource limit.");

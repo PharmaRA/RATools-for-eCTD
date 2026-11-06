@@ -102,7 +102,7 @@ internal static class PdfContentProcess
     // The process cannot execute user code or create children before it belongs
     // to the resource-limited job. Process.Start followed by assignment has a
     // measurable allocation and child-process escape window.
-    private sealed class SuspendedProcess : IDisposable
+    internal sealed class SuspendedProcess : IDisposable
     {
         private readonly SafeFileHandle _thread;
         private SuspendedProcess(Process process, SafeFileHandle thread, FileStream stdout, FileStream stderr)
@@ -203,7 +203,7 @@ internal static class PdfContentProcess
         #pragma warning restore CA1838
     }
 
-    private sealed class ProcessJob : IDisposable
+    internal sealed class ProcessJob : IDisposable
     {
         private readonly SafeFileHandle _handle;
         public ProcessJob(long memoryBytes, TimeSpan cpuLimit)

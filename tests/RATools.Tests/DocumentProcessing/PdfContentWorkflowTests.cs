@@ -43,7 +43,7 @@ public sealed class PdfContentWorkflowTests
         Assert.Equal(inspection.Sha256, receipt.Receipt.SourceSha256); Assert.Equal(job.ResultSha256, receipt.Receipt.OutputSha256);
         Assert.Equal("NotEvaluated", receipt.Receipt.RegulatoryConformance);
         Assert.True(receipt.Resources.PeakMemoryBytes > 0); Assert.True(receipt.Resources.CpuMilliseconds > 0);
-        if (mode == "scan") { Assert.Equal(new[] { 1, 2, 4 }, receipt.Receipt.Ocr!.ProcessedPages); Assert.True(receipt.Receipt.Ocr.RequiresTextReview); }
+        if (mode == "scan") { Assert.Equal((int[])[1, 2, 4], receipt.Receipt.Ocr!.ProcessedPages); Assert.True(receipt.Receipt.Ocr.RequiresTextReview); }
         if (mode == "fonts") Assert.Equal(12, receipt.Receipt.Fonts!.Embedded.Count);
         if (mode == "version") Assert.Equal("1.7", receipt.Receipt.OutputVersion);
         var adopted = await test.Service.AdoptAsync(test.Application.Id, "0001", job.Id, 0);

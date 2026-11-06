@@ -18,6 +18,8 @@ public sealed class QpdfProcessingOptions
     public long MaxJsonBytes { get; set; } = 64 * 1024 * 1024;
     public long MaxOutputBytes { get; set; } = 512 * 1024 * 1024;
     public TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromMinutes(5);
+    public long MaxMemoryBytes { get; set; } = 1024L * 1024 * 1024;
+    public TimeSpan MaxCpuTime { get; set; } = TimeSpan.FromMinutes(3);
 
     public void Validate()
     {
@@ -26,11 +28,14 @@ public sealed class QpdfProcessingOptions
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxJsonBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxOutputBytes);
         if (ExecutionTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(ExecutionTimeout));
+        if (MaxMemoryBytes is < 67108864 or > 4294967296) throw new ArgumentOutOfRangeException(nameof(MaxMemoryBytes));
+        if (MaxCpuTime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(MaxCpuTime));
     }
 }
 
-public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfProcessingEngine
+public sealed class QpdfProcessingEngine(QpdfProcessingOptions options, PdfToolProcessBudget? processBudget = null) : IPdfProcessingEngine
 {
+    private readonly PdfToolProcessBudget _processBudget = processBudget ?? PdfToolProcessBudget.Shared;
     private static readonly string[] FileSpecificationKeys = ["/F", "/UF"];
     public string EngineVersion => $"qpdf-{options.SupportedVersion}";
 
@@ -975,17 +980,20 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
 
     private async Task<ProcessResult> RunAsync(IReadOnlyList<string> arguments, TimeSpan timeout, long maxOutputBytes, CancellationToken cancellationToken)
     {
-        using var process = CreateProcess(arguments);
-        foreach (var argument in arguments) process.StartInfo.ArgumentList.Add(argument);
-        process.Start();
-        options.ProcessStartedCallback?.Invoke(process.Id);
+        await using var slot = await _processBudget.AcquireAsync(cancellationToken).ConfigureAwait(false);
+        using var launch = PdfToolProcess.Start(options, arguments);
+        var process = launch.Process;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linked.CancelAfter(timeout);
+        Task<string>? stdout = null;
+        Task<string>? stderr = null;
+        Task? wait = null;
         try
         {
-            var stdout = ReadLimitedAsync(process.StandardOutput.BaseStream, maxOutputBytes, linked.Token);
-            var stderr = ReadLimitedAsync(process.StandardError.BaseStream, Math.Min(maxOutputBytes, 256 * 1024), linked.Token);
-            var wait = process.WaitForExitAsync(linked.Token);
+            options.ProcessStartedCallback?.Invoke(process.Id);
+            stdout = ReadLimitedAsync(launch.Stdout, maxOutputBytes, linked.Token);
+            stderr = ReadLimitedAsync(launch.Stderr, Math.Min(maxOutputBytes, 256 * 1024), linked.Token);
+            wait = process.WaitForExitAsync(linked.Token);
             await ObserveReadersAsync(process, wait, stdout, stderr);
             return new(process.ExitCode, await stdout, await stderr, false, false, false);
         }
@@ -1013,25 +1021,38 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
             await process.WaitForExitAsync(CancellationToken.None);
             throw;
         }
+        finally
+        {
+            await linked.CancelAsync().ConfigureAwait(false);
+            TryKill(process);
+            launch.CloseJob();
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            await ObserveCompletionAsync(wait).ConfigureAwait(false);
+            await ObserveCompletionAsync(stdout).ConfigureAwait(false);
+            await ObserveCompletionAsync(stderr).ConfigureAwait(false);
+        }
     }
 
     private async Task<ProcessResult> RunToFileAsync(IReadOnlyList<string> arguments, string outputPath, TimeSpan timeout,
         long maxOutputBytes, CancellationToken cancellationToken)
     {
-        using var process = CreateProcess(arguments);
-        foreach (var argument in arguments) process.StartInfo.ArgumentList.Add(argument);
-        process.Start();
-        options.ProcessStartedCallback?.Invoke(process.Id);
+        await using var slot = await _processBudget.AcquireAsync(cancellationToken).ConfigureAwait(false);
+        using var launch = PdfToolProcess.Start(options, arguments);
+        var process = launch.Process;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linked.CancelAfter(timeout);
         Stream? output = null;
+        Task? stdout = null;
+        Task<string>? stderr = null;
+        Task? wait = null;
         try
         {
+            options.ProcessStartedCallback?.Invoke(process.Id);
             output = options.OutputStreamFactory?.Invoke(outputPath)
                 ?? new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 81920, useAsync: true);
-            var stdout = CopyLimitedAsync(process.StandardOutput.BaseStream, output, maxOutputBytes, linked.Token);
-            var stderr = ReadLimitedAsync(process.StandardError.BaseStream, Math.Min(maxOutputBytes, 256 * 1024), linked.Token);
-            var wait = process.WaitForExitAsync(linked.Token);
+            stdout = CopyLimitedAsync(launch.Stdout, output, maxOutputBytes, linked.Token);
+            stderr = ReadLimitedAsync(launch.Stderr, Math.Min(maxOutputBytes, 256 * 1024), linked.Token);
+            wait = process.WaitForExitAsync(linked.Token);
             await ObserveReadersAsync(process, wait, stdout, stderr);
             await output.FlushAsync(cancellationToken);
             return new(process.ExitCode, string.Empty, await stderr, false, false, false);
@@ -1062,25 +1083,26 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options) : IPdfPr
         }
         finally
         {
+            await linked.CancelAsync().ConfigureAwait(false);
+            TryKill(process);
+            launch.CloseJob();
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            await ObserveCompletionAsync(wait).ConfigureAwait(false);
+            await ObserveCompletionAsync(stdout).ConfigureAwait(false);
+            await ObserveCompletionAsync(stderr).ConfigureAwait(false);
             if (output is not null) await output.DisposeAsync();
         }
     }
 
-    private Process CreateProcess(IReadOnlyList<string> arguments)
+    private static async Task ObserveCompletionAsync(Task? task)
     {
-        var process = new Process
+        if (task is null) return;
+        try { await task.ConfigureAwait(false); }
+        catch (Exception)
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = options.ExecutablePath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-        foreach (var argument in options.ExecutableArguments) process.StartInfo.ArgumentList.Add(argument);
-        return process;
+            // The main path already chose the operation's result or exception. Observe
+            // secondary reader failures without replacing that original outcome.
+        }
     }
 
     private static async Task ObserveReadersAsync(Process process, Task wait, Task stdout, Task stderr)
