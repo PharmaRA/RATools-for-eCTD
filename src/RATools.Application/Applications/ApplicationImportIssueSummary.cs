@@ -9,7 +9,9 @@ internal sealed record ApplicationImportIssueSummary(
     public static ApplicationImportIssueSummary Create(IEnumerable<ApplicationImportIssueDto> issues)
     {
         var skippedSequenceCount = 0;
-        var failedSequenceCount = 0;
+        // Sequence identifiers use exact ordinal identity (normally four digits).
+        // Severity is a label; its casing must not change sequence coverage.
+        var failedSequences = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var issue in issues)
         {
@@ -18,12 +20,13 @@ internal sealed record ApplicationImportIssueSummary(
                 skippedSequenceCount++;
             }
 
-            if (issue.Severity == "Error")
+            if (string.Equals(issue.Severity, "Error", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(issue.SequenceNumber))
             {
-                failedSequenceCount++;
+                failedSequences.Add(issue.SequenceNumber);
             }
         }
 
-        return new ApplicationImportIssueSummary(skippedSequenceCount, failedSequenceCount);
+        return new ApplicationImportIssueSummary(skippedSequenceCount, failedSequences.Count);
     }
 }
