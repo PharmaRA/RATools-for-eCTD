@@ -1,0 +1,13 @@
+# Assembly source intake isolation
+
+QA-04 / R-05, 2026-11-06, baseline `e39eaa2`.
+
+Uploads are streamed to a unique sequence-owned `_assembly-staging/<task>/<filename>` directory. Length, SHA-256 and MD5 are calculated while receiving. Empty, oversized or cancelled streams never become registered source files. After the output handle is closed, failures move the complete task directory into `_assembly-failed/<task>-<unique>`. A random `failure-<unique>.txt` marker uses CreateNew and records only the exception type, avoiding overwriting an upload named `failure.txt` or storing exception text containing private paths.
+
+The service derives the final `_assembly-sources/<task>/<filename>` identity from the staged document. Under the existing application mutation lock, a persistence transaction registers that final identity and atomically promotes the staged directory. Intake preserves the graph revision: it uses the existing reconciliation transaction without revision advancement. A registration or promotion failure rolls back database mutations before staging/final intake directories are quarantined. Containment and all ancestor reparse points are checked before directory moves; quarantine refuses nested directories or links in the task directory.
+
+A database commit can succeed while its response is lost. The service reloads the document without request cancellation and verifies its path, hashes, length and actual file bytes before returning the committed receipt. It only quarantines an intake when no committed document references it. If verification or outcome lookup itself fails, the request fails and evidence stays available for recovery; this change does not claim a general crash recovery or storage retention service.
+
+Evidence: `.artifacts/qa-04-20261106/r05-*`. Initial regressions: 32 passed / 3 expected failures for oversized, cancelled and registration-failed upload orphans. The marker collision regression separately failed 38/1 before its fix. Final planner/durable suite: 39/39. Complete Application compilation passed Recommended .NET 8 analyzers and warnings as errors (existing CS9236 informational diagnostic remains). Economic readonly review of production and memory tests passed.
+
+Actual PostgreSQL 16.14 tests passed 4/4 against the task-owned loopback instance, with no pending migrations. They cover registration failure after SaveChanges, promotion failure rollback, lost commit response and normal intake; new contexts verify persisted facts and unchanged revision. No database rows or fixture files are physically cleaned up. Full backend, browser/API upload journey, Linux, external qualification and crash restart reconciliation remain unrun.

@@ -20,6 +20,137 @@ namespace RATools.Tests.Assembly;
 
 public sealed class DurableAssemblyTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedUploadBytesAreQuarantinedOutsideTheRegisteredSourceDirectory(bool cancelled)
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var service = test.MakeService(test.Placements, new AssemblyExecutionOptions { MaxFileBytes = 4 });
+        if (cancelled)
+            await Assert.ThrowsAsync<OperationCanceledException>(() => service.UploadSourceAsync(test.Application.Id, "0001", test.Revision,
+                "source.pdf", new CancelAfterChunkStream()));
+        else
+            await Assert.ThrowsAsync<InvalidDataException>(() => service.UploadSourceAsync(test.Application.Id, "0001", test.Revision,
+                "source.pdf", new MemoryStream([1, 2, 3, 4, 5])));
+        var sources = Path.Combine(test.Root, "0001", "_assembly-sources");
+        Assert.False(Directory.Exists(sources) && Directory.EnumerateFiles(sources, "*", SearchOption.AllDirectories).Any());
+        var failures = Path.Combine(test.Root, "0001", "_assembly-failed");
+        Assert.True(Directory.Exists(failures));
+        Assert.NotEmpty(Directory.EnumerateFiles(failures, "*", SearchOption.AllDirectories));
+        Assert.Empty(await service.ListSourcesAsync(test.Application.Id, "0001"));
+        Assert.Equal(test.Revision, await test.Revisions.GetRevisionAsync(test.Application.Id, "0001"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedDocumentRegistrationQuarantinesIntakeWithoutPublishingAnOrphan(bool afterWrite)
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var service = test.MakeService(test.Placements, intakeDocuments: new FailingIntakeDocuments(test.Documents, afterWrite));
+        await Assert.ThrowsAsync<IOException>(() => service.UploadSourceAsync(test.Application.Id, "0001", test.Revision,
+            "source.pdf", new MemoryStream(test.Original)));
+        var sources = Path.Combine(test.Root, "0001", "_assembly-sources");
+        Assert.False(Directory.Exists(sources) && Directory.EnumerateFiles(sources, "*", SearchOption.AllDirectories).Any());
+        Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(test.Root, "0001", "_assembly-failed"), "*", SearchOption.AllDirectories));
+        Assert.Single(await test.Documents.ListAsync());
+        Assert.Empty(await service.ListSourcesAsync(test.Application.Id, "0001"));
+    }
+
+    private sealed class CancelAfterChunkStream : MemoryStream
+    {
+        private bool _read;
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (_read) throw new OperationCanceledException();
+            _read = true;
+            buffer.Span[0] = 1;
+            return ValueTask.FromResult(1);
+        }
+    }
+
+    [Fact]
+    public async Task QuarantineFailureEvidenceNeverOverwritesAnUploadedFileWithTheSameName()
+    {
+        var test = await AssemblyRig.CreateAsync();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => test.Service.UploadSourceAsync(test.Application.Id, "0001", test.Revision,
+            "failure.txt", new CancelAfterChunkStream()));
+
+        var retained = Assert.Single(Directory.EnumerateFiles(Path.Combine(test.Root, "0001", "_assembly-failed"), "failure.txt", SearchOption.AllDirectories));
+        Assert.Equal(new byte[] { 1 }, await File.ReadAllBytesAsync(retained));
+    }
+
+    [Fact]
+    public async Task ACommittedIntakeWithALostTransactionResponseReturnsTheVerifiedRegisteredSource()
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var service = test.MakeService(test.Placements, intakeTransactions: new LostIntakeResponseTransaction());
+
+        var receipt = await service.UploadSourceAsync(test.Application.Id, "0001", test.Revision, "source.pdf", new MemoryStream(test.Original));
+
+        Assert.Equal(receipt.DocumentId, Assert.Single(await service.ListSourcesAsync(test.Application.Id, "0001")).DocumentId);
+        var document = (await test.Documents.GetAsync(receipt.DocumentId))!;
+        Assert.Equal(test.Original, await File.ReadAllBytesAsync(document.StoragePath));
+        Assert.Equal(test.Revision, await test.Revisions.GetRevisionAsync(test.Application.Id, "0001"));
+        Assert.False(Directory.Exists(Path.Combine(test.Root, "0001", "_assembly-failed")));
+    }
+
+    [Fact]
+    public async Task FailedAtomicPromotionRollsBackTheDocumentAndQuarantinesTheIntake()
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var service = test.MakeService(test.Placements, intakeDocuments: new BlockIntakePromotion(test.Documents));
+
+        await Assert.ThrowsAsync<IOException>(() => service.UploadSourceAsync(test.Application.Id, "0001", test.Revision,
+            "source.pdf", new MemoryStream(test.Original)));
+
+        Assert.Single(await test.Documents.ListAsync());
+        Assert.Empty(await service.ListSourcesAsync(test.Application.Id, "0001"));
+        Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(test.Root, "0001", "_assembly-failed"), "*", SearchOption.AllDirectories));
+    }
+
+    private sealed class LostIntakeResponseTransaction : IPersistenceTransaction
+    {
+        private readonly InMemoryPersistenceTransaction _inner = new();
+        public async Task ExecuteAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+        {
+            await _inner.ExecuteAsync(operation, cancellationToken);
+            throw new IOException("Injected lost transaction response.");
+        }
+        public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+        {
+            await _inner.ExecuteAsync(operation, cancellationToken);
+            throw new IOException("Injected lost transaction response.");
+        }
+    }
+
+    private sealed class BlockIntakePromotion(IDocumentRepository inner) : IDocumentRepository
+    {
+        public async Task AddAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
+        {
+            await inner.AddAsync(document, cancellationToken);
+            Directory.CreateDirectory(Path.GetDirectoryName(document.StoragePath)!);
+        }
+        public Task<bool> UpdateAsync(SubmissionDocument document, CancellationToken cancellationToken = default) => inner.UpdateAsync(document, cancellationToken);
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new InvalidOperationException("No deletion.");
+        public Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetAsync(id, cancellationToken);
+        public Task<IReadOnlyCollection<SubmissionDocument>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
+    }
+
+    private sealed class FailingIntakeDocuments(IDocumentRepository inner, bool afterWrite) : IDocumentRepository
+    {
+        public async Task AddAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
+        {
+            if (afterWrite) await inner.AddAsync(document, cancellationToken);
+            throw new IOException("Injected intake registration failure.");
+        }
+        public Task<bool> UpdateAsync(SubmissionDocument document, CancellationToken cancellationToken = default) => inner.UpdateAsync(document, cancellationToken);
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new InvalidOperationException("No deletion.");
+        public Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetAsync(id, cancellationToken);
+        public Task<IReadOnlyCollection<SubmissionDocument>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
+    }
+
     [Fact]
     public async Task AssemblySourceIntakeIsRecoverableWithoutMountingOrChangingGraphRevision()
     {
@@ -331,13 +462,14 @@ internal sealed class AssemblyRig
     public string Manifest(int count) => "sourceFile,nodeInstanceId,fileName,operation,title,sortOrder" + string.Concat(Enumerable.Range(0, count)
         .Select(index => string.Create(CultureInfo.InvariantCulture, $"\ndocument:{Document.Id},{(index % 2 == 0 ? Alpha : Beta)},document-{index}.pdf,new,Document {index},{index / 2}")));
     public AssemblyService MakeService(IDocumentPlacementRepository placements, AssemblyExecutionOptions? executionOptions = null, IPackagePdfInspector? inspector = null,
-        FinalizedWorkspaceGuard? finalizations = null, IWorkspaceRevisionStore? mutationRevisions = null)
+        FinalizedWorkspaceGuard? finalizations = null, IWorkspaceRevisionStore? mutationRevisions = null, IDocumentRepository? intakeDocuments = null,
+        IPersistenceTransaction? intakeTransactions = null)
     {
         var boundary = new DocumentStorageBoundary(new Paths(Root)); var options = executionOptions ?? new AssemblyExecutionOptions();
         var planner = new AssemblyPlanner(Applications, Documents, placements, Nodes, boundary, Revisions);
-        return new(planner, Store, Applications, Documents, placements, Nodes, Versions, boundary,
+        return new(planner, Store, Applications, intakeDocuments ?? Documents, placements, Nodes, Versions, boundary,
             new CtdNodePathResolver(new RATools.Application.Validation.EctdWorkspacePathResolver()),
-            new AssemblyFileStore(new Paths(Root), boundary, options), new WorkspaceMutationCoordinator(mutationRevisions ?? Revisions, new InMemoryPersistenceTransaction(), finalizedGuard: finalizations),
+            new AssemblyFileStore(new Paths(Root), boundary, options), new WorkspaceMutationCoordinator(mutationRevisions ?? Revisions, intakeTransactions ?? new InMemoryPersistenceTransaction(), finalizedGuard: finalizations),
             inspector ?? new PdfPigPackageInspector(), options);
     }
     public static async Task<AssemblyRig> CreateAsync()

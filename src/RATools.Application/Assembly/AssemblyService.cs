@@ -22,10 +22,35 @@ public sealed class AssemblyService(AssemblyPlanner planner, IAssemblyStore stor
     {
         await using var mutation = await mutations.AcquireAsync(appId, sequence, expectedRevision, cancellationToken).ConfigureAwait(false);
         var application = await ApplicationAsync(appId, sequence, cancellationToken).ConfigureAwait(false);
-        var document = await files.ReceiveAsync(application, sequence, fileName, content, cancellationToken).ConfigureAwait(false);
+        var staged = await files.ReceiveAsync(application, sequence, fileName, content, cancellationToken).ConfigureAwait(false);
+        var document = files.SourceRegistration(application, sequence, staged);
         // Intake adds an unmounted source only. Holding the editable revision lock
         // prevents a finalize race; published graph revision remains unchanged.
-        await documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await mutation.ReconcileAsync(false, async ct =>
+            {
+                await documents.AddAsync(document, ct).ConfigureAwait(false);
+                files.PromoteSource(application, sequence, staged, document);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            // A successful transaction can lose its response. Never quarantine bytes
+            // still referenced by a committed document; verify that outcome first.
+            var committed = await documents.GetAsync(document.Id, CancellationToken.None).ConfigureAwait(false);
+            if (committed is not null)
+            {
+                if (committed.StoragePath != document.StoragePath || committed.Sha256 != document.Sha256 ||
+                    committed.Md5 != document.Md5 || committed.FileSize != document.FileSize)
+                    throw new InvalidDataException("Assembly intake committed a different document identity.");
+                await files.VerifyDocumentAsync(committed, CancellationToken.None).ConfigureAwait(false);
+                return Receipt(committed, expectedRevision);
+            }
+            files.QuarantineSource(application, sequence, staged, error.GetType().Name);
+            files.QuarantineSource(application, sequence, document, error.GetType().Name);
+            throw;
+        }
         return Receipt(document, expectedRevision);
     }
     public async Task<IReadOnlyList<AssemblySourceUpload>> ListSourcesAsync(Guid appId, string sequence,

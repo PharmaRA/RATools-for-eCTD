@@ -26,8 +26,10 @@ public sealed class AssemblyFileStore(IWorkspacePathPolicy paths, IDocumentStora
         fileName = PortablePathSegment.NormalizeAndValidate(fileName, nameof(fileName));
         if (fileName.Length > 128 || !EctdDocumentFileRules.IsAllowedFileName(fileName)) throw new ArgumentException("Use a portable supported document filename of at most 128 characters.", nameof(fileName));
         var destination = boundary.EnsurePathOwnedBySequence(Path.Combine(application.WorkingDirectoryPath, sequence,
-            "_assembly-sources", Guid.NewGuid().ToString("N"), fileName), application, sequence);
+            "_assembly-staging", Guid.NewGuid().ToString("N"), fileName), application, sequence);
         EnsureNoReparse(destination); Directory.CreateDirectory(Path.GetDirectoryName(destination)!); EnsureNoReparse(destination);
+        try
+        {
         await using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous);
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); using var md5 = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
         var buffer = new byte[81920]; long length = 0; int read;
@@ -41,6 +43,74 @@ public sealed class AssemblyFileStore(IWorkspacePathPolicy paths, IDocumentStora
         await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         return new(fileName, EctdDocumentFileRules.GetMediaType(fileName), length, Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant(),
             Convert.ToHexString(md5.GetHashAndReset()).ToLowerInvariant(), destination);
+        }
+        catch (Exception error)
+        {
+            Quarantine(application, sequence, destination, error.GetType().Name);
+            throw;
+        }
+    }
+
+    public SubmissionDocument SourceRegistration(SubmissionApplication application, string sequence, SubmissionDocument staged)
+    {
+        var token = IntakeToken(application, sequence, staged.StoragePath, "_assembly-staging");
+        var destination = boundary.EnsurePathOwnedBySequence(Path.Combine(application.WorkingDirectoryPath, sequence,
+            "_assembly-sources", token, staged.FileName), application, sequence);
+        EnsureNoReparse(destination);
+        return SubmissionDocument.Rehydrate(staged.Id, staged.FileName, staged.MediaType, staged.FileSize, staged.Sha256,
+            staged.Md5, destination, staged.CreatedUtc);
+    }
+
+    public void PromoteSource(SubmissionApplication application, string sequence, SubmissionDocument staged, SubmissionDocument registered)
+    {
+        var expected = SourceRegistration(application, sequence, staged);
+        if (expected.Id != registered.Id || expected.StoragePath != registered.StoragePath)
+            throw new InvalidDataException("Assembly intake registration differs from its staged identity.");
+        var sourceDirectory = Path.GetDirectoryName(staged.StoragePath)!;
+        var targetDirectory = Path.GetDirectoryName(registered.StoragePath)!;
+        EnsureNoReparse(sourceDirectory); EnsureNoReparse(targetDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(targetDirectory)!);
+        EnsureNoReparse(sourceDirectory); EnsureNoReparse(targetDirectory);
+        Directory.Move(sourceDirectory, targetDirectory);
+    }
+
+    public void QuarantineSource(SubmissionApplication application, string sequence, SubmissionDocument document, string reason) =>
+        Quarantine(application, sequence, document.StoragePath, reason);
+
+    private void Quarantine(SubmissionApplication application, string sequence, string path, string reason)
+    {
+        var kind = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(path)));
+        if (kind is not ("_assembly-staging" or "_assembly-sources"))
+            throw new InvalidDataException("Only an isolated assembly intake can be quarantined.");
+        var token = IntakeToken(application, sequence, path, kind);
+        var directory = Path.GetDirectoryName(path)!;
+        EnsureNoReparse(directory);
+        if (!Directory.Exists(directory)) return;
+        foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+            if ((File.GetAttributes(entry) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
+                throw new InvalidDataException("Assembly intake isolation contains an unexpected directory or link.");
+        var destination = boundary.EnsurePathOwnedBySequence(Path.Combine(application.WorkingDirectoryPath, sequence,
+            "_assembly-failed", token + "-" + Guid.NewGuid().ToString("N")), application, sequence);
+        EnsureNoReparse(destination);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        EnsureNoReparse(directory); EnsureNoReparse(destination);
+        Directory.Move(directory, destination);
+        using var marker = new StreamWriter(new FileStream(Path.Combine(destination, "failure-" + Guid.NewGuid().ToString("N") + ".txt"),
+            FileMode.CreateNew, FileAccess.Write, FileShare.None));
+        marker.Write(reason);
+    }
+
+    private string IntakeToken(SubmissionApplication application, string sequence, string path, string kind)
+    {
+        path = boundary.EnsurePathOwnedBySequence(path, application, sequence);
+        var directory = Path.GetDirectoryName(path)!;
+        var token = Path.GetFileName(directory);
+        if (!Guid.TryParseExact(token, "N", out _) || !string.Equals(directory,
+            Path.GetFullPath(Path.Combine(application.WorkingDirectoryPath, sequence, kind, token)),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            throw new InvalidDataException("Assembly intake is outside its task-owned directory.");
+        EnsureNoReparse(path);
+        return token;
     }
     public bool IsSource(SubmissionApplication application, string sequence, SubmissionDocument document)
     {

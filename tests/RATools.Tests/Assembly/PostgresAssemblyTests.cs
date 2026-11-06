@@ -18,6 +18,71 @@ namespace RATools.Tests.Assembly;
 public sealed class PostgresAssemblyTests
 {
     [RequiresPostgresFact]
+    public Task IntakeRegistrationFailureRollsBackTheRealDatabase() => ExerciseIntakeFailureAsync(false);
+
+    [RequiresPostgresFact]
+    public Task IntakePromotionFailureRollsBackTheRealDatabase() => ExerciseIntakeFailureAsync(true);
+
+    private static async Task ExerciseIntakeFailureAsync(bool promotionFailure)
+    {
+        await using var db = Context(); var rig = await SeedAsync(db);
+        var service = Build(rig.Data, db, new EfCoreDocumentPlacementRepository(db),
+            new FailIntake(new EfCoreDocumentRepository(db), promotionFailure));
+
+        await Assert.ThrowsAsync<IOException>(() => service.UploadSourceAsync(rig.Data.Application.Id, "0001", rig.Data.Revision,
+            "source.pdf", new MemoryStream(rig.Data.Original)));
+
+        await using var read = Context();
+        Assert.Equal(1, await read.Documents.CountAsync(row => row.StoragePath.StartsWith(rig.Data.Root)));
+        Assert.Equal(rig.Data.Revision, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.Data.Application.Id, "0001"));
+        Assert.Empty(await rig.Service.ListSourcesAsync(rig.Data.Application.Id, "0001"));
+        Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(rig.Data.Root, "0001", "_assembly-failed"), "*", SearchOption.AllDirectories));
+    }
+
+    [RequiresPostgresFact]
+    public async Task IntakeCommitResponseLossPreservesTheRegisteredFileInANewContext()
+    {
+        await using var db = Context(); var rig = await SeedAsync(db);
+        var service = Build(rig.Data, db, new EfCoreDocumentPlacementRepository(db),
+            transactions: new LostResponseTransaction(new EfCorePersistenceTransaction(db)));
+
+        var receipt = await service.UploadSourceAsync(rig.Data.Application.Id, "0001", rig.Data.Revision, "source.pdf", new MemoryStream(rig.Data.Original));
+
+        await using var read = Context();
+        var loaded = (await new EfCoreDocumentRepository(read).GetAsync(receipt.DocumentId))!;
+        Assert.Equal(rig.Data.Original, await File.ReadAllBytesAsync(loaded.StoragePath));
+        Assert.Equal(rig.Data.Revision, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.Data.Application.Id, "0001"));
+    }
+
+    private sealed class FailIntake(IDocumentRepository inner, bool promotionFailure) : IDocumentRepository
+    {
+        public async Task AddAsync(SubmissionDocument document, CancellationToken cancellationToken = default)
+        {
+            await inner.AddAsync(document, cancellationToken);
+            if (promotionFailure) Directory.CreateDirectory(Path.GetDirectoryName(document.StoragePath)!);
+            else throw new IOException("Injected registration failure after SaveChanges.");
+        }
+        public Task<bool> UpdateAsync(SubmissionDocument document, CancellationToken cancellationToken = default) => inner.UpdateAsync(document, cancellationToken);
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new InvalidOperationException("No deletion.");
+        public Task<SubmissionDocument?> GetAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetAsync(id, cancellationToken);
+        public Task<IReadOnlyCollection<SubmissionDocument>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
+    }
+
+    private sealed class LostResponseTransaction(IPersistenceTransaction inner) : IPersistenceTransaction
+    {
+        public async Task ExecuteAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+        {
+            await inner.ExecuteAsync(operation, cancellationToken);
+            throw new IOException("Injected lost commit response.");
+        }
+        public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+        {
+            await inner.ExecuteAsync(operation, cancellationToken);
+            throw new IOException("Injected lost commit response.");
+        }
+    }
+
+    [RequiresPostgresFact]
     public async Task TwoConnectionsReplayOneRequestAndTwoDistinctConstraintRowsReturnConflict()
     {
         await using var db = Context(); var rig = await SeedAsync(db);
@@ -163,13 +228,14 @@ public sealed class PostgresAssemblyTests
         Assert.Equal(data.Revision, revision); await new EfCoreDocumentRepository(db).AddAsync(data.Document);
         return (data, Build(data, db, new EfCoreDocumentPlacementRepository(db)));
     }
-    private static AssemblyService Build(AssemblyRig data, RAToolsDbContext db, IDocumentPlacementRepository placements)
+    private static AssemblyService Build(AssemblyRig data, RAToolsDbContext db, IDocumentPlacementRepository placements,
+        IDocumentRepository? intakeDocuments = null, IPersistenceTransaction? transactions = null)
     {
         var applications = new EfCoreApplicationRepository(db); var documents = new EfCoreDocumentRepository(db); var nodes = new EfCoreCtdNodeRepository(db);
         var revisions = new EfCoreWorkspaceRevisionStore(db); var boundary = new DocumentStorageBoundary(new AssemblyRig.Paths(data.Root)); var options = new AssemblyExecutionOptions();
-        var mutations = new WorkspaceMutationCoordinator(revisions, new EfCorePersistenceTransaction(db), finalizedGuard: new FinalizedWorkspaceGuard(new EfCoreFinalizationStore(db)));
+        var mutations = new WorkspaceMutationCoordinator(revisions, transactions ?? new EfCorePersistenceTransaction(db), finalizedGuard: new FinalizedWorkspaceGuard(new EfCoreFinalizationStore(db)));
         return new(new AssemblyPlanner(applications, documents, placements, nodes, boundary, revisions), new EfCoreAssemblyStore(db), applications,
-            documents, placements, nodes, new EfCoreDocumentProcessingStore(db), boundary,
+            intakeDocuments ?? documents, placements, nodes, new EfCoreDocumentProcessingStore(db), boundary,
             new CtdNodePathResolver(new RATools.Application.Validation.EctdWorkspacePathResolver()), new AssemblyFileStore(new AssemblyRig.Paths(data.Root), boundary, options),
             mutations, new PdfPigPackageInspector(), options);
     }
