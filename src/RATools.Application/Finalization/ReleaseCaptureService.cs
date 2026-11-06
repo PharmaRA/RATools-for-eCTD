@@ -5,6 +5,7 @@ using RATools.Application.PackageValidation;
 using RATools.Domain.Finalization;
 using RATools.Domain.PackageValidation;
 using RATools.Application.Standards;
+using RATools.Domain.Common;
 
 namespace RATools.Application.Finalization;
 
@@ -44,11 +45,10 @@ public sealed class ReleaseCaptureService(
                 run.ReportSha256, StringComparison.Ordinal))
             throw new FinalizationNotAuthorizedException("The archived report bytes do not match the run's committed hash.");
         var (ready, reasons) = ReadReadiness(reportJson);
-        if (run.Binding.StandardsSnapshotId is not null)
         {
             using var report = JsonDocument.Parse(reportJson);
             var binding = report.RootElement.GetProperty("binding").Deserialize<ValidationBinding>(BindingJsonOptions);
-            if (binding != run.Binding) throw new FinalizationNotAuthorizedException("The report does not carry the exact run standards selection.");
+            if (binding != run.Binding) throw new FinalizationNotAuthorizedException("The report does not carry the exact validation run binding.");
         }
         if (run.Binding.ValidationMode == PackageValidationMode.Formal && !ready)
             throw new FinalizationNotAuthorizedException(
@@ -67,13 +67,23 @@ public sealed class ReleaseCaptureService(
         }
         var input = await validationStore.GetInputAsync(stored.InputId, cancellationToken).ConfigureAwait(false)
             ?? throw new FinalizationNotAuthorizedException("The validation run's captured input no longer exists.");
-        var validatedDocuments = ReadValidatedDocuments(input.ManifestJson);
+        var validatedInput = ReadValidatedInput(input, run);
+        string? comparisonDigest = null;
+        if (stored.ComparisonInputId is { } comparisonId)
+        {
+            var comparison = await validationStore.GetInputAsync(comparisonId, cancellationToken).ConfigureAwait(false)
+                ?? throw new FinalizationNotAuthorizedException("The validation run's comparison input no longer exists.");
+            _ = ReadValidatedInput(comparison, run);
+            comparisonDigest = comparison.InputDigest;
+        }
+        if (PackageDeliveryInput.ComputeDigest(input.InputDigest, comparisonDigest) != run.Binding.InputManifestDigest)
+            throw new FinalizationNotAuthorizedException("The archived input does not match the validation run binding.");
 
         var preparation = await planner.PlanAsync(request, run, stored, cancellationToken).ConfigureAwait(false);
         // Only files the run actually validated may be delivered. The workspace could have
         // changed between validation and this finalization; delivering the newer bytes
         // would claim validation evidence for content that was never inspected.
-        VerifyDocuments(preparation, validatedDocuments);
+        VerifyPayload(preparation.Capture, validatedInput);
 
         var files = preparation.Capture.Files
             .Append(new ReleaseCaptureFile("validation-report.json", ReleaseFileKind.ValidationReport, null,
@@ -130,30 +140,58 @@ public sealed class ReleaseCaptureService(
 
     // The validation input's own manifest names the exact bytes that were inspected. Only
     // exact manifest members are addressed; nothing is resolved against the workspace.
-    private static Dictionary<string, (long Length, string Sha256)> ReadValidatedDocuments(string manifestJson)
+    private static PackageInputManifest ReadValidatedInput(RegisteredPackageInput input, PackageValidationRun run)
     {
-        using var document = JsonDocument.Parse(manifestJson);
-        var files = document.RootElement.GetProperty("files");
-        var result = new Dictionary<string, (long, string)>(StringComparer.Ordinal);
-        foreach (var file in files.EnumerateArray())
+        using var document = JsonDocument.Parse(input.ManifestJson);
+        var root = document.RootElement;
+        var manifest = new PackageInputManifest(root.GetProperty("applicationId").GetGuid(),
+            root.GetProperty("sequenceNumber").GetString()!, ReadFiles(root.GetProperty("files")),
+            ReadDirectories(root.GetProperty("directories")), ReadFiles(root.GetProperty("additionalFiles")),
+            ReadDirectories(root.GetProperty("additionalDirectories")));
+        var capture = root.GetProperty("capture");
+        var archiveSha256 = capture.GetProperty("archiveSha256").GetString();
+        var digest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
         {
-            var path = file.GetProperty("logicalPath").GetString()
-                ?? throw new InvalidDataException("A validated input file has no logical path.");
-            if (!result.TryAdd(path, (file.GetProperty("length").GetInt64(), file.GetProperty("sha256").GetString()!)))
-                throw new InvalidDataException($"The validated input lists '{path}' twice.");
-        }
-        return result;
+            schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256
+        }));
+        if (input.ApplicationId != run.ApplicationId || input.SequenceNumber != run.SequenceNumber ||
+            manifest.ApplicationId != input.ApplicationId || manifest.SequenceNumber != input.SequenceNumber ||
+            root.GetProperty("digest").GetString() != manifest.Digest || capture.GetProperty("schemaVersion").GetInt32() != 1 ||
+            capture.GetProperty("sourceKind").Deserialize<PackageSourceKind>(BindingJsonOptions) != input.SourceKind ||
+            capture.GetProperty("limitsDigest").GetString() != input.Limits.Digest() || input.Limits.Digest() != run.Binding.ResourceLimitsDigest ||
+            capture.GetProperty("inputDigest").GetString() != digest || input.InputDigest != digest ||
+            input.SourceKind == PackageSourceKind.Directory && archiveSha256 is not null ||
+            input.SourceKind == PackageSourceKind.Zip && archiveSha256 is null)
+            throw new FinalizationNotAuthorizedException("The archived input inventory is not the validation run's exact captured input.");
+        return manifest;
     }
 
-    private static void VerifyDocuments(ReleaseCapturePreparation preparation,
-        Dictionary<string, (long Length, string Sha256)> validatedDocuments)
+    private static IEnumerable<PackageInputFile> ReadFiles(JsonElement files) => files.EnumerateArray().Select(file =>
+        new PackageInputFile(file.GetProperty("logicalPath").GetString()!, file.GetProperty("length").GetInt64(),
+            file.GetProperty("sha256").GetString()!, file.GetProperty("md5").GetString()!));
+
+    private static IEnumerable<PackageInputDirectory> ReadDirectories(JsonElement directories) => directories.EnumerateArray().Select(directory =>
+        new PackageInputDirectory(directory.GetProperty("logicalPath").GetString()!, directory.GetProperty("isEmpty").GetBoolean()));
+
+    // The input manifest already binds the complete generated delivery structure. Compare
+    // both directions, including XML, checksums and standards assets; a PDF-only subset
+    // cannot authorize a newer workspace or an inventory with a removed placement.
+    private static void VerifyPayload(ReleaseCapturePlan capture, PackageInputManifest input)
     {
-        foreach (var (logicalPath, sha256) in preparation.ValidatedDocuments)
+        var payload = capture.Files.Where(file => file.Kind == ReleaseFileKind.Payload).ToArray();
+        var expected = input.Files.ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
+        if (capture.ApplicationId != input.ApplicationId || capture.SequenceNumber != input.SequenceNumber ||
+            payload.Length != expected.Count)
+            throw new FinalizationNotAuthorizedException("The workspace changed after validation: the delivery inventory differs from the validated input.");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in payload)
         {
-            if (!validatedDocuments.TryGetValue(logicalPath, out var validated) ||
-                !string.Equals(validated.Sha256, sha256, StringComparison.Ordinal))
+            var path = file.RelativePath.StartsWith("payload/", StringComparison.Ordinal) ? file.RelativePath[8..] : string.Empty;
+            if (!path.StartsWith(input.SequenceNumber + "/", StringComparison.Ordinal) || !seen.Add(path) ||
+                !expected.TryGetValue(path, out var validated) || validated.Length != file.Length ||
+                validated.Sha256 != file.Sha256 || validated.Md5 != file.Md5)
                 throw new FinalizationNotAuthorizedException(
-                    $"Document '{logicalPath}' is not the bytes this validation run captured; the workspace changed after validation.");
+                    $"Delivery file '{path}' is not the bytes this validation run captured; the workspace changed after validation.");
         }
     }
 }

@@ -16,7 +16,7 @@ public sealed class FinalizationService(
 {
     // The tool version participates in the snapshot identity. Bump it whenever the
     // meaning of a captured manifest changes so old snapshots stay interpretable.
-    public const string ToolVersion = "ratools-finalization-v1";
+    public const string ToolVersion = "ratools-finalization-v2";
 
     public async Task<FinalizationResult> FinalizeAsync(FinalizeSequenceRequest request, CancellationToken cancellationToken = default)
     {

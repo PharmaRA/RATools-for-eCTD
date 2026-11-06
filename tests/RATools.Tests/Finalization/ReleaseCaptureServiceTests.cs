@@ -78,6 +78,142 @@ public sealed class ReleaseCaptureServiceTests
         Assert.Null(fixture.Store.Completed);
     }
 
+    [Theory]
+    [InlineData("payload/0001/index.xml")]
+    [InlineData("payload/0001/m1/us/us-regional.xml")]
+    [InlineData("payload/0001/index-md5.txt")]
+    [InlineData("payload/0001/util/dtd/ich-ectd-3-2.dtd")]
+    public async Task OldRunCannotAuthorizeChangedGeneratedOrStandardsBytesAtANewRevision(string path)
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync();
+        var original = Fixture.Preparation(run, fixture.DocumentSha256);
+        var changed = original with
+        {
+            Capture = original.Capture with
+            {
+                Files = original.Capture.Files.Select(file => file.RelativePath == path
+                    ? ReleaseCaptureFile.Generated(path, Encoding.UTF8.GetBytes("changed after validation")) : file).ToArray()
+            }
+        };
+        var service = new ReleaseCaptureService(fixture.ValidationStore, new FakePlanner(changed), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() =>
+            service.CaptureAsync(Fixture.Request(run) with { ExpectedRevision = 5 }));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
+    [Fact]
+    public async Task OldRunCannotAuthorizeADeletedPlacementEvenWhenRemainingDocumentsMatch()
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync();
+        var original = Fixture.Preparation(run, fixture.DocumentSha256);
+        var changed = original with
+        {
+            Capture = original.Capture with
+            {
+                Files = original.Capture.Files.Where(file => !file.RelativePath.EndsWith("/intro.pdf", StringComparison.Ordinal)).ToArray()
+            },
+            ValidatedDocuments = new Dictionary<string, string>()
+        };
+        var service = new ReleaseCaptureService(fixture.ValidationStore, new FakePlanner(changed), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() =>
+            service.CaptureAsync(Fixture.Request(run) with { ExpectedRevision = 5 }));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
+    [Fact]
+    public async Task AnUnvalidatedAdditionalPayloadIsRefused()
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync();
+        var original = Fixture.Preparation(run, fixture.DocumentSha256);
+        var changed = original with
+        {
+            Capture = original.Capture with
+            {
+                Files = original.Capture.Files.Append(ReleaseCaptureFile.Generated(
+                    "payload/0001/extra.pdf", Encoding.UTF8.GetBytes("unvalidated"))).ToArray()
+            }
+        };
+        var service = new ReleaseCaptureService(fixture.ValidationStore, new FakePlanner(changed), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() => service.CaptureAsync(Fixture.Request(run)));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AMatchingSha256DoesNotAuthorizeDifferentLengthOrMd5(bool changeLength)
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync();
+        var original = Fixture.Preparation(run, fixture.DocumentSha256);
+        var changed = original with
+        {
+            Capture = original.Capture with
+            {
+                Files = original.Capture.Files.Select((file, index) => index != 0 ? file : changeLength
+                    ? file with { Length = file.Length + 1 } : file with { Md5 = new string('0', 32) }).ToArray()
+            }
+        };
+        var service = new ReleaseCaptureService(fixture.ValidationStore, new FakePlanner(changed), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() => service.CaptureAsync(Fixture.Request(run)));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
+    [Theory]
+    [InlineData("inventory")]
+    [InlineData("application")]
+    [InlineData("capture")]
+    [InlineData("run")]
+    public async Task AnArchivedInputThatNoLongerMatchesItsSealedIdentityIsRefused(string mutation)
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync(mutation: mutation);
+        var service = new ReleaseCaptureService(fixture.ValidationStore,
+            new FakePlanner(Fixture.Preparation(run, fixture.DocumentSha256)), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() => service.CaptureAsync(Fixture.Request(run)));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
+    [Fact]
+    public async Task DirectoryAndZipComparisonRemainBoundToTheirCombinedInputIdentity()
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync(withComparison: true);
+        var service = new ReleaseCaptureService(fixture.ValidationStore,
+            new FakePlanner(Fixture.Preparation(run, fixture.DocumentSha256)), fixture.Store);
+
+        var capture = await service.CaptureAsync(Fixture.Request(run));
+
+        Assert.Equal(run.Binding.InputManifestDigest, capture.ValidationInputManifestDigest);
+        Assert.NotNull(fixture.Store.Completed);
+    }
+
+    [Fact]
+    public async Task ChangedComparisonIdentityCannotReuseTheCompletedRun()
+    {
+        var fixture = new Fixture();
+        var run = await fixture.CompletedRunAsync(mutation: "comparison", withComparison: true);
+        var service = new ReleaseCaptureService(fixture.ValidationStore,
+            new FakePlanner(Fixture.Preparation(run, fixture.DocumentSha256)), fixture.Store);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() => service.CaptureAsync(Fixture.Request(run)));
+
+        Assert.Null(fixture.Store.Staging);
+    }
+
     private static string Digest(string seed) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(seed))).ToLowerInvariant();
 
@@ -88,19 +224,55 @@ public sealed class ReleaseCaptureServiceTests
         public RecordingCaptureStore Store { get; } = new();
 
         public async Task<PackageValidationRun> CompletedRunAsync(
-            PackageValidationMode mode = PackageValidationMode.Development)
+            PackageValidationMode mode = PackageValidationMode.Development, string? mutation = null, bool withComparison = false)
         {
             var baseline = Baseline();
+            var limits = new PackageReadLimits();
+            var manifest = new PackageInputManifest(ApplicationId, "0001", PayloadFiles().Select(file =>
+                new PackageInputFile(file.RelativePath["payload/".Length..], file.Length, file.Sha256, file.Md5)), [], [], []);
+            var inputDigest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
+            {
+                schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256 = (string?)null
+            }));
+            var manifestJson = JsonSerializer.SerializeToNode(manifest, SerializerOptions)!.AsObject();
+            manifestJson["capture"] = JsonSerializer.SerializeToNode(new
+            {
+                schemaVersion = 1, inputDigest, archiveSha256 = (string?)null,
+                sourceKind = PackageSourceKind.Directory, limitsDigest = limits.Digest()
+            }, SerializerOptions);
+            if (mutation == "inventory") manifestJson["files"]![0]!["length"] = 1234L;
+            if (mutation == "application") manifestJson["applicationId"] = Guid.NewGuid().ToString("D");
+            if (mutation == "capture") manifestJson["capture"]!["inputDigest"] = new string('a', 64);
+            Guid? comparisonId = null;
+            string? comparisonDigest = null;
+            if (withComparison)
+            {
+                comparisonId = Guid.NewGuid();
+                var archiveSha256 = Digest("zip bytes");
+                comparisonDigest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
+                {
+                    schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256
+                }));
+                var comparisonJson = JsonSerializer.SerializeToNode(manifest, SerializerOptions)!.AsObject();
+                comparisonJson["capture"] = JsonSerializer.SerializeToNode(new
+                {
+                    schemaVersion = 1, inputDigest = comparisonDigest,
+                    archiveSha256 = mutation == "comparison" ? Digest("changed zip") : archiveSha256,
+                    sourceKind = PackageSourceKind.Zip, limitsDigest = limits.Digest()
+                }, SerializerOptions);
+                await ValidationStore.RegisterInputAsync(new(comparisonId.Value, ApplicationId, "0001", "/fixture.zip", null,
+                    PackageSourceKind.Zip, comparisonDigest, comparisonJson.ToJsonString(SerializerOptions), limits, Now, false));
+            }
             // The archived baseline carries its own digest; the run binding must name that
             // exact digest, exactly as the real validation service records it.
-            var binding = new ValidationBinding(Digest("input"), Digest("baseline"),
+            var binding = new ValidationBinding(mutation == "run" ? Digest("different input") : PackageDeliveryInput.ComputeDigest(inputDigest, comparisonDigest), Digest("baseline"),
                 PackageValidationCatalog.UsProfile, PackageValidationCatalog.Current.Digest, "package-delivery-v3", mode,
-                new PackageReadLimits().Digest());
+                limits.Digest());
             var stored = new
             {
-                schemaVersion = 1, inputId = InputId, comparisonInputId = (Guid?)null,
+                schemaVersion = 1, inputId = InputId, comparisonInputId = comparisonId,
                 history = Array.Empty<object>(), ruleCatalog = PackageValidationCatalog.ExportSnapshot(),
-                historyBaseline = baseline, readLimits = new PackageReadLimits()
+                historyBaseline = baseline, readLimits = limits
             };
             var requestJson = JsonSerializer.Serialize(stored, SerializerOptions);
             var run = new PackageValidationRun(ApplicationId, "0001", binding, requestJson,
@@ -113,7 +285,7 @@ public sealed class ReleaseCaptureServiceTests
             var stored1 = (await ValidationStore.GetRunAsync(run.Id))!;
             // The input registration must exist for the service to verify the captured bytes.
             await ValidationStore.RegisterInputAsync(new RegisteredPackageInput(InputId, ApplicationId, "0001",
-                "/fixture/path", null, PackageSourceKind.Directory, Digest("input"), InputManifestJson(), new PackageReadLimits(),
+                "/fixture/path", null, PackageSourceKind.Directory, inputDigest, manifestJson.ToJsonString(SerializerOptions), limits,
                 Now, IsOwnedUpload: false));
             return stored1;
         }
@@ -130,25 +302,26 @@ public sealed class ReleaseCaptureServiceTests
             entries = Array.Empty<object>()
         });
 
-        private string InputManifestJson() => JsonSerializer.Serialize(new
-        {
-            files = new[] { new { logicalPath = "0001/index.xml", length = 9L, sha256 = DocumentSha256 } }
-        });
+        private static ReleaseCaptureFile[] PayloadFiles() =>
+        [
+            ReleaseCaptureFile.Generated("payload/0001/index.xml", Encoding.UTF8.GetBytes("<ectd />")),
+            ReleaseCaptureFile.Generated("payload/0001/m1/us/us-regional.xml", Encoding.UTF8.GetBytes("<regional />")),
+            ReleaseCaptureFile.Generated("payload/0001/index-md5.txt", Encoding.UTF8.GetBytes("md5  index.xml")),
+            ReleaseCaptureFile.Generated("payload/0001/util/dtd/ich-ectd-3-2.dtd", Encoding.UTF8.GetBytes("pinned dtd")),
+            ReleaseCaptureFile.Generated("payload/0001/m2/intro.pdf", Encoding.UTF8.GetBytes("document"))
+        ];
 
         public static ReleaseCapturePreparation Preparation(PackageValidationRun run, string validatedSha256)
         {
             // The service appends the archived report itself, so the planner only supplies
             // the deliverable files it derived from the workspace.
-            var files = new[]
-            {
-                ReleaseCaptureFile.Generated("payload/0001/index.xml", Encoding.UTF8.GetBytes("<ectd />")),
-                ReleaseCaptureFile.Generated("payload/0001/index-md5.txt", Encoding.UTF8.GetBytes("md5  index.xml"))
-            };
+            var files = PayloadFiles().Select(file => file.RelativePath.EndsWith("/intro.pdf", StringComparison.Ordinal)
+                ? file with { Sha256 = validatedSha256 } : file).ToArray();
             var baseline = Baseline();
             return new ReleaseCapturePreparation(new ReleaseCapturePlan(ApplicationId, "0001", files), [],
                 new ReleaseValidationReference(run.ReportSha256!, run.Binding.ValidationMode.ToString(),
                     run.Binding.ProfileSnapshotId, "3.2.2", "3.3", run.Binding.RulesDigest, run.Binding.EngineVersion, null),
-                baseline, new Dictionary<string, string> { ["0001/index.xml"] = validatedSha256 }, [], [], []);
+                baseline, new Dictionary<string, string> { ["0001/m2/intro.pdf"] = validatedSha256 }, [], [], []);
         }
 
         public static FinalizeSequenceRequest Request(PackageValidationRun run) =>

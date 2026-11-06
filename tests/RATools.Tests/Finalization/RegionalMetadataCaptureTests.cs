@@ -78,7 +78,7 @@ public sealed class RegionalMetadataCaptureTests
         Assert.Contains(plan.Capture.Files, item => item.RelativePath == "payload/0001/m1/us/us-regional.xml");
     }
 
-    private static async Task<(EctdReleaseCapturePlanner Planner, FinalizeSequenceRequest Request, PackageValidationRun Run,
+    internal static async Task<(EctdReleaseCapturePlanner Planner, FinalizeSequenceRequest Request, PackageValidationRun Run,
         StoredPackageValidationRequest Stored, RegionalMetadataRevision Revision, EctdSequencePackage Package, StandardsSnapshotService Snapshots)> CreateAsync(bool mismatch = false, bool legacy = false)
     {
         var provider = new FdaEctd322StandardsProfileProvider();
