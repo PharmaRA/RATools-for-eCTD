@@ -221,6 +221,51 @@ public sealed class DurableAssemblyTests
     }
 
     [Fact]
+    public async Task AcceptedOutsideCancellationAtRevisionAdvanceRollsBackStagedAssemblyCompletion()
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var applications = new PausingApplications(test.Applications);
+        var revisions = new InMemoryWorkspaceRevisionStore(applications);
+        var service = test.MakeService(test.Placements, mutationRevisions: revisions);
+        var plan = await service.PreviewAsync(test.Application.Id, "0001", new(test.Revision, test.Manifest(2)));
+        var queued = await service.EnqueueAsync(test.Application.Id, "0001", new(plan.Id, plan.Plan.PlanDigest, "cancel-at-advance"));
+        var lease = (await test.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromMinutes(2)))!;
+        Task execution;
+        using (ExecutionContext.SuppressFlow()) execution = Task.Run(() => service.ExecuteAsync(lease));
+        await applications.RevisionStaged.Task.WaitAsync(TimeSpan.FromSeconds(20));
+        try
+        {
+            // This context never joined the worker's AsyncLocal transaction.
+            var cancelled = await service.CancelAsync(test.Application.Id, "0001", queued.Job.State.Id);
+            Assert.True(cancelled.CancellationRequested);
+        }
+        finally { applications.Resume.TrySetResult(); }
+        await Assert.ThrowsAsync<AssemblyPlanStaleException>(() => execution);
+        var job = (await test.Store.GetJobAsync(queued.Job.State.Id))!;
+        Assert.True(job.State.CancellationRequested); Assert.Equal(PdfProcessingJobStatus.Running, job.State.Status);
+        Assert.Null(job.Result); Assert.Empty(await test.Placements.ListBySequenceAsync(test.Application.Id, "0001"));
+        Assert.Single(await test.Documents.ListAsync());
+        Assert.Equal(test.Revision, await revisions.GetRevisionAsync(test.Application.Id, "0001"));
+    }
+
+    [Fact]
+    public async Task CompletionOutsideWorkspaceTransactionIsRefusedWithoutChangingJob()
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var plan = await test.Service.PreviewAsync(test.Application.Id, "0001", new(test.Revision, test.Manifest(1)));
+        var queued = await test.Service.EnqueueAsync(test.Application.Id, "0001", new(plan.Id, plan.Plan.PlanDigest, "outside-transaction"));
+        var lease = (await test.Store.ClaimAsync("outside", DateTime.UtcNow, TimeSpan.FromMinutes(2)))!;
+        var row = Assert.Single(plan.SelectedRows);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => test.Store.CompleteAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow,
+            new(lease.Job.Id, plan.Id, plan.Plan.PlanDigest, test.Application.Id, "0001", test.Revision, test.Revision + 1, DateTime.UtcNow,
+                [new(row, Guid.NewGuid(), test.Document.Id, plan.Sources.Single().VersionId, plan.Sources.Single().TargetHref, "leaf", null)])));
+        Assert.Null((await test.Store.GetJobAsync(queued.Job.State.Id))!.Result);
+        Assert.Equal(PdfProcessingJobStatus.Running, (await test.Store.GetJobAsync(queued.Job.State.Id))!.State.Status);
+        Assert.Empty(await test.Placements.ListBySequenceAsync(test.Application.Id, "0001"));
+        Assert.Equal(test.Revision, await test.Revisions.GetRevisionAsync(test.Application.Id, "0001"));
+    }
+
+    [Fact]
     public async Task SourceAliasConflictsFileNameCollisionsAndUnsupportedPathsAreVisibleBeforeExecution()
     {
         var test = await AssemblyRig.CreateAsync();
@@ -248,6 +293,22 @@ public sealed class DurableAssemblyTests
         public Task<IReadOnlyCollection<DocumentPlacement>> ListByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default) => inner.ListByApplicationAsync(applicationId, cancellationToken);
         public Task<IReadOnlyCollection<DocumentPlacement>> ListBySequenceAsync(Guid applicationId, string sequenceNumber, CancellationToken cancellationToken = default) => inner.ListBySequenceAsync(applicationId, sequenceNumber, cancellationToken);
     }
+
+    private sealed class PausingApplications(IApplicationRepository inner) : IApplicationRepository
+    {
+        public TaskCompletionSource RevisionStaged { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Resume { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task AddAsync(SubmissionApplication application, CancellationToken cancellationToken = default) => inner.AddAsync(application, cancellationToken);
+        public async Task UpdateAsync(SubmissionApplication application, CancellationToken cancellationToken = default)
+        {
+            await inner.UpdateAsync(application, cancellationToken);
+            RevisionStaged.TrySetResult();
+            await Resume.Task.WaitAsync(cancellationToken);
+        }
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new InvalidOperationException("No deletion in this test.");
+        public Task<SubmissionApplication?> GetAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetAsync(id, cancellationToken);
+        public Task<IReadOnlyCollection<SubmissionApplication>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
+    }
 }
 
 internal sealed class AssemblyRig
@@ -270,13 +331,13 @@ internal sealed class AssemblyRig
     public string Manifest(int count) => "sourceFile,nodeInstanceId,fileName,operation,title,sortOrder" + string.Concat(Enumerable.Range(0, count)
         .Select(index => string.Create(CultureInfo.InvariantCulture, $"\ndocument:{Document.Id},{(index % 2 == 0 ? Alpha : Beta)},document-{index}.pdf,new,Document {index},{index / 2}")));
     public AssemblyService MakeService(IDocumentPlacementRepository placements, AssemblyExecutionOptions? executionOptions = null, IPackagePdfInspector? inspector = null,
-        FinalizedWorkspaceGuard? finalizations = null)
+        FinalizedWorkspaceGuard? finalizations = null, IWorkspaceRevisionStore? mutationRevisions = null)
     {
         var boundary = new DocumentStorageBoundary(new Paths(Root)); var options = executionOptions ?? new AssemblyExecutionOptions();
         var planner = new AssemblyPlanner(Applications, Documents, placements, Nodes, boundary, Revisions);
         return new(planner, Store, Applications, Documents, placements, Nodes, Versions, boundary,
             new CtdNodePathResolver(new RATools.Application.Validation.EctdWorkspacePathResolver()),
-            new AssemblyFileStore(new Paths(Root), boundary, options), new WorkspaceMutationCoordinator(Revisions, new InMemoryPersistenceTransaction(), finalizedGuard: finalizations),
+            new AssemblyFileStore(new Paths(Root), boundary, options), new WorkspaceMutationCoordinator(mutationRevisions ?? Revisions, new InMemoryPersistenceTransaction(), finalizedGuard: finalizations),
             inspector ?? new PdfPigPackageInspector(), options);
     }
     public static async Task<AssemblyRig> CreateAsync()

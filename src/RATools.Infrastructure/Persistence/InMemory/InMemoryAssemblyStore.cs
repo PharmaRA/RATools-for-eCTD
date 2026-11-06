@@ -38,6 +38,20 @@ public sealed class InMemoryAssemblyStore : AssemblyStore
         {
             var current = _jobs.Get(before.State.Id);
             if (JsonSerializer.Serialize(current) != JsonSerializer.Serialize(before)) return Task.FromResult(false);
+            if (after.State.Status == PdfProcessingJobStatus.Completed)
+            {
+                InMemoryPersistenceTransaction.RegisterCommitFence(commit =>
+                {
+                    lock (_gate)
+                    {
+                        var committed = _jobs.GetCommitted(before.State.Id);
+                        if (committed is null || JsonSerializer.Serialize(committed) != JsonSerializer.Serialize(before)
+                            || committed.State.CancellationRequested)
+                            throw new AssemblyPlanStaleException("The assembly lease changed before the workspace transaction committed.");
+                        commit();
+                    }
+                });
+            }
             _jobs.Set(after.State.Id, after); return Task.FromResult(true);
         }
     }

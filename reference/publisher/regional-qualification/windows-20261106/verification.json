@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "checkedOn": "2026-11-06",
+  "baseCommit": "e36748e",
+  "scope": "Local Windows declared development/trial matrix; no regulatory activation",
+  "sources": {
+    "frontend/src/pages/workspace/RegionalMetadataPanel.tsx": "a5eaab33b18f2f2ec453e96eea6b4123cdac50fae3af02212026787b4efa76d0",
+    "frontend/src/pages/workspace/RegionalMetadataPanel.test.tsx": "65dc9f95880b54d16788577c4cae254471899820efbaf960535ebacaa7ded494",
+    "frontend/src/importActions.test.ts": "4d4b092dda854b0f76afc72ef0f718ae6f83c05a1a54f5e3df424e14fd9b4a79",
+    "src/RATools.Infrastructure/Persistence/InMemory/InMemoryAssemblyStore.cs": "726fced8e202711d3dae55ac81d074b2d51d0a153be2b16c218cf0ed64b9a891",
+    "src/RATools.Infrastructure/Persistence/InMemory/InMemoryPersistenceTransaction.cs": "381c64f1d9fd66d0d8c2dc9b1413c182d139714905d8b95f52cb366c8c1156d8",
+    "src/RATools.Infrastructure/Persistence/InMemory/TransactionalMemoryCollection.cs": "2cd623cf8d9d2b9db8352da58c58ed05ceb1f9d4555ef3ce80baa9285d591f0d",
+    "tests/RATools.Tests/Assembly/DurableAssemblyTests.cs": "d71dd0181d0dc34f39da1734350378b052a025ecbec48252b6d761435d6f33b2",
+    "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs": "80d3974015305709714320f00300b6c601a8be4849a4ac420439fc25839696e0",
+    "tests/RATools.Tests/Fixtures/RegionalQualification/p609-declared-matrix.json": "e574ec370ee005bf89c22458f837bc58596bae666be12ee016ce5ef807fe7da9"
+  },
+  "matrixReceiptSha256": "9c27694a66f9ffa860b219b276406d9501b1bc6dc79a3a9f09121bee96698eee",
+  "runs": [
+    {
+      "label": "p609-matrix-final",
+      "passed": 96,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-matrix-final.log",
+      "sha256": "aaccce63de5c958aa172ec62182e1f34239424e5989e90910f45f5d9296a0ddc"
+    },
+    {
+      "label": "p609-service-binding-final2",
+      "passed": 146,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-service-binding-final2.log",
+      "sha256": "86451af5f39a342d95cd28c5258e3b3ab83d6957f5a4f95c489ca742a2d43067"
+    },
+    {
+      "label": "p609-parent-e2e",
+      "passed": 9,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-parent-e2e.log",
+      "sha256": "299a178b7d96c52167dbcd257b3bfca685efebb246236f06d2f6fb0913fcad98"
+    },
+    {
+      "label": "p609-parent-assembly-pg",
+      "passed": 22,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-parent-assembly-pg.log",
+      "sha256": "6793d5b90c9e763462c995ecda6e22ab1296dd5a87afa82f5050f6d585f5d047"
+    },
+    {
+      "label": "p609-parent-snapshots",
+      "passed": 21,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-parent-snapshots.log",
+      "sha256": "aed4362cefdccbf809fc1244cf95d7d24539a2b99b0c6dfab82b0484c6d72ee6"
+    },
+    {
+      "label": "p609-browser-final-host",
+      "passed": 19,
+      "failed": 0,
+      "log": ".artifacts/current-head-review-20261104/p609-fixwave-compile/p609-browser-final-host.log",
+      "sha256": "aa00a942c16ab09abe7de419d26d64c0ab7f95d25437bcf34342c68cb0ad92a7"
+    }
+  ],
+  "overlappingCountsMustNotBeSummed": true,
+  "frontend": {
+    "passed": 25,
+    "failed": 0,
+    "files": [
+      "RegionalMetadataPanel.test.tsx",
+      "RegionalSchemaFields.test.tsx",
+      "importActions.test.ts"
+    ],
+    "fullTsconfigApp": "passed",
+    "changedFileEslint": "passed"
+  },
+  "browser": {
+    "passed": 2,
+    "failed": 0,
+    "pageErrors": 0,
+    "source": ".artifacts/p609-browser/final.json",
+    "sha256": "f9a95123daddded25d1ec754f92855182a4f2a2fdada0548035e6218824c9ae4",
+    "scope": "Actual Chromium RegionalMetadataPanel/controllers/services; retained memory repositories; independent PG tests separate"
+  },
+  "analyzerCompile": {
+    "log": ".artifacts/current-head-review-20261104/p609-final-analyzed-compile.log",
+    "layers": 4,
+    "errors": 0,
+    "warnings": 0,
+    "existingInformational": "CS9236"
+  },
+  "notExecuted": [
+    "whole repository test suite",
+    "Linux qualification",
+    "current FDA official regulatory qualification",
+    "complete regional business criteria inventory",
+    "independent current regional business validator"
+  ]
+}

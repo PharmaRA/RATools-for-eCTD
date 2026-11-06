@@ -1,0 +1,402 @@
+{
+  "MatrixVersion": "p609-2026-11-06",
+  "MatrixSha256": "e574ec370ee005bf89c22458f837bc58596bae666be12ee016ce5ef807fe7da9",
+  "Runtime": "8.0.29",
+  "TestAssemblySha256": "d530c98e8f7466a17c7e18c57dd76d4fea4b140ced127ef0901da40ec31e8609",
+  "TestSourceSha256": "80d3974015305709714320f00300b6c601a8be4849a4ac420439fc25839696e0",
+  "Rows": [
+    {
+      "Row": "US-M11-FORM",
+      "TemplateKey": "us-fda-ectd-3.2.2",
+      "RuleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+      "StandardsSnapshotId": "sha256:53fb7ded48cdd7aee3747a5eadd5fb69d1e820594088a3b27b3b9e89a5c0d0b4",
+      "InputSha256": "a3e10334d3a1e3cb5f34fae688ca62b77f6459710e0583bf80dfe1006988df71",
+      "Evidence": [
+        {
+          "Category": "Sources",
+          "Status": "Unverified",
+          "Reason": "Bundled assets are hash pinned; current official applicability has not been independently verified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ControlledVocabulary",
+          "Status": "Missing",
+          "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "MetadataMapping",
+          "Status": "Unverified",
+          "Reason": "P6 regional metadata mapping qualification remains pending.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Writer",
+          "Status": "Unverified",
+          "Reason": "Regional writer scope requires the P6 evidence matrix.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Rules",
+          "Status": "Unverified",
+          "Reason": "Pinned rule mappings do not establish regional qualification.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ExternalComparison",
+          "Status": "Missing",
+          "Reason": "No independent regional comparison evidence activates this snapshot.",
+          "EvidenceSha256": null
+        }
+      ],
+      "RulesDigest": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+      "EngineVersion": "package-delivery-v4;package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;pdfpig-0.1.15/package-navigation-v1;package-regional-inspector-v2",
+      "FormalReasons": [
+        "ProfileNotActive: AcquiredNotActive",
+        "BusinessScopeNotQualified: No verified formal scope matches the selection.",
+        "EvidenceIncomplete: Sources",
+        "EvidenceIncomplete: ControlledVocabulary",
+        "EvidenceIncomplete: MetadataMapping",
+        "EvidenceIncomplete: Writer",
+        "EvidenceIncomplete: Rules",
+        "EvidenceIncomplete: ExternalComparison",
+        "SourceVerificationIncomplete: Versioned official provenance has not been verified."
+      ],
+      "RegionalRevisionDigest": "9e4fac4077bacde4314298108140d1ffe8b1f0a80e405e152f5839ef4def96ba"
+    },
+    {
+      "Row": "US-M12-ADMIN",
+      "TemplateKey": "us-fda-ectd-3.2.2",
+      "RuleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+      "StandardsSnapshotId": "sha256:53fb7ded48cdd7aee3747a5eadd5fb69d1e820594088a3b27b3b9e89a5c0d0b4",
+      "InputSha256": "970a9963dddc7f1c28f212e0433d58eb56db71efe0b08d6a8abda3f9eadf583e",
+      "Evidence": [
+        {
+          "Category": "Sources",
+          "Status": "Unverified",
+          "Reason": "Bundled assets are hash pinned; current official applicability has not been independently verified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ControlledVocabulary",
+          "Status": "Missing",
+          "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "MetadataMapping",
+          "Status": "Unverified",
+          "Reason": "P6 regional metadata mapping qualification remains pending.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Writer",
+          "Status": "Unverified",
+          "Reason": "Regional writer scope requires the P6 evidence matrix.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Rules",
+          "Status": "Unverified",
+          "Reason": "Pinned rule mappings do not establish regional qualification.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ExternalComparison",
+          "Status": "Missing",
+          "Reason": "No independent regional comparison evidence activates this snapshot.",
+          "EvidenceSha256": null
+        }
+      ],
+      "RulesDigest": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+      "EngineVersion": "package-delivery-v4;package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;pdfpig-0.1.15/package-navigation-v1;package-regional-inspector-v2",
+      "FormalReasons": [
+        "ProfileNotActive: AcquiredNotActive",
+        "BusinessScopeNotQualified: No verified formal scope matches the selection.",
+        "EvidenceIncomplete: Sources",
+        "EvidenceIncomplete: ControlledVocabulary",
+        "EvidenceIncomplete: MetadataMapping",
+        "EvidenceIncomplete: Writer",
+        "EvidenceIncomplete: Rules",
+        "EvidenceIncomplete: ExternalComparison",
+        "SourceVerificationIncomplete: Versioned official provenance has not been verified."
+      ],
+      "RegionalRevisionDigest": "75b276fe76c5fbc5b8b1ca89a36258f43a869f214e594685d535415f803e8111"
+    },
+    {
+      "Row": "EU-DE-ENVELOPE-PI",
+      "TemplateKey": "eu-ectd-3.2.2",
+      "RuleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "StandardsSnapshotId": "sha256:e70c218a2d0d677a9f9152ca44821a62a5a53523c0be97689445434f0bc9ae8d",
+      "InputSha256": "8fc79d7a554b72b1bf87855a18b9f839a09b6d5592c04130e9ccfcd411f1d884",
+      "Evidence": [
+        {
+          "Category": "Sources",
+          "Status": "Unverified",
+          "Reason": "Bundled assets are hash pinned; current official applicability has not been independently verified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ControlledVocabulary",
+          "Status": "Missing",
+          "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "MetadataMapping",
+          "Status": "Unverified",
+          "Reason": "P6 regional metadata mapping qualification remains pending.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Writer",
+          "Status": "Unverified",
+          "Reason": "Regional writer scope requires the P6 evidence matrix.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Rules",
+          "Status": "Unverified",
+          "Reason": "Pinned rule mappings do not establish regional qualification.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ExternalComparison",
+          "Status": "Missing",
+          "Reason": "No independent regional comparison evidence activates this snapshot.",
+          "EvidenceSha256": null
+        }
+      ],
+      "RulesDigest": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+      "EngineVersion": "package-delivery-v4;package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;pdfpig-0.1.15/package-navigation-v1;package-regional-inspector-v2",
+      "FormalReasons": [
+        "ProfileNotActive: AcquiredNotActive",
+        "BusinessScopeNotQualified: No verified formal scope matches the selection.",
+        "EvidenceIncomplete: Sources",
+        "EvidenceIncomplete: ControlledVocabulary",
+        "EvidenceIncomplete: MetadataMapping",
+        "EvidenceIncomplete: Writer",
+        "EvidenceIncomplete: Rules",
+        "EvidenceIncomplete: ExternalComparison",
+        "SourceVerificationIncomplete: Versioned official provenance has not been verified."
+      ],
+      "RegionalRevisionDigest": "57a90887f29b37e56e675889269c6fbe90a8af3bd3dd2a4c36b8a952b991765c"
+    },
+    {
+      "Row": "EU-FR-ENVELOPE-PI",
+      "TemplateKey": "eu-ectd-3.2.2",
+      "RuleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "StandardsSnapshotId": "sha256:e70c218a2d0d677a9f9152ca44821a62a5a53523c0be97689445434f0bc9ae8d",
+      "InputSha256": "bf371a8a0649a1d141ae872179086da12c9408c4974133c648d2d63f3f330186",
+      "Evidence": [
+        {
+          "Category": "Sources",
+          "Status": "Unverified",
+          "Reason": "Bundled assets are hash pinned; current official applicability has not been independently verified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ControlledVocabulary",
+          "Status": "Missing",
+          "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "MetadataMapping",
+          "Status": "Unverified",
+          "Reason": "P6 regional metadata mapping qualification remains pending.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Writer",
+          "Status": "Unverified",
+          "Reason": "Regional writer scope requires the P6 evidence matrix.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Rules",
+          "Status": "Unverified",
+          "Reason": "Pinned rule mappings do not establish regional qualification.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ExternalComparison",
+          "Status": "Missing",
+          "Reason": "No independent regional comparison evidence activates this snapshot.",
+          "EvidenceSha256": null
+        }
+      ],
+      "RulesDigest": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+      "EngineVersion": "package-delivery-v4;package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;pdfpig-0.1.15/package-navigation-v1;package-regional-inspector-v2",
+      "FormalReasons": [
+        "ProfileNotActive: AcquiredNotActive",
+        "BusinessScopeNotQualified: No verified formal scope matches the selection.",
+        "EvidenceIncomplete: Sources",
+        "EvidenceIncomplete: ControlledVocabulary",
+        "EvidenceIncomplete: MetadataMapping",
+        "EvidenceIncomplete: Writer",
+        "EvidenceIncomplete: Rules",
+        "EvidenceIncomplete: ExternalComparison",
+        "SourceVerificationIncomplete: Versioned official provenance has not been verified."
+      ],
+      "RegionalRevisionDigest": "645d63315789e4beb78044efdf3da7c715a17f484f40daaf7b67cb4fe4a842b1"
+    },
+    {
+      "Row": "EU-BE-COVER",
+      "TemplateKey": "eu-ectd-3.2.2",
+      "RuleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "StandardsSnapshotId": "sha256:e70c218a2d0d677a9f9152ca44821a62a5a53523c0be97689445434f0bc9ae8d",
+      "InputSha256": "4639f7846b1148c47e32b2ec7e1cd197767a1c5a759fd8e97684fd63cca70397",
+      "Evidence": [
+        {
+          "Category": "Sources",
+          "Status": "Unverified",
+          "Reason": "Bundled assets are hash pinned; current official applicability has not been independently verified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ControlledVocabulary",
+          "Status": "Missing",
+          "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "MetadataMapping",
+          "Status": "Unverified",
+          "Reason": "P6 regional metadata mapping qualification remains pending.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Writer",
+          "Status": "Unverified",
+          "Reason": "Regional writer scope requires the P6 evidence matrix.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "Rules",
+          "Status": "Unverified",
+          "Reason": "Pinned rule mappings do not establish regional qualification.",
+          "EvidenceSha256": null
+        },
+        {
+          "Category": "ExternalComparison",
+          "Status": "Missing",
+          "Reason": "No independent regional comparison evidence activates this snapshot.",
+          "EvidenceSha256": null
+        }
+      ],
+      "RulesDigest": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+      "EngineVersion": "package-delivery-v4;package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;pdfpig-0.1.15/package-navigation-v1;package-regional-inspector-v2",
+      "FormalReasons": [
+        "ProfileNotActive: AcquiredNotActive",
+        "BusinessScopeNotQualified: No verified formal scope matches the selection.",
+        "EvidenceIncomplete: Sources",
+        "EvidenceIncomplete: ControlledVocabulary",
+        "EvidenceIncomplete: MetadataMapping",
+        "EvidenceIncomplete: Writer",
+        "EvidenceIncomplete: Rules",
+        "EvidenceIncomplete: ExternalComparison",
+        "SourceVerificationIncomplete: Versioned official provenance has not been verified."
+      ],
+      "RegionalRevisionDigest": "3e5a146415c26a8035139a4bf81212628b39f309d216dffc1be995406909deac"
+    }
+  ],
+  "Pending": [
+    {
+      "id": "US-M115-PROMOTIONAL",
+      "application": "nda",
+      "procedure": "national",
+      "country": "US",
+      "language": "en",
+      "section": "m1.15",
+      "operation": "new",
+      "templateKey": "us-fda-ectd-3.2.2",
+      "ruleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+      "evidenceStatus": "ScopePending",
+      "draft": "Pending",
+      "trial": "NotEvaluated",
+      "finalize": "Blocked:UnsupportedScope",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    },
+    {
+      "id": "EU-OTHER-COUNTRY",
+      "application": "maa",
+      "procedure": "national",
+      "country": "ES",
+      "language": "es",
+      "section": "m1.3.1",
+      "operation": "new",
+      "templateKey": "eu-ectd-3.2.2",
+      "ruleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "evidenceStatus": "ScopePending",
+      "draft": "Pending",
+      "trial": "NotEvaluated",
+      "finalize": "Blocked:UnsupportedCombination",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    },
+    {
+      "id": "EU-EMPTY-COVER",
+      "application": "maa",
+      "procedure": "national",
+      "country": "DE",
+      "language": "de",
+      "section": "m1.0",
+      "operation": "new",
+      "templateKey": "eu-ectd-3.2.2",
+      "ruleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "evidenceStatus": "AuthoringUnsupported",
+      "draft": "Unsupported",
+      "trial": "NotEvaluated",
+      "finalize": "Blocked:MissingCoverContext",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    },
+    {
+      "id": "EU-OTHER-PROCEDURE",
+      "application": "maa",
+      "procedure": "decentralised",
+      "country": "DE",
+      "language": "de",
+      "section": "m1.3.1",
+      "operation": "new",
+      "templateKey": "eu-ectd-3.2.2",
+      "ruleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "evidenceStatus": "ScopePending",
+      "draft": "Pending",
+      "trial": "NotEvaluated",
+      "finalize": "Blocked:UnsupportedCombination",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    },
+    {
+      "id": "US-FORMAL-EXTERNAL",
+      "application": "*",
+      "procedure": "*",
+      "country": "*",
+      "language": "*",
+      "section": "*",
+      "operation": "finalize",
+      "templateKey": "us-fda-ectd-3.2.2",
+      "ruleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+      "evidenceStatus": "ExternalComparisonPending",
+      "draft": "SupportedWithinRows",
+      "trial": "LocalOnly",
+      "finalize": "Blocked:ExternalComparison",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    },
+    {
+      "id": "EU-FORMAL-EXTERNAL",
+      "application": "*",
+      "procedure": "*",
+      "country": "*",
+      "language": "*",
+      "section": "*",
+      "operation": "finalize",
+      "templateKey": "eu-ectd-3.2.2",
+      "ruleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "evidenceStatus": "ExternalComparisonPending",
+      "draft": "SupportedWithinRows",
+      "trial": "LocalOnly",
+      "finalize": "Blocked:ExternalComparison",
+      "evidenceTest": "tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs:VersionedDeclaredMatrixExercisesSelectedRegionalRulesAndRetainsPendingRows"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "lxml": [
+    6,
+    1,
+    3,
+    0
+  ],
+  "libxml2": [
+    2,
+    11,
+    9
+  ],
+  "assets": {
+    "eu-regional.dtd": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759",
+    "eu-envelope.mod": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73",
+    "eu-leaf.mod": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+  },
+  "results": [
+    {
+      "case": "http",
+      "sha256": "8b713b9a99af8aa46f943ac2a280637b23381b142d375f8e8d0b722e734c663d",
+      "outcome": "valid",
+      "negativeChecks": [
+        {
+          "field": "country",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        },
+        {
+          "field": "PI type",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        }
+      ]
+    },
+    {
+      "case": "http-same-context",
+      "sha256": "ebbb94fc326a9550d0cfeaa7639bf676f69e8ae80c43129dff42587e7e87585b",
+      "outcome": "valid",
+      "negativeChecks": [
+        {
+          "field": "country",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        },
+        {
+          "field": "PI type",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        }
+      ]
+    },
+    {
+      "case": "postgres",
+      "sha256": "80a878873dd608439ed0056e5bc70569c74f2115a82800a93af2ea2b9222e5cd",
+      "outcome": "valid",
+      "negativeChecks": [
+        {
+          "field": "country",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        },
+        {
+          "field": "PI type",
+          "outcome": "rejected",
+          "diagnosticCount": 1
+        }
+      ]
+    }
+  ],
+  "scope": "Independent libxml2 DTD structure comparison; not a regulatory business validator or activation evidence."
+}

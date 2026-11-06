@@ -34,6 +34,8 @@ internal sealed class TransactionalMemoryCollection<T>(Func<T, T> clone) where T
         return _items.TryGetValue(id, out value) ? clone(value) : null;
     }
 
+    public T? GetCommitted(Guid id) => _items.TryGetValue(id, out var value) ? clone(value) : null;
+
     public void Set(Guid id, T value)
     {
         var copy = clone(value);

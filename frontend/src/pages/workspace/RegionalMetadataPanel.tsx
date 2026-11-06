@@ -8,7 +8,7 @@ type Props = { appId: string; seqNumber: string; workspaceRevision?: number; dis
   nodes: readonly RegionalSelection[]; placements: readonly RegionalSelection[]; onChanged: () => void | Promise<void> }
 type Draft = Record<string, unknown>
 type Snapshot = { shared: SequencePublishingMetadataDto; schema: RegionalMetadataSchemaDto; revision?: RegionalMetadataRevisionDto;
-  defaults?: RegionalMetadataRevisionDto; expectedRevision: number }
+  defaults?: RegionalMetadataRevisionDto; defaultsSchema: RegionalMetadataSchemaDto; expectedRevision: number }
 type Preview = { kind: 'inheritance' | 'node-context-copy'; result: RegionalMetadataPreviewDto; request: Record<string, unknown> }
 const asDraft = (value: unknown): Draft => value as Draft
 const emptyFields = (fields: readonly RegionalFieldDescriptor[]): Draft => Object.fromEntries(fields.map(field =>
@@ -57,12 +57,14 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
     try { await operation() } catch (caught) { if (alive.current) setError(errorText(caught)) }
     finally { if (alive.current) setBusy(false) }
   }
-  const acceptRevision = async (revision: RegionalMetadataRevisionDto, shared?: SequencePublishingMetadataDto) => {
+  const acceptRevision = async (revision: RegionalMetadataRevisionDto, shared?: SequencePublishingMetadataDto,
+    capturedSchema?: RegionalMetadataSchemaDto) => {
+    const expectedSchema = capturedSchema ?? snapshot?.schema
     if (revision.applicationId !== appId || revision.sequenceNumber !== seqNumber || !revision.content
-      || !Number.isSafeInteger(revision.workspaceRevision) || revision.standardsSnapshotId !== snapshot?.schema.standardsSnapshotId)
+      || !Number.isSafeInteger(revision.workspaceRevision) || revision.standardsSnapshotId !== expectedSchema?.standardsSnapshotId)
       throw new Error('返回的区域修订身份不匹配，请保留输入并重新读取。')
     if (!alive.current) return
-    setSnapshot(current => current && ({ ...current, revision, expectedRevision: revision.workspaceRevision!,
+    setSnapshot(current => current && ({ ...current, schema: capturedSchema ?? current.schema, revision, expectedRevision: revision.workspaceRevision!,
       shared: { ...(shared ?? current.shared), regional: revision, workspaceRevision: revision.workspaceRevision! } }))
     setDraft({ ...asDraft(revision.content), nodeContexts: revision.nodeContexts, documentContexts: revision.documentContexts })
     setDirty(false); setEdited(new Set()); setPreview(undefined); setPreflight(undefined); setStatus('区域草稿已保存。')
@@ -80,15 +82,21 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
     const selectedSnapshot = shared.regional?.standardsSnapshotId ?? defaults?.standardsSnapshotId
     const query = selectedSnapshot ? `?standardsSnapshotId=${encodeURIComponent(selectedSnapshot)}` : ''
     const schema = await regionalRequest<RegionalMetadataSchemaDto>(`${appBase}/schema${query}`)
+    const defaultsSnapshot = defaults?.standardsSnapshotId ?? schema.standardsSnapshotId
+    const defaultsQuery = defaultsSnapshot === schema.standardsSnapshotId ? query
+      : `?standardsSnapshotId=${encodeURIComponent(defaultsSnapshot)}`
+    const defaultsSchema = await regionalRequest<RegionalMetadataSchemaDto>(`${appBase}/schema${defaultsQuery}`)
     if (schema.regionKey !== 'EU' && schema.regionKey !== 'US') throw new Error('当前区域 schema 不受支持。')
     if (selectedSnapshot && schema.standardsSnapshotId !== selectedSnapshot) throw new Error('区域 schema 不属于所选标准快照。')
+    if (defaultsSchema.standardsSnapshotId !== defaultsSnapshot || defaultsSchema.regionKey !== schema.regionKey)
+      throw new Error('申请默认值 schema 不属于其标准快照。')
     if (shared.regional && (shared.regional.applicationId !== appId || shared.regional.sequenceNumber !== seqNumber
       || shared.regional.standardsSnapshotId !== schema.standardsSnapshotId)) throw new Error('区域元数据归属或标准快照不匹配。')
     if (!alive.current) return
-    setSnapshot({ shared, schema, revision: shared.regional ?? undefined, defaults: defaults ?? undefined, expectedRevision: shared.workspaceRevision })
+    setSnapshot({ shared, schema, defaultsSchema, revision: shared.regional ?? undefined, defaults: defaults ?? undefined, expectedRevision: shared.workspaceRevision })
     setDraft({ ...asDraft(shared.regional?.content ?? emptyContent(schema, schema.sequenceFields)),
       nodeContexts: shared.regional?.nodeContexts ?? [], documentContexts: shared.regional?.documentContexts ?? [] })
-    setDefaultsDraft(asDraft(defaults?.defaults ?? emptyContent(schema, schema.defaultsFields)))
+    setDefaultsDraft(asDraft(defaults?.defaults ?? emptyContent(defaultsSchema, defaultsSchema.defaultsFields)))
     setDirty(false); setDefaultsDirty(false); setEdited(new Set()); setDefaultsEdited(new Set()); setPreview(undefined); setPreflight(undefined)
     setSourceId(shared.regional?.id ?? ''); setHistory(undefined)
   })
@@ -98,12 +106,13 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
     return { standardsSnapshotId: snapshot.schema.standardsSnapshotId, content, nodeContexts, documentContexts }
   }
   const defaultsRequest = () => ({ expectedDefaultsRevision: snapshot?.defaults?.metadataRevision ?? 0,
-    standardsSnapshotId: snapshot!.schema.standardsSnapshotId, defaults: defaultsDraft })
+    standardsSnapshotId: snapshot!.defaultsSchema.standardsSnapshotId, defaults: defaultsDraft })
   const save = () => run(async () => {
     if (!snapshot || !canMutate) return
     if (tab === 'defaults') {
       const saved = await regionalRequest<RegionalMetadataRevisionDto>(`${appBase}/defaults`, buildJsonRequestInit('PUT', defaultsRequest()))
-      if (saved.applicationId !== appId || saved.sequenceNumber !== null || !saved.defaults) throw new Error('返回的申请默认值身份不匹配。')
+      if (saved.applicationId !== appId || saved.sequenceNumber !== null || !saved.defaults
+        || saved.standardsSnapshotId !== snapshot.defaultsSchema.standardsSnapshotId) throw new Error('返回的申请默认值身份不匹配。')
       if (!alive.current) return
       setSnapshot(current => current && ({ ...current, defaults: saved })); setDefaultsDraft(asDraft(saved.defaults))
       setDefaultsDirty(false); setDefaultsEdited(new Set()); setPreflight(undefined); setStatus('申请默认值已保存；已有序列没有自动改变。')
@@ -120,7 +129,8 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
     if (!snapshot) return
     const result = await regionalRequest<RegionalMetadataPreflightDto>(tab === 'defaults' ? `${appBase}/defaults/preflight` : `${sequenceBase}/regional/preflight`,
       buildJsonRequestInit('POST', tab === 'defaults' ? defaultsRequest() : sequenceRequest()))
-    if (result.standardsSnapshotId !== snapshot.schema.standardsSnapshotId) throw new Error('预检使用了其他标准快照。')
+    const expectedSnapshot = tab === 'defaults' ? snapshot.defaultsSchema.standardsSnapshotId : snapshot.schema.standardsSnapshotId
+    if (result.standardsSnapshotId !== expectedSnapshot) throw new Error('预检使用了其他标准快照。')
     if (alive.current) { setPreflight(result); setPreview(undefined) }
   })
   const makePreview = (kind: Preview['kind']) => run(async () => {
@@ -140,8 +150,12 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
   })
   const upgrade = () => run(async () => {
     if (!canMutate || dirty) return
-    await acceptRevision(await regionalRequest<RegionalMetadataRevisionDto>(`${sequenceBase}/regional/legacy-upgrade`,
-      buildJsonRequestInit('POST', { expectedRevision: snapshot!.expectedRevision })))
+    const revision = await regionalRequest<RegionalMetadataRevisionDto>(`${sequenceBase}/regional/legacy-upgrade`,
+      buildJsonRequestInit('POST', { expectedRevision: snapshot!.expectedRevision }))
+    const capturedSchema = await regionalRequest<RegionalMetadataSchemaDto>(`${appBase}/schema?standardsSnapshotId=${encodeURIComponent(revision.standardsSnapshotId)}`)
+    if (capturedSchema.standardsSnapshotId !== revision.standardsSnapshotId || capturedSchema.regionKey !== snapshot!.schema.regionKey)
+      throw new Error('升级返回的区域 schema 身份不匹配，请保留输入并重新读取。')
+    await acceptRevision(revision, undefined, capturedSchema)
   })
   const locate = (path: string) => {
     const target = Array.from(container.current?.querySelectorAll<HTMLElement>('[data-field-path]') ?? [])
@@ -151,7 +165,7 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
   }
   const contextCollection = (key: string, label: string, identityField: string, fields: RegionalFieldDescriptor[]): RegionalFieldDescriptor =>
     ({ key, label, kind: 'collection', required: false, options: [], fields, identityField, conditions: [], source: null, businessEvidence: null })
-  const fields = snapshot && (tab === 'defaults' ? snapshot.schema.defaultsFields : [...snapshot.schema.sequenceFields,
+  const fields = snapshot && (tab === 'defaults' ? snapshot.defaultsSchema.defaultsFields : [...snapshot.schema.sequenceFields,
     contextCollection('nodeContexts', '节点区域上下文', 'nodeInstanceId', snapshot.schema.nodeContextFields),
     contextCollection('documentContexts', '文档区域上下文', 'placementId', snapshot.schema.documentContextFields)])
   return <section ref={container} className="border rounded bg-white p-4" aria-label="区域元数据编辑">
@@ -163,7 +177,7 @@ function RegionalEditor({ appId, seqNumber, workspaceRevision, disabled, nodes, 
     {status && <p role="status">{status}</p>}
     {stale && <p role="alert">工作区修订已变化；未保存输入已保留。重新读取后再保存。</p>}
     {snapshot && fields && <>
-      <p className="text-sm">区域 {snapshot.schema.regionKey} · 标准快照 <code>{snapshot.schema.standardsSnapshotId}</code></p>
+      <p className="text-sm">区域 {snapshot.schema.regionKey} · 标准快照 <code>{(tab === 'defaults' ? snapshot.defaultsSchema : snapshot.schema).standardsSnapshotId}</code></p>
       <p className="text-amber-700">区域资格待完成；填写或保存字段不会激活正式发布资格。</p>
       <div className="flex gap-3 my-2"><button type="button" aria-pressed={tab === 'sequence'} disabled={busy} onClick={() => { setTab('sequence'); setPreflight(undefined); setPreview(undefined) }}>序列区域字段</button>
         <button type="button" aria-pressed={tab === 'defaults'} disabled={busy} onClick={() => { setTab('defaults'); setPreflight(undefined); setPreview(undefined) }}>申请可复用默认值</button></div>

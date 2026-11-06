@@ -105,6 +105,7 @@ it('preserves entered data after a conflict and does not report the rejected sav
 it('allows an empty defaults draft when the API explicitly reports that no defaults head exists', async () => {
   fetchWith(url => url.endsWith('/defaults') ? new Response(JSON.stringify({ message: 'No defaults yet' }), { status: 404 }) : undefined)
   render(); await click('读取区域元数据'); await click('申请可复用默认值')
+  expect(document.querySelector('section code')!.textContent).toBe('sha256:pinned')
   expect(document.querySelector<HTMLInputElement>('input[aria-label="eu.applicant"]')!.value).toBe('')
   expect(document.querySelector('[role="alert"]')).toBeNull()
 })
@@ -140,4 +141,64 @@ it('uses the exact historical defaults snapshot for first inheritance before a r
   expect(document.querySelector<HTMLInputElement>('input[aria-label="us.applicantName"]')!.value).toBe('Historical default applicant')
   expect(onChanged).toHaveBeenCalledOnce()
   expect(fetch.mock.calls.some(call => String(call[0]).endsWith('/schema?standardsSnapshotId=sha256%3Aprevious'))).toBe(true)
+})
+
+it('edits and preflights defaults with their own historical schema while the sequence keeps another snapshot', async () => {
+  const defaults = { ...revision, id: 'defaults-b', sequenceNumber: null, standardsSnapshotId: 'sha256:defaults-b',
+    defaults: { schemaVersion: 1, regionKey: 'EU', eu: { applicant: 'B applicant' } } }
+  const defaultsSchema = { ...schema, standardsSnapshotId: defaults.standardsSnapshotId,
+    defaultsFields: [descriptor('eu', 'object', [{ ...descriptor('applicant', 'enum'), options: ['B applicant', 'B changed'] }])] }
+  const requests: Array<{ path: string; body: Record<string, unknown> }> = []
+  fetchWith((url, init) => {
+    if (url.endsWith('/schema?standardsSnapshotId=sha256%3Adefaults-b')) return json(defaultsSchema)
+    if (url.endsWith('/defaults/preflight')) {
+      const body = JSON.parse(String(init?.body)); requests.push({ path: 'preflight', body })
+      return json({ standardsSnapshotId: body.standardsSnapshotId, diagnostics: [], summary: [] })
+    }
+    if (url.endsWith('/defaults')) {
+      if (init?.method === 'PUT') {
+        const body = JSON.parse(String(init.body)); requests.push({ path: 'save', body })
+        return json({ ...defaults, metadataRevision: 2, standardsSnapshotId: body.standardsSnapshotId, defaults: body.defaults })
+      }
+      return json(defaults)
+    }
+  })
+  render(); await click('读取区域元数据'); await click('申请可复用默认值')
+  expect(Array.from(document.querySelectorAll('datalist option')).map(option => option.getAttribute('value'))).toEqual(['B applicant', 'B changed'])
+  expect(document.querySelector('section code')!.textContent).toBe('sha256:defaults-b')
+  edit('eu.applicant', 'B changed'); await click('预检当前输入'); await click('保存申请默认值')
+  expect(requests).toEqual(['preflight', 'save'].map(path => ({ path, body: { expectedDefaultsRevision: 1,
+    standardsSnapshotId: 'sha256:defaults-b', defaults: { schemaVersion: 1, regionKey: 'EU', eu: { applicant: 'B changed' } } } })))
+  expect(document.querySelector('[role="alert"]')).toBeNull()
+  await click('序列区域字段')
+  expect(document.querySelector('section code')!.textContent).toBe('sha256:pinned')
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="eu.envelopes[0].applicant"]')!.value).toBe('Original')
+})
+
+it('accepts a newly captured schema only for explicit legacy upgrade and preserves historical defaults', async () => {
+  const defaults = { ...revision, sequenceNumber: null, standardsSnapshotId: 'sha256:old-a',
+    defaults: { schemaVersion: 1, regionKey: 'EU', eu: { applicant: 'A defaults' } } }
+  const upgraded = { ...revision, standardsSnapshotId: 'sha256:new-b', workspaceRevision: 5,
+    content: { ...content, eu: { envelopes: [{ id: 'envelope-a', applicant: 'Upgraded' }] } } }
+  fetchWith((url, init) => {
+    if (url.endsWith('/defaults')) return json(defaults)
+    if (url.endsWith('/publishing-metadata')) return json({ ...metadata, regional: null })
+    if (url.endsWith('/regional/legacy-upgrade') && init?.method === 'POST') return json(upgraded)
+    if (url.includes('/schema?')) return json({ ...schema, standardsSnapshotId: url.endsWith('sha256%3Aold-a') ? 'sha256:old-a' : 'sha256:new-b' })
+  })
+  const { onChanged, draw } = render(); await click('读取区域元数据'); await click('从旧共享字段建立待确认记录'); draw(5)
+  expect(document.querySelector('[role="alert"]')).toBeNull(); expect(onChanged).toHaveBeenCalledOnce()
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="eu.envelopes[0].applicant"]')!.value).toBe('Upgraded')
+  expect(Array.from(document.querySelectorAll('button')).find(button => button.textContent === '保存区域草稿')!.disabled).toBe(false)
+  await click('申请可复用默认值')
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="eu.applicant"]')!.value).toBe('A defaults')
+})
+
+it('retains input and refuses an ordinary save response bound to another snapshot', async () => {
+  fetchWith((url, init) => url.endsWith('/publishing-metadata') && init?.method === 'PUT'
+    ? json({ ...metadata, workspaceRevision: 5, regional: { ...revision, workspaceRevision: 5, standardsSnapshotId: 'sha256:unexpected' } }) : undefined)
+  const { onChanged } = render(); await click('读取区域元数据'); edit('eu.envelopes[0].applicant', 'Keep me'); await click('保存区域草稿')
+  expect(document.querySelector('[role="alert"]')!.textContent).toContain('身份不匹配')
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="eu.envelopes[0].applicant"]')!.value).toBe('Keep me')
+  expect(onChanged).not.toHaveBeenCalled()
 })

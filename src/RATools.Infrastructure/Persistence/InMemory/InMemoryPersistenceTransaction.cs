@@ -21,7 +21,13 @@ public sealed class InMemoryPersistenceTransaction : IPersistenceTransaction
             cancellationToken.ThrowIfCancellationRequested();
             // Application locks prevent workspace readers from observing a partial
             // commit. Only touched keys are applied, preserving other applications.
-            foreach (var commit in pending.Commits) commit();
+            Action commit = () => { foreach (var apply in pending.Commits) apply(); };
+            foreach (var fence in pending.CommitFences.AsEnumerable().Reverse())
+            {
+                var next = commit;
+                commit = () => fence(next);
+            }
+            commit();
             return result;
         }
         finally { Current.Value = null; }
@@ -31,5 +37,13 @@ public sealed class InMemoryPersistenceTransaction : IPersistenceTransaction
     {
         public Dictionary<object, object> Changes { get; } = new();
         public List<Action> Commits { get; } = [];
+        public List<Action<Action>> CommitFences { get; } = [];
+    }
+
+    internal static void RegisterCommitFence(Action<Action> fence)
+    {
+        ArgumentNullException.ThrowIfNull(fence);
+        (Current.Value ?? throw new InvalidOperationException("A commit fence requires an active in-memory transaction."))
+            .CommitFences.Add(fence);
     }
 }

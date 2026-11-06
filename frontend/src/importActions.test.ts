@@ -16,9 +16,9 @@ describe('importActions', () => {
   })
 
   it('summarizes import issues by lifecycle target category and severity', () => {
-    const lifecycleMissingIssue = { severity: 'Warning', code: 'LIFECYCLE_TARGET_MISSING', sequenceNumber: '0002', message: 'Missing target' }
-    const lifecycleNotImportedIssue = { severity: ' warning ', code: 'LIFECYCLE_TARGET_NOT_IMPORTED', sequenceNumber: '0003', message: 'Not imported' }
-    const otherIssue = { severity: 'Error', code: 'SEQUENCE_INDEX_MISSING', sequenceNumber: '0004', message: 'Missing index' }
+    const lifecycleMissingIssue = { severity: 'Warning', code: 'LIFECYCLE_TARGET_MISSING', sequenceNumber: '0002', message: 'Missing target', fieldPath: null }
+    const lifecycleNotImportedIssue = { severity: ' warning ', code: 'LIFECYCLE_TARGET_NOT_IMPORTED', sequenceNumber: '0003', message: 'Not imported', fieldPath: null }
+    const otherIssue = { severity: 'Error', code: 'SEQUENCE_INDEX_MISSING', sequenceNumber: '0004', message: 'Missing index', fieldPath: null }
 
     const summary = summarizeImportIssues([lifecycleMissingIssue, lifecycleNotImportedIssue, otherIssue])
 
@@ -37,12 +37,14 @@ describe('importActions', () => {
       code: 'LIFECYCLE_TARGET_NOT_IMPORTED',
       sequenceNumber: '0003',
       message: 'Not imported',
+      fieldPath: null,
     })).toBe(true)
     expect(isLifecycleTargetImportIssue({
       severity: 'Error',
       code: 'SEQUENCE_INDEX_MISSING',
       sequenceNumber: '0004',
       message: 'Missing index',
+      fieldPath: null,
     })).toBe(false)
   })
 
