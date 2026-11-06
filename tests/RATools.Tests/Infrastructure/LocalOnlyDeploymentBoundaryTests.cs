@@ -84,6 +84,100 @@ public sealed class LocalOnlyDeploymentBoundaryTests
         Assert.Contains("Kestrel:Endpoints:Public:Url", exception.Message);
     }
 
+    [Theory]
+    [InlineData("8080", null)]
+    [InlineData(null, "8443")]
+    [InlineData("8080;8081", "8443;8444")]
+    public void Validate_RejectsPortOnlyWildcardListeners(string? httpPorts, string? httpsPorts)
+    {
+        var validator = CreateValidator(
+            urls: "",
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = httpPorts,
+                ["HTTPS_PORTS"] = httpsPorts,
+            });
+
+        var exception = Assert.Throws<InvalidOperationException>(validator.Validate);
+
+        Assert.Contains("loopback", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_ExplicitLoopbackUrlsOverridePortSettings()
+    {
+        var validator = CreateValidator(
+            urls: "http://localhost:5000;https://[::1]:5443",
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = "8080;8081",
+                ["HTTPS_PORTS"] = "8443;8444",
+            });
+
+        validator.Validate();
+    }
+
+    [Fact]
+    public void Validate_ExplicitLoopbackKestrelEndpointOverridesPortSettings()
+    {
+        var validator = CreateValidator(
+            urls: "",
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = "8080;8081",
+                ["HTTPS_PORTS"] = "8443;8444",
+                ["Kestrel:Endpoints:Local:Url"] = "http://127.0.0.1:6000",
+            });
+
+        validator.Validate();
+    }
+
+    [Fact]
+    public void Validate_RejectsPortSettingsThatOverrideKestrelEndpoint()
+    {
+        var validator = CreateValidator(
+            urls: "",
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = "8080",
+                ["preferHostingUrls"] = "true",
+                ["Kestrel:Endpoints:Local:Url"] = "http://127.0.0.1:6000",
+            });
+
+        var exception = Assert.Throws<InvalidOperationException>(validator.Validate);
+
+        Assert.Contains("loopback", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_ContainerizedDeploymentAcceptsPortOnlyWildcardListeners()
+    {
+        var validator = CreateValidator(
+            urls: "",
+            containerized: true,
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = "8080;8081",
+                ["HTTPS_PORTS"] = "8443;8444",
+            });
+
+        validator.Validate();
+    }
+
+    [Fact]
+    public void Validate_EmptyPortsRetainUnconfiguredLoopbackDefault()
+    {
+        var validator = CreateValidator(
+            urls: "",
+            additionalConfiguration: new Dictionary<string, string?>
+            {
+                ["HTTP_PORTS"] = "  ",
+                ["HTTPS_PORTS"] = "",
+            });
+
+        validator.Validate();
+    }
+
     [Fact]
     public void Validate_ProductionRejectsWeakApiKey()
     {

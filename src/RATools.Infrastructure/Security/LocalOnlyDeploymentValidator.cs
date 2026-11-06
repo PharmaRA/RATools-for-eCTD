@@ -64,10 +64,14 @@ public sealed class LocalOnlyDeploymentValidator(
             }
         }
 
-        if (listeners.Count == 0)
+        if (string.IsNullOrWhiteSpace(urls)
+            && (listeners.Count == 0 || configuration.GetValue("preferHostingUrls", false))
+            && (HasPorts(configuration["HTTP_PORTS"]) || HasPorts(configuration["HTTPS_PORTS"]))
+            && !deploymentOptions.Value.Containerized)
         {
-            // Kestrel's unconfigured default is localhost; TestServer also has no network listener.
-            return;
+            // Hosting expands port-only settings to wildcard URLs when no explicit listener is set.
+            throw new InvalidOperationException(
+                "HTTP_PORTS/HTTPS_PORTS produce wildcard listeners; configure explicit HTTP(S) loopback URLs in LocalOnly mode, or set Deployment:Containerized=true for a controlled container network.");
         }
 
         foreach (var listener in listeners)
@@ -81,6 +85,9 @@ public sealed class LocalOnlyDeploymentValidator(
             }
         }
     }
+
+    private static bool HasPorts(string? ports)
+        => ports?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length > 0;
 
     private bool IsAllowedListenerHost(string host)
     {
