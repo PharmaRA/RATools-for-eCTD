@@ -2,11 +2,14 @@ using System.Text.Json;
 using RATools.Application.Assembly;
 using RATools.Application.DocumentProcessing;
 using RATools.Infrastructure.Assembly;
+using RATools.Application.Abstractions.Persistence;
 
 namespace RATools.Infrastructure.Persistence.InMemory;
 
-public sealed class InMemoryAssemblyStore : AssemblyStore
+public sealed class InMemoryAssemblyStore(IDocumentRepository? documents = null, IDocumentPlacementRepository? placements = null)
+    : AssemblyStore(documents, placements)
 {
+    protected override bool HasCompletionTransaction => InMemoryPersistenceTransaction.Current.Value is not null;
     private readonly object _gate = new();
     private readonly TransactionalMemoryCollection<AssemblyPreview> _plans = new(Clone);
     private readonly TransactionalMemoryCollection<AssemblyExecutionJob> _jobs = new(Clone);
@@ -16,8 +19,18 @@ public sealed class InMemoryAssemblyStore : AssemblyStore
         return Task.CompletedTask;
     }
     public override Task<AssemblyPreview?> GetPlanAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(_plans.Get(id));
-    public override Task<AssemblyExecutionJob?> GetJobAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(_jobs.Get(id));
-    public override Task<AssemblyExecutionJob?> GetPlanJobAsync(Guid planId, CancellationToken cancellationToken = default) => Task.FromResult(_jobs.Values.SingleOrDefault(item => item.State.PlanId == planId));
+    public override async Task<AssemblyExecutionJob?> GetJobAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var job = _jobs.Get(id);
+        if (job is not null) await VerifyStoredResultAsync(job, cancellationToken).ConfigureAwait(false);
+        return job;
+    }
+    public override async Task<AssemblyExecutionJob?> GetPlanJobAsync(Guid planId, CancellationToken cancellationToken = default)
+    {
+        var job = _jobs.Values.SingleOrDefault(item => item.State.PlanId == planId);
+        if (job is not null) await VerifyStoredResultAsync(job, cancellationToken).ConfigureAwait(false);
+        return job;
+    }
     protected override Task<AssemblyEnqueueResult> InsertAsync(AssemblyExecutionJob job, CancellationToken cancellationToken)
     {
         lock (_gate)

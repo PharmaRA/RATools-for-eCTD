@@ -1,11 +1,15 @@
 using System.Text.Json;
 using RATools.Application.Assembly;
 using RATools.Application.DocumentProcessing;
+using RATools.Application.Abstractions.Persistence;
+using RATools.Application.Publishing;
+using RATools.Domain.Documents;
 
 namespace RATools.Infrastructure.Assembly;
 
-public abstract class AssemblyStore : IAssemblyStore
+public abstract class AssemblyStore(IDocumentRepository? documents, IDocumentPlacementRepository? placements) : IAssemblyStore
 {
+    protected abstract bool HasCompletionTransaction { get; }
     public abstract Task AddPlanAsync(AssemblyPreview plan, CancellationToken cancellationToken = default);
     public abstract Task<AssemblyPreview?> GetPlanAsync(Guid id, CancellationToken cancellationToken = default);
     public abstract Task<AssemblyExecutionJob?> GetJobAsync(Guid id, CancellationToken cancellationToken = default);
@@ -75,13 +79,78 @@ public abstract class AssemblyStore : IAssemblyStore
         var job = await GetJobAsync(id, cancellationToken).ConfigureAwait(false);
         if (job is null || !Owns(job.State, token, owner, nowUtc) || job.State.CancellationRequested) return false;
         var plan = await VerifyRequestAsync(job.State, cancellationToken).ConfigureAwait(false);
+        VerifyResult(plan, id, result);
+        if (!HasCompletionTransaction) throw new InvalidOperationException("Assembly completion requires the workspace transaction.");
+        if (documents is null || placements is null)
+            throw new InvalidDataException("Assembly completion requires the authoritative document and placement stores.");
+        foreach (var output in result.Documents)
+        {
+            var row = plan.Plan.Rows.Single(item => item.LineNumber == output.LineNumber);
+            var placement = await placements.GetAsync(output.PlacementId, cancellationToken).ConfigureAwait(false);
+            var document = await documents.GetAsync(output.DocumentId, cancellationToken).ConfigureAwait(false);
+            if (placement is null || document is null || placement.DocumentId != output.DocumentId ||
+                placement.ApplicationId != plan.Plan.ApplicationId || placement.SequenceNumber != plan.Plan.SequenceNumber ||
+                placement.NodeInstanceId?.ToString("D") != row.NodeInstanceId || placement.SortOrder != row.SortOrder ||
+                placement.Title != row.Title || !string.Equals(placement.Operation.ToString(), row.Operation, StringComparison.OrdinalIgnoreCase) ||
+                placement.LeafId != output.LeafId || placement.LifecycleTargetPlacementId != output.HistoricalTargetId)
+                throw new InvalidDataException("Assembly result row does not describe the actual approved placement.");
+            if (row.Operation == "delete")
+            {
+                var target = await placements.GetAsync(output.HistoricalTargetId!.Value, cancellationToken).ConfigureAwait(false);
+                if (target is null || target.DocumentId != document.Id || target.ApplicationId != plan.Plan.ApplicationId ||
+                    string.CompareOrdinal(target.SequenceNumber, plan.Plan.SequenceNumber) >= 0)
+                    throw new InvalidDataException("Assembly deletion result lost its historical document identity.");
+            }
+            else
+            {
+                var source = plan.Sources.Single(item => item.LineNumber == row.LineNumber);
+                if (document.FileName != source.FileName || document.MediaType != source.MediaType || document.FileSize != source.Length ||
+                    document.Sha256 != source.Sha256 || document.Md5 != source.Md5 ||
+                    PublishOutputNaming.BuildPublishedDocumentRelativePath(document, plan.Plan.SequenceNumber) != source.TargetHref)
+                    throw new InvalidDataException("Assembly output document differs from its sealed source and destination.");
+            }
+        }
+        return await ChangeAsync(id, before => Owns(before.State, token, owner, nowUtc) && !before.State.CancellationRequested
+            ? new(Finish(before.State, PdfProcessingJobStatus.Completed, nowUtc, null, null), result) : null, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void VerifyResult(AssemblyPreview plan, Guid id, AssemblyExecutionAudit result)
+    {
         if (result.JobId != id || result.PlanId != plan.Id || result.PlanDigest != plan.Plan.PlanDigest || result.ApplicationId != plan.Plan.ApplicationId ||
             result.SequenceNumber != plan.Plan.SequenceNumber || result.ExpectedRevision != plan.Plan.ExpectedRevision || result.WorkspaceRevision != result.ExpectedRevision + 1 ||
             !result.Documents.Select(item => item.LineNumber).Order().SequenceEqual(plan.SelectedRows) ||
             result.Documents.Select(item => item.PlacementId).Distinct().Count() != plan.SelectedRows.Count)
             throw new InvalidDataException("Assembly execution must commit the complete approved unit.");
-        return await ChangeAsync(id, before => Owns(before.State, token, owner, nowUtc) && !before.State.CancellationRequested
-            ? new(Finish(before.State, PdfProcessingJobStatus.Completed, nowUtc, null, null), result) : null, cancellationToken).ConfigureAwait(false);
+        foreach (var output in result.Documents)
+        {
+            var row = plan.Plan.Rows.Single(item => item.LineNumber == output.LineNumber);
+            var target = row.TargetLeafAddress is null ? (Guid?)null : Guid.Parse(row.TargetLeafAddress);
+            if (output.PlacementId == Guid.Empty || output.DocumentId == Guid.Empty || string.IsNullOrWhiteSpace(output.LeafId) ||
+                output.HistoricalTargetId != target)
+                throw new InvalidDataException("Assembly result row has an invalid output or historical identity.");
+            if (row.Operation == "delete")
+            {
+                if (output.VersionId is not null || output.Href is not null || target is null)
+                    throw new InvalidDataException("Assembly deletion result must not invent a payload version or destination.");
+            }
+            else
+            {
+                var source = plan.Sources.SingleOrDefault(item => item.LineNumber == row.LineNumber)
+                    ?? throw new InvalidDataException("Assembly result is missing its sealed source binding.");
+                if (output.VersionId != source.VersionId || source.VersionId == Guid.Empty || output.Href != source.TargetHref || output.DocumentId == source.DocumentId)
+                    throw new InvalidDataException("Assembly result row differs from its sealed source version or destination.");
+            }
+        }
+    }
+
+    protected async Task VerifyStoredResultAsync(AssemblyExecutionJob job, CancellationToken cancellationToken)
+    {
+        if (job.State.Status == PdfProcessingJobStatus.Completed)
+        {
+            var plan = await VerifyRequestAsync(job.State, cancellationToken).ConfigureAwait(false);
+            VerifyResult(plan, job.State.Id, job.Result ?? throw new InvalidDataException("Completed assembly evidence has no result."));
+        }
+        else if (job.Result is not null) throw new InvalidDataException("Non-completed assembly evidence contains a result.");
     }
     public Task<bool> FailAsync(Guid id, Guid token, string owner, DateTime nowUtc, PdfProcessingJobStatus status, string code, string message, CancellationToken cancellationToken = default)
     {

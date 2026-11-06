@@ -18,6 +18,71 @@ namespace RATools.Tests.Assembly;
 public sealed class PostgresAssemblyTests
 {
     [RequiresPostgresFact]
+    public async Task CompletionRejectsTamperedRowIdentitiesAgainstTheActualPostgresWorkspace()
+    {
+        foreach (var mutation in new[] { "document", "version", "href", "leaf", "target", "placement", "source-reuse" })
+        {
+            await using var db = Context(); var rig = await SeedAsync(db);
+            var preview = await rig.Service.PreviewAsync(rig.Data.Application.Id, "0001", new(rig.Data.Revision, rig.Data.Manifest(1)));
+            var queued = await rig.Service.EnqueueAsync(rig.Data.Application.Id, "0001", new(preview.Id, preview.Plan.PlanDigest, "row-" + Guid.NewGuid().ToString("N")));
+            var store = new EfCoreAssemblyStore(db); var now = DateTime.UtcNow;
+            await OnlyOwnedCandidateAsync(queued.Job.State.Id, now);
+            var lease = (await store.ClaimAsync("row-binding", now, TimeSpan.FromMinutes(1)))!;
+            var source = Assert.Single(preview.Sources); var row = Assert.Single(preview.Plan.Rows);
+            var document = mutation == "source-reuse" ? rig.Data.Document : new SubmissionDocument(source.FileName, source.MediaType,
+                source.Length, source.Sha256, source.Md5, Path.Combine(rig.Data.Root, "0001", source.TargetHref.Replace('/', Path.DirectorySeparatorChar)));
+            var workspace = (await new EfCoreCtdNodeRepository(db).GetSequenceAsync(rig.Data.Application.Id, "0001"))!;
+            var placement = new DocumentPlacement(document.Id, rig.Data.Application.Id, "0001", "m3.2.s.4.1", DocumentPlacementOperation.New, row.Title);
+            placement.BindToNode(workspace.Nodes.Single(node => node.NodeInstanceId.ToString("D") == row.NodeInstanceId), row.SortOrder);
+            var output = new AssemblyExecutionDocument(row.LineNumber, placement.Id, document.Id, source.VersionId, source.TargetHref, placement.LeafId, null);
+            output = mutation switch
+            {
+                "document" => output with { DocumentId = Guid.NewGuid() },
+                "version" => output with { VersionId = Guid.NewGuid() },
+                "href" => output with { Href = "unapproved.pdf" },
+                "leaf" => output with { LeafId = "forged-leaf" },
+                "target" => output with { HistoricalTargetId = Guid.NewGuid() },
+                "placement" => output with { PlacementId = Guid.NewGuid() },
+                _ => output
+            };
+            var audit = new AssemblyExecutionAudit(lease.Job.Id, preview.Id, preview.Plan.PlanDigest, rig.Data.Application.Id,
+                "0001", rig.Data.Revision, rig.Data.Revision + 1, DateTime.UtcNow, [output]);
+            await Assert.ThrowsAsync<InvalidDataException>(() => new EfCorePersistenceTransaction(db).ExecuteAsync(async ct =>
+            {
+                if (document.Id != rig.Data.Document.Id) await new EfCoreDocumentRepository(db).AddAsync(document, ct);
+                await new EfCoreDocumentPlacementRepository(db).AddAsync(placement, ct);
+                await store.CompleteAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow, audit, ct);
+            }));
+            await using var read = Context();
+            Assert.Empty(await new EfCoreDocumentPlacementRepository(read).ListBySequenceAsync(rig.Data.Application.Id, "0001"));
+            Assert.Null((await new EfCoreAssemblyStore(read).GetJobAsync(lease.Job.Id))!.Result);
+            Assert.True(await store.FailAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow,
+                PdfProcessingJobStatus.Failed, "TEST_ROW_BINDING", "Retained rejected completion evidence."));
+        }
+    }
+
+    [RequiresPostgresFact]
+    public async Task CompletedEvidenceWithARecomputedStorageDigestStillMustMatchItsSealedPlan()
+    {
+        await using var db = Context(); var rig = await SeedAsync(db);
+        var preview = await rig.Service.PreviewAsync(rig.Data.Application.Id, "0001", new(rig.Data.Revision, rig.Data.Manifest(1)));
+        var request = AssemblyEvidence.Request(preview, "stored-result-" + Guid.NewGuid().ToString("N"));
+        var source = Assert.Single(preview.Sources);
+        var audit = new AssemblyExecutionAudit(request.Id, preview.Id, preview.Plan.PlanDigest, rig.Data.Application.Id, "0001",
+            rig.Data.Revision, rig.Data.Revision + 1, DateTime.UtcNow,
+            [new(source.LineNumber, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), source.TargetHref, "leaf", null)]);
+        var forged = new AssemblyExecutionJob(request with { Status = PdfProcessingJobStatus.Completed, Stage = "completed", CompletedUtc = DateTime.UtcNow }, audit);
+        var data = System.Text.Json.JsonSerializer.Serialize(forged);
+        db.Add(new AssemblyExecutionRecord { Id = request.Id, PlanId = preview.Id, IdempotencyKey = request.IdempotencyKey,
+            Status = PdfProcessingJobStatus.Completed, CreatedUtc = request.CreatedUtc, Data = data, Digest = AssemblyEvidence.Hash(data) });
+        await db.SaveChangesAsync();
+        await using var read = Context(); var store = new EfCoreAssemblyStore(read);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.GetJobAsync(request.Id));
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.GetPlanJobAsync(preview.Id));
+    }
+
+    [RequiresPostgresFact]
     public Task IntakeRegistrationFailureRollsBackTheRealDatabase() => ExerciseIntakeFailureAsync(false);
 
     [RequiresPostgresFact]

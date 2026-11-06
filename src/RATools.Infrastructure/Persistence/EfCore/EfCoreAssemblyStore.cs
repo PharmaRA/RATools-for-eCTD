@@ -7,8 +7,10 @@ using RATools.Infrastructure.Assembly;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
-public sealed class EfCoreAssemblyStore(RAToolsDbContext context) : AssemblyStore
+public sealed class EfCoreAssemblyStore(RAToolsDbContext context)
+    : AssemblyStore(new EfCoreDocumentRepository(context), new EfCoreDocumentPlacementRepository(context))
 {
+    protected override bool HasCompletionTransaction => context.Database.CurrentTransaction is not null;
     public override async Task AddPlanAsync(AssemblyPreview plan, CancellationToken cancellationToken = default)
     {
         plan.Verify(); var data = JsonSerializer.Serialize(plan);
@@ -26,12 +28,18 @@ public sealed class EfCoreAssemblyStore(RAToolsDbContext context) : AssemblyStor
     public override async Task<AssemblyExecutionJob?> GetJobAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var row = await context.Set<AssemblyExecutionRecord>().AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken).ConfigureAwait(false);
-        return row is null ? null : Job(row);
+        if (row is null) return null;
+        var job = Job(row);
+        await VerifyStoredResultAsync(job, cancellationToken).ConfigureAwait(false);
+        return job;
     }
     public override async Task<AssemblyExecutionJob?> GetPlanJobAsync(Guid planId, CancellationToken cancellationToken = default)
     {
         var row = await context.Set<AssemblyExecutionRecord>().AsNoTracking().SingleOrDefaultAsync(item => item.PlanId == planId, cancellationToken).ConfigureAwait(false);
-        return row is null ? null : Job(row);
+        if (row is null) return null;
+        var job = Job(row);
+        await VerifyStoredResultAsync(job, cancellationToken).ConfigureAwait(false);
+        return job;
     }
     protected override async Task<AssemblyEnqueueResult> InsertAsync(AssemblyExecutionJob job, CancellationToken cancellationToken)
     {
@@ -46,6 +54,7 @@ public sealed class EfCoreAssemblyStore(RAToolsDbContext context) : AssemblyStor
             var candidates = await context.Set<AssemblyExecutionRecord>().AsNoTracking().Where(item => item.IdempotencyKey == row.IdempotencyKey || item.PlanId == row.PlanId).ToArrayAsync(cancellationToken).ConfigureAwait(false);
             var existing = candidates.Select(Job).FirstOrDefault(item => item.State.RequestDigest == job.State.RequestDigest)
                 ?? throw new AssemblyPlanInvalidException("The assembly idempotency key or plan is already bound to another request.");
+            await VerifyStoredResultAsync(existing, cancellationToken).ConfigureAwait(false);
             return new(existing, false);
         }
         finally { context.Entry(row).State = EntityState.Detached; }

@@ -21,6 +21,52 @@ namespace RATools.Tests.Assembly;
 public sealed class DurableAssemblyTests
 {
     [Theory]
+    [InlineData("document")]
+    [InlineData("version")]
+    [InlineData("href")]
+    [InlineData("leaf")]
+    [InlineData("target")]
+    [InlineData("placement")]
+    [InlineData("source-reuse")]
+    public async Task CompletionRejectsEachRowIdentityThatDiffersFromTheSealedPlanOrActualOutput(string mutation)
+    {
+        var test = await AssemblyRig.CreateAsync();
+        var preview = await test.Service.PreviewAsync(test.Application.Id, "0001", new(test.Revision, test.Manifest(1)));
+        var queued = await test.Service.EnqueueAsync(test.Application.Id, "0001", new(preview.Id, preview.Plan.PlanDigest, "identity-" + mutation));
+        var lease = (await test.Store.ClaimAsync("identity", DateTime.UtcNow, TimeSpan.FromMinutes(1)))!;
+        var source = Assert.Single(preview.Sources);
+        var row = Assert.Single(preview.Plan.Rows);
+        var document = mutation == "source-reuse" ? test.Document : new SubmissionDocument(source.FileName, source.MediaType,
+            source.Length, source.Sha256, source.Md5, Path.Combine(test.Root, "0001", source.TargetHref.Replace('/', Path.DirectorySeparatorChar)));
+        var workspace = (await test.Nodes.GetSequenceAsync(test.Application.Id, "0001"))!;
+        var placement = new DocumentPlacement(document.Id, test.Application.Id, "0001", "m3.2.s.4.1", DocumentPlacementOperation.New, row.Title);
+        placement.BindToNode(workspace.Nodes.Single(node => node.NodeInstanceId.ToString("D") == row.NodeInstanceId), row.SortOrder);
+        var output = new AssemblyExecutionDocument(row.LineNumber, placement.Id, document.Id, source.VersionId,
+            source.TargetHref, placement.LeafId, null);
+        output = mutation switch
+        {
+            "document" => output with { DocumentId = Guid.NewGuid() },
+            "version" => output with { VersionId = Guid.NewGuid() },
+            "href" => output with { Href = "unapproved.pdf" },
+            "leaf" => output with { LeafId = "forged-leaf" },
+            "target" => output with { HistoricalTargetId = Guid.NewGuid() },
+            "placement" => output with { PlacementId = Guid.NewGuid() },
+            _ => output
+        };
+        var audit = new AssemblyExecutionAudit(queued.Job.State.Id, preview.Id, preview.Plan.PlanDigest, test.Application.Id,
+            "0001", test.Revision, test.Revision + 1, DateTime.UtcNow, [output]);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => new InMemoryPersistenceTransaction().ExecuteAsync(async ct =>
+        {
+            if (document.Id != test.Document.Id) await test.Documents.AddAsync(document, ct);
+            await test.Placements.AddAsync(placement, ct);
+            await test.Store.CompleteAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow, audit, ct);
+        }));
+        Assert.Null((await test.Store.GetJobAsync(queued.Job.State.Id))!.Result);
+        Assert.Empty(await test.Placements.ListBySequenceAsync(test.Application.Id, "0001"));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task FailedUploadBytesAreQuarantinedOutsideTheRegisteredSourceDirectory(bool cancelled)
@@ -389,7 +435,7 @@ public sealed class DurableAssemblyTests
         var row = Assert.Single(plan.SelectedRows);
         await Assert.ThrowsAsync<InvalidOperationException>(() => test.Store.CompleteAsync(lease.Job.Id, lease.Token, lease.Owner, DateTime.UtcNow,
             new(lease.Job.Id, plan.Id, plan.Plan.PlanDigest, test.Application.Id, "0001", test.Revision, test.Revision + 1, DateTime.UtcNow,
-                [new(row, Guid.NewGuid(), test.Document.Id, plan.Sources.Single().VersionId, plan.Sources.Single().TargetHref, "leaf", null)])));
+                [new(row, Guid.NewGuid(), Guid.NewGuid(), plan.Sources.Single().VersionId, plan.Sources.Single().TargetHref, "leaf", null)])));
         Assert.Null((await test.Store.GetJobAsync(queued.Job.State.Id))!.Result);
         Assert.Equal(PdfProcessingJobStatus.Running, (await test.Store.GetJobAsync(queued.Job.State.Id))!.State.Status);
         Assert.Empty(await test.Placements.ListBySequenceAsync(test.Application.Id, "0001"));
@@ -494,7 +540,7 @@ internal sealed class AssemblyRig
         var document = new SubmissionDocument("source.pdf", "application/pdf", bytes.Length, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(bytes)).ToLowerInvariant(), path);
         await documents.AddAsync(document);
         return new() { Root = root, Application = app, Document = document, Original = bytes, Applications = applications, Documents = documents,
-            Placements = placements, Revisions = revisions, Nodes = nodes, Versions = new(), Store = new(), Alpha = alpha, Beta = beta, Revision = revision };
+            Placements = placements, Revisions = revisions, Nodes = nodes, Versions = new(), Store = new(documents, placements), Alpha = alpha, Beta = beta, Revision = revision };
     }
     internal static byte[] PdfBytes(string? remoteFile = null)
     {
