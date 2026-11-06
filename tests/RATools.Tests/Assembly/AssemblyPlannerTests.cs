@@ -12,6 +12,165 @@ namespace RATools.Tests.Assembly;
 // Planner coverage uses safe real sources; all task evidence is retained.
 public sealed class AssemblyPlannerTests
 {
+    [Theory]
+    [InlineData(DocumentPlacementOperation.Replace)]
+    [InlineData(DocumentPlacementOperation.Delete)]
+    public async Task AnEarlierReplaceOrDeleteMakesTheExactHistoricalTargetIneffective(DocumentPlacementOperation operation)
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        var successor = await AddHistoryAsync(rig, "0001", operation, original.Id);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{original.Id}");
+
+        Assert.Equal(0, plan.ValidRows);
+        Assert.Contains(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_NOT_EFFECTIVE");
+        if (operation == DocumentPlacementOperation.Replace)
+        {
+            var current = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+                $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{successor.Id}");
+            Assert.Equal(1, current.ValidRows);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AnAppendBranchRemainsUnqualifiedInsteadOfBeingAssumedCurrentOrDeleted(bool useAppendLeaf)
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        var appended = await AddHistoryAsync(rig, "0001", DocumentPlacementOperation.Append, original.Id);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{(useAppendLeaf ? appended.Id : original.Id)}");
+
+        Assert.Equal(0, plan.ValidRows);
+        Assert.Contains(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN");
+        Assert.DoesNotContain(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_NOT_EFFECTIVE");
+    }
+
+    private static async Task<AssemblyRig> HistoryRigAsync()
+    {
+        var rig = await AssemblyRig.CreateAsync();
+        var app = (await rig.Applications.GetAsync(rig.Application.Id))!;
+        app.CreateSequence("0000", "original", "Original history");
+        app.CreateSequence("0002", "amendment", "Intermediate history");
+        app.CreateSequence("0003", "amendment", "History effectiveness");
+        await rig.Applications.UpdateAsync(app);
+        var workspace = (await rig.Nodes.GetSequenceAsync(app.Id, "0001"))!;
+        await rig.Nodes.SaveSequenceAsync(workspace.Graph, "0003", workspace.Nodes.Select(node =>
+            new RATools.Domain.Ctd.SequenceNode(workspace.Graph, "0003", node.NodeInstanceId, node.Attributes,
+                null, node.SortOrder, node.StorageSegment)).ToArray(), 0);
+        return rig;
+    }
+
+    [Fact]
+    public async Task ATargetInvalidatedAfterPreviewCannotBeCommittedByTheDurableWorker()
+    {
+        var rig = await HistoryRigAsync();
+        var directory = Path.Combine(rig.Root, "0000", "uploaded");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "original.txt");
+        await File.WriteAllTextAsync(path, "original");
+        var bytes = await File.ReadAllBytesAsync(path);
+        var document = new SubmissionDocument("original.txt", "text/plain", bytes.Length,
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant(),
+            Convert.ToHexString(System.Security.Cryptography.MD5.HashData(bytes)).ToLowerInvariant(), path);
+        await rig.Documents.AddAsync(document);
+        var original = DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, rig.Application.Id, "0000", "m3.2.s.4.1",
+            DocumentPlacementOperation.New, "Original", null, DateTime.UtcNow, nodeInstanceId: rig.Alpha);
+        await rig.Placements.AddAsync(original);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var preview = await rig.Service.PreviewAsync(rig.Application.Id, "0003", new(revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{original.Id}"));
+        Assert.True(preview.CanExecute);
+        var queued = await rig.Service.EnqueueAsync(rig.Application.Id, "0003", new(preview.Id, preview.Plan.PlanDigest, "history-change"));
+        var lease = (await rig.Store.ClaimAsync("history-change", DateTime.UtcNow, TimeSpan.FromMinutes(1)))!;
+        await rig.Placements.AddAsync(DocumentPlacement.Rehydrate(Guid.NewGuid(), document.Id, rig.Application.Id, "0002", "m3.2.s.4.1",
+            DocumentPlacementOperation.Replace, "Replacement", original.Id, DateTime.UtcNow, nodeInstanceId: rig.Alpha));
+
+        await Assert.ThrowsAsync<AssemblyPlanStaleException>(() => rig.Service.ExecuteAsync(lease));
+        Assert.Empty(await rig.Placements.ListBySequenceAsync(rig.Application.Id, "0003"));
+        Assert.Equal(revision, await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"));
+        Assert.Null((await rig.Store.GetJobAsync(queued.Job.State.Id))!.Result);
+    }
+
+    [Fact]
+    public async Task SameSequenceHistoricalOperationsDoNotSilentlyEstablishEffectiveness()
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.Replace, original.Id);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{original.Id}");
+
+        Assert.Contains(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN");
+    }
+
+    [Fact]
+    public async Task ACrossNodeHistoricalReplacementCannotProveTheTargetWasReplaced()
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        await rig.Placements.AddAsync(DocumentPlacement.Rehydrate(Guid.NewGuid(), rig.Document.Id, rig.Application.Id,
+            "0001", "m3.2.s.4.1", DocumentPlacementOperation.Replace, "Wrong node", original.Id, DateTime.UtcNow, nodeInstanceId: rig.Beta));
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{original.Id}");
+
+        Assert.Contains(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN");
+        Assert.DoesNotContain(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_NOT_EFFECTIVE");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AnUnresolvedHistoricalOperationKeepsEarlierTargetsUnknownButDoesNotInvalidateLaterNewLeaves(bool missingPlacement)
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        await AddHistoryAsync(rig, "0001", DocumentPlacementOperation.Replace, missingPlacement ? Guid.NewGuid() : null);
+        var later = await AddHistoryAsync(rig, "0002", DocumentPlacementOperation.New);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{original.Id}\n,{rig.Alpha},delete,{later.Id}");
+
+        Assert.Contains(plan.Rows[0].Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN");
+        Assert.Equal(AssemblyRowStatus.Valid, plan.Rows[1].Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SameSequenceReplacementChainsRemainUnknownRegardlessOfRepositoryOrder(bool reverse)
+    {
+        var rig = await HistoryRigAsync();
+        var original = await AddHistoryAsync(rig, "0000", DocumentPlacementOperation.New);
+        var middle = DocumentPlacement.Rehydrate(Guid.NewGuid(), rig.Document.Id, rig.Application.Id, "0001", "m3.2.s.4.1",
+            DocumentPlacementOperation.Replace, "Middle", original.Id, new DateTime(2026, 1, 1, 0, 0, reverse ? 2 : 1, DateTimeKind.Utc), nodeInstanceId: rig.Alpha);
+        var last = DocumentPlacement.Rehydrate(Guid.NewGuid(), rig.Document.Id, rig.Application.Id, "0001", "m3.2.s.4.1",
+            DocumentPlacementOperation.Replace, "Last", middle.Id, new DateTime(2026, 1, 1, 0, 0, reverse ? 1 : 2, DateTimeKind.Utc), nodeInstanceId: rig.Alpha);
+        await rig.Placements.AddAsync(reverse ? last : middle);
+        await rig.Placements.AddAsync(reverse ? middle : last);
+        var revision = (await rig.Revisions.GetRevisionAsync(rig.Application.Id, "0003"))!.Value;
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0003", revision,
+            $"documentId,nodeInstanceId,operation,targetLeafAddress\n,{rig.Alpha},delete,{middle.Id}");
+
+        Assert.Contains(Assert.Single(plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN");
+    }
+
+    private static async Task<DocumentPlacement> AddHistoryAsync(AssemblyRig rig, string sequence,
+        DocumentPlacementOperation operation, Guid? target = null)
+    {
+        var placement = DocumentPlacement.Rehydrate(Guid.NewGuid(), rig.Document.Id, rig.Application.Id, sequence,
+            "m3.2.s.4.1", operation, "Historical", target, DateTime.UtcNow, nodeInstanceId: rig.Alpha);
+        await rig.Placements.AddAsync(placement);
+        return placement;
+    }
+
     [Fact]
     public async Task ValidRowsResolveExplicitNodeAndDocumentAndInvalidRowsAreFullyReported()
     {

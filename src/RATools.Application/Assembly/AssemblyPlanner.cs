@@ -56,6 +56,7 @@ public sealed class AssemblyPlanner(
         var allPlacements = await placementRepository.ListByApplicationAsync(applicationId, cancellationToken).ConfigureAwait(false);
         var historical = allPlacements.Where(placement =>
             string.CompareOrdinal(placement.SequenceNumber, sequenceNumber) < 0).ToDictionary(placement => placement.Id);
+        var effectiveness = ReplayHistory(historical.Values);
         var currentById = currentPlacements.ToDictionary(placement => placement.Id);
         var documentIds = parsed.Rows.Select(row => SourceToken(row.Fields.GetValueOrDefault("sourceFile")) ?? row.Fields.GetValueOrDefault("documentId"))
             .Where(value => Guid.TryParse(value, out _)).Select(value => Guid.Parse(value!)).ToArray();
@@ -134,7 +135,7 @@ public sealed class AssemblyPlanner(
             }
 
             if (target is not null && nodeId is not null)
-                ResolveTarget(target, nodeId.Value, historical, currentById, row, rowDiagnostics, seenTargets);
+                ResolveTarget(target, nodeId.Value, historical, currentById, effectiveness, row, rowDiagnostics, seenTargets);
 
             rows.Add(new AssemblyPlanRow(row.LineNumber, documentId?.ToString("D"), nodeId?.ToString("D"), title,
                 operation, target, sortOrder,
@@ -153,7 +154,7 @@ public sealed class AssemblyPlanner(
     // silently resolved by file name.
     private static void ResolveTarget(string target, Guid nodeId,
         Dictionary<Guid, DocumentPlacement> historical,
-        Dictionary<Guid, DocumentPlacement> current, AssemblyManifestRow row,
+        Dictionary<Guid, DocumentPlacement> current, IReadOnlyDictionary<Guid, HistoricalLeafState> effectiveness, AssemblyManifestRow row,
         List<AssemblyDiagnostic> diagnostics, Dictionary<Guid, int> seenTargets)
     {
         if (!Guid.TryParse(target, out var targetId))
@@ -183,6 +184,76 @@ public sealed class AssemblyPlanner(
             diagnostics.Add(new("ASSEMBLY_TARGET_NODE_MISMATCH", "The target leaf belongs to a different node.", row.LineNumber));
         else if (placement.Operation == DocumentPlacementOperation.Delete)
             diagnostics.Add(new("ASSEMBLY_TARGET_DELETED", "The target leaf was already deleted; choose the current leaf.", row.LineNumber));
+        else if (effectiveness.GetValueOrDefault(targetId) == HistoricalLeafState.Ineffective)
+            diagnostics.Add(new("ASSEMBLY_TARGET_NOT_EFFECTIVE", "The exact historical leaf has already been replaced or deleted.", row.LineNumber));
+        else if (effectiveness.GetValueOrDefault(targetId) != HistoricalLeafState.Current)
+            diagnostics.Add(new("ASSEMBLY_TARGET_EFFECTIVENESS_UNKNOWN", "An append branch or unresolved historical event requires an explicit cumulative lifecycle policy.", row.LineNumber));
+    }
+
+    internal enum HistoricalLeafState { Unknown, Current, Ineffective, AppendMember, DeleteEvent }
+
+    // Sequence boundaries matter: same-sequence combinations and conflicting events
+    // cannot establish an effective target. Append members stay unqualified; replacing
+    // one must never infer cascading invalidation of the entire append group.
+    internal static IReadOnlyDictionary<Guid, HistoricalLeafState> ReplayHistory(IEnumerable<DocumentPlacement> historical)
+    {
+        var states = new Dictionary<Guid, HistoricalLeafState>();
+        var placements = historical.ToDictionary(item => item.Id);
+        foreach (var sequence in placements.Values.GroupBy(item => item.SequenceNumber).OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            var prior = new Dictionary<Guid, HistoricalLeafState>(states);
+            var unresolvedTarget = false;
+            var sameSequenceTargets = sequence.Where(item => item.Operation != DocumentPlacementOperation.New &&
+                    item.LifecycleTargetPlacementId is { } target && placements.TryGetValue(target, out var targetPlacement) &&
+                    targetPlacement.SequenceNumber == sequence.Key)
+                .Select(item => item.LifecycleTargetPlacementId!.Value).ToHashSet();
+            var conflicts = sequence.Where(item => item.Operation != DocumentPlacementOperation.New && item.LifecycleTargetPlacementId is not null)
+                .GroupBy(item => item.LifecycleTargetPlacementId!.Value).Where(group => group.Count() > 1)
+                .Select(group => group.Key).ToHashSet();
+            foreach (var item in sequence)
+                states[item.Id] = item.Operation == DocumentPlacementOperation.New && item.LifecycleTargetPlacementId is null
+                    ? HistoricalLeafState.Current : item.Operation == DocumentPlacementOperation.Delete
+                        ? HistoricalLeafState.DeleteEvent : HistoricalLeafState.Unknown;
+            foreach (var item in sequence.Where(item => item.Operation != DocumentPlacementOperation.New))
+            {
+                if (item.LifecycleTargetPlacementId is not { } target)
+                {
+                    unresolvedTarget = true;
+                    continue;
+                }
+                if (!prior.TryGetValue(target, out var state))
+                {
+                    if (!sameSequenceTargets.Contains(target)) unresolvedTarget = true;
+                    continue;
+                }
+                if (placements[target].NodeInstanceId != item.NodeInstanceId)
+                {
+                    if (state is HistoricalLeafState.Current or HistoricalLeafState.AppendMember) states[target] = HistoricalLeafState.Unknown;
+                    continue;
+                }
+                if (conflicts.Contains(target))
+                {
+                    if (state is HistoricalLeafState.Current or HistoricalLeafState.AppendMember) states[target] = HistoricalLeafState.Unknown;
+                    continue;
+                }
+                if (state != HistoricalLeafState.Current) continue;
+                if (item.Operation is DocumentPlacementOperation.Replace or DocumentPlacementOperation.Delete)
+                {
+                    states[target] = HistoricalLeafState.Ineffective;
+                    if (item.Operation == DocumentPlacementOperation.Replace) states[item.Id] = HistoricalLeafState.Current;
+                }
+                else if (item.Operation == DocumentPlacementOperation.Append)
+                    states[target] = states[item.Id] = HistoricalLeafState.AppendMember;
+            }
+            foreach (var target in sameSequenceTargets)
+                if (states[target] is HistoricalLeafState.Current or HistoricalLeafState.AppendMember)
+                    states[target] = HistoricalLeafState.Unknown;
+            if (unresolvedTarget)
+                foreach (var id in states.Keys.ToArray())
+                    if (states[id] is HistoricalLeafState.Current or HistoricalLeafState.AppendMember)
+                        states[id] = HistoricalLeafState.Unknown;
+        }
+        return states;
     }
 
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

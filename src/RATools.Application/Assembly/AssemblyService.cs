@@ -237,10 +237,15 @@ public sealed class AssemblyService(AssemblyPlanner planner, IAssemblyStore stor
         var app = await ApplicationAsync(plan.Plan.ApplicationId, plan.Plan.SequenceNumber, cancellationToken).ConfigureAwait(false);
         var history = plan.Plan.Rows.Where(row => plan.SelectedRows.Contains(row.LineNumber) && row.TargetLeafAddress is not null)
             .Select(row => Guid.Parse(row.TargetLeafAddress!)).ToHashSet();
+        var allPlacements = await placements.ListByApplicationAsync(app.Id, cancellationToken).ConfigureAwait(false);
+        var effectiveness = AssemblyPlanner.ReplayHistory(allPlacements.Where(placement =>
+            string.CompareOrdinal(placement.SequenceNumber, plan.Plan.SequenceNumber) < 0));
+        if (history.Any(target => effectiveness.GetValueOrDefault(target) != AssemblyPlanner.HistoricalLeafState.Current))
+            throw new AssemblyPlanStaleException("A selected historical target is no longer effective or requires an explicit lifecycle policy.");
         // Link validation reads mounted PDF inventory; lifecycle events also depend
         // on target bytes, including a non-PDF delete target. Verify precisely those
         // dependencies against the metadata already bound into InventoryDigest.
-        foreach (var placement in await placements.ListByApplicationAsync(app.Id, cancellationToken).ConfigureAwait(false))
+        foreach (var placement in allPlacements)
         {
             var document = await documents.GetAsync(placement.DocumentId, cancellationToken).ConfigureAwait(false);
             if (history.Contains(placement.Id) || (placement.Operation != DocumentPlacementOperation.Delete && document?.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true))
