@@ -4,8 +4,25 @@ using RATools.Domain.RegionalMetadata;
 
 namespace RATools.Infrastructure.Persistence.InMemory;
 
-public sealed class InMemoryRegionalMetadataStore : IRegionalMetadataStore
+public sealed class InMemoryRegionalMetadataStore : IRegionalMetadataStore, IRegionalEvidenceReferences
 {
+    public Task<bool> HasPlacementAsync(Guid placementId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate) return Task.FromResult(_revisions.Concat(Changes(false)?.Revisions ?? []).Select(pair => Parse(pair.Value))
+            .Any(revision => revision.DocumentContexts.Any(item => item.PlacementId == placementId)));
+    }
+
+    public Task<bool> HasNodesAsync(Guid applicationId, string sequenceNumber, IReadOnlyCollection<Guid> nodeIds,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate) return Task.FromResult(_revisions.Concat(Changes(false)?.Revisions ?? []).Select(pair => Parse(pair.Value))
+            .Where(revision => revision.ApplicationId == applicationId && revision.SequenceNumber == sequenceNumber)
+            .Any(revision => revision.NodeContexts.Any(item => nodeIds.Contains(item.NodeInstanceId)) ||
+                revision.DocumentContexts.Any(item => item.NodeInstanceId is { } id && nodeIds.Contains(id))));
+    }
+
     private readonly object _gate = new();
     private readonly Dictionary<Guid, string> _revisions = [];
     private readonly Dictionary<(Guid App, string Scope), Guid> _heads = [];

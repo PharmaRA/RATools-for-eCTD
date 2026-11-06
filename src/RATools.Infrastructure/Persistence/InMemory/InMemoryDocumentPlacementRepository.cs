@@ -1,10 +1,11 @@
 using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Documents;
+using RATools.Application.RegionalMetadata;
 
 namespace RATools.Infrastructure.Persistence.InMemory;
 
-public sealed class InMemoryDocumentPlacementRepository : IDocumentPlacementRepository
+public sealed class InMemoryDocumentPlacementRepository(IRegionalEvidenceReferences? regionalReferences = null) : IDocumentPlacementRepository
 {
     private readonly TransactionalMemoryCollection<DocumentPlacement> _items = new(item => item.ToRecord().ToDomain());
 
@@ -19,10 +20,11 @@ public sealed class InMemoryDocumentPlacementRepository : IDocumentPlacementRepo
         return Task.FromResult(_items.Update(placement.Id, placement));
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        if (regionalReferences is not null && await regionalReferences.HasPlacementAsync(id, cancellationToken).ConfigureAwait(false))
+            throw new RegionalEvidenceReferencedException();
         _items.Remove(id);
-        return Task.CompletedTask;
     }
 
     public Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)

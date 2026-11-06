@@ -8,8 +8,26 @@ using RATools.Domain.RegionalMetadata;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
-public sealed class EfCoreRegionalMetadataStore(RAToolsDbContext context) : IRegionalMetadataStore
+public sealed class EfCoreRegionalMetadataStore(RAToolsDbContext context) : IRegionalMetadataStore, IRegionalEvidenceReferences
 {
+    public Task<bool> HasPlacementAsync(Guid placementId, CancellationToken cancellationToken = default) =>
+        context.Set<RegionalDocumentContextRecord>().AnyAsync(row => row.PlacementId == placementId, cancellationToken);
+
+    public async Task<bool> HasNodesAsync(Guid applicationId, string sequenceNumber, IReadOnlyCollection<Guid> nodeIds,
+        CancellationToken cancellationToken = default) => nodeIds.Count > 0 &&
+        (await context.Set<RegionalNodeContextRecord>().AnyAsync(row => row.ApplicationId == applicationId &&
+            row.SequenceNumber == sequenceNumber && nodeIds.Contains(row.NodeInstanceId), cancellationToken).ConfigureAwait(false) ||
+         await context.Set<RegionalDocumentContextRecord>().AnyAsync(row => row.ApplicationId == applicationId &&
+            row.SequenceNumber == sequenceNumber && row.NodeInstanceId != null && nodeIds.Contains(row.NodeInstanceId.Value), cancellationToken).ConfigureAwait(false));
+
+    internal static bool IsReferenceConflict(DbUpdateException error) => error.InnerException is PostgresException
+    {
+        SqlState: PostgresErrorCodes.ForeignKeyViolation,
+        ConstraintName: "FK_regional_metadata_document_contexts_document_placements_App~" or
+            "FK_regional_metadata_document_contexts_sequence_nodes_Applicat~" or
+            "FK_regional_metadata_node_contexts_sequence_nodes_ApplicationI~"
+    };
+
     private const int MaxDataBytes = 8 * 1024 * 1024;
     public async Task<RegionalMetadataRevision?> GetHeadAsync(Guid applicationId, string? sequenceNumber, CancellationToken cancellationToken = default)
     {

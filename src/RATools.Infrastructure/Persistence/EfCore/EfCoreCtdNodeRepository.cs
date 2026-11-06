@@ -73,6 +73,11 @@ public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext, NodeFile
             _ = node.ToRecord(graph).ToDomain(graph);
         }
 
+        var removedIds = await dbContext.SequenceNodes.AsNoTracking().Where(row => row.ApplicationId == graph.ApplicationId &&
+            row.SequenceNumber == sequenceNumber && !nodeIds.Contains(row.NodeInstanceId)).Select(row => row.NodeInstanceId).ToArrayAsync(cancellationToken);
+        if (await new EfCoreRegionalMetadataStore(dbContext).HasNodesAsync(graph.ApplicationId, sequenceNumber, removedIds, cancellationToken).ConfigureAwait(false))
+            throw new RATools.Application.RegionalMetadata.RegionalEvidenceReferencedException();
+
         var revised = await dbContext.Sequences.Where(row => row.ApplicationId == graph.ApplicationId && row.SequenceNumber == sequenceNumber &&
             row.WorkspaceRevision == expectedRevision).ExecuteUpdateAsync(updates => updates.SetProperty(row => row.WorkspaceRevision, expectedRevision + 1), cancellationToken);
         if (revised == 0)
@@ -112,7 +117,9 @@ public sealed class EfCoreCtdNodeRepository(RAToolsDbContext dbContext, NodeFile
             else dbContext.SequenceNodes.Add(record);
         }
         dbContext.SequenceNodes.RemoveRange(existingNodes.Values.Where(row => !nodeIds.Contains(row.NodeInstanceId)));
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try { await dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException error) when (EfCoreRegionalMetadataStore.IsReferenceConflict(error))
+        { throw new RATools.Application.RegionalMetadata.RegionalEvidenceReferencedException(); }
         return expectedRevision + 1;
     }
 }

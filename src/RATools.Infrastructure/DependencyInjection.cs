@@ -120,6 +120,8 @@ public static class DependencyInjection
         if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<RATools.Application.RegionalMetadata.IRegionalMetadataStore, InMemoryRegionalMetadataStore>();
+            services.AddSingleton(provider => (RATools.Application.RegionalMetadata.IRegionalEvidenceReferences)
+                provider.GetRequiredService<RATools.Application.RegionalMetadata.IRegionalMetadataStore>());
             services.AddSingleton<RATools.Application.Standards.IStandardsSnapshotStore, InMemoryStandardsSnapshotStore>();
             services.AddSingleton<IDocumentProcessingStore, InMemoryDocumentProcessingStore>();
             services.AddSingleton<RATools.Application.Assembly.IAssemblyStore, InMemoryAssemblyStore>();
@@ -147,6 +149,8 @@ public static class DependencyInjection
 
         services.AddDbContext<RAToolsDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<RATools.Application.RegionalMetadata.IRegionalMetadataStore, EfCoreRegionalMetadataStore>();
+        services.AddScoped(provider => (RATools.Application.RegionalMetadata.IRegionalEvidenceReferences)
+            provider.GetRequiredService<RATools.Application.RegionalMetadata.IRegionalMetadataStore>());
         services.AddScoped<IDocumentProcessingStore, EfCoreDocumentProcessingStore>();
         services.AddScoped<RATools.Application.Assembly.IAssemblyStore, EfCoreAssemblyStore>();
         services.AddScoped<IPdfRenameStore, EfCorePdfRenameStore>();

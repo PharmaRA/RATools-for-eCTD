@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.Persistence.InMemory;
 
 public sealed class InMemoryCtdNodeRepository(IWorkspaceRevisionStore revisions,
     IDocumentPlacementRepository placements, NodeFileMoveGuard? moveGuard = null,
-    IFinalizationStore? finalizations = null) : ICtdNodeRepository
+    IFinalizationStore? finalizations = null, RATools.Application.RegionalMetadata.IRegionalEvidenceReferences? regionalReferences = null) : ICtdNodeRepository
 {
     private readonly ConcurrentDictionary<(Guid, string), CtdSequenceWorkspace> _workspaces = new();
 
@@ -50,6 +50,9 @@ public sealed class InMemoryCtdNodeRepository(IWorkspaceRevisionStore revisions,
             ?? throw new WorkspaceRevisionTargetNotFoundException();
         var ids = nodes.Select(node => node.NodeInstanceId).ToHashSet();
         if (ids.Count != nodes.Count) throw new InvalidOperationException("Duplicate sequence node.");
+        if (regionalReferences is not null && await regionalReferences.HasNodesAsync(graph.ApplicationId, sequenceNumber,
+            old.Nodes.Where(node => !ids.Contains(node.NodeInstanceId)).Select(node => node.NodeInstanceId).ToArray(), cancellationToken).ConfigureAwait(false))
+            throw new RATools.Application.RegionalMetadata.RegionalEvidenceReferencedException();
         foreach (var instance in old.Graph.Nodes.Values)
             if (!graph.Nodes.TryGetValue(instance.Id, out var candidate) || candidate.IdentityKey != instance.IdentityKey ||
                 candidate.IdentityStatus != instance.IdentityStatus || candidate.DefinitionVersion != instance.DefinitionVersion)

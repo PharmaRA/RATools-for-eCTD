@@ -22,6 +22,127 @@ namespace RATools.Tests.RegionalMetadata;
 public sealed class PostgresRegionalMetadataTests
 {
     [RequiresPostgresFact]
+    public async Task RemovingAPlacementReferencedByAnOlderRegionalRevisionReturnsConflictAndPreservesEvidence()
+    {
+        await using var db = Context(); var rig = await SeedAsync(db); var service = Service(db);
+        var first = await service.SaveSequenceAsync(rig.App.Id, "0001", rig.Revision, rig.SnapshotId, Content(),
+            [], [new(rig.First.Id, rig.Node.Id, "fr", "fr", "pl", null)]);
+        var current = await service.SaveSequenceAsync(rig.App.Id, "0001", first.WorkspaceRevision, rig.SnapshotId, Content(), [], []);
+        var response = await RemovalResponseAsync(() => new EfCorePersistenceTransaction(db).ExecuteAsync(async ct =>
+        {
+            await new EfCoreDocumentPlacementRepository(db).DeleteAsync(rig.First.Id, ct);
+        }));
+
+        Assert.Equal(409, response.StatusCode);
+        Assert.Contains("REGIONAL_EVIDENCE_REFERENCED", response.Body, StringComparison.Ordinal);
+        await using var read = Context();
+        Assert.NotNull(await new EfCoreDocumentPlacementRepository(read).GetAsync(rig.First.Id));
+        Assert.Equal(current.WorkspaceRevision, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.App.Id, "0001"));
+        Assert.Equal(first.Digest, (await new EfCoreRegionalMetadataStore(read).GetRevisionAsync(first.Id))!.Digest);
+    }
+
+    [RequiresPostgresFact]
+    public async Task RemovingANodeReferencedByAnOlderRegionalRevisionReturnsConflictAndPreservesEvidence()
+    {
+        await using var db = Context(); var rig = await SeedAsync(db); var service = Service(db);
+        var revision = (await new EfCoreWorkspaceRevisionStore(db).GetRevisionAsync(rig.App.Id, "0000"))!.Value;
+        var content = new RegionalMetadataContent(1, "EU", Eu: new([]));
+        var first = await service.SaveSequenceAsync(rig.App.Id, "0000", revision, rig.SnapshotId, content,
+            [new(rig.Node.Id, "de", "de", "spc", null)], []);
+        var current = await service.SaveSequenceAsync(rig.App.Id, "0000", first.WorkspaceRevision, rig.SnapshotId, content, [], []);
+        var workspace = (await new EfCoreCtdNodeRepository(db).GetSequenceAsync(rig.App.Id, "0000"))!;
+        var response = await RemovalResponseAsync(async () =>
+        {
+            await new EfCoreCtdNodeRepository(db).SaveSequenceAsync(workspace.Graph, "0000", [], current.WorkspaceRevision!.Value);
+        });
+
+        Assert.Equal(409, response.StatusCode);
+        Assert.Contains("REGIONAL_EVIDENCE_REFERENCED", response.Body, StringComparison.Ordinal);
+        await using var read = Context();
+        Assert.Single((await new EfCoreCtdNodeRepository(read).GetSequenceAsync(rig.App.Id, "0000"))!.Nodes);
+        Assert.Equal(current.WorkspaceRevision, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.App.Id, "0000"));
+        Assert.Equal(first.Digest, (await new EfCoreRegionalMetadataStore(read).GetRevisionAsync(first.Id))!.Digest);
+    }
+
+    private static async Task<(int StatusCode, string Body)> RemovalResponseAsync(Func<Task> remove)
+    {
+        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        using var body = new MemoryStream(); context.Response.Body = body;
+        var middleware = new RATools.Api.Middleware.GlobalExceptionMiddleware(async _ => await remove(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<RATools.Api.Middleware.GlobalExceptionMiddleware>.Instance);
+        await middleware.InvokeAsync(context);
+        return (context.Response.StatusCode, Encoding.UTF8.GetString(body.ToArray()));
+    }
+
+    [RequiresPostgresFact]
+    public Task RemovingAPlacementWhenEvidenceCommitsAfterTheCheckReturnsConflict() => ReferenceRaceAsync(removeNode: false);
+
+    [RequiresPostgresFact]
+    public Task RemovingANodeWhenEvidenceCommitsAfterTheCheckRollsBackRevision() => ReferenceRaceAsync(removeNode: true);
+
+    private static async Task ReferenceRaceAsync(bool removeNode)
+    {
+        await using var seed = Context(); var rig = await SeedAsync(seed);
+        var sequence = removeNode ? "0000" : "0001";
+        var workspace = (await new EfCoreCtdNodeRepository(seed).GetSequenceAsync(rig.App.Id, sequence))!;
+        var archive = RegionalMetadataRevision.Create(Guid.NewGuid(), rig.App.Id, sequence, 1, workspace.WorkspaceRevision + 1,
+            rig.SnapshotId, new(1, "EU", Eu: new([])), null,
+            removeNode ? [new(rig.Node.Id, "de", null, null, null)] : [],
+            removeNode ? [] : [new(rig.First.Id, rig.Node.Id, "fr", null, null, null)], null, null, [], [], null, null, DateTime.UtcNow);
+        var barrier = new AppendAfterReferenceCheck(async () =>
+        {
+            await using var writer = Context();
+            await new EfCorePersistenceTransaction(writer).ExecuteAsync(ct => new EfCoreRegionalMetadataStore(writer).AppendAsync(archive, null, ct));
+        });
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseNpgsql(PostgresTestEnvironment.ConnectionString!)
+            .AddInterceptors(barrier, new RequireCommittedReference(barrier)).Options;
+        await using var deleting = new RAToolsDbContext(options);
+        var response = await RemovalResponseAsync(async () =>
+        {
+            if (removeNode)
+                await new EfCoreCtdNodeRepository(deleting).SaveSequenceAsync(workspace.Graph, sequence, [], workspace.WorkspaceRevision);
+            else
+                await new EfCorePersistenceTransaction(deleting).ExecuteAsync(ct => new EfCoreDocumentPlacementRepository(deleting).DeleteAsync(rig.First.Id, ct));
+        });
+        Assert.True(barrier.Committed);
+        Assert.Equal(409, response.StatusCode);
+        Assert.Contains("REGIONAL_EVIDENCE_REFERENCED", response.Body, StringComparison.Ordinal);
+        Assert.Empty(deleting.ChangeTracker.Entries());
+        await using var read = Context();
+        Assert.Equal(workspace.WorkspaceRevision, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.App.Id, sequence));
+        Assert.Single((await new EfCoreCtdNodeRepository(read).GetSequenceAsync(rig.App.Id, sequence))!.Nodes);
+        Assert.NotNull(await new EfCoreDocumentPlacementRepository(read).GetAsync(rig.First.Id));
+        Assert.Equal(archive.Digest, (await new EfCoreRegionalMetadataStore(read).GetRevisionAsync(archive.Id))!.Digest);
+    }
+
+    // Commit on an independent connection after the last negative reference query,
+    // before the repository can remove anything. The FK remains the final authority.
+    private sealed class AppendAfterReferenceCheck(Func<Task> append) : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public bool Committed { get; private set; }
+        public override async ValueTask<System.Data.Common.DbDataReader> ReaderExecutedAsync(System.Data.Common.DbCommand command,
+            Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData eventData, System.Data.Common.DbDataReader result,
+            CancellationToken cancellationToken = default)
+        {
+            if (!Committed && command.CommandText.Contains("EXISTS", StringComparison.Ordinal) &&
+                command.CommandText.Contains("regional_metadata_document_contexts", StringComparison.Ordinal))
+            { await append(); Committed = true; }
+            return result;
+        }
+    }
+
+    private sealed class RequireCommittedReference(AppendAfterReferenceCheck barrier) : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (!barrier.Committed) throw new InvalidOperationException("The test must commit retained evidence before attempting removal.");
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    [RequiresPostgresFact]
     public async Task OrderedEnvelopesInheritanceAndIndependentPlacementContextsSurviveNewConnections()
     {
         await using var db = Context(); var rig = await SeedAsync(db); var service = Service(db);
@@ -35,9 +156,9 @@ public sealed class PostgresRegionalMetadataTests
             new(1, "EU", Eu: new("Changed later", [], [Text("Changed later")], [])));
         await using var read = Context(); var restored = (await new EfCoreRegionalMetadataStore(read).GetRevisionAsync(inherited.Id))!;
         Assert.Equal(JsonSerializer.Serialize(inherited), JsonSerializer.Serialize(restored));
-        Assert.Equal(new[] { "PT-2", "PT-1" }, restored.Content!.Eu!.Envelopes[0].ProcedureTrackingNumbers.Select(item => item.Value));
+        Assert.Equal((string[])["PT-2", "PT-1"], restored.Content!.Eu!.Envelopes[0].ProcedureTrackingNumbers.Select(item => item.Value));
         Assert.All(restored.Content.Eu.Envelopes, envelope => Assert.Equal("Inherited applicant", envelope.Applicant));
-        Assert.Equal(new[] { "fr", "common" }, restored.DocumentContexts.Select(item => item.Country));
+        Assert.Equal((string[])["fr", "common"], restored.DocumentContexts.Select(item => item.Country));
         Assert.Equal(rig.First.DocumentId, rig.Second.DocumentId); Assert.NotEqual(rig.First.Id, rig.Second.Id);
         Assert.Equal(defaults.Id, restored.InheritedDefaultsId); Assert.Equal(defaults.Digest, restored.InheritedDefaultsDigest);
         Assert.Equal(rig.Revision + 2, await new EfCoreWorkspaceRevisionStore(read).GetRevisionAsync(rig.App.Id, "0001"));

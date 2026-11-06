@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Domain.Documents;
+using RATools.Application.RegionalMetadata;
 
 namespace RATools.Infrastructure.Persistence.EfCore;
 
@@ -40,8 +41,15 @@ public sealed class EfCoreDocumentPlacementRepository(RAToolsDbContext dbContext
             return;
         }
 
+        if (await new EfCoreRegionalMetadataStore(dbContext).HasPlacementAsync(id, cancellationToken).ConfigureAwait(false))
+            throw new RegionalEvidenceReferencedException();
         dbContext.DocumentPlacements.Remove(existing);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try { await dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException error) when (EfCoreRegionalMetadataStore.IsReferenceConflict(error))
+        {
+            dbContext.Entry(existing).State = EntityState.Unchanged;
+            throw new RegionalEvidenceReferencedException();
+        }
     }
 
     public async Task<DocumentPlacement?> GetAsync(Guid id, CancellationToken cancellationToken = default)

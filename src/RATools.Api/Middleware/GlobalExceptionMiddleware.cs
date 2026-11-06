@@ -64,6 +64,13 @@ public sealed partial class GlobalExceptionMiddleware
                 location = context.Request.Path.Value
             });
         }
+        catch (RATools.Application.RegionalMetadata.RegionalEvidenceReferencedException ex)
+        {
+            if (context.Response.HasStarted) throw;
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message, code = "REGIONAL_EVIDENCE_REFERENCED" });
+        }
         catch (RATools.Domain.Ctd.CtdNodeConstraintException ex)
         {
             if (context.Response.HasStarted) throw;
