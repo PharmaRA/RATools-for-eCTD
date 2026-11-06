@@ -13,6 +13,28 @@ namespace RATools.Tests.Assembly;
 public sealed class AssemblyPlannerTests
 {
     [Theory]
+    [InlineData("explicit")]
+    [InlineData("existing")]
+    [InlineData("batch")]
+    public async Task ExhaustedSortOrdersProduceRowDiagnosticsInsteadOfOverflowing(string mode)
+    {
+        var rig = await AssemblyRig.CreateAsync();
+        if (mode == "existing")
+            await rig.Placements.AddAsync(DocumentPlacement.Rehydrate(Guid.NewGuid(), rig.Document.Id, rig.Application.Id,
+                "0001", "m3.2.s.4.1", DocumentPlacementOperation.New, "Maximum", null, DateTime.UtcNow,
+                nodeInstanceId: rig.Alpha, sortOrder: int.MaxValue));
+        var csv = $"documentId,nodeInstanceId,operation,sortOrder\n{rig.Document.Id},{rig.Alpha},new,";
+        csv += mode == "explicit" ? "2147483647" : mode == "batch"
+            ? $"2147483646\n{rig.Document.Id},{rig.Alpha},new," : "";
+
+        var plan = await Planner(rig).PlanAsync(rig.Application.Id, "0001", rig.Revision, csv);
+
+        Assert.Contains(plan.Rows[^1].Diagnostics, issue => issue.Code == "ASSEMBLY_SORT_INVALID");
+        Assert.Equal(AssemblyRowStatus.Invalid, plan.Rows[^1].Status);
+        if (mode == "batch") Assert.Equal(AssemblyRowStatus.Valid, plan.Rows[0].Status);
+    }
+
+    [Theory]
     [InlineData(DocumentPlacementOperation.Replace)]
     [InlineData(DocumentPlacementOperation.Delete)]
     public async Task AnEarlierReplaceOrDeleteMakesTheExactHistoricalTargetIneffective(DocumentPlacementOperation operation)

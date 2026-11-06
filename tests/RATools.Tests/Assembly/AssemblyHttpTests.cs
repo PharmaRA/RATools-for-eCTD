@@ -23,6 +23,28 @@ namespace RATools.Tests.Assembly;
 public sealed class AssemblyHttpTests
 {
     [Fact]
+    public async Task MaximumSortOrderReturnsAnInvalidPreviewAndExecutionConflictWithoutServerError()
+    {
+        var rig = await AssemblyRig.CreateAsync();
+        await using var host = CreateHost(rig, new AssemblyExecutionOptions(), null, startWorker: false);
+        await host.StartAsync();
+        try
+        {
+            using var client = Client(host);
+            var preview = await PostAsync<AssemblyPreview>(client, Prefix(rig.Application.Id) + "/assembly-plans",
+                new AssemblyPreviewRequest(rig.Revision,
+                    $"sourceFile,nodeInstanceId,fileName,operation,sortOrder\ndocument:{rig.Document.Id},{rig.Alpha},ordered.pdf,new,2147483647"));
+            Assert.False(preview.CanExecute);
+            Assert.Contains(Assert.Single(preview.Plan.Rows).Diagnostics, issue => issue.Code == "ASSEMBLY_SORT_INVALID");
+            using var response = await client.PostAsJsonAsync(Prefix(rig.Application.Id) + "/assembly-executions",
+                new AssemblyEnqueueRequest(preview.Id, preview.Plan.PlanDigest, "max-sort-" + preview.Id));
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            Assert.Empty(await rig.Placements.ListBySequenceAsync(rig.Application.Id, "0001"));
+        }
+        finally { await host.StopAsync(); }
+    }
+
+    [Fact]
     public async Task MoreThanThousandRetainedSourcesRemainRecoverableThroughBoundedStablePages()
     {
         var rig = await AssemblyRig.CreateAsync();

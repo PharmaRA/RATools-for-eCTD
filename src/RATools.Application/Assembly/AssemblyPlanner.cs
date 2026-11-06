@@ -67,7 +67,7 @@ public sealed class AssemblyPlanner(
         var seenTargets = new Dictionary<Guid, int>();
         var seenSort = new HashSet<(Guid Node, int Order)>();
         var nextSort = currentPlacements.Where(item => item.NodeInstanceId is not null)
-            .GroupBy(item => item.NodeInstanceId!.Value).ToDictionary(group => group.Key, group => group.Max(item => item.SortOrder) + 1);
+            .GroupBy(item => item.NodeInstanceId!.Value).ToDictionary(group => group.Key, group => (long)group.Max(item => item.SortOrder) + 1);
         foreach (var row in parsed.Rows)
         {
             var rowDiagnostics = row.Diagnostics?.ToList() ?? [];
@@ -93,8 +93,10 @@ public sealed class AssemblyPlanner(
             if (operation is "replace" or "append" or "delete" && target is null)
                 rowDiagnostics.Add(new("ASSEMBLY_TARGET_REQUIRED", "This operation requires an explicit targetLeafAddress.", row.LineNumber));
             var sortOrder = 0;
-            if (sortText.Length > 0 && (!int.TryParse(sortText, NumberStyles.None, CultureInfo.InvariantCulture, out sortOrder) || sortOrder < 0))
-                rowDiagnostics.Add(new("ASSEMBLY_SORT_INVALID", "sortOrder must be a nonnegative integer.", row.LineNumber));
+            var sortValid = sortText.Length == 0 || int.TryParse(sortText, NumberStyles.None, CultureInfo.InvariantCulture, out sortOrder) &&
+                sortOrder is >= 0 and < int.MaxValue;
+            if (!sortValid)
+                rowDiagnostics.Add(new("ASSEMBLY_SORT_INVALID", "sortOrder must be a nonnegative integer below 2147483647.", row.LineNumber));
 
             Guid? documentId = null;
             if (operation != "delete")
@@ -127,9 +129,18 @@ public sealed class AssemblyPlanner(
             else
             {
                 nodeId = node.NodeInstanceId;
-                if (sortText.Length == 0) sortOrder = nextSort.GetValueOrDefault(node.NodeInstanceId);
-                nextSort[node.NodeInstanceId] = checked(sortOrder + 1);
-                if (!seenSort.Add((node.NodeInstanceId, sortOrder)))
+                if (sortText.Length == 0)
+                {
+                    var next = nextSort.GetValueOrDefault(node.NodeInstanceId);
+                    if (next >= int.MaxValue)
+                    {
+                        sortValid = false;
+                        rowDiagnostics.Add(new("ASSEMBLY_SORT_INVALID", "No automatic sort order remains below 2147483647 on this node.", row.LineNumber));
+                    }
+                    else sortOrder = (int)next;
+                }
+                if (sortValid) nextSort[node.NodeInstanceId] = (long)sortOrder + 1;
+                if (sortValid && !seenSort.Add((node.NodeInstanceId, sortOrder)))
                     rowDiagnostics.Add(new("ASSEMBLY_SORT_CONFLICT",
                         $"Another row already uses sort order {sortOrder} on this node.", row.LineNumber));
             }
