@@ -1,6 +1,7 @@
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Standards;
 using RATools.Application.Validation.Requests;
+using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.Validation.Rules;
 
@@ -58,7 +59,17 @@ public interface IEctdValidationRule
 public sealed record EctdValidationRuleSet(
     string ProfileKey,
     string ValidationCriteriaVersion,
-    IReadOnlyList<IEctdValidationRule> Rules);
+    IReadOnlyList<IEctdValidationRule> Rules)
+{
+    public IReadOnlyList<EctdValidationRuleMapping> Mappings { get; init; } = [];
+    public bool LegacyProfileAlias { get; init; }
+}
+
+/// <summary>Project configuration of shared algorithms, not an official criteria ID or severity.</summary>
+public sealed record EctdValidationRuleMapping(string RuleId, string ProfileKey, string CriteriaVersion,
+    RuleSourceKind SourceKind, string SourceId, string SourceLocator, IReadOnlyList<string> ApplicableSections,
+    IReadOnlyDictionary<string, string> Parameters, EctdValidationSeverity Severity,
+    IReadOnlyDictionary<string, EctdValidationSeverity> FindingSeverities);
 
 public interface IEctdValidationRuleSetProvider
 {

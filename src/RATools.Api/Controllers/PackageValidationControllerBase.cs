@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RATools.Application.PackageValidation;
+using RATools.Application.Standards;
 using RATools.Domain.PackageValidation;
 
 namespace RATools.Api.Controllers;
@@ -17,6 +18,8 @@ public abstract class PackageValidationControllerBase : ControllerBase
         { return Conflict(new { code = "VALIDATION_IDEMPOTENCY_CONFLICT", message = exception.Message }); }
         catch (ExternalComparisonEvidenceConflictException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = "EXTERNAL_EVIDENCE_CONFLICT", message = exception.Message }); }
+        catch (StandardsSelectionException exception) when (PrepareErrorResponse())
+        { return BadRequest(new { code = "STANDARDS_SELECTION_BLOCKED", message = exception.Message, reasons = exception.Reasons }); }
         catch (PackageInputChangedException exception) when (PrepareErrorResponse())
         { return Conflict(new { code = exception.Code, message = exception.Message }); }
         catch (PackageInputException exception) when (PrepareErrorResponse())

@@ -3,7 +3,7 @@ using RATools.Application.Publishing.Validation.Pdf;
 
 namespace RATools.Application.Validation.Rules.Pdf;
 
-public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidationRule
+public sealed class PdfComplianceRule(IPdfInspector pdfInspector, EctdValidationRuleMapping? mapping = null) : IEctdValidationRule
 {
     // 短文档无书签不发 finding 的页数下限，以及书签层级的推荐上限。
     private const int BookmarkRequiredPageCount = 5;
@@ -13,7 +13,14 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
 
     public string Category => "PdfCompliance";
 
-    public EctdValidationSeverity DefaultSeverity => EctdValidationSeverity.High;
+    public EctdValidationSeverity DefaultSeverity => mapping?.Severity ?? EctdValidationSeverity.High;
+
+    public PdfComplianceRule WithMapping(EctdValidationRuleMapping configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        if (configuration.RuleId != RuleId) throw new ArgumentException("The configuration must map this PDF algorithm.", nameof(configuration));
+        return new(pdfInspector, configuration);
+    }
 
     public IEnumerable<EctdValidationFinding> Evaluate(EctdValidationContext context)
     {
@@ -41,12 +48,12 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
 
             foreach (var finding in EvaluateLeaf(leaf, result, publishedHrefs))
             {
-                yield return finding;
+                yield return mapping?.FindingSeverities.TryGetValue(finding.RuleId, out var severity) == true ? finding with { Severity = severity } : finding;
             }
         }
     }
 
-    private static IEnumerable<EctdValidationFinding> EvaluateLeaf(
+    private IEnumerable<EctdValidationFinding> EvaluateLeaf(
         EctdLeaf leaf,
         PdfInspectionResult result,
         HashSet<string> publishedHrefs)
@@ -62,7 +69,14 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
             yield break;
         }
 
-        if (!string.IsNullOrWhiteSpace(result.PdfVersion) && IsUnsupportedPdfVersion(result.PdfVersion))
+        if (mapping?.Parameters.TryGetValue("AcceptedPdfVersions", out var accepted) == true &&
+            (string.IsNullOrWhiteSpace(result.PdfVersion) || !accepted.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Contains(result.PdfVersion, StringComparer.Ordinal)))
+        {
+            yield return Finding("PDF_VERSION_UNQUALIFIED", DefaultSeverity, leaf,
+                $"PDF '{leaf.FileName}' version '{result.PdfVersion}' lacks acceptance in the selected profile's captured project mapping.",
+                "Select the declared common PDF version or supply qualified regional acceptance evidence.");
+        }
+        else if (!string.IsNullOrWhiteSpace(result.PdfVersion) && IsUnsupportedPdfVersion(result.PdfVersion))
         {
             yield return Finding(
                 "PDF_VERSION_UNSUPPORTED",
@@ -138,7 +152,9 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
 
         // 书签只对有一定篇幅的文档才是导航必需品：1 页封面信没有书签不该被烦扰。
         // PageCount 未知（null）时按"可能需要"处理，保持无法判定 ≠ 合规。
-        if (!result.HasBookmarks && result.PageCount is null or >= BookmarkRequiredPageCount)
+        var bookmarkThreshold = Parameter("BookmarkRequiredPageCount", BookmarkRequiredPageCount);
+        var maxDepth = Parameter("MaxRecommendedBookmarkDepth", MaxRecommendedBookmarkDepth);
+        if (!result.HasBookmarks && (result.PageCount is null || result.PageCount >= bookmarkThreshold))
         {
             yield return Finding(
                 "PDF_NO_BOOKMARKS",
@@ -148,14 +164,14 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
                 "Add bookmarks or a table of contents when required for reviewer navigation.");
         }
 
-        if (result.BookmarkMaxDepth is { } bookmarkDepth && bookmarkDepth > MaxRecommendedBookmarkDepth)
+        if (result.BookmarkMaxDepth is { } bookmarkDepth && bookmarkDepth > maxDepth)
         {
             yield return Finding(
                 "PDF_BOOKMARK_TOO_DEEP",
                 EctdValidationSeverity.Low,
                 leaf,
-                $"PDF '{leaf.FileName}' nests bookmarks {bookmarkDepth} levels deep, beyond the recommended {MaxRecommendedBookmarkDepth}.",
-                $"Flatten the bookmark hierarchy to at most {MaxRecommendedBookmarkDepth} levels for reviewer navigation.");
+                $"PDF '{leaf.FileName}' nests bookmarks {bookmarkDepth} levels deep, beyond the recommended {maxDepth}.",
+                $"Flatten the bookmark hierarchy to at most {maxDepth} levels for reviewer navigation.");
         }
 
         // 有书签却不以书签面板打开，审评人看不到导航结构；PageMode 读不到（null）时不发 finding。
@@ -200,6 +216,9 @@ public sealed class PdfComplianceRule(IPdfInspector pdfInspector) : IEctdValidat
             }
         }
     }
+
+    private int Parameter(string name, int fallback) => mapping?.Parameters.TryGetValue(name, out var value) == true &&
+        int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) && number > 0 ? number : fallback;
 
     private static EctdValidationFinding Finding(
         string ruleId,

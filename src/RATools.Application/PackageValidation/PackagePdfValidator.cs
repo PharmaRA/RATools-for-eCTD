@@ -25,7 +25,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(input.Packages.Target.Limits.MaxElapsedSeconds), timeProvider ?? TimeProvider.System);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         ArgumentException.ThrowIfNullOrWhiteSpace(inspector.EngineVersion);
-        var run = new Inspection(input, files, inspector.EngineVersion, linked.Token);
+        var run = new Inspection(input, files, inspector.EngineVersion, standards ?? PackageStandardsContext.Current, linked.Token);
         try
         {
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -47,7 +47,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         return run.Finish();
     }
 
-    private sealed class Inspection(PackageDeliveryInput input, PackageFileInspection files, string inspectorVersion, CancellationToken cancellationToken)
+    private sealed class Inspection(PackageDeliveryInput input, PackageFileInspection files, string inspectorVersion, PackageStandardsContext context, CancellationToken cancellationToken)
     {
         private readonly Dictionary<string, PackageInputFile> _inventory = input.Packages.Sequences.Values.SelectMany(capture => capture.Manifest.Files)
             .ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
@@ -241,7 +241,9 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (_findings.Count >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
-            _findings.Add(new(rule, status, severity ?? (status == CheckStatus.Fail ? ValidationSeverity.Error : status == CheckStatus.Pass ? ValidationSeverity.Info : ValidationSeverity.Warning), code,
+            var catalog = location.SequenceNumber is { } sequence ? context.ForSequence(sequence).Catalog : context.Catalog;
+            var declaredSeverity = catalog.Rules[rule].Severity;
+            _findings.Add(new(rule, status, severity ?? declaredSeverity, code,
                 string.IsNullOrWhiteSpace(message) ? "PDF inspection is incomplete." : message, location, Actual: actual));
         }
         public void Terminal(string code, string message) => _findings.Add(new("PDF-READABLE", CheckStatus.NotEvaluated, ValidationSeverity.Error, code, message, new()));

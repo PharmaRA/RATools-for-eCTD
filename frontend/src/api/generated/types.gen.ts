@@ -3526,6 +3526,15 @@ export type PostApiPackageValidationsData = {
     url: '/api/package-validations';
 };
 
+export type PostApiPackageValidationsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type PostApiPackageValidationsError = PostApiPackageValidationsErrors[keyof PostApiPackageValidationsErrors];
+
 export type PostApiPackageValidationsResponses = {
     /**
      * Accepted

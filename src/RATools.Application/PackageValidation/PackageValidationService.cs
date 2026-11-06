@@ -277,7 +277,7 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
         var app = applications is null ? null : await applications.GetAsync(appId, cancellationToken).ConfigureAwait(false);
         var reasons = snapshot.Evaluate(context, date, app?.EctdTemplateKey ?? snapshot.TemplateKey).ToList();
         if (app is null) reasons.Add("ApplicationContextMissing: The declared scope cannot be bound to an application template.");
-        if (context is not null) reasons.Add("RegionalBusinessContextUnconfirmed: Persisted regional selection is required before formal activation; P6-03 remains pending.");
+        if (context is not null) reasons.Add("RegionalBusinessContextUnconfirmed: Exact selected regional metadata and complete regional criteria/external evidence remain unqualified for Formal admission.");
         return reasons.AsReadOnly();
     }
 }

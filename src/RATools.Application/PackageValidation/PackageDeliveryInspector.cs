@@ -4,9 +4,9 @@ namespace RATools.Application.PackageValidation;
 
 public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
-    public const string DeliveryEngineVersion = "package-delivery-v3";
+    public const string DeliveryEngineVersion = "package-delivery-v4";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
-    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v1;" + pdfInspectorVersion;
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v2;package-pdf-validator-v2;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
@@ -20,9 +20,10 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
             var lifecycle = await new PackageLifecycleInspector(timeProvider, context).InspectAsync(input.Packages, profileSnapshotId, linked.Token).ConfigureAwait(false);
             var files = await new PackageFileInspector(timeProvider, context).InspectAsync(input, lifecycle, linked.Token).ConfigureAwait(false);
             var pdf = await new PackagePdfValidator(pdfInspector, timeProvider, context).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
+            var regional = new PackageRegionalInspector(context).Inspect(input.Packages, lifecycle, linked.Token);
             var structure = InspectReachability(input, lifecycle, files, pdf, context, linked.Token);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
-            return new(input, lifecycle, files, pdf, structure, context.Catalog);
+            return new(input, lifecycle, files, pdf, structure, context.Catalog, regional);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { throw new PackageInputException("INPUT-LIMITS", "DELIVERY_INSPECTION_TIMEOUT", "The complete delivery inspection exceeded its configured deadline."); }
@@ -84,12 +85,13 @@ public sealed class PackageDeliveryInspection
     private static readonly string[] CapturedRuleIds =
         ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS", "ZIP-LIMITS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
-        PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null)
+        PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null, PackageRegionalInspection? regional = null)
     {
         InputDigest = input.InputDigest;
         Lifecycle = lifecycle;
         Files = files;
         Pdf = pdf;
+        Regional = regional ?? new([]);
         _catalog = catalog ?? PackageValidationCatalog.Current;
         var scoped = _catalog.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
         // ZIP-only rules are explicitly NotApplicable when every selected source is a
@@ -100,7 +102,7 @@ public sealed class PackageDeliveryInspection
             new RuleCheckResult(rule, rule is "ZIP-PATHS" or "ZIP-LIMITS" && !zipPresent ? CheckStatus.NotApplicable : CheckStatus.Pass,
                 "Controlled input capture and final revalidation completed for every explicitly selected source; resource limits bind this run."));
         var observations = lifecycle.XmlInspections.SelectMany(xml => xml.Checks).Where(check => scoped.Contains(check.RuleId))
-            .Concat(lifecycle.Checks).Concat(files.Checks.Where(check => check.RuleId != "DELIVERY-STRUCTURE")).Concat(pdf.Checks).Append(structure).Concat(capturedChecks);
+            .Concat(lifecycle.Checks).Concat(files.Checks.Where(check => check.RuleId != "DELIVERY-STRUCTURE")).Concat(pdf.Checks).Concat(Regional.Checks).Append(structure).Concat(capturedChecks);
         Checks = Array.AsReadOnly(observations.GroupBy(check => check.RuleId, StringComparer.Ordinal).Select(group =>
         {
             var results = group.ToArray();
@@ -116,10 +118,11 @@ public sealed class PackageDeliveryInspection
     public string ProfileSnapshotId => Lifecycle.ProfileSnapshotId;
     public string RulesDigest => Lifecycle.RulesDigest;
     public string LimitsDigest => Lifecycle.LimitsDigest;
-    public string EngineVersion => PackageDeliveryInspector.DeliveryEngineVersion + ";" + Lifecycle.EngineVersion + ";" + Files.EngineVersion + ";" + Pdf.EngineVersion;
+    public string EngineVersion => PackageDeliveryInspector.DeliveryEngineVersion + ";" + Lifecycle.EngineVersion + ";" + Files.EngineVersion + ";" + Pdf.EngineVersion + ";" + Regional.EngineVersion;
     public PackageLifecycleInspection Lifecycle { get; }
     public PackageFileInspection Files { get; }
     public PackagePdfInspection Pdf { get; }
+    public PackageRegionalInspection Regional { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
     public ValidationReport CreateReport(PackageValidationMode mode, ValidationBinding? exactBinding = null, IReadOnlyList<string>? standardsBlockingReasons = null) => ValidationReport.Create(_catalog,
         exactBinding ?? new(InputDigest, HistoryManifestDigest, ProfileSnapshotId, RulesDigest, EngineVersion, mode, LimitsDigest), ValidationRunStatus.Completed, Checks).WithBlockingReasons(standardsBlockingReasons ?? []);

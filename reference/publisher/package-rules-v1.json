@@ -1344,6 +1344,186 @@
         "tests/RATools.Tests/PackageValidation/PackageQualificationTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-ADMIN-METADATA",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "US admin/applicant-info and application-set; reference/dtd/us-regional-v3-3.dtd; P6-06 selected trial metadata policy",
+      "title": "Explicit ordered US administrative metadata",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US admin identifiers, description, all ordered contacts, phones and emails, application/submission identifiers and actual sequence; CDATA values remain explicit, not invented enums.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-FORM-ATTRIBUTES",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "US form declaration and admin/submission-information or m1-regional/m1-1-forms; reference/dtd/us-regional-v3-3.dtd",
+      "title": "US form attributes in declared scope",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Each actual form needs nonblank explicit form-type; form-type is forbidden on other elements. No FDA controlled form enum is fabricated.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-SUBMISSION-SCOPE",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "US m1-regional/m1-15-promotional-material; reference/dtd/us-regional-v3-3.dtd; P6-06 trial scope",
+      "title": "US selected business scope and pending promotional coverage",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected admin/forms are inspected; promotional content remains explicitly NotEvaluated and retained in the pending qualification matrix.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EU-ENVELOPE-METADATA",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "reference/eu-m1/3.1.1/util/dtd/eu-envelope.mod envelope content model and attributes; eu-regional.dtd environmental choice; P6-07 national DE/FR/BE trial policy",
+      "title": "EU explicit envelope values and selected national combinations",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Every ordered envelope and multivalue entry is checked using exact captured DTD code sets; selected national DE/FR/BE agency combinations and actual sequence are project policy. Other business scopes remain pending.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EU-PI-CONTEXT",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "reference/eu-m1/3.1.1/util/dtd/eu-regional.dtd specific, pi-doc, countries, languages and m1-3-1-spc-label-pl; P6-07 selected national trial scope",
+      "title": "EU country and product information contexts",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Country, language and PI type use exact captured DTD vocabularies and exact parsed sections. FDA form attributes fail EU scope; unselected country contexts remain pending.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "EU-RELATED-SEQUENCE",
+      "authorityRuleId": null,
+      "sourceId": "ratools-package-xml-assets-v1",
+      "sourceSection": "reference/eu-m1/3.1.1/util/dtd/eu-envelope.mod related-sequence and submission-unit; captured EU M1 v3.1.1 guide related sequence semantics; P6-07 selected trial policy",
+      "title": "EU related sequence and exact selected history",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "eu-3.2.2-m1-3.1.1-development-v1"
+      ],
+      "applicableScope": "Initial/reformat use actual current sequence; other units require actual earlier selected same-application input and complete EU backbone. Missing selected history is unknown; malformed, future and foreign references fail.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded independent parsed-input checks implement this selected ProjectPolicy only. Full official criteria, source qualification and external comparison remain explicit inventory gaps.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }

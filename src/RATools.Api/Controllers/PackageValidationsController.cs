@@ -14,6 +14,7 @@ public sealed class PackageValidationsController(PackageValidationService servic
 
     [HttpPost]
     [ProducesResponseType(typeof(PackageRunSummary), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IActionResult> Create([FromBody] CreatePackageValidationRequest request, CancellationToken cancellationToken) => RespondAsync(async () =>
     {
         var result = await service.EnqueueAsync(request, cancellationToken);
