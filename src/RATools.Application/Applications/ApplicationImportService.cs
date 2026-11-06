@@ -29,6 +29,8 @@ public sealed class ApplicationImportService(
 {
     private static readonly SectionDictionaryProfile EuSections = EuEctd322.ToProfile();
     private static readonly JsonSerializerOptions ImportJsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly StringComparer FilePathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public async Task<ApplicationImportResultDto> ImportAsync(ImportApplicationRequest request, CancellationToken cancellationToken = default)
     {
@@ -43,7 +45,7 @@ public sealed class ApplicationImportService(
             Path.GetFileName(workingDirectoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)),
             "applicationNumber");
         var existingApplications = await applicationRepository.ListAsync(cancellationToken);
-        if (existingApplications.Any(x => x.ApplicationNumber == applicationNumber || string.Equals(x.WorkingDirectoryPath, workingDirectoryPath, StringComparison.OrdinalIgnoreCase)))
+        if (existingApplications.Any(x => x.ApplicationNumber == applicationNumber || FilePathComparer.Equals(x.WorkingDirectoryPath, workingDirectoryPath)))
         {
             throw new ApplicationImportConflictException($"Application '{applicationNumber}' or working directory '{workingDirectoryPath}' has already been imported.");
         }
@@ -55,7 +57,7 @@ public sealed class ApplicationImportService(
 
         var application = new SubmissionApplication(applicationNumber, template.Region, request.SponsorName, workingDirectoryPath, template.Key);
         var issues = new List<ApplicationImportIssueDto>();
-        var importedDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
+        var importedDocuments = new Dictionary<string, SubmissionDocument>(FilePathComparer);
         var importedPlacements = new List<DocumentPlacement>();
         var importedLeafIndex = new ImportedLeafIndex(workingDirectoryPath);
         var fileHashes = new ImportFileHashCache();
@@ -152,7 +154,7 @@ public sealed class ApplicationImportService(
         CancellationToken cancellationToken)
     {
         var issues = new List<ApplicationImportIssueDto>();
-        var sequenceDocuments = new Dictionary<string, SubmissionDocument>(StringComparer.OrdinalIgnoreCase);
+        var sequenceDocuments = new Dictionary<string, SubmissionDocument>(FilePathComparer);
         var sequenceLeaves = new List<(string SourcePath, string? Href, DocumentPlacement Placement, SubmissionDocument Document, string? Context)>();
         var contexts = new List<RegionalDocumentContext>();
 
@@ -292,7 +294,7 @@ public sealed class ApplicationImportService(
 
                 // The regional backbone can itself be referenced from index.xml.
                 // Its leaves are imported from the regional source, not as an XML document.
-                if (string.Equals(resolvedPath, regionalPath, StringComparison.OrdinalIgnoreCase))
+                if (FilePathComparer.Equals(resolvedPath, regionalPath))
                 {
                     continue;
                 }

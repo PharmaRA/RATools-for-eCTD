@@ -6,7 +6,9 @@ internal sealed class ImportFileHashCache
 {
     private const int BufferSize = 81920;
 
-    private readonly Dictionary<string, ImportFileHashes> _hashes = new(StringComparer.OrdinalIgnoreCase);
+    // A cache entry names one exact normalized byte source. On Windows a case alias
+    // may be hashed again; it must never collapse distinct case-sensitive addresses.
+    private readonly Dictionary<string, ImportFileHashes> _hashes = new(StringComparer.Ordinal);
     private readonly Func<string, Stream> _openRead;
 
     public ImportFileHashCache()
