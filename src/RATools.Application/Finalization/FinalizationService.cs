@@ -16,7 +16,7 @@ public sealed class FinalizationService(
 {
     // The tool version participates in the snapshot identity. Bump it whenever the
     // meaning of a captured manifest changes so old snapshots stay interpretable.
-    public const string ToolVersion = "ratools-finalization-v2";
+    public const string ToolVersion = "ratools-finalization-v3";
 
     public async Task<FinalizationResult> FinalizeAsync(FinalizeSequenceRequest request, CancellationToken cancellationToken = default)
     {
@@ -129,6 +129,18 @@ public sealed class FinalizationService(
         if (!snapshot.IsReadyForFinalization || snapshot.ValidationMode != PackageValidationMode.Formal)
             throw new FinalizationNotAuthorizedException(
                 "Delivery facts cannot be recorded against a development or non-ready snapshot.");
+        ValidationBinding.RequireDigest(packageSha256);
+        ReleaseFileContent package;
+        try
+        {
+            package = await captures.OpenFileAsync(snapshot, "delivery-package.zip", cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is ReleaseFileNotFoundException or ReleaseCaptureMissingException)
+        {
+            throw new FinalizationNotAuthorizedException("The snapshot has no manifest-bound delivery ZIP; delivery evidence cannot be registered.");
+        }
+        if (!string.Equals(packageSha256, package.Sha256, StringComparison.Ordinal))
+            throw new FinalizationNotAuthorizedException("The delivery SHA-256 does not match the immutable captured ZIP.");
         var record = DeliveryRecord.Create(finalizedSequenceId, packageSha256, channel, externalReference, note, recordedBy,
             DateTime.UtcNow);
         await store.AppendDeliveryAsync(record, cancellationToken).ConfigureAwait(false);

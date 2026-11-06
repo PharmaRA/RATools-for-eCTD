@@ -48,7 +48,7 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
         var reloaded = await _store.ReadManifestAsync(_application, "0001", manifest.Digest);
         Assert.NotNull(reloaded);
         Assert.Equal(manifest.Digest, reloaded!.Digest);
-        Assert.Equal(3, reloaded.Files.Count);
+        Assert.Equal(4, reloaded.Files.Count);
         // The delivery package is built from the captured payload, inside the sequence root
         // and without the manifest or the report, so its own hash never nests the manifest.
         using var package = System.IO.Compression.ZipFile.OpenRead(Path.Combine(published.Directory, "delivery-package.zip"));
@@ -235,7 +235,23 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+        if (Directory.Exists(_root) && OperatingSystem.IsWindows())
+        {
+            Assert.Equal(Path.GetFullPath(_root), new DirectoryInfo(_root).FullName);
+            Assert.StartsWith(Path.GetTempPath(), Path.GetFullPath(_root), StringComparison.OrdinalIgnoreCase);
+            var pending = new Stack<string>();
+            pending.Push(_root);
+            while (pending.TryPop(out var current))
+            {
+                foreach (var entry in Directory.EnumerateFileSystemEntries(current))
+                {
+                    Assert.Equal(0, (int)(File.GetAttributes(entry) & FileAttributes.ReparsePoint));
+                    if (Directory.Exists(entry)) pending.Push(entry);
+                }
+            }
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(_root, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+        }
         return ValueTask.CompletedTask;
     }
 }

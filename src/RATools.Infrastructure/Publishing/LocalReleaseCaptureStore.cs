@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RATools.Application.Finalization;
 using RATools.Domain.Common;
 using RATools.Domain.Finalization;
+using RecycleFileSystem = Microsoft.VisualBasic.FileIO.FileSystem;
 
 namespace RATools.Infrastructure.Publishing;
 
@@ -35,6 +36,8 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var file in plan.Files)
             {
+                if (file.RelativePath == "delivery-package.zip" || file.Kind == ReleaseFileKind.DeliveryPackage)
+                    throw new ReleaseCapturePlanException("The capture store derives the delivery ZIP from measured payload bytes.");
                 ReleaseManifest.RequireRelativePath(file.RelativePath, nameof(plan));
                 if (!seen.Add(file.RelativePath))
                     throw new ReleaseCapturePlanException($"Release path '{file.RelativePath}' is planned twice.");
@@ -51,11 +54,32 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
                     throw new ReleaseCaptureSourceChangedException(file.RelativePath);
                 measured.Add(new ReleaseManifestFile(file.RelativePath, length, sha256, md5, file.Kind));
             }
+            var packagePath = ResolveDescendantPath(staging, "delivery-package.zip", "Release package path");
+            using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+            {
+                foreach (var file in measured.Where(file => file.Kind == ReleaseFileKind.Payload)
+                    .OrderBy(file => file.RelativePath, StringComparer.Ordinal))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!file.RelativePath.StartsWith("payload/", StringComparison.Ordinal))
+                        throw new ReleaseCapturePlanException("Payload files must be below payload/.");
+                    var entry = archive.CreateEntry(file.RelativePath[8..], CompressionLevel.NoCompression);
+                    entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                    entry.ExternalAttributes = 0;
+                    await using var source = File.OpenRead(ResolveDescendantPath(staging, file.RelativePath, "Staged payload"));
+                    await using var destination = entry.Open();
+                    await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            using (var package = File.OpenRead(packagePath))
+                measured.Add(new("delivery-package.zip", package.Length,
+                    Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant(),
+                    ComputeMd5(packagePath), ReleaseFileKind.DeliveryPackage));
             return new ReleaseCaptureStaging(plan.ApplicationId, sequence, staging, measured);
         }
         catch
         {
-            TryDelete(staging);
+            TryRecycle(applicationRoot, staging);
             throw;
         }
     }
@@ -74,6 +98,33 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             manifest.Files.Any(file => !staging.Files.Contains(file)))
             throw new ArgumentException("The manifest must list exactly the files written to staging.", nameof(manifest));
 
+        RequireStagingDirectory(staging);
+        foreach (var file in manifest.Files)
+        {
+            var path = ResolveDescendantPath(staging.Directory, file.RelativePath, "Staged release file");
+            EnsureNoReparsePoints(ResolveApplicationRoot(staging.ApplicationId), path);
+            await using var input = File.OpenRead(path);
+            await VerifyMemberAsync(input, file, cancellationToken).ConfigureAwait(false);
+        }
+        var package = manifest.Files.Single(file => file.Kind == ReleaseFileKind.DeliveryPackage);
+        var packagePath = ResolveDescendantPath(staging.Directory, package.RelativePath, "Release package path");
+        using (var archive = ZipFile.OpenRead(packagePath))
+        {
+            var payload = manifest.Files.Where(file => file.Kind == ReleaseFileKind.Payload)
+                .ToDictionary(file => file.RelativePath.StartsWith("payload/", StringComparison.Ordinal)
+                    ? file.RelativePath[8..]
+                    : throw new InvalidDataException("Payload files must be below payload/."), StringComparer.Ordinal);
+            if (archive.Entries.Count != payload.Count)
+                throw new InvalidDataException("The delivery ZIP does not reproduce the payload inventory.");
+            foreach (var entry in archive.Entries)
+            {
+                if (!payload.Remove(entry.FullName, out var file))
+                    throw new InvalidDataException("The delivery ZIP contains a duplicate or unlisted member.");
+                await using var input = entry.Open();
+                await VerifyMemberAsync(input, file, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         var manifestPath = ResolveDescendantPath(staging.Directory, "manifest.json", "Release manifest path");
         var bytes = manifest.ToUtf8Json();
         await File.WriteAllBytesAsync(manifestPath, bytes, cancellationToken).ConfigureAwait(false);
@@ -84,24 +135,6 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         if (!string.Equals(reloaded.Digest, manifest.Digest, StringComparison.Ordinal))
             throw new InvalidDataException("The stored release manifest does not reproduce its committed digest.");
 
-        // The delivery package is the payload exactly as recorded. It is built from the
-        // captured files, not the workspace, so it cannot pick up a later edit, and its
-        // own hash stays outside the manifest (the manifest is inside the package).
-        var payloadRoot = ResolveDescendantPath(staging.Directory, "payload", "Release payload root");
-        var packagePath = ResolveDescendantPath(staging.Directory, "delivery-package.zip", "Release package path");
-        await Task.Run(() =>
-        {
-            using var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create);
-            foreach (var file in manifest.Files.Where(file => file.Kind == ReleaseFileKind.Payload)
-                         .OrderBy(file => file.RelativePath, StringComparer.Ordinal))
-            {
-                var entryName = file.RelativePath["payload/".Length..];
-                var source = ResolveDescendantPath(payloadRoot, entryName, "Release payload entry");
-                if (!File.Exists(source))
-                    throw new InvalidDataException($"Captured payload file '{file.RelativePath}' is missing; the package cannot be built.");
-                archive.CreateEntryFromFile(source, entryName, CompressionLevel.Optimal);
-            }
-        }, cancellationToken).ConfigureAwait(false);
     }
 
     public Task<ReleaseCommitResult> CommitAsync(ReleaseCaptureStaging staging, string manifestDigest,
@@ -124,7 +157,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             var existing = ReadStoredManifest(destination, staging.ApplicationId, staging.SequenceNumber, manifestDigest);
             if (!string.Equals(existing.Digest, manifestDigest, StringComparison.Ordinal))
                 throw new ReleaseCaptureConflictException(destination);
-            TryDelete(staging.Directory);
+            TryRecycle(ResolveApplicationRoot(staging.ApplicationId), staging.Directory);
             return Task.FromResult(new ReleaseCommitResult(destination, Created: false));
         }
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -140,7 +173,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             var winner = ReadStoredManifest(destination, staging.ApplicationId, staging.SequenceNumber, manifestDigest);
             if (!string.Equals(winner.Digest, manifestDigest, StringComparison.Ordinal))
                 throw new ReleaseCaptureConflictException(destination);
-            TryDelete(staging.Directory);
+            TryRecycle(ResolveApplicationRoot(staging.ApplicationId), staging.Directory);
             return Task.FromResult(new ReleaseCommitResult(destination, Created: false));
         }
         return Task.FromResult(new ReleaseCommitResult(destination, Created: true));
@@ -172,7 +205,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         if (relative is "." or ".." || relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
             relative.StartsWith("..", StringComparison.Ordinal))
             throw new ReleaseCaptureConflictException(staging.Directory);
-        TryDelete(staging.Directory);
+        TryRecycle(ResolveApplicationRoot(staging.ApplicationId), staging.Directory);
         return Task.CompletedTask;
     }
 
@@ -185,7 +218,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
     {
         var directory = ResolveReleaseDirectory(applicationId, sequenceNumber, manifestDigest);
         EnsureNoReparsePoints(ResolveApplicationRoot(applicationId), directory);
-        TryDelete(directory);
+        TryRecycle(ResolveApplicationRoot(applicationId), directory);
         return Task.CompletedTask;
     }
 
@@ -232,6 +265,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         ".xml" => "application/xml",
         ".txt" => "text/plain",
         ".csv" => "text/csv",
+        ".zip" => "application/zip",
         ".png" => "image/png",
         ".jpg" or ".jpeg" => "image/jpeg",
         ".tif" or ".tiff" => "image/tiff",
@@ -329,14 +363,50 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             throw new ArgumentException("A release digest must contain 64 lowercase hexadecimal characters.", parameterName);
     }
 
-    private static void TryDelete(string directory)
+    private static async Task VerifyMemberAsync(Stream input, ReleaseManifestFile file, CancellationToken cancellationToken)
     {
+        using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var md5 = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+        var buffer = new byte[65536];
+        long length = 0;
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            length += read;
+            if (length > file.Length)
+                throw new InvalidDataException($"Captured release member '{file.RelativePath}' exceeds its recorded length.");
+            sha256.AppendData(buffer, 0, read);
+            md5.AppendData(buffer, 0, read);
+        }
+        if (length != file.Length || !string.Equals(Convert.ToHexString(sha256.GetHashAndReset()), file.Sha256, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(Convert.ToHexString(md5.GetHashAndReset()), file.Md5, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"Captured release member '{file.RelativePath}' differs from its manifest-bound bytes.");
+    }
+
+    private static void TryRecycle(string applicationRoot, string directory)
+    {
+        EnsureNoReparsePoints(applicationRoot, directory);
         try
         {
             if (!Directory.Exists(directory)) return;
             var info = new DirectoryInfo(directory);
             if ((info.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) return;
-            Directory.Delete(directory, recursive: true);
+            if (!OperatingSystem.IsWindows()) return;
+            var pending = new Stack<string>();
+            pending.Push(directory);
+            while (pending.TryPop(out var current))
+            {
+                foreach (var entry in Directory.EnumerateFileSystemEntries(current))
+                {
+                    var attributes = File.GetAttributes(entry);
+                    if ((attributes & FileAttributes.ReparsePoint) != 0) return;
+                    if ((attributes & FileAttributes.Directory) != 0) pending.Push(entry);
+                }
+            }
+            EnsureNoReparsePoints(applicationRoot, directory);
+            RecycleFileSystem.DeleteDirectory(directory, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -344,6 +414,12 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             // next capture uses a fresh name. Never turn a cleanup failure into a failure
             // of the finalized snapshot.
         }
+    }
+
+    private static string ComputeMd5(string path)
+    {
+        using var input = File.OpenRead(path);
+        return Convert.ToHexString(MD5.HashData(input)).ToLowerInvariant();
     }
 
     private static string ResolveDescendantPath(string rootPath, string relativePath, string pathDescription)

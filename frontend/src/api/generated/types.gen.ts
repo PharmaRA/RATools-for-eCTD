@@ -1505,7 +1505,7 @@ export type RegisterReceiptBody = {
     recordedBy: string;
 };
 
-export type ReleaseFileKind = 0 | 1 | 2;
+export type ReleaseFileKind = 0 | 1 | 2 | 3;
 
 export type ReleaseHistoryReference = {
     sequenceNumber: string;

@@ -39,10 +39,10 @@ public sealed record ReleaseCommitResult(string Directory, bool Created);
 public interface IReleaseCaptureStore
 {
     // Copies/writes every planned file into a fresh staging directory and returns the
-    // facts measured from the written bytes.
+    // facts measured from the written bytes, including the derived delivery ZIP.
     Task<ReleaseCaptureStaging> SaveAsync(ReleaseCapturePlan plan, CancellationToken cancellationToken = default);
-    // Writes manifest.json and delivery-package.zip into staging, then proves the manifest
-    // file reproduces its committed digest when read back.
+    // Writes manifest.json, verifies the already measured delivery ZIP, and proves the
+    // manifest reproduces its committed digest when read back.
     Task CompleteAsync(ReleaseCaptureStaging staging, ReleaseManifest manifest,
         CancellationToken cancellationToken = default);
     // Moves the completed staging directory to _releases/<sequence>/<manifestDigest>. The

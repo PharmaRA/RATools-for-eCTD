@@ -90,15 +90,15 @@ public sealed class ReleaseCaptureService(
                 reportBytes, reportBytes.Length, run.ReportSha256,
                 Convert.ToHexString(MD5.HashData(reportBytes)).ToLowerInvariant()))
             .ToArray();
-        var manifest = new ReleaseManifest(preparation.Capture.ApplicationId, sequenceNumber, request.ExpectedRevision,
-            FinalizationService.ToolVersion, run.Binding.InputManifestDigest, preparation.HistoryBaseline,
-            run.Binding.HistoryBaselineDigest, preparation.Validation, preparation.Assets,
-            files.Select(file => new ReleaseManifestFile(file.RelativePath, file.Length, file.Sha256, file.Md5, file.Kind)),
-            preparation.Lifecycle, preparation.Leaves, preparation.Nodes);
         var staging = await store.SaveAsync(preparation.Capture with { Files = files }, cancellationToken)
             .ConfigureAwait(false);
+        ReleaseManifest manifest;
         try
         {
+            manifest = new ReleaseManifest(preparation.Capture.ApplicationId, sequenceNumber, request.ExpectedRevision,
+                FinalizationService.ToolVersion, run.Binding.InputManifestDigest, preparation.HistoryBaseline,
+                run.Binding.HistoryBaselineDigest, preparation.Validation, preparation.Assets, staging.Files,
+                preparation.Lifecycle, preparation.Leaves, preparation.Nodes);
             await store.CompleteAsync(staging, manifest, cancellationToken).ConfigureAwait(false);
         }
         catch

@@ -8,7 +8,7 @@ namespace RATools.Domain.Finalization;
 
 // Evidence beside the payload is manifest-bound but excluded from the delivery ZIP.
 // Everything the operator delivers lives under payload/.
-public enum ReleaseFileKind { Payload, ValidationReport, RegionalMetadata }
+public enum ReleaseFileKind { Payload, ValidationReport, RegionalMetadata, DeliveryPackage }
 
 // One immutable file of a captured release. RelativePath is release-relative: delivered
 // files live under "payload/", the report sits beside the manifest. Length and both hashes
@@ -115,6 +115,8 @@ public sealed class ReleaseManifest
             ValidationBinding.RequireDigest(file.Sha256);
             RequireMd5(file.Md5);
             if (!Enum.IsDefined(file.Kind)) throw new ArgumentException("Unknown release file kind.", nameof(files));
+            if ((file.Kind == ReleaseFileKind.DeliveryPackage) != (file.RelativePath == "delivery-package.zip"))
+                throw new ArgumentException("The delivery ZIP has one fixed path and file kind.", nameof(files));
         }
         foreach (var edge in edgeCopy)
         {

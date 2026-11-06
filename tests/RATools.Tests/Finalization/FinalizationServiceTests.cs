@@ -166,6 +166,22 @@ public sealed class FinalizationServiceTests
         Assert.Equal(snapshot.RequestDigest, reloaded.RequestDigest);
     }
 
+    [Fact]
+    public async Task DeliveryRefusesAnArbitraryDigestEvenForAReadyFormalSnapshot()
+    {
+        var fixture = new Fixture();
+        var snapshot = FinalizedSequence.Create(fixture.Application.Id, "0001", fixture.Application.Revision,
+            Digest("manifest"), PackageValidationCatalog.UsProfile, "3.2.2", "3.3", Digest("history"), Guid.NewGuid(),
+            Digest("input"), Digest("report"), PackageValidationMode.Formal, true, [],
+            FinalizationService.ToolVersion, "ready-delivery-binding", DateTime.UtcNow);
+        await fixture.FinalizationStore.RegisterAsync(snapshot);
+
+        await Assert.ThrowsAsync<FinalizationNotAuthorizedException>(() => fixture.Service.RegisterDeliveryAsync(
+            snapshot.Id, Digest("arbitrary unrelated zip"), "gateway", null, null, "operator"));
+
+        Assert.Empty(await fixture.FinalizationStore.ListDeliveriesAsync(snapshot.Id));
+    }
+
     private static string Digest(string seed) =>
         Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(seed))).ToLowerInvariant();
 
@@ -269,8 +285,10 @@ public sealed class FinalizationServiceTests
             throw new NotSupportedException("This fake does not store captured releases.");
 
         public Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("This fake does not store captured releases.");
+            CancellationToken cancellationToken = default) => relativePath == "delivery-package.zip"
+            ? Task.FromResult(new ReleaseFileContent("/fixture/delivery-package.zip", relativePath, 123,
+                Digest("package"), "application/zip"))
+            : throw new NotSupportedException("This fake does not store captured releases.");
     }
 
     private sealed class Capture(FakeCapture facts) : IFinalizationCapture

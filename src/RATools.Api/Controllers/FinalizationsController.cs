@@ -253,6 +253,10 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
                 body.ExternalReference, body.Note, body.RecordedBy, cancellationToken);
             return CreatedAtAction(nameof(Deliveries), new { id }, record);
         }
+        catch (InvalidDataException exception)
+        {
+            return Conflict(new { code = "DELIVERY_EVIDENCE_INVALID", message = exception.Message });
+        }
         catch (FinalizationNotAuthorizedException exception)
         {
             return Conflict(new { code = "DELIVERY_NOT_AUTHORIZED", message = exception.Message });
