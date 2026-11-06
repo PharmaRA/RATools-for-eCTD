@@ -1,5 +1,6 @@
 using RATools.Application.Abstractions.Publishing;
 using RATools.Application.Abstractions.Security;
+using RecycleFileSystem = Microsoft.VisualBasic.FileIO.FileSystem;
 
 namespace RATools.Infrastructure.Publishing;
 
@@ -31,13 +32,56 @@ public sealed class LocalPublishArtifactStore(IWorkspacePathPolicy pathPolicy) :
         ArgumentNullException.ThrowIfNull(content);
 
         var allowedPath = pathPolicy.EnsureAllowed(path);
+        EnsureNoLinks(allowedPath);
         var directory = Path.GetDirectoryName(allowedPath);
         if (!string.IsNullOrWhiteSpace(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        await File.WriteAllTextAsync(allowedPath, content, cancellationToken);
+        var temporary = allowedPath + ".pending-" + Guid.NewGuid().ToString("N");
+        var previous = allowedPath + ".previous-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                65536, FileOptions.Asynchronous))
+            {
+                await using var writer = new StreamWriter(stream, leaveOpen: true);
+                await writer.WriteAsync(content.AsMemory(), cancellationToken);
+                await writer.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+            if (await File.ReadAllTextAsync(temporary, cancellationToken) != content)
+                throw new IOException("The staged report does not reproduce the complete text.");
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureNoLinks(allowedPath);
+            if (File.Exists(allowedPath)) File.Replace(temporary, allowedPath, previous);
+            else File.Move(temporary, allowedPath);
+        }
+        finally
+        {
+            RecycleIfPresent(temporary);
+            RecycleIfPresent(previous);
+        }
+    }
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+        {
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Report paths cannot traverse a link or reparse point.");
+        }
+    }
+
+    private static void RecycleIfPresent(string path)
+    {
+        if (!File.Exists(path)) return;
+        EnsureNoLinks(path);
+        // Outside the qualified Windows recycling boundary retain staging evidence.
+        if (!OperatingSystem.IsWindows()) return;
+        RecycleFileSystem.DeleteFile(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+            Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
     }
 
     public Task<PublishArtifactDirectoryStats> GetDirectoryStatsAsync(string directoryPath, CancellationToken cancellationToken = default)

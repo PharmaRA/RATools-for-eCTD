@@ -20,6 +20,151 @@ namespace RATools.Tests.Publishing;
 [Trait("Category", "PublishJobReliability")]
 public sealed class PublishJobTerminalPersistenceTests
 {
+    internal static async Task<Guid> VerifyPersistedCompletedReportAsync(IPublishJobRepository repository,
+        Func<Task<PublishJob?>> readWithNewContext)
+    {
+        var artifacts = new StubPublishArtifactStore();
+        var service = CreateService(repository, artifactStore: artifacts);
+        var queued = await service.EnqueueExecutionAsync(NewRequest());
+        var lease = (await repository.TryClaimNextAsync("qa02-database", DateTime.UtcNow, TimeSpan.FromMinutes(1), 1))!;
+        Assert.Equal(queued.Id, lease.Job.Id);
+        var report = await service.ExecuteClaimedAsync(lease);
+        var persisted = await readWithNewContext();
+        Assert.Equal(PublishJobStatus.Completed, persisted!.Status);
+        var restored = await new PublishReportStore(artifacts).ReadAsync(persisted);
+        Assert.Equal(report.PublishJob.Id, restored.PublishJob.Id);
+        Assert.Equal(persisted.AttemptCount, restored.PublishJob.AttemptCount);
+        Assert.NotNull(restored.IntegritySummary);
+        Assert.NotNull(restored.IntegrityEvidence);
+        return queued.Id;
+    }
+
+    [Theory]
+    [InlineData("generator", false)]
+    [InlineData("first-write", false)]
+    [InlineData("after-write", false)]
+    [InlineData("generator", true)]
+    [InlineData("first-write", true)]
+    [InlineData("after-write", true)]
+    public async Task ExecuteAsync_ReportPreparationFailureNeverPersistsCompleted(string failurePoint, bool claimed)
+    {
+        using var executionCts = new CancellationTokenSource();
+        var repository = new SnapshotPublishJobRepository();
+        var artifacts = new StubPublishArtifactStore();
+        artifacts.OnWrite = () =>
+        {
+            if (failurePoint == "first-write") throw new IOException("report storage failed");
+            if (failurePoint == "after-write") executionCts.Cancel();
+        };
+        var service = CreateService(repository, artifactStore: artifacts,
+            backboneService: failurePoint == "generator" ? new CancelAfterGenerating(executionCts) : null);
+        var request = NewRequest();
+        PublishJobLease? lease = null;
+        if (claimed)
+        {
+            await service.EnqueueExecutionAsync(request);
+            lease = await repository.TryClaimNextAsync("qa02", DateTime.UtcNow, TimeSpan.FromMinutes(1), 1);
+            Assert.NotNull(lease);
+        }
+
+        try
+        {
+            var report = claimed ? await service.ExecuteClaimedAsync(lease!, executionCts.Token)
+                : await service.ExecuteAsync(request, executionCts.Token);
+            Assert.False(report.Succeeded);
+        }
+        catch (Exception error) when (error is IOException or OperationCanceledException)
+        {
+            // Both entry-point failure contracts must preserve the same terminal invariant.
+        }
+
+        Assert.NotEqual(PublishJobStatus.Completed, Assert.Single(await repository.ListAsync()).Status);
+        Assert.DoesNotContain(repository.UpdateObservations, update => update.Status == PublishJobStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExecuteAsync_CompletedIsPersistedOnlyAfterTheCompleteReportCanBeRead(bool claimed)
+    {
+        var artifacts = new StubPublishArtifactStore();
+        var repository = new SnapshotPublishJobRepository
+        {
+            UpdateFailure = (job, _) =>
+            {
+                if (job.Status == PublishJobStatus.Completed)
+                {
+                    var path = PublishOutputNaming.BuildPublishReportPath(job.OutputPath!, job.SequenceNumber, job.Id, job.AttemptCount);
+                    Assert.True(artifacts.TextByPath.TryGetValue(path, out var json));
+                    var report = System.Text.Json.JsonSerializer.Deserialize<PublishExecutionReportDto>(json!);
+                    Assert.NotNull(report!.IntegritySummary);
+                    Assert.NotNull(report.IntegrityEvidence);
+                    Assert.Equal(job.Id, report.PublishJob.Id);
+                }
+                return null;
+            }
+        };
+        var service = CreateService(repository, artifactStore: artifacts);
+        var request = NewRequest();
+
+        PublishExecutionReportDto result;
+        if (claimed)
+        {
+            await service.EnqueueExecutionAsync(request);
+            var lease = (await repository.TryClaimNextAsync("qa02", DateTime.UtcNow, TimeSpan.FromMinutes(1), 1))!;
+            result = await service.ExecuteClaimedAsync(lease);
+        }
+        else result = await service.ExecuteAsync(request);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(PublishJobStatus.Completed, Assert.Single(await repository.ListAsync()).Status);
+        var loaded = await service.GetExecutionReportAsync(result.PublishJob.Id);
+        Assert.NotNull(loaded!.IntegritySummary);
+        Assert.NotNull(loaded.IntegrityEvidence);
+    }
+
+    [Fact]
+    public async Task AStaleAttemptCannotReplaceANewerCompletedReportOrReplayItsTerminalCommit()
+    {
+        var artifacts = new StubPublishArtifactStore();
+        var repository = new SnapshotPublishJobRepository();
+        var service = CreateService(repository, artifactStore: artifacts);
+        var queued = await service.EnqueueExecutionAsync(NewRequest());
+        var first = (await repository.TryClaimNextAsync("first", DateTime.UtcNow, TimeSpan.FromMinutes(1), 3))!;
+        PublishExecutionReportDto? winner = null;
+        artifacts.OnWrite = () =>
+        {
+            artifacts.OnWrite = null;
+            var now = DateTime.UtcNow;
+            var retry = repository.RetryOrFailLeasedAsync(first.Job.Id, first.Token, first.Owner,
+                now, now, 3, "recover attempt").GetAwaiter().GetResult();
+            Assert.Equal(PublishJobRetryDisposition.RetryScheduled, retry.Disposition);
+            var second = repository.TryClaimNextAsync("second", now, TimeSpan.FromMinutes(1), 3).GetAwaiter().GetResult()!;
+            winner = service.ExecuteClaimedAsync(second).GetAwaiter().GetResult();
+        };
+
+        await Assert.ThrowsAsync<PublishJobLeaseLostException>(() => service.ExecuteClaimedAsync(first));
+
+        var stored = await service.GetExecutionReportAsync(queued.Id);
+        Assert.Equal(2, stored!.PublishJob.AttemptCount);
+        Assert.Equal(winner!.ReportPath, stored.ReportPath);
+        Assert.NotEqual(PublishOutputNaming.BuildPublishReportPath(stored.PublishJob.OutputPath!, "0001", queued.Id, 1), stored.ReportPath);
+    }
+
+    [Fact]
+    public async Task ACommittedTerminalUpdateWithALostResponseIsRecognizedAfterTimestampRoundTrip()
+    {
+        var repository = new SnapshotPublishJobRepository { LoseTerminalResponse = true };
+        var service = CreateService(repository);
+        var queued = await service.EnqueueExecutionAsync(NewRequest());
+        var lease = (await repository.TryClaimNextAsync("qa02", DateTime.UtcNow, TimeSpan.FromMinutes(1), 1))!;
+
+        var report = await service.ExecuteClaimedAsync(lease);
+
+        Assert.True(report.Succeeded);
+        Assert.NotNull((await service.GetExecutionReportAsync(queued.Id))!.IntegrityEvidence);
+    }
+
     [Fact]
     public async Task CreateAsync_ValidationCancellationPersistsFailedWithIndependentCleanupToken()
     {
@@ -246,9 +391,10 @@ public sealed class PublishJobTerminalPersistenceTests
         ISequenceValidationService? validationService = null,
         IPublishReadinessService? publishReadinessService = null,
         IAuditLogService? auditLogService = null,
-        IPublishJobQueue? queue = null)
+        IPublishJobQueue? queue = null,
+        IPublishArtifactStore? artifactStore = null)
     {
-        var artifactStore = new StubPublishArtifactStore();
+        artifactStore ??= new StubPublishArtifactStore();
         return new PublishJobService(
             repository,
             backboneService ?? new PassingBackboneService(),
@@ -366,6 +512,16 @@ public sealed class PublishJobTerminalPersistenceTests
         }
     }
 
+    private sealed class CancelAfterGenerating(CancellationTokenSource cancellationSource) : IBackboneService
+    {
+        public async Task<GeneratedBackboneDto> GenerateAsync(GenerateBackboneRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = await new PassingBackboneService().GenerateAsync(request, cancellationToken);
+            cancellationSource.Cancel();
+            return result;
+        }
+    }
+
     private sealed class ThrowingBackboneService : IBackboneService
     {
         public Task<GeneratedBackboneDto> GenerateAsync(
@@ -426,20 +582,28 @@ public sealed class PublishJobTerminalPersistenceTests
 
     private sealed class StubPublishArtifactStore : IPublishArtifactStore
     {
+        public Dictionary<string, string> TextByPath { get; } = new(StringComparer.Ordinal);
+        public Action? OnWrite { get; set; }
+
         public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default)
-            => Task.FromResult(false);
+            => Task.FromResult(TextByPath.ContainsKey(path));
 
         public Task<long> GetSizeAsync(string path, CancellationToken cancellationToken = default)
             => Task.FromResult(0L);
 
         public Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken = default)
-            => Task.FromResult(string.Empty);
+            => Task.FromResult(TextByPath[path]);
 
         public Task WriteAllTextAsync(
             string path,
             string content,
             CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            TextByPath[path] = content;
+            OnWrite?.Invoke();
+            return Task.CompletedTask;
+        }
 
         public Task<PublishArtifactDirectoryStats> GetDirectoryStatsAsync(
             string directoryPath,
@@ -457,6 +621,7 @@ public sealed class PublishJobTerminalPersistenceTests
         private int _updateAttempt;
 
         public Func<PublishJob, int, Exception?>? UpdateFailure { get; init; }
+        public bool LoseTerminalResponse { get; init; }
 
         public IReadOnlyCollection<UpdateObservation> UpdateObservations
         {
@@ -594,6 +759,15 @@ public sealed class PublishJobTerminalPersistenceTests
             }
 
             await UpdateAsync(job, cancellationToken);
+            if (LoseTerminalResponse && job.CompletedUtc is { } completed)
+            {
+                lock (_gate)
+                    _items[job.Id] = PublishJob.Rehydrate(job.Id, job.ApplicationId, job.SequenceNumber,
+                        job.Status, job.OutputPath, job.PackagePath, job.CreatedUtc,
+                        new DateTime(completed.Ticks - completed.Ticks % 10, DateTimeKind.Utc), job.FailureReason,
+                        job.IdempotencyKey, job.AttemptCount, job.NextAttemptUtc, packageValidationRunId: job.PackageValidationRunId);
+                return false;
+            }
             return true;
         }
 

@@ -8,6 +8,23 @@ namespace RATools.Tests.Publishing;
 public sealed class PublishArtifactResolverTests
 {
     [Fact]
+    public async Task LegacyCompletedAttemptStillResolvesItsArchivedReport()
+    {
+        var original = CreateCompletedJob();
+        var job = PublishJob.Rehydrate(original.Id, original.ApplicationId, original.SequenceNumber,
+            original.Status, original.OutputPath, original.PackagePath, original.CreatedUtc,
+            original.CompletedUtc, null, attemptCount: 1);
+        var legacyPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath!, job.SequenceNumber, job.Id);
+        var store = new InMemoryPublishArtifactStore();
+        store.SizeByPath[legacyPath] = 456;
+
+        var report = await new PublishArtifactResolver(store).ResolveAsync(job, "PublishReport");
+
+        Assert.True(report!.Exists);
+        Assert.Equal(legacyPath, report.Path);
+    }
+
+    [Fact]
     public async Task BuildArtifactsAsync_ReturnsSupportedArtifactsWithExistenceSizeAndContentTypes()
     {
         var job = CreateCompletedJob();

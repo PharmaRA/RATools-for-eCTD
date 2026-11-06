@@ -157,6 +157,9 @@ public sealed class PublishJob : Entity
     }
 
     public void MarkCompleted(string outputPath, string packagePath)
+        => MarkCompleted(outputPath, packagePath, DateTime.UtcNow);
+
+    public void MarkCompleted(string outputPath, string packagePath, DateTime? completedUtc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
@@ -169,7 +172,7 @@ public sealed class PublishJob : Entity
         Status = PublishJobStatus.Completed;
         OutputPath = outputPath.Trim();
         PackagePath = packagePath.Trim();
-        CompletedUtc = DateTime.UtcNow;
+        CompletedUtc = completedUtc ?? DateTime.UtcNow;
         FailureReason = null;
         ClearLease();
     }

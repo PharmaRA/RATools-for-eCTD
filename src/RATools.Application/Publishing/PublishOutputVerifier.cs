@@ -25,6 +25,17 @@ public sealed partial class PublishOutputVerifier
         string? reportPath,
         string? packagePath,
         CancellationToken cancellationToken = default)
+        => VerifyCore(outputPath, reportPath, packagePath, includeReport: true, cancellationToken);
+
+    // The report cannot include a measurement of its own final serialized bytes. Its
+    // readability is verified by PublishReportStore before the completed state is saved.
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance service contract.")]
+    public Task<PublishIntegrityVerificationDto> VerifyBeforeReportAsync(string? outputPath, string? packagePath,
+        CancellationToken cancellationToken = default)
+        => VerifyCore(outputPath, null, packagePath, includeReport: false, cancellationToken);
+
+    private static Task<PublishIntegrityVerificationDto> VerifyCore(string? outputPath, string? reportPath,
+        string? packagePath, bool includeReport, CancellationToken cancellationToken)
     {
         var missingFilesCount = 0;
         var mismatchedArtifactsCount = 0;
@@ -33,7 +44,7 @@ public sealed partial class PublishOutputVerifier
         var findings = new List<PublishIntegrityFindingDto>();
 
         AddTopLevelArtifact("BackboneXml", outputPath, artifacts, findings, ref missingFilesCount);
-        AddTopLevelArtifact("PublishReport", reportPath, artifacts, findings, ref missingFilesCount);
+        if (includeReport) AddTopLevelArtifact("PublishReport", reportPath, artifacts, findings, ref missingFilesCount);
         AddTopLevelArtifact("PackageZip", packagePath, artifacts, findings, ref missingFilesCount);
 
         var outputDirectory = string.IsNullOrWhiteSpace(outputPath)

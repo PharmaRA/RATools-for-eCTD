@@ -70,6 +70,15 @@ public sealed class PublishArtifactResolver(IPublishArtifactStore artifactStore)
     {
         var path = descriptor.ResolvePath(job);
         var exists = !string.IsNullOrWhiteSpace(path) && await artifactStore.ExistsAsync(path, cancellationToken);
+        if (!exists && descriptor.Name == "PublishReport" && job.AttemptCount > 0 && job.OutputPath is not null)
+        {
+            var legacyPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
+            if (await artifactStore.ExistsAsync(legacyPath, cancellationToken))
+            {
+                path = legacyPath;
+                exists = true;
+            }
+        }
         var sizeBytes = exists ? await artifactStore.GetSizeAsync(path!, cancellationToken) : 0;
         return new PublishArtifactDto(
             descriptor.Name,

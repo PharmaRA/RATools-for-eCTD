@@ -188,8 +188,8 @@ public sealed partial class PublishJobBackgroundService(
                     var current = await repository.GetAsync(lease.Job.Id, cancellationToken);
                     if (current?.Status is PublishJobStatus.Completed or PublishJobStatus.Failed)
                     {
-                        // 业务服务先以 fencing token 落终态，再生成报告；终态已证明本 worker
-                        // 成功提交，后续报告 I/O 不应被一次预期的续租失败取消。
+                        // 业务服务先发布完整报告，再以 fencing token 落终态；终态已证明
+                        // 本 worker 成功提交，无需继续续租。
                         return;
                     }
 

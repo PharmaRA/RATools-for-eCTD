@@ -23,7 +23,7 @@ internal static class PublishArtifactDescriptorCatalog
             "application/json",
             job => job.OutputPath is null
                 ? null
-                : PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id)),
+                : PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id, job.AttemptCount)),
         new(
             "PackageZip",
             "file",

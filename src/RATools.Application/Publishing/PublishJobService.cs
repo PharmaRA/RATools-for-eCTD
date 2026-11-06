@@ -28,6 +28,10 @@ public sealed class PublishJobService(
     private const string PublishExecutionReportVersion = "1.1";
     private static readonly TimeSpan TerminalCleanupTimeout = TimeSpan.FromSeconds(30);
 
+    private sealed record PipelineResult(PublishJob Job, ValidationReportDto ValidationReport,
+        PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath,
+        PublishExecutionReportDto? Report = null);
+
     // 保留给现有应用层测试与内部调用方的兼容入口；HTTP API 不再暴露该同步语义。
     public async Task<PublishJobDto> CreateAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
     {
@@ -41,7 +45,7 @@ public sealed class PublishJobService(
         var result = await ExecuteInternalAsync(request, cancellationToken);
         stopwatch.Stop();
 
-        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+        return result.Report ?? await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
     }
 
     // 后台执行入口：在一个已创建的 Pending 作业上运行发布流程并生成报告。
@@ -60,7 +64,7 @@ public sealed class PublishJobService(
         var result = await RunPipelineAsync(job, request, cancellationToken);
         stopwatch.Stop();
 
-        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+        return result.Report ?? await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
     }
 
     public async Task<PublishExecutionReportDto> ExecuteClaimedAsync(
@@ -84,7 +88,7 @@ public sealed class PublishJobService(
         var result = await RunPipelineAsync(lease.Job, request, cancellationToken, lease);
         stopwatch.Stop();
 
-        return await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
+        return result.Report ?? await BuildAndPersistReportAsync(request, result, stopwatch.ElapsedMilliseconds, cancellationToken);
     }
 
     public async Task<PublishJobDto> EnqueueExecutionAsync(CreatePublishJobRequest request, CancellationToken cancellationToken = default)
@@ -111,7 +115,7 @@ public sealed class PublishJobService(
 
     private async Task<PublishExecutionReportDto> BuildAndPersistReportAsync(
         CreatePublishJobRequest request,
-        (PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath) result,
+        PipelineResult result,
         long elapsedMilliseconds,
         CancellationToken cancellationToken)
     {
@@ -144,21 +148,7 @@ public sealed class PublishJobService(
 
         report = report with { ArtifactSummary = await artifactResolver.BuildArtifactSummaryAsync(jobDto, cancellationToken) };
 
-        var reportAvailable = false;
-        if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
-        {
-            await reportStore.WriteAsync(report, cancellationToken);
-            reportAvailable = true;
-        }
-
-        await PersistHistorySummaryAsync(
-            result.Job,
-            PublishJobHistorySummaryBuilder.Create(
-                report,
-                reportAvailable,
-                reportReadable: reportAvailable));
-
-        var integrityVerification = await publishOutputVerifier.VerifyAsync(jobDto.OutputPath, result.ReportPath, jobDto.PackagePath, cancellationToken);
+        var integrityVerification = await publishOutputVerifier.VerifyBeforeReportAsync(jobDto.OutputPath, jobDto.PackagePath, cancellationToken);
         report = report with
         {
             IntegritySummary = integrityVerification.Summary,
@@ -169,6 +159,8 @@ public sealed class PublishJobService(
         {
             await reportStore.WriteAsync(report, cancellationToken);
         }
+        if (result.Job.Status != PublishJobStatus.Completed)
+            await PersistHistorySummaryAsync(result.Job, PublishJobHistorySummaryBuilder.Create(report, false, false));
 
         return report;
     }
@@ -270,7 +262,7 @@ public sealed class PublishJobService(
         }
     }
 
-    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath)> ExecuteInternalAsync(
+    private async Task<PipelineResult> ExecuteInternalAsync(
         CreatePublishJobRequest request,
         CancellationToken cancellationToken)
     {
@@ -358,7 +350,7 @@ public sealed class PublishJobService(
         }
     }
 
-    private async Task<(PublishJob Job, ValidationReportDto ValidationReport, PublishReadinessReportDto? PublishReadiness, string? Message, string? ReportPath)> RunPipelineAsync(
+    private async Task<PipelineResult> RunPipelineAsync(
         PublishJob job,
         CreatePublishJobRequest request,
         CancellationToken cancellationToken,
@@ -367,6 +359,7 @@ public sealed class PublishJobService(
         ValidationReportDto? validationReport = null;
         PublishReadinessReportDto? publishReadiness = null;
         string? reportPath = null;
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             validationReport = await validationService.ValidateAsync(
@@ -387,7 +380,7 @@ public sealed class PublishJobService(
                     entityId: job.Id.ToString(),
                     action: "ValidationFailed",
                     details: $"Profile={validationReport.ValidationProfile}; {failureMessage}");
-                return (job, validationReport, null, "Publish stopped because validation failed.", reportPath);
+                return new(job, validationReport, null, "Publish stopped because validation failed.", reportPath);
             }
 
             publishReadiness = await publishReadinessService.GetAsync(
@@ -415,7 +408,7 @@ public sealed class PublishJobService(
                     entityId: job.Id.ToString(),
                     action: "ReadinessBlocked",
                     details: $"Profile={publishReadiness.ValidationReport.ValidationProfile}; {readinessFailureMessage}");
-                return (job, validationReport, publishReadiness, "Publish stopped because publish readiness check failed.", reportPath);
+                return new(job, validationReport, publishReadiness, "Publish stopped because publish readiness check failed.", reportPath);
             }
 
             if (job.Status == PublishJobStatus.Pending)
@@ -442,21 +435,29 @@ public sealed class PublishJobService(
                     request.ApplicationId,
                     request.SequenceNumber,
                     job.Id,
-                    $"publish-report-{request.SequenceNumber}-{job.Id:N}.json",
+                    PublishOutputNaming.BuildPublishReportFileName(request.SequenceNumber, job.Id, job.AttemptCount),
                     $"{request.SequenceNumber}-{job.Id:N}.zip"),
                 cancellationToken);
-            reportPath = generated.ReportPath;
+            reportPath = PublishOutputNaming.BuildPublishReportPath(generated.FilePath, job.SequenceNumber, job.Id, job.AttemptCount);
+            var candidate = PublishJob.Rehydrate(job.Id, job.ApplicationId, job.SequenceNumber, PublishJobStatus.Running,
+                null, null, job.CreatedUtc, null, null, job.IdempotencyKey, job.AttemptCount,
+                job.NextAttemptUtc, packageValidationRunId: job.PackageValidationRunId);
+            candidate.MarkCompleted(generated.FilePath, generated.PackagePath);
+            var prepared = new PipelineResult(candidate, validationReport, publishReadiness, "Publish completed successfully.", reportPath);
+            var report = await BuildAndPersistReportAsync(request, prepared, stopwatch.ElapsedMilliseconds, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            job.MarkCompleted(generated.FilePath, generated.PackagePath);
+            job.MarkCompleted(generated.FilePath, generated.PackagePath, candidate.CompletedUtc);
             PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
             await PersistTerminalStateAsync(job, lease);
+            await PersistHistorySummaryAsync(job, PublishJobHistorySummaryBuilder.Create(report, true, true));
             await TryWriteTerminalAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
                 action: "Completed",
                 details: $"Profile={validationReport.ValidationProfile}; Output: {generated.FilePath}; Package: {generated.PackagePath}");
 
-            return (job, validationReport, publishReadiness, "Publish completed successfully.", reportPath);
+            return new(job, validationReport, publishReadiness, "Publish completed successfully.", reportPath, report);
         }
         catch (Exception exception)
         {
@@ -489,7 +490,7 @@ public sealed class PublishJobService(
                 new ValidateSequenceRequest(request.ApplicationId, request.SequenceNumber),
                 cancellationToken);
 
-            return (job, validationReport, publishReadiness, "Publish failed during execution.", reportPath);
+            return new(job, validationReport, publishReadiness, "Publish failed during execution.", reportPath);
         }
     }
 
@@ -529,6 +530,9 @@ public sealed class PublishJobService(
         var persisted = await repository.GetAsync(job.Id, cleanupCts.Token);
         if (persisted is not null
             && persisted.Status == job.Status
+            && persisted.AttemptCount == job.AttemptCount
+            && persisted.CompletedUtc?.Ticks / 10 == job.CompletedUtc?.Ticks / 10
+            && persisted.PackageValidationRunId == job.PackageValidationRunId
             && string.Equals(persisted.OutputPath, job.OutputPath, StringComparison.Ordinal)
             && string.Equals(persisted.PackagePath, job.PackagePath, StringComparison.Ordinal)
             && string.Equals(persisted.FailureReason, job.FailureReason, StringComparison.Ordinal))

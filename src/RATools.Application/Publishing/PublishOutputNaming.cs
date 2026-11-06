@@ -25,7 +25,11 @@ public static class PublishOutputNaming
         return BuildPublishedDocumentFileName(document);
     }
 
-    public static string BuildPublishReportPath(string outputPath, string sequenceNumber, Guid jobId)
+    public static string BuildPublishReportFileName(string sequenceNumber, Guid jobId, int attemptCount = 0)
+        => attemptCount > 0 ? $"publish-report-{sequenceNumber}-{jobId:N}-attempt-{attemptCount}.json"
+            : $"publish-report-{sequenceNumber}-{jobId:N}.json";
+
+    public static string BuildPublishReportPath(string outputPath, string sequenceNumber, Guid jobId, int attemptCount = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(sequenceNumber);
@@ -42,11 +46,11 @@ public static class PublishOutputNaming
             && string.Equals(jobsDirectory?.Name, "_jobs", StringComparison.OrdinalIgnoreCase)
             && newLayoutApplicationRoot is not null)
         {
-            return Path.Combine(newLayoutApplicationRoot.FullName, "_artifacts", sequenceNumber, jobIdSegment, $"publish-report-{sequenceNumber}-{jobId:N}.json");
+            return Path.Combine(newLayoutApplicationRoot.FullName, "_artifacts", sequenceNumber, jobIdSegment, BuildPublishReportFileName(sequenceNumber, jobId, attemptCount));
         }
 
         var legacyApplicationRoot = Path.GetDirectoryName(deliveryRoot)
             ?? throw new InvalidOperationException($"Delivery root '{deliveryRoot}' does not have a parent directory.");
-        return Path.Combine(legacyApplicationRoot, "_artifacts", sequenceNumber, $"publish-report-{sequenceNumber}-{jobId:N}.json");
+        return Path.Combine(legacyApplicationRoot, "_artifacts", sequenceNumber, BuildPublishReportFileName(sequenceNumber, jobId, attemptCount));
     }
 }

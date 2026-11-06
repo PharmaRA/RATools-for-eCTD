@@ -32,7 +32,9 @@ public sealed class PublishReportStore(IPublishArtifactStore artifactStore)
         }
 
         // Archived reports outlive the _jobs work directories removed by retention.
-        var expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
+        var expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id, job.AttemptCount);
+        if (job.AttemptCount > 0 && !await artifactStore.ExistsAsync(expectedReportPath, cancellationToken))
+            expectedReportPath = PublishOutputNaming.BuildPublishReportPath(job.OutputPath, job.SequenceNumber, job.Id);
         if (!await artifactStore.ExistsAsync(expectedReportPath, cancellationToken))
         {
             throw new PublishJobReportUnavailableException($"Publish report for job {job.Id} was not found at '{expectedReportPath}'.");
@@ -62,5 +64,9 @@ public sealed class PublishReportStore(IPublishArtifactStore artifactStore)
 
         var json = JsonSerializer.Serialize(report, WriteOptions);
         await artifactStore.WriteAllTextAsync(report.ReportPath, json, cancellationToken);
+        var archived = await artifactStore.ReadAllTextAsync(report.ReportPath, cancellationToken);
+        if (!string.Equals(archived, json, StringComparison.Ordinal) ||
+            JsonSerializer.Deserialize<PublishExecutionReportDto>(archived, ReadOptions) is null)
+            throw new PublishJobReportCorruptedException("The persisted report does not reproduce the complete execution report.");
     }
 }
