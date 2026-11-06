@@ -3,6 +3,7 @@ using RATools.Application.Publishing.Ich;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Regions;
 using RATools.Application.Publishing.UsRegional;
+using RATools.Application.Publishing.EuRegional;
 using RATools.Application.Publishing.Validation;
 using RATools.Application.Standards;
 using RATools.Application.Validation.Dtos;
@@ -70,6 +71,18 @@ public sealed class PublishReadinessService(
                     "RegionalMetadata",
                     "Populate the required US Regional publishing metadata field before publishing.",
                     exception.FieldName));
+            }
+            catch (EuRegionalXmlWriterException exception)
+            {
+                var field = exception.FieldPath ?? "regionalMetadata.eu";
+                findings.Add(new PublishReadinessFindingDto(
+                    "PublishPreflight",
+                    "Error",
+                    "EU_REGIONAL_METADATA_MISSING",
+                    exception.Message,
+                    "RegionalMetadata",
+                    "Populate the required explicit EU Regional publishing metadata field before publishing.",
+                    field));
             }
             catch (UsRegionalXmlSectionMappingException exception)
             {
@@ -186,7 +199,8 @@ public sealed class PublishReadinessService(
         var findingSummary = PublishReadinessFindingSummary.Create(findings);
         var isReady = findingSummary.BlockingErrorCount == 0;
         var missingMetadataFields = findings
-            .Where(x => string.Equals(x.Code, "US_REGIONAL_METADATA_MISSING", StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.Equals(x.Code, "US_REGIONAL_METADATA_MISSING", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.Code, "EU_REGIONAL_METADATA_MISSING", StringComparison.OrdinalIgnoreCase))
             .Select(x => x.FieldName)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.Ordinal)

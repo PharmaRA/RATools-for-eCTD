@@ -16,7 +16,8 @@ internal static class RegionalMetadataValidation
         snapshot.Verify(); return issues;
     }
     internal static IReadOnlyList<RegionalMetadataDiagnostic> Sequence(RegionalMetadataContent content, StandardsProfileSnapshot snapshot, HashSet<string> sequences,
-        string sequence, IReadOnlyList<RegionalNodeContext> nodes, IReadOnlyList<RegionalDocumentContext> documents, IReadOnlyDictionary<Guid, string> sections)
+        string sequence, IReadOnlyList<RegionalNodeContext> nodes, IReadOnlyList<RegionalDocumentContext> documents, IReadOnlyDictionary<Guid, string> sections,
+        bool requireContextFields = true)
     {
         var issues = new List<RegionalMetadataDiagnostic>();
         if (content.Us is { } us)
@@ -51,8 +52,8 @@ internal static class RegionalMetadataValidation
                         issues.Add(new("RelatedSequenceNotApplicable", field, "The pinned EU M1 v3.1.1 guide requires current sequence for initial/reformat and an earlier activity sequence for other units."));
                 }
             }
-            for (var index = 0; index < nodes.Count; index++) Context(nodes[index].Country, nodes[index].Language, nodes[index].ProductInformationType, nodes[index].FormType, sections[nodes[index].NodeInstanceId], $"nodeContexts[{index}]", regionalDtd, issues);
-            for (var index = 0; index < documents.Count; index++) Context(documents[index].Country, documents[index].Language, documents[index].ProductInformationType, documents[index].FormType, sections[documents[index].PlacementId], $"documentContexts[{index}]", regionalDtd, issues);
+            for (var index = 0; index < nodes.Count; index++) Context(nodes[index].Country, nodes[index].Language, nodes[index].ProductInformationType, nodes[index].FormType, sections[nodes[index].NodeInstanceId], $"nodeContexts[{index}]", regionalDtd, issues, requireContextFields);
+            for (var index = 0; index < documents.Count; index++) Context(documents[index].Country, documents[index].Language, documents[index].ProductInformationType, documents[index].FormType, sections[documents[index].PlacementId], $"documentContexts[{index}]", regionalDtd, issues, requireContextFields);
         }
         issues.Add(new("RegionalQualificationPending", "standardsSnapshotId", "Structured metadata alone does not activate a formally qualified regional profile."));
         return issues;
@@ -64,11 +65,12 @@ internal static class RegionalMetadataValidation
         if (string.Equals(section, "m1.1", StringComparison.OrdinalIgnoreCase)) Required(formType, path + ".formType", issues);
         else if (formType is not null) issues.Add(new("RegionalFieldNotApplicable", path + ".formType", "US form context applies only to the exact m1.1 placement or node."));
     }
-    private static void Context(string? country, string? language, string? piType, string? formType, string section, string path, string dtd, List<RegionalMetadataDiagnostic> issues)
+    private static void Context(string? country, string? language, string? piType, string? formType, string section, string path, string dtd, List<RegionalMetadataDiagnostic> issues, bool requireContextFields)
     {
         Allowed(country, Entity(dtd, "countries"), path + ".country", issues); Allowed(language, Entity(dtd, "languages"), path + ".language", issues);
         Allowed(piType, Attribute(dtd, "pi-doc", "type"), path + ".productInformationType", issues);
-        if (section == "m1.3.1") { Required(country, path + ".country", issues); Required(language, path + ".language", issues); Required(piType, path + ".productInformationType", issues); }
+        if (string.Equals(section, "m1.3.1", StringComparison.OrdinalIgnoreCase))
+        { if (requireContextFields) { Required(country, path + ".country", issues); Required(language, path + ".language", issues); Required(piType, path + ".productInformationType", issues); } }
         else if (piType is not null) issues.Add(new("ProductInformationContextNotApplicable", path + ".productInformationType", "The acquired EU schema permits PI document types only in the m1.3.1 container."));
         if (formType is not null) issues.Add(new("RegionalFieldNotApplicable", path + ".formType", "FDA form context is not an EU PI attribute."));
     }

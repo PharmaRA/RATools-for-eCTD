@@ -4,7 +4,7 @@ using RATools.Application.Standards;
 
 namespace RATools.Application.Publishing.EuRegional;
 
-public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
+public sealed partial class EuRegionalXmlWriter : IEuRegionalXmlWriter
 {
     private static readonly XNamespace XlinkNamespace = "http://www.w3c.org/1999/xlink";
 
@@ -20,14 +20,17 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
         var xmlProfile = package.BackboneXml.Regional;
         if (xmlProfile.RootElementName != BackboneXmlProfiles.EuEctd322Regional.Regional.RootElementName ||
             xmlProfile.Namespace != BackboneXmlProfiles.EuEctd322Regional.Regional.Namespace ||
-            xmlProfile.DtdVersion != BackboneXmlProfiles.EuEctd322Regional.Regional.DtdVersion)
+            xmlProfile.DtdVersion != BackboneXmlProfiles.EuEctd322Regional.Regional.DtdVersion ||
+            package.Application.TemplateKey != "eu-ectd-3.2.2" || package.Application.Region != "EU")
         {
             throw new EuRegionalXmlWriterException("Unable to generate EU regional XML: package does not use an EU regional backbone profile.");
         }
 
         var relativePath = RequireRelativePath(xmlProfile.RelativePath);
-        var metadata = package.EuRegional ?? BuildDefaultMetadata(package);
-        ValidateMetadata(metadata);
+        var metadata = package.EuRegional;
+        if (package.RegionalMetadata is not null) ValidateTypedMetadata(package);
+        else if (metadata is not null) ValidateMetadata(metadata);
+        else throw MetadataError("regionalMetadata.eu", "requires explicit EU metadata; shared metadata cannot supply regional defaults");
         ValidateLeaves(package);
 
         XNamespace euNamespace = xmlProfile.Namespace;
@@ -35,7 +38,7 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
             new XAttribute(XNamespace.Xmlns + "eu", euNamespace.NamespaceName),
             new XAttribute(XNamespace.Xmlns + "xlink", XlinkNamespace.NamespaceName),
             new XAttribute("dtd-version", xmlProfile.DtdVersion),
-            BuildEnvelope(metadata),
+            package.RegionalMetadata is not null ? BuildTypedEnvelopes(package) : BuildEnvelope(metadata!),
             BuildModuleOne(package, metadata, relativePath));
 
         var document = new XDocument(
@@ -84,70 +87,68 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
 
     private static XElement BuildModuleOne(
         EctdSequencePackage package,
-        EctdEuRegionalMetadata metadata,
+        EctdEuRegionalMetadata? metadata,
         string regionalRelativePath)
     {
-        var leaves = package.Module1Leaves
-            .OrderBy(leaf => leaf.CtdSection, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(leaf => leaf.LeafId, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var leaves = package.Module1Leaves.ToArray();
         var moduleOne = new XElement("m1-eu");
 
-        // m1-0-cover is mandatory in the official DTD, even when its country
-        // wrapper contains no leaf in a lifecycle sequence.
-        moduleOne.Add(BuildSpecificSection("m1-0-cover", "m1.0", leaves, metadata.DocumentCountry, regionalRelativePath, required: true));
-        AddIfNotNull(moduleOne, BuildSpecificSection("m1-2-form", "m1.2", leaves, metadata.DocumentCountry, regionalRelativePath));
+        // The DTD requires specific+. Typed output needs a real explicitly contextualized
+        // cover placement; the current node model cannot bind an empty EU cover wrapper.
+        moduleOne.Add(BuildSpecificSection("m1-0-cover", "m1.0", leaves, package, metadata, regionalRelativePath, required: true));
+        AddIfNotNull(moduleOne, BuildSpecificSection("m1-2-form", "m1.2", leaves, package, metadata, regionalRelativePath));
 
         var productInformation = new XElement("m1-3-pi");
-        AddIfNotNull(productInformation, BuildProductInformationSection(leaves, metadata, regionalRelativePath));
-        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-2-mockup", "m1.3.2", leaves, metadata.DocumentCountry, regionalRelativePath));
-        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-3-specimen", "m1.3.3", leaves, metadata.DocumentCountry, regionalRelativePath));
-        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-4-consultation", "m1.3.4", leaves, metadata.DocumentCountry, regionalRelativePath));
-        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-5-approved", "m1.3.5", leaves, metadata.DocumentCountry, regionalRelativePath));
-        AddIfNotNull(productInformation, BuildDirectSection("m1-3-6-braille", "m1.3.6", leaves, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildProductInformationSection(leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-2-mockup", "m1.3.2", leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-3-specimen", "m1.3.3", leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-4-consultation", "m1.3.4", leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildSpecificSection("m1-3-5-approved", "m1.3.5", leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(productInformation, BuildDirectSection("m1-3-6-braille", "m1.3.6", leaves, package, regionalRelativePath));
         AddIfHasChildren(moduleOne, productInformation);
 
-        AddIfNotNull(moduleOne, BuildContainer("m1-4-expert", leaves, regionalRelativePath,
+        AddIfNotNull(moduleOne, BuildContainer("m1-4-expert", leaves, package, regionalRelativePath,
             ("m1-4-1-quality", "m1.4.1"),
             ("m1-4-2-non-clinical", "m1.4.2"),
             ("m1-4-3-clinical", "m1.4.3")));
-        AddIfNotNull(moduleOne, BuildContainer("m1-5-specific", leaves, regionalRelativePath,
+        AddIfNotNull(moduleOne, BuildContainer("m1-5-specific", leaves, package, regionalRelativePath,
             ("m1-5-1-bibliographic", "m1.5.1"),
             ("m1-5-2-generic-hybrid-bio-similar", "m1.5.2"),
             ("m1-5-3-data-market-exclusivity", "m1.5.3"),
             ("m1-5-4-exceptional-circumstances", "m1.5.4"),
             ("m1-5-5-conditional-ma", "m1.5.5")));
-        AddIfNotNull(moduleOne, BuildContainer("m1-6-environrisk", leaves, regionalRelativePath,
+        AddIfNotNull(moduleOne, BuildContainer("m1-6-environrisk", leaves, package, regionalRelativePath,
             ("m1-6-1-non-gmo", "m1.6.1"),
             ("m1-6-2-gmo", "m1.6.2")));
-        AddIfNotNull(moduleOne, BuildContainer("m1-7-orphan", leaves, regionalRelativePath,
+        AddIfNotNull(moduleOne, BuildContainer("m1-7-orphan", leaves, package, regionalRelativePath,
             ("m1-7-1-similarity", "m1.7.1"),
             ("m1-7-2-market-exclusivity", "m1.7.2")));
-        AddIfNotNull(moduleOne, BuildContainer("m1-8-pharmacovigilance", leaves, regionalRelativePath,
+        AddIfNotNull(moduleOne, BuildContainer("m1-8-pharmacovigilance", leaves, package, regionalRelativePath,
             ("m1-8-1-pharmacovigilance-system", "m1.8.1"),
             ("m1-8-2-risk-management-system", "m1.8.2")));
 
         foreach (var sectionPath in DirectTopLevelSections)
         {
             var elementName = sectionPath == "m1.9" ? "m1-9-clinical-trials" : "m1-10-paediatrics";
-            AddIfNotNull(moduleOne, BuildDirectSection(elementName, sectionPath, leaves, regionalRelativePath));
+            AddIfNotNull(moduleOne, BuildDirectSection(elementName, sectionPath, leaves, package, regionalRelativePath));
         }
 
-        AddIfNotNull(moduleOne, BuildSpecificSection("m1-responses", "m1.responses", leaves, metadata.DocumentCountry, regionalRelativePath));
-        AddIfNotNull(moduleOne, BuildSpecificSection("m1-additional-data", "m1.additional-data", leaves, metadata.DocumentCountry, regionalRelativePath));
+        AddIfNotNull(moduleOne, BuildSpecificSection("m1-responses", "m1.responses", leaves, package, metadata, regionalRelativePath));
+        AddIfNotNull(moduleOne, BuildSpecificSection("m1-additional-data", "m1.additional-data", leaves, package, metadata, regionalRelativePath));
         return moduleOne;
     }
 
     private static XElement? BuildContainer(
         string elementName,
         IReadOnlyCollection<EctdLeaf> leaves,
+        EctdSequencePackage package,
         string regionalRelativePath,
         params (string ElementName, string SectionPath)[] sections)
     {
         var container = new XElement(elementName);
         foreach (var section in sections)
         {
-            AddIfNotNull(container, BuildDirectSection(section.ElementName, section.SectionPath, leaves, regionalRelativePath));
+            AddIfNotNull(container, BuildDirectSection(section.ElementName, section.SectionPath, leaves, package, regionalRelativePath));
         }
 
         return container.HasElements ? container : null;
@@ -157,7 +158,8 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
         string elementName,
         string sectionPath,
         IReadOnlyCollection<EctdLeaf> leaves,
-        string country,
+        EctdSequencePackage package,
+        EctdEuRegionalMetadata? metadata,
         string regionalRelativePath,
         bool required = false)
     {
@@ -167,44 +169,47 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
             return null;
         }
 
-        return new XElement(elementName,
-            new XElement("specific",
-                new XAttribute("country", country),
-                matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath))));
+        if (package.RegionalMetadata is not null)
+            return new XElement(elementName, BuildContextWrappers(matching, package, regionalRelativePath, productInformation: false));
+        return new XElement(elementName, new XElement("specific", new XAttribute("country", metadata!.DocumentCountry),
+            matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath, package))));
     }
 
     private static XElement? BuildProductInformationSection(
         IReadOnlyCollection<EctdLeaf> leaves,
-        EctdEuRegionalMetadata metadata,
+        EctdSequencePackage package,
+        EctdEuRegionalMetadata? metadata,
         string regionalRelativePath)
     {
         var matching = FindLeaves("m1.3.1", leaves);
-        return matching.Length == 0
-            ? null
-            : new XElement("m1-3-1-spc-label-pl",
+        if (matching.Length == 0) return null;
+        if (package.RegionalMetadata is not null)
+            return new XElement("m1-3-1-spc-label-pl", BuildContextWrappers(matching, package, regionalRelativePath, productInformation: true));
+        return new XElement("m1-3-1-spc-label-pl",
                 new XElement("pi-doc",
-                    new XAttribute(XNamespace.Xml + "lang", metadata.ProductInformationLanguage),
+                    new XAttribute(XNamespace.Xml + "lang", metadata!.ProductInformationLanguage),
                     new XAttribute("type", metadata.ProductInformationType),
                     new XAttribute("country", metadata.DocumentCountry),
-                    matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath))));
+                    matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath, package))));
     }
 
     private static XElement? BuildDirectSection(
         string elementName,
         string sectionPath,
         IReadOnlyCollection<EctdLeaf> leaves,
+        EctdSequencePackage package,
         string regionalRelativePath)
     {
         var matching = FindLeaves(sectionPath, leaves);
         return matching.Length == 0
             ? null
-            : new XElement(elementName, matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath)));
+            : new XElement(elementName, matching.Select(leaf => BuildLeafElement(leaf, regionalRelativePath, package)));
     }
 
     private static EctdLeaf[] FindLeaves(string sectionPath, IReadOnlyCollection<EctdLeaf> leaves)
         => leaves.Where(leaf => string.Equals(leaf.CtdSection, sectionPath, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-    private static XElement BuildLeafElement(EctdLeaf leaf, string regionalRelativePath)
+    private static XElement BuildLeafElement(EctdLeaf leaf, string regionalRelativePath, EctdSequencePackage package)
     {
         var attributes = new List<object>
         {
@@ -224,6 +229,8 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
         {
             attributes.Add(new XAttribute("modified-file", leaf.Lifecycle.BuildModifiedFileHref(regionalRelativePath)));
         }
+        if (package.RegionalMetadata is not null && ResolveContext(package, leaf).Language is { } language)
+            attributes.Add(new XAttribute(XNamespace.Xml + "lang", language));
 
         return new XElement("leaf", attributes, new XElement("title", leaf.Title));
     }
@@ -276,27 +283,6 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
         }
     }
 
-    private static EctdEuRegionalMetadata BuildDefaultMetadata(EctdSequencePackage package)
-        => new(
-            package.ApplicationId.ToString("D"),
-            "ema",
-            "maa",
-            null,
-            null,
-            [package.ApplicationNumber],
-            "initial",
-            package.Sequence.ApplicantName,
-            "EU-EMA",
-            "centralised",
-            [package.ApplicationNumber],
-            [],
-            package.SequenceNumber,
-            [package.SequenceNumber],
-            package.Sequence.Description,
-            "ema",
-            "en",
-            "combined");
-
     private static void AddIfNotNull(XElement parent, XElement? child)
     {
         if (child is not null)
@@ -317,7 +303,7 @@ public sealed class EuRegionalXmlWriter : IEuRegionalXmlWriter
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new EuRegionalXmlWriterException($"Unable to generate EU regional XML: {fieldName} is required.");
+            throw new EuRegionalXmlWriterException($"Unable to generate EU regional XML: {fieldName} is required.", fieldName);
         }
     }
 

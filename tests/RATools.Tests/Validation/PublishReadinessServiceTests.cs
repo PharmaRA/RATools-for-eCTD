@@ -280,7 +280,7 @@ public sealed class PublishReadinessServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_ReturnsReadyForEuTemplateWithoutUsRegionalMetadata()
+    public async Task GetAsync_ReturnsBlockedForEuTemplateWithoutExplicitRegionalMetadata()
     {
         var applicationId = Guid.NewGuid();
         var documentId = Guid.NewGuid();
@@ -310,10 +310,10 @@ public sealed class PublishReadinessServiceTests
 
         var report = await service.GetAsync(new ValidateSequenceRequest(applicationId, "0001"));
 
-        Assert.True(report.IsReady);
-        Assert.Equal("Ready", report.Status);
-        Assert.Empty(report.Findings);
-        Assert.Empty(report.MissingMetadataFields);
+        Assert.False(report.IsReady);
+        Assert.Equal("Blocked", report.Status);
+        Assert.Contains(report.Findings, finding => finding.Code == "EU_REGIONAL_METADATA_MISSING" && finding.FieldName == "regionalMetadata.eu");
+        Assert.Equal(new[] { "regionalMetadata.eu" }, report.MissingMetadataFields);
         Assert.DoesNotContain(report.Findings, finding => finding.Code.StartsWith("US_REGIONAL", StringComparison.OrdinalIgnoreCase));
     }
 

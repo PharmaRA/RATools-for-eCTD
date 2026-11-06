@@ -3,6 +3,7 @@ using RATools.Api.Contracts;
 using RATools.Application.Publishing;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Requests;
+using RATools.Application.Publishing.EuRegional;
 
 namespace RATools.Api.Controllers;
 
@@ -12,6 +13,7 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
 {
     [HttpPost("generate")]
     [ProducesResponseType(typeof(GeneratedBackboneDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Generate([FromBody] GenerateBackboneRequestBody request, CancellationToken cancellationToken)
     {
         try
@@ -31,6 +33,10 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
         catch (InvalidOperationException exception)
         {
             return Conflict(new { message = exception.Message });
+        }
+        catch (EuRegionalXmlWriterException exception)
+        {
+            return BadRequest(new { code = "EU_REGIONAL_METADATA_MISSING", fieldPath = exception.FieldPath ?? "regionalMetadata.eu", message = exception.Message });
         }
     }
 }

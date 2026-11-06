@@ -27,14 +27,13 @@ using RATools.Tests.TestDoubles;
 namespace RATools.Tests.Publishing.EuRegional;
 
 /// <summary>
-/// EU 端到端发布回归：readiness（传 profile）与 publish（曾不传 profile）此前使用
-/// 不同的 DTD 白名单，EU 发布在 BackboneService 处必败而无任何测试覆盖。
-/// 本测试钉死"EU 应用从上传的 m1 文档到发布成功产出交付包"的完整链路。
+/// 共享字段不能推导 EU envelope 和文档 country；缺少显式 regional head 时，
+/// 发布应在 readiness 阶段拒绝，保留原文件且不产生 backbone 或交付包。
 /// </summary>
 public sealed class EuPublishEndToEndTests
 {
     [Fact]
-    public async Task ExecuteAsync_PublishesEuSequenceEndToEnd()
+    public async Task ExecuteAsync_RejectsSharedOnlyEuSequenceWithoutRegionalHead()
     {
         var root = Path.Combine(Path.GetTempPath(), $"publish-eu-e2e-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
@@ -104,25 +103,14 @@ public sealed class EuPublishEndToEndTests
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber));
 
-            Assert.True(report.Succeeded, $"EU publish failed: {report.Message}; FailureReason={report.PublishJob.FailureReason}");
-            Assert.Equal(PublishJobStatus.Completed.ToString(), report.PublishJob.Status);
-
-            var outputDirectory = Path.GetDirectoryName(report.PublishJob.OutputPath);
-            Assert.NotNull(outputDirectory);
-            // 交付包必须同时含 ICH 主干、EU 区域 backbone 与按规范文件夹放置的文档。
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "index.xml")));
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "m1", "eu", "eu-regional.xml")));
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-regional.dtd")));
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-envelope.mod")));
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "dtd", "eu-leaf.mod")));
-            Assert.True(File.Exists(Path.Combine(outputDirectory!, "util", "style", "eu-regional.xsl")));
-            Assert.True(File.Exists(report.PublishJob.PackagePath));
-
-            var euRegionalContent = await File.ReadAllTextAsync(Path.Combine(outputDirectory!, "m1", "eu", "eu-regional.xml"));
-            Assert.Contains("<eu:eu-backbone", euRegionalContent, StringComparison.Ordinal);
-            Assert.Contains("<eu-envelope>", euRegionalContent, StringComparison.Ordinal);
-            Assert.Contains("<m1-eu><m1-0-cover>", euRegionalContent, StringComparison.Ordinal);
-            Assert.Contains("cover-letter.pdf", euRegionalContent, StringComparison.Ordinal);
+            Assert.False(report.Succeeded);
+            Assert.Equal(PublishJobStatus.Failed.ToString(), report.PublishJob.Status);
+            Assert.Contains("regionalMetadata.eu", report.Message + report.PublishJob.FailureReason, StringComparison.Ordinal);
+            Assert.True(string.IsNullOrEmpty(report.PublishJob.OutputPath));
+            Assert.True(string.IsNullOrEmpty(report.PublishJob.PackagePath));
+            Assert.Empty(Directory.EnumerateFiles(root, "eu-regional.xml", SearchOption.AllDirectories));
+            Assert.Empty(Directory.EnumerateFiles(root, "*.zip", SearchOption.AllDirectories));
+            Assert.Equal("eu-cover-letter-payload", await File.ReadAllTextAsync(documentPath));
         }
         finally
         {

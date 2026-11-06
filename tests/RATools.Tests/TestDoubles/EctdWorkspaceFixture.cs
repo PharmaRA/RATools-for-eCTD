@@ -85,9 +85,17 @@ internal sealed class EctdWorkspaceFixture : IDisposable
         return (document, placement);
     }
 
-    public Task<EctdSequencePackage> BuildAsync(string sequence)
-        => PackageTestServices.Create(Applications, Placements, Documents, standards, new DocumentStorageBoundary(PathPolicy))
+    public async Task<EctdSequencePackage> BuildAsync(string sequence)
+    {
+        var package = await PackageTestServices.Create(Applications, Placements, Documents, standards, new DocumentStorageBoundary(PathPolicy))
             .BuildAsync(new BuildEctdPackageRequest(Application.Id, sequence));
+        if (Application.Region != "EU") return package;
+        // Explicit synthetic compatibility data for these legacy writer fixtures.
+        // Production package construction must never infer these business values.
+        return package with { EuRegional = new("fixture-explicit-envelope", "de", "maa", null, null,
+            ["fixture-procedure-tracking"], "initial", "Test sponsor", "DE-BFARM", "national",
+            ["Fixture explicit product"], [], sequence, [sequence], "Test sequence", "de", "de", "spc") };
+    }
 
     public async Task<EctdSequencePackage> WriteSequenceAsync(string sequence)
     {

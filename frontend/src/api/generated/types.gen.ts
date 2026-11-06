@@ -2474,6 +2474,15 @@ export type PostApiBackboneGenerateData = {
     url: '/api/backbone/generate';
 };
 
+export type PostApiBackboneGenerateErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type PostApiBackboneGenerateError = PostApiBackboneGenerateErrors[keyof PostApiBackboneGenerateErrors];
+
 export type PostApiBackboneGenerateResponses = {
     /**
      * OK

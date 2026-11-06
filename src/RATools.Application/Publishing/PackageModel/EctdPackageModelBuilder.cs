@@ -5,7 +5,9 @@ using RATools.Domain.Documents;
 using RATools.Domain.Ctd;
 using RATools.Application.RegionalMetadata;
 using RATools.Application.Publishing.UsRegional;
+using RATools.Application.Publishing.EuRegional;
 using RATools.Domain.Common;
+using RATools.Domain.Standards;
 using System.Text.Json;
 
 namespace RATools.Application.Publishing.PackageModel;
@@ -44,6 +46,7 @@ public sealed class EctdPackageModelBuilder(
         }
 
         var regional = regionalMetadataStore is null ? null : await regionalMetadataStore.GetHeadAsync(application.Id, sequence.SequenceNumber, cancellationToken);
+        StandardsProfileSnapshot? regionalSnapshot = null;
         StandardsProfile profile;
         if (regional is not null)
         {
@@ -54,6 +57,7 @@ public sealed class EctdPackageModelBuilder(
                 throw new RegionalMetadataScopeException("The regional head does not belong to the exact application, sequence, region and workspace scope.");
             var snapshot = standardsSnapshots is null ? throw new RegionalMetadataScopeException("A regional head requires its exact archived standards snapshot.")
                 : await standardsSnapshots.GetAsync(regional.StandardsSnapshotId, cancellationToken);
+            regionalSnapshot = snapshot;
             if (snapshot.TemplateKey != application.EctdTemplateKey) throw new RegionalMetadataScopeException("The regional standards snapshot belongs to another template.");
             var archived = StandardsSnapshotService.Profile(snapshot);
             if (selectedProfile is not null && CanonicalJson.Digest(JsonSerializer.SerializeToElement(selectedProfile)) != CanonicalJson.Digest(JsonSerializer.SerializeToElement(archived)))
@@ -64,9 +68,11 @@ public sealed class EctdPackageModelBuilder(
         if (profile.TemplateKey != application.EctdTemplateKey) throw new InvalidOperationException("The selected standards snapshot does not belong to this application template.");
         var workspace = await nodeRepository.GetSequenceAsync(application.Id, sequence.SequenceNumber, cancellationToken)
             ?? throw new EctdPackageSequenceNotFoundException(application.Id, sequence.SequenceNumber);
+        var backboneSources = await imports.GetBackbonesAsync(application.Id, sequence.SequenceNumber, cancellationToken);
+        var euArchiveOrder = regional?.RegionKey == "EU" ? ImportedBackboneProjection.ReadEuLeafOrder(backboneSources, sequence.SequenceNumber) : null;
         var backbone = ImportedBackboneProjection.Create(profile.BackboneXml ?? throw new EctdPackageStandardsProfileException(
             request.ApplicationId, request.SequenceNumber, profile.TemplateKey, "backbone XML metadata is missing"),
-            await imports.GetBackbonesAsync(application.Id, sequence.SequenceNumber, cancellationToken), sequence.SequenceNumber);
+            backboneSources, sequence.SequenceNumber);
         var metadata = sequence.PublishingMetadata;
         var applicationMetadata = new EctdApplicationMetadata(
             application.ApplicationNumber,
@@ -110,9 +116,10 @@ public sealed class EctdPackageModelBuilder(
             }
         }
 
-        var regionalOrder = regional?.RegionKey == "US" ? regional.DocumentContexts.Select((context, index) => (context.PlacementId, index))
+        var regionalOrder = regional is not null ? regional.DocumentContexts.Select((context, index) => (context.PlacementId, index))
             .ToDictionary(item => item.PlacementId, item => item.index) : null;
-        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById, profile, regionalOrder);
+        var euWrapperOrder = euArchiveOrder is not null ? EuWrapperOrder(euArchiveOrder, placements) : null;
+        var leaves = BuildLeaves(application, request.SequenceNumber, placements, placementById, documentById, profile, regionalOrder, euWrapperOrder);
         var module1Leaves = leaves.Where(x => x.Module == "m1").ToArray();
         var ichBackboneLeaves = leaves.Where(x => x.Module is "m2" or "m3" or "m4" or "m5").ToArray();
         var tree = EctdPackageNodeTree.Create(application.Id, workspace.Nodes.Select(node =>
@@ -137,53 +144,56 @@ public sealed class EctdPackageModelBuilder(
             module1Leaves,
             tree.Leaves,
             publishedFiles,
-            BuildEuRegionalMetadata(application.Id, application.ApplicationNumber, sequenceMetadata),
+            null,
             tree.Nodes.Concat(workspace.Nodes.Where(node => node.CtdSection == "m1").Select(node => new EctdPackageNode(
                 node.NodeInstanceId, null, workspace.Graph.Get(node.NodeInstanceId).DefinitionKey, node.DefinitionVersion,
                 node.Attributes, node.Title, node.SortOrder, node.MetadataStatus))).ToArray(), workspace.WorkspaceRevision, backbone.References, regional);
         if (regional?.RegionKey == "US") UsRegionalXmlWriter.ValidateTypedMetadata(package);
+        if (regional?.RegionKey == "EU")
+        {
+            var sections = workspace.Nodes.ToDictionary(node => node.NodeInstanceId, node => node.CtdSection);
+            foreach (var leaf in leaves) sections[leaf.PlacementId] = leaf.CtdSection;
+            for (var index = 0; index < regional.NodeContexts.Count; index++)
+                if (!sections.ContainsKey(regional.NodeContexts[index].NodeInstanceId))
+                    throw new EuRegionalXmlWriterException($"nodeContexts[{index}].nodeInstanceId is outside the exact package scope.", $"nodeContexts[{index}].nodeInstanceId");
+            for (var index = 0; index < regional.DocumentContexts.Count; index++)
+                if (!sections.ContainsKey(regional.DocumentContexts[index].PlacementId))
+                    throw new EuRegionalXmlWriterException($"documentContexts[{index}].placementId is outside the exact package scope.", $"documentContexts[{index}].placementId");
+            var applicationSequences = application.Sequences.Select(item => item.SequenceNumber).ToHashSet(StringComparer.Ordinal);
+            var envelopes = regional.Content!.Eu!.Envelopes;
+            for (var envelopeIndex = 0; envelopeIndex < envelopes.Count; envelopeIndex++)
+                for (var relatedIndex = 0; relatedIndex < envelopes[envelopeIndex].RelatedSequences.Count; relatedIndex++)
+                {
+                    var reference = envelopes[envelopeIndex].RelatedSequences[relatedIndex].SequenceNumber;
+                    var field = $"eu.envelopes[{envelopeIndex}].relatedSequences[{relatedIndex}].sequenceNumber";
+                    if (!applicationSequences.Contains(reference) || string.CompareOrdinal(reference, sequence.SequenceNumber) > 0)
+                        throw new EuRegionalXmlWriterException($"{field}: related sequences must exist in this application and cannot be future sequences.", field);
+                }
+            var issues = RegionalMetadataValidation.Sequence(regional.Content!, regionalSnapshot!,
+                applicationSequences, sequence.SequenceNumber,
+                regional.NodeContexts, regional.DocumentContexts, sections, requireContextFields: false);
+            var issue = issues.FirstOrDefault(item => item.Code != "RegionalQualificationPending");
+            if (issue is not null) throw new EuRegionalXmlWriterException($"{issue.FieldPath}: {issue.Code}: {issue.Message}", issue.FieldPath);
+            EuRegionalXmlWriter.ValidateTypedMetadata(package);
+        }
         return package;
     }
 
-    private static EctdEuRegionalMetadata BuildEuRegionalMetadata(
-        Guid applicationId,
-        string applicationNumber,
-        EctdSequenceMetadata sequence)
+    private static Dictionary<Guid, (int WrapperOrdinal, int TraversalOrdinal)> EuWrapperOrder(
+        Dictionary<(string BackbonePath, string LeafId), (int WrapperOrdinal, int TraversalOrdinal)> archiveOrder,
+        IReadOnlyCollection<DocumentPlacement> placements)
     {
-        var submissionType = NormalizeEuSubmissionType(sequence.SubmissionType);
-        var submissionUnit = NormalizeEuSubmissionUnit(sequence.SubmissionSubtype, sequence.SubmissionType);
-        return new EctdEuRegionalMetadata(
-            applicationId.ToString("D"),
-            "ema",
-            submissionType,
-            null,
-            null,
-            [applicationNumber],
-            submissionUnit,
-            sequence.ApplicantName,
-            "EU-EMA",
-            "centralised",
-            [applicationNumber],
-            [],
-            sequence.SequenceNumber,
-            [sequence.SequenceNumber],
-            sequence.Description,
-            "ema",
-            "en",
-            "combined");
-    }
-
-    private static string NormalizeEuSubmissionType(string value)
-    {
-        var normalized = value.Trim().ToLowerInvariant().Replace(' ', '-');
-        return normalized is "initial" or "original-application" ? "maa" : normalized;
-    }
-
-    private static string NormalizeEuSubmissionUnit(string? subtype, string submissionType)
-    {
-        var candidate = string.IsNullOrWhiteSpace(subtype) ? submissionType : subtype;
-        var normalized = candidate.Trim().ToLowerInvariant().Replace(' ', '-');
-        return normalized is "original-application" or "maa" ? "initial" : normalized;
+        var result = new Dictionary<Guid, (int WrapperOrdinal, int TraversalOrdinal)>();
+        foreach (var placement in placements.Where(placement => placement.ImportedSource is not null && placement.CtdSection.StartsWith("m1.", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (!archiveOrder.TryGetValue((placement.ImportedSource!.BackboneRelativePath, placement.LeafId), out var order))
+            {
+                var field = $"module1Leaves[{placement.Id:D}].importedSource";
+                throw new EuRegionalXmlWriterException($"{field}: requires the exact archived backbone path and leaf ID to establish original wrapper order.", field);
+            }
+            result[placement.Id] = order;
+        }
+        return result;
     }
 
     private EctdLeaf[] BuildLeaves(
@@ -193,14 +203,19 @@ public sealed class EctdPackageModelBuilder(
         IReadOnlyDictionary<Guid, DocumentPlacement> placementById,
         IReadOnlyDictionary<Guid, SubmissionDocument> documentById,
         StandardsProfile profile,
-        IReadOnlyDictionary<Guid, int>? regionalOrder)
+        IReadOnlyDictionary<Guid, int>? regionalOrder,
+        IReadOnlyDictionary<Guid, (int WrapperOrdinal, int TraversalOrdinal)>? euWrapperOrder)
     {
         return placements
             .OrderBy(x => x.CtdSection, StringComparer.OrdinalIgnoreCase)
+            // EU imported wrappers carry local sibling SortOrder values. Preserve each
+            // archived parent wrapper first, then permit explicit sorting inside it.
+            .ThenBy(x => euWrapperOrder?.GetValueOrDefault(x.Id, (WrapperOrdinal: int.MaxValue, TraversalOrdinal: int.MaxValue)).WrapperOrdinal ?? int.MaxValue)
             .ThenBy(x => x.SortOrder)
             // Imported form wrappers have independent local sibling orders. Their persisted
             // exact placement-context order retains XML traversal order when those values tie.
-            .ThenBy(x => x.ImportedSource is not null && x.CtdSection.StartsWith("m1.", StringComparison.OrdinalIgnoreCase) && regionalOrder is not null
+            .ThenBy(x => euWrapperOrder is not null ? euWrapperOrder.GetValueOrDefault(x.Id, (WrapperOrdinal: int.MaxValue, TraversalOrdinal: int.MaxValue)).TraversalOrdinal
+                : x.ImportedSource is not null && x.CtdSection.StartsWith("m1.", StringComparison.OrdinalIgnoreCase) && regionalOrder is not null
                 ? regionalOrder.GetValueOrDefault(x.Id, int.MaxValue) : int.MaxValue)
             .ThenBy(x => x.Id)
             .Select(placement => BuildLeaf(application, sequenceNumber, placement, placementById, documentById, profile))
