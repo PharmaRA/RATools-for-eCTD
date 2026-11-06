@@ -143,6 +143,9 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         var run = await Runs.FromSqlInterpolated($"SELECT * FROM package_validation_runs WHERE \"Id\" = {id} FOR UPDATE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
         if (run is null || !run.OwnsLease(token, owner, nowUtc) || run.CancellationRequestedUtc is not null) return false;
+        if (projection is not null && (projection.ApplicationId != run.ApplicationId || projection.TargetSequence != run.SequenceNumber ||
+            projection.ProfileSnapshotId != run.Binding.ProfileSnapshotId || projection.LimitsDigest != run.Binding.ResourceLimitsDigest))
+            throw new ArgumentException("An archived projection must describe the exact run identity and profile/limits.", nameof(projection));
         dbContext.Attach(run);
         var archive = new PackageValidationReportRecord { RunId = id, Json = json };
         var projectionJson = projection is null ? null : PackageValidationJson.Write(projection);
@@ -195,16 +198,38 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
             throw new ArgumentException("Unknown finding filter.", nameof(query));
         var severityText = query.Severity?.ToString();
         var statusText = query.Status?.ToString();
-        var ruleIds = PackageFindingFilters.RuleIds(query.Category is null ? null : await GetRunAsync(id, cancellationToken).ConfigureAwait(false), query.Category);
+        var run = await GetRunAsync(id, cancellationToken).ConfigureAwait(false);
+        var report = await GetReportJsonAsync(id, cancellationToken).ConfigureAwait(false);
+        if (report is null)
+        {
+            if (await dbContext.Set<PackageValidationFindingRecord>().AnyAsync(row => row.RunId == id, cancellationToken).ConfigureAwait(false))
+                throw new InvalidDataException("Finding rows have no committed report.");
+            return new([], 0, query.Offset, query.Limit);
+        }
+        var ruleIds = PackageFindingFilters.RuleIds(run, query.Category);
+        var expected = PackageValidationJson.ReportFindings(report).Select((finding, ordinal) => (Finding: finding, Ordinal: ordinal))
+            .Where(item => PackageValidationJson.Matches(item.Finding, query, ruleIds)).ToArray();
         var rows = dbContext.Set<PackageValidationFindingRecord>().AsNoTracking().Where(row => row.RunId == id &&
             (query.RuleId == null || row.RuleId == query.RuleId) && (severityText == null || row.Severity == severityText) &&
             (statusText == null || row.Status == statusText) && (query.LogicalPath == null || row.LogicalPath == query.LogicalPath) &&
             (query.NodePath == null || row.NodePath != null && row.NodePath.Contains(query.NodePath)));
         if (ruleIds is not null) rows = rows.Where(row => ruleIds.Contains(row.RuleId));
         var count = await rows.CountAsync(cancellationToken).ConfigureAwait(false);
-        var json = await rows.OrderBy(row => row.Ordinal).Skip(query.Offset).Take(query.Limit).Select(row => row.Json)
+        var page = await rows.OrderBy(row => row.Ordinal).Skip(query.Offset).Take(query.Limit)
             .ToArrayAsync(cancellationToken).ConfigureAwait(false);
-        return new(json.Select(PackageValidationJson.Read<ValidationFinding>).ToArray(), count, query.Offset, query.Limit);
+        var expectedPage = expected.Skip(query.Offset).Take(query.Limit).ToArray();
+        if (count != expected.Length || page.Length != expectedPage.Length)
+            throw new InvalidDataException("The finding page count differs from the committed report.");
+        for (var index = 0; index < page.Length; index++)
+        {
+            var row = page[index]; var item = expectedPage[index]; var finding = item.Finding;
+            PackageValidationJson.VerifyFinding(row.Json, finding);
+            if (row.Ordinal != item.Ordinal || row.RuleId != finding.RuleId ||
+                row.Severity != finding.Severity.ToString() || row.Status != finding.CheckStatus.ToString() ||
+                row.LogicalPath != finding.Location.LogicalPath || row.NodePath != finding.Location.NodePath)
+                throw new InvalidDataException("A finding row differs from its ordinal and content in the committed report.");
+        }
+        return new(expectedPage.Select(item => item.Finding).ToArray(), expected.Length, query.Offset, query.Limit);
     }
 
     public async Task<bool> RegisterExternalComparisonAsync(ExternalComparisonReport evidence, CancellationToken cancellationToken = default)
@@ -257,7 +282,9 @@ public sealed class EfCorePackageValidationStore(RAToolsDbContext dbContext) : I
         if (row is null) return null;
         if (PackageValidationJson.Hash(row.Json) != row.Sha256)
             throw new InvalidDataException("The archived projection digest differs from its committed hash.");
-        return row.Json;
+        var run = await GetRunAsync(id, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("The archived projection has no run.");
+        return PackageValidationJson.VerifyProjection(row.Json, run);
     }
 
     public async Task<ExternalComparisonEvidence?> GetExternalComparisonAsync(Guid runId, CancellationToken cancellationToken = default)

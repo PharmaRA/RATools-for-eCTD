@@ -113,6 +113,9 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
         {
             var run = _runs.GetValueOrDefault(id);
             if (run is null || !run.OwnsLease(token, owner, nowUtc) || run.CancellationRequestedUtc is not null) return Task.FromResult(false);
+            if (projection is not null && (projection.ApplicationId != run.ApplicationId || projection.TargetSequence != run.SequenceNumber ||
+                projection.ProfileSnapshotId != run.Binding.ProfileSnapshotId || projection.LimitsDigest != run.Binding.ResourceLimitsDigest))
+                throw new ArgumentException("An archived projection must describe the exact run identity and profile/limits.", nameof(projection));
             var json = PackageValidationJson.Write(report);
             run.Complete(token, owner, nowUtc, report, PackageValidationJson.Hash(json));
             _reports.Add(id, json);
@@ -127,7 +130,7 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
             return Task.FromResult(_projections.TryGetValue(id, out var projection)
-                ? PackageValidationJson.Write(projection) : null);
+                ? PackageValidationJson.VerifyProjection(PackageValidationJson.Write(projection), _runs[id]) : null);
     }
 
     public Task<int> RecoverExpiredAsync(DateTime nowUtc, int maxAttempts, CancellationToken cancellationToken = default)
@@ -156,11 +159,9 @@ public sealed class InMemoryPackageValidationStore : IPackageValidationStore
         lock (_gate)
         {
             var ruleIds = PackageFindingFilters.RuleIds(_runs.GetValueOrDefault(id), query.Category);
-            var items = _findings.GetValueOrDefault(id, []).Where(finding =>
-                (query.RuleId is null || finding.RuleId == query.RuleId) && (query.Severity is null || finding.Severity == query.Severity) &&
-                (query.Status is null || finding.CheckStatus == query.Status) && (query.LogicalPath is null || finding.Location.LogicalPath == query.LogicalPath) &&
-                (ruleIds is null || ruleIds.Contains(finding.RuleId, StringComparer.Ordinal)) &&
-                (query.NodePath is null || finding.Location.NodePath?.Contains(query.NodePath, StringComparison.Ordinal) == true)).ToArray();
+            var findings = _reports.TryGetValue(id, out var report)
+                ? PackageValidationJson.ReportFindings(PackageValidationJson.VerifyReport(report, _runs[id].ReportSha256!, _runs[id].Binding)) : [];
+            var items = findings.Where(finding => PackageValidationJson.Matches(finding, query, ruleIds)).ToArray();
             return Task.FromResult(new PackageValidationPage<ValidationFinding>(items.Skip(query.Offset).Take(query.Limit).ToArray(), items.Length, query.Offset, query.Limit));
         }
     }
