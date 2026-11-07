@@ -6,12 +6,22 @@ internal static class SelectedTests
 {
     private static async Task<int> Main(string[] args)
     {
+#if CAPTURE
+        Type[] suites = [typeof(RATools.Tests.Finalization.ReleaseCaptureServiceTests),
+            typeof(RATools.Tests.Finalization.ReleaseCaptureBindingIntegrationTests),
+            typeof(RATools.Tests.Finalization.RegionalMetadataCaptureTests),
+            typeof(RATools.Tests.Finalization.FinalizationServiceTests),
+            typeof(RATools.Tests.Finalization.ReleaseDeliveryPackageTests),
+            typeof(RATools.Tests.Finalization.ReleaseCaptureTests)];
+        int[] expected = [18, 2, 4, 9, 13, 6];
+#else
         Type[] suites = [typeof(RATools.Tests.DocumentProcessing.QpdfConcurrencyTests),
             typeof(RATools.Tests.DocumentProcessing.QpdfProcessingEngineTests),
             typeof(RATools.Tests.DocumentProcessing.QpdfNavigationIntegrityTests),
             typeof(RATools.Tests.DocumentProcessing.PdfContentResourceTests),
             typeof(RATools.Tests.DocumentProcessing.PdfContentWorkflowTests)];
         int[] expected = [7, 19, 10, 5, 6];
+#endif
         var results = new List<object>(); var counts = new List<object>();
         var passed = 0; var failed = 0; var skipped = 0;
         foreach (var (suite, suiteIndex) in suites.Select((suite, index) => (suite, index)))
@@ -53,6 +63,6 @@ internal static class SelectedTests
         }
         await File.WriteAllTextAsync(args[0], JsonSerializer.Serialize(new { passed, failed, skipped, suites = counts, cases = results }));
         Console.WriteLine($"TOTAL passed={passed} failed={failed} skipped={skipped}");
-        return failed == 0 && skipped == 0 && passed == 47 ? 0 : 1;
+        return failed == 0 && skipped == 0 && passed == expected.Sum() ? 0 : 1;
     }
 }

@@ -69,14 +69,14 @@ def dependencies(project):
     return tree, references, list(generators.values())
 
 
-def compile_sources(name, sources, references, generators, tree=None, executable=False, extra_usings=()):
+def compile_sources(name, sources, references, generators, tree=None, executable=False, extra_usings=(), defines=()):
     generated = out / (name + '.GlobalUsings.cs')
     product_version = (root / 'VERSION').read_text().strip()
     if not re.fullmatch(r'\d+\.\d+\.\d+', product_version): raise RuntimeError('Review changed assembly version format')
     generated.write_text(''.join('global using ' + item + ';\n' for item in [*common, *extra_usings]) +
                          '[assembly: System.Reflection.AssemblyVersion("' + product_version + '.0")]\n')
     arguments = ['-nologo', '-target:' + ('exe' if executable else 'library'), '-langversion:12', '-nullable:enable',
-                 '-warnaserror+', '-nowarn:1701', '-define:NET8_0;NET;NETCOREAPP', '-out:' + str(out / (name + '.dll'))]
+                 '-warnaserror+', '-nowarn:1701', '-define:' + ';'.join(['NET8_0', 'NET', 'NETCOREAPP', *defines]), '-out:' + str(out / (name + '.dll'))]
     arguments += ['-r:' + str(path) for path in references.values()]
     for path in references.values(): dependency_hashes[name + '/reference/' + path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
     analyzer_root = sdk / ('sdk/' + version + '/Sdks/Microsoft.NET.Sdk/analyzers')
@@ -131,7 +131,7 @@ try:
     target = '.NETCoreApp,Version=v8.0'
     (out / 'RATools.Api.deps.json').write_text(json.dumps({'runtimeTarget': {'name': target}, 'targets': {target: {'RATools.Api/0.1.0': {
         'runtime': {path.name: {} for path in out.glob('*.dll')}}}}, 'libraries': {'RATools.Api/0.1.0': {'type': 'project', 'serviceable': False, 'sha512': ''}}}))
-    if sys.argv[2] == 'pdf':
+    if sys.argv[2] in {'pdf', 'capture'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
         for path in layers.values(): (out / path.name).write_bytes(path.read_bytes())
@@ -142,18 +142,23 @@ try:
                 destination.write_bytes(path.read_bytes())
         project = root / 'tests/RATools.Tests/RATools.Tests.csproj'; capture(project)
         _, packages, generators = dependencies(project)
-        names = ['QpdfConcurrencyTests', 'QpdfProcessingEngineTests', 'QpdfNavigationIntegrityTests', 'PdfContentResourceTests', 'PdfContentWorkflowTests']
-        sources = [root / 'tests/RATools.Tests/DocumentProcessing' / (name + '.cs') for name in names]
+        if sys.argv[2] == 'pdf':
+            names = ['QpdfConcurrencyTests', 'QpdfProcessingEngineTests', 'QpdfNavigationIntegrityTests', 'PdfContentResourceTests', 'PdfContentWorkflowTests']
+            directory = 'DocumentProcessing'
+        else:
+            names = ['ReleaseCaptureServiceTests', 'ReleaseCaptureBindingIntegrationTests', 'RegionalMetadataCaptureTests', 'FinalizationServiceTests', 'ReleaseDeliveryPackageTests', 'ReleaseCaptureTests']
+            directory = 'Finalization'
+        sources = [root / 'tests/RATools.Tests' / directory / (name + '.cs') for name in names]
         sources.append(root / 'scripts/local-check/SelectedTests.cs')
-        compile_sources('SelectedTests', sources, {**frameworks, **packages, **layers}, generators, executable=True, extra_usings=['Xunit'])
+        compile_sources('SelectedTests', sources, {**frameworks, **packages, **layers}, generators, executable=True, extra_usings=['Xunit'], defines=['CAPTURE'] if sys.argv[2] == 'capture' else [])
         (out / 'SelectedTests.runtimeconfig.json').write_text(json.dumps(runtime))
         summary['category'] = 'test-failed'
         with (evidence / 'tests.log').open('w', encoding='utf-8') as log:
             result = subprocess.run([str(dotnet), str(out / 'SelectedTests.dll'), str(evidence / 'tests.json')], cwd=root, env=env,
                                     stdout=log, stderr=subprocess.STDOUT)
-        summary['steps'].append({'name': 'pdf-tests', 'exitCode': result.returncode, 'log': 'tests.log'})
-        print('PDF tests: exit ' + str(result.returncode), flush=True)
-        if result.returncode: raise RuntimeError('PDF tests failed; see tests.log')
+        summary['steps'].append({'name': sys.argv[2] + '-tests', 'exitCode': result.returncode, 'log': 'tests.log'})
+        print(sys.argv[2] + ' tests: exit ' + str(result.returncode), flush=True)
+        if result.returncode: raise RuntimeError('Selected tests failed; see tests.log')
         summary['tests'] = {key: value for key, value in json.loads((evidence / 'tests.json').read_text()).items() if key != 'cases'}
     summary.update(exitCode=0, category='passed', sdk=version, runtime=runtime_version)
 except Exception as error:
