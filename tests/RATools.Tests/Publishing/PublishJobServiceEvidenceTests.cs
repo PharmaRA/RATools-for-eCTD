@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Security;
@@ -22,7 +23,7 @@ public sealed class PublishJobServiceEvidenceTests
     [Fact]
     public async Task ExecuteAsync_StoresIntegrityEvidenceInExecutionReport()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-service-evidence-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
 
         try
@@ -69,7 +70,7 @@ public sealed class PublishJobServiceEvidenceTests
         {
             if (Directory.Exists(root))
             {
-                Directory.Delete(root, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(root);
             }
         }
     }
@@ -77,7 +78,7 @@ public sealed class PublishJobServiceEvidenceTests
     [Fact]
     public async Task ExecuteAsync_StopsBeforeBackboneGenerationWhenPublishReadinessBlocks()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-service-readiness-blocked-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
 
         try
@@ -123,7 +124,7 @@ public sealed class PublishJobServiceEvidenceTests
         {
             if (Directory.Exists(root))
             {
-                Directory.Delete(root, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(root);
             }
         }
     }

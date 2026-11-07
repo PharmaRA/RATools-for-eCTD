@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RATools.Application;
@@ -19,7 +20,7 @@ public sealed class EctdPackageModelBuilderTests
     [Fact]
     public async Task BuildAsync_RejectsDocumentOwnedByAnotherApplicationBeforeReadingSourceFile()
     {
-        var allowedRoot = Path.Combine(Path.GetTempPath(), $"package-boundary-{Guid.NewGuid():N}");
+        var allowedRoot = RetainedPackageTestFiles.Create();
         var applicationRoot = Path.Combine(allowedRoot, "app-a");
         var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
         Directory.CreateDirectory(applicationRoot);
@@ -73,7 +74,7 @@ public sealed class EctdPackageModelBuilderTests
         }
         finally
         {
-            Directory.Delete(allowedRoot, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(allowedRoot);
         }
     }
 

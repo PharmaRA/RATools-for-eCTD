@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
@@ -35,7 +36,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
     [Fact]
     public async Task ExecuteAsync_PublishesRealEctdDeliveryPackageWithRegionalAndIchArtifacts()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-real-ectd-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
 
         try
@@ -119,9 +120,19 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             Assert.NotNull(report.ArtifactSummary);
             Assert.True(report.ArtifactSummary!.FileCount >= 5);
             Assert.NotNull(report.AuditSummary);
-            Assert.Equal(3, report.AuditSummary!.PublishJobEventCount);
+            // QA-02 freezes the readable report before the terminal commit/audit.
+            Assert.Equal(2, report.AuditSummary!.PublishJobEventCount);
             Assert.Equal(1, report.AuditSummary.ValidationEventCount);
-            Assert.Equal("Completed", report.AuditSummary.LatestPublishJobAction);
+            Assert.Equal("Started", report.AuditSummary.LatestPublishJobAction);
+            var liveJobAudit = (await auditLogService.ListAsync())
+                .Where(entry => entry.EntityType == "PublishJob" && entry.EntityId == report.PublishJob.Id.ToString()).ToArray();
+            Assert.Collection(liveJobAudit,
+                entry => Assert.Equal("Created", entry.Action),
+                entry => Assert.Equal("Started", entry.Action),
+                entry => Assert.Equal("Completed", entry.Action));
+            var reopened = await service.GetExecutionReportAsync(report.PublishJob.Id);
+            Assert.NotNull(reopened);
+            Assert.Equal(report.AuditSummary, reopened.AuditSummary);
 
             Assert.Equal("Completed", report.PublishJob.Status);
             Assert.NotNull(report.PublishJob.OutputPath);
@@ -174,7 +185,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
         {
             if (Directory.Exists(root))
             {
-                Directory.Delete(root, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(root);
             }
         }
     }

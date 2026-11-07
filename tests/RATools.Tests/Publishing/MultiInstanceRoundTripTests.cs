@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Text.Json;
 using RATools.Application.PackageValidation;
 using RATools.Application.Publishing.Dtos;
@@ -172,7 +173,7 @@ public sealed class MultiInstanceRoundTripTests
 
     private sealed class CaptureRoot : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ratools-roundtrip-captures-" + Guid.NewGuid().ToString("N"));
-        public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+        public string Path { get; } = RetainedPackageTestFiles.Create();
+        public void Dispose() { if (Directory.Exists(Path)) RetainedPackageTestFiles.RetainDirectory(Path); }
     }
 }

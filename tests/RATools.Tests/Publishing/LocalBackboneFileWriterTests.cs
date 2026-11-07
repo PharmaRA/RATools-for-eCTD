@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -103,7 +104,7 @@ public sealed class LocalBackboneFileWriterTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -144,7 +145,7 @@ public sealed class LocalBackboneFileWriterTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -184,19 +185,30 @@ public sealed class LocalBackboneFileWriterTests
                 "0001.zip",
                 []);
 
+            var recycle = Path.Combine(jobsRoot, "_recycle");
+            Assert.True(Directory.Exists(recycle));
             var survivingJobDirectories = Directory.GetDirectories(jobsRoot)
+                .Where(path => path != recycle)
                 .Select(Path.GetFileName)
                 .ToArray();
-            // 保留 2 份：本次 + 最新的一份历史；两份较旧历史被清理。
+            // Two active jobs; both older jobs retain their original bytes in recycle.
             Assert.Equal(2, survivingJobDirectories.Length);
             Assert.Contains(newJobId.ToString("N"), survivingJobDirectories);
             Assert.Contains(oldJobIds[0].ToString("N"), survivingJobDirectories);
+            var recycled = Directory.GetFileSystemEntries(recycle);
+            Assert.Equal(2, recycled.Length);
+            foreach (var oldId in oldJobIds.Skip(1))
+            {
+                Assert.False(Directory.Exists(Path.Combine(jobsRoot, oldId.ToString("N"))));
+                var retained = Assert.Single(recycled, path => Path.GetFileName(path).StartsWith(oldId.ToString("N") + "-", StringComparison.Ordinal));
+                Assert.Equal("<ectd:ectd />", await File.ReadAllTextAsync(Path.Combine(retained, "0001", "index.xml")));
+            }
             // 交付物目录不受保留策略影响。
             Assert.True(Directory.Exists(artifactsRoot));
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -228,7 +240,7 @@ public sealed class LocalBackboneFileWriterTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -260,7 +272,7 @@ public sealed class LocalBackboneFileWriterTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -306,13 +318,13 @@ public sealed class LocalBackboneFileWriterTests
         }
         finally
         {
-            DeleteIfExists(container);
+            RetainIfExists(container);
         }
     }
 
     private static string CreateTempRoot()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"local-backbone-writer-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
         return root;
     }
@@ -324,11 +336,11 @@ public sealed class LocalBackboneFileWriterTests
         return Convert.ToHexString(md5.ComputeHash(stream)).ToLowerInvariant();
     }
 
-    private static void DeleteIfExists(string path)
+    private static void RetainIfExists(string path)
     {
         if (Directory.Exists(path))
         {
-            Directory.Delete(path, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(path);
         }
     }
 }

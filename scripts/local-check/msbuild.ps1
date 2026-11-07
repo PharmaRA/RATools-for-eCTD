@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -19,6 +19,7 @@ if($RunSelectedTests -and $TestGroup -eq 'contracts') { $summary.task='msbuild-c
 if($RunSelectedTests -and $TestGroup -eq 'import') { $summary.task='msbuild-import'; $summary.scope='Windows actual MSBuild plus real VSTest for 3 explicit classes/42 expected import and lifecycle cases; InMemory and EF InMemory provider; not PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'nodes') { $summary.task='msbuild-nodes'; $summary.scope='Windows actual MSBuild plus real VSTest for 2 explicit classes/34 expected node publication and import cases; InMemory; not PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'package') { $summary.task='msbuild-package'; $summary.scope='Windows actual MSBuild plus real VSTest for 6 explicit classes/189 expected independent package validation cases; retained fixture files; not PostgreSQL, full suite, fresh restore or Formal qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'publishing') { $summary.task='msbuild-publishing'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 explicit classes/70 expected publication cases; retained fixture files and InMemory stores; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -185,15 +186,31 @@ public static class MsbuildDeleteAccessProbe {
             $expectedTotal = 189
             foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
         }
+        if($TestGroup -eq 'publishing') {
+            $selected=@{
+                'RATools.Tests.Publishing.LocalBackboneFileWriterTests'=26
+                'RATools.Tests.Publishing.PublishOutputVerifierTests'=18
+                'RATools.Tests.Publishing.PublishJobServiceEvidenceTests'=2
+                'RATools.Tests.Publishing.PublishValidationBindingTests'=2
+                'RATools.Tests.Publishing.PackageModel.EctdPackageModelBuilderTests'=19
+                'RATools.Tests.Publishing.MultiInstanceRoundTripTests'=2
+                'RATools.Tests.Publishing.PublishJobServiceRealEctdIntegrationTests'=1
+            }
+            $expectedTotal=70
+            foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
-        if($TestGroup -eq 'package') {
+        if($TestGroup -in @('package','publishing')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }
-        if($TestGroup -in @('import','nodes')) {
+        if($TestGroup -eq 'publishing') {
+            foreach($path in @('tests/RATools.Tests/Publishing/NodePublishingTests.cs','tests/RATools.Tests/Applications/ApplicationImportNodeTests.cs')) { $selectedSources += Join-Path $repo $path }
+        }
+        if($TestGroup -in @('import','nodes','publishing')) {
             foreach($path in @('tests/RATools.Tests/TestDoubles/EctdWorkspaceFixture.cs','tests/RATools.Tests/TestDoubles/PackageTestServices.cs','tests/RATools.Tests/Applications/ImportTestServices.cs','tests/RATools.Tests/Applications/RegionalImportAcceptanceTests.cs')) {
                 $selectedSources += Join-Path $repo $path
             }

@@ -17,3 +17,7 @@ Windows local acceptance, 2026-11-06, baseline c05ba46:
 - Actual PostgreSQL 16.14: completed attempt/report readable after a new context, and terminal commit response loss correctly recognized after timestamp round trip: 2 pass. Dedicated cluster has 31 migrations; no schema change in this repair.
 
 Backups `backups/qa-02-20261106/`; evidence/runners `.artifacts/qa-02-20261106/`. Two historical disk/retention tests contain physical deletion and were not executed; standard whole test project has existing compile blockers recorded in QA-00. Browser/Linux/full-suite and regulatory qualification are unrun. Economic-model bounded read-only code review PASS, with no build/test/file-write operations by the reviewer; those broader gates remain unproven.
+
+## Audit snapshot acceptance (2026-11-07)
+
+The report's `AuditSummary` is a frozen observation taken before the terminal state and Completed audit event are persisted. In the real local publication integration fixture, the report contains two job events and latest action Started; the live audit contains Created, Started and Completed. Reopening the stored report preserves its original AuditSummary. This is the QA-02 ordering above, not a missing terminal audit event. The old expectation of three events inside the already-written report was reproduced and corrected with assertions for both the frozen report and the live terminal audit. See the publishing70 group in `QA-07-ACCEPTANCE.md`; this supplements the historical acceptance section without replacing its original evidence.

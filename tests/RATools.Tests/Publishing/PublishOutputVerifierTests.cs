@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using RATools.Application.Publishing;
 
@@ -34,7 +35,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -62,7 +63,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -90,7 +91,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -124,7 +125,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -158,7 +159,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -186,7 +187,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -210,7 +211,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -239,7 +240,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -269,7 +270,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -303,7 +304,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -335,7 +336,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -367,7 +368,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -395,7 +396,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -423,7 +424,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -456,7 +457,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -485,7 +486,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -515,7 +516,7 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
@@ -546,13 +547,13 @@ public sealed class PublishOutputVerifierTests
         }
         finally
         {
-            DeleteIfExists(root);
+            RetainIfExists(root);
         }
     }
 
     private static string CreateTempRoot()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-evidence-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
         return root;
     }
@@ -590,11 +591,11 @@ public sealed class PublishOutputVerifierTests
         ZipFile.CreateFromDirectory(sourceDirectory, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
     }
 
-    private static void DeleteIfExists(string path)
+    private static void RetainIfExists(string path)
     {
         if (Directory.Exists(path))
         {
-            Directory.Delete(path, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(path);
         }
     }
 }

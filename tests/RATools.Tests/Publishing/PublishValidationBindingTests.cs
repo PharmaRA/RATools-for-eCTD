@@ -53,7 +53,7 @@ public sealed class PublishValidationBindingTests
         public InMemoryPublishJobRepository Repository { get; } = new();
         public InMemoryPackageValidationStore Validation { get; } = new();
         public PublishJobService Service { get; }
-        private readonly string _root = Path.Combine(Path.GetTempPath(), $"publish-binding-{Guid.NewGuid():N}");
+        private readonly string _root = RetainedPackageTestFiles.Create();
 
         public Context()
         {
@@ -87,7 +87,7 @@ public sealed class PublishValidationBindingTests
 
         public ValueTask DisposeAsync()
         {
-            if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+            if (Directory.Exists(_root)) RetainedPackageTestFiles.RetainDirectory(_root);
             return ValueTask.CompletedTask;
         }
     }
