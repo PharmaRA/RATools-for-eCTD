@@ -89,7 +89,11 @@ try:
     if not minimum or version < tuple(map(int, minimum.groups())):
         raise RuntimeError("Remote Node does not satisfy the supported engine rule: " + requirement)
     summary["nodeRequirement"] = requirement
-    run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
+    if config.get('verifiedFrontend'):
+        run('frontend-mismatch', [sys.executable, 'scripts/remote-check/verified-frontend.test.py'], root, 'test-failed')
+        run('verified-frontend', [sys.executable, 'scripts/remote-check/verified-frontend.py'], root, 'frontend-evidence-mismatch')
+    else:
+        run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
     frontend = root / "frontend"
     node_command = ["node", "--import", "../scripts/remote-check/no-delete.mjs"]
     if config.get("scope") in {"backend-browser", "backend-pg-browser"}:
@@ -116,10 +120,11 @@ try:
             raise RuntimeError("Test totals do not establish a complete selected run")
         summary["tests"] = {"passed": report["numPassedTests"], "failed": 0, "skipped": 0, "files": config["testFiles"]}
     else:
-        run("types-app", node_command + ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.app.json"], frontend, "build-failed")
-        run("types-config", node_command + ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.node.json"], frontend, "build-failed")
-        run("vite", node_command + ["node_modules/vite/bin/vite.js", "build", "--configLoader", "runner", "--emptyOutDir", "false"], frontend, "build-failed")
-        run("budget", node_command + ["scripts/check-bundle-budget.mjs"], frontend, "build-failed")
+        if not config.get('verifiedFrontend'):
+            run("types-app", node_command + ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.app.json"], frontend, "build-failed")
+            run("types-config", node_command + ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.node.json"], frontend, "build-failed")
+            run("vite", node_command + ["node_modules/vite/bin/vite.js", "build", "--configLoader", "runner", "--emptyOutDir", "false"], frontend, "build-failed")
+            run("budget", node_command + ["scripts/check-bundle-budget.mjs"], frontend, "build-failed")
         if config.get("browserProbe"):
             run("browser", node_command + ["../scripts/remote-check/browser-finalization.mjs"], frontend, "browser-test-failed")
         if config.get("scope") in {"backend-browser", "backend-pg-browser"}:

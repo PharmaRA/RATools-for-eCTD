@@ -7,6 +7,7 @@ param(
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
     [string[]]$LintFiles = @(),
+    [ValidatePattern('^[0-9]{8}T[0-9]{6}-[a-f0-9]{32}$')][string]$VerifiedFrontendRun,
     [switch]$BrowserProbe,
     [ValidateRange(1, 180)][int]$WaitMinutes = 30,
     [string]$Resume
@@ -14,6 +15,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if ($BrowserProbe -and $Task -ne 'build') { throw 'BrowserProbe requires -Task build so it uses the current production output.' }
 if ($Scope -ne 'frontend' -and ($BrowserProbe -or $LintFiles.Count)) { throw 'BrowserProbe and LintFiles require frontend scope.' }
+if ($VerifiedFrontendRun -and ($Task -ne 'test' -or $Scope -ne 'backend-pg-browser' -or $Resume)) { throw 'VerifiedFrontendRun requires a new backend-pg-browser test.' }
 $repo = Split-Path -Parent $PSScriptRoot
 # An already-running parent application may not inherit a newly persisted user
 # variable. Pass only this named variable to children, never print or serialize it.
@@ -94,7 +96,7 @@ if ($Resume) {
             $files.Add($relative)
         }
     }
-    foreach ($name in @('job.py', 'manager-launch.py', 'manager-launch.test.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
+    foreach ($name in @('job.py', 'verified-frontend.py', 'verified-frontend.test.py', 'manager-launch.py', 'manager-launch.test.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
         $files.Add("scripts/remote-check/$name")
     }
     if ($Scope -in @('backend-browser', 'backend-pg-browser', 'linux-resources')) {
@@ -163,6 +165,12 @@ if ($Resume) {
             try { $stream.Write($bytes) } finally { $stream.Dispose() }
         }
         $config = @{ task = $Task; scope = $Scope; testFiles = $TestFiles; lintFiles = $LintFiles; browserProbe = [bool]$BrowserProbe; sourceHead = (& git -C $repo rev-parse HEAD) }
+        if ($VerifiedFrontendRun) {
+            $previous = Get-Content -LiteralPath (Join-Path $repo ".artifacts/remote-check/$VerifiedFrontendRun/run.json") -Raw | ConvertFrom-Json
+            if ($previous.machine -ne $Machine -or $previous.remote -cnotmatch '^/(data/home|tmp)/ratools-remote/[a-zA-Z0-9_-]+$' -or
+                $previous.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Frontend source run identity is invalid.' }
+            $config.verifiedFrontend = @{ remote = $previous.remote; sourceSha256 = $previous.sourceSha256 }
+        }
         $entry = $archive.CreateEntry('job-config.json')
         $writer = [IO.StreamWriter]::new($entry.Open())
         try { $writer.Write(($config | ConvertTo-Json -Depth 5)) } finally { $writer.Dispose() }
