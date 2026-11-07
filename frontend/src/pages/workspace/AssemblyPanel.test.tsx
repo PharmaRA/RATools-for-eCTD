@@ -211,6 +211,9 @@ it('exports diagnosis cells as quoted text with formula prefixes neutralized', a
   vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json({ ...previewPlan, plan: { ...previewPlan.plan,
     diagnostics: [{ code: 'EXTERNAL', message: '=HYPERLINK("external")' }] } })))
   render(); await prepare(); await click('导出问题清单')
+  // The component releases the download URL after the browser has consumed it.
+  // Finish that work before afterEach restores jsdom's URL without this API.
+  await vi.waitFor(() => expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:diagnostics'), { timeout: 2000 })
   const blob = create.mock.calls[0][0] as Blob
   const content = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsText(blob)
