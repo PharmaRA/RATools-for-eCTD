@@ -4,6 +4,7 @@ using RATools.Application.Publishing;
 using RATools.Application.Publishing.Dtos;
 using RATools.Application.Publishing.Requests;
 using RATools.Application.Publishing.EuRegional;
+using RATools.Application.Publishing.UsRegional;
 
 namespace RATools.Api.Controllers;
 
@@ -37,6 +38,10 @@ public sealed class BackboneController(IBackboneService backboneService) : Contr
         catch (EuRegionalXmlWriterException exception)
         {
             return BadRequest(new { code = "EU_REGIONAL_METADATA_MISSING", fieldPath = exception.FieldPath ?? "regionalMetadata.eu", message = exception.Message });
+        }
+        catch (UsRegionalXmlMetadataException exception)
+        {
+            return BadRequest(new { code = "US_REGIONAL_METADATA_MISSING", fieldPath = exception.FieldName, message = exception.Message });
         }
     }
 }
