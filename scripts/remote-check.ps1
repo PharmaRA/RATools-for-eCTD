@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
-    [ValidateSet('frontend', 'linux-platform')][string]$Scope = 'frontend',
+    [ValidateSet('frontend', 'linux-platform', 'backend-browser')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
@@ -79,7 +79,7 @@ if ($Resume) {
     # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
     # node_modules, local CLI/auth state, or backend artifacts are synchronized.
     $files = [Collections.Generic.List[string]]::new()
-    if ($Scope -eq 'frontend') {
+    if ($Scope -in @('frontend', 'backend-browser')) {
     foreach ($name in @('package.json', 'package-lock.json', 'index.html', 'bundle-budget.json',
         'vite.config.ts', 'eslint.config.js', 'postcss.config.js', 'tailwind.config.js',
         'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/check-bundle-budget.mjs')) {
@@ -93,8 +93,28 @@ if ($Resume) {
             $files.Add($relative)
         }
     }
-    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs')) {
+    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
         $files.Add("scripts/remote-check/$name")
+    }
+    if ($Scope -eq 'backend-browser') {
+        foreach ($name in @('global.json', 'Directory.Build.props', 'VERSION',
+            'scripts/remote-check/backend-build.py', 'scripts/remote-check/browser-backend.mjs',
+            'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs')) { $files.Add($name) }
+        foreach ($layer in @('Domain', 'Application', 'Infrastructure', 'Api')) {
+            $projectDirectory = Join-Path $repo "src/RATools.$layer"
+            $projectFile = Join-Path $projectDirectory "RATools.$layer.csproj"
+            $files.Add("src/RATools.$layer/RATools.$layer.csproj")
+            foreach ($item in Get-ChildItem -LiteralPath $projectDirectory -Recurse -File -Filter '*.cs') {
+                $relative = [IO.Path]::GetRelativePath($repo, $item.FullName).Replace('\', '/')
+                if ($relative -notmatch '/(bin|obj|App_Data)/') { $files.Add($relative) }
+            }
+            [xml]$project = Get-Content -LiteralPath $projectFile -Raw
+            foreach ($resource in $project.SelectNodes('//EmbeddedResource')) {
+                $path = [IO.Path]::GetFullPath((Join-Path $projectDirectory $resource.Include))
+                if (-not $path.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Embedded resource is outside workspace.' }
+                $files.Add([IO.Path]::GetRelativePath($repo, $path).Replace('\', '/'))
+            }
+        }
     }
     foreach ($testFile in $TestFiles) {
         if ($testFile -notmatch '^src/[a-zA-Z0-9_./-]+\.test\.tsx?$' -or $testFile.Contains('..') -or

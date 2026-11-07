@@ -61,9 +61,12 @@ try:
     run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
     frontend = root / "frontend"
     node_command = ["node", "--import", "../scripts/remote-check/no-delete.mjs"]
+    if config.get("scope") == "backend-browser":
+        for case in ["spawn", "fetch"]:
+            run("browser-process-" + case, node_command + ["../scripts/remote-check/browser-process.test.mjs", case], frontend, "test-failed")
     if config.get("lintFiles"):
         run("lint", node_command + ["node_modules/eslint/bin/eslint.js", *config["lintFiles"]], frontend, "lint-failed")
-    if config["task"] == "test":
+    if config["task"] == "test" and config.get("scope", "frontend") == "frontend":
         run("tests", node_command + ["../scripts/remote-check/test.mjs"], frontend, "test-failed")
         report = json.loads((results / "tests.json").read_text())
         expected = {str(frontend / name) for name in config["testFiles"]}
@@ -88,6 +91,11 @@ try:
         run("budget", node_command + ["scripts/check-bundle-budget.mjs"], frontend, "build-failed")
         if config.get("browserProbe"):
             run("browser", node_command + ["../scripts/remote-check/browser-finalization.mjs"], frontend, "browser-test-failed")
+        if config.get("scope") == "backend-browser":
+            run("backend-build", [sys.executable, "scripts/remote-check/backend-build.py"], root, "build-failed")
+            if config["task"] == "test":
+                run("capture-recycle", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/CaptureRecycleProbe.dll", "results/capture-recycle"], root, "test-failed")
+                run("backend-browser", node_command + ["../scripts/remote-check/browser-backend.mjs"], frontend, "browser-test-failed")
     summary["category"] = "passed"
     summary["exitCode"] = 0
 except Exception as error:
