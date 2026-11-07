@@ -154,7 +154,7 @@ try:
             summary['steps'].append({'name': name, 'exitCode': result.returncode, 'log': name + '.log'})
             print(name + ': exit ' + str(result.returncode), flush=True)
             if result.returncode: raise RuntimeError(name + ' failed; see its log')
-    if sys.argv[2] in {'pdf', 'capture', 'upload', 'multipart'}:
+    if sys.argv[2] in {'pdf', 'capture', 'upload', 'multipart', 'report'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
         for path in layers.values(): (out / path.name).write_bytes(path.read_bytes())
@@ -171,6 +171,9 @@ try:
         elif sys.argv[2] == 'capture':
             names = ['ReleaseCaptureServiceTests', 'ReleaseCaptureBindingIntegrationTests', 'RegionalMetadataCaptureTests', 'FinalizationServiceTests', 'ReleaseDeliveryPackageTests', 'ReleaseCaptureTests']
             directory = 'Finalization'
+        elif sys.argv[2] == 'report':
+            names = ['PublishReportStoreTests', 'PublishReportAtomicityTests']
+            directory = 'Publishing'
         else:
             names = ['MultipartRetentionTests'] if sys.argv[2] == 'multipart' else ['PackageUploadRetentionTests']
             directory = 'PackageValidation'

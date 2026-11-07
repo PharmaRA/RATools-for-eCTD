@@ -15,7 +15,7 @@ public sealed partial class LocalBackboneFileWriter(
     ILogger<LocalBackboneFileWriter> logger) : IBackboneFileWriter
 {
     [LoggerMessage(EventId = 4001, Level = LogLevel.Information,
-        Message = "Pruned stale publish job run '{StaleJobDirectory}' (retention: {RetainJobRuns}).")]
+        Message = "Recycled stale publish job run '{StaleJobDirectory}' (active retention: {RetainJobRuns}).")]
     private static partial void LogJobRunPruned(ILogger logger, string staleJobDirectory, int retainJobRuns);
 
     [LoggerMessage(EventId = 4002, Level = LogLevel.Warning,
@@ -123,7 +123,7 @@ public sealed partial class LocalBackboneFileWriter(
 
         if (File.Exists(packagePath))
         {
-            File.Delete(packagePath);
+            RecycleOwnedPath(packageDirectory, packagePath, directory: false);
         }
 
         ZipFile.CreateFromDirectory(deliveryRoot, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
@@ -134,9 +134,9 @@ public sealed partial class LocalBackboneFileWriter(
     }
 
     /// <summary>
-    /// 保留策略：每次发布在 _jobs/{jobId} 下产生一份完整交付副本，从不清理会线性
-    /// 吃满磁盘。发布成功后按 LastWriteTimeUtc 保留最近 N 份，只动 _jobs（工作副本），
-    /// _artifacts 与 _packages 是交付物不清理。清理失败绝不让已成功的发布变失败。
+    /// 发布成功后按 LastWriteTimeUtc 保留最近 N 份活动工作副本，其余移入同根回收目录。
+    /// 回收仍占用磁盘，后续保留管理由部署方负责；归档报告和交付 ZIP 不参与工作副本裁剪。
+    /// 回收失败保留原目录，不让已生成的发布结果丢失。
     /// </summary>
     private void PruneOldJobRuns(string jobsRoot, string currentJobIdSegment)
     {
@@ -151,18 +151,28 @@ public sealed partial class LocalBackboneFileWriter(
             return;
         }
 
-        var staleDirectories = new DirectoryInfo(jobsRoot)
-            .GetDirectories()
-            .OrderByDescending(directory => directory.LastWriteTimeUtc)
-            .Skip(retainJobRuns)
-            .Where(directory => !string.Equals(directory.Name, currentJobIdSegment, StringComparison.OrdinalIgnoreCase));
+        DirectoryInfo[] staleDirectories;
+        try
+        {
+            staleDirectories = new DirectoryInfo(jobsRoot)
+                .GetDirectories()
+                .Where(directory => Guid.TryParseExact(directory.Name, "N", out _))
+                .OrderByDescending(directory => directory.LastWriteTimeUtc)
+                .Skip(retainJobRuns)
+                .Where(directory => !string.Equals(directory.Name, currentJobIdSegment, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            TryRetentionLog(() => LogJobRunPruneFailed(logger, exception, jobsRoot));
+            return;
+        }
 
         foreach (var staleDirectory in staleDirectories)
         {
             try
             {
-                // 结构性防线：只删除 _jobs 的直接子目录；拒绝 reparse point，
-                // 防止 junction/symlink 把递归删除引到 _jobs 之外。
+                // Only directly owned job directories may be moved, without following links.
                 var fullPath = Path.GetFullPath(staleDirectory.FullName);
                 if (!IsDescendantPath(jobsRoot, fullPath))
                 {
@@ -171,18 +181,56 @@ public sealed partial class LocalBackboneFileWriter(
 
                 if ((staleDirectory.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
                 {
-                    LogJobRunPruneSkippedReparsePoint(logger, fullPath);
+                    TryRetentionLog(() => LogJobRunPruneSkippedReparsePoint(logger, fullPath));
                     continue;
                 }
 
-                Directory.Delete(fullPath, recursive: true);
-                LogJobRunPruned(logger, fullPath, retainJobRuns);
+                RecycleOwnedPath(jobsRoot, fullPath, directory: true);
+                TryRetentionLog(() => LogJobRunPruned(logger, fullPath, retainJobRuns));
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
-                LogJobRunPruneFailed(logger, exception, staleDirectory.FullName);
+                TryRetentionLog(() => LogJobRunPruneFailed(logger, exception, staleDirectory.FullName));
             }
         }
+    }
+
+    private static void TryRetentionLog(Action log)
+    {
+        try { log(); }
+        catch (Exception)
+        {
+            // Retention diagnostics, including IsEnabled failures, cannot reverse publication.
+        }
+    }
+
+    private static void RecycleOwnedPath(string parent, string source, bool directory)
+    {
+        parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(parent));
+        source = Path.GetFullPath(source);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(source), parent, comparison))
+            throw new InvalidOperationException("Publish retention requires a directly owned path.");
+        EnsureNoReparsePoints(parent, source);
+        if (directory)
+        {
+            var pending = new Stack<string>();
+            pending.Push(source);
+            while (pending.TryPop(out var current))
+                foreach (var entry in Directory.EnumerateFileSystemEntries(current))
+                {
+                    EnsureNoReparsePoints(parent, entry);
+                    if (Directory.Exists(entry)) pending.Push(entry);
+                }
+        }
+        var recycle = ResolveDescendantPath(parent, "_recycle", "Publish recycle root");
+        EnsureNoReparsePoints(parent, recycle);
+        Directory.CreateDirectory(recycle);
+        var destination = ResolveDescendantPath(recycle, Path.GetFileName(source) + "-" + Guid.NewGuid().ToString("N"), "Publish recycle destination");
+        EnsureNoReparsePoints(parent, destination);
+        EnsureNoReparsePoints(parent, source);
+        if (directory) Directory.Move(source, destination);
+        else File.Move(source, destination);
     }
 
     private static string ResolveDeliveryPath(string deliveryRoot, string relativePath)

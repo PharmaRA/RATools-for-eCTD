@@ -6,7 +6,10 @@ internal static class SelectedTests
 {
     private static async Task<int> Main(string[] args)
     {
-#if MULTIPART
+#if REPORT
+        Type[] suites = [typeof(RATools.Tests.Publishing.PublishReportStoreTests), typeof(RATools.Tests.Publishing.PublishReportAtomicityTests)];
+        int[] expected = [14, 2];
+#elif MULTIPART
         Type[] suites = [typeof(RATools.Tests.PackageValidation.MultipartRetentionTests)];
         int[] expected = [6];
 #elif UPLOAD

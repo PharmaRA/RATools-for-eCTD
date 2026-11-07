@@ -1,5 +1,9 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Publishing;
@@ -84,8 +88,10 @@ public sealed class PublishReportStoreTests
         Assert.Equal(reportPath, roundTripped.ReportPath);
     }
 
-    [Fact]
-    public async Task ReadAsync_ReadsArchivedReportAfterWorkDirectoryIsPruned()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReadAsync_ReadsArchivedReportAfterWorkDirectoryIsPruned(bool failedLogger)
     {
         var root = Path.Combine(Path.GetTempPath(), $"publish-report-retention-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
@@ -95,7 +101,7 @@ public sealed class PublishReportStoreTests
             var reportStore = new PublishReportStore(artifactStore);
             var writer = new LocalBackboneFileWriter(
                 Options.Create(new BackboneOutputOptions { RootPath = root, RetainJobRuns = 1 }),
-                NullLogger<LocalBackboneFileWriter>.Instance);
+                failedLogger ? new FaultingRetentionLogger() : NullLogger<LocalBackboneFileWriter>.Instance);
             var firstJob = new PublishJob(Guid.NewGuid(), "0001");
             firstJob.MarkRunning();
             var firstOutput = await writer.SaveAsync(
@@ -120,6 +126,8 @@ public sealed class PublishReportStoreTests
             await reportStore.WriteAsync(CreateReport(secondJob, secondOutput.ReportPath));
 
             Assert.False(Directory.Exists(firstJobDirectory));
+            var retainedJob = Assert.Single(Directory.GetDirectories(Path.Combine(root, firstJob.ApplicationId.ToString("N"), "_jobs", "_recycle")));
+            Assert.Equal("<ectd>first publication</ectd>", await File.ReadAllTextAsync(Path.Combine(retainedJob, "0001", "index.xml")));
             Assert.True(File.Exists(firstOutput.ReportPath));
             Assert.True(File.Exists(firstOutput.PackagePath));
             Assert.True(File.Exists(secondOutput.FilePath));
@@ -139,7 +147,7 @@ public sealed class PublishReportStoreTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            RetainFixture(root);
         }
     }
 
@@ -167,7 +175,7 @@ public sealed class PublishReportStoreTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            RetainFixture(root);
         }
     }
 
@@ -182,6 +190,126 @@ public sealed class PublishReportStoreTests
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => reportStore.ReadAsync(job, cts.Token));
         Assert.Equal(0, store.CallCount);
+    }
+
+    [Fact]
+    public async Task ReplacingExistingPackageRetainsItsOriginalZipBytes()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"publish-report-package-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var writer = new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root, RetainJobRuns = 0 }), NullLogger<LocalBackboneFileWriter>.Instance);
+            var app = Guid.NewGuid();
+            var first = await writer.SaveAsync(app, "0001", Guid.NewGuid(), [new("index.xml", "first bytes")], "report.json", "package.zip", []);
+            var bytes = await File.ReadAllBytesAsync(first.PackagePath);
+            var second = await writer.SaveAsync(app, "0001", Guid.NewGuid(), [new("index.xml", "second bytes")], "report.json", "package.zip", []);
+            var retained = Assert.Single(Directory.GetFiles(Path.Combine(Path.GetDirectoryName(first.PackagePath)!, "_recycle")));
+            Assert.Equal(bytes, await File.ReadAllBytesAsync(retained));
+            using var archive = ZipFile.OpenRead(second.PackagePath);
+            using var reader = new StreamReader(archive.GetEntry("index.xml")!.Open());
+            Assert.Equal("second bytes", await reader.ReadToEndAsync());
+        }
+        finally { RetainFixture(root); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RetentionFailureAndUnownedDirectoryDoNotLosePublishedArtifacts(bool failedLogger)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"publish-report-failure-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var app = Guid.NewGuid(); var firstId = Guid.NewGuid();
+            var writer = new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root, RetainJobRuns = 1 }),
+                failedLogger ? new FaultingRetentionLogger() : NullLogger<LocalBackboneFileWriter>.Instance);
+            var first = await writer.SaveAsync(app, "0001", firstId, [new("index.xml", "keep old job")], "first.json", "first.zip", []);
+            var jobs = Path.Combine(root, app.ToString("N"), "_jobs");
+            Directory.SetLastWriteTimeUtc(Path.Combine(jobs, firstId.ToString("N")), DateTime.UtcNow.AddHours(-1));
+            var foreign = Path.Combine(jobs, "not-a-job"); Directory.CreateDirectory(foreign);
+            await File.WriteAllTextAsync(Path.Combine(foreign, "keep.txt"), "other owner");
+            Directory.SetLastWriteTimeUtc(foreign, DateTime.UtcNow.AddHours(-2));
+            await File.WriteAllTextAsync(Path.Combine(jobs, "_recycle"), "obstruction");
+            var next = await writer.SaveAsync(app, "0001", Guid.NewGuid(), [new("index.xml", "new job")], "next.json", "next.zip", []);
+            Assert.Equal("keep old job", await File.ReadAllTextAsync(first.FilePath));
+            Assert.Equal("other owner", await File.ReadAllTextAsync(Path.Combine(foreign, "keep.txt")));
+            Assert.Equal("new job", await File.ReadAllTextAsync(next.FilePath));
+            Assert.True(File.Exists(first.PackagePath)); Assert.True(File.Exists(next.PackagePath));
+        }
+        finally { RetainFixture(root); }
+    }
+
+    private static void RetainFixture(string root)
+    {
+        var full = Path.GetFullPath(root);
+        var parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath()));
+        if (!string.Equals(Path.GetDirectoryName(full), parent, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+            !Path.GetFileName(full).StartsWith("publish-report-", StringComparison.Ordinal)) throw new InvalidOperationException("Unexpected fixture root.");
+        if ((File.GetAttributes(full) & FileAttributes.ReparsePoint) != 0) throw new InvalidOperationException("Fixture links require inspection.");
+        var recycle = Path.Combine(parent, "ratools-report-tests-recycle");
+        Directory.CreateDirectory(recycle);
+        if ((File.GetAttributes(recycle) & FileAttributes.ReparsePoint) != 0) throw new InvalidOperationException("Recycle links require inspection.");
+        var destination = Path.GetFullPath(Path.Combine(recycle, Path.GetFileName(full) + "-" + Guid.NewGuid().ToString("N")));
+        if (Path.GetDirectoryName(destination) != recycle) throw new InvalidOperationException("Fixture destination escapes recycle.");
+        Directory.Move(full, destination);
+    }
+
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
+    public async Task RetentionEnumerationDenied_DoesNotFailAlreadyGeneratedPackage()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"publish-report-enumeration-{Guid.NewGuid():N}");
+        var app = Guid.NewGuid();
+        var jobs = Path.Combine(root, app.ToString("N"), "_jobs");
+        Directory.CreateDirectory(jobs);
+        var directory = new DirectoryInfo(jobs);
+        var original = directory.GetAccessControl();
+        var aclBackup = Path.Combine(Environment.CurrentDirectory, "backups", "qa-07-local-20261107", "publish-retention", "acl-" + Guid.NewGuid().ToString("N") + ".bin");
+        for (var ancestor = Path.GetDirectoryName(Path.GetFullPath(aclBackup)); ancestor is not null; ancestor = Path.GetDirectoryName(ancestor))
+            if (Path.Exists(ancestor) && (File.GetAttributes(ancestor) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("ACL backup path must not traverse links.");
+        Directory.CreateDirectory(Path.GetDirectoryName(aclBackup)!);
+        var originalDescriptor = original.GetSecurityDescriptorBinaryForm();
+        await using (var backupStream = new FileStream(aclBackup, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            await backupStream.WriteAsync(originalDescriptor);
+        using var identity = WindowsIdentity.GetCurrent();
+        var denied = directory.GetAccessControl();
+        denied.AddAccessRule(new FileSystemAccessRule(identity.User!, FileSystemRights.ListDirectory, InheritanceFlags.None, PropagationFlags.None, AccessControlType.Deny));
+        try
+        {
+            directory.SetAccessControl(denied);
+            Assert.Throws<UnauthorizedAccessException>(() => Directory.GetDirectories(jobs));
+            var writer = new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root, RetainJobRuns = 1 }), NullLogger<LocalBackboneFileWriter>.Instance);
+            var output = await writer.SaveAsync(app, "0001", Guid.NewGuid(), [new("index.xml", "published despite unavailable retention listing")], "report.json", "package.zip", []);
+            Assert.True(File.Exists(output.PackagePath));
+            Assert.Equal("published despite unavailable retention listing", await File.ReadAllTextAsync(output.FilePath));
+        }
+        finally
+        {
+            var restored = directory.GetAccessControl();
+            restored.SetSecurityDescriptorBinaryForm(originalDescriptor, AccessControlSections.Access);
+            directory.SetAccessControl(restored);
+            Assert.Single(Directory.GetDirectories(jobs));
+            RetainFixture(root);
+        }
+    }
+
+    private sealed class WindowsFactAttribute : FactAttribute
+    {
+        public WindowsFactAttribute()
+        {
+            if (!OperatingSystem.IsWindows()) Skip = "Windows ACL enumeration-denial test requires Windows.";
+        }
+    }
+
+    private sealed class FaultingRetentionLogger : ILogger<LocalBackboneFileWriter>
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            => throw new InvalidOperationException("Controlled retention logger failure");
     }
 
     private static LocalPublishArtifactStore CreateLocalArtifactStore(string allowedRoot)
