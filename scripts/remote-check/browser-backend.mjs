@@ -1,4 +1,4 @@
-// Real product API and production UI; synthetic empty US sequence, Development only.
+// Real product API and production UI; synthetic one-page PDF, Development only.
 import assert from 'node:assert/strict'
 import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
@@ -23,6 +23,16 @@ const api = apiStart.process
 let apiLog = '', browserLog = '', browser, socket, failure, base, inspectPage
 api.stdout.on('data', data => { apiLog += data }); api.stderr.on('data', data => { apiLog += data })
 const errors = [], passed = [], facts = {}, downloadEvents = []
+// Independent, deterministic one-page PDF fixture, with real xref offsets.
+const content = 'BT /F1 12 Tf 72 720 Td (Synthetic QA07 evidence) Tj ET\n'
+const objects = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+  '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', `<< /Length ${content.length} >>\nstream\n${content}endstream`]
+let pdfText = '%PDF-1.4\n'; const offsets = [0]
+for (const [index, object] of objects.entries()) { offsets.push(Buffer.byteLength(pdfText)); pdfText += `${index + 1} 0 obj\n${object}\nendobj\n` }
+const xref = Buffer.byteLength(pdfText)
+pdfText += `xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(value => `${String(value).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+const pdfBytes = Buffer.from(pdfText, 'ascii'), pdfSha256 = createHash('sha256').update(pdfBytes).digest('hex')
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 const until = async (fn, label, attempts = 200) => { const deadline = Date.now() + attempts * 150; while (Date.now() < deadline) { if (await fn()) return; await delay(150) } throw Error(`Timed out: ${label}`) }
 const request = async (path, body, expected, method = 'POST') => {
@@ -43,7 +53,7 @@ try {
   facts.application = await request('/api/applications', { applicationNumber: '987654', sponsorName: 'Synthetic QA07 browser fixture',
     ectdTemplateKey: 'us-fda-ectd-3.2.2', workingDirectoryParentPath: workspace })
   const id = facts.application.id, seq = `/api/applications/${id}/sequences/0000`
-  await request(`/api/applications/${id}/sequences`, { sequenceNumber: '0000', submissionType: 'original-application', description: 'Synthetic empty-sequence Development capture' })
+  await request(`/api/applications/${id}/sequences`, { sequenceNumber: '0000', submissionType: 'original-application', description: 'Synthetic nonempty Development capture' })
   facts.before = await request(`${seq}/workspace`)
   facts.missingMetadata = await request('/api/backbone/generate', { applicationId: id, sequenceNumber: '0000' }, 400)
   assert.equal(facts.missingMetadata.code, 'US_REGIONAL_METADATA_MISSING')
@@ -53,6 +63,27 @@ try {
     submissionType: 'original-application', submissionSubtype: 'application', sequenceDescription: 'Synthetic Development evidence',
     applicantName: 'Synthetic QA07', applicantContactName: 'Synthetic contact', applicantContactType: 'regulatory',
     telephone: '0000000000', telephoneNumberType: 'business', email: 'qa07@example.invalid' }, undefined, 'PUT')
+  let tree = await request(`${seq}/nodes`)
+  tree = await request(`${seq}/nodes`, { expectedRevision: tree.workspaceRevision, definitionKey: 'm2-common-technical-document-summaries', attributes: {} })
+  const parent = tree.nodes.find(node => node.definitionKey === 'm2-common-technical-document-summaries')
+  tree = await request(`${seq}/nodes`, { expectedRevision: tree.workspaceRevision, definitionKey: 'm2-2-introduction', parentInstanceId: parent.nodeInstanceId, attributes: {} })
+  const node = tree.nodes.find(node => node.definitionKey === 'm2-2-introduction')
+  const form = new FormData()
+  form.append('expectedRevision', String(tree.workspaceRevision)); form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'qa07-synthetic.pdf')
+  const uploaded = await fetch(base + `${seq}/assembly-sources`, { method: 'POST', headers: { 'X-RA-Tools-Api-Key': apiKey }, body: form })
+  const uploadText = await uploaded.text(); assert.equal(uploaded.status, 200, uploadText)
+  const source = JSON.parse(uploadText); assert.equal(source.sha256, pdfSha256)
+  let plan = await request(`${seq}/assembly-plans`, { expectedRevision: tree.workspaceRevision,
+    manifest: `sourceFile,nodeInstanceId,fileName,operation,title\n${source.sourceFile},${node.nodeInstanceId},qa07-synthetic.pdf,new,Synthetic QA07 evidence\n` })
+  assert.equal(plan.plan.invalidRows, 0, JSON.stringify(plan.plan.diagnostics)); assert.equal(plan.plan.validRows, 1)
+  plan = await request(`${seq}/assembly-plans/${plan.id}/selection`, { expectedRevision: tree.workspaceRevision, parentDigest: plan.plan.planDigest, selectedRows: [plan.plan.rows[0].lineNumber] })
+  assert.equal(plan.canExecute, true, JSON.stringify(plan.plan.diagnostics))
+  let assembly = await request(`${seq}/assembly-executions`, { planId: plan.id, planDigest: plan.plan.planDigest, idempotencyKey: randomUUID() }, 202)
+  await until(async () => { assembly = await request(`${seq}/assembly-executions/${assembly.id}`); return ![0, 1].includes(assembly.status) }, 'PDF assembly completed', 400)
+  assert.equal(assembly.status, 2, JSON.stringify(assembly)); assert.equal(assembly.result.documents.length, 1)
+  facts.pdf = { sha256: pdfSha256, length: pdfBytes.length, source, assembly, targetHref: assembly.result.documents[0].href }
+  await writeFile(`${results}/synthetic.pdf`, pdfBytes)
+  passed.push('real assembly uploads, independently inspects and commits one synthetic PDF')
   facts.generated = await request('/api/backbone/generate', { applicationId: id, sequenceNumber: '0000' })
   const input = await request('/api/package-validation-inputs', { applicationId: id, path: facts.generated.packagePath, sequenceNumber: '0000' })
   facts.input = input
@@ -107,6 +138,8 @@ try {
   assert.equal(facts.locked.finalization.isEditable, false)
   const manifest = await request(`/api/finalizations/${snapshot.id}/manifest`); facts.manifest = manifest
   assert.equal(manifest.digest, snapshot.manifestDigest)
+  const archivedPdf = manifest.files.filter(file => file.relativePath.endsWith('/qa07-synthetic.pdf'))
+  assert.equal(archivedPdf.length, 1); assert.equal(archivedPdf[0].sha256, pdfSha256); assert.equal(archivedPdf[0].length, pdfBytes.length)
   passed.push('explicit UI capture binds the actual run and locks the workspace')
   await wait(`document.body.innerText.includes('开发快照不能登记交付')`)
   assert.equal(await evaluate(`!!document.querySelector('[data-testid="delivery-form"]')`), false)
@@ -148,8 +181,8 @@ try {
   }
   await writeFile(`${results}/backend-api.log`, apiLog.replaceAll(apiKey, '[task-credential-redacted]'))
   await writeFile(`${results}/backend-chromium.log`, browserLog)
-  await writeFile(`${results}/backend-browser.json`, JSON.stringify({ scope: 'Current production API/InMemory and frontend; synthetic empty US Development sequence; not PostgreSQL restart or Formal delivery qualification',
-    passed, errors, facts, downloadEvents, retainedProfile: profile, unrun: ['Formal delivery/receipt chain', 'PostgreSQL-backed browser restart', 'nonempty PDF capture browser fixture'] }, null, 2))
+  await writeFile(`${results}/backend-browser.json`, JSON.stringify({ scope: 'Current production API/InMemory and frontend; synthetic one-page PDF US Development sequence; not PostgreSQL restart or Formal delivery qualification',
+    passed, errors, facts, downloadEvents, retainedProfile: profile, unrun: ['Formal delivery/receipt chain', 'PostgreSQL-backed browser restart', 'complex PDF content qualification'] }, null, 2))
 }
 if (failure) throw failure
 console.log(`PASS real-backend browser checks: ${passed.length}`)

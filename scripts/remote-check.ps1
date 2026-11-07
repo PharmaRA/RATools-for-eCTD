@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
     [ValidateSet('frontend', 'linux-platform', 'backend-browser')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
+    [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
     [string[]]$LintFiles = @(),
@@ -67,13 +68,13 @@ if ($Resume) {
     if (-not $resumePath.StartsWith($evidenceRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Resume must name a run.json under .artifacts/remote-check.' }
     $state = Get-Content -LiteralPath $resumePath -Raw | ConvertFrom-Json
     if ($state.machine -ne $Machine -or $state.task -ne $Task -or (Resolve-CheckScope $state.scope) -ne $Scope -or $state.jobId -notmatch '^[a-zA-Z0-9_-]+$' -or
-        $state.remote -notmatch '^/data/home/ratools-remote/[a-zA-Z0-9_-]+$' -or
+        $state.remote -cnotmatch '^/(data/home|tmp)/ratools-remote/[a-zA-Z0-9_-]+$' -or
         $state.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Resume state does not match the requested job.' }
     $evidence = Split-Path -Parent $resumePath
 } else {
     $runId = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')
     $evidence = Join-Path $repo ".artifacts/remote-check/$runId"
-    $remote = "/data/home/ratools-remote/$runId"
+    $remote = "$RemoteRoot/$runId"
     $null = New-Item -ItemType Directory -Path $evidence
 
     # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
@@ -100,7 +101,7 @@ if ($Resume) {
         foreach ($name in @('global.json', 'Directory.Build.props', 'VERSION',
             'scripts/remote-check/backend-build.py', 'scripts/remote-check/browser-backend.mjs',
             'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs',
-            'scripts/remote-check/ProcessTreeProbe.cs')) { $files.Add($name) }
+            'scripts/remote-check/ProcessTreeProbe.cs', 'scripts/remote-check/verify-pdf-download.py')) { $files.Add($name) }
         foreach ($layer in @('Domain', 'Application', 'Infrastructure', 'Api')) {
             $projectDirectory = Join-Path $repo "src/RATools.$layer"
             $projectFile = Join-Path $projectDirectory "RATools.$layer.csproj"

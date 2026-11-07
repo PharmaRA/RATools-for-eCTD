@@ -97,6 +97,7 @@ try:
                 run("capture-recycle", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/CaptureRecycleProbe.dll", "results/capture-recycle"], root, "test-failed")
                 run("process-tree", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/ProcessTreeProbe.dll", "results/process-tree"], root, "test-failed")
                 run("backend-browser", node_command + ["../scripts/remote-check/browser-backend.mjs"], frontend, "browser-test-failed")
+                run("download-pdf", [sys.executable, "scripts/remote-check/verify-pdf-download.py"], root, "test-failed")
     summary["category"] = "passed"
     summary["exitCode"] = 0
 except Exception as error:
