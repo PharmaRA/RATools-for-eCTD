@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -224,7 +225,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-readiness-api-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -234,7 +235,7 @@ public sealed class PublishReadinessApiTests : IClassFixture<WebApplicationFacto
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

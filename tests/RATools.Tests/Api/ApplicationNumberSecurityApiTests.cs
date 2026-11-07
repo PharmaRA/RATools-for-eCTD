@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -155,9 +156,7 @@ public sealed class ApplicationNumberSecurityApiTests : IClassFixture<WebApplica
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(),
-                $"ratools-application-number-api-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -167,7 +166,7 @@ public sealed class ApplicationNumberSecurityApiTests : IClassFixture<WebApplica
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

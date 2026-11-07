@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -22,6 +22,7 @@ if($RunSelectedTests -and $TestGroup -eq 'package') { $summary.task='msbuild-pac
 if($RunSelectedTests -and $TestGroup -eq 'publishing') { $summary.task='msbuild-publishing'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 explicit classes/70 expected publication cases; retained fixture files and InMemory stores; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-storage'; $summary.scope='Windows actual MSBuild plus real VSTest for 5 local file upload retention cases; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -209,11 +210,29 @@ public static class MsbuildDeleteAccessProbe {
             $selected=@{'RATools.Tests.Infrastructure.WorkspaceDeletionServiceTests'=13}
             $expectedTotal=13
         }
+        if($TestGroup -eq 'api') {
+            # WebApplicationFactory reads this before custom host configuration.
+            # The isolated output tree must not depend on .sln auto-discovery.
+            $env:ASPNETCORE_TEST_CONTENTROOT_RATOOLS_API=Join-Path $repo 'src/RATools.Api'
+            $summary.apiTestContentRoot='src/RATools.Api'
+            $selected=@{
+                'RATools.Tests.Api.ApplicationNumberSecurityApiTests'=18
+                'RATools.Tests.Api.DocumentsApiSecurityTests'=5
+                'RATools.Tests.Api.FinalizedWorkspaceApiTests'=3
+                'RATools.Tests.Api.ProgramTests'=6
+                'RATools.Tests.Api.PublishReadinessApiTests'=2
+                'RATools.Tests.Api.SequencePublishingMetadataApiTests'=2
+                'RATools.Tests.Api.PackageValidationApiTests'=3
+            }
+            $expectedTotal=39
+            foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
-        if($TestGroup -in @('package','publishing','storage','workspace')) {
+        if($TestGroup -eq 'api') { $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs' }
+        if($TestGroup -in @('package','publishing','storage','workspace','api')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }

@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -165,7 +166,7 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-metadata-api-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -175,7 +176,7 @@ public sealed class SequencePublishingMetadataApiTests : IClassFixture<WebApplic
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

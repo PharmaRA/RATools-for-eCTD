@@ -138,7 +138,7 @@ public sealed class PackageValidationApiTests
         var unknownCategory = (await client.GetFromJsonAsync<PackageValidationPage<ValidationFinding>>(
             $"/api/package-validations/{run.Id}/findings?category=NoSuchCategory", Json))!;
         Assert.Equal(0, unknownCategory.TotalCount);
-        File.Delete(fixture.PathOf("0000/index.xml"));
+        fixture.RetainMissingFile(fixture.PathOf("0000/index.xml"));
         using var changed = await client.GetAsync($"/api/package-validation-inputs/{directory.Id}/text?logicalPath={xmlPath}");
         Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
         using var retainedZip = await client.GetAsync($"/api/package-validation-inputs/{zip.Id}/text?logicalPath={xmlPath}");

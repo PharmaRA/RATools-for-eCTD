@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -245,8 +246,7 @@ public sealed class FinalizedWorkspaceApiTests : IClassFixture<WebApplicationFac
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
-                $"ratools-finalized-workspace-api-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -254,7 +254,7 @@ public sealed class FinalizedWorkspaceApiTests : IClassFixture<WebApplicationFac
 
         public void Dispose()
         {
-            if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true);
+            if (Directory.Exists(Path)) RetainedPackageTestFiles.RetainDirectory(Path);
         }
     }
 

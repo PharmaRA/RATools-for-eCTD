@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -173,9 +174,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
     {
         public TempWebRoot()
         {
-            Path = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(),
-                $"ratools-web-root-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(System.IO.Path.Combine(Path, "assets"));
             File.WriteAllText(
                 System.IO.Path.Combine(Path, "index.html"),
@@ -191,7 +190,7 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }
