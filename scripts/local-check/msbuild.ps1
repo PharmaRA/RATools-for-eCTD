@@ -1,6 +1,7 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
 $ErrorActionPreference = 'Stop'
+if($PrunerRootProbeOnly -and ($TestGroup -ne 'pruner' -or -not $RunSelectedTests)){throw 'Root probe requires the pruner runtime group.'}
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
 $allowed = [IO.Path]::GetFullPath((Join-Path $repo '.artifacts/local-check')) + [IO.Path]::DirectorySeparatorChar
@@ -24,6 +25,7 @@ if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-sto
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
+if($RunSelectedTests -and $TestGroup -eq 'pruner') { $summary.task='msbuild-pruner'; $summary.scope='Windows disabled optional empty-folder pruning: directories remain in place, no candidate enumeration or filesystem access; not HTTP, Linux or full suite'; $summary.rootProbeOnly=[bool]$PrunerRootProbeOnly }
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
 try {
@@ -227,12 +229,16 @@ public static class MsbuildDeleteAccessProbe {
             $expectedTotal=39
             foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
         }
+        if($TestGroup -eq 'pruner') {
+            $expectedTotal=if($PrunerRootProbeOnly){1}else{8}
+            $selected=@{'RATools.Tests.Application.WorkspacePathGuardTests'=$expectedTotal}
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
         if($TestGroup -eq 'api') { $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs' }
-        if($TestGroup -in @('package','publishing','storage','workspace','api')) {
+        if($TestGroup -in @('package','publishing','storage','workspace','api','pruner')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }
@@ -250,6 +256,7 @@ public static class MsbuildDeleteAccessProbe {
             }
         }
         $filter=($selected.Keys | Sort-Object | ForEach-Object { 'FullyQualifiedName~'+$_+'.' }) -join '|'
+        if($PrunerRootProbeOnly){$filter='FullyQualifiedName=RATools.Tests.Application.WorkspacePathGuardTests.FilesystemRootScopeIsRejectedBeforeEnumeratingCandidates'}
         $assembly=Join-Path $Evidence 'bin/RATools.Tests/Release/net8.0/RATools.Tests.dll'
         $results=Join-Path $Evidence 'test-results'; New-Item -ItemType Directory -Path $results | Out-Null
         $settings=Join-Path $Evidence 'selected.runsettings'
