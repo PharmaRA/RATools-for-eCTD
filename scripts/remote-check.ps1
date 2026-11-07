@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
-    [ValidateSet('frontend', 'linux-platform', 'backend-browser')][string]$Scope = 'frontend',
+    [ValidateSet('frontend', 'linux-platform', 'backend-browser', 'postgres-platform')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
     [string]$CliPath,
@@ -126,6 +126,11 @@ if ($Resume) {
         if ($lintFile -notmatch '^(src/[a-zA-Z0-9_./-]+\.(ts|tsx)|vite\.config\.ts)$' -or $lintFile.Contains('..') -or
             -not $files.Contains("frontend/$lintFile")) { throw "Lint file is outside synchronized source rules: $lintFile" }
     }
+    } elseif ($Scope -eq 'postgres-platform') {
+        if ($Task -ne 'test') { throw 'postgres-platform currently supports test only.' }
+        foreach ($name in @('job.py', 'no-delete.py', 'postgres-platform.py', 'postgres-packages.json', 'RecyclePostgres.c')) {
+            $files.Add("scripts/remote-check/$name")
+        }
     } else {
         foreach ($name in @('global.json', 'src/RATools.Infrastructure/RATools.Infrastructure.csproj',
             'src/RATools.Infrastructure/DocumentProcessing/PdfToolProcessBudget.cs',

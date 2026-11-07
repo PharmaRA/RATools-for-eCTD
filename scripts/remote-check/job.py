@@ -37,6 +37,23 @@ try:
     if "Seccomp:\t2" not in status:
         raise RuntimeError("Required inherited no-delete seccomp filter is absent")
     summary["noDeleteSeccomp"] = True
+    if config.get("scope") == "postgres-platform":
+        try:
+            run("postgres-platform", [sys.executable, "scripts/remote-check/postgres-platform.py"], root, "runner-failed")
+        finally:
+            receipt = results / "postgres-platform.json"
+            if receipt.exists():
+                record = json.loads(receipt.read_text())
+                category = record["category"]
+                if category not in {"toolchain-unavailable", "build-failed", "test-failed", "dependency-install-failed",
+                                    "test-timeout", "operation-timeout", "cleanup-failed", "passed"}:
+                    raise RuntimeError("Unrecognized PostgreSQL phase receipt")
+                if (category == "passed") != (record.get("passed") is True):
+                    raise RuntimeError("Inconsistent PostgreSQL phase receipt")
+                summary["category"] = category
+        summary["category"] = "passed"
+        summary["exitCode"] = 0
+        raise SystemExit(0)
     if config.get("scope") == "linux-platform":
         try:
             run("linux-platform", [sys.executable, "scripts/remote-check/linux-platform.py", config["task"]], root, "runner-failed")
