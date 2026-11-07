@@ -99,7 +99,8 @@ if ($Resume) {
     if ($Scope -eq 'backend-browser') {
         foreach ($name in @('global.json', 'Directory.Build.props', 'VERSION',
             'scripts/remote-check/backend-build.py', 'scripts/remote-check/browser-backend.mjs',
-            'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs')) { $files.Add($name) }
+            'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs',
+            'scripts/remote-check/ProcessTreeProbe.cs')) { $files.Add($name) }
         foreach ($layer in @('Domain', 'Application', 'Infrastructure', 'Api')) {
             $projectDirectory = Join-Path $repo "src/RATools.$layer"
             $projectFile = Join-Path $projectDirectory "RATools.$layer.csproj"

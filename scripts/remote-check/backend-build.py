@@ -156,4 +156,17 @@ probe = out / 'CaptureRecycleProbe.dll'
 subprocess.run([str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '-nologo', '-target:exe', '-langversion:12', '-nullable:enable', '-warnaserror+',
                 f'-out:{probe}', *[f'-r:{item}' for item in refs.values()], str(root / 'scripts/remote-check/CaptureRecycleProbe.cs')], env=env, check=True)
 (out / 'CaptureRecycleProbe.runtimeconfig.json').write_text(json.dumps(runtime))
+probe = out / 'ProcessTreeProbe.dll'
+subprocess.run([str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '-nologo', '-target:exe', '-langversion:12', '-nullable:enable', '-warnaserror+',
+                f'-out:{probe}', *[f'-r:{item}' for item in refs.values()], str(root / 'scripts/remote-check/ProcessTreeProbe.cs')], env=env, check=True)
+(out / 'ProcessTreeProbe.runtimeconfig.json').write_text(json.dumps(runtime))
+group = Path('/proc/self/cgroup').read_text().strip().splitlines()
+unified = next((line.split(':', 2)[2] for line in group if line.startswith('0::')), None)
+if unified:
+    cgroup = Path('/sys/fs/cgroup') / unified.lstrip('/')
+    (results / 'linux-cgroup.json').write_text(json.dumps({'path': str(cgroup),
+        'controllers': (cgroup / 'cgroup.controllers').read_text().strip(),
+        'directoryWritable': os.access(cgroup, os.W_OK), 'procsWritable': os.access(cgroup / 'cgroup.procs', os.W_OK),
+        'subtreeWritable': os.access(cgroup / 'cgroup.subtree_control', os.W_OK),
+        'scope': 'read-only current task cgroup probe, not a search for all possible delegated cgroups'}, indent=2))
 print('Four current-source layers compiled for the bounded Linux browser host.')

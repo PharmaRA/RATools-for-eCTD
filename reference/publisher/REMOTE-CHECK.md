@@ -58,3 +58,11 @@ Resume requires matching task, machine and scope. Legacy missing scope/`frontend
 
 
 `-Scope backend-browser` now builds the current production frontend plus the four backend source layers. `-Task test` additionally runs process failure/deadline regressions, the capture recycling probe and actual API/Chromium Development capture/download/draft checks. The backend uses a bounded direct-csc/dependency resolver, not MSBuild/NuGet restore parity. Accepted source/archive, 6 browser checks, failure history and remaining Formal/PG/PDF limitations: [FINALIZATION-ACTUAL-BROWSER.md](FINALIZATION-ACTUAL-BROWSER.md).
+
+## Linux process termination acceptance
+
+`-Task test -Scope backend-browser` additionally compiles and runs `ProcessTreeProbe.cs` through the current public Qpdf engine. A controlled Python parent starts a child; cancellation, timeout and stdout-limit cases require both processes stopped and the shared slot reusable. Zombie/exited states count as stopped, not reaped; host init owns reaping. Helpers and waits are bounded and evidence retained.
+
+Final run `20261107T125657-e608fc7dcfe344c082dab0141b084ac6`: **3/3, zero failures/skips, overall exit 0**. Source base `e588bf5`, archive SHA256 `125235d53221bc2e739b9158385ac4e82f43d70f727b2c383996b5c8693c68c6`. Evidence: `results/process-tree/result.json`, `process-tree.log`, `summary.json`, `linux-cgroup.json`. Earlier browser/recycling/build checks reran successfully; overlapping totals are not added. Economic read-only review PASS; no production Qpdf change was needed.
+
+This closes the selected owned-process cancellation/timeout/output-limit gate. It does not qualify actual qpdf output, Linux Python content execution or hard CPU/memory limits. Read-only current-task cgroup inspection found no directory/procs/subtree write permission; no other delegated paths were searched and no host permissions changed.
