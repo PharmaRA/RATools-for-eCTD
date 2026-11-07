@@ -50,3 +50,7 @@ Both branches now move the original payload into the controlled fixture recycle 
 ## Remaining acceptance
 
 The unfiltered backend suite, fresh restore, PostgreSQL runtime branches in changed tests, wider regional end-to-end cases, native browser download-manager completion, current combined Linux/PostgreSQL/browser evidence and actual Linux qpdf/Python qualification remain unrun here. Official current scope, external validator and Formal delivery/receipt qualification remain open. Compilation of these files is not their runtime acceptance. Prior overlapping test totals are not added to 156.
+
+## Windows process-receipt correction (2026-11-07)
+
+Earlier runner versions used `Tests.process-tree.json` for the Tests build and `tests.process-tree.json` for VSTest. Windows treats these as the same file; VSTest overwrote the separate build receipt. Historical build logs and test results remain available, but that overwritten receipt cannot independently establish the Tests build process-tree outcome. Review confirmed the collision in the 223043 package candidate (build summary exit0, overwritten receipt exit1 matching VSTest). The runner now writes `selected-tests.process-tree.json` for VSTest. Run `20261107T223758-24684a9853a4482ba257fceb5c6839f2` retains four distinct receipts, each exit0/assigned-before-resume/process-tree-stopped/no forced stop, three zero-warning/error builds and package189/0/0. This does not rerun or requalify all earlier selected groups.

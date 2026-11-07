@@ -61,7 +61,7 @@ public sealed class PackageInputReaderTests
         var reader = new PackageInputReader(tree.Capture);
         var exception = await Assert.ThrowsAsync<PackageSelectionRequiredException>(() => reader.ReadAsync(Select(Fixture()), new()));
         Assert.Equal(4, exception.Candidates.Count);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
         await using var input = await reader.ReadAsync(Select(Fixture(), "0001"), new());
         Assert.Contains(input.Manifest.AdditionalFiles, file => file.LogicalPath == "0000/index.xml");
         Assert.Throws<FileNotFoundException>(() => input.OpenRead("0000/index.xml"));
@@ -112,7 +112,7 @@ public sealed class PackageInputReaderTests
         var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(tree.Capture).ReadAsync(Select(zip), new()));
         Assert.Equal("UNSAFE_ZIP_ENTRY", error.Code);
         Assert.Equal(name, error.LogicalPath);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
         Assert.False(File.Exists(Path.Combine(tree.Root, "escaped.txt")));
         Assert.True(File.Exists(zip));
     }
@@ -129,7 +129,7 @@ public sealed class PackageInputReaderTests
         var zip = tree.Zip((first, first.EndsWith('/') ? "" : "one"), (second, second.EndsWith('/') ? "" : "two"));
         var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(tree.Capture).ReadAsync(Select(zip), new()));
         Assert.Equal("DUPLICATE_ZIP_ENTRY", error.Code);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
     }
 
     [Theory]
@@ -168,7 +168,7 @@ public sealed class PackageInputReaderTests
         };
         var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(tree.Capture).ReadAsync(Select(zip), limits));
         Assert.Equal(code, error.Code);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
         Assert.True(File.Exists(zip));
     }
 
@@ -183,7 +183,7 @@ public sealed class PackageInputReaderTests
         await File.WriteAllBytesAsync(zip, bytes);
         var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(tree.Capture).ReadAsync(Select(zip), new()));
         Assert.Equal("INVALID_INPUT_DATA", error.Code);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public sealed class PackageInputReaderTests
             .ReadAsync(Select(source), new() { MaxFileBytes = 2 }));
         Assert.Equal("FILE_SIZE_LIMIT", error.Code);
         Assert.Equal("INPUT-LIMITS", error.RuleId);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
     }
 
     [Theory]
@@ -238,7 +238,7 @@ public sealed class PackageInputReaderTests
         var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(tree.Capture)
             .ReadAsync(Select(zip), new() { MaxPathLength = length, MaxPathDepth = depth }));
         Assert.Equal("UNSAFE_ZIP_ENTRY", error.Code);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
     }
 
     [Fact]
@@ -250,7 +250,9 @@ public sealed class PackageInputReaderTests
         await using var input = await reader.ReadAsync(Select(zip), new());
         Assert.Contains(input.Manifest.Directories, directory => directory.LogicalPath == "0000/empty" && directory.IsEmpty);
         Assert.Equal("cover.txt", Assert.Single(input.Manifest.AdditionalFiles).LogicalPath);
-        using (var archive = ZipFile.Open(zip, ZipArchiveMode.Update)) archive.GetEntry("0000/empty/")!.Delete();
+        RetainedPackageTestFiles.RetainFile(tree.Root, zip);
+        var replacement = tree.Zip(("0000/index.xml", "root"), ("cover.txt", "cover"));
+        File.Move(replacement, zip);
         await Assert.ThrowsAsync<PackageInputChangedException>(() => input.VerifyUnchangedAsync());
         await using var changed = await reader.ReadAsync(Select(zip), new());
         Assert.NotEqual(input.Manifest.Digest, changed.Manifest.Digest);
@@ -271,7 +273,7 @@ public sealed class PackageInputReaderTests
         {
             case "bytes": await File.WriteAllTextAsync(Path.Combine(directory, "index.xml"), "changed"); break;
             case "add": await File.WriteAllTextAsync(Path.Combine(directory, "extra.txt"), "added"); break;
-            case "delete": File.Delete(Path.Combine(directory, "index.xml")); break;
+            case "delete": RetainedPackageTestFiles.RetainFile(tree.Root, Path.Combine(directory, "index.xml")); break;
             case "capture": await File.WriteAllTextAsync(Directory.EnumerateFiles(tree.Capture, "*", SearchOption.AllDirectories).First(), "tampered"); break;
         }
         Assert.Equal("INPUT_CHANGED", (await Assert.ThrowsAsync<PackageInputChangedException>(() => input.VerifyUnchangedAsync())).Code);
@@ -293,7 +295,7 @@ public sealed class PackageInputReaderTests
         var task = reader.ReadAsync(Select(source), new(), cancellation.Token);
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
         Assert.Equal(32 * 1024 * 1024, new FileInfo(Path.Combine(source, "payload.pdf")).Length);
     }
 
@@ -308,7 +310,7 @@ public sealed class PackageInputReaderTests
         time.Trigger();
         var error = await Assert.ThrowsAsync<PackageInputException>(() => task);
         Assert.Equal("INPUT_READ_TIMEOUT", error.Code);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
         Assert.True(File.Exists(Path.Combine(source, "payload.pdf")));
     }
 
@@ -327,10 +329,10 @@ public sealed class PackageInputReaderTests
             var reader = new PackageInputReader(tree.Capture);
             await Assert.ThrowsAsync<PackageInputException>(() => reader.ReadAsync(Select(source), new()));
             await Assert.ThrowsAsync<PackageInputException>(() => reader.ReadAsync(Select(link, "0000"), new()));
-            Assert.Empty(Directory.EnumerateFileSystemEntries(tree.Capture));
+            RetainedPackageTestFiles.AssertOnlyRecycledCaptures(tree.Capture);
             Assert.Equal("untouched", await File.ReadAllTextAsync(Path.Combine(outside, "sentinel.txt")));
         }
-        finally { Directory.Delete(link); }
+        finally { RetainedPackageTestFiles.RetainReviewedLink(tree.Root, link, outside); }
     }
 
     [Fact]
@@ -393,7 +395,7 @@ public sealed class PackageInputReaderTests
 
     private sealed class TestTree : IDisposable
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), "ratools-input-test-" + Guid.NewGuid().ToString("N"));
+        public string Root { get; } = RetainedPackageTestFiles.Create();
         public string Capture => Path.Combine(Root, "capture");
         public TestTree() => Directory.CreateDirectory(Root);
         public string Sequence()
@@ -415,7 +417,7 @@ public sealed class PackageInputReaderTests
             }
             return path;
         }
-        public void Dispose() => Directory.Delete(Root, recursive: true);
+        public void Dispose() => RetainedPackageTestFiles.RetainDirectory(Root);
     }
 
     private sealed class TriggerTimeProvider : TimeProvider

@@ -36,7 +36,7 @@ public sealed class PackageValidationServiceTests
         Assert.Contains(projection.EffectiveLeaves, leaf => leaf.Address.SequenceNumber == "0001");
         Assert.Contains(report.Coverage, rule => rule.RuleId == "HISTORY-BASELINE" && rule.CheckStatus == CheckStatus.NotEvaluated);
         Assert.True(await fixture.Store.CompleteAsync(lease.Run.Id, lease.Token, lease.Owner, DateTime.UtcNow, report));
-        File.Delete(fixture.Files.PathOf("0001/index.xml"));
+        fixture.Files.RetainMissingFile(fixture.Files.PathOf("0001/index.xml"));
         Assert.NotNull(await fixture.Store.GetReportJsonAsync(lease.Run.Id));
         Assert.False((await fixture.Service.EnqueueAsync(request)).Created);
         await Assert.ThrowsAsync<PackageValidationIdempotencyConflictException>(() => fixture.Service.EnqueueAsync(request with { History = [] }));
@@ -94,6 +94,7 @@ public sealed class PackageValidationServiceTests
             PackageValidationMode.Development, "noncooperative"))).Run;
         var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
         var processing = fixture.Worker.ProcessAsync(lease, CancellationToken.None);
+        string[]? capturedFingerprints = null;
         try
         {
             await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -104,10 +105,13 @@ public sealed class PackageValidationServiceTests
             Assert.Equal(ValidationRunStatus.Cancelled, (await fixture.Store.GetRunAsync(run.Id))!.Status);
             Assert.False(processing.IsCompleted);
             Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
-            Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(fixture.Storage, "captures"), "*", SearchOption.AllDirectories));
+            capturedFingerprints = RetainedPackageTestFiles.CaptureFingerprints(Path.Combine(fixture.Storage, "captures"));
+            Assert.NotEmpty(capturedFingerprints);
         }
         finally { gate.Release.Set(); await processing.WaitAsync(TimeSpan.FromSeconds(10)); }
-        Assert.Empty(Directory.EnumerateFileSystemEntries(Path.Combine(fixture.Storage, "captures")));
+        RetainedPackageTestFiles.AssertOnlyRecycledCaptures(Path.Combine(fixture.Storage, "captures"));
+        Assert.NotNull(capturedFingerprints);
+        Assert.Equal(capturedFingerprints, RetainedPackageTestFiles.CaptureFingerprints(Path.Combine(fixture.Storage, "captures")));
     }
 
     [Fact]
@@ -133,7 +137,7 @@ public sealed class PackageValidationServiceTests
             var retry = (await fixture.Store.ClaimAsync("replacement", now.AddMinutes(1), TimeSpan.FromSeconds(10)))!;
             Assert.Equal(2, retry.Run.AttemptCount);
             Assert.NotEqual(lease.Token, retry.Token);
-            File.Delete(fixture.Files.PathOf("0000/index.xml"));
+            fixture.Files.RetainMissingFile(fixture.Files.PathOf("0000/index.xml"));
             await Assert.ThrowsAsync<PackageInputChangedException>(() => fixture.Service.InspectAsync(retry.Run));
         }
         finally { shutdown.Cancel(); gate.Release.Set(); await processing; }
@@ -195,7 +199,17 @@ public sealed class PackageValidationServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Registry.RegisterAsync(new(Guid.NewGuid(), Path.GetPathRoot(fixture.Files.PathOf(""))!)));
         using var invalid = new MemoryStream("not a zip"u8.ToArray());
         await Assert.ThrowsAsync<PackageInputException>(() => fixture.Registry.UploadAsync(Guid.NewGuid(), invalid, "0000", null));
-        Assert.Empty(Directory.EnumerateFileSystemEntries(Path.Combine(fixture.Storage, "inputs")));
+        var inputs = Path.Combine(fixture.Storage, "inputs");
+        var recycle = Assert.Single(Directory.GetFileSystemEntries(inputs));
+        Assert.Equal(Path.Combine(inputs, "_recycle"), recycle);
+        var retained = Assert.Single(Directory.GetFileSystemEntries(recycle));
+        var name = Path.GetFileName(retained);
+        Assert.Equal(65, name.Length);
+        Assert.True(Guid.TryParseExact(name[..32], "N", out _)); Assert.Equal('-', name[32]);
+        Assert.True(Guid.TryParseExact(name[33..], "N", out _));
+        var archive = Assert.Single(Directory.GetFileSystemEntries(retained));
+        Assert.Equal("package.zip", Path.GetFileName(archive));
+        Assert.Equal("not a zip"u8.ToArray(), await File.ReadAllBytesAsync(archive));
         Assert.True(File.Exists(fixture.Files.PathOf("0000/index.xml")));
     }
 

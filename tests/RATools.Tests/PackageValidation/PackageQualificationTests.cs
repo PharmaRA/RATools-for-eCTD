@@ -96,7 +96,7 @@ public sealed class PackageQualificationTests
     private sealed class QualificationFixture : IDisposable
     {
         private static readonly string[] AllSequences = ["0000", "0001", "0002", "0003"];
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-qualification-" + Guid.NewGuid().ToString("N"));
+        private readonly string _root = RetainedPackageTestFiles.Create();
         private readonly List<ICapturedPackageInput> _captures = [];
         private readonly PackageInputReader _reader;
 
@@ -199,7 +199,7 @@ public sealed class PackageQualificationTests
         public void Dispose()
         {
             foreach (var capture in _captures) capture.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+            if (Directory.Exists(_root)) RetainedPackageTestFiles.RetainDirectory(_root);
         }
 
         private void RefreshIndexChecksums()

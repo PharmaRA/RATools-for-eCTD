@@ -39,14 +39,14 @@ public sealed class PackageFileInspectorTests
         var dtd = fixture.PathOf("0000/util/dtd/ich-ectd-3-2.dtd");
         switch (defect)
         {
-            case "missing-file": File.Delete(pdf); break;
+            case "missing-file": fixture.RetainMissingFile(pdf); break;
             case "changed-file": File.AppendAllText(pdf, "\n% corruption"); break;
             case "checksum-format": fixture.Replace("0000/index.xml", "checksum=\"", "checksum=\"x"); break;
             case "checksum-type": fixture.Replace("0000/index.xml", "checksum-type=\"md5\"", "checksum-type=\"sha256\""); break;
             case "index-hash": File.WriteAllText(hash, new string('0', 32)); break;
             case "index-format": File.WriteAllText(hash, "bogus index.xml"); break;
-            case "index-absent": File.Delete(hash); break;
-            case "missing-dtd": File.Delete(dtd); break;
+            case "index-absent": fixture.RetainMissingFile(hash); break;
+            case "missing-dtd": fixture.RetainMissingFile(dtd); break;
             case "changed-dtd": File.AppendAllText(dtd, "\n<!-- changed -->"); break;
         }
         var (input, lifecycle) = await fixture.SelectAsync("0000");
@@ -186,7 +186,7 @@ public sealed class PackageFileInspectorTests
 
     internal sealed class Fixture : IAsyncDisposable
     {
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-file-inspection-" + Guid.NewGuid().ToString("N"));
+        private readonly string _root = RetainedPackageTestFiles.Create();
         private readonly List<ICapturedPackageInput> _captures = [];
         private readonly PackageInputReader _reader;
         private static readonly string[] HistoricalSequences = ["0000", "0001", "0002"];
@@ -203,6 +203,7 @@ public sealed class PackageFileInspectorTests
             _reader = new(Path.Combine(_root, "captures"));
         }
         public string PathOf(string relative) => Path.Combine(_root, "source", relative);
+        public void RetainMissingFile(string path) => RetainedPackageTestFiles.RetainFile(_root, path);
         public string ArchivePath(string name) => Path.Combine(_root, name);
         public void Replace(string relative, string old, string replacement)
         {
@@ -259,7 +260,7 @@ public sealed class PackageFileInspectorTests
         public async ValueTask DisposeAsync()
         {
             foreach (var capture in _captures) await capture.DisposeAsync();
-            Directory.Delete(_root, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(_root);
         }
     }
 }

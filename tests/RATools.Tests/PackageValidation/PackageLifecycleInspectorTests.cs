@@ -342,7 +342,7 @@ public sealed class PackageLifecycleInspectorTests
 
     private sealed class Fixture : IDisposable
     {
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-lifecycle-" + Guid.NewGuid().ToString("N"));
+        private readonly string _root = RetainedPackageTestFiles.Create();
         private readonly PackageInputReader _reader;
         public Fixture()
         {
@@ -389,6 +389,6 @@ public sealed class PackageLifecycleInspectorTests
             }
             finally { foreach (var input in selected) await input.DisposeAsync(); }
         }
-        public void Dispose() => Directory.Delete(_root, recursive: true);
+        public void Dispose() => RetainedPackageTestFiles.RetainDirectory(_root);
     }
 }

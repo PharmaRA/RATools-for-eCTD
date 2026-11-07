@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -18,6 +18,7 @@ if($RunSelectedTests) { $summary.task='msbuild-tests'; $summary.scope='Windows a
 if($RunSelectedTests -and $TestGroup -eq 'contracts') { $summary.task='msbuild-contracts'; $summary.scope='Windows actual MSBuild plus real VSTest for 4 explicit classes/34 expected cases; cached restore assets; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'import') { $summary.task='msbuild-import'; $summary.scope='Windows actual MSBuild plus real VSTest for 3 explicit classes/42 expected import and lifecycle cases; InMemory and EF InMemory provider; not PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'nodes') { $summary.task='msbuild-nodes'; $summary.scope='Windows actual MSBuild plus real VSTest for 2 explicit classes/34 expected node publication and import cases; InMemory; not PostgreSQL, full suite or Formal qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'package') { $summary.task='msbuild-package'; $summary.scope='Windows actual MSBuild plus real VSTest for 6 explicit classes/189 expected independent package validation cases; retained fixture files; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -172,10 +173,26 @@ public static class MsbuildDeleteAccessProbe {
             }
             $expectedTotal = 34
         }
+        if($TestGroup -eq 'package') {
+            $selected=@{
+                'RATools.Tests.PackageValidation.PackageInputReaderTests'=47
+                'RATools.Tests.PackageValidation.PackageFileInspectorTests'=28
+                'RATools.Tests.PackageValidation.PackageLifecycleInspectorTests'=49
+                'RATools.Tests.PackageValidation.PackageQualificationTests'=14
+                'RATools.Tests.PackageValidation.PackageValidationServiceTests'=9
+                'RATools.Tests.PackageValidation.PackageXmlInspectorTests'=42
+            }
+            $expectedTotal = 189
+            foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
+        if($TestGroup -eq 'package') {
+            $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
+            $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
+        }
         if($TestGroup -in @('import','nodes')) {
             foreach($path in @('tests/RATools.Tests/TestDoubles/EctdWorkspaceFixture.cs','tests/RATools.Tests/TestDoubles/PackageTestServices.cs','tests/RATools.Tests/Applications/ImportTestServices.cs','tests/RATools.Tests/Applications/RegionalImportAcceptanceTests.cs')) {
                 $selectedSources += Join-Path $repo $path
@@ -192,7 +209,7 @@ public static class MsbuildDeleteAccessProbe {
         $settings=Join-Path $Evidence 'selected.runsettings'
         '<RunSettings><RunConfiguration><MaxCpuCount>1</MaxCpuCount><DisableAppDomain>true</DisableAppDomain></RunConfiguration></RunSettings>' | Set-Content -LiteralPath $settings
         $command='vstest "'+$assembly+'" /Settings:"'+$settings+'" /TestCaseFilter:"'+$filter+'" /Logger:"trx;LogFileName=selected.trx" /ResultsDirectory:"'+$results+'"'
-        $code=[BrowserJob]::Run($dotnet,$command,$repo,(Join-Path $Evidence 'selected-tests.log'),(Join-Path $Evidence 'tests.process-tree.json'))
+        $code=[BrowserJob]::Run($dotnet,$command,$repo,(Join-Path $Evidence 'selected-tests.log'),(Join-Path $Evidence 'selected-tests.process-tree.json'))
         $summary.steps+=@{name='selected-vstest';command=$command;exitCode=$code}
         $selected | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Evidence 'selected-expected.json')
         Write-Host "VSTest selected exit $code"

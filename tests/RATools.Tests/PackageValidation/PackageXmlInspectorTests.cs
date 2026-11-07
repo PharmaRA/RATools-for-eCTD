@@ -345,7 +345,7 @@ public sealed class PackageXmlInspectorTests
     public async Task MissingReferencedRegionalXmlFailsWhileUnselectedRegionalScopeRemainsUnevaluated()
     {
         using var fixture = new XmlFixture();
-        File.Delete(Path.Combine(fixture.Source, "m1/us/us-regional.xml"));
+        fixture.RetainMissingFile(Path.Combine(fixture.Source, "m1/us/us-regional.xml"));
         var selected = await fixture.InspectAsync();
         Assert.Contains(Findings(selected), finding => finding.Code == "BACKBONE_READ_FAILED" && finding.Location.LogicalPath == "0000/m1/us/us-regional.xml");
         var ichOnly = await fixture.InspectAsync(profile: PackageValidationCatalog.IchProfile);
@@ -416,9 +416,10 @@ public sealed class PackageXmlInspectorTests
 
     private sealed class XmlFixture : IDisposable
     {
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-xml-test-" + Guid.NewGuid().ToString("N"));
+        private readonly string _root = RetainedPackageTestFiles.Create();
         private readonly PackageInputReader _reader;
         public string Source { get; }
+        public void RetainMissingFile(string path) => RetainedPackageTestFiles.RetainFile(_root, path);
         public XmlFixture(string sequence = "0000")
         {
             Source = Path.Combine(_root, "source", sequence);
@@ -452,6 +453,6 @@ public sealed class PackageXmlInspectorTests
             await using var input = await CaptureAsync(limits);
             return await new PackageXmlInspector().InspectAsync(input, profile);
         }
-        public void Dispose() => Directory.Delete(_root, recursive: true);
+        public void Dispose() => RetainedPackageTestFiles.RetainDirectory(_root);
     }
 }
