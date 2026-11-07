@@ -160,8 +160,9 @@ print('PASS preserved file/dirfd/empty-directory, refused nonempty/symlink/hardl
         raise RuntimeError('initdb left POSIX shared-memory cleanup failures')
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0)); port = reservation.getsockname()[1]
-    sockets = owned / 'sockets'; sockets.mkdir()
-    command = [str(binaries / 'postgres'), '-D', str(cluster), '-h', '127.0.0.1', '-p', str(port), '-k', str(sockets),
+    # All clients use loopback TCP. A long retained workspace can exceed the
+    # 107-byte Unix-domain socket pathname limit even when data paths are valid.
+    command = [str(binaries / 'postgres'), '-D', str(cluster), '-h', '127.0.0.1', '-p', str(port), '-k', '',
                '-c', 'dynamic_shared_memory_type=mmap']
     def start_server(label):
         global server
