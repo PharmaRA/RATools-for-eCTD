@@ -60,13 +60,45 @@ public sealed class LocalFileStorage(IOptions<FileStorageOptions> options) : IFi
                 md5Hash,
                 fullPath);
         }
-        catch
+        catch (Exception uploadException)
         {
-            // The stream is disposed before cleanup, including on Windows and
-            // cancellation. Never remove a file we did not create.
-            if (created) File.Delete(fullPath);
+            // The destination has been disposed. Retain partial bytes without
+            // replacing the original failure or touching a pre-existing file.
+            if (created)
+            {
+                try { RecycleFailedUpload(fullPath, fullRootPath); }
+                catch (Exception retentionException) when (retentionException is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    uploadException.Data["UploadRetentionFailure"] = retentionException;
+                }
+            }
             throw;
         }
+    }
+
+    private static void RecycleFailedUpload(string path, string root)
+    {
+        path = Path.GetFullPath(path);
+        root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(path), root, comparison))
+            throw new InvalidOperationException("Failed upload escaped its owning directory.");
+        EnsureNoLinks(path);
+        if (!File.Exists(path)) return;
+        var recycle = Path.Combine(root, "_recycle");
+        EnsureNoLinks(recycle); Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
+        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N")));
+        if (!string.Equals(Path.GetDirectoryName(destination), recycle, comparison))
+            throw new InvalidOperationException("Failed upload recycle destination escaped.");
+        EnsureNoLinks(path);
+        File.Move(path, destination);
+    }
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Upload retention paths must not traverse links.");
     }
 
     public Task<string> MoveAsync(string sourcePath, string destinationDirectoryPath, CancellationToken cancellationToken = default)
