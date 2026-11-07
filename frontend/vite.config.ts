@@ -27,6 +27,10 @@ const config = {
           if (id.includes('node_modules/lucide-react/')) {
             return 'icons'
           }
+          // 查询核心与 hooks 共享缓存，集中打包避免多个小 chunk 的重复压缩开销。
+          if (id.includes('node_modules/@tanstack/')) {
+            return 'query'
+          }
           return undefined
         },
       },

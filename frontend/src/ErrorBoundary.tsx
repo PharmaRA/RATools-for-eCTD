@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Button, Result } from 'antd'
+import { Alert, Button, Space } from 'antd'
 
 type ErrorBoundaryProps = {
   children: ReactNode
@@ -39,18 +39,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     return (
-      <Result
-        status="error"
+      <Alert
+        type="error"
+        showIcon
         title="页面出现异常"
-        subTitle={this.state.error?.message || '发生了未预期的错误，请重试或返回首页。'}
-        extra={[
-          <Button type="primary" key="retry" onClick={this.handleReset}>
+        description={this.state.error?.message || '发生了未预期的错误，请重试或返回首页。'}
+        action={<Space>
+          <Button type="primary" onClick={this.handleReset}>
             重试
-          </Button>,
-          <Button key="home" onClick={this.handleReload}>
+          </Button>
+          <Button onClick={this.handleReload}>
             返回首页
-          </Button>,
-        ]}
+          </Button>
+        </Space>}
       />
     )
   }

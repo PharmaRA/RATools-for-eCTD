@@ -27,7 +27,6 @@ import {
   resolveValidationLocation,
   type ValidationLocation,
 } from './workspace/validationLocationResolver'
-import { ValidationSummaryPanel } from './workspace/ValidationSummaryPanel'
 import { WorkspaceSelectionDetails } from './workspace/WorkspaceSelectionDetails'
 import { WorkspaceTree } from './workspace/WorkspaceTree'
 import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePropertiesPanel'
@@ -46,6 +45,8 @@ const PdfRenamePanel = lazy(() =>
   import('./workspace/PdfRenamePanel').then(module => ({ default: module.PdfRenamePanel })))
 const RegionalMetadataPanel = lazy(() =>
   import('./workspace/RegionalMetadataPanel').then(module => ({ default: module.RegionalMetadataPanel })))
+const ValidationSummaryPanel = lazy(() =>
+  import('./workspace/ValidationSummaryPanel').then(module => ({ default: module.ValidationSummaryPanel })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -404,13 +405,15 @@ export const SequenceWorkspacePage = ({
       />
 
       {validationSummary && (
-        <ValidationSummaryPanel
-          summary={validationSummary}
-          statusText={validationStatusText}
-          issueCountText={validationIssueCountText}
-          hasValidationLocation={hasValidationLocation}
-          locateValidationIssue={locateValidationIssue}
-        />
+        <Suspense fallback={<span role="status">正在加载校验摘要…</span>}>
+          <ValidationSummaryPanel
+            summary={validationSummary}
+            statusText={validationStatusText}
+            issueCountText={validationIssueCountText}
+            hasValidationLocation={hasValidationLocation}
+            locateValidationIssue={locateValidationIssue}
+          />
+        </Suspense>
       )}
 
       {placementsError && <Alert type="error" showIcon title="加载工作区映射失败" description={placementsError} />}
