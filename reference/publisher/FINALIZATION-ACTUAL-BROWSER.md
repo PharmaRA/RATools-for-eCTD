@@ -50,3 +50,21 @@ Runner failures retained: `130936-202ea6e88cc5441fbe41a81c4e968597` treated the 
 `/data` had only about 91,374 free inodes/1.51GB; the next run used the separate `/tmp` filesystem with about 1,033,395 free inodes/4.04GB. `-RemoteRoot` allows exactly the two named roots with case-sensitive validation. The uppercase-root negative check was rejected before remote execution, and the final script successfully resumed the `/tmp` run into a new retrieval directory. This local entry validation is not a local product-test fallback. The archived runner predates only this local case-sensitivity tightening; no remote worker changed afterward. `/tmp` artifacts are not guaranteed to survive machine restart; downloaded local evidence and the `/data` ZIP remain the durable record.
 
 The tested scope remains **InMemory / US / Development / one synthetic PDF**. PostgreSQL-backed API/database restart, Formal successful delivery/receipt and complex PDF content remain unrun. A bounded remote tool probe found no postgres/initdb/psql/pg_ctl executable or `/usr/lib/postgresql` installation; setup is a prerequisite, not a database test failure.
+
+## PostgreSQL product restart acceptance
+
+The current API, production frontend and **actual DatabaseMigrator source** also run in a fresh isolated PostgreSQL16.15 cluster:
+
+```powershell
+pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test -Scope backend-pg-browser -Machine <existing-machine-id> -RemoteRoot /tmp/ratools-remote
+```
+
+Final run **20261107T135532-f8772164aa6c40dda54fad62e4b27f0d**, base **9b21dfe**, source archive **8a7c7ed8a8d99401102f0f2e4ca932f0c5fd20fd5885a3c7d706c5524ad895da**. Whole job exits **0**, browser **8 passed / errors []**, independent ZIP **3/3, no skips**. Earlier overlapping helper, capture, process and build checks remain separately reported.
+
+The migrator output is explicitly asserted: **31 migrations applied** on the fresh cluster; after restart, **no migrations applied**. The full nonempty-PDF workflow runs against PostgreSQL. After capture/download/draft, the API must stop with exit0 before requesting a database restart. The parent stops PostgreSQL, starts it and verifies actual SQL readiness before permitting a new API process. The API PID changed **68453 → 69123**. The restarted API returns identical full workspace, manifest and finalized-version list, and Chromium reloads and opens the retained snapshot.
+
+The actual report endpoint is read before and after restart, with HTTP200 and exact original-byte comparison. Both retained JSON files are **26,584 bytes**, SHA256 **8d7e665f83b15a7e4048494dd6dd6c52d69e23c64ceaa28d700dd013b4aaa901**. A boolean report-availability flag alone is not accepted. The downloaded ZIP is **69,937 bytes**, SHA256 **de016458f2f3edb961041cc75b5aad6bde968f6facaa4bcddf20056ca66f2f2b**, retained under `/data/home/qa07-real-fbf42c9d/downloads/`. Independent PDF byte/backbone checks pass against the original598B fixture.
+
+The PostgreSQL adapter is confined to native database processes. Product API/browser/migrator inherit the no-delete seccomp guard, without the PostgreSQL preload shim. Four database shutdown process lists and the final remaining-native list are empty;45 recycle entries are retained. `postgres-platform.json`, `backend-browser.json`, `download-pdf.json`, migration logs and both full report files are downloaded locally. Prior135216-30d76a491bb3427d987c4c9de1c9d111 ran successfully but lacked explicit migration-count and report-byte assertions; it is supporting evidence, superseded by this final run.
+
+This closes the selected **PostgreSQL-backed Development browser plus API/database process-restart** gate. It does not cover machine reboot, crash/power-loss recovery, all historical migrations, the complete backend/frontend suites, Windows, complex PDF cases or Formal successful delivery/receipts. Compilation remains the documented Linux direct-csc path, not MSBuild/analyzer parity. No production business code or qualification gate changed in this subtask.

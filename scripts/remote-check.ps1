@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
-    [ValidateSet('frontend', 'linux-platform', 'backend-browser', 'postgres-platform')][string]$Scope = 'frontend',
+    [ValidateSet('frontend', 'linux-platform', 'backend-browser', 'postgres-platform', 'backend-pg-browser')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
     [string]$CliPath,
@@ -80,7 +80,7 @@ if ($Resume) {
     # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
     # node_modules, local CLI/auth state, or backend artifacts are synchronized.
     $files = [Collections.Generic.List[string]]::new()
-    if ($Scope -in @('frontend', 'backend-browser')) {
+    if ($Scope -in @('frontend', 'backend-browser', 'backend-pg-browser')) {
     foreach ($name in @('package.json', 'package-lock.json', 'index.html', 'bundle-budget.json',
         'vite.config.ts', 'eslint.config.js', 'postcss.config.js', 'tailwind.config.js',
         'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/check-bundle-budget.mjs')) {
@@ -97,11 +97,15 @@ if ($Resume) {
     foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
         $files.Add("scripts/remote-check/$name")
     }
-    if ($Scope -eq 'backend-browser') {
+    if ($Scope -in @('backend-browser', 'backend-pg-browser')) {
         foreach ($name in @('global.json', 'Directory.Build.props', 'VERSION',
             'scripts/remote-check/backend-build.py', 'scripts/remote-check/browser-backend.mjs',
             'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs',
-            'scripts/remote-check/ProcessTreeProbe.cs', 'scripts/remote-check/verify-pdf-download.py')) { $files.Add($name) }
+            'scripts/remote-check/ProcessTreeProbe.cs', 'scripts/remote-check/verify-pdf-download.py',
+            'src/RATools.DatabaseMigrator/Program.cs', 'src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj')) { $files.Add($name) }
+        if ($Scope -eq 'backend-pg-browser') {
+            foreach ($name in @('postgres-platform.py', 'postgres-packages.json', 'RecyclePostgres.c')) { $files.Add("scripts/remote-check/$name") }
+        }
         foreach ($layer in @('Domain', 'Application', 'Infrastructure', 'Api')) {
             $projectDirectory = Join-Path $repo "src/RATools.$layer"
             $projectFile = Join-Path $projectDirectory "RATools.$layer.csproj"

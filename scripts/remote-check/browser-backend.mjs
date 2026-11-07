@@ -10,18 +10,15 @@ const sdk = '/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423'
 const workspace = `${root}/browser-workspace`, profile = `/data/home/qa07-real-${randomUUID().slice(0, 8)}`
 for (const path of [workspace, profile, `${profile}/tmp`, `${profile}/downloads`]) await mkdir(path)
 const apiKey = randomBytes(32).toString('hex') // Task-only auth, never persisted in evidence.
+const postgres = process.env.QA07_POSTGRES === 'true'
 const env = { ...process.env, DOTNET_ROOT: sdk, DOTNET_EnableDiagnostics: '0', DOTNET_NOLOGO: '1', DOTNET_CLI_TELEMETRY_OPTOUT: '1',
   ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: 'http://127.0.0.1:0',
-  ASPNETCORE_HOSTINGSTARTUPASSEMBLIES: 'BrowserStartup', Persistence__Provider: 'InMemory', Deployment__Mode: 'LocalOnly',
+  ASPNETCORE_HOSTINGSTARTUPASSEMBLIES: 'BrowserStartup', Persistence__Provider: postgres ? 'PostgreSql' : 'InMemory', Deployment__Mode: 'LocalOnly',
   Security__ApiKey: apiKey, Security__AllowedWorkspaceRoots__0: workspace,
   FileSecrets__ApiKeyPath: '', FileSecrets__PostgreSqlPasswordPath: '',
   FileStorage__RootPath: `${workspace}/uploads`, BackboneOutput__RootPath: `${workspace}/publish`, BackboneOutput__RetainJobRuns: '0',
   PackageValidation__StorageRoot: `${workspace}/validation`, TMPDIR: `${profile}/tmp` }
-const apiStart = startProcess(`${sdk}/dotnet`, [`${backend}/RATools.Api.dll`, '--contentRoot', backend, '--webroot', resolve('dist')],
-  { env, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
-const api = apiStart.process
-let apiLog = '', browserLog = '', browser, socket, failure, base, inspectPage
-api.stdout.on('data', data => { apiLog += data }); api.stderr.on('data', data => { apiLog += data })
+let apiLog = '', browserLog = '', browser, api, socket, failure, base, inspectPage
 const errors = [], passed = [], facts = {}, downloadEvents = []
 // Independent, deterministic one-page PDF fixture, with real xref offsets.
 const content = 'BT /F1 12 Tf 72 720 Td (Synthetic QA07 evidence) Tj ET\n'
@@ -35,6 +32,41 @@ pdfText += `xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(value => `${S
 const pdfBytes = Buffer.from(pdfText, 'ascii'), pdfSha256 = createHash('sha256').update(pdfBytes).digest('hex')
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 const until = async (fn, label, attempts = 200) => { const deadline = Date.now() + attempts * 150; while (Date.now() < deadline) { if (await fn()) return; await delay(150) } throw Error(`Timed out: ${label}`) }
+const stop = async process => {
+  if (process?.pid && process.exitCode === null && process.signalCode === null) {
+    process.kill('SIGTERM')
+    await Promise.race([new Promise(resolve => process.once('exit', resolve)), delay(3000)])
+    if (process.exitCode === null && process.signalCode === null) {
+      process.kill('SIGKILL')
+      await until(() => process.exitCode !== null || process.signalCode !== null, 'owned process stopped', 40)
+    }
+  }
+}
+const migrate = async label => {
+  const child = startProcess(`${sdk}/dotnet`, [`${backend}/RATools.DatabaseMigrator.dll`], { env, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
+  let log = ''; child.process.stdout.on('data', data => { log += data }); child.process.stderr.on('data', data => { log += data })
+  try {
+    await child.ready
+    await until(() => child.process.exitCode !== null || child.process.signalCode !== null, 'product migrations', 400)
+    assert.equal(child.process.exitCode, 0, 'See migration log')
+    assert.equal(log.trim(), label === 'product-migrations-first'
+      ? 'Applied 31 database migration(s); schema is current.'
+      : 'Database schema is current; no migrations were applied.')
+  }
+  finally { await stop(child.process); await writeFile(`${results}/${label}.log`, log.replaceAll(apiKey, '[task-credential-redacted]')) }
+}
+const startApi = async () => {
+  const child = startProcess(`${sdk}/dotnet`, [`${backend}/RATools.Api.dll`, '--contentRoot', backend, '--webroot', resolve('dist')],
+    { env: { ...env, ...(base ? { ASPNETCORE_URLS: base } : {}) }, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
+  api = child.process
+  api.stdout.on('data', data => { apiLog += data }); api.stderr.on('data', data => { apiLog += data })
+  await child.ready
+  await until(async () => {
+    if (api.exitCode !== null) throw Error(`API startup exited ${api.exitCode}; see backend-api.log`)
+    base = apiLog.match(/Now listening on: (http:\/\/127\.0\.0\.1:\d+)/)?.[1]
+    return base && (await fetch(base + '/health').catch(() => null))?.ok
+  }, 'API ready')
+}
 const request = async (path, body, expected, method = 'POST') => {
   const response = await fetch(base + path, { headers: { 'X-RA-Tools-Api-Key': apiKey, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     ...(body ? { method, body: JSON.stringify(body) } : {}) })
@@ -44,12 +76,8 @@ const request = async (path, body, expected, method = 'POST') => {
   return text ? JSON.parse(text) : undefined
 }
 try {
-  await apiStart.ready
-  await until(async () => {
-    if (api.exitCode !== null) throw Error(`API startup exited ${api.exitCode}; see backend-api.log`)
-    base = apiLog.match(/Now listening on: (http:\/\/127\.0\.0\.1:\d+)/)?.[1]
-    return base && (await fetch(base + '/health').catch(() => null))?.ok
-  }, 'API ready')
+  if (postgres) await migrate('product-migrations-first')
+  await startApi()
   facts.application = await request('/api/applications', { applicationNumber: '987654', sponsorName: 'Synthetic QA07 browser fixture',
     ectdTemplateKey: 'us-fda-ectd-3.2.2', workingDirectoryParentPath: workspace })
   const id = facts.application.id, seq = `/api/applications/${id}/sequences/0000`
@@ -91,6 +119,12 @@ try {
   await until(async () => { run = await request(`/api/package-validations/${run.id}`); return !['Pending', 'Running', 'Queued'].includes(run.status) }, 'independent validation completed', 400)
   facts.run = run
   assert.equal(run.status, 'Completed'); assert.equal(run.reportAvailable, true)
+  const reportResponse = await fetch(base + `/api/package-validations/${run.id}/report`, { headers: { 'X-RA-Tools-Api-Key': apiKey } })
+  assert.equal(reportResponse.status, 200)
+  const reportBytes = Buffer.from(await reportResponse.arrayBuffer())
+  assert.ok(reportBytes.length > 0); JSON.parse(reportBytes.toString('utf8'))
+  facts.report = { length: reportBytes.length, sha256: createHash('sha256').update(reportBytes).digest('hex') }
+  await writeFile(`${results}/validation-report-before.json`, reportBytes)
   passed.push('real writer ZIP captured and independently validated')
   const browserStart = startProcess('/usr/lib/chromium/chromium', ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--no-first-run',
     '--no-default-browser-check', '--disable-breakpad', '--disable-crash-reporter', `--user-data-dir=${profile}`,
@@ -166,23 +200,40 @@ try {
   await wait(`document.body.innerText.includes(${JSON.stringify(snapshot.id)})`)
   assert.equal((await request(`${seq}/finalized-versions`)).length, 1)
   passed.push('new draft reopens editing; old snapshot survives browser reload unchanged')
+  if (postgres) {
+    const previousPid = api.pid
+    await stop(api)
+    assert.equal(api.exitCode, 0, 'API must shut down cleanly before database restart')
+    await writeFile(`${results}/postgres-restart-request`, 'API stopped')
+    await until(async () => { try { return (await readFile(`${results}/postgres-restart-ready`, 'utf8')) === 'database restarted' } catch { return false } }, 'database restart', 400)
+    await migrate('product-migrations-repeat')
+    await startApi()
+    assert.notEqual(api.pid, previousPid)
+    assert.deepEqual(await request(`/api/finalizations/${snapshot.id}/manifest`), manifest)
+    assert.deepEqual(await request(`${seq}/workspace`), facts.draft)
+    assert.equal((await request(`/api/package-validations/${run.id}`)).reportAvailable, true)
+    const restoredReport = await fetch(base + `/api/package-validations/${run.id}/report`, { headers: { 'X-RA-Tools-Api-Key': apiKey } })
+    assert.equal(restoredReport.status, 200)
+    const restoredBytes = Buffer.from(await restoredReport.arrayBuffer())
+    assert.deepEqual(restoredBytes, reportBytes, 'Archived report bytes changed or were lost across restart')
+    await writeFile(`${results}/validation-report-after.json`, restoredBytes)
+    assert.deepEqual(await request(`${seq}/finalized-versions`), versions)
+    await send('Page.reload'); await click('定稿与交付记录'); await click('查看快照')
+    await wait(`document.body.innerText.includes(${JSON.stringify(snapshot.id)})`)
+    facts.restart = { previousApiPid: previousPid, apiPid: api.pid, databaseRestarted: true, manifestUnchanged: true, workspaceUnchanged: true }
+    passed.push('actual API and PostgreSQL stop/restart retain migrated workspace, validation and immutable snapshot in browser')
+  }
   assert.deepEqual(errors, [])
 } catch (error) {
   failure = error; errors.push(String(error))
   if (inspectPage) await writeFile(`${results}/backend-browser-page.txt`, await inspectPage()).catch(() => {})
 } finally {
   socket?.close()
-  for (const process of [browser, api].filter(Boolean)) {
-    if (process.pid && process.exitCode === null && process.signalCode === null) {
-      process.kill('SIGTERM')
-      await Promise.race([new Promise(resolve => process.once('exit', resolve)), delay(3000)])
-      if (process.exitCode === null && process.signalCode === null) { process.kill('SIGKILL'); await new Promise(resolve => process.once('exit', resolve)) }
-    }
-  }
+  for (const process of [browser, api].filter(Boolean)) await stop(process)
   await writeFile(`${results}/backend-api.log`, apiLog.replaceAll(apiKey, '[task-credential-redacted]'))
   await writeFile(`${results}/backend-chromium.log`, browserLog)
-  await writeFile(`${results}/backend-browser.json`, JSON.stringify({ scope: 'Current production API/InMemory and frontend; synthetic one-page PDF US Development sequence; not PostgreSQL restart or Formal delivery qualification',
-    passed, errors, facts, downloadEvents, retainedProfile: profile, unrun: ['Formal delivery/receipt chain', 'PostgreSQL-backed browser restart', 'complex PDF content qualification'] }, null, 2))
+  await writeFile(`${results}/backend-browser.json`, JSON.stringify({ scope: `Current production API/${postgres ? 'PostgreSql with process restart' : 'InMemory'} and frontend; synthetic one-page PDF US Development sequence`,
+    passed, errors, facts, downloadEvents, retainedProfile: profile, unrun: ['Formal delivery/receipt chain', ...(!postgres ? ['PostgreSQL-backed browser restart'] : []), 'complex PDF content qualification'] }, null, 2))
 }
 if (failure) throw failure
 console.log(`PASS real-backend browser checks: ${passed.length}`)

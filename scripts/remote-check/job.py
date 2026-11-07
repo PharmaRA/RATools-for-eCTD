@@ -78,7 +78,7 @@ try:
     run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
     frontend = root / "frontend"
     node_command = ["node", "--import", "../scripts/remote-check/no-delete.mjs"]
-    if config.get("scope") == "backend-browser":
+    if config.get("scope") in {"backend-browser", "backend-pg-browser"}:
         for case in ["spawn", "fetch"]:
             run("browser-process-" + case, node_command + ["../scripts/remote-check/browser-process.test.mjs", case], frontend, "test-failed")
     if config.get("lintFiles"):
@@ -108,12 +108,15 @@ try:
         run("budget", node_command + ["scripts/check-bundle-budget.mjs"], frontend, "build-failed")
         if config.get("browserProbe"):
             run("browser", node_command + ["../scripts/remote-check/browser-finalization.mjs"], frontend, "browser-test-failed")
-        if config.get("scope") == "backend-browser":
+        if config.get("scope") in {"backend-browser", "backend-pg-browser"}:
             run("backend-build", [sys.executable, "scripts/remote-check/backend-build.py"], root, "build-failed")
             if config["task"] == "test":
                 run("capture-recycle", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/CaptureRecycleProbe.dll", "results/capture-recycle"], root, "test-failed")
                 run("process-tree", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/ProcessTreeProbe.dll", "results/process-tree"], root, "test-failed")
-                run("backend-browser", node_command + ["../scripts/remote-check/browser-backend.mjs"], frontend, "browser-test-failed")
+                if config.get("scope") == "backend-pg-browser":
+                    run("postgres-browser", [sys.executable, "scripts/remote-check/postgres-platform.py", "--product-browser"], root, "postgres-browser-failed")
+                else:
+                    run("backend-browser", node_command + ["../scripts/remote-check/browser-backend.mjs"], frontend, "browser-test-failed")
                 run("download-pdf", [sys.executable, "scripts/remote-check/verify-pdf-download.py"], root, "test-failed")
     summary["category"] = "passed"
     summary["exitCode"] = 0

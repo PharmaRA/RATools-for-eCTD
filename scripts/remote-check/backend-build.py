@@ -148,6 +148,11 @@ startup = out / 'BrowserStartup.dll'
 subprocess.run([str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '-nologo', '-target:library', '-warnaserror+',
                 f'-out:{startup}', *[f'-r:{item}' for item in refs.values()], str(root / 'scripts/remote-check/BrowserStartup.cs')], env=env, check=True)
 runtime = {'runtimeOptions': {'tfm': 'net8.0', 'frameworks': [{'name': 'Microsoft.NETCore.App', 'version': '8.0.29'}, {'name': 'Microsoft.AspNetCore.App', 'version': '8.0.29'}]}}
+migrator = out / 'RATools.DatabaseMigrator.dll'
+subprocess.run([str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '-nologo', '-target:exe', '-langversion:12', '-nullable:enable', '-warnaserror+',
+                f'-out:{migrator}', *[f'-r:{item}' for item in refs.values()], str(out / 'RATools.Domain.GlobalUsings.cs'),
+                str(root / 'src/RATools.DatabaseMigrator/Program.cs')], env=env, check=True)
+(out / 'RATools.DatabaseMigrator.runtimeconfig.json').write_text(json.dumps(runtime))
 (out / 'RATools.Api.runtimeconfig.json').write_text(json.dumps(runtime))
 target = '.NETCoreApp,Version=v8.0'
 (out / 'RATools.Api.deps.json').write_text(json.dumps({'runtimeTarget': {'name': target}, 'targets': {target: {'RATools.Api/1.0.0': {

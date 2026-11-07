@@ -198,6 +198,29 @@ print('PASS preserved file/dirfd/empty-directory, refused nonempty/symlink/hardl
     start_server('pg-second-start')
     run('pg-read', [*sql, "DO $$ BEGIN IF (SELECT value FROM qa07_persistence WHERE id=1) IS DISTINCT FROM 'retained' THEN RAISE EXCEPTION 'lost committed value'; END IF; END $$;"], env)
     stop_server()
+    if '--product-browser' in sys.argv:
+        evidence['scope'] = 'Current product migrations and PostgreSQL-backed Development browser with API/database restart'
+        start_server('pg-product-start')
+        product_env = {**os.environ, 'QA07_POSTGRES': 'true',
+            'ConnectionStrings__PostgreSql': f'Host=127.0.0.1;Port={port};Username=qa07;Database=postgres;Pooling=false'}
+        with (results / 'backend-browser.log').open('w') as log:
+            browser_job = subprocess.Popen(['node', '--import', '../scripts/remote-check/no-delete.mjs', '../scripts/remote-check/browser-backend.mjs'],
+                cwd=root / 'frontend', env=product_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            restarted = False
+            deadline = time.monotonic() + 240
+            try:
+                while browser_job.poll() is None:
+                    if (results / 'postgres-restart-request').exists() and not restarted:
+                        stop_server()
+                        start_server('pg-product-restart')
+                        (results / 'postgres-restart-ready').write_text('database restarted')
+                        restarted = True
+                    if time.monotonic() > deadline: raise TimeoutError('Product PostgreSQL browser timed out')
+                    time.sleep(.1)
+                evidence['steps'].append({'name': 'product-browser', 'exitCode': browser_job.returncode})
+                if browser_job.returncode or not restarted: raise RuntimeError('Product browser did not complete a database restart')
+            finally: end_group(browser_job)
+        stop_server()
     evidence.update(passed=True, serverMajor=16, retainedCluster=str(cluster), recycledEntries=len(list(recycle.iterdir())))
     phase = 'passed'
 except (subprocess.TimeoutExpired, TimeoutError) as error:
