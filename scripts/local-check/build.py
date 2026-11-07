@@ -127,10 +127,18 @@ try:
         compile_sources(name, sources, {**frameworks, **packages, **layers}, generators, tree, executable=layer == 'Api', extra_usings=web if layer == 'Api' else [])
         layers[name + '.dll'] = out / (name + '.dll')
     runtime = {'runtimeOptions': {'tfm': 'net8.0', 'frameworks': [{'name': 'Microsoft.NETCore.App', 'version': runtime_version}, {'name': 'Microsoft.AspNetCore.App', 'version': runtime_version}]}}
+    if sys.argv[2] == 'input-api':
+        compile_sources('InputApiStartup', [root / 'scripts/local-check/InputApiStartup.cs'], {**frameworks, **layers}, [], executable=False)
     (out / 'RATools.Api.runtimeconfig.json').write_text(json.dumps(runtime))
     target = '.NETCoreApp,Version=v8.0'
     (out / 'RATools.Api.deps.json').write_text(json.dumps({'runtimeTarget': {'name': target}, 'targets': {target: {'RATools.Api/0.1.0': {
         'runtime': {path.name: {} for path in out.glob('*.dll')}}}}, 'libraries': {'RATools.Api/0.1.0': {'type': 'project', 'serviceable': False, 'sha512': ''}}}))
+    if sys.argv[2] == 'input-api':
+        driver = root / 'scripts/local-check/input-api.py'; capture(driver)
+        summary['category'] = 'api-test-failed'
+        result = subprocess.run([sys.executable, str(driver), str(evidence)], cwd=root, env=env)
+        summary['steps'].append({'name': 'input-api', 'exitCode': result.returncode})
+        if result.returncode: raise RuntimeError('External ZIP API checks failed; see input-api.json/log')
     if sys.argv[2] in {'pdf', 'capture'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
