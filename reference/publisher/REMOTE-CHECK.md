@@ -1,0 +1,45 @@
+# Instabox checks
+
+The user-directed entry points are:
+
+```powershell
+pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test
+pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task build
+```
+
+The initial implementation targets the current **frontend** QA-07 gate. `test` selects `ErrorBoundary.test.tsx` (1 case) and `SequenceWorkspacePage.validation.test.tsx` (24 cases); `-TestFiles` accepts explicit frontend source test paths. The worker refuses success when requested files are absent, cases are skipped/failed, or the two default case counts change. It is not a full frontend/backend or Windows qualification runner. `build` runs both TypeScript no-emit configurations, Vite production build and the original gzip budget checker. Backend/Linux resource qualification still needs its own bounded runner through this entry.
+
+Authentication uses the CLI's existing login or `INSTABOX_API_KEY`, inherited locally. No credential value is read by project scripts, passed as a command argument, uploaded or written to evidence. The default machine is the existing `insta01`; `-CliPath` overrides the installed CLI location. A failed authentication/connectivity probe stops before source packaging; it never falls back to local tests/build/install.
+
+On Windows, when an already-running parent application has not inherited a newly persisted variable, the entry loads only the named user-level `INSTABOX_API_KEY` into its process environment. Its value is never displayed, serialized or passed in command arguments. A transient `insta01` name lookup failure was avoided with `-Machine` set to the existing machine ID; no new machine was created.
+
+The explicit synchronization rules are in `scripts/remote-check.ps1`: frontend source extensions, named frontend configs/lock/budget checker, and these remote runner files. This includes uncommitted and newly added matching source files. It excludes environment files, credentials, business data, backups and platform outputs; source links are refused. Each run creates a new `/data/home/ratools-remote/<timestamp-guid>` directory. `source-manifest.json` hashes the exact uploaded file bytes; `run.json` records HEAD, the complete archive SHA-256, remote path and background job ID. HEAD alone is not the working-tree identity.
+
+The remote worker requires Linux x86_64/glibc and a Node version satisfying the current package engine declaration. It reads the committed npm v3 lock, checks its root dependency declarations against package.json, downloads public npm tarballs, verifies each integrity value and extracts regular files/directories only. It does not run npm lifecycle scripts or copy Windows node_modules. This is an explicit archive installer, **not a claim of npm-ci parity**; a dependency requiring extra lifecycle setup must be handled and validated separately. Archives remain retained. All worker descendants inherit a seccomp filter refusing unlink/unlinkat/rmdir; Node also refuses filesystem deletion APIs.
+
+Long runs use Instabox background jobs, poll at 20-second intervals and collect the final job status. Test/build/installation failures are recorded separately in `results/summary.json`, with exact commands, tool version, exit codes and log paths. The downloaded summary must match the saved task/source archive and the completed job exit code. Results are retained under `.artifacts/remote-check/<run>/results/`; production assets remain in the corresponding remote `frontend/dist`.
+
+If the client wait expires, exit 124 means **still running**, not passed/failed. Resume without resynchronizing or relaunching:
+
+```powershell
+pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test -Resume .artifacts/remote-check/<run>/run.json
+```
+
+No script deletes files or machines, configures an expiry or pauses the shared machine. Outputs are retained as verification evidence; future cleanup must use the established recycle rules.
+
+## Current validation boundary
+
+2026-11-07: the test entry was invoked and reached the Instabox probe. CLI returned **3 (not logged in)**; the PowerShell entry returned **1** with the specific authentication message. `INSTABOX_API_KEY` was absent (only existence checked). No source was uploaded and no remote installation, build or test started. The build entry, dependency installer, background-job protocol and result collection have **not** been exercised on Linux. Read-only review does not substitute for those checks. These scripts remain pending remote acceptance and are not counted as a closed QA-07 gate.
+
+Later on 2026-11-07, the user made the named variable available at user scope and remote acceptance completed. The first three installer versions failed before tests/build: DefinitelyTyped uses roots such as `chai/` and `node v24.12/`, and three dependency archives repeat a regular file. The final installer requires a single safe root, verifies tarball integrity and accepts repeated files only when their bytes are identical; no existing file is overwritten or deleted. Failures remain in `.artifacts/remote-check/20261107T103447-*`, `103647-*`, `103648-*`, `104012-*` and `104013-*`.
+
+Successful independent fresh runs, on Linux x86_64/glibc 2.41 and Node **22.23.3**, with the inherited no-delete guard:
+
+| Task | Local evidence under `.artifacts/remote-check/` | Result |
+| --- | --- | --- |
+| `-Task test -Machine <existing-machine-id>` | `20261107T104232-aabdeeb9eda54a348a77fe6dc18ae1b2/results/` | **25 passed, 0 failed, 0 pending**, exit 0 |
+| `-Task build -Machine <existing-machine-id>` | `20261107T104355-94f700772e2d4aaea4360fc99af07f72/results/` | dependencies, app/config TypeScript, Vite and all original gzip budgets passed, exit 0 |
+
+The test archive SHA-256 is `54edac1a68f97f51b7725e1e00c41fd5efec628ff1b004d7fd5d97b2ce17293e`; the build archive SHA-256 is `06e32ee3b250605dd391656ef04691e327db09fb48cf7b23a4c19491eb6cf644`. Both record base HEAD `9b6d0fe` and include the then-uncommitted runner changes in their hashed source archives. The build budget log reports total JavaScript **449.2/450.0 KiB**, workspace **17.7/18.0 KiB**. Remote directories mirror these run names under `/data/home/ratools-remote/` and retain build output.
+
+This establishes the bounded frontend remote workflow, not full QA-07, complete frontend/backend testing, Windows qualification, P4-08 browser closure or regulatory qualification. Later feature edits require their own uploaded source digest and checks.

@@ -1,0 +1,162 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
+    [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
+    [string]$CliPath,
+    [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
+    [ValidateRange(1, 180)][int]$WaitMinutes = 30,
+    [string]$Resume
+)
+$ErrorActionPreference = 'Stop'
+$repo = Split-Path -Parent $PSScriptRoot
+# An already-running parent application may not inherit a newly persisted user
+# variable. Pass only this named variable to children, never print or serialize it.
+if (-not $env:INSTABOX_API_KEY -and $IsWindows) {
+    $env:INSTABOX_API_KEY = [Environment]::GetEnvironmentVariable('INSTABOX_API_KEY', 'User')
+}
+if (-not $CliPath) {
+    $command = Get-Command instabox -ErrorAction SilentlyContinue
+    $CliPath = if ($command) { $command.Source } else {
+        Join-Path $repo '.artifacts/tools/instabox-0.8.196/package/cli/instabox-windows-amd64.exe'
+    }
+}
+if (-not (Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Instabox CLI missing. Supply -CliPath or install instabox in PATH.' }
+
+function Invoke-Instabox([string[]]$Arguments) {
+    $start = [System.Diagnostics.ProcessStartInfo]::new()
+    $start.FileName = $CliPath
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.Environment['INSTABOX_NO_UPDATE_CHECK'] = '1'
+    foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
+    $process = [System.Diagnostics.Process]::Start($start)
+    $stdout = $process.StandardOutput.ReadToEndAsync()
+    $stderr = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    $result = @{ Code = $process.ExitCode; Output = $stdout.GetAwaiter().GetResult() }
+    # CLI errors are classified by exit code, never dump authentication/account output.
+    $null = $stderr.GetAwaiter().GetResult()
+    $process.Dispose()
+    return $result
+}
+
+function Require-Transport($Result, [string]$Operation) {
+    if ($Result.Code -eq 3) { throw "$Operation failed: Instabox authentication unavailable (exit 3). Run instabox login or set INSTABOX_API_KEY; no local fallback." }
+    if ($Result.Code -ne 0) { throw "$Operation failed: remote transport/CLI exit $($Result.Code); no local fallback." }
+}
+
+# Probe without querying account details or inspecting credential storage.
+$probe = Invoke-Instabox @('exec', $Machine, '--json', '--timeout', '30', '--', 'true')
+Require-Transport $probe 'Authentication/connectivity probe'
+
+if ($Resume) {
+    $resumePath = [IO.Path]::GetFullPath($(if ([IO.Path]::IsPathRooted($Resume)) { $Resume } else { Join-Path $repo $Resume }))
+    $evidenceRoot = [IO.Path]::GetFullPath((Join-Path $repo '.artifacts/remote-check')) + [IO.Path]::DirectorySeparatorChar
+    if (-not $resumePath.StartsWith($evidenceRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Resume must name a run.json under .artifacts/remote-check.' }
+    $state = Get-Content -LiteralPath $resumePath -Raw | ConvertFrom-Json
+    if ($state.machine -ne $Machine -or $state.task -ne $Task -or $state.jobId -notmatch '^[a-zA-Z0-9_-]+$' -or
+        $state.remote -notmatch '^/data/home/ratools-remote/[a-zA-Z0-9_-]+$' -or
+        $state.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Resume state does not match the requested job.' }
+    $evidence = Split-Path -Parent $resumePath
+} else {
+    $runId = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')
+    $evidence = Join-Path $repo ".artifacts/remote-check/$runId"
+    $remote = "/data/home/ratools-remote/$runId"
+    $null = New-Item -ItemType Directory -Path $evidence
+
+    # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
+    # node_modules, local CLI/auth state, or backend artifacts are synchronized.
+    $files = [Collections.Generic.List[string]]::new()
+    foreach ($name in @('package.json', 'package-lock.json', 'index.html', 'bundle-budget.json',
+        'vite.config.ts', 'eslint.config.js', 'postcss.config.js', 'tailwind.config.js',
+        'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/check-bundle-budget.mjs')) {
+        $files.Add("frontend/$name")
+    }
+    foreach ($item in Get-ChildItem -LiteralPath (Join-Path $repo 'frontend/src') -Recurse -File) {
+        $relative = [IO.Path]::GetRelativePath($repo, $item.FullName).Replace('\', '/')
+        if ($item.Extension -in @('.ts', '.tsx', '.css', '.json', '.svg') -and
+            $relative -notmatch '(^|/)(bin|obj|node_modules|backups|\.git|\.artifacts|credentials|secrets|data)(/|$)' -and
+            $relative -notmatch '(?i)(^|/)(\.env[^/]*|[^/]*(secret|credential|token|private[-_]?key)[^/]*)$') {
+            $files.Add($relative)
+        }
+    }
+    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs')) {
+        $files.Add("scripts/remote-check/$name")
+    }
+    foreach ($testFile in $TestFiles) {
+        if ($testFile -notmatch '^src/[a-zA-Z0-9_./-]+\.test\.tsx?$' -or $testFile.Contains('..') -or
+            -not $files.Contains("frontend/$testFile")) { throw "Test is outside the synchronized frontend source rules: $testFile" }
+    }
+    $manifest = @()
+    $archivePath = Join-Path $evidence 'source.zip'
+    $archive = [IO.Compression.ZipFile]::Open($archivePath, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($relative in ($files | Sort-Object -Unique)) {
+            $absolute = Join-Path $repo $relative
+            # Refuse links, including ancestor directory junctions, before reading.
+            $candidate = Get-Item -LiteralPath $absolute -Force
+            while ($candidate.FullName -ne $repo) {
+                if ($candidate.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked source refused: $relative" }
+                $candidate = Get-Item -LiteralPath (Split-Path -Parent $candidate.FullName) -Force
+            }
+            $bytes = [IO.File]::ReadAllBytes($absolute)
+            $manifest += @{ path = $relative; sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant() }
+            $entry = $archive.CreateEntry($relative)
+            $stream = $entry.Open()
+            try { $stream.Write($bytes) } finally { $stream.Dispose() }
+        }
+        $config = @{ task = $Task; testFiles = $TestFiles; sourceHead = (& git -C $repo rev-parse HEAD) }
+        $entry = $archive.CreateEntry('job-config.json')
+        $writer = [IO.StreamWriter]::new($entry.Open())
+        try { $writer.Write(($config | ConvertTo-Json -Depth 5)) } finally { $writer.Dispose() }
+    } finally { $archive.Dispose() }
+    $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $evidence 'source-manifest.json')
+    $digest = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $upload = Invoke-Instabox @('cp', '-p', $archivePath, "${Machine}:$remote/source.zip", '--json')
+    Require-Transport $upload 'Source upload'
+    $bootstrap = "import hashlib,zipfile; p='$remote/source.zip'; assert hashlib.sha256(open(p,'rb').read()).hexdigest()=='$digest'; zipfile.ZipFile(p).extractall('$remote')"
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($bootstrap))
+    $unpack = Invoke-Instabox @('exec', $Machine, '--json', '--', "python3 -c 'import base64; exec(base64.b64decode(`"$encoded`"))'")
+    Require-Transport $unpack 'Verified source extraction'
+    $launch = Invoke-Instabox @('exec', $Machine, '--background', '--json', '--cwd', $remote, '--',
+        "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $digest")
+    Require-Transport $launch 'Background job launch'
+    $job = $launch.Output | ConvertFrom-Json
+    $state = @{ machine = $Machine; task = $Task; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead }
+    $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'run.json')
+}
+
+Write-Host "Remote $Task job $($state.jobId); source $($state.sourceHead); archive SHA256 $($state.sourceSha256)"
+Write-Host "Command: python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $($state.sourceSha256)"
+Write-Host "Evidence: $evidence; remote: $($state.remote)"
+$deadline = [DateTime]::UtcNow.AddMinutes($WaitMinutes)
+do {
+    $wait = Invoke-Instabox @('jobs', 'wait', $Machine, $state.jobId, '--timeout', '20s', '--json')
+    $finished = $null
+    try { $finished = $wait.Output | ConvertFrom-Json } catch { }
+    $hasFinalRecord = $null -ne $finished -and $finished.jobId -eq $state.jobId -and $null -ne $finished.exitCode
+    if ($wait.Code -eq 124 -and -not $hasFinalRecord) {
+        Write-Host 'Remote job still running; waiting for its final status.'
+    } else {
+        # A job can itself exit 3 or 124: a matching final record takes precedence.
+        if (-not $hasFinalRecord) { throw "Remote job state unavailable/mismatched (CLI exit $($wait.Code)); resume using run.json." }
+        $finished | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $evidence 'job-result.json')
+        Write-Host "Remote job ended with exit $($finished.exitCode); retrieving evidence."
+        $pull = Invoke-Instabox @('cp', '-r', "${Machine}:$($state.remote)/results", $evidence, '--json')
+        Require-Transport $pull 'Result download'
+        $summary = Get-Content -LiteralPath (Join-Path $evidence 'results/summary.json') -Raw | ConvertFrom-Json
+        if ($summary.task -ne $state.task -or $summary.sourceHead -ne $state.sourceHead -or
+            $summary.sourceSha256 -ne $state.sourceSha256 -or $summary.exitCode -ne $finished.exitCode -or
+            ($finished.exitCode -eq 0 -and $summary.category -ne 'passed')) { throw 'Downloaded summary does not bind to this job; success is not established.' }
+        Write-Host "Final remote exit: $($finished.exitCode); category: $($summary.category); report: $evidence/results/summary.json"
+        if (Test-Path -LiteralPath (Join-Path $evidence 'results/tests.json')) {
+            $tests = Get-Content -LiteralPath (Join-Path $evidence 'results/tests.json') -Raw | ConvertFrom-Json
+            Write-Host "Tests: $($tests.numPassedTests) passed / $($tests.numFailedTests) failed / $($tests.numPendingTests) pending"
+        }
+        exit ([int]$finished.exitCode)
+    }
+} while ([DateTime]::UtcNow -lt $deadline)
+Write-Host "Wait timeout; job remains running. Resume: pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task $Task -Machine $Machine -Resume '$evidence/run.json'"
+exit 124
