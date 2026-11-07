@@ -87,18 +87,20 @@ internal sealed class NodeImportWorkspace : IDisposable
     public static XElement Extension(string id, string title, params XElement[] children) =>
         new("node-extension", new XAttribute("ID", id), new XElement("title", title), children);
 
-    public void RetainMissingPayload(string sequence, string fileName)
+    public void RetainMissingPayload(string sequence, string fileName) => RetainMissingFile(Path.Combine(Root,
+        PortablePathSegment.NormalizeAndValidate(sequence, nameof(sequence)),
+        PortablePathSegment.NormalizeAndValidate(fileName, nameof(fileName))));
+
+    public void RetainMissingFile(string path)
     {
-        var source = Path.GetFullPath(Path.Combine(Root,
-            PortablePathSegment.NormalizeAndValidate(sequence, nameof(sequence)),
-            PortablePathSegment.NormalizeAndValidate(fileName, nameof(fileName))));
+        var source = Path.GetFullPath(path);
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         if (!source.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, comparison))
             throw new InvalidOperationException("Missing-payload fixture escaped its workspace.");
         EnsureNoLinks(source);
         var recycle = Path.Combine(Path.GetDirectoryName(_temporaryRoot)!, "ratools-node-import-recycle");
         EnsureNoLinks(recycle); Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
-        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N") + "-" + fileName));
+        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N") + "-" + Path.GetFileName(source)));
         if (!string.Equals(Path.GetDirectoryName(destination), recycle, comparison))
             throw new InvalidOperationException("Missing-payload recycle destination escaped.");
         var original = File.ReadAllBytes(source);

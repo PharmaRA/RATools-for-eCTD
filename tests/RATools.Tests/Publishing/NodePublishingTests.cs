@@ -248,7 +248,7 @@ public sealed class NodePublishingTests
         var customPath = Path.Combine(source.Root, "0000", "m1", "us", "backbones", "source.xml");
         Directory.CreateDirectory(Path.GetDirectoryName(customPath)!);
         regional.Save(customPath);
-        File.Delete(regionalPath);
+        source.RetainMissingFile(regionalPath);
         var indexPath = Path.Combine(source.Root, "0000", "index.xml");
         var index = EctdWorkspaceFixture.ReadXml(indexPath);
         var reference = index.Descendants("leaf").Single(leaf => leaf.Attribute("ID")?.Value == "regional-0000");

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -17,6 +17,7 @@ $summary = @{task='msbuild';sourceHead=(& git -C $repo rev-parse HEAD);exitCode=
 if($RunSelectedTests) { $summary.task='msbuild-tests'; $summary.scope='Windows actual MSBuild plus real VSTest for 11 explicit classes/156 expected cases; cached restore assets; not full suite, fresh restore or cross-platform qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'contracts') { $summary.task='msbuild-contracts'; $summary.scope='Windows actual MSBuild plus real VSTest for 4 explicit classes/34 expected cases; cached restore assets; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'import') { $summary.task='msbuild-import'; $summary.scope='Windows actual MSBuild plus real VSTest for 3 explicit classes/42 expected import and lifecycle cases; InMemory and EF InMemory provider; not PostgreSQL, full suite or Formal qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'nodes') { $summary.task='msbuild-nodes'; $summary.scope='Windows actual MSBuild plus real VSTest for 2 explicit classes/34 expected node publication and import cases; InMemory; not PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -164,11 +165,18 @@ public static class MsbuildDeleteAccessProbe {
             }
             $expectedTotal = 42
         }
+        if($TestGroup -eq 'nodes') {
+            $selected=@{
+                'RATools.Tests.Publishing.NodePublishingTests'=18
+                'RATools.Tests.Applications.ApplicationImportNodeTests'=16
+            }
+            $expectedTotal = 34
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
-        if($TestGroup -eq 'import') {
+        if($TestGroup -in @('import','nodes')) {
             foreach($path in @('tests/RATools.Tests/TestDoubles/EctdWorkspaceFixture.cs','tests/RATools.Tests/TestDoubles/PackageTestServices.cs','tests/RATools.Tests/Applications/ImportTestServices.cs','tests/RATools.Tests/Applications/RegionalImportAcceptanceTests.cs')) {
                 $selectedSources += Join-Path $repo $path
             }
