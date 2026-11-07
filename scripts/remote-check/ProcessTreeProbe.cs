@@ -97,6 +97,9 @@ internal static class ProcessTreeProbe
         }
         catch (FileNotFoundException) { return false; }
         catch (DirectoryNotFoundException) { return false; }
+        // procfs can return ESRCH from a read after opening stat successfully.
+        // Only accept that disappearance when the PID directory is now absent.
+        catch (IOException) when (!Directory.Exists("/proc/" + pid.ToString(CultureInfo.InvariantCulture))) { return false; }
     }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 }
