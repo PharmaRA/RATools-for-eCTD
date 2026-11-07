@@ -49,23 +49,23 @@ public sealed class PackageInputReader : IPackageInputReader
             var inventory = await ScanAsync(source, kind, limits, owned, deadline.Token).ConfigureAwait(false);
             var candidate = SelectCandidate(selection, inventory);
             var manifest = CreateManifest(selection.ApplicationId, candidate, inventory);
-            var captured = new CapturedInput(selection, kind, candidate, manifest, inventory, limits, owned, _timeProvider);
+            var captured = new CapturedInput(selection, kind, candidate, manifest, inventory, limits, owned, _captureParent, _timeProvider);
             await captured.VerifyUnchangedCoreAsync(deadline.Token).ConfigureAwait(false);
             return captured;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            DeleteOwnedCapture(owned);
+            RecycleOwnedCapture(owned, _captureParent);
             throw new PackageInputException("INPUT-LIMITS", "INPUT_READ_TIMEOUT", "Package capture exceeded the configured elapsed-time limit.");
         }
         catch (InvalidDataException exception)
         {
-            DeleteOwnedCapture(owned);
+            RecycleOwnedCapture(owned, _captureParent);
             throw new PackageInputException(kind == PackageSourceKind.Zip ? "ZIP-PATHS" : "INPUT-STABLE", "INVALID_INPUT_DATA", exception.Message, innerException: exception);
         }
         catch
         {
-            DeleteOwnedCapture(owned);
+            RecycleOwnedCapture(owned, _captureParent);
             throw;
         }
     }
@@ -212,11 +212,15 @@ public sealed class PackageInputReader : IPackageInputReader
 
     private static PackageInputException Limit(string code, string message, string? path = null) => new("INPUT-LIMITS", code, message, path);
 
-    private static void DeleteOwnedCapture(string owned)
+    private static void RecycleOwnedCapture(string owned, string captureParent)
     {
-        // Captures are flat and contain only opaque file names. Never recursively
-        // delete a supplied source, traverse a link, or accept a derived parent.
-        if (!Path.GetFileName(owned).StartsWith("input-", StringComparison.Ordinal) || !Guid.TryParseExact(Path.GetFileName(owned)[6..], "N", out _))
+        // Retain task-owned bytes in the same filesystem. Never follow links or
+        // move a supplied source; the owning reader supplies the original root.
+        owned = Path.GetFullPath(owned);
+        captureParent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(captureParent));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(owned), captureParent, comparison) ||
+            !Path.GetFileName(owned).StartsWith("input-", StringComparison.Ordinal) || !Guid.TryParseExact(Path.GetFileName(owned)[6..], "N", out _))
             throw new InvalidOperationException("Invalid capture ownership identity.");
         if (!Directory.Exists(owned)) return;
         EnsureNoLinks(owned);
@@ -224,9 +228,16 @@ public sealed class PackageInputReader : IPackageInputReader
         {
             EnsureNoLinks(entry);
             if (Directory.Exists(entry)) throw new IOException("Unexpected directory in owned flat capture; cleanup requires inspection.");
-            File.Delete(entry);
         }
-        Directory.Delete(owned);
+        var recycleRoot = Path.Combine(captureParent, "_recycle");
+        if (Path.Exists(recycleRoot)) EnsureNoLinks(recycleRoot);
+        Directory.CreateDirectory(recycleRoot);
+        EnsureNoLinks(recycleRoot);
+        var destination = Path.GetFullPath(Path.Combine(recycleRoot, Path.GetFileName(owned) + "-" + Guid.NewGuid().ToString("N")));
+        if (!IsWithin(destination, recycleRoot) || !IsWithin(recycleRoot, captureParent))
+            throw new InvalidOperationException("Invalid capture recycle destination.");
+        EnsureNoLinks(owned);
+        Directory.Move(owned, destination);
     }
 
     private sealed class Inventory(PackageReadLimits limits, PackageSourceKind kind)
@@ -309,7 +320,7 @@ public sealed class PackageInputReader : IPackageInputReader
     }
 
     private sealed class CapturedInput(PackageInputSelection selection, PackageSourceKind kind, PackageSequenceCandidate candidate,
-        PackageInputManifest manifest, Inventory inventory, PackageReadLimits limits, string owned, TimeProvider timeProvider) : ICapturedPackageInput
+        PackageInputManifest manifest, Inventory inventory, PackageReadLimits limits, string owned, string captureParent, TimeProvider timeProvider) : ICapturedPackageInput
     {
         private bool _disposed;
         public string SourceId => selection.SourceId;
@@ -381,7 +392,7 @@ public sealed class PackageInputReader : IPackageInputReader
         public ValueTask DisposeAsync()
         {
             if (_disposed) return ValueTask.CompletedTask;
-            DeleteOwnedCapture(owned);
+            RecycleOwnedCapture(owned, captureParent);
             _disposed = true;
             return ValueTask.CompletedTask;
         }
