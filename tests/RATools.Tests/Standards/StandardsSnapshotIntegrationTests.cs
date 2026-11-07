@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Security;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.EctdTemplates;
@@ -479,11 +480,11 @@ public sealed class StandardsSnapshotIntegrationTests
                 File.Copy(Path.Combine(snapshots.Root, asset.LocalRelativePath), path);
             }
             await File.WriteAllTextAsync(Path.Combine(directory, "index-md5.txt"), Md5(await File.ReadAllBytesAsync(Path.Combine(directory, "index.xml"))) + Environment.NewLine);
-            var store = new InMemoryPackageValidationStore(); var reader = new RetainedReader(); var id = Guid.NewGuid();
-            var capture = await reader.ReadAsync(new(app.Id, id.ToString("D"), directory, "0001"), new());
-            var input = new RegisteredPackageInput(id, app.Id, "0001", directory, null, PackageSourceKind.Directory,
-                capture.InputDigest, JsonSerializer.Serialize(capture.Manifest, Json), capture.Limits, FixedClock.Now.UtcDateTime, false);
-            await store.RegisterInputAsync(input); var paths = new RetainedPaths(snapshots.Root);
+            var store = new InMemoryPackageValidationStore(); var reader = new RetainedReader();
+            var paths = new RetainedPaths(snapshots.Root);
+            var registry = new PackageValidationInputRegistry(store, reader, paths, Options.Create(new PackageValidationOptions()), new FixedClock());
+            var registered = await registry.RegisterAsync(new(app.Id, directory, "0001"));
+            var input = (await store.GetInputAsync(registered.Id))!;
             var service = new PackageValidationService(store, reader, paths, new(new PdfPigPackageInspector()),
                 timeProvider: new FixedClock(), snapshots: snapshots.Service, applications: apps);
             return new() { App = app, Applications = apps, Input = input, Store = store, Service = service, Reader = reader, Paths = paths, Package = package, ModelBuilder = builder };
@@ -514,10 +515,9 @@ public sealed class StandardsSnapshotIntegrationTests
                 await File.WriteAllBytesAsync(path, resource.ReadBytes());
             }
             await File.WriteAllTextAsync(Path.Combine(directory, "index-md5.txt"), Md5(await File.ReadAllBytesAsync(Path.Combine(directory, "index.xml"))) + Environment.NewLine);
-            var id = Guid.NewGuid(); var capture = await Reader.ReadAsync(new(App.Id, id.ToString("D"), directory, "0000"), new());
-            var input = new RegisteredPackageInput(id, App.Id, "0000", directory, null, PackageSourceKind.Directory,
-                capture.InputDigest, JsonSerializer.Serialize(capture.Manifest, Json), capture.Limits, FixedClock.Now.UtcDateTime, false);
-            await Store.RegisterInputAsync(input); return input;
+            var registry = new PackageValidationInputRegistry(Store, Reader, Paths, Options.Create(new PackageValidationOptions()), new FixedClock());
+            var registered = await registry.RegisterAsync(new(App.Id, directory, "0000"));
+            return (await Store.GetInputAsync(registered.Id))!;
         }
     }
     private sealed class FixedClock : TimeProvider

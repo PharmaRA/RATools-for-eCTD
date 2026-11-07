@@ -217,8 +217,10 @@ public sealed class PublishReadinessServiceTests
             && x.FindingCount == 1);
     }
 
-    [Fact]
-    public async Task GetAsync_ReturnsNotReadyWhenPdfComplianceRuleFindsEncryptedPdf()
+    [Theory]
+    [InlineData("1.4", 1)]
+    [InlineData("1.7", 2)]
+    public async Task GetAsync_CountsEncryptionAndVersionFindingsInPdfComplianceSummary(string pdfVersion, int expectedErrors)
     {
         var applicationId = Guid.NewGuid();
         var documentId = Guid.NewGuid();
@@ -257,7 +259,7 @@ public sealed class PublishReadinessServiceTests
             null,
             DateTime.UtcNow);
         var pdfRule = new PdfComplianceRule(new FakePdfInspector(new PdfInspectionResult(
-            "1.7",
+            pdfVersion,
             IsEncrypted: true,
             HasSecurityRestrictions: false,
             HasSearchableText: true,
@@ -274,11 +276,18 @@ public sealed class PublishReadinessServiceTests
         Assert.Equal("ValidationCriteria", finding.Source);
         Assert.Equal("Error", finding.Severity);
         Assert.Equal("PdfCompliance", finding.Category);
+        if (pdfVersion == "1.7")
+        {
+            var version = Assert.Single(report.Findings, item => item.Code == "PDF_VERSION_UNQUALIFIED");
+            Assert.Equal("Error", version.Severity);
+            Assert.Equal("PdfCompliance", version.Category);
+        }
+        else Assert.DoesNotContain(report.Findings, item => item.Code.StartsWith("PDF_VERSION_", StringComparison.Ordinal));
         Assert.Contains(report.CategorySummaries, x =>
             x.Category == "PdfCompliance"
-            && x.BlockingErrorCount == 1
+            && x.BlockingErrorCount == expectedErrors
             && x.WarningCount == 0
-            && x.FindingCount == 1);
+            && x.FindingCount == expectedErrors);
     }
 
     [Fact]

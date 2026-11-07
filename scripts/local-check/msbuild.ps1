@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests)
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -15,6 +15,7 @@ $env:MSBUILDDISABLENODEREUSE = '1'
 $env:MSBUILDPRESERVETOOLTEMPFILES = '1'
 $summary = @{task='msbuild';sourceHead=(& git -C $repo rev-parse HEAD);exitCode=1;steps=@();scope='Windows actual MSBuild Build targets, pinned cached restore assets, fail-closed cleanup tasks and deny-delete output ACL; not runtime tests'}
 if($RunSelectedTests) { $summary.task='msbuild-tests'; $summary.scope='Windows actual MSBuild plus real VSTest for 11 explicit classes/156 expected cases; cached restore assets; not full suite, fresh restore or cross-platform qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'contracts') { $summary.task='msbuild-contracts'; $summary.scope='Windows actual MSBuild plus real VSTest for 4 explicit classes/34 expected cases; cached restore assets; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -143,6 +144,17 @@ public static class MsbuildDeleteAccessProbe {
             'RATools.Tests.DocumentProcessing.PdfContentContractTests'=1
             'RATools.Tests.DocumentProcessing.PdfCombinedQualificationTests'=2
         }
+        $expectedTotal = 156
+        if($TestGroup -eq 'contracts') {
+            Fingerprint (Join-Path $repo 'tests/RATools.Tests/Fixtures/RegionalQualification/p609-declared-matrix.json')
+            $selected=@{
+                'RATools.Tests.RegionalMetadata.RegionalMetadataIntegrationTests'=13
+                'RATools.Tests.PackageValidation.DeclaredQualificationMatrixTests'=1
+                'RATools.Tests.Standards.StandardsSnapshotIntegrationTests'=13
+                'RATools.Tests.Validation.PublishReadinessServiceTests'=7
+            }
+            $expectedTotal = 34
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
@@ -169,7 +181,7 @@ public static class MsbuildDeleteAccessProbe {
             $cases=@($trx.TestRun.Results.UnitTestResult | Where-Object {$_.testId -in $ids})
             if($cases.Count -ne $selected[$class]){throw "Unexpected executed case count for $class : $($cases.Count)"}
         }
-        if($code -ne 0 -or $summary.tests.failed -ne 0 -or $summary.tests.notExecuted -ne 0 -or $summary.tests.passed -ne 156){throw 'Selected runtime checks failed; see TRX and selected-tests.log'}
+        if($code -ne 0 -or $summary.tests.failed -ne 0 -or $summary.tests.notExecuted -ne 0 -or $summary.tests.passed -ne $expectedTotal){throw 'Selected runtime checks failed; see TRX and selected-tests.log'}
     }
     $summary.exitCode=0
 } catch { $summary.error=$_.Exception.Message; Write-Host $summary.error }

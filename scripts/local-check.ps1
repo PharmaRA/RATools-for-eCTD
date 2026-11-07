@@ -1,13 +1,14 @@
 [CmdletBinding()]
-param([ValidateSet('build','msbuild','msbuild-tests','pdf','capture','upload','multipart','report','validation-ui','input-api','input-browser')][string]$Task = 'build')
+param([ValidateSet('build','msbuild','msbuild-tests','msbuild-contracts','pdf','capture','upload','multipart','report','validation-ui','input-api','input-browser')][string]$Task = 'build')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $run = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')
 $evidence = Join-Path $repo ".artifacts/local-check/$run"
 $null = New-Item -ItemType Directory -Path $evidence
 Write-Host "Local $Task evidence: $evidence"
-if ($Task -in @('msbuild','msbuild-tests')) {
-    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'local-check/msbuild.ps1') -Evidence $evidence -RunSelectedTests:($Task -eq 'msbuild-tests')
+if ($Task -in @('msbuild','msbuild-tests','msbuild-contracts')) {
+    $testGroup = if($Task -eq 'msbuild-contracts'){'contracts'}else{'core'}
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'local-check/msbuild.ps1') -Evidence $evidence -RunSelectedTests:($Task -ne 'msbuild') -TestGroup $testGroup
     exit $LASTEXITCODE
 } elseif ($Task -eq 'validation-ui') {
     $guard = [Uri]::new((Join-Path $repo 'scripts/remote-check/no-delete.mjs')).AbsoluteUri
