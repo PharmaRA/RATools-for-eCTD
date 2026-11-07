@@ -1,13 +1,13 @@
 [CmdletBinding()]
-param([ValidateSet('build','msbuild','msbuild-tests','msbuild-contracts','msbuild-import','msbuild-nodes','msbuild-package','msbuild-publishing','msbuild-storage','pdf','capture','upload','multipart','report','validation-ui','frontend-all','frontend-static','input-api','input-browser')][string]$Task = 'build')
+param([ValidateSet('build','msbuild','msbuild-tests','msbuild-contracts','msbuild-import','msbuild-nodes','msbuild-package','msbuild-publishing','msbuild-storage','msbuild-workspace','pdf','capture','upload','multipart','report','validation-ui','frontend-all','frontend-static','input-api','input-browser')][string]$Task = 'build')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $run = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')
 $evidence = Join-Path $repo ".artifacts/local-check/$run"
 $null = New-Item -ItemType Directory -Path $evidence
 Write-Host "Local $Task evidence: $evidence"
-if ($Task -in @('msbuild','msbuild-tests','msbuild-contracts','msbuild-import','msbuild-nodes','msbuild-package','msbuild-publishing','msbuild-storage')) {
-    $testGroup = if($Task -eq 'msbuild-storage'){'storage'}elseif($Task -eq 'msbuild-publishing'){'publishing'}elseif($Task -eq 'msbuild-package'){'package'}elseif($Task -eq 'msbuild-nodes'){'nodes'}elseif($Task -eq 'msbuild-import'){'import'}elseif($Task -eq 'msbuild-contracts'){'contracts'}else{'core'}
+if ($Task -in @('msbuild','msbuild-tests','msbuild-contracts','msbuild-import','msbuild-nodes','msbuild-package','msbuild-publishing','msbuild-storage','msbuild-workspace')) {
+    $testGroup = if($Task -eq 'msbuild-workspace'){'workspace'}elseif($Task -eq 'msbuild-storage'){'storage'}elseif($Task -eq 'msbuild-publishing'){'publishing'}elseif($Task -eq 'msbuild-package'){'package'}elseif($Task -eq 'msbuild-nodes'){'nodes'}elseif($Task -eq 'msbuild-import'){'import'}elseif($Task -eq 'msbuild-contracts'){'contracts'}else{'core'}
     & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'local-check/msbuild.ps1') -Evidence $evidence -RunSelectedTests:($Task -ne 'msbuild') -TestGroup $testGroup
     exit $LASTEXITCODE
 } elseif ($Task -in @('frontend-all','frontend-static')) {

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage')][string]$TestGroup = 'core')
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace')][string]$TestGroup = 'core')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -21,6 +21,7 @@ if($RunSelectedTests -and $TestGroup -eq 'nodes') { $summary.task='msbuild-nodes
 if($RunSelectedTests -and $TestGroup -eq 'package') { $summary.task='msbuild-package'; $summary.scope='Windows actual MSBuild plus real VSTest for 6 explicit classes/189 expected independent package validation cases; retained fixture files; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'publishing') { $summary.task='msbuild-publishing'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 explicit classes/70 expected publication cases; retained fixture files and InMemory stores; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-storage'; $summary.scope='Windows actual MSBuild plus real VSTest for 5 local file upload retention cases; not HTTP, database, malicious concurrent replacement or full suite qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 $inputs = @{}; $tools = @{}
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Xml([string]$Value) { [Security.SecurityElement]::Escape($Value) }
@@ -204,11 +205,15 @@ public static class MsbuildDeleteAccessProbe {
             $selected=@{'RATools.Tests.Documents.CancelledFileUploadTests'=5}
             $expectedTotal=5
         }
+        if($TestGroup -eq 'workspace') {
+            $selected=@{'RATools.Tests.Infrastructure.WorkspaceDeletionServiceTests'=13}
+            $expectedTotal=13
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
         $selectedSources += Join-Path $repo 'tests/RATools.Tests/Applications/NodeImportWorkspace.cs'
-        if($TestGroup -in @('package','publishing','storage')) {
+        if($TestGroup -in @('package','publishing','storage','workspace')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }
