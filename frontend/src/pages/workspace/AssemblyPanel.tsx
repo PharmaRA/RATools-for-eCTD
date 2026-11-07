@@ -33,7 +33,7 @@ function download(name: string, csv: string) {
   try { const link = document.createElement('a'); link.href = url; link.download = name; link.click() }
   finally { setTimeout(() => URL.revokeObjectURL(url), 1000) }
 }
-export const AssemblyPanel = (props: Props) => <AssemblyEditor key={JSON.stringify([props.appId, props.seqNumber, props.workspaceRevision])} {...props} />
+export const AssemblyPanel = (props: Props) => <AssemblyEditor key={JSON.stringify([props.appId, props.seqNumber])} {...props} />
 
 function AssemblyEditor({ appId, seqNumber, workspaceRevision, disabled, nodes = [], onExecuted }: Props) {
   const base = `/api/applications/${encodeURIComponent(appId)}/sequences/${encodeURIComponent(seqNumber)}`
@@ -56,6 +56,13 @@ function AssemblyEditor({ appId, seqNumber, workspaceRevision, disabled, nodes =
   const notified = useRef<string | undefined>(undefined)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   useLayoutEffect(() => { readOnly.current = disabled }, [disabled])
+  useLayoutEffect(() => {
+    // A new revision invalidates editable inputs, but a committed task must survive
+    // the parent's completion refresh with its verified result and notification fence.
+    generation.current++
+    setManifest(''); setWorkbook(undefined); setPreview(undefined); setSelected([])
+    setError(undefined); setPage(0); setFileBusy(false)
+  }, [workspaceRevision])
   const running = job?.status === 0 || job?.status === 1
   const editable = !disabled && !busy && !fileBusy && !handle
   const selectionDirty = !!preview && !equalRows(selected, preview.selectedRows)
@@ -229,7 +236,7 @@ function AssemblyEditor({ appId, seqNumber, workspaceRevision, disabled, nodes =
     {error && <p role="alert">{error}</p>}{pollError && <p role="alert">{pollError}</p>}
     {nodes.length > 0 && <details><summary>查看可用目标业务节点</summary><ul>{nodes.map(node => <li key={node.id}>
       {node.label} · <code>{node.id}</code></li>)}</ul></details>}
-    <AssemblySourcesPanel appId={appId} seqNumber={seqNumber} expectedRevision={workspaceRevision}
+    <AssemblySourcesPanel key={workspaceRevision} appId={appId} seqNumber={seqNumber} expectedRevision={workspaceRevision}
       disabled={!editable} nodes={nodes} onManifest={value => { setManifest(value); setWorkbook(undefined); invalidate() }} />
     <div className="flex gap-3"><button type="button" onClick={() => download('assembly-template.csv',
       'sourceFile,nodeInstanceId,operation,title,fileName,targetLeafAddress,sortOrder\r\n')}>下载清单模板</button>

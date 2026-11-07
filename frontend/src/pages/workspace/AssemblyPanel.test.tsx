@@ -1,4 +1,4 @@
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AssemblyPanel } from './AssemblyPanel'
@@ -53,6 +53,47 @@ it('enqueues only the stored plan digest and not a mutable manifest', async () =
   expect(request).toEqual({ planId: 'preview', planDigest: previewPlan.plan.planDigest, idempotencyKey: expect.any(String) })
   expect(executed).toHaveBeenCalledOnce()
   expect(document.body.textContent).toContain('工作区修订已更新为 4')
+})
+
+it('keeps verified completion visible when its callback advances the parent workspace revision', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(json(previewPlan)).mockResolvedValueOnce(json(completed))
+    .mockResolvedValueOnce(json(completed))
+  vi.stubGlobal('fetch', fetch)
+  const notified = vi.fn()
+  function Workspace() {
+    const [revision, setRevision] = useState(3)
+    return <AssemblyPanel appId="app" seqNumber="0001" workspaceRevision={revision} disabled={false}
+      onExecuted={() => { notified(); setRevision(4) }} />
+  }
+  const container = document.createElement('div'); document.body.appendChild(container)
+  const root = createRoot(container)
+  act(() => root.render(<Workspace />))
+  disposers.push(() => { act(() => root.unmount()); container.remove() })
+  await prepare(); await click('执行已预览计划')
+  expect(document.body.textContent).toContain('装配已提交')
+  expect(document.body.textContent).toContain('工作区修订已更新为 4，创建 1 个挂载')
+  await click('刷新装配状态')
+  expect(notified).toHaveBeenCalledOnce()
+  await click('创建新装配计划')
+  edit('new manifest')
+  expect(button('生成装配预览').disabled).toBe(false)
+})
+
+it('invalidates an unsubmitted preview when the parent workspace revision changes', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(previewPlan)))
+  const update = render(); await prepare(); expect(button('执行已预览计划').disabled).toBe(false)
+  update(4)
+  expect(button('执行已预览计划').disabled).toBe(true)
+  expect(document.querySelector('textarea')!.value).toBe('')
+})
+
+it('ignores a preview response from the previous parent workspace revision', async () => {
+  let finish!: (response: Response) => void
+  vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(new Promise<Response>(resolve => { finish = resolve })))
+  const update = render(); edit('manifest A'); await click('生成装配预览'); update(4)
+  await act(async () => finish(json(previewPlan)))
+  expect(button('执行已预览计划').disabled).toBe(true)
+  expect(document.body.textContent).not.toContain('总行数')
 })
 
 it('creates a new immutable selected subset while still displaying invalid rows', async () => {
