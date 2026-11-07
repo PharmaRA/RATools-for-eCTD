@@ -8,6 +8,7 @@ namespace RATools.Infrastructure.DocumentProcessing;
 // Completed empty groups are retained; this class never removes filesystem objects.
 internal sealed class LinuxPdfResourceScope : IDisposable
 {
+    private static readonly string[] RequiredControllers = ["cpu", "memory", "pids"];
     private readonly string _directory;
     private readonly CancellationTokenSource _stop = new();
     private Task _monitor = Task.CompletedTask;
@@ -32,7 +33,7 @@ internal sealed class LinuxPdfResourceScope : IDisposable
             if (!current.Exists || (current.Attributes & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidOperationException("The Linux PDF cgroup path must exist without links.");
         var controllers = File.ReadAllText(Path.Combine(root, "cgroup.subtree_control")).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (new[] { "cpu", "memory", "pids" }.Any(controller => !controllers.Contains(controller, StringComparer.Ordinal)))
+        if (RequiredControllers.Any(controller => !controllers.Contains(controller, StringComparer.Ordinal)))
             throw new InvalidOperationException("The delegated Linux PDF subtree must enable cpu, memory and pids controllers.");
         var directory = Path.Combine(root, "pdf-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
