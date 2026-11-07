@@ -8,7 +8,7 @@ internal static class SelectedTests
     {
 #if MULTIPART
         Type[] suites = [typeof(RATools.Tests.PackageValidation.MultipartRetentionTests)];
-        int[] expected = [4];
+        int[] expected = [6];
 #elif UPLOAD
         Type[] suites = [typeof(RATools.Tests.PackageValidation.PackageUploadRetentionTests)];
         int[] expected = [11];
