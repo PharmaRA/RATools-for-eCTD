@@ -37,6 +37,20 @@ try:
     if "Seccomp:\t2" not in status:
         raise RuntimeError("Required inherited no-delete seccomp filter is absent")
     summary["noDeleteSeccomp"] = True
+    if config.get("scope") == "linux-resources":
+        run("backend-build", [sys.executable, "scripts/remote-check/backend-build.py"], root, "build-failed")
+        if config['task'] == 'test':
+            delegation = Path('/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service')
+            owned_group = delegation / ('ratools-' + root.name)
+            owned_group.mkdir()
+            (owned_group / 'cgroup.subtree_control').write_text('+cpu +memory +pids')
+            os.environ['RATOOLS_PDF_CGROUP_ROOT'] = str(owned_group)
+            for name, probe in [('linux-resources', 'LinuxResourceProbe'), ('process-tree', 'ProcessTreeProbe')]:
+                run(name, ['/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet', f'backend/{probe}.dll', f'results/{name}'], root, 'test-failed')
+            run('manager-fault', [sys.executable, 'scripts/remote-check/manager-launch.test.py'], root, 'test-failed')
+        summary['category'] = 'passed'
+        summary['exitCode'] = 0
+        raise SystemExit(0)
     if config.get("scope") == "postgres-platform":
         try:
             run("postgres-platform", [sys.executable, "scripts/remote-check/postgres-platform.py"], root, "runner-failed")
@@ -111,6 +125,12 @@ try:
         if config.get("scope") in {"backend-browser", "backend-pg-browser"}:
             run("backend-build", [sys.executable, "scripts/remote-check/backend-build.py"], root, "build-failed")
             if config["task"] == "test":
+                delegation = Path('/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service')
+                owned_group = delegation / ('ratools-' + root.name)
+                owned_group.mkdir()
+                (owned_group / 'cgroup.subtree_control').write_text('+cpu +memory +pids')
+                os.environ['RATOOLS_PDF_CGROUP_ROOT'] = str(owned_group)
+                run("linux-resources", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/LinuxResourceProbe.dll", "results/linux-resources"], root, "test-failed")
                 run("capture-recycle", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/CaptureRecycleProbe.dll", "results/capture-recycle"], root, "test-failed")
                 run("process-tree", ["/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423/dotnet", "backend/ProcessTreeProbe.dll", "results/process-tree"], root, "test-failed")
                 if config.get("scope") == "backend-pg-browser":

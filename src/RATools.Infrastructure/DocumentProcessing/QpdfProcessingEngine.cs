@@ -1025,11 +1025,14 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options, PdfToolP
         {
             await linked.CancelAsync().ConfigureAwait(false);
             TryKill(process);
-            launch.CloseJob();
-            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-            await ObserveCompletionAsync(wait).ConfigureAwait(false);
-            await ObserveCompletionAsync(stdout).ConfigureAwait(false);
-            await ObserveCompletionAsync(stderr).ConfigureAwait(false);
+            try { launch.CloseJob(); }
+            finally
+            {
+                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+                await ObserveCompletionAsync(wait).ConfigureAwait(false);
+                await ObserveCompletionAsync(stdout).ConfigureAwait(false);
+                await ObserveCompletionAsync(stderr).ConfigureAwait(false);
+            }
         }
     }
 
@@ -1085,12 +1088,15 @@ public sealed class QpdfProcessingEngine(QpdfProcessingOptions options, PdfToolP
         {
             await linked.CancelAsync().ConfigureAwait(false);
             TryKill(process);
-            launch.CloseJob();
-            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-            await ObserveCompletionAsync(wait).ConfigureAwait(false);
-            await ObserveCompletionAsync(stdout).ConfigureAwait(false);
-            await ObserveCompletionAsync(stderr).ConfigureAwait(false);
-            if (output is not null) await output.DisposeAsync();
+            try { launch.CloseJob(); }
+            finally
+            {
+                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+                await ObserveCompletionAsync(wait).ConfigureAwait(false);
+                await ObserveCompletionAsync(stdout).ConfigureAwait(false);
+                await ObserveCompletionAsync(stderr).ConfigureAwait(false);
+                if (output is not null) await output.DisposeAsync();
+            }
         }
     }
 

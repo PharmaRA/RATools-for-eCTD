@@ -8,9 +8,10 @@ internal sealed class PdfToolProcess : IDisposable
 {
     private readonly PdfContentProcess.ProcessJob? _job;
     private readonly PdfContentProcess.SuspendedProcess? _launch;
+    private readonly LinuxPdfResourceScope? _linux;
     private PdfToolProcess(Process process, PdfContentProcess.ProcessJob? job = null,
-        PdfContentProcess.SuspendedProcess? launch = null)
-    { Process = process; _job = job; _launch = launch; }
+        PdfContentProcess.SuspendedProcess? launch = null, LinuxPdfResourceScope? linux = null)
+    { Process = process; _job = job; _launch = launch; _linux = linux; }
 
     public Process Process { get; }
     public Stream Stdout => _launch?.Stdout ?? Process.StandardOutput.BaseStream;
@@ -42,11 +43,23 @@ internal sealed class PdfToolProcess : IDisposable
                 throw;
             }
         }
-        var process = new Process { StartInfo = new ProcessStartInfo(options.ExecutablePath)
-        { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true } };
-        foreach (var argument in allArguments) process.StartInfo.ArgumentList.Add(argument);
-        try { process.Start(); return new(process); }
-        catch { process.Dispose(); throw; }
+        if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException("PDF tool resource enforcement supports Windows or delegated Linux cgroup-v2 hosts.");
+        var linux = LinuxPdfResourceScope.Create(options.MaxMemoryBytes, options.MaxCpuTime);
+        var process = new Process { StartInfo = linux.StartInfo(options.ExecutablePath, allArguments) };
+        try { process.Start(); linux.Release(process); return new(process, linux: linux); }
+        catch
+        {
+            try
+            {
+                // Release may fail before enrollment; stop the waiting shell as well.
+                try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+                catch (InvalidOperationException) { }
+                linux.Dispose();
+                try { process.WaitForExit(); } catch (InvalidOperationException) { }
+            }
+            finally { process.Dispose(); }
+            throw;
+        }
     }
 
     private static string ResolveExecutable(string executable)
@@ -63,12 +76,15 @@ internal sealed class PdfToolProcess : IDisposable
         return executable;
     }
 
-    public void CloseJob() => _job?.Dispose();
+    public void CloseJob() { _job?.Dispose(); _linux?.Dispose(); }
 
     public void Dispose()
     {
-        _job?.Dispose();
-        if (_launch is not null) _launch.Dispose();
-        else Process.Dispose();
+        try { CloseJob(); }
+        finally
+        {
+            if (_launch is not null) _launch.Dispose();
+            else Process.Dispose();
+        }
     }
 }

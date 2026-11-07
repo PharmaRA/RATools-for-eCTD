@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
-    [ValidateSet('frontend', 'linux-platform', 'backend-browser', 'postgres-platform', 'backend-pg-browser')][string]$Scope = 'frontend',
+    [ValidateSet('frontend', 'linux-platform', 'linux-resources', 'backend-browser', 'postgres-platform', 'backend-pg-browser')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
     [string]$CliPath,
@@ -80,7 +80,7 @@ if ($Resume) {
     # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
     # node_modules, local CLI/auth state, or backend artifacts are synchronized.
     $files = [Collections.Generic.List[string]]::new()
-    if ($Scope -in @('frontend', 'backend-browser', 'backend-pg-browser')) {
+    if ($Scope -in @('frontend', 'backend-browser', 'backend-pg-browser', 'linux-resources')) {
     foreach ($name in @('package.json', 'package-lock.json', 'index.html', 'bundle-budget.json',
         'vite.config.ts', 'eslint.config.js', 'postcss.config.js', 'tailwind.config.js',
         'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/check-bundle-budget.mjs')) {
@@ -94,14 +94,14 @@ if ($Resume) {
             $files.Add($relative)
         }
     }
-    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
+    foreach ($name in @('job.py', 'manager-launch.py', 'manager-launch.test.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs', 'browser-process.mjs', 'browser-process.test.mjs')) {
         $files.Add("scripts/remote-check/$name")
     }
-    if ($Scope -in @('backend-browser', 'backend-pg-browser')) {
+    if ($Scope -in @('backend-browser', 'backend-pg-browser', 'linux-resources')) {
         foreach ($name in @('global.json', 'Directory.Build.props', 'VERSION',
             'scripts/remote-check/backend-build.py', 'scripts/remote-check/browser-backend.mjs',
             'scripts/remote-check/BrowserStartup.cs', 'scripts/remote-check/CaptureRecycleProbe.cs',
-            'scripts/remote-check/ProcessTreeProbe.cs', 'scripts/remote-check/verify-pdf-download.py',
+            'scripts/remote-check/ProcessTreeProbe.cs', 'scripts/remote-check/LinuxResourceProbe.cs', 'scripts/remote-check/verify-pdf-download.py',
             'src/RATools.DatabaseMigrator/Program.cs', 'src/RATools.DatabaseMigrator/RATools.DatabaseMigrator.csproj')) { $files.Add($name) }
         if ($Scope -eq 'backend-pg-browser') {
             foreach ($name in @('postgres-platform.py', 'postgres-packages.json', 'RecyclePostgres.c')) { $files.Add("scripts/remote-check/$name") }
@@ -175,16 +175,20 @@ if ($Resume) {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($bootstrap))
     $unpack = Invoke-Instabox @('exec', $Machine, '--json', '--', "python3 -c 'import base64; exec(base64.b64decode(`"$encoded`"))'")
     Require-Transport $unpack 'Verified source extraction'
-    $launch = Invoke-Instabox @('exec', $Machine, '--background', '--json', '--cwd', $remote, '--',
-        "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $digest")
+    $jobCommand = "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $digest"
+    if ($Scope -in @('linux-resources', 'backend-browser', 'backend-pg-browser')) {
+        $jobCommand = "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/manager-launch.py $digest"
+    }
+    $launch = Invoke-Instabox @('exec', $Machine, '--background', '--json', '--cwd', $remote, '--', $jobCommand)
     Require-Transport $launch 'Background job launch'
     $job = $launch.Output | ConvertFrom-Json
-    $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead }
+    $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead;
+        command = $jobCommand; entrySha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant() }
     $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'run.json')
 }
 
 Write-Host "Remote $Task job $($state.jobId); source $($state.sourceHead); archive SHA256 $($state.sourceSha256)"
-Write-Host "Command: python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $($state.sourceSha256)"
+Write-Host "Command: $(if ($state.command) { $state.command } else { 'python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py ' + $state.sourceSha256 })"
 Write-Host "Evidence: $evidence; remote: $($state.remote)"
 $deadline = [DateTime]::UtcNow.AddMinutes($WaitMinutes)
 do {

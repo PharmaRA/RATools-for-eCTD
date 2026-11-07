@@ -175,3 +175,7 @@ if unified:
         'subtreeWritable': os.access(cgroup / 'cgroup.subtree_control', os.W_OK),
         'scope': 'read-only current task cgroup probe, not a search for all possible delegated cgroups'}, indent=2))
 print('Four current-source layers compiled for the bounded Linux browser host.')
+probe = out / 'LinuxResourceProbe.dll'
+subprocess.run([str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '-nologo', '-target:exe', '-langversion:12', '-nullable:enable', '-warnaserror+',
+                f'-out:{probe}', *[f'-r:{item}' for item in refs.values()], str(root / 'scripts/remote-check/LinuxResourceProbe.cs')], env=env, check=True)
+(out / 'LinuxResourceProbe.runtimeconfig.json').write_text(json.dumps(runtime))
