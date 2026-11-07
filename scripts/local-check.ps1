@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('build','pdf','capture','upload','multipart','validation-ui','input-api')][string]$Task = 'build')
+param([ValidateSet('build','pdf','capture','upload','multipart','validation-ui','input-api','input-browser')][string]$Task = 'build')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $run = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')

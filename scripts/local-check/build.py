@@ -127,7 +127,7 @@ try:
         compile_sources(name, sources, {**frameworks, **packages, **layers}, generators, tree, executable=layer == 'Api', extra_usings=web if layer == 'Api' else [])
         layers[name + '.dll'] = out / (name + '.dll')
     runtime = {'runtimeOptions': {'tfm': 'net8.0', 'frameworks': [{'name': 'Microsoft.NETCore.App', 'version': runtime_version}, {'name': 'Microsoft.AspNetCore.App', 'version': runtime_version}]}}
-    if sys.argv[2] == 'input-api':
+    if sys.argv[2] in {'input-api', 'input-browser'}:
         compile_sources('InputApiStartup', [root / 'scripts/local-check/InputApiStartup.cs'], {**frameworks, **layers}, [], executable=False)
     (out / 'RATools.Api.runtimeconfig.json').write_text(json.dumps(runtime))
     target = '.NETCoreApp,Version=v8.0'
@@ -139,6 +139,21 @@ try:
         result = subprocess.run([sys.executable, str(driver), str(evidence)], cwd=root, env=env)
         summary['steps'].append({'name': 'input-api', 'exitCode': result.returncode})
         if result.returncode: raise RuntimeError('External ZIP API checks failed; see input-api.json/log')
+    if sys.argv[2] == 'input-browser':
+        for name in ['browser-build.mjs','browser-fixture.py','browser-guard.ps1','BrowserJob.cs','browser-session.mjs','input-browser.mjs']:
+            capture(root / 'scripts/local-check' / name)
+        capture(root / 'scripts/remote-check/no-delete.mjs')
+        summary['category'] = 'browser-test-failed'
+        commands = [
+            ('frontend-build', ['node', '--import', (root / 'scripts/remote-check/no-delete.mjs').as_uri(), str(root / 'scripts/local-check/browser-build.mjs'), str(evidence)]),
+            ('browser-fixture', [sys.executable, str(root / 'scripts/local-check/browser-fixture.py'), str(evidence)]),
+            ('input-browser', ['pwsh', '-NoProfile', '-File', str(root / 'scripts/local-check/browser-guard.ps1'), '-Evidence', str(evidence), '-Driver', 'input-browser.mjs'])]
+        for name, command in commands:
+            with (evidence / (name + '.log')).open('w', encoding='utf-8') as log:
+                result = subprocess.run(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
+            summary['steps'].append({'name': name, 'exitCode': result.returncode, 'log': name + '.log'})
+            print(name + ': exit ' + str(result.returncode), flush=True)
+            if result.returncode: raise RuntimeError(name + ' failed; see its log')
     if sys.argv[2] in {'pdf', 'capture', 'upload', 'multipart'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
