@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Infrastructure.Security;
 using RATools.Infrastructure.Storage;
@@ -64,7 +65,7 @@ public sealed class ApplicationWorkspaceServiceTests
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-workspace-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -74,7 +75,7 @@ public sealed class ApplicationWorkspaceServiceTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

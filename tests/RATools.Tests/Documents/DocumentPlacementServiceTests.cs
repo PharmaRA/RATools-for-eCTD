@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
@@ -20,7 +21,7 @@ public sealed class DocumentPlacementServiceTests
     [Fact]
     public async Task CreateAsync_RejectsDocumentOwnedByAnotherApplicationWithoutChangingFileOrPlacement()
     {
-        var allowedRoot = Path.Combine(Path.GetTempPath(), $"placement-boundary-{Guid.NewGuid():N}");
+        var allowedRoot = RetainedPackageTestFiles.Create();
         var applicationRoot = Path.Combine(allowedRoot, "app-a");
         var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
         Directory.CreateDirectory(applicationRoot);
@@ -75,14 +76,14 @@ public sealed class DocumentPlacementServiceTests
         }
         finally
         {
-            Directory.Delete(allowedRoot, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(allowedRoot);
         }
     }
 
     [Fact]
     public async Task UpdateMetadataAsync_RejectsNumericOperationValues()
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), $"placement-service-{Guid.NewGuid():N}");
+        var tempDirectory = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(tempDirectory);
 
         try
@@ -143,7 +144,7 @@ public sealed class DocumentPlacementServiceTests
         {
             if (Directory.Exists(tempDirectory))
             {
-                Directory.Delete(tempDirectory, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(tempDirectory);
             }
         }
     }

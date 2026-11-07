@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
@@ -17,8 +18,8 @@ public sealed class DocumentServiceDeleteTests
     [Fact]
     public async Task DeleteAsync_RejectsOutsideWorkspaceBeforeChangingDatabaseOrFile()
     {
-        var allowedRoot = Path.Combine(Path.GetTempPath(), $"document-delete-allowed-{Guid.NewGuid():N}");
-        var outsideRoot = Path.Combine(Path.GetTempPath(), $"document-delete-outside-{Guid.NewGuid():N}");
+        var allowedRoot = RetainedPackageTestFiles.Create();
+        var outsideRoot = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(allowedRoot);
         Directory.CreateDirectory(outsideRoot);
         var outsidePath = Path.Combine(outsideRoot, "outside.pdf");
@@ -42,8 +43,8 @@ public sealed class DocumentServiceDeleteTests
         }
         finally
         {
-            Directory.Delete(allowedRoot, recursive: true);
-            Directory.Delete(outsideRoot, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(allowedRoot);
+            RetainedPackageTestFiles.RetainDirectory(outsideRoot);
         }
     }
 

@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Security;
 using RATools.Application.Applications;
@@ -244,7 +245,7 @@ public sealed class ApplicationImportLifecycleTargetTests
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-import-lifecycle-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -254,7 +255,7 @@ public sealed class ApplicationImportLifecycleTargetTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }
