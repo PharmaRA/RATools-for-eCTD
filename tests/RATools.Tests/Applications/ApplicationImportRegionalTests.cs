@@ -69,7 +69,7 @@ public sealed class ApplicationImportRegionalTests
         await fixture.AddDocumentAsync("0000", "m1.2", "regional.txt", "regional content");
         await fixture.AddDocumentAsync("0000", "m2.2", "ich.txt", "ICH content");
         await fixture.WriteSequenceAsync("0000");
-        File.Delete(RegionalPath(fixture));
+        fixture.RetainMissingFile(RegionalPath(fixture));
 
         var imported = await ImportAsync(fixture);
 
@@ -90,7 +90,7 @@ public sealed class ApplicationImportRegionalTests
         await fixture.WriteSequenceAsync("0000");
         if (failure == "missing")
         {
-            File.Delete(source.Document.StoragePath);
+            fixture.RetainMissingFile(source.Document.StoragePath);
         }
         else if (failure == "checksum")
         {

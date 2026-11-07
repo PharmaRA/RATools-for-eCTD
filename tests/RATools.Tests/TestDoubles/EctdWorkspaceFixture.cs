@@ -23,10 +23,12 @@ namespace RATools.Tests.TestDoubles;
 internal sealed class EctdWorkspaceFixture : IDisposable
 {
     private readonly IStandardsProfileProvider standards;
+    private readonly string fixtureParent = Path.GetFullPath(Path.Combine(".artifacts", "ectd-workspace-tests"));
 
     public EctdWorkspaceFixture(string templateKey)
     {
-        RootPath = Path.Combine(Path.GetTempPath(), $"ectd-workspace-{Guid.NewGuid():N}");
+        EnsureNoLinks(fixtureParent);
+        RootPath = Path.Combine(fixtureParent, $"ectd-workspace-{Guid.NewGuid():N}");
         var workspace = Path.Combine(RootPath, "application");
         Directory.CreateDirectory(workspace);
         var isEu = templateKey.StartsWith("eu-", StringComparison.Ordinal);
@@ -132,6 +134,60 @@ internal sealed class EctdWorkspaceFixture : IDisposable
 
     public void Dispose()
     {
-        Directory.Delete(RootPath, recursive: true);
+        ValidateOwnership();
+        if (!Directory.Exists(RootPath)) return;
+        var pending = new Stack<string>(); pending.Push(RootPath);
+        while (pending.TryPop(out var current))
+        {
+            EnsureNoLinks(current);
+            if (Directory.Exists(current))
+                foreach (var child in Directory.EnumerateFileSystemEntries(current)) pending.Push(child);
+        }
+        var destination = RecycleDestination(Path.GetFileName(RootPath));
+        Directory.Move(RootPath, destination);
+        Assert.False(Directory.Exists(RootPath));
+        Assert.True(Directory.Exists(destination));
+    }
+
+    public void RetainMissingFile(string path)
+    {
+        ValidateOwnership();
+        var source = Path.GetFullPath(path);
+        if (!source.StartsWith(RootPath + Path.DirectorySeparatorChar, PathComparison))
+            throw new InvalidOperationException("Missing-file fixture escaped its owned workspace.");
+        EnsureNoLinks(source);
+        var original = File.ReadAllBytes(source);
+        var destination = RecycleDestination(Path.GetFileName(source));
+        File.Move(source, destination);
+        Assert.False(File.Exists(source));
+        Assert.Equal(original, File.ReadAllBytes(destination));
+    }
+
+    private string RecycleDestination(string name)
+    {
+        var recycle = Path.Combine(fixtureParent, "_recycle");
+        EnsureNoLinks(recycle); Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
+        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N") + "-" + name));
+        if (!string.Equals(Path.GetDirectoryName(destination), recycle, PathComparison))
+            throw new InvalidOperationException("Fixture recycle destination escaped.");
+        return destination;
+    }
+
+    private void ValidateOwnership()
+    {
+        if (!string.Equals(Path.GetDirectoryName(RootPath), fixtureParent, PathComparison) ||
+            !Path.GetFileName(RootPath).StartsWith("ectd-workspace-", StringComparison.Ordinal) ||
+            !Guid.TryParseExact(Path.GetFileName(RootPath)[15..], "N", out _))
+            throw new InvalidOperationException("Unexpected workspace fixture ownership.");
+        EnsureNoLinks(RootPath);
+    }
+
+    private static StringComparison PathComparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Workspace fixture links require inspection before retention.");
     }
 }
