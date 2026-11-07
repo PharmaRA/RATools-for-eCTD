@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Applications.EctdTemplates;
 using RATools.Application.Auditing;
@@ -17,12 +18,14 @@ using RATools.Tests.TestDoubles;
 
 namespace RATools.Tests.Validation;
 
-public sealed class SequenceValidationLifecycleTargetTests
+public sealed class SequenceValidationLifecycleTargetTests : IDisposable
 {
+    private readonly string _files = RetainedPackageTestFiles.Create();
+    public void Dispose() => RetainedPackageTestFiles.RetainDirectory(_files);
     [Fact]
     public async Task ValidateAsync_BlocksDocumentOwnedByAnotherApplicationWithoutChangingFile()
     {
-        var allowedRoot = Path.Combine(Path.GetTempPath(), $"validation-boundary-{Guid.NewGuid():N}");
+        var allowedRoot = RetainedPackageTestFiles.Create();
         var applicationRoot = Path.Combine(allowedRoot, "app-a");
         var otherApplicationSequenceRoot = Path.Combine(allowedRoot, "app-b", "0001");
         Directory.CreateDirectory(applicationRoot);
@@ -87,7 +90,7 @@ public sealed class SequenceValidationLifecycleTargetTests
         }
         finally
         {
-            Directory.Delete(allowedRoot, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(allowedRoot);
         }
     }
 
@@ -374,9 +377,9 @@ public sealed class SequenceValidationLifecycleTargetTests
         Assert.Equal(firstPlacementId, issue.PlacementId);
     }
 
-    private static string CreateTempFile()
+    private string CreateTempFile()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"validation-lifecycle-{Guid.NewGuid():N}.pdf");
+        var path = Path.Combine(_files, $"validation-lifecycle-{Guid.NewGuid():N}.pdf");
         File.WriteAllText(path, "payload");
         return path;
     }

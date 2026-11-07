@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Abstractions.Storage;
@@ -23,7 +24,7 @@ public sealed class DocumentMetadataTransactionTests
         await using var fixture = await TestFixture.CreateAsync();
         var originalDocument = fixture.Documents.State;
         var originalPlacement = fixture.Placements.State;
-        File.Delete(fixture.SourcePath);
+        RetainedPackageTestFiles.RetainFile(fixture.RootPath, fixture.SourcePath);
         var unrelatedPath = Path.Combine(Path.GetDirectoryName(fixture.SourcePath)!, "unrelated.pdf");
         await File.WriteAllTextAsync(unrelatedPath, "unrelated document");
 
@@ -179,7 +180,7 @@ public sealed class DocumentMetadataTransactionTests
             IPersistenceTransaction? persistenceTransaction = null,
             FaultInjectingFileStorage? fileStorage = null)
         {
-            var rootPath = Path.Combine(Path.GetTempPath(), $"metadata-transaction-{Guid.NewGuid():N}");
+            var rootPath = RetainedPackageTestFiles.Create();
             var sourceDirectory = Path.Combine(rootPath, "0001", "m1", "us", "11-forms");
             Directory.CreateDirectory(sourceDirectory);
             var sourcePath = Path.Combine(sourceDirectory, "protocol.pdf");
@@ -245,7 +246,7 @@ public sealed class DocumentMetadataTransactionTests
         {
             if (Directory.Exists(RootPath))
             {
-                Directory.Delete(RootPath, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(RootPath);
             }
 
             return ValueTask.CompletedTask;

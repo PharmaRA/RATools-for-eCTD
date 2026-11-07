@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Application.Publishing.Validation.Pdf;
 using RATools.Application.Standards;
@@ -13,7 +14,7 @@ public sealed class PdfComplianceRuleTests
     public void Evaluate_DoesNotOpenOrInspectFilesForDeleteLeaves()
     {
         using var fixture = TempPdfFixture.Create("deleted.pdf");
-        File.Delete(fixture.Path);
+        RetainedPackageTestFiles.RetainFile(System.IO.Path.GetDirectoryName(fixture.Path)!, fixture.Path);
         var leaf = CreateLeaf("deleted.pdf", "m5/deleted.pdf", fixture.Path) with { Operation = "delete" };
         var rule = new PdfComplianceRule(new FakePdfInspector(CompliantResult));
 
@@ -467,7 +468,7 @@ public sealed class PdfComplianceRuleTests
 
         public static TempPdfFixture Create(string fileName)
         {
-            var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"pdf-rule-{Guid.NewGuid():N}");
+            var directory = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(directory);
             var path = System.IO.Path.Combine(directory, fileName);
             File.WriteAllText(path, "pdf");
@@ -479,7 +480,7 @@ public sealed class PdfComplianceRuleTests
             var directory = System.IO.Path.GetDirectoryName(Path);
             if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
             {
-                Directory.Delete(directory, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(directory);
             }
         }
     }
