@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
+    [ValidateSet('frontend', 'linux-platform')][string]$Scope = 'frontend',
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
@@ -11,6 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if ($BrowserProbe -and $Task -ne 'build') { throw 'BrowserProbe requires -Task build so it uses the current production output.' }
+if ($Scope -ne 'frontend' -and ($BrowserProbe -or $LintFiles.Count)) { throw 'BrowserProbe and LintFiles require frontend scope.' }
 $repo = Split-Path -Parent $PSScriptRoot
 # An already-running parent application may not inherit a newly persisted user
 # variable. Pass only this named variable to children, never print or serialize it.
@@ -50,6 +52,11 @@ function Require-Transport($Result, [string]$Operation) {
     if ($Result.Code -ne 0) { throw "$Operation failed: remote transport/CLI exit $($Result.Code); no local fallback." }
 }
 
+function Resolve-CheckScope([string]$Value) {
+    if (-not $Value -or $Value -eq 'frontend only') { return 'frontend' }
+    return $Value
+}
+
 # Probe without querying account details or inspecting credential storage.
 $probe = Invoke-Instabox @('exec', $Machine, '--json', '--timeout', '30', '--', 'true')
 Require-Transport $probe 'Authentication/connectivity probe'
@@ -59,7 +66,7 @@ if ($Resume) {
     $evidenceRoot = [IO.Path]::GetFullPath((Join-Path $repo '.artifacts/remote-check')) + [IO.Path]::DirectorySeparatorChar
     if (-not $resumePath.StartsWith($evidenceRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Resume must name a run.json under .artifacts/remote-check.' }
     $state = Get-Content -LiteralPath $resumePath -Raw | ConvertFrom-Json
-    if ($state.machine -ne $Machine -or $state.task -ne $Task -or $state.jobId -notmatch '^[a-zA-Z0-9_-]+$' -or
+    if ($state.machine -ne $Machine -or $state.task -ne $Task -or (Resolve-CheckScope $state.scope) -ne $Scope -or $state.jobId -notmatch '^[a-zA-Z0-9_-]+$' -or
         $state.remote -notmatch '^/data/home/ratools-remote/[a-zA-Z0-9_-]+$' -or
         $state.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Resume state does not match the requested job.' }
     $evidence = Split-Path -Parent $resumePath
@@ -72,6 +79,7 @@ if ($Resume) {
     # Explicit frontend source/config rules. No .env, data, backups, bin, obj,
     # node_modules, local CLI/auth state, or backend artifacts are synchronized.
     $files = [Collections.Generic.List[string]]::new()
+    if ($Scope -eq 'frontend') {
     foreach ($name in @('package.json', 'package-lock.json', 'index.html', 'bundle-budget.json',
         'vite.config.ts', 'eslint.config.js', 'postcss.config.js', 'tailwind.config.js',
         'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/check-bundle-budget.mjs')) {
@@ -96,6 +104,15 @@ if ($Resume) {
         if ($lintFile -notmatch '^(src/[a-zA-Z0-9_./-]+\.(ts|tsx)|vite\.config\.ts)$' -or $lintFile.Contains('..') -or
             -not $files.Contains("frontend/$lintFile")) { throw "Lint file is outside synchronized source rules: $lintFile" }
     }
+    } else {
+        foreach ($name in @('global.json', 'src/RATools.Infrastructure/RATools.Infrastructure.csproj',
+            'src/RATools.Infrastructure/DocumentProcessing/PdfToolProcessBudget.cs',
+            'src/RATools.Infrastructure/DocumentProcessing/PdfContentProcess.cs',
+            'src/RATools.Infrastructure/Security/LocalOnlyDeploymentValidator.cs',
+            'src/RATools.Infrastructure/Security/DeploymentOptions.cs',
+            'scripts/remote-check/job.py', 'scripts/remote-check/no-delete.py',
+            'scripts/remote-check/linux-platform.py', 'scripts/remote-check/LinuxPlatform.cs')) { $files.Add($name) }
+    }
     $manifest = @()
     $archivePath = Join-Path $evidence 'source.zip'
     $archive = [IO.Compression.ZipFile]::Open($archivePath, [IO.Compression.ZipArchiveMode]::Create)
@@ -114,7 +131,7 @@ if ($Resume) {
             $stream = $entry.Open()
             try { $stream.Write($bytes) } finally { $stream.Dispose() }
         }
-        $config = @{ task = $Task; testFiles = $TestFiles; lintFiles = $LintFiles; browserProbe = [bool]$BrowserProbe; sourceHead = (& git -C $repo rev-parse HEAD) }
+        $config = @{ task = $Task; scope = $Scope; testFiles = $TestFiles; lintFiles = $LintFiles; browserProbe = [bool]$BrowserProbe; sourceHead = (& git -C $repo rev-parse HEAD) }
         $entry = $archive.CreateEntry('job-config.json')
         $writer = [IO.StreamWriter]::new($entry.Open())
         try { $writer.Write(($config | ConvertTo-Json -Depth 5)) } finally { $writer.Dispose() }
@@ -131,7 +148,7 @@ if ($Resume) {
         "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $digest")
     Require-Transport $launch 'Background job launch'
     $job = $launch.Output | ConvertFrom-Json
-    $state = @{ machine = $Machine; task = $Task; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead }
+    $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead }
     $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'run.json')
 }
 
@@ -151,19 +168,29 @@ do {
         if (-not $hasFinalRecord) { throw "Remote job state unavailable/mismatched (CLI exit $($wait.Code)); resume using run.json." }
         $finished | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $evidence 'job-result.json')
         Write-Host "Remote job ended with exit $($finished.exitCode); retrieving evidence."
-        $pull = Invoke-Instabox @('cp', '-r', "${Machine}:$($state.remote)/results", $evidence, '--json')
+        $downloadDirectory = $evidence
+        if (Test-Path -LiteralPath (Join-Path $downloadDirectory 'results')) {
+            $downloadDirectory = Join-Path $evidence ('retrieval-' + [guid]::NewGuid().ToString('N'))
+            $null = New-Item -ItemType Directory -Path $downloadDirectory
+        }
+        $pull = Invoke-Instabox @('cp', '-r', "${Machine}:$($state.remote)/results", $downloadDirectory, '--json')
         Require-Transport $pull 'Result download'
-        $summary = Get-Content -LiteralPath (Join-Path $evidence 'results/summary.json') -Raw | ConvertFrom-Json
+        $summary = Get-Content -LiteralPath (Join-Path $downloadDirectory 'results/summary.json') -Raw | ConvertFrom-Json
         if ($summary.task -ne $state.task -or $summary.sourceHead -ne $state.sourceHead -or
+            (Resolve-CheckScope $summary.scope) -ne $Scope -or
             $summary.sourceSha256 -ne $state.sourceSha256 -or $summary.exitCode -ne $finished.exitCode -or
             ($finished.exitCode -eq 0 -and $summary.category -ne 'passed')) { throw 'Downloaded summary does not bind to this job; success is not established.' }
-        Write-Host "Final remote exit: $($finished.exitCode); category: $($summary.category); report: $evidence/results/summary.json"
-        if (Test-Path -LiteralPath (Join-Path $evidence 'results/tests.json')) {
-            $tests = Get-Content -LiteralPath (Join-Path $evidence 'results/tests.json') -Raw | ConvertFrom-Json
+        Write-Host "Final remote exit: $($finished.exitCode); category: $($summary.category); report: $downloadDirectory/results/summary.json"
+        if (Test-Path -LiteralPath (Join-Path $downloadDirectory 'results/tests.json')) {
+            $tests = Get-Content -LiteralPath (Join-Path $downloadDirectory 'results/tests.json') -Raw | ConvertFrom-Json
             Write-Host "Tests: $($tests.numPassedTests) passed / $($tests.numFailedTests) failed / $($tests.numPendingTests) pending"
+        }
+        if (Test-Path -LiteralPath (Join-Path $downloadDirectory 'results/linux-tests.json')) {
+            $tests = Get-Content -LiteralPath (Join-Path $downloadDirectory 'results/linux-tests.json') -Raw | ConvertFrom-Json
+            Write-Host "Linux tests: $($tests.passed) passed / $($tests.failed) failed / $($tests.skipped) skipped"
         }
         exit ([int]$finished.exitCode)
     }
 } while ([DateTime]::UtcNow -lt $deadline)
-Write-Host "Wait timeout; job remains running. Resume: pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task $Task -Machine $Machine -Resume '$evidence/run.json'"
+Write-Host "Wait timeout; job remains running. Resume: pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task $Task -Scope $Scope -Machine $Machine -Resume '$evidence/run.json'"
 exit 124

@@ -15,7 +15,7 @@ config = json.loads((root / "job-config.json").read_text(encoding="utf-8-sig"))
 summary = {"task": config["task"], "sourceHead": config["sourceHead"], "steps": [],
            "sourceSha256": sys.argv[1],
            "category": "toolchain-unavailable", "exitCode": 1,
-           "platform": platform.platform(), "scope": "frontend only"}
+           "platform": platform.platform(), "scope": config.get("scope", "frontend")}
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 os.environ["CI"] = "true"
 
@@ -33,6 +33,23 @@ def run(name, command, cwd, category):
 
 
 try:
+    status = Path("/proc/self/status").read_text()
+    if "Seccomp:\t2" not in status:
+        raise RuntimeError("Required inherited no-delete seccomp filter is absent")
+    summary["noDeleteSeccomp"] = True
+    if config.get("scope") == "linux-platform":
+        try:
+            run("linux-platform", [sys.executable, "scripts/remote-check/linux-platform.py", config["task"]], root, "runner-failed")
+        finally:
+            receipt = results / "linux-phase.json"
+            if receipt.exists():
+                category = json.loads(receipt.read_text())["category"]
+                if category not in {"toolchain-unavailable", "dependency-install-failed", "build-failed", "test-failed", "test-timeout"}:
+                    raise RuntimeError("Unrecognized Linux phase receipt")
+                summary["category"] = category
+        summary["category"] = "passed"
+        summary["exitCode"] = 0
+        raise SystemExit(0)
     node = subprocess.check_output(["node", "--version"], text=True).strip()
     summary["node"] = node
     version = tuple(int(part) for part in node.lstrip("v").split("."))
@@ -41,10 +58,6 @@ try:
     if not minimum or version < tuple(map(int, minimum.groups())):
         raise RuntimeError("Remote Node does not satisfy the supported engine rule: " + requirement)
     summary["nodeRequirement"] = requirement
-    status = Path("/proc/self/status").read_text()
-    if "Seccomp:\t2" not in status:
-        raise RuntimeError("Required inherited no-delete seccomp filter is absent")
-    summary["noDeleteSeccomp"] = True
     run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
     frontend = root / "frontend"
     node_command = ["node", "--import", "../scripts/remote-check/no-delete.mjs"]
