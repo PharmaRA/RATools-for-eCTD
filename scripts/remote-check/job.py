@@ -48,6 +48,8 @@ try:
     run("dependencies", [sys.executable, "scripts/remote-check/install-lock.py"], root, "dependency-install-failed")
     frontend = root / "frontend"
     node_command = ["node", "--import", "../scripts/remote-check/no-delete.mjs"]
+    if config.get("lintFiles"):
+        run("lint", node_command + ["node_modules/eslint/bin/eslint.js", *config["lintFiles"]], frontend, "lint-failed")
     if config["task"] == "test":
         run("tests", node_command + ["../scripts/remote-check/test.mjs"], frontend, "test-failed")
         report = json.loads((results / "tests.json").read_text())
@@ -71,6 +73,8 @@ try:
         run("types-config", node_command + ["node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.node.json"], frontend, "build-failed")
         run("vite", node_command + ["node_modules/vite/bin/vite.js", "build", "--configLoader", "runner", "--emptyOutDir", "false"], frontend, "build-failed")
         run("budget", node_command + ["scripts/check-bundle-budget.mjs"], frontend, "build-failed")
+        if config.get("browserProbe"):
+            run("browser", node_command + ["../scripts/remote-check/browser-finalization.mjs"], frontend, "browser-test-failed")
     summary["category"] = "passed"
     summary["exitCode"] = 0
 except Exception as error:

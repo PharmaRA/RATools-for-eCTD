@@ -4,10 +4,13 @@ param(
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
+    [string[]]$LintFiles = @(),
+    [switch]$BrowserProbe,
     [ValidateRange(1, 180)][int]$WaitMinutes = 30,
     [string]$Resume
 )
 $ErrorActionPreference = 'Stop'
+if ($BrowserProbe -and $Task -ne 'build') { throw 'BrowserProbe requires -Task build so it uses the current production output.' }
 $repo = Split-Path -Parent $PSScriptRoot
 # An already-running parent application may not inherit a newly persisted user
 # variable. Pass only this named variable to children, never print or serialize it.
@@ -82,12 +85,16 @@ if ($Resume) {
             $files.Add($relative)
         }
     }
-    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs')) {
+    foreach ($name in @('job.py', 'install-lock.py', 'no-delete.py', 'no-delete.mjs', 'test.mjs', 'browser-finalization.mjs')) {
         $files.Add("scripts/remote-check/$name")
     }
     foreach ($testFile in $TestFiles) {
         if ($testFile -notmatch '^src/[a-zA-Z0-9_./-]+\.test\.tsx?$' -or $testFile.Contains('..') -or
             -not $files.Contains("frontend/$testFile")) { throw "Test is outside the synchronized frontend source rules: $testFile" }
+    }
+    foreach ($lintFile in $LintFiles) {
+        if ($lintFile -notmatch '^(src/[a-zA-Z0-9_./-]+\.(ts|tsx)|vite\.config\.ts)$' -or $lintFile.Contains('..') -or
+            -not $files.Contains("frontend/$lintFile")) { throw "Lint file is outside synchronized source rules: $lintFile" }
     }
     $manifest = @()
     $archivePath = Join-Path $evidence 'source.zip'
@@ -107,7 +114,7 @@ if ($Resume) {
             $stream = $entry.Open()
             try { $stream.Write($bytes) } finally { $stream.Dispose() }
         }
-        $config = @{ task = $Task; testFiles = $TestFiles; sourceHead = (& git -C $repo rev-parse HEAD) }
+        $config = @{ task = $Task; testFiles = $TestFiles; lintFiles = $LintFiles; browserProbe = [bool]$BrowserProbe; sourceHead = (& git -C $repo rev-parse HEAD) }
         $entry = $archive.CreateEntry('job-config.json')
         $writer = [IO.StreamWriter]::new($entry.Open())
         try { $writer.Write(($config | ConvertTo-Json -Depth 5)) } finally { $writer.Dispose() }

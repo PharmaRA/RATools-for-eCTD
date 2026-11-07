@@ -134,8 +134,8 @@ export const useWorkspaceData = ({
     await refetchEctdStructure()
   }, [refetchEctdStructure])
 
-  const refreshWorkspaceData = useCallback(async () => {
-    await refetchSnapshot()
+  const refreshWorkspaceData = useCallback(async (throwOnError = false) => {
+    await refetchSnapshot({ throwOnError })
   }, [refetchSnapshot])
 
   return {

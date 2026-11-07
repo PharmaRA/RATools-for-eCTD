@@ -38,7 +38,7 @@ The frontend production budget gate subsequently passed at unchanged thresholds.
 
 Remaining gates, in plan order:
 
-1. **Finalization/delivery browser closure is unrun.** Existing workspace, publishing history and package-validation views do not provide the planned P4-08 finalization/export/receipt flow. Complete that dependency and its browser acceptance within the ordered business plan; do not count API tests as a substitute or describe P4 as wholly absent (its domain/API/storage exist).
+1. **Actual-backend finalization/delivery browser closure is unrun.** The P4-08 frontend dependency is now implemented and verified with component tests and real Chromium against synthetic API contracts; see [FINALIZATION-DELIVERY-UI.md](FINALIZATION-DELIVERY-UI.md). Actual-backend capture/export/draft/delivery/receipt acceptance and Formal/regional eligibility remain open. Neither API tests nor synthetic Formal fixtures substitute for that gate.
 2. **Broader Linux qualification is unrun.** Native resource enforcement, cancellation, listener combinations and other QA-07 Linux cases remain, beyond the completed case-sensitive cache and release-handle checks.
 3. **External qualification is unrun.** Version-fixed external-validator evidence and official current regional business scope comparison remain outstanding. Regional profiles must remain unqualified until their evidence exists.
 

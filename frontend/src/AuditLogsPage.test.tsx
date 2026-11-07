@@ -128,6 +128,36 @@ describe('AuditLogsPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('converts local date bounds to UTC and clears both on reset', async () => {
+    const fetchMock = stubFetch()
+    const { unmount } = renderApp('/audit-logs')
+    try {
+      await typeIntoInputById('createdFromLocal', '2026-11-07T08:30:15')
+      await typeIntoInputById('createdToLocal', '2026-11-08T09:45:30')
+      await clickButtonByText('查询')
+      await waitForCondition(() => fetchMock.mock.calls.some(call => {
+        const url = new URL(String(call[0]), 'http://localhost')
+        return url.searchParams.get('createdFromUtc') === new Date('2026-11-07T08:30:15').toISOString()
+          && url.searchParams.get('createdToUtc') === new Date('2026-11-08T09:45:30').toISOString()
+      }), 'UTC date boundaries')
+      await clickButtonByText('重置')
+      expect((document.getElementById('createdFromLocal') as HTMLInputElement).value).toBe('')
+      expect((document.getElementById('createdToLocal') as HTMLInputElement).value).toBe('')
+    } finally { unmount() }
+  })
+
+  it('rejects reversed dates without issuing a filtered request', async () => {
+    const fetchMock = stubFetch()
+    const { unmount } = renderApp('/audit-logs')
+    try {
+      await typeIntoInputById('createdFromLocal', '2026-11-08T08:30')
+      await typeIntoInputById('createdToLocal', '2026-11-07T08:30')
+      await clickButtonByText('查询')
+      await waitForCondition(() => document.body.textContent!.includes('结束时间不能早于开始时间'), 'reversed-date error')
+      expect(fetchMock.mock.calls.some(call => String(call[0]).includes('createdFromUtc'))).toBe(false)
+    } finally { unmount() }
+  })
+
   it('loads the first page with the default page size on mount', async () => {
     const fetchMock = stubFetch()
 

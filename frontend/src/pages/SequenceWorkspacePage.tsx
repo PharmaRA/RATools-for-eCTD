@@ -47,6 +47,8 @@ const RegionalMetadataPanel = lazy(() =>
   import('./workspace/RegionalMetadataPanel').then(module => ({ default: module.RegionalMetadataPanel })))
 const ValidationSummaryPanel = lazy(() =>
   import('./workspace/ValidationSummaryPanel').then(module => ({ default: module.ValidationSummaryPanel })))
+const FinalizationPanel = lazy(() =>
+  import('./workspace/FinalizationPanel').then(module => ({ default: module.FinalizationPanel })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -67,6 +69,7 @@ export const SequenceWorkspacePage = ({
   createAndExecutePublishJobProvider,
 }: SequenceWorkspacePageProps) => {
   const [loading, setLoading] = useState(false)
+  const [showFinalization, setShowFinalization] = useState(false)
   const {
     workspaceRevision,
     finalization,
@@ -381,10 +384,17 @@ export const SequenceWorkspacePage = ({
             </p>
           </div>
         </div>
-        <Button type="primary" icon={<PlayCircle size={16} className="mr-1" />} loading={publishing} onClick={openPublishModal}>
+        <Button type="primary" icon={<PlayCircle size={16} className="mr-1" />} disabled={finalization?.isEditable === false} loading={publishing} onClick={openPublishModal}>
           发布序列
         </Button>
       </div>
+
+      <Button onClick={() => setShowFinalization(value => !value)}>定稿与交付记录</Button>
+      {(showFinalization || finalization?.isEditable === false) && <Suspense fallback={<p role="status">正在加载定稿与交付记录…</p>}>
+        <FinalizationPanel key={`${appId}:${seqNumber}`} appId={appId} seqNumber={seqNumber}
+          workspaceRevision={workspaceRevision} finalization={finalization}
+          onChanged={async () => { invalidateValidation(); await refreshWorkspaceData(true) }} />
+      </Suspense>}
 
       <PublishModal
         open={isPublishModalOpen}
@@ -418,6 +428,7 @@ export const SequenceWorkspacePage = ({
 
       {placementsError && <Alert type="error" showIcon title="加载工作区映射失败" description={placementsError} />}
       {documentsError && <Alert type="error" showIcon title="加载工作区文档失败" description={documentsError} />}
+      {finalization?.isEditable !== false && <>
       <Space><Button disabled={loading} onClick={() => void refreshWorkspaceData()}>刷新工作区</Button>
         {nodeTree && <InheritNodeStructure tree={nodeTree} disabled={loading} onChanged={handleNodesChanged} />}
       </Space>
@@ -427,7 +438,7 @@ export const SequenceWorkspacePage = ({
 
       <Suspense fallback={<p role="status">正在加载区域元数据面板…</p>}>
         <RegionalMetadataPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
-          disabled={loading || workspaceRevision === undefined || finalization?.isEditable === false}
+          disabled={loading || workspaceRevision === undefined}
           nodes={nodeTree?.nodes.map(node => ({ id: node.nodeInstanceId, ctdSection: node.ctdSection, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` })) ?? []}
           placements={placements.map(placement => ({ id: placement.id, nodeInstanceId: placement.nodeInstanceId, ctdSection: placement.ctdSection,
             label: `${placement.ctdSection.toUpperCase()} · ${documentsById[placement.documentId]?.fileName ?? placement.id}` }))}
@@ -436,7 +447,7 @@ export const SequenceWorkspacePage = ({
 
       {nodeTree && <Suspense fallback={<AssemblyPanelFallback />}>
         <AssemblyPanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
-          disabled={loading || workspaceRevision === undefined || finalization?.isEditable === false}
+          disabled={loading || workspaceRevision === undefined}
           nodes={nodeTree.nodes.filter(node => node.allowsLeaves && node.metadataStatus === 'Complete')
             .map(node => ({ id: node.nodeInstanceId, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` }))}
           onExecuted={async () => {
@@ -447,7 +458,7 @@ export const SequenceWorkspacePage = ({
 
       <Suspense fallback={<p role="status">正在加载批量改名面板…</p>}>
         <PdfRenamePanel appId={appId} seqNumber={seqNumber} workspaceRevision={workspaceRevision}
-          disabled={loading || finalization?.isEditable === false} candidates={placements.flatMap(placement => {
+          disabled={loading} candidates={placements.flatMap(placement => {
             const document = documentsById[placement.documentId]
             if (!document || placement.operation.toLowerCase() === 'delete' || !document.fileName.toLowerCase().endsWith('.pdf')) return []
             return [{ placementId: placement.id, fileName: document.fileName, nodeInstanceId: placement.nodeInstanceId ?? null,
@@ -520,13 +531,14 @@ export const SequenceWorkspacePage = ({
             <Suspense fallback={<p role="status">正在加载 PDF 处理面板…</p>}>
               <PdfProcessingPanel appId={appId} seqNumber={seqNumber} placementId={selectedPlacement.id}
                 documentId={selectedDocument.id} workspaceRevision={workspaceRevision}
-                disabled={loading || finalization?.isEditable === false}
+                disabled={loading}
                 remoteTargets={buildProcessingTargets(selectedPlacement, selectedDocument, applicationPlacements, documentsById)}
                 onAdopted={async () => { invalidateValidation(); await refreshWorkspaceData() }} />
             </Suspense>
           </div>}
         </Col>
       </Row>
+      </>}
     </div>
   )
 }
