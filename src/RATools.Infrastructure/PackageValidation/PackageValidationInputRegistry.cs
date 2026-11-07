@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Security;
 using RATools.Application.PackageValidation;
@@ -10,8 +11,12 @@ public sealed record PackageInputDto(Guid Id, Guid ApplicationId, string Sequenc
     string InputDigest, DateTime CreatedUtc, int FileCount, long TotalBytes, string LimitsDigest);
 
 public sealed class PackageValidationInputRegistry(IPackageValidationStore store, IPackageInputReader reader,
-    IWorkspacePathPolicy pathPolicy, IOptions<PackageValidationOptions> options, TimeProvider? timeProvider = null)
+    IWorkspacePathPolicy pathPolicy, IOptions<PackageValidationOptions> options, TimeProvider? timeProvider = null,
+    ILogger<PackageValidationInputRegistry>? logger = null)
 {
+    private static readonly Action<ILogger, string, Exception?> LogRetentionFailure = LoggerMessage.Define<string>(
+        LogLevel.Warning, new EventId(1, "UploadRetentionFailure"), "Failed upload retained for inspection at {UploadDirectory}");
+
     public Task<PackageInputDto> RegisterAsync(RegisterPackageInputRequest request, CancellationToken cancellationToken = default)
     {
         var path = pathPolicy.EnsureAllowed(request.Path);
@@ -49,17 +54,51 @@ public sealed class PackageValidationInputRegistry(IPackageValidationStore store
             return await CaptureAsync(id, new(applicationId, file, sequenceNumber, rootRelativePath), owned: true, cancellationToken,
                 () => registrationAttempted = true).ConfigureAwait(false);
         }
-        catch
+        catch (Exception uploadException)
         {
             if (!registrationAttempted)
             {
-                EnsureNoLinks(directory);
-                File.Delete(file);
-                Directory.Delete(directory); // Only this new, empty upload directory; no recursive cleanup.
+                try { RecycleFailedUpload(directory, root, id); }
+                catch (Exception retentionException) when (retentionException is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    // Keep both the original API error and the retention diagnostic.
+                    // The upload remains at its original path if a safe move is impossible.
+                    uploadException.Data["UploadRetentionFailure"] = retentionException;
+                    try { if (logger is not null) LogRetentionFailure(logger, directory, retentionException); }
+                    catch (Exception loggingException)
+                    {
+                        uploadException.Data["UploadRetentionLoggingFailure"] = loggingException;
+                    }
+                }
             }
             // A database timeout may occur after commit; retain the input in that case.
             throw;
         }
+    }
+
+    private static void RecycleFailedUpload(string directory, string root, Guid id)
+    {
+        root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        directory = Path.GetFullPath(directory);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(directory), root, comparison) || Path.GetFileName(directory) != id.ToString("N"))
+            throw new InvalidOperationException("Invalid upload ownership identity.");
+        EnsureNoLinks(directory);
+        foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+        {
+            EnsureNoLinks(entry);
+            if (Directory.Exists(entry) || Path.GetFileName(entry) != "package.zip")
+                throw new IOException("Unexpected entry in owned upload; retention requires inspection.");
+        }
+        var recycleRoot = Path.Combine(root, "_recycle");
+        EnsureNoLinks(recycleRoot);
+        Directory.CreateDirectory(recycleRoot);
+        EnsureNoLinks(recycleRoot);
+        var destination = Path.GetFullPath(Path.Combine(recycleRoot, id.ToString("N") + "-" + Guid.NewGuid().ToString("N")));
+        if (!string.Equals(Path.GetDirectoryName(destination), recycleRoot, comparison))
+            throw new InvalidOperationException("Invalid upload recycle destination.");
+        EnsureNoLinks(directory);
+        Directory.Move(directory, destination);
     }
 
     public async Task<PackageInputDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -129,7 +168,7 @@ public sealed class PackageValidationInputRegistry(IPackageValidationStore store
     private static void EnsureNoLinks(string path)
     {
         for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
-            if ((File.Exists(current) || Directory.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
                 throw new IOException("Validation input storage must not traverse a link or reparse point.");
     }
 }

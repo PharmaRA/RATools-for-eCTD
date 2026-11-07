@@ -32,20 +32,34 @@ env = {**os.environ, 'DOTNET_ROOT': str(sdk), 'DOTNET_NOLOGO': '1', 'DOTNET_CLI_
        'FileStorage__RootPath': str(workspace / 'uploads'), 'BackboneOutput__RootPath': str(workspace / 'publish'),
        'BackboneOutput__RetainJobRuns': '0', 'PackageValidation__StorageRoot': str(workspace / 'validation')}
 report = {'scope': 'Windows actual API/InMemory, external synthetic ZIP; not browser/Formal/PostgreSQL qualification',
-          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['multipart upload failure cleanup', 'active-worker cancellation', 'real browser', 'PostgreSQL restart']}
+          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['large multipart disk buffering', 'active-worker cancellation', 'real browser', 'PostgreSQL restart']}
 process = None; collector = None; lines = []
 
 
-def request(path, body=None, status=200, raw=False):
+def request(path, body=None, status=200, raw=False, content_type=None):
     headers = {'X-RA-Tools-Api-Key': token}
     data = None
     if body is not None:
-        data = json.dumps(body).encode(); headers['Content-Type'] = 'application/json'
+        data = body if content_type else json.dumps(body).encode()
+        headers['Content-Type'] = content_type or 'application/json'
     try: response = urlopen(Request(base + path, data=data, headers=headers), timeout=15)
     except HTTPError as error: response = error
     payload = response.read()
     if response.status != status: raise AssertionError(f'{path}: expected {status}, actual {response.status}; {payload.decode(errors="replace")}')
     return payload if raw else json.loads(payload)
+
+
+def upload(application, archive_bytes, status, sequence=None):
+    # Stay below ASP.NET's disk-spill threshold; large-body temp cleanup is a separate gate.
+    boundary = 'ratools-fixture-' + uuid.uuid4().hex
+    fields = {'ApplicationId': application}
+    if sequence: fields.update(SequenceNumber=sequence, RootRelativePath='bundle/' + sequence)
+    parts = [f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode() for key, value in fields.items()]
+    parts += [f'--{boundary}\r\nContent-Disposition: form-data; name="File"; filename="external.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode(),
+              archive_bytes, f'\r\n--{boundary}--\r\n'.encode()]
+    body = b''.join(parts)
+    assert len(body) < 65536, 'Review multipart buffering before increasing this fixture'
+    return request('/api/package-validation-inputs/upload', body, status, content_type='multipart/form-data; boundary=' + boundary)
 
 
 def xml(sequence, count):
@@ -98,6 +112,20 @@ try:
     candidates = {(item['sequenceNumber'], item['rootRelativePath']) for item in ambiguous['candidates']}
     assert candidates == {('0000', 'bundle/0000'), ('0001', 'bundle/0001')}, candidates
     report['passed'].append('actual external ZIP requires an explicit choice among its two roots')
+    archive_bytes = archive.read_bytes()
+    upload_error = upload(application, archive_bytes, 409)
+    assert upload_error['code'] == 'SEQUENCE_SELECTION_REQUIRED'
+    assert {(item['sequenceNumber'], item['rootRelativePath']) for item in upload_error['candidates']} == candidates
+    recycled = list((workspace / 'validation/inputs/_recycle').glob('*/package.zip'))
+    assert len(recycled) == 1 and recycled[0].read_bytes() == archive_bytes
+    assert all(path.name == '_recycle' for path in (workspace / 'validation/inputs').iterdir())
+    report['passed'].append('multipart root ambiguity returns 409 and retains the entire failed upload in controlled recycle')
+    uploaded = upload(application, archive_bytes, 201, '0001')
+    assert uploaded['sequenceNumber'] == '0001' and uploaded['sourceKind'] == 'Zip'
+    assert request('/api/package-validation-inputs/' + uploaded['id']) == uploaded
+    assert request('/api/package-validation-inputs/' + uploaded['id'] + '/file?' + urlencode({'logicalPath': '0001/index.xml'}), raw=True) == target
+    report['facts']['upload'] = {'id': uploaded['id'], 'archiveSha256': hashlib.sha256(archive_bytes).hexdigest(), 'failedUploadRetained': True}
+    report['passed'].append('explicit multipart retry registers the chosen root and serves its exact original XML bytes')
     registered = {}
     for sequence in ['0000', '0001']:
         registered[sequence] = request('/api/package-validation-inputs', {**request_body, 'sequenceNumber': sequence, 'rootRelativePath': 'bundle/' + sequence}, 201)

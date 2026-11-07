@@ -139,7 +139,7 @@ try:
         result = subprocess.run([sys.executable, str(driver), str(evidence)], cwd=root, env=env)
         summary['steps'].append({'name': 'input-api', 'exitCode': result.returncode})
         if result.returncode: raise RuntimeError('External ZIP API checks failed; see input-api.json/log')
-    if sys.argv[2] in {'pdf', 'capture'}:
+    if sys.argv[2] in {'pdf', 'capture', 'upload'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
         for path in layers.values(): (out / path.name).write_bytes(path.read_bytes())
@@ -153,12 +153,15 @@ try:
         if sys.argv[2] == 'pdf':
             names = ['QpdfConcurrencyTests', 'QpdfProcessingEngineTests', 'QpdfNavigationIntegrityTests', 'PdfContentResourceTests', 'PdfContentWorkflowTests']
             directory = 'DocumentProcessing'
-        else:
+        elif sys.argv[2] == 'capture':
             names = ['ReleaseCaptureServiceTests', 'ReleaseCaptureBindingIntegrationTests', 'RegionalMetadataCaptureTests', 'FinalizationServiceTests', 'ReleaseDeliveryPackageTests', 'ReleaseCaptureTests']
             directory = 'Finalization'
+        else:
+            names = ['PackageUploadRetentionTests']
+            directory = 'PackageValidation'
         sources = [root / 'tests/RATools.Tests' / directory / (name + '.cs') for name in names]
         sources.append(root / 'scripts/local-check/SelectedTests.cs')
-        compile_sources('SelectedTests', sources, {**frameworks, **packages, **layers}, generators, executable=True, extra_usings=['Xunit'], defines=['CAPTURE'] if sys.argv[2] == 'capture' else [])
+        compile_sources('SelectedTests', sources, {**frameworks, **packages, **layers}, generators, executable=True, extra_usings=['Xunit'], defines=[sys.argv[2].upper()] if sys.argv[2] != 'pdf' else [])
         (out / 'SelectedTests.runtimeconfig.json').write_text(json.dumps(runtime))
         summary['category'] = 'test-failed'
         with (evidence / 'tests.log').open('w', encoding='utf-8') as log:
