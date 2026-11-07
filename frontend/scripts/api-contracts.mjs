@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -98,7 +98,7 @@ const updateSnapshot = async () => {
 const generateTypes = async (outputDirectory) => {
   await createClient({
     input: snapshotPath,
-    output: outputDirectory,
+    output: { path: outputDirectory, clean: false },
     plugins: ['@hey-api/typescript'],
   })
 }
@@ -112,7 +112,19 @@ const listFiles = async (directory) => {
 }
 
 const assertGeneratedTypesAreCurrent = async () => {
-  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'ratools-api-contracts-'))
+  // Keep each generated comparison as evidence. No generator or finally cleanup
+  // may physically remove a directory, including when generation fails.
+  const recycleDirectory = join(tmpdir(), 'ratools-api-contracts-recycle')
+  for (let path = resolve(recycleDirectory); ; path = dirname(path)) {
+    const entry = await lstat(path).catch((error) => {
+      if (error.code === 'ENOENT') return undefined
+      throw error
+    })
+    if (entry?.isSymbolicLink()) throw new Error('API contract evidence must not traverse links.')
+    if (path === dirname(path)) break
+  }
+  await mkdir(recycleDirectory, { recursive: true })
+  const temporaryDirectory = await mkdtemp(join(recycleDirectory, 'check-'))
 
   try {
     await generateTypes(temporaryDirectory)
@@ -132,7 +144,7 @@ const assertGeneratedTypesAreCurrent = async () => {
       }
     }
   } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true })
+    console.log(`API contract comparison retained at: ${temporaryDirectory}`)
   }
 }
 

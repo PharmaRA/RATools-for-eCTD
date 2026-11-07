@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence)
+param([Parameter(Mandatory)][string]$Evidence,[switch]$StaticOnly)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Evidence = [IO.Path]::GetFullPath($Evidence)
@@ -10,7 +10,7 @@ function Assert-NoLinks([string]$Path) {
         if((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Task paths must not traverse links.'}
     }
 }
-$summary=@{task='frontend-all';exitCode=1;steps=@()}
+$summary=@{task=$(if($StaticOnly){'frontend-static'}else{'frontend-all'});exitCode=1;steps=@()}
 try {
     Assert-NoLinks $Evidence
     $backup=Join-Path $repo 'backups/qa-07-local-20261107/frontend-all'
@@ -37,7 +37,8 @@ public static class FrontendDeleteAccessProbe {
     Add-Type -Path (Join-Path $PSScriptRoot 'BrowserJob.cs')
     $node=(Get-Command node).Source
     $guard=[Uri]::new((Join-Path $repo 'scripts/remote-check/no-delete.mjs')).AbsoluteUri
-    foreach($phase in @('tests','build')) {
+    $phases=if($StaticOnly){@('lint','contracts')}else{@('tests','build')}
+    foreach($phase in $phases) {
         $arguments='--import "'+$guard+'" "'+(Join-Path $PSScriptRoot 'frontend-all.mjs')+'" "'+$Evidence+'" '+$phase
         $code=[BrowserJob]::Run($node,$arguments,$repo,(Join-Path $Evidence ($phase+'.log')),(Join-Path $Evidence ($phase+'.process-tree.json')))
         $summary.steps+=@{phase=$phase;exitCode=$code}

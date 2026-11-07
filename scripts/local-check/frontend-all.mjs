@@ -10,18 +10,19 @@ import { startVitest } from '../../frontend/node_modules/vitest/dist/node.js'
 import react from '../../frontend/node_modules/@vitejs/plugin-react/dist/index.js'
 import { build } from '../../frontend/node_modules/vite/dist/node/index.js'
 import ts from '../../frontend/node_modules/typescript/lib/typescript.js'
+import { ESLint } from '../../frontend/node_modules/eslint/lib/api.js'
 import { checkBudgets, validateBudgetDefinition } from '../../frontend/scripts/check-bundle-budget.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url)), frontend = resolve(root, 'frontend')
 const evidence = resolve(process.argv[2]), phase = process.argv[3]
 assert.ok(evidence.startsWith(resolve(root, '.artifacts/local-check') + sep))
-assert.ok(['tests', 'build'].includes(phase))
+assert.ok(['tests', 'build', 'lint', 'contracts'].includes(phase))
 const hashes = {}, testFiles = []
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 const fingerprint = async path => { hashes[relative(root, path).replaceAll('\\', '/')] = hash(await readFile(path)) }
-const summary = { task: 'frontend-all', phase, exitCode: 1, node: process.version, typescript: ts.version,
+const summary = { task: ['lint', 'contracts'].includes(phase) ? 'frontend-static' : 'frontend-all', phase, exitCode: 1, node: process.version, typescript: ts.version,
   sourceHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
-  scope: 'Windows frontend tests in jsdom and actual production configuration build; retained dependencies; not browser/API, fresh install or regulatory qualification' }
+  scope: 'Windows frontend checks with retained dependencies; contracts compare the stored OpenAPI snapshot only; not live API, fresh install or regulatory qualification' }
 let context
 async function inventory(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -37,16 +38,32 @@ async function inventory(directory) {
 try {
   await inventory(resolve(frontend, 'src')); await inventory(resolve(frontend, 'scripts'))
   for (const file of ['package.json', 'package-lock.json', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json',
-    'postcss.config.js', 'tailwind.config.js', 'index.html', 'bundle-budget.json']) await fingerprint(resolve(frontend, file))
+    'postcss.config.js', 'tailwind.config.js', 'index.html', 'bundle-budget.json', 'eslint.config.js']) await fingerprint(resolve(frontend, file))
+  await fingerprint(resolve(root, 'src/RATools.Api/openapi.v1.json'))
   for (const file of ['scripts/local-check/frontend-all.mjs', 'scripts/local-check/frontend-all.ps1', 'scripts/local-check.ps1',
     'scripts/remote-check/no-delete.mjs', 'scripts/local-check/BrowserJob.cs']) await fingerprint(resolve(root, file))
   const tools = {}
-  for (const file of ['vitest/package.json', 'vite/package.json', 'typescript/package.json', '@vitejs/plugin-react/package.json'])
+  for (const file of ['vitest/package.json', 'vite/package.json', 'typescript/package.json', '@vitejs/plugin-react/package.json', 'eslint/package.json', '@hey-api/openapi-ts/package.json'])
     tools[file] = hash(await readFile(resolve(frontend, 'node_modules', file)))
   tools.nodeExecutable = hash(await readFile(process.execPath))
   summary.tools = tools
   process.chdir(frontend)
-  if (phase === 'tests') {
+  if (phase === 'lint') {
+    const eslint = new ESLint({ cwd: frontend, cache: false, fix: false })
+    const results = await eslint.lintFiles(['.'])
+    await writeFile(resolve(evidence, 'lint.json'), JSON.stringify(results, null, 2))
+    summary.files = results.map(result => ({ path: relative(frontend, result.filePath).replaceAll('\\', '/'),
+      errors: result.errorCount, warnings: result.warningCount, fatal: result.fatalErrorCount }))
+    summary.errors = results.reduce((total, result) => total + result.errorCount, 0)
+    summary.warnings = results.reduce((total, result) => total + result.warningCount, 0)
+    console.log(await (await eslint.loadFormatter('stylish')).format(results))
+    assert.ok(results.length > 0); assert.equal(summary.errors, 0, 'Full frontend lint failed')
+  } else if (phase === 'contracts') {
+    const output = execFileSync(process.execPath, ['--import', new URL('../remote-check/no-delete.mjs', import.meta.url).href,
+      resolve(frontend, 'scripts/api-contracts.mjs'), 'check'], { cwd: frontend, encoding: 'utf8', windowsHide: true })
+    console.log(output)
+    summary.contractsMatchStoredSnapshot = true
+  } else if (phase === 'tests') {
     testFiles.sort(); assert.ok(testFiles.length > 0)
     await writeFile(resolve(evidence, 'test-inventory.json'), JSON.stringify(testFiles, null, 2))
     const guard = new URL('../remote-check/no-delete.mjs', import.meta.url).href
