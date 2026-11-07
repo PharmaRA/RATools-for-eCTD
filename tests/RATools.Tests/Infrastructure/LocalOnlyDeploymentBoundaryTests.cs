@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -254,7 +255,9 @@ public sealed class LocalOnlyDeploymentBoundaryTests
     public void InstanceLock_RejectsPathOutsideContentRootWithoutChangingTarget()
     {
         using var directory = new TempDir();
-        var outsidePath = Path.GetFullPath(Path.Combine(directory.Path, "..", $"outside-{Guid.NewGuid():N}.lock"));
+        var contentRoot = Path.Combine(directory.Path, "content");
+        Directory.CreateDirectory(contentRoot);
+        var outsidePath = Path.Combine(directory.Path, "outside.lock");
         File.WriteAllText(outsidePath, "unchanged");
         try
         {
@@ -264,7 +267,7 @@ public sealed class LocalOnlyDeploymentBoundaryTests
             });
             using var instanceLock = new LocalOnlyInstanceLock(
                 options,
-                new TestHostEnvironment(Environments.Production, directory.Path));
+                new TestHostEnvironment(Environments.Production, contentRoot));
 
             var exception = Assert.Throws<InvalidOperationException>(instanceLock.Acquire);
 
@@ -273,7 +276,7 @@ public sealed class LocalOnlyDeploymentBoundaryTests
         }
         finally
         {
-            File.Delete(outsidePath);
+            RetainedPackageTestFiles.RetainFile(directory.Path, outsidePath);
         }
     }
 
@@ -330,7 +333,7 @@ public sealed class LocalOnlyDeploymentBoundaryTests
     {
         public TempDir()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-local-only-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -340,7 +343,7 @@ public sealed class LocalOnlyDeploymentBoundaryTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

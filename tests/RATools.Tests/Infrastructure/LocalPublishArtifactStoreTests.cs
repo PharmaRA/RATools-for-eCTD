@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Abstractions.Security;
 using RATools.Infrastructure.Publishing;
 
@@ -18,7 +19,7 @@ public sealed class LocalPublishArtifactStoreTests
 
         Assert.True(exists);
         Assert.Contains(filePath, policy.CheckedPaths);
-        DeleteIfExists(root);
+        RetainIfExists(root);
     }
 
     [Fact]
@@ -36,7 +37,7 @@ public sealed class LocalPublishArtifactStoreTests
         Assert.Equal("report", content);
         Assert.Equal(6, size);
         Assert.Equal(3, policy.CheckedPaths.Count(path => path == filePath));
-        DeleteIfExists(root);
+        RetainIfExists(root);
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public sealed class LocalPublishArtifactStoreTests
         Assert.Equal(2, stats.FileCount);
         Assert.Equal(7, stats.TotalSizeBytes);
         Assert.Contains(root, policy.CheckedPaths);
-        DeleteIfExists(root);
+        RetainIfExists(root);
     }
 
     [Fact]
@@ -72,16 +73,16 @@ public sealed class LocalPublishArtifactStoreTests
 
     private static string CreateTempRoot()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-artifact-store-{Guid.NewGuid():N}");
+        var root = RetainedPackageTestFiles.Create();
         Directory.CreateDirectory(root);
         return root;
     }
 
-    private static void DeleteIfExists(string path)
+    private static void RetainIfExists(string path)
     {
         if (Directory.Exists(path))
         {
-            Directory.Delete(path, recursive: true);
+            RetainedPackageTestFiles.RetainDirectory(path);
         }
     }
 

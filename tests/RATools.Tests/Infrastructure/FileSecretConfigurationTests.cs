@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using RATools.Infrastructure.Security;
@@ -103,9 +104,7 @@ public sealed class FileSecretConfigurationTests
     {
         public TempSecrets()
         {
-            DirectoryPath = Path.Combine(
-                Path.GetTempPath(),
-                $"ratools-secrets-{Guid.NewGuid():N}");
+            DirectoryPath = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(DirectoryPath);
         }
 
@@ -122,7 +121,7 @@ public sealed class FileSecretConfigurationTests
         {
             if (Directory.Exists(DirectoryPath))
             {
-                Directory.Delete(DirectoryPath, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(DirectoryPath);
             }
         }
     }

@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Publishing;
@@ -123,7 +124,7 @@ public sealed class StartupConfigurationValidatorTests
     {
         public TempDir()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-startup-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -133,7 +134,7 @@ public sealed class StartupConfigurationValidatorTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures','config')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
 $ErrorActionPreference = 'Stop'
 if($PrunerRootProbeOnly -and ($TestGroup -ne 'pruner' -or -not $RunSelectedTests)){throw 'Root probe requires the pruner runtime group.'}
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -25,6 +25,7 @@ if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-sto
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
+if($RunSelectedTests -and $TestGroup -eq 'config') { $summary.task='msbuild-config'; $summary.scope='Windows 42 startup, deployment, retained artifact and synthetic file-configuration cases; no real credentials, live listeners, PostgreSQL or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'fixtures') { $summary.task='msbuild-fixtures'; $summary.scope='Windows 14 workspace, asset, import lifecycle and document boundary cases with retained fixtures; not HTTP, PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'pruner') { $summary.task='msbuild-pruner'; $summary.scope='Windows disabled optional empty-folder pruning: directories remain in place, no candidate enumeration or filesystem access; not HTTP, Linux or full suite'; $summary.rootProbeOnly=[bool]$PrunerRootProbeOnly }
 function Fingerprint([string]$Path) { $inputs[[IO.Path]::GetRelativePath($repo,$Path).Replace('\','/')] = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -244,6 +245,15 @@ public static class MsbuildDeleteAccessProbe {
             }
             $expectedTotal=14
         }
+        if($TestGroup -eq 'config') {
+            $selected=@{
+                'RATools.Tests.Infrastructure.StartupConfigurationValidatorTests'=6
+                'RATools.Tests.Infrastructure.LocalPublishArtifactStoreTests'=4
+                'RATools.Tests.Infrastructure.LocalOnlyDeploymentBoundaryTests'=26
+                'RATools.Tests.Infrastructure.FileSecretConfigurationTests'=6
+            }
+            $expectedTotal=42
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
@@ -252,7 +262,7 @@ public static class MsbuildDeleteAccessProbe {
             foreach($path in @('tests/RATools.Tests/Applications/ImportTestServices.cs','tests/RATools.Tests/TestDoubles/TestWorkspaceMutations.cs','tests/RATools.Tests/TestDoubles/PermissiveDocumentStorageBoundary.cs')) { $selectedSources += Join-Path $repo $path }
         }
         if($TestGroup -eq 'api') { $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs' }
-        if($TestGroup -in @('package','publishing','storage','workspace','api','pruner','fixtures')) {
+        if($TestGroup -in @('package','publishing','storage','workspace','api','pruner','fixtures','config')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }
