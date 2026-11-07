@@ -109,15 +109,17 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
 
         // The served path is resolved from the verified manifest, and the recorded digest is
         // re-measured, so the reader receives the exact captured bytes.
-        var pdf = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/m2/file.pdf");
+        await using var pdf = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/m2/file.pdf");
         Assert.Equal("payload/0001/m2/file.pdf", pdf.RelativePath);
         Assert.Equal("application/pdf", pdf.MediaType);
-        Assert.Equal("stable content", await File.ReadAllTextAsync(pdf.Path));
+        using (var reader = new StreamReader(pdf.Content, leaveOpen: true))
+            Assert.Equal("stable content", await reader.ReadToEndAsync());
         Assert.Equal(manifest.Files.Single(file => file.RelativePath == pdf.RelativePath).Sha256, pdf.Sha256);
+        await pdf.DisposeAsync();
 
-        var index = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/index.xml");
+        await using var index = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/index.xml");
         Assert.Equal("application/xml", index.MediaType);
-        var report = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "validation-report.json");
+        await using var report = await _store.OpenFileAsync(_application, "0001", manifest.Digest, "validation-report.json");
         Assert.Equal("application/octet-stream", report.MediaType);
 
         // A file that exists in the release directory but is not a manifest member is not
@@ -137,6 +139,9 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
         await File.AppendAllTextAsync(Path.Combine(published.Directory, "payload", "0001", "m2", "file.pdf"), " tampered");
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             _store.OpenFileAsync(_application, "0001", manifest.Digest, "payload/0001/m2/file.pdf"));
+        // A refused digest must release its handle as well.
+        await using var exclusive = new FileStream(Path.Combine(published.Directory, "payload", "0001", "m2", "file.pdf"),
+            FileMode.Open, FileAccess.ReadWrite, FileShare.None);
     }
 
     [Fact]

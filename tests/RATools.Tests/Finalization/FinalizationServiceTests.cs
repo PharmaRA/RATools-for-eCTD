@@ -286,7 +286,7 @@ public sealed class FinalizationServiceTests
 
         public Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath,
             CancellationToken cancellationToken = default) => relativePath == "delivery-package.zip"
-            ? Task.FromResult(new ReleaseFileContent("/fixture/delivery-package.zip", relativePath, 123,
+            ? Task.FromResult(new ReleaseFileContent(new MemoryStream(), relativePath, 123,
                 Digest("package"), "application/zip"))
             : throw new NotSupportedException("This fake does not store captured releases.");
     }

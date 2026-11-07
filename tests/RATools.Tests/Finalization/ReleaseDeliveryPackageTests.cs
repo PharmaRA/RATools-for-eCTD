@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using RATools.Application.Finalization;
 using RATools.Domain.Finalization;
 using RATools.Infrastructure.Publishing;
@@ -15,6 +16,65 @@ namespace RATools.Tests.Finalization;
 
 public sealed class ReleaseDeliveryPackageTests : IAsyncDisposable
 {
+    [Theory]
+    [InlineData("payload/0001/m2/file.pdf", false)]
+    [InlineData("payload/0001/m2/file.pdf", true)]
+    [InlineData("delivery-package.zip", false)]
+    [InlineData("delivery-package.zip", true)]
+    public async Task PreviewUsesTheVerifiedHandleWhenThePathIsReplacedBeforeResponse(string relativePath, bool range)
+    {
+        var fixture = NewFixture(); var (staging, manifest) = await fixture.CaptureAsync();
+        var committed = await fixture.Store.CommitAsync(staging, manifest.Digest);
+        var records = new InMemoryFinalizationStore();
+        var snapshot = FinalizedSequence.Create(manifest.ApplicationId, "0001", 1, manifest.Digest, "profile", "3.2.2", null,
+            manifest.HistoryBaselineDigest, Guid.NewGuid(), manifest.ValidatedInputManifestDigest, manifest.Validation.ReportSha256,
+            PackageValidationMode.Formal, true, [], FinalizationService.ToolVersion, Guid.NewGuid().ToString("N"), DateTime.UtcNow);
+        await records.RegisterAsync(snapshot);
+        var provider = new ReplaceAfterOpen(new ReleaseCaptureService(new InMemoryPackageValidationStore(), new NoPlanner(), fixture.Store), async () =>
+        {
+            var path = Path.GetFullPath(Path.Combine(committed.Directory, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+            Assert.StartsWith(Path.GetFullPath(committed.Directory) + Path.DirectorySeparatorChar, path,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+            Assert.Equal(0, (int)(File.GetAttributes(path) & FileAttributes.ReparsePoint));
+            File.Move(path, path + ".retained");
+            await File.WriteAllTextAsync(path, "substituted after verification");
+        });
+        var service = new FinalizationService(records, provider, new NoRevisions());
+        var controller = new RATools.Api.Controllers.FinalizationsController(service, records, null!)
+        { ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() } };
+        var result = Assert.IsType<Microsoft.AspNetCore.Mvc.FileStreamResult>(await controller.File(snapshot.Id, relativePath, CancellationToken.None));
+        await using var stream = result.FileStream;
+        var expected = manifest.Files.Single(file => file.RelativePath == relativePath);
+        Assert.Equal(0, stream.Position);
+        Assert.Equal('"' + expected.Sha256 + '"', controller.Response.Headers.ETag.ToString());
+        Assert.Equal(expected.Sha256, Convert.ToHexString(await SHA256.HashDataAsync(stream)).ToLowerInvariant());
+        Assert.True(result.EnableRangeProcessing);
+        stream.Position = 0;
+        using var expectedBytes = new MemoryStream(); await stream.CopyToAsync(expectedBytes); stream.Position = 0;
+        using var services = new ServiceCollection().AddLogging().AddControllers().Services.BuildServiceProvider();
+        controller.HttpContext.RequestServices = services;
+        controller.Request.Method = "GET";
+        if (range) controller.Request.Headers.Range = "bytes=1-3";
+        using var body = new MemoryStream(); controller.Response.Body = body;
+        await result.ExecuteResultAsync(new Microsoft.AspNetCore.Mvc.ActionContext(controller.HttpContext,
+            new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()));
+        Assert.Equal(range ? 206 : 200, controller.Response.StatusCode);
+        Assert.Equal(range ? expectedBytes.ToArray()[1..4] : expectedBytes.ToArray(), body.ToArray());
+        Assert.False(stream.CanRead);
+    }
+
+    private sealed class ReplaceAfterOpen(IFinalizationCaptureProvider inner, Func<Task> replace) : IFinalizationCaptureProvider
+    {
+        public Task<IFinalizationCapture> CaptureAsync(FinalizeSequenceRequest request, CancellationToken cancellationToken = default) => inner.CaptureAsync(request, cancellationToken);
+        public Task<ReleaseManifest> ReadManifestAsync(FinalizedSequence snapshot, CancellationToken cancellationToken = default) => inner.ReadManifestAsync(snapshot, cancellationToken);
+        public async Task<ReleaseFileContent> OpenFileAsync(FinalizedSequence snapshot, string relativePath, CancellationToken cancellationToken = default)
+        {
+            var file = await inner.OpenFileAsync(snapshot, relativePath, cancellationToken);
+            try { await replace(); return file; }
+            catch { if (file is IAsyncDisposable disposable) await disposable.DisposeAsync(); throw; }
+        }
+    }
+
     private readonly List<Fixture> _fixtures = [];
     private Fixture NewFixture()
     {
@@ -133,17 +193,19 @@ public sealed class ReleaseDeliveryPackageTests : IAsyncDisposable
         var committed = await fixture.Store.CommitAsync(staging, manifest.Digest);
         var restarted = fixture.NewStore();
 
-        var content = await restarted.OpenFileAsync(manifest.ApplicationId, "0001", manifest.Digest, package.RelativePath);
+        await using var content = await restarted.OpenFileAsync(manifest.ApplicationId, "0001", manifest.Digest, package.RelativePath);
 
         Assert.Equal("application/zip", content.MediaType);
         Assert.Equal(package.Sha256, content.Sha256);
-        Assert.Equal(package.Sha256, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(content.Path))).ToLowerInvariant());
-        Assert.Equal(package.Md5, Convert.ToHexString(MD5.HashData(await File.ReadAllBytesAsync(content.Path))).ToLowerInvariant());
-        Assert.Equal(package.Length, new FileInfo(content.Path).Length);
-        using var archive = ZipFile.OpenRead(content.Path);
+        Assert.Equal(package.Sha256, Convert.ToHexString(await SHA256.HashDataAsync(content.Content)).ToLowerInvariant());
+        content.Content.Position = 0;
+        Assert.Equal(package.Md5, Convert.ToHexString(await MD5.HashDataAsync(content.Content)).ToLowerInvariant());
+        Assert.Equal(package.Length, content.Content.Length);
+        content.Content.Position = 0;
+        using var archive = new ZipArchive(content.Content, ZipArchiveMode.Read, leaveOpen: true);
         Assert.Equal(["0001/index.xml", "0001/m2/file.pdf"], archive.Entries.Select(entry => entry.FullName).ToArray());
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName.Contains("manifest", StringComparison.Ordinal) || entry.FullName.Contains("validation-report", StringComparison.Ordinal));
-        Assert.Equal(committed.Directory, Path.GetDirectoryName(content.Path));
+        Assert.True(Directory.Exists(committed.Directory));
     }
 
     [Fact]

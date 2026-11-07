@@ -111,21 +111,23 @@ public sealed class FinalizationsController(FinalizationService service, IFinali
         try
         {
             var file = await service.GetReleaseFileAsync(id, path, cancellationToken);
-            // The handle is opened here, inside the guards: if the release member vanished
-            // after verification, the client gets the documented 404/409 instead of a 500
-            // raised later by the result executor, and the bytes served are the bytes just
-            // measured.
-            var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-            Response.Headers.CacheControl = "private, no-cache";
-            Response.Headers.ETag = $"\"{file.Sha256}\"";
-            Response.Headers.XContentTypeOptions = "nosniff";
-            // A PDF renders inline so it can be previewed; every other type is downloaded
-            // as an attachment, so a crafted name cannot make the browser execute released
-            // bytes as page content. The result disposes the verified handle.
-            return string.Equals(file.MediaType, "application/pdf", StringComparison.Ordinal)
-                ? File(stream, file.MediaType, enableRangeProcessing: true)
-                : File(stream, file.MediaType, Path.GetFileName(file.RelativePath), enableRangeProcessing: true);
+            try
+            {
+                // Transfer the already measured handle directly to the executor. A path
+                // replacement after verification cannot substitute another file's bytes.
+                Response.Headers.CacheControl = "private, no-cache";
+                Response.Headers.ETag = $"\"{file.Sha256}\"";
+                Response.Headers.XContentTypeOptions = "nosniff";
+                // PDF is inline; other content is downloaded. The executor owns disposal.
+                return string.Equals(file.MediaType, "application/pdf", StringComparison.Ordinal)
+                    ? File(file.Content, file.MediaType, enableRangeProcessing: true)
+                    : File(file.Content, file.MediaType, Path.GetFileName(file.RelativePath), enableRangeProcessing: true);
+            }
+            catch
+            {
+                await file.DisposeAsync();
+                throw;
+            }
         }
         catch (FinalizationNotFoundException exception)
         {

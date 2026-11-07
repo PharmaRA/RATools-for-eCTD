@@ -139,6 +139,7 @@ public sealed class FinalizationService(
         {
             throw new FinalizationNotAuthorizedException("The snapshot has no manifest-bound delivery ZIP; delivery evidence cannot be registered.");
         }
+        await using var verifiedPackage = package;
         if (!string.Equals(packageSha256, package.Sha256, StringComparison.Ordinal))
             throw new FinalizationNotAuthorizedException("The delivery SHA-256 does not match the immutable captured ZIP.");
         var record = DeliveryRecord.Create(finalizedSequenceId, packageSha256, channel, externalReference, note, recordedBy,

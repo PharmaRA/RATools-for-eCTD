@@ -251,10 +251,21 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         if (!File.Exists(path)) throw new ReleaseFileNotFoundException(relativePath);
         // The bytes must still be the ones the manifest recorded; a modified preview file
         // is missing evidence, not a different version.
-        var (length, sha256) = await MeasureFileAsync(path, cancellationToken).ConfigureAwait(false);
-        if (length != file.Length || !string.Equals(sha256, file.Sha256, StringComparison.Ordinal))
-            throw new InvalidDataException($"Captured release file '{relativePath}' no longer matches its recorded digest.");
-        return new ReleaseFileContent(path, file.RelativePath, length, sha256, MediaTypeFor(file.RelativePath));
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        try
+        {
+            var (length, sha256) = await MeasureFileAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (length != file.Length || !string.Equals(sha256, file.Sha256, StringComparison.Ordinal))
+                throw new InvalidDataException($"Captured release file '{relativePath}' no longer matches its recorded digest.");
+            stream.Position = 0;
+            return new ReleaseFileContent(stream, file.RelativePath, length, sha256, MediaTypeFor(file.RelativePath));
+        }
+        catch
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     // Preview content types are derived from the recorded path, never from a caller
@@ -273,11 +284,9 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
     };
 
     // Only the recorded SHA-256 gates a preview, so the verification read hashes once.
-    private static async Task<(long Length, string Sha256)> MeasureFileAsync(string path,
+    private static async Task<(long Length, string Sha256)> MeasureFileAsync(Stream stream,
         CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[65536];
         long length = 0;

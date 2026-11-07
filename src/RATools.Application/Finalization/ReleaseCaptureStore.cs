@@ -65,9 +65,20 @@ public interface IReleaseCaptureStore
         string relativePath, CancellationToken cancellationToken = default);
 }
 
-// A captured release file that a reader may stream. Path is server-resolved from the
-// manifest; Sha256 is the strong validator a reader may cache on.
-public sealed record ReleaseFileContent(string Path, string RelativePath, long Length, string Sha256, string MediaType);
+// The verified, seekable handle is positioned at zero. The recipient owns it and must
+// dispose it or transfer it to the HTTP result executor; never reopen the source path.
+// Sha256 describes the bytes measured on this handle under the release directory ACL.
+public sealed class ReleaseFileContent(Stream content, string relativePath, long length, string sha256, string mediaType)
+    : IDisposable, IAsyncDisposable
+{
+    public Stream Content { get; } = content;
+    public string RelativePath { get; } = relativePath;
+    public long Length { get; } = length;
+    public string Sha256 { get; } = sha256;
+    public string MediaType { get; } = mediaType;
+    public void Dispose() => Content.Dispose();
+    public ValueTask DisposeAsync() => Content.DisposeAsync();
+}
 
 public sealed class ReleaseFileNotFoundException(string relativePath)
     : KeyNotFoundException($"The release does not contain '{relativePath}'.");
