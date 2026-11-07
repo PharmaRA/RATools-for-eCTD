@@ -1,12 +1,15 @@
 [CmdletBinding()]
-param([ValidateSet('build','pdf','capture','upload','multipart','report','validation-ui','input-api','input-browser')][string]$Task = 'build')
+param([ValidateSet('build','msbuild','msbuild-tests','pdf','capture','upload','multipart','report','validation-ui','input-api','input-browser')][string]$Task = 'build')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $run = (Get-Date -Format 'yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N')
 $evidence = Join-Path $repo ".artifacts/local-check/$run"
 $null = New-Item -ItemType Directory -Path $evidence
 Write-Host "Local $Task evidence: $evidence"
-if ($Task -eq 'validation-ui') {
+if ($Task -in @('msbuild','msbuild-tests')) {
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'local-check/msbuild.ps1') -Evidence $evidence -RunSelectedTests:($Task -eq 'msbuild-tests')
+    exit $LASTEXITCODE
+} elseif ($Task -eq 'validation-ui') {
     $guard = [Uri]::new((Join-Path $repo 'scripts/remote-check/no-delete.mjs')).AbsoluteUri
     & node --import $guard (Join-Path $repo 'scripts/local-check/frontend.mjs') $evidence 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'frontend.log')
     $result = $LASTEXITCODE

@@ -24,6 +24,16 @@ namespace RATools.Tests.Applications;
 // Retained artifacts only: no IDisposable, deletion, writer-generated expectations.
 public sealed class RegionalImportCompleteTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "EU-DE-001", "EU-FR-002" };
+    private static readonly string[] ExpectedValues2 = new[] { "tracking-b", "tracking-a", "tracking-b" };
+    private static readonly string[] ExpectedValues3 = new[] { "Product B", "Product A" };
+    private static readonly string[] ExpectedValues4 = new[] { "inn two", "inn one" };
+    private static readonly string[] ExpectedValues5 = new[] { "0000", "0000" };
+    private static readonly string[] ExpectedValues6 = new[] { "Alice", "Bob" };
+    private static readonly string[] ExpectedValues7 = new[] { "business", "mobile" };
+    private static readonly string[] ExpectedValues8 = new[] { "+1-111", "+1-222" };
+    private static readonly string[] ExpectedValues9 = new[] { "alice1@example.test", "alice2@example.test" };
+
     [Fact]
     public async Task EuImportRetainsEveryOrderedEnvelopeFieldInTheCurrentRegionalHead()
     {
@@ -34,15 +44,15 @@ public sealed class RegionalImportCompleteTests
         Assert.NotNull(head);
         var envelopes = head.Content!.Eu!.Envelopes;
         Assert.Equal(2, envelopes.Count);
-        Assert.Equal(new[] { "EU-DE-001", "EU-FR-002" }, envelopes.Select(item => item.Identifier));
+        Assert.Equal(ExpectedValues1, envelopes.Select(item => item.Identifier));
         Assert.Equal("de", envelopes[0].Country); Assert.Equal("DE-BFARM", envelopes[0].Agency);
         Assert.Equal("decentralised", envelopes[0].Procedure); Assert.Equal("var-type2", envelopes[0].SubmissionType);
         Assert.Equal("worksharing", envelopes[0].SubmissionMode); Assert.Equal("0007", envelopes[0].SubmissionNumber);
         Assert.Equal("initial", envelopes[0].SubmissionUnit); Assert.Equal("Declared DE applicant", envelopes[0].Applicant);
-        Assert.Equal(new[] { "tracking-b", "tracking-a", "tracking-b" }, envelopes[0].ProcedureTrackingNumbers.Select(item => item.Value));
-        Assert.Equal(new[] { "Product B", "Product A" }, envelopes[0].InventedNames.Select(item => item.Value));
-        Assert.Equal(new[] { "inn two", "inn one" }, envelopes[0].Inns.Select(item => item.Value));
-        Assert.Equal(new[] { "0000", "0000" }, envelopes[0].RelatedSequences.Select(item => item.SequenceNumber));
+        Assert.Equal(ExpectedValues2, envelopes[0].ProcedureTrackingNumbers.Select(item => item.Value));
+        Assert.Equal(ExpectedValues3, envelopes[0].InventedNames.Select(item => item.Value));
+        Assert.Equal(ExpectedValues4, envelopes[0].Inns.Select(item => item.Value));
+        Assert.Equal(ExpectedValues5, envelopes[0].RelatedSequences.Select(item => item.SequenceNumber));
         Assert.Equal("DE exact description", envelopes[0].Description);
         Assert.Equal("fr", envelopes[1].Country); Assert.Equal("Declared FR applicant", envelopes[1].Applicant);
         Assert.False(head.IsReady);
@@ -80,10 +90,10 @@ public sealed class RegionalImportCompleteTests
         Assert.Equal("Declared US applicant", us.ApplicantName); Assert.Equal("original-application", us.SubmissionType);
         Assert.Equal("application", us.SubmissionSubtype); Assert.Equal("US XML description", us.Description);
         Assert.Equal("356h", us.FormType);
-        Assert.Equal(new[] { "Alice", "Bob" }, us.Contacts.Select(item => item.Name));
-        Assert.Equal(new[] { "business", "mobile" }, us.Contacts[0].Phones.Select(item => item.Type));
-        Assert.Equal(new[] { "+1-111", "+1-222" }, us.Contacts[0].Phones.Select(item => item.Number));
-        Assert.Equal(new[] { "alice1@example.test", "alice2@example.test" }, us.Contacts[0].Emails.Select(item => item.Value));
+        Assert.Equal(ExpectedValues6, us.Contacts.Select(item => item.Name));
+        Assert.Equal(ExpectedValues7, us.Contacts[0].Phones.Select(item => item.Type));
+        Assert.Equal(ExpectedValues8, us.Contacts[0].Phones.Select(item => item.Number));
+        Assert.Equal(ExpectedValues9, us.Contacts[0].Emails.Select(item => item.Value));
         Assert.Equal("regulatory", us.Contacts[1].Type);
         Assert.Equal("356h", Assert.Single(head.DocumentContexts).FormType);
     }
@@ -106,7 +116,7 @@ public sealed class RegionalImportCompleteTests
         var result = await rig.ImportAsync();
         Assert.Equal(1, result.ImportedSequenceCount);
         var head = await rig.Metadata.GetHeadAsync(result.ApplicationId, "0000"); Assert.NotNull(head);
-        Assert.Contains(head.Diagnostics, item => item.Code == code && item.FieldPath.StartsWith("/", StringComparison.Ordinal));
+        Assert.Contains(head.Diagnostics, item => item.Code == code && item.FieldPath.StartsWith('/'));
         Assert.Contains(result.Issues, item => item.Code == code);
         Assert.False(head.IsReady);
     }

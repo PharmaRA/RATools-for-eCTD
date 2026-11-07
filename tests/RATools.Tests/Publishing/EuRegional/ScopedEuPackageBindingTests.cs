@@ -14,6 +14,13 @@ namespace RATools.Tests.Publishing.EuRegional;
 
 public sealed class ScopedEuPackageBindingTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "de", "fr" };
+    private static readonly string[] ExpectedValues2 = new[] { "de", "fr" };
+    private static readonly string[] ExpectedImportedPiWrappersKeepSourceOrderAndRespectExplicitSortWithinEachWrapperValues3 = { "source-pi-a-next", "source-pi-a", "source-pi-b", "source-pi-b-next" };
+    private static readonly string[] ExpectedEqualContextWrappersKeepOriginalSourceBoundaryEvenWhenOutputCanMergeValues4 = { "source-pi-a-next", "source-pi-a", "source-pi-b", "source-pi-b-next" };
+    private static readonly string[] ExpectedImportedPiWrappersKeepSourceOrderAndRespectExplicitSortWithinEachWrapperValues5 = { "source-pi-a", "source-pi-a-next", "source-pi-b", "source-pi-b-next" };
+    private static readonly string[] ExpectedEqualContextWrappersKeepOriginalSourceBoundaryEvenWhenOutputCanMergeValues6 = { "source-pi-a", "source-pi-a-next", "source-pi-b", "source-pi-b-next" };
+
     [Fact]
     public async Task SharedOnlyPackageDoesNotMaterializeAnyEuDefaults()
     {
@@ -38,7 +45,7 @@ public sealed class ScopedEuPackageBindingTests
             fixture.Revision.Content! with { Eu = new([ScopedEuRegionalWriterTests.Envelope("fr")]) }, null, [], fixture.Revision.DocumentContexts,
             null, null, [], [], null, null, DateTime.UtcNow);
         await new InMemoryPersistenceTransaction().ExecuteAsync(ct => fixture.Metadata.AppendAsync(next, fixture.Revision.Id, ct));
-        Assert.Equal(new[] { "de", "fr" }, new EuRegionalXmlWriter().Write(package).Document.Descendants("envelope").Select(item => item.Attribute("country")!.Value));
+        Assert.Equal(ExpectedValues1, new EuRegionalXmlWriter().Write(package).Document.Descendants("envelope").Select(item => item.Attribute("country")!.Value));
         await Assert.ThrowsAsync<RegionalMetadataScopeException>(() => fixture.Builder.BuildWithStandardsAsync(new(fixture.ApplicationId, "0001"), fixture.Profile with { DisplayName = "current-drift" }));
     }
 
@@ -82,9 +89,9 @@ public sealed class ScopedEuPackageBindingTests
         var fixture = await CreateAsync(imported: true, explicitSort: explicitSort, multiLeaf: true);
         var package = await fixture.Builder.BuildAsync(new(fixture.ApplicationId, "0001"));
         var xml = new EuRegionalXmlWriter().Write(package).Document;
-        Assert.Equal(explicitSort ? new[] { "source-pi-a-next", "source-pi-a", "source-pi-b", "source-pi-b-next" }
-            : new[] { "source-pi-a", "source-pi-a-next", "source-pi-b", "source-pi-b-next" }, xml.Descendants("pi-doc").Elements("leaf").Select(item => item.Attribute("ID")!.Value));
-        Assert.Equal(new[] { "de", "fr" }, xml.Descendants("pi-doc").Select(item => item.Attribute("country")!.Value));
+        Assert.Equal(explicitSort ? ExpectedImportedPiWrappersKeepSourceOrderAndRespectExplicitSortWithinEachWrapperValues3
+            : ExpectedImportedPiWrappersKeepSourceOrderAndRespectExplicitSortWithinEachWrapperValues5, xml.Descendants("pi-doc").Elements("leaf").Select(item => item.Attribute("ID")!.Value));
+        Assert.Equal(ExpectedValues2, xml.Descendants("pi-doc").Select(item => item.Attribute("country")!.Value));
     }
 
     [Theory]
@@ -95,8 +102,8 @@ public sealed class ScopedEuPackageBindingTests
         var fixture = await CreateAsync(imported: true, explicitSort: explicitSort, multiLeaf: true, sameContext: true);
         var package = await fixture.Builder.BuildAsync(new(fixture.ApplicationId, "0001"));
         var xml = new EuRegionalXmlWriter().Write(package).Document;
-        Assert.Equal(explicitSort ? new[] { "source-pi-a-next", "source-pi-a", "source-pi-b", "source-pi-b-next" }
-            : new[] { "source-pi-a", "source-pi-a-next", "source-pi-b", "source-pi-b-next" }, xml.Descendants("pi-doc").Elements("leaf").Select(item => item.Attribute("ID")!.Value));
+        Assert.Equal(explicitSort ? ExpectedEqualContextWrappersKeepOriginalSourceBoundaryEvenWhenOutputCanMergeValues4
+            : ExpectedEqualContextWrappersKeepOriginalSourceBoundaryEvenWhenOutputCanMergeValues6, xml.Descendants("pi-doc").Elements("leaf").Select(item => item.Attribute("ID")!.Value));
         Assert.Single(xml.Descendants("pi-doc"));
     }
 

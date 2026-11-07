@@ -12,6 +12,12 @@ namespace RATools.Tests.Publishing.UsRegional;
 
 public sealed class ScopedUsRegionalWriterTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "First Contact", "Second Contact" };
+    private static readonly string[] ExpectedValues2 = new[] { "office", "fax", "mobile" };
+    private static readonly string[] ExpectedValues3 = new[] { "first@example.test", "alternate@example.test", "second@example.test" };
+    private static readonly string[] ExpectedValues4 = new[] { "placement-form", "node-form", "sequence-form" };
+    private static readonly string[] ExpectedValues5 = new[] { "leaf-1", "leaf-2", "leaf-3" };
+
     private static readonly Guid ApplicationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid NodeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
@@ -24,9 +30,9 @@ public sealed class ScopedUsRegionalWriterTests
         Assert.Equal("submission-business-id", xml.Descendants("submission-id").Single().Value);
         Assert.Equal("typed-company", xml.Descendants("company-name").Single().Value);
         Assert.Equal("typed-description", xml.Descendants("submission-description").Single().Value);
-        Assert.Equal(new[] { "First Contact", "Second Contact" }, xml.Descendants("applicant-contact-name").Select(item => item.Value));
-        Assert.Equal(new[] { "office", "fax", "mobile" }, xml.Descendants("telephone").Select(item => item.Attribute("telephone-number-type")!.Value));
-        Assert.Equal(new[] { "first@example.test", "alternate@example.test", "second@example.test" }, xml.Descendants("email").Select(item => item.Value));
+        Assert.Equal(ExpectedValues1, xml.Descendants("applicant-contact-name").Select(item => item.Value));
+        Assert.Equal(ExpectedValues2, xml.Descendants("telephone").Select(item => item.Attribute("telephone-number-type")!.Value));
+        Assert.Equal(ExpectedValues3, xml.Descendants("email").Select(item => item.Value));
         Assert.Equal("typed-application-type", xml.Descendants("application-number").Single().Attribute("application-type")!.Value);
         Assert.Equal("typed-submission-type", xml.Descendants("submission-id").Single().Attribute("submission-type")!.Value);
         Assert.Equal("typed-subtype", xml.Descendants("sequence-number").Single().Attribute("submission-sub-type")!.Value);
@@ -42,8 +48,8 @@ public sealed class ScopedUsRegionalWriterTests
         var xml = new UsRegionalXmlWriter().Write(package).Document;
         Assert.Empty(xml.Descendants("submission-information").Elements("form"));
         var wrappers = xml.Descendants("m1-1-forms").Elements("form").ToArray();
-        Assert.Equal(new[] { "placement-form", "node-form", "sequence-form" }, wrappers.Select(item => item.Attribute("form-type")!.Value));
-        Assert.Equal(new[] { "leaf-1", "leaf-2", "leaf-3" }, wrappers.SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute("ID")!.Value));
+        Assert.Equal(ExpectedValues4, wrappers.Select(item => item.Attribute("form-type")!.Value));
+        Assert.Equal(ExpectedValues5, wrappers.SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute("ID")!.Value));
         Assert.Single(package.PublishedFiles);
         Assert.Equal(3, xml.Descendants("leaf").Count());
         Assert.Equal("11-forms/shared.pdf", xml.Descendants("leaf").First().Attribute(XName.Get("href", "http://www.w3c.org/1999/xlink"))!.Value);
@@ -173,7 +179,7 @@ public sealed class ScopedUsRegionalWriterTests
         Assert.NotEmpty(DtdErrors(changed.ToString(SaveOptions.DisableFormatting)));
     }
 
-    private static IReadOnlyList<string> DtdErrors(string xml)
+    private static List<string> DtdErrors(string xml)
     {
         var errors = new List<string>();
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse, ValidationType = ValidationType.DTD, XmlResolver = new BundledDtdResolver() };

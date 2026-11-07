@@ -126,7 +126,7 @@ public sealed class PostgresPdfRenameTests
     }
     private static async Task EnsureNoForeignCandidatesAsync(RAToolsDbContext db) =>
         Assert.Equal(0, await db.Set<PdfRenameJobRecord>().CountAsync(row => row.Status == PdfProcessingJobStatus.Pending || row.Status == PdfProcessingJobStatus.Running));
-    private static async Task TerminalizeOwnedAsync(IPdfRenameStore store, Guid id)
+    private static async Task TerminalizeOwnedAsync(EfCorePdfRenameStore store, Guid id)
     {
         var job = await store.CancelAsync(id, DateTime.UtcNow);
         if (job?.State.Status == PdfProcessingJobStatus.Running)

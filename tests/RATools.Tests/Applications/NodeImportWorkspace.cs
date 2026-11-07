@@ -13,7 +13,7 @@ namespace RATools.Tests.Applications;
 
 internal sealed class NodeImportWorkspace : IDisposable
 {
-    private readonly string _temporaryRoot = Path.Combine(Path.GetTempPath(), "node-import-" + Guid.NewGuid().ToString("N"));
+    private readonly string _temporaryRoot = Path.GetFullPath(Path.Combine(".artifacts", "node-import-tests", "node-import-" + Guid.NewGuid().ToString("N")));
     public string Root { get; }
     public IApplicationRepository Applications { get; }
     public IDocumentRepository Documents { get; }
@@ -35,9 +35,9 @@ internal sealed class NodeImportWorkspace : IDisposable
         Revisions = database is null ? new InMemoryWorkspaceRevisionStore(Applications) : new EfCoreWorkspaceRevisionStore(database);
         Nodes = database is null ? new InMemoryCtdNodeRepository(Revisions, Placements)
             : new EfCoreCtdNodeRepository(database);
-        Store = database is null ? new InMemoryApplicationImportStore(Applications, Documents, Placements, (InMemoryCtdNodeRepository)Nodes)
-            : new EfCoreApplicationImportStore(database, Applications, Documents, Placements);
-        Service = new(Applications, new CapturingStore(this), new AllowedPaths());
+        Store = database is null ? new InMemoryApplicationImportStore(Applications, Documents, Placements, (InMemoryCtdNodeRepository)Nodes, new InMemoryRegionalMetadataStore())
+            : new EfCoreApplicationImportStore(database, Applications, Documents, Placements, new EfCoreRegionalMetadataStore(database));
+        Service = new(Applications, new CapturingStore(this), new AllowedPaths(), ImportAcceptanceFixture.MemorySnapshots());
     }
 
     public Task<ApplicationImportResultDto> ImportAsync(CancellationToken cancellationToken = default) =>
@@ -87,7 +87,54 @@ internal sealed class NodeImportWorkspace : IDisposable
     public static XElement Extension(string id, string title, params XElement[] children) =>
         new("node-extension", new XAttribute("ID", id), new XElement("title", title), children);
 
-    public void Dispose() => Directory.Delete(_temporaryRoot, recursive: true);
+    public void RetainMissingPayload(string sequence, string fileName)
+    {
+        var source = Path.GetFullPath(Path.Combine(Root,
+            PortablePathSegment.NormalizeAndValidate(sequence, nameof(sequence)),
+            PortablePathSegment.NormalizeAndValidate(fileName, nameof(fileName))));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!source.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, comparison))
+            throw new InvalidOperationException("Missing-payload fixture escaped its workspace.");
+        EnsureNoLinks(source);
+        var recycle = Path.Combine(Path.GetDirectoryName(_temporaryRoot)!, "ratools-node-import-recycle");
+        EnsureNoLinks(recycle); Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
+        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N") + "-" + fileName));
+        if (!string.Equals(Path.GetDirectoryName(destination), recycle, comparison))
+            throw new InvalidOperationException("Missing-payload recycle destination escaped.");
+        var original = File.ReadAllBytes(source);
+        File.Move(source, destination);
+        Assert.False(File.Exists(source));
+        Assert.Equal(original, File.ReadAllBytes(destination));
+    }
+
+    public void Dispose()
+    {
+        var parent = Path.GetFullPath(Path.Combine(".artifacts", "node-import-tests"));
+        var source = Path.GetFullPath(_temporaryRoot);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(source), parent, comparison) ||
+            !Path.GetFileName(source).StartsWith("node-import-", StringComparison.Ordinal) ||
+            !Guid.TryParseExact(Path.GetFileName(source)[12..], "N", out _)) throw new InvalidOperationException("Unexpected import fixture ownership.");
+        var pending = new Stack<string>(); pending.Push(source);
+        while (pending.TryPop(out var current))
+        {
+            EnsureNoLinks(current);
+            if (Directory.Exists(current))
+                foreach (var child in Directory.EnumerateFileSystemEntries(current)) pending.Push(child);
+        }
+        var recycle = Path.Combine(parent, "ratools-node-import-recycle");
+        EnsureNoLinks(recycle); Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
+        var destination = Path.GetFullPath(Path.Combine(recycle, Path.GetFileName(source) + "-" + Guid.NewGuid().ToString("N")));
+        if (!string.Equals(Path.GetDirectoryName(destination), recycle, comparison)) throw new InvalidOperationException("Fixture recycle destination escaped.");
+        Directory.Move(source, destination);
+    }
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Import fixture links require inspection before retention.");
+    }
 
     private sealed class AllowedPaths : IWorkspacePathPolicy
     {

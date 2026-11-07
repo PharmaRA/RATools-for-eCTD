@@ -17,7 +17,15 @@ public sealed class ApplicationImportNodeTests
         Assert.Equal(4, result.ImportedSequenceCount);
         Assert.Equal(13, result.ImportedDocumentCount);
         Assert.Equal(14, result.ImportedPlacementCount);
-        Assert.All(result.Issues, issue => Assert.Equal("NODE_SCHEMA_NOT_AVAILABLE", issue.Code));
+        Assert.Single(result.Issues, issue => issue.Code == "NODE_SCHEMA_NOT_AVAILABLE");
+        Assert.Equal(4, result.Issues.Count(issue => issue.Code == "RegionalQualificationPending"));
+        Assert.All(result.Issues, issue =>
+        {
+            Assert.Equal("Warning", issue.Severity);
+            Assert.True(issue.Code is "NODE_SCHEMA_NOT_AVAILABLE" or "RegionalUnsupportedNamespace" or
+                "RegionalUnmappedValue" or "RegionalUnknownAttribute" or "RegionalQualificationPending" or
+                "RegionalContextUnbound", $"Unexpected import diagnostic: {issue.Code}");
+        });
         await AssertFixtureAsync(scope, result.ApplicationId);
     }
 
@@ -136,7 +144,7 @@ public sealed class ApplicationImportNodeTests
         if (failure == "history") invalid.Descendants("leaf").Single().SetAttributeValue("operation", "replace");
         if (failure == "history") invalid.Descendants("leaf").Single().SetAttributeValue("modified-file", "../0000/index.xml#old");
         await scope.WriteAsync("0001", Quality(invalid));
-        if (failure == "file") File.Delete(Path.Combine(scope.Root, "0001", "failed.pdf"));
+        if (failure == "file") scope.RetainMissingPayload("0001", "failed.pdf");
         await scope.WriteAsync("0002", Quality(Substance("Beta", Leaf("must-not-resolve", operation: "delete", target: "../0001/index.xml#failed"))));
         var result = await scope.ImportAsync();
         Assert.Equal(1, result.ImportedSequenceCount);
@@ -190,7 +198,7 @@ public sealed class ApplicationImportNodeTests
         using var scope = new NodeImportWorkspace();
         await scope.WriteAsync("0000", Quality(Substance("Alpha", Leaf("old"))));
         await scope.WriteAsync("0001", Quality(Substance("Alpha", Leaf("one", "one.pdf")), Substance("Alpha", Leaf("two", "two.pdf"))));
-        File.Delete(Path.Combine(scope.Root, "0001", "two.pdf"));
+        scope.RetainMissingPayload("0001", "two.pdf");
         await scope.WriteAsync("0002", Quality(Substance("Alpha", Leaf("current", operation: "replace", target: "../0000/index.xml#old"))));
         var result = await scope.ImportAsync();
         Assert.Equal(2, result.ImportedSequenceCount);

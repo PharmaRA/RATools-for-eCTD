@@ -12,6 +12,9 @@ namespace RATools.Tests.Applications;
 [Collection(PostgresCollectionDefinition.Name)]
 public sealed class PostgresRegionalImportAcceptanceTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "First product", "Second product" };
+    private static readonly string[] ExpectedValues2 = new[] { "de", "fr" };
+
     [RequiresPostgresFact]
     public async Task DatabaseRejectsMismatchedSnapshotsAndDigestsAndKeepsEvidenceImmutable()
     {
@@ -48,8 +51,8 @@ public sealed class PostgresRegionalImportAcceptanceTests
         Assert.NotNull(head); Assert.Equal(1, head.WorkspaceRevision); Assert.False(head.IsReady);
         var application = (await new EfCoreApplicationRepository(read).GetAsync(result.ApplicationId))!;
         Assert.Equal(1, application.Sequences.Single().WorkspaceRevision);
-        Assert.Equal(new[] { "First product", "Second product" }, head.Content!.Eu!.Envelopes[0].InventedNames.Select(item => item.Value));
-        Assert.Equal(new[] { "de", "fr" }, head.DocumentContexts.Select(item => item.Language));
+        Assert.Equal(ExpectedValues1, head.Content!.Eu!.Envelopes[0].InventedNames.Select(item => item.Value));
+        Assert.Equal(ExpectedValues2, head.DocumentContexts.Select(item => item.Language));
         var imports = Store(read);
         ImportAcceptanceFixture.CheckEvidence(await imports.GetRegionalEvidenceAsync(result.ApplicationId, "0000"), head.Id, head.StandardsSnapshotId, fixture.RegionalBytes);
         Assert.Equal(2, (await imports.GetBackbonesAsync(result.ApplicationId, "0000")).Count);

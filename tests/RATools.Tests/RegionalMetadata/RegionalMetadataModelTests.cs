@@ -4,6 +4,8 @@ namespace RATools.Tests.RegionalMetadata;
 
 public sealed class RegionalMetadataModelTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "First", "Second" };
+
     [Fact]
     public void OrderedEnvelopesAndNestedValuesAreCopiedIntoImmutableEvidence()
     {
@@ -13,7 +15,7 @@ public sealed class RegionalMetadataModelTests
         var revision = Revision(new(1, "EU", Eu: new(envelopes)));
         names.Clear(); envelopes.Clear();
         Assert.Equal(2, revision.Content!.Eu!.Envelopes.Count);
-        Assert.Equal(new[] { "First", "Second" }, revision.Content.Eu.Envelopes[0].InventedNames.Select(value => value.Value));
+        Assert.Equal(ExpectedValues1, revision.Content.Eu.Envelopes[0].InventedNames.Select(value => value.Value));
         Assert.Equal("de", revision.Content.Eu.Envelopes[1].Country); revision.Verify();
     }
 

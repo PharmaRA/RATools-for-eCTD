@@ -20,6 +20,8 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class DeclaredQualificationMatrixTests
 {
+    private static readonly JsonSerializerOptions CachedJsonOptions1 = new JsonSerializerOptions { WriteIndented = true };
+
     private static readonly string MatrixPath = Path.Combine("tests", "RATools.Tests", "Fixtures", "RegionalQualification", "p609-declared-matrix.json");
 
     [Fact]
@@ -116,7 +118,7 @@ public sealed class DeclaredQualificationMatrixTests
         { MatrixVersion = "p609-2026-11-06", MatrixSha256 = Hash(await File.ReadAllBytesAsync(MatrixPath)), Runtime = Environment.Version.ToString(),
             TestAssemblySha256 = Hash(await File.ReadAllBytesAsync(typeof(DeclaredQualificationMatrixTests).Assembly.Location)),
             TestSourceSha256 = Hash(await File.ReadAllBytesAsync("tests/RATools.Tests/PackageValidation/DeclaredQualificationMatrixTests.cs")),
-            Rows = receipts, Pending = rows.Where(row => row.GetProperty("trial").GetString() != "Pass").ToArray() }, new JsonSerializerOptions { WriteIndented = true }));
+            Rows = receipts, Pending = rows.Where(row => row.GetProperty("trial").GetString() != "Pass").ToArray() }, CachedJsonOptions1));
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

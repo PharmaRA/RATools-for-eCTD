@@ -29,6 +29,12 @@ namespace RATools.Tests.Applications;
 
 public sealed class RegionalImportAcceptanceTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "Magieke Pil", "Pilulle Magique", "Magiesche Pille" };
+    private static readonly string[] ExpectedValues2 = new[] { "fr", "fr", "fr", "nl", "nl", "nl", "de", "de", "de" };
+    private static readonly string[] ExpectedValues3 = new[] { "spc", "outer", "pl", "spc", "outer", "pl", "spc", "outer", "pl" };
+    private static readonly string[] ExpectedValues4 = new[] { "First product", "Second product" };
+    private static readonly string[] ExpectedValues5 = new[] { "de", "fr" };
+
     [Fact]
     public async Task KnownMetadataElementOutsideItsSupportedParentHasAPathDiagnostic()
     {
@@ -54,17 +60,17 @@ public sealed class RegionalImportAcceptanceTests
         var envelope = Assert.Single(parsed.Content.Eu!.Envelopes);
         Assert.Equal("be", envelope.Country); Assert.Equal("BE-FAMHP", envelope.Agency);
         Assert.Equal("Pharma Unlimited", envelope.Applicant); Assert.Null(envelope.Identifier);
-        Assert.Equal(new[] { "Magieke Pil", "Pilulle Magique", "Magiesche Pille" }, envelope.InventedNames.Select(item => item.Value));
+        Assert.Equal(ExpectedValues1, envelope.InventedNames.Select(item => item.Value));
         Assert.Equal("2131577", Assert.Single(envelope.ProcedureTrackingNumbers).Value);
         Assert.Equal("0011", Assert.Single(envelope.RelatedSequences).SequenceNumber);
-        Assert.Contains(parsed.Diagnostics, item => item.Code == "RegionalUnsupportedVersion" && item.FieldPath.StartsWith("/", StringComparison.Ordinal));
+        Assert.Contains(parsed.Diagnostics, item => item.Code == "RegionalUnsupportedVersion" && item.FieldPath.StartsWith('/'));
         using var stream = new MemoryStream(bytes);
         var xml = XDocument.Load(stream);
         var leaves = xml.Descendants("pi-doc").SelectMany(element => element.Elements("leaf")).ToArray();
         Assert.Equal(9, leaves.Length);
         var contexts = leaves.Select(leaf => RegionalImportParser.Context(leaf, Guid.NewGuid(), null)).ToArray();
-        Assert.Equal(new[] { "fr", "fr", "fr", "nl", "nl", "nl", "de", "de", "de" }, contexts.Select(item => item.Language));
-        Assert.Equal(new[] { "spc", "outer", "pl", "spc", "outer", "pl", "spc", "outer", "pl" }, contexts.Select(item => item.ProductInformationType));
+        Assert.Equal(ExpectedValues2, contexts.Select(item => item.Language));
+        Assert.Equal(ExpectedValues3, contexts.Select(item => item.ProductInformationType));
         Assert.All(contexts, item => { Assert.Equal("be", item.Country); Assert.Null(item.NodeInstanceId); });
     }
 
@@ -89,13 +95,13 @@ public sealed class RegionalImportAcceptanceTests
         var rawResponse = await response.Content.ReadAsStringAsync(); Assert.DoesNotContain("originalBytes", rawResponse, StringComparison.OrdinalIgnoreCase);
         var imported = (await response.Content.ReadFromJsonAsync<ApplicationImportResultDto>())!;
         Assert.Equal(1, imported.ImportedSequenceCount); Assert.Equal(0, imported.FailedSequenceCount);
-        Assert.Contains(imported.Issues, issue => issue.Code == "RegionalUnknownAttribute" && issue.FieldPath?.StartsWith("/", StringComparison.Ordinal) == true);
+        Assert.Contains(imported.Issues, issue => issue.Code == "RegionalUnknownAttribute" && issue.FieldPath?.StartsWith('/') == true);
         using var read = await client.GetAsync($"/api/applications/{imported.ApplicationId}/sequences/0000/publishing-metadata");
         Assert.Equal(HttpStatusCode.OK, read.StatusCode);
         var dto = (await read.Content.ReadFromJsonAsync<SequencePublishingMetadataDto>())!;
         Assert.Equal(1, dto.WorkspaceRevision); Assert.NotNull(dto.Regional);
         Assert.Equal("External applicant", dto.Regional.Content!.Eu!.Envelopes[0].Applicant);
-        Assert.Equal(new[] { "First product", "Second product" }, dto.Regional.Content.Eu.Envelopes[0].InventedNames.Select(item => item.Value));
+        Assert.Equal(ExpectedValues4, dto.Regional.Content.Eu.Envelopes[0].InventedNames.Select(item => item.Value));
         Assert.NotEmpty(dto.Regional.Diagnostics);
         var evidence = await imports.GetRegionalEvidenceAsync(imported.ApplicationId, "0000");
         ImportAcceptanceFixture.CheckEvidence(evidence, dto.Regional.Id, dto.Regional.StandardsSnapshotId, fixture.RegionalBytes);
@@ -106,7 +112,7 @@ public sealed class RegionalImportAcceptanceTests
         });
         var mounted = (await placements.ListAsync()).ToArray(); Assert.Equal(2, mounted.Length);
         Assert.Equal(mounted[0].DocumentId, mounted[1].DocumentId);
-        Assert.Equal(new[] { "de", "fr" }, dto.Regional.DocumentContexts.Select(item => item.Language));
+        Assert.Equal(ExpectedValues5, dto.Regional.DocumentContexts.Select(item => item.Language));
         Assert.All(dto.Regional.DocumentContexts, context => Assert.Contains(mounted, item => item.Id == context.PlacementId && item.NodeInstanceId == context.NodeInstanceId));
         using var duplicate = await client.PostAsJsonAsync("/api/applications/import", new { workingDirectoryPath = fixture.Root, ectdTemplateKey = "eu-ectd-3.2.2", sponsorName = "Request sponsor" });
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode); Assert.Equal(1, (await apps.GetAsync(imported.ApplicationId))!.Sequences.Single().WorkspaceRevision);

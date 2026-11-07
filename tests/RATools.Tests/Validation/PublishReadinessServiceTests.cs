@@ -25,6 +25,8 @@ namespace RATools.Tests.Validation;
 
 public sealed class PublishReadinessServiceTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "regionalMetadata.eu" };
+
     [Fact]
     public async Task GetAsync_ReturnsNotReadyWhenValidationHasErrors()
     {
@@ -313,7 +315,7 @@ public sealed class PublishReadinessServiceTests
         Assert.False(report.IsReady);
         Assert.Equal("Blocked", report.Status);
         Assert.Contains(report.Findings, finding => finding.Code == "EU_REGIONAL_METADATA_MISSING" && finding.FieldName == "regionalMetadata.eu");
-        Assert.Equal(new[] { "regionalMetadata.eu" }, report.MissingMetadataFields);
+        Assert.Equal(ExpectedValues1, report.MissingMetadataFields);
         Assert.DoesNotContain(report.Findings, finding => finding.Code.StartsWith("US_REGIONAL", StringComparison.OrdinalIgnoreCase));
     }
 

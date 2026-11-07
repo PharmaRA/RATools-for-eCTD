@@ -598,6 +598,8 @@ public sealed class StandardsSnapshotIntegrationTests
 
     private sealed class SnapshotFixture
     {
+    private static readonly JsonSerializerOptions CachedJsonOptions1 = new JsonSerializerOptions { WriteIndented = true };
+
         public const string Template = "us-fda-ectd-3.2.2";
         public required string Root { get; init; }
         public required MutableProvider Provider { get; init; }
@@ -624,7 +626,7 @@ public sealed class StandardsSnapshotIntegrationTests
         }
         public Task ChangeAssetAsync() => File.AppendAllTextAsync(IchPath, "\n<!-- Synthetic fixture asset revision: old captured bytes must remain unchanged. -->\n");
         public Task EvidenceAsync(string name, object evidence) => File.WriteAllTextAsync(Path.Combine(Root, name + "-evidence.json"),
-            JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
+            JsonSerializer.Serialize(evidence, CachedJsonOptions1));
     }
     private sealed class MutableProvider(string root) : IStandardsProfileProvider
     {

@@ -19,6 +19,14 @@ namespace RATools.Tests.Publishing.UsRegional;
 
 public sealed class ScopedUsPackageBindingTests
 {
+    private static readonly string[] ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues1 = { "source-form-b", "source-form-a" };
+    private static readonly string[] ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues2 = { "source-form-a", "source-form-b" };
+    private static readonly string[] ExpectedValues3 = new[] { "source-form-a", "source-form-b" };
+    private static readonly string[] ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues4 = { "form-b", "form-a" };
+    private static readonly string[] ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues5 = { "form-a", "form-b" };
+    private static readonly string[] ExpectedValues6 = new[] { "form-a", "form-b" };
+    private static readonly string[] ExpectedValues7 = new[] { "first@example.test", "alternate@example.test" };
+
     [Fact]
     public async Task BuilderCapturesExactRegionalRevisionAndArchivedProfileWithoutCurrentProviderDrift()
     {
@@ -58,9 +66,9 @@ public sealed class ScopedUsPackageBindingTests
     {
         var fixture = await CreateAsync(importedForms: true, explicitSort: explicitSort);
         var package = await fixture.Builder.BuildAsync(new(fixture.ApplicationId, "0001"));
-        Assert.Equal(explicitSort ? new[] { "source-form-b", "source-form-a" } : new[] { "source-form-a", "source-form-b" }, package.Module1Leaves.Select(leaf => leaf.LeafId));
+        Assert.Equal(explicitSort ? ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues1 : ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues2, package.Module1Leaves.Select(leaf => leaf.LeafId));
         var xml = new UsRegionalXmlWriter().Write(package).Document;
-        Assert.Equal(explicitSort ? new[] { "form-b", "form-a" } : new[] { "form-a", "form-b" }, xml.Descendants("form").Select(form => form.Attribute("form-type")!.Value));
+        Assert.Equal(explicitSort ? ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues4 : ExpectedImportedFormsKeepSourceOrderOnTiesAndRespectExplicitPlacementSortValues5, xml.Descendants("form").Select(form => form.Attribute("form-type")!.Value));
     }
 
     [Fact]
@@ -68,7 +76,7 @@ public sealed class ScopedUsPackageBindingTests
     {
         var fixture = await CreateAsync(importedForms: true, section: "M1.1");
         var package = await fixture.Builder.BuildAsync(new(fixture.ApplicationId, "0001"));
-        Assert.Equal(new[] { "source-form-a", "source-form-b" }, package.Module1Leaves.Select(leaf => leaf.LeafId));
+        Assert.Equal(ExpectedValues3, package.Module1Leaves.Select(leaf => leaf.LeafId));
     }
 
     [Theory]
@@ -101,9 +109,9 @@ public sealed class ScopedUsPackageBindingTests
         Assert.Equal("submission-business-id", content.GetProperty("SubmissionIdentifier").GetString());
         Assert.Equal("999888", parsed.Content.Us!.ApplicationIdentifier);
         Assert.Equal(2, parsed.Content.Us.Contacts.Count);
-        Assert.Equal(new[] { "first@example.test", "alternate@example.test" }, parsed.Content.Us.Contacts[0].Emails.Select(item => item.Value));
+        Assert.Equal(ExpectedValues7, parsed.Content.Us.Contacts[0].Emails.Select(item => item.Value));
         var contexts = xml.Document.Descendants("leaf").Select((leaf, index) => RegionalImportParser.Context(leaf, index == 0 ? first.PlacementId : second.PlacementId, null)).ToArray();
-        Assert.Equal(new[] { "form-a", "form-b" }, contexts.Select(context => context.FormType));
+        Assert.Equal(ExpectedValues6, contexts.Select(context => context.FormType));
         Assert.DoesNotContain(parsed.Diagnostics, item => item.Code == "RegionalUnmappedValue" && (item.FieldPath.EndsWith("/id[1]", StringComparison.Ordinal) || item.FieldPath.EndsWith("/submission-id[1]", StringComparison.Ordinal)));
     }
 

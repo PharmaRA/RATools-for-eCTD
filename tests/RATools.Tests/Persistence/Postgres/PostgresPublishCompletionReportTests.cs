@@ -27,7 +27,7 @@ public sealed class PostgresPublishCompletionReportTests(PostgresFixture fixture
         {
             await using var reload = fixture.CreateDbContext();
             var jobs = await new EfCorePublishJobRepository(reload).ListAsync();
-            return Assert.Single(jobs.Where(job => !before.Contains(job.Id)));
+            return Assert.Single(jobs, job => !before.Contains(job.Id));
         });
     }
 

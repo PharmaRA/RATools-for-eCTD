@@ -19,6 +19,12 @@ namespace RATools.Tests.RegionalMetadata;
 
 public sealed class RegionalMetadataEditingTests
 {
+    private static readonly JsonSerializerOptions CachedJsonOptions1 = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions CachedJsonOptions2 = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions CachedJsonOptions3 = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    private static readonly string[] ExpectedValues4 = new[] { "initial", "reformat" };
+    private static readonly string[] ExpectedValues5 = new[] { "m1.3.1" };
+
     [Theory]
     [InlineData("{\"expectedRevision\":0,\"expectedRevision\":1}")]
     [InlineData("{\"expectedRevision\":0,\"provenance\":[]}")]
@@ -28,7 +34,7 @@ public sealed class RegionalMetadataEditingTests
     public void PublishingRequestRejectsAmbiguousOrClientSuppliedEvidence(string json)
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<UpdateSequencePublishingMetadataRequestBody>(json,
-            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+            CachedJsonOptions1));
     }
 
     [Fact]
@@ -113,11 +119,11 @@ public sealed class RegionalMetadataEditingTests
             .Fields.Single(field => field.Key == "relatedSequences");
         Assert.True(related.Required);
         var condition = Assert.Single(related.Conditions!);
-        var json = JsonSerializer.SerializeToElement(condition, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var json = JsonSerializer.SerializeToElement(condition, CachedJsonOptions2);
         Assert.True(json.TryGetProperty("effect", out var effect), "The schema must distinguish guidance from visibility.");
         Assert.Equal("guidance", effect.GetString());
         Assert.Equal("eu.envelopes[].submissionUnit", condition.FieldPath);
-        Assert.Equal(new[] { "initial", "reformat" }, condition.Values);
+        Assert.Equal(ExpectedValues4, condition.Values);
     }
 
     [Theory]
@@ -133,8 +139,8 @@ public sealed class RegionalMetadataEditingTests
             Assert.False(field.Required);
             var actual = field.Conditions!.Select(condition =>
             {
-                Assert.Equal("ctdSection", condition.FieldPath); Assert.Equal(new[] { "m1.3.1" }, condition.Values);
-                var json = JsonSerializer.SerializeToElement(condition, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                Assert.Equal("ctdSection", condition.FieldPath); Assert.Equal(ExpectedValues5, condition.Values);
+                var json = JsonSerializer.SerializeToElement(condition, CachedJsonOptions3);
                 Assert.True(json.TryGetProperty("effect", out var effect), "Context applicability must specify its effect.");
                 return effect.GetString();
             }).Order(StringComparer.Ordinal);

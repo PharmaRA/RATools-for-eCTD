@@ -5,6 +5,8 @@ namespace RATools.Tests.DocumentProcessing;
 
 public sealed class PdfContentContractTests
 {
+    private static readonly int[] ExpectedValues1 = new[] { 1, 3 };
+
     [Fact]
     public void ContentParametersSurviveTheDurableParameterContract()
     {
@@ -15,7 +17,7 @@ public sealed class PdfContentContractTests
         using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(parameters.Normalize(), options));
         Assert.True(roundTrip.RootElement.TryGetProperty("content", out var content));
         Assert.Equal("eng", content.GetProperty("ocr").GetProperty("language").GetString());
-        Assert.Equal(new[] { 1, 3 }, content.GetProperty("ocr").GetProperty("pages").EnumerateArray().Select(value => value.GetInt32()));
+        Assert.Equal(ExpectedValues1, content.GetProperty("ocr").GetProperty("pages").EnumerateArray().Select(value => value.GetInt32()));
         Assert.Equal("1.7", content.GetProperty("targetVersion").GetString());
     }
 }

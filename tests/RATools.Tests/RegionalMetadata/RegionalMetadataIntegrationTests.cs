@@ -21,6 +21,12 @@ namespace RATools.Tests.RegionalMetadata;
 // establish scope; it does not qualify the later regional UI, import or writers.
 public sealed class RegionalMetadataIntegrationTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "fr", "common" };
+    private static readonly string[] ExpectedValues2 = new[] { "Second contact", "First contact" };
+    private static readonly string[] ExpectedValues3 = new[] { "business", "fax" };
+    private static readonly string[] ExpectedValues4 = new[] { "5550201", "5550202" };
+    private static readonly string[] ExpectedValues5 = new[] { "second-b@example.test", "second-a@example.test" };
+
     [Fact]
     public async Task ExplicitEuInheritanceCopiesTheChosenDefaultsAndKeepsSequenceFieldsAfterLaterDefaultsChange()
     {
@@ -70,7 +76,7 @@ public sealed class RegionalMetadataIntegrationTests
         var original = await test.SaveAsync(content,
             [new(test.NodeId, "common", "en", "combined", null)],
             [new(test.First.Id, test.NodeId, "fr", "fr", "pl", null), new(test.Second.Id, test.NodeId, "common", "en", "combined", "previous-form-value")]);
-        Assert.Equal(new[] { "fr", "common" }, original.DocumentContexts.Select(item => item.Country));
+        Assert.Equal(ExpectedValues1, original.DocumentContexts.Select(item => item.Country));
         var secondInherited = await test.Service.CopyNodeContextAsync(test.App.Id, "0001", await test.RevisionAsync(), original.Id, test.NodeId, [test.Second.Id]);
         Assert.Null(secondInherited.DocumentContexts.Single(item => item.PlacementId == test.Second.Id).FormType);
         var nextNodeSource = await test.SaveAsync(content, [new(test.NodeId, "de", "de", "spc", null)], secondInherited.DocumentContexts);
@@ -137,10 +143,10 @@ public sealed class RegionalMetadataIntegrationTests
         var saved = await test.SaveAsync(content);
         var read = (await test.Service.GetRevisionAsync(saved.Id))!;
         Assert.Equal(contacts.Select(contact => contact.Id), read.Content!.Us!.Contacts.Select(contact => contact.Id));
-        Assert.Equal(new[] { "Second contact", "First contact" }, read.Content.Us.Contacts.Select(contact => contact.Name));
-        Assert.Equal(new[] { "business", "fax" }, read.Content.Us.Contacts[0].Phones.Select(phone => phone.Type));
-        Assert.Equal(new[] { "5550201", "5550202" }, read.Content.Us.Contacts[0].Phones.Select(phone => phone.Number));
-        Assert.Equal(new[] { "second-b@example.test", "second-a@example.test" }, read.Content.Us.Contacts[0].Emails.Select(email => email.Value));
+        Assert.Equal(ExpectedValues2, read.Content.Us.Contacts.Select(contact => contact.Name));
+        Assert.Equal(ExpectedValues3, read.Content.Us.Contacts[0].Phones.Select(phone => phone.Type));
+        Assert.Equal(ExpectedValues4, read.Content.Us.Contacts[0].Phones.Select(phone => phone.Number));
+        Assert.Equal(ExpectedValues5, read.Content.Us.Contacts[0].Emails.Select(email => email.Value));
         contacts[0] = contacts[0] with { Name = "Caller mutated after save", Phones = [] };
         Assert.Equal("Second contact", (await test.Service.GetRevisionAsync(saved.Id))!.Content!.Us!.Contacts[0].Name);
         Assert.Equal(legacy, (await test.Applications.GetAsync(test.App.Id))!.Sequences.Single(sequence => sequence.SequenceNumber == "0001").PublishingMetadata);
@@ -254,6 +260,8 @@ public sealed class RegionalMetadataIntegrationTests
 
 internal sealed class RegionalMetadataIntegrationRig
 {
+    private static readonly JsonSerializerOptions CachedJsonOptions1 = new JsonSerializerOptions { WriteIndented = true };
+
     public required string Root { get; init; }
     public required SubmissionApplication App { get; init; }
     public required SubmissionApplication OtherApp { get; init; }
@@ -325,5 +333,5 @@ internal sealed class RegionalMetadataIntegrationRig
     public async Task<RegionalMetadataRevision> SaveAsync(RegionalMetadataContent content, IReadOnlyList<RegionalNodeContext>? nodes = null,
         IReadOnlyList<RegionalDocumentContext>? documents = null) => await Service.SaveSequenceAsync(App.Id, "0001", await RevisionAsync(), Snapshot.Id, content, nodes, documents);
     public Task EvidenceAsync(string name, object evidence) => File.WriteAllTextAsync(Path.Combine(Root, name + ".json"),
-        JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
+        JsonSerializer.Serialize(evidence, CachedJsonOptions1));
 }

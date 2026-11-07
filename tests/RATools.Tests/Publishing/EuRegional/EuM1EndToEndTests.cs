@@ -34,6 +34,23 @@ namespace RATools.Tests.Publishing.EuRegional;
 [Collection(PostgresCollectionDefinition.Name)]
 public sealed class EuM1EndToEndTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "de","fr" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues2 = { "de","fr" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues3 = { "de","fr" };
+    private static readonly string[] ExpectedValues4 = new[] { "EU-DE-EXPLICIT","EU-FR-EXPLICIT" };
+    private static readonly string[] ExpectedValues5 = new[] { "EU-DE-EXPLICIT","EU-FR-EXPLICIT" };
+    private static readonly string[] ExpectedValues6 = new[] { "TRACK-B","TRACK-A","TRACK-B","FR-TRACK" };
+    private static readonly string[] ExpectedValues7 = new[] { "Product B","Product A","Produit" };
+    private static readonly string[] ExpectedValues8 = new[] { "active two","active one","substance FR" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues9 = { "de" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues10 = { "de" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues11 = { "spc" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues12 = { "spc","pl" };
+    private static readonly string[] ExpectedValues13 = new[] { "pi-de","pi-de-2","pi-fr","pi-fr-2" };
+    private static readonly string[] ExpectedValues14 = new[] { "TRACK-B","TRACK-A","TRACK-B" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues15 = { "be","de","de","de","de" };
+    private static readonly string[] ExpectedVerifyOutputAndReimportAsyncValues16 = { "be","de","de","fr","fr" };
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -105,18 +122,18 @@ public sealed class EuM1EndToEndTests
             original.Id,original.Digest,original.StandardsSnapshotId,package.WorkspaceRevision,
             inputLabel="independent handwritten EU3.1.1 synthetic fixture; not official submission",writerOutput=xml.RelativePath }));
         new EctdXmlValidator().Validate(new(xml.RelativePath,xml.XmlContent),StandardsSnapshotService.Profile(snapshot));
-        Assert.Equal(new[] { "de","fr" },xml.Document.Descendants("envelope").Select(item=>item.Attribute("country")!.Value));
+        Assert.Equal(ExpectedValues1,xml.Document.Descendants("envelope").Select(item=>item.Attribute("country")!.Value));
         Assert.Equal(new[] { firstApplicant,"Source FR applicant" },xml.Document.Descendants("applicant").Select(item=>item.Value));
-        Assert.Equal(new[] { "EU-DE-EXPLICIT","EU-FR-EXPLICIT" },xml.Document.Descendants("identifier").Select(item=>item.Value));
-        Assert.Equal(new[] { "TRACK-B","TRACK-A","TRACK-B","FR-TRACK" },xml.Document.Descendants("procedure-tracking").SelectMany(item=>item.Elements("number")).Select(item=>item.Value));
-        Assert.Equal(new[] { "Product B","Product A","Produit" },xml.Document.Descendants("invented-name").Select(item=>item.Value));
-        Assert.Equal(new[] { "active two","active one","substance FR" },xml.Document.Descendants("inn").Select(item=>item.Value));
+        Assert.Equal(ExpectedValues4,xml.Document.Descendants("identifier").Select(item=>item.Value));
+        Assert.Equal(ExpectedValues6,xml.Document.Descendants("procedure-tracking").SelectMany(item=>item.Elements("number")).Select(item=>item.Value));
+        Assert.Equal(ExpectedValues7,xml.Document.Descendants("invented-name").Select(item=>item.Value));
+        Assert.Equal(ExpectedValues8,xml.Document.Descendants("inn").Select(item=>item.Value));
         Assert.Equal("be",xml.Document.Descendants("m1-0-cover").Single().Element("specific")!.Attribute("country")!.Value);
         var pi=xml.Document.Descendants("pi-doc").ToArray();Assert.Equal(samePiContext?1:2,pi.Length);
-        Assert.Equal(samePiContext?new[] { "de" }:new[] { "de","fr" },pi.Select(item=>item.Attribute("country")!.Value));
-        Assert.Equal(samePiContext?new[] { "de" }:new[] { "de","fr" },pi.Select(item=>item.Attribute(System.Xml.Linq.XNamespace.Xml+"lang")!.Value));
-        Assert.Equal(samePiContext?new[] { "spc" }:new[] { "spc","pl" },pi.Select(item=>item.Attribute("type")!.Value));
-        Assert.Equal(new[] { "pi-de","pi-de-2","pi-fr","pi-fr-2" },pi.SelectMany(item=>item.Elements("leaf")).Select(item=>item.Attribute("ID")!.Value));
+        Assert.Equal(samePiContext?ExpectedVerifyOutputAndReimportAsyncValues9:ExpectedVerifyOutputAndReimportAsyncValues2,pi.Select(item=>item.Attribute("country")!.Value));
+        Assert.Equal(samePiContext?ExpectedVerifyOutputAndReimportAsyncValues10:ExpectedVerifyOutputAndReimportAsyncValues3,pi.Select(item=>item.Attribute(System.Xml.Linq.XNamespace.Xml+"lang")!.Value));
+        Assert.Equal(samePiContext?ExpectedVerifyOutputAndReimportAsyncValues11:ExpectedVerifyOutputAndReimportAsyncValues12,pi.Select(item=>item.Attribute("type")!.Value));
+        Assert.Equal(ExpectedValues13,pi.SelectMany(item=>item.Elements("leaf")).Select(item=>item.Attribute("ID")!.Value));
         Assert.Equal(5,xml.Document.Descendants("leaf").Count());
         var baselineDigest = new string('c',64);
         var context = PackageStandardsContext.FromSnapshot(snapshot);
@@ -144,10 +161,10 @@ public sealed class EuM1EndToEndTests
             .ImportAsync(new(root,"eu-ectd-3.2.2","Unrelated reimport sponsor"));
         Assert.Equal(1,imported.ImportedSequenceCount);Assert.Equal(5,imported.ImportedPlacementCount);
         var restored=(await metadata.GetHeadAsync(imported.ApplicationId,"0000"))!;
-        Assert.Equal(new[] { "EU-DE-EXPLICIT","EU-FR-EXPLICIT" },restored.Content!.Eu!.Envelopes.Select(item=>item.Identifier));
+        Assert.Equal(ExpectedValues5,restored.Content!.Eu!.Envelopes.Select(item=>item.Identifier));
         Assert.Equal(new[] { firstApplicant,"Source FR applicant" },restored.Content.Eu.Envelopes.Select(item=>item.Applicant));
-        Assert.Equal(new[] { "TRACK-B","TRACK-A","TRACK-B" },restored.Content.Eu.Envelopes[0].ProcedureTrackingNumbers.Select(item=>item.Value));
-        Assert.Equal(samePiContext?new[] { "be","de","de","de","de" }:new[] { "be","de","de","fr","fr" },restored.DocumentContexts.Select(item=>item.Country));
+        Assert.Equal(ExpectedValues14,restored.Content.Eu.Envelopes[0].ProcedureTrackingNumbers.Select(item=>item.Value));
+        Assert.Equal(samePiContext?ExpectedVerifyOutputAndReimportAsyncValues15:ExpectedVerifyOutputAndReimportAsyncValues16,restored.DocumentContexts.Select(item=>item.Country));
         Assert.Equal(samePiContext?new string?[] { null,"de","de","de","de" }:new string?[] { null,"de","de","fr","fr" },restored.DocumentContexts.Select(item=>item.Language));
         Assert.Equal(original.Digest,package.RegionalMetadata!.Digest);
     }

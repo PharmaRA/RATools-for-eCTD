@@ -29,6 +29,14 @@ namespace RATools.Tests.Publishing.UsRegional;
 [Collection(PostgresCollectionDefinition.Name)]
 public sealed class FdaM1EndToEndTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "First source contact", "Second source contact" };
+    private static readonly string[] ExpectedValues2 = new[] { "first@example.test", "alternate@example.test", "second@example.test" };
+    private static readonly string[] ExpectedValues3 = new[] { "356h", "1571" };
+    private static readonly string[] ExpectedValues4 = new[] { "source-form-a", "source-form-b" };
+    private static readonly string[] ExpectedValues5 = new[] { "fr", "de" };
+    private static readonly string[] ExpectedValues6 = new[] { "356h","1571" };
+    private static readonly string[] ExpectedValues7 = new[] { "fr","de" };
+
     [Fact]
     public async Task ActualHttpSaveOfExplicitIdentifiersReachesDistinctFormXmlAndFullReimport()
     {
@@ -94,11 +102,11 @@ public sealed class FdaM1EndToEndTests
         new EctdXmlValidator().Validate(new(xml.RelativePath, xml.XmlContent), profile);
         Assert.Equal(applicantId, xml.Document.Descendants("id").Single().Value); Assert.Equal(submissionId, xml.Document.Descendants("submission-id").Single().Value);
         Assert.Equal("987654", xml.Document.Descendants("application-number").Single().Value);
-        Assert.Equal(new[] { "First source contact", "Second source contact" }, xml.Document.Descendants("applicant-contact-name").Select(item => item.Value));
-        Assert.Equal(new[] { "first@example.test", "alternate@example.test", "second@example.test" }, xml.Document.Descendants("email").Select(item => item.Value));
-        Assert.Equal(new[] { "356h", "1571" }, xml.Document.Descendants("form").Select(item => item.Attribute("form-type")!.Value));
-        Assert.Equal(new[] { "source-form-a", "source-form-b" }, xml.Document.Descendants("form").SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute("ID")!.Value));
-        Assert.Equal(new[] { "fr", "de" }, xml.Document.Descendants("form").SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute(System.Xml.Linq.XNamespace.Xml + "lang")?.Value));
+        Assert.Equal(ExpectedValues1, xml.Document.Descendants("applicant-contact-name").Select(item => item.Value));
+        Assert.Equal(ExpectedValues2, xml.Document.Descendants("email").Select(item => item.Value));
+        Assert.Equal(ExpectedValues3, xml.Document.Descendants("form").Select(item => item.Attribute("form-type")!.Value));
+        Assert.Equal(ExpectedValues4, xml.Document.Descendants("form").SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute("ID")!.Value));
+        Assert.Equal(ExpectedValues5, xml.Document.Descendants("form").SelectMany(item => item.Elements("leaf")).Select(item => item.Attribute(System.Xml.Linq.XNamespace.Xml + "lang")?.Value));
         var emitted = new UsRegionalBackboneWriter(new UsRegionalXmlWriter()).WriteRegionalBackbones(package);
         var index = new IchIndexXmlWriter().Write(EctdBackboneComposition.AttachRegionalFiles(package, emitted));
         var root = Path.GetFullPath(".artifacts/p606-independent/reimport-" + Guid.NewGuid().ToString("N"));
@@ -117,8 +125,8 @@ public sealed class FdaM1EndToEndTests
         Assert.Equal(1,restored.ImportedSequenceCount); Assert.Equal(2,restored.ImportedPlacementCount);
         var head = (await metadata.GetHeadAsync(restored.ApplicationId,"0000"))!;
         Assert.Equal(applicantId,head.Content!.Us!.ApplicantIdentifier); Assert.Equal(submissionId,head.Content.Us.SubmissionIdentifier);
-        Assert.Equal(new[] { "356h","1571" },head.DocumentContexts.Select(item=>item.FormType));
-        Assert.Equal(new[] { "fr","de" },head.DocumentContexts.Select(item=>item.Language));
+        Assert.Equal(ExpectedValues6,head.DocumentContexts.Select(item=>item.FormType));
+        Assert.Equal(ExpectedValues7,head.DocumentContexts.Select(item=>item.Language));
         Assert.Equal(2,head.Content.Us.Contacts.Count); Assert.Equal(2,head.Content.Us.Contacts[0].Emails.Count);
         Assert.Equal(original.Digest,package.RegionalMetadata!.Digest);
     }

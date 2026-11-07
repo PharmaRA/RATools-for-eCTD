@@ -41,6 +41,8 @@ namespace RATools.Tests.DocumentProcessing;
 // capture adapters do not establish PostgreSQL, browser, Linux or formal readiness.
 public sealed class PdfCombinedQualificationTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "临床总览", "结果" };
+
     [Fact]
     public async Task AssembledProcessedRenamedBytesReachPublicationFrozenHistoryAndLaterReplacement()
     {
@@ -58,7 +60,7 @@ public sealed class PdfCombinedQualificationTests
             new("UseOutlines", [new("临床总览", 1, null, 0), new("结果", 2, null, 1)], null));
         var afterNavigation = await test.Processing.InspectAsync(test.App.Id, "0000", source.Id, await test.RevisionAsync("0000"));
         Assert.Equal("UseOutlines", afterNavigation.Navigation.PageMode);
-        Assert.Equal(new[] { "临床总览", "结果" }, afterNavigation.Navigation.Bookmarks.Select(bookmark => bookmark.Title));
+        Assert.Equal(ExpectedValues1, afterNavigation.Navigation.Bookmarks.Select(bookmark => bookmark.Title));
         Assert.Equal(4, afterNavigation.Navigation.PageCount);
         Assert.Equal(source.LeafId, (await test.Placements.GetAsync(source.Id))!.LeafId);
 
@@ -88,7 +90,7 @@ public sealed class PdfCombinedQualificationTests
         var current = (await test.Documents.GetAsync((await test.Placements.GetAsync(source.Id))!.DocumentId))!;
         var finalSource = await File.ReadAllBytesAsync(current.StoragePath);
         Assert.NotEqual(PdfCombinedQualificationRig.Sha(originalSource), PdfCombinedQualificationRig.Sha(finalSource));
-        var independent = await test.ReadPdfAsync(current.StoragePath);
+        var independent = await PdfCombinedQualificationRig.ReadPdfAsync(current.StoragePath);
         Assert.Equal(4, independent.GetProperty("pages").GetInt32());
         Assert.Equal("临床总览", independent.GetProperty("bookmarks")[0][1].GetString());
         Assert.Contains("Clinical report page 1", independent.GetProperty("text").GetString(), StringComparison.Ordinal);
@@ -106,14 +108,16 @@ public sealed class PdfCombinedQualificationTests
         var firstHref = firstLeaf.Attributes().Single(attribute => attribute.Name.LocalName == "href").Value;
         Assert.Equal(PdfCombinedQualificationRig.Md5(finalSource), firstLeaf.Attribute("checksum")!.Value);
         Assert.Equal(finalSource, await File.ReadAllBytesAsync(Path.Combine(Path.GetDirectoryName(output.FilePath)!, firstHref)));
-        await test.AssertIndexChecksumAsync(output.FilePath);
+        await PdfCombinedQualificationRig.AssertIndexChecksumAsync(output.FilePath);
 
         var snapshot = await test.FreezeAsync("0000", first.Run);
         Assert.Equal(PackageValidationMode.Development, snapshot.Sequence.ValidationMode);
         Assert.False(snapshot.Sequence.IsReadyForFinalization);
         var frozenPath = "payload/0000/" + firstHref;
-        var frozen = await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, frozenPath);
-        var frozenBytes = await File.ReadAllBytesAsync(frozen.Path);
+        await using var frozen = await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, frozenPath);
+        using var frozenBuffer = new MemoryStream();
+        await frozen.Content.CopyToAsync(frozenBuffer);
+        var frozenBytes = frozenBuffer.ToArray();
         Assert.Equal(finalSource, frozenBytes);
         var manifest = await test.Finalization.GetManifestAsync(snapshot.Sequence.Id);
         Assert.Equal(first.Run.ReportSha256, manifest.Validation.ReportSha256);
@@ -123,9 +127,11 @@ public sealed class PdfCombinedQualificationTests
         {
             const string prefix = "payload/0000/";
             Assert.StartsWith(prefix, member.RelativePath);
-            var capturedFile = await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, member.RelativePath);
+            await using var capturedFile = await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, member.RelativePath);
             var delivered = Path.Combine(Path.GetDirectoryName(output.FilePath)!, member.RelativePath[prefix.Length..]);
-            Assert.Equal(await File.ReadAllBytesAsync(delivered), await File.ReadAllBytesAsync(capturedFile.Path));
+            using var capturedBytes = new MemoryStream();
+            await capturedFile.Content.CopyToAsync(capturedBytes);
+            Assert.Equal(await File.ReadAllBytesAsync(delivered), capturedBytes.ToArray());
         }
 
         // A frozen workspace must refuse adoption; the next regulatory sequence has
@@ -135,7 +141,9 @@ public sealed class PdfCombinedQualificationTests
             test.App.Id, "0000", source.Id, frozenRevision));
         await test.AddSequenceAsync("0001");
         var currentTarget = (await test.Documents.GetAsync((await test.Placements.GetAsync(target.Id))!.DocumentId))!;
-        var nextSource = await test.UploadAsync("0001", current.FileName, frozen.Path);
+        var retainedFrozenPath = Path.Combine(test.Root, "frozen-next-sequence.pdf");
+        await File.WriteAllBytesAsync(retainedFrozenPath, frozenBytes);
+        var nextSource = await test.UploadAsync("0001", current.FileName, retainedFrozenPath);
         var nextTarget = await test.UploadAsync("0001", currentTarget.FileName, currentTarget.StoragePath);
         Assert.Equal(frozen.Sha256, nextSource.Sha256);
         var next = (await test.AssembleAsync("0001", [nextSource, nextTarget], "replace", [source.Id.ToString("D"), target.Id.ToString("D")]))[0];
@@ -152,13 +160,16 @@ public sealed class PdfCombinedQualificationTests
         Assert.Equal("../0000/index.xml#" + source.LeafId, laterLeaf.Attribute("modified-file")!.Value);
         Assert.Equal(PdfCombinedQualificationRig.Md5(laterBytes), laterLeaf.Attribute("checksum")!.Value);
         Assert.NotEqual(firstLeaf.Attribute("checksum")!.Value, laterLeaf.Attribute("checksum")!.Value);
-        await test.AssertIndexChecksumAsync(laterOutput.FilePath);
+        await PdfCombinedQualificationRig.AssertIndexChecksumAsync(laterOutput.FilePath);
         var second = await test.ValidateAsync("0001", laterOutput, first.Input.Id);
         var replacement = Assert.Single(second.Inspection.Lifecycle.Events, item => item.Source.Address?.LeafId == next.LeafId);
         Assert.Equal(source.LeafId, replacement.Target!.LeafId);
         Assert.Equal("0000", replacement.Target.SequenceNumber);
         Assert.Equal(CheckStatus.Pass, replacement.Status);
-        Assert.Equal(frozenBytes, await File.ReadAllBytesAsync((await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, frozenPath)).Path));
+        await using var reopened = await test.Finalization.GetReleaseFileAsync(snapshot.Sequence.Id, frozenPath);
+        using var reopenedBytes = new MemoryStream();
+        await reopened.Content.CopyToAsync(reopenedBytes);
+        Assert.Equal(frozenBytes, reopenedBytes.ToArray());
         Assert.Equal(originalSource, await File.ReadAllBytesAsync(test.Source.StoragePath));
         Assert.Equal(originalTarget, await File.ReadAllBytesAsync(test.Target.StoragePath));
         Assert.Equal(assembledBytes, await File.ReadAllBytesAsync(assembled.StoragePath));
@@ -216,7 +227,7 @@ public sealed class PdfCombinedQualificationTests
         Assert.InRange(processed.Resources.CpuMilliseconds, 1, processed.Resources.CpuLimitMilliseconds);
         Assert.Equal(source.Sha256, processed.Receipt.SourceSha256);
         Assert.Equal(160, processed.Receipt.Pages.Count);
-        await test.AssertIndexChecksumAsync(output.FilePath);
+        await PdfCombinedQualificationRig.AssertIndexChecksumAsync(output.FilePath);
 
         // Request visibility occurs after real dependency probes and before the
         // resource-controlled Python launch. A 160-page render keeps that worker
@@ -256,6 +267,8 @@ public sealed class PdfCombinedQualificationTests
 
 internal sealed class PdfCombinedQualificationRig : IDisposable
 {
+    private static readonly JsonSerializerOptions CachedJsonOptions3 = new JsonSerializerOptions { WriteIndented = true };
+
     public static string Python => "C:/Program Files/Python311/python.exe";
     public static string Qpdf => Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe");
     public required string Root { get; init; }
@@ -321,7 +334,7 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
         await ToolAsync(Python, ["-I", "-B", "-c", script, sourcePath, targetPath, pages.ToString(System.Globalization.CultureInfo.InvariantCulture), large ? "1" : "0"]);
         var source = await RegisterAsync(sourcePath, documents); var target = await RegisterAsync(targetPath, documents);
         var policy = new Paths(root); var boundary = new DocumentStorageBoundary(policy);
-        var versions = new InMemoryDocumentProcessingStore(); var assemblies = new InMemoryAssemblyStore(); var renames = new InMemoryPdfRenameStore(versions);
+        var versions = new InMemoryDocumentProcessingStore(); var assemblies = new InMemoryAssemblyStore(documents, placements); var renames = new InMemoryPdfRenameStore(versions);
         var mutations = new WorkspaceMutationCoordinator(revisions, new InMemoryPersistenceTransaction(), finalizedGuard: new FinalizedWorkspaceGuard(finalizations));
         var processingOptions = new PdfProcessingExecutionOptions(); var files = new ProcessingFileStore(policy, processingOptions);
         var engine = new QpdfProcessingEngine(new() { ExecutablePath = Qpdf }); var inspector = new PdfPigPackageInspector();
@@ -412,16 +425,16 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
     public async Task<(RegisteredPackageInput Input, PackageValidationRun Run, ValidationReport Report, PackageDeliveryInspection Inspection)> ValidateAsync(string sequence,
         GeneratedBackboneDto output, Guid? historyInputId = null)
     {
-        var reader = new RetainedReader(); var id = Guid.NewGuid(); var root = Path.GetDirectoryName(output.FilePath)!;
+        var reader = new RetainedReader(); var root = Path.GetDirectoryName(output.FilePath)!;
+        var registry = new PackageValidationInputRegistry(Validations, reader, Policy, Options.Create(new PackageValidationOptions()));
+        var registered = await registry.RegisterAsync(new(App.Id, root, sequence));
+        var id = registered.Id;
+        var input = (await Validations.GetInputAsync(id))!;
         var captured = await reader.ReadAsync(new(App.Id, id.ToString("D"), root, sequence), new());
-        var input = new RegisteredPackageInput(id, App.Id, sequence, root, null, PackageSourceKind.Directory, captured.InputDigest,
-            JsonSerializer.Serialize(captured.Manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)), captured.Limits, DateTime.UtcNow, false);
-        await Validations.RegisterInputAsync(input);
-        var zipId = Guid.NewGuid(); var zipped = await reader.ReadAsync(new(App.Id, zipId.ToString("D"), output.PackagePath, sequence), new());
+        var zipRegistered = await registry.RegisterAsync(new(App.Id, output.PackagePath, sequence));
+        var zipId = zipRegistered.Id;
+        var zipped = await reader.ReadAsync(new(App.Id, zipId.ToString("D"), output.PackagePath, sequence), new());
         Assert.Equal(captured.Manifest.Files, zipped.Manifest.Files);
-        var zipInput = new RegisteredPackageInput(zipId, App.Id, sequence, output.PackagePath, null, PackageSourceKind.Zip, zipped.InputDigest,
-            JsonSerializer.Serialize(zipped.Manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)), zipped.Limits, DateTime.UtcNow, false);
-        await Validations.RegisterInputAsync(zipInput);
         var service = new PackageValidationService(Validations, reader, Policy, new(new PdfPigPackageInspector()));
         var queued = await service.EnqueueAsync(new(id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development, "joint-p2-" + id,
             ComparisonInputId: zipId,
@@ -453,7 +466,7 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
             PackageValidationCatalog.UsProfile, profile.IchEctdVersion, profile.UsRegionalModule1Version,
             run.Binding.HistoryBaselineDigest, "joint-freeze-" + run.Id));
     }
-    public async Task<JsonElement> ReadPdfAsync(string path)
+    public static async Task<JsonElement> ReadPdfAsync(string path)
     {
         const string script = """
             import sys,pymupdf,json
@@ -463,13 +476,13 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
             """;
         using var parsed = JsonDocument.Parse(await ToolAsync(Python, ["-I", "-B", "-c", script, path])); return parsed.RootElement.Clone();
     }
-    public async Task AssertIndexChecksumAsync(string path)
+    public static async Task AssertIndexChecksumAsync(string path)
     {
         var actual = Md5(await File.ReadAllBytesAsync(path));
         var checksum = await File.ReadAllTextAsync(Path.Combine(Path.GetDirectoryName(path)!, "index-md5.txt"));
         Assert.Equal(actual + Environment.NewLine, checksum);
     }
-    public Task EvidenceAsync(object value) => File.WriteAllTextAsync(Path.Combine(Root, "evidence.json"), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
+    public Task EvidenceAsync(object value) => File.WriteAllTextAsync(Path.Combine(Root, "evidence.json"), JsonSerializer.Serialize(value, CachedJsonOptions3));
     public static XDocument ReadIndex(string path) { using var reader = XmlReader.Create(path, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null }); return XDocument.Load(reader); }
     public static string Sha(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     public static string Md5(byte[] bytes) => Convert.ToHexString(MD5.HashData(bytes)).ToLowerInvariant();
@@ -603,7 +616,7 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
             var manifest = (await ReadManifestAsync(applicationId, sequenceNumber, manifestDigest, cancellationToken))!;
             var file = manifest.Files.Single(candidate => candidate.RelativePath == relativePath); var path = Path.Combine(_published[manifestDigest].Directory, relativePath);
             var bytes = await File.ReadAllBytesAsync(path, cancellationToken); Assert.Equal(file.Sha256, Sha(bytes)); Assert.Equal(file.Length, bytes.LongLength);
-            return new(path, relativePath, file.Length, file.Sha256, "application/pdf");
+            return new(new MemoryStream(bytes, writable: false), relativePath, file.Length, file.Sha256, "application/pdf");
         }
     }
 }

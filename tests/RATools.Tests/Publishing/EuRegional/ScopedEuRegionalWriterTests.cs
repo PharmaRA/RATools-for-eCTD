@@ -10,25 +10,38 @@ namespace RATools.Tests.Publishing.EuRegional;
 
 public sealed class ScopedEuRegionalWriterTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "de", "fr" };
+    private static readonly string[] ExpectedValues2 = new[] { "de", "fr" };
+    private static readonly string[] ExpectedValues3 = new[] { "de", "fr" };
+    private static readonly string[] ExpectedValues4 = new[] { "spc", "pl" };
+    private static readonly string[] ExpectedValues5 = new[] { "Applicant DE", "Applicant FR" };
+    private static readonly string[] ExpectedValues6 = new[] { "business-de", "business-fr" };
+    private static readonly string[] ExpectedValues7 = new[] { "DE-BFARM", "FR-ANSM" };
+    private static readonly string[] ExpectedValues8 = new[] { "track-first", "track-first", "track-third" };
+    private static readonly string[] ExpectedValues9 = new[] { "name-first", "name-second" };
+    private static readonly string[] ExpectedValues10 = new[] { "inn-first", "inn-second" };
+    private static readonly string[] ExpectedValues11 = new[] { "0001", "0001" };
+    private static readonly string[] ExpectedValues12 = new[] { "de", "fr", "de" };
+
     [Fact]
     public void OrderedEnvelopesPreserveEveryExplicitValueAndActualSequence()
     {
         var firstEnvelope = Envelope("de") with { RelatedSequences = [new(Guid.NewGuid(), "0001"), new(Guid.NewGuid(), "0001")] };
         var xml = new EuRegionalXmlWriter().Write(Package(content: new(1, "EU", Eu: new([firstEnvelope, Envelope("fr")])))).Document;
         var envelopes = xml.Descendants("envelope").ToArray();
-        Assert.Equal(new[] { "de", "fr" }, envelopes.Select(item => item.Attribute("country")!.Value));
-        Assert.Equal(new[] { "Applicant DE", "Applicant FR" }, envelopes.Select(item => item.Element("applicant")!.Value));
-        Assert.Equal(new[] { "business-de", "business-fr" }, envelopes.Select(item => item.Element("identifier")!.Value));
-        Assert.Equal(new[] { "DE-BFARM", "FR-ANSM" }, envelopes.Select(item => item.Element("agency")!.Attribute("code")!.Value));
+        Assert.Equal(ExpectedValues1, envelopes.Select(item => item.Attribute("country")!.Value));
+        Assert.Equal(ExpectedValues5, envelopes.Select(item => item.Element("applicant")!.Value));
+        Assert.Equal(ExpectedValues6, envelopes.Select(item => item.Element("identifier")!.Value));
+        Assert.Equal(ExpectedValues7, envelopes.Select(item => item.Element("agency")!.Attribute("code")!.Value));
         Assert.All(envelopes, item => Assert.Equal("national", item.Element("procedure")!.Attribute("type")!.Value));
         Assert.All(envelopes, item => Assert.Equal("0001", item.Element("sequence")!.Value));
-        Assert.Equal(new[] { "track-first", "track-first", "track-third" }, envelopes[0].Descendants("procedure-tracking").Elements("number").Select(item => item.Value));
-        Assert.Equal(new[] { "name-first", "name-second" }, envelopes[0].Elements("invented-name").Select(item => item.Value));
-        Assert.Equal(new[] { "inn-first", "inn-second" }, envelopes[0].Elements("inn").Select(item => item.Value));
+        Assert.Equal(ExpectedValues8, envelopes[0].Descendants("procedure-tracking").Elements("number").Select(item => item.Value));
+        Assert.Equal(ExpectedValues9, envelopes[0].Elements("invented-name").Select(item => item.Value));
+        Assert.Equal(ExpectedValues10, envelopes[0].Elements("inn").Select(item => item.Value));
         Assert.Equal("grouping", envelopes[0].Element("submission")!.Attribute("mode")!.Value);
         Assert.Equal("submission-explicit", envelopes[0].Element("submission")!.Element("number")!.Value);
         Assert.Equal("Explicit DE description", envelopes[0].Element("submission-description")!.Value);
-        Assert.Equal(new[] { "0001", "0001" }, envelopes[0].Elements("related-sequence").Select(item => item.Value));
+        Assert.Equal(ExpectedValues11, envelopes[0].Elements("related-sequence").Select(item => item.Value));
         Assert.Equal("be", xml.Descendants("m1-0-cover").Elements("specific").Single().Attribute("country")!.Value);
     }
 
@@ -39,9 +52,9 @@ public sealed class ScopedEuRegionalWriterTests
         var package = Package([first, second], documents: [new(first.PlacementId, null, "de", "de", "spc", null), new(second.PlacementId, null, "fr", "fr", "pl", null)]);
         var xml = new EuRegionalXmlWriter().Write(package).Document;
         var wrappers = xml.Descendants("pi-doc").ToArray();
-        Assert.Equal(new[] { "de", "fr" }, wrappers.Select(item => item.Attribute("country")!.Value));
-        Assert.Equal(new[] { "de", "fr" }, wrappers.Select(item => item.Attribute(XNamespace.Xml + "lang")!.Value));
-        Assert.Equal(new[] { "spc", "pl" }, wrappers.Select(item => item.Attribute("type")!.Value));
+        Assert.Equal(ExpectedValues2, wrappers.Select(item => item.Attribute("country")!.Value));
+        Assert.Equal(ExpectedValues3, wrappers.Select(item => item.Attribute(XNamespace.Xml + "lang")!.Value));
+        Assert.Equal(ExpectedValues4, wrappers.Select(item => item.Attribute("type")!.Value));
         var piLeaves = wrappers.Elements("leaf").ToArray();
         Assert.Equal(new[] { first.LeafId, second.LeafId }, piLeaves.Select(item => item.Attribute("ID")!.Value));
         Assert.Equal(2, piLeaves.Length);
@@ -57,7 +70,7 @@ public sealed class ScopedEuRegionalWriterTests
         var package = Package(leaves, documents: leaves.Select((leaf, index) => new RegionalDocumentContext(leaf.PlacementId, null, index == 1 ? "fr" : "de", "en", null, null)).ToArray());
         var xml = new EuRegionalXmlWriter().Write(package).Document;
         var wrappers = xml.Descendants("m1-2-form").Elements("specific").ToArray();
-        Assert.Equal(new[] { "de", "fr", "de" }, wrappers.Select(item => item.Attribute("country")!.Value));
+        Assert.Equal(ExpectedValues12, wrappers.Select(item => item.Attribute("country")!.Value));
         var formLeaves = wrappers.Elements("leaf").ToArray();
         Assert.Equal(leaves.Select(item => item.LeafId), formLeaves.Select(item => item.Attribute("ID")!.Value));
         Assert.All(formLeaves, item => Assert.Equal("en", item.Attribute(XNamespace.Xml + "lang")!.Value));

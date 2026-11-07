@@ -11,6 +11,10 @@ namespace RATools.Tests.Applications;
 
 public sealed class ApplicationImportRegionalTests
 {
+    private static readonly string[] ExpectedValues1 = new[] { "NODE_SCHEMA_NOT_AVAILABLE", "RegionalQualificationPending", "RegionalContextUnbound", "RegionalUnmappedValue",
+            "RegionalUnknownAttribute", "RegionalUnknownElement", "RegionalUnsupportedVersion", "RegionalUnsupportedNamespace", "RegionalUnsupportedShape",
+            "RegionalRelatedSequenceUnqualified", "Required", "ControlledValueNotAllowed", "RelatedSequenceNotApplicable", "ProductInformationContextNotApplicable", "RegionalFieldNotApplicable" };
+
     [Theory]
     [InlineData("us-fda-ectd-3.2.2", "m1.1")]
     [InlineData("us-fda-ectd-3.2.2", "m1.2")]
@@ -136,9 +140,7 @@ public sealed class ApplicationImportRegionalTests
     private static void AssertExpectedImportWarning(ApplicationImportIssueDto issue)
     {
         Assert.Equal("Warning", issue.Severity);
-        Assert.Contains(issue.Code, new[] { "NODE_SCHEMA_NOT_AVAILABLE", "RegionalQualificationPending", "RegionalContextUnbound", "RegionalUnmappedValue",
-            "RegionalUnknownAttribute", "RegionalUnknownElement", "RegionalUnsupportedVersion", "RegionalUnsupportedNamespace", "RegionalUnsupportedShape",
-            "RegionalRelatedSequenceUnqualified", "Required", "ControlledValueNotAllowed", "RelatedSequenceNotApplicable", "ProductInformationContextNotApplicable", "RegionalFieldNotApplicable" });
+        Assert.Contains(issue.Code, ExpectedValues1);
     }
 
     private static string RegionalPath(EctdWorkspaceFixture fixture)
