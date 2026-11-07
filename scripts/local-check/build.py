@@ -139,7 +139,7 @@ try:
         result = subprocess.run([sys.executable, str(driver), str(evidence)], cwd=root, env=env)
         summary['steps'].append({'name': 'input-api', 'exitCode': result.returncode})
         if result.returncode: raise RuntimeError('External ZIP API checks failed; see input-api.json/log')
-    if sys.argv[2] in {'pdf', 'capture', 'upload'}:
+    if sys.argv[2] in {'pdf', 'capture', 'upload', 'multipart'}:
         backend = out
         out = evidence / 'tests'; out.mkdir()
         for path in layers.values(): (out / path.name).write_bytes(path.read_bytes())
@@ -157,7 +157,7 @@ try:
             names = ['ReleaseCaptureServiceTests', 'ReleaseCaptureBindingIntegrationTests', 'RegionalMetadataCaptureTests', 'FinalizationServiceTests', 'ReleaseDeliveryPackageTests', 'ReleaseCaptureTests']
             directory = 'Finalization'
         else:
-            names = ['PackageUploadRetentionTests']
+            names = ['MultipartRetentionTests'] if sys.argv[2] == 'multipart' else ['PackageUploadRetentionTests']
             directory = 'PackageValidation'
         sources = [root / 'tests/RATools.Tests' / directory / (name + '.cs') for name in names]
         sources.append(root / 'scripts/local-check/SelectedTests.cs')

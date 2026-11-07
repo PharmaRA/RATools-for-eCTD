@@ -19,6 +19,7 @@ public sealed class PackageValidationInputsController(PackageValidationInputRegi
     });
 
     [HttpPost("upload")]
+    [TypeFilter(typeof(RATools.Api.Filters.RetainedPackageUploadFilter))]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(PackageInputDto), StatusCodes.Status201Created)]
     public Task<IActionResult> Upload([FromForm] PackageInputUploadForm request, CancellationToken cancellationToken) => RespondAsync(async () =>

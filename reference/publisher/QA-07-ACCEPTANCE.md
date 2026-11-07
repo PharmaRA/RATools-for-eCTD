@@ -82,3 +82,8 @@ Windows upload-retention continuation: final162011-b33a76df77204d9dbba369a8d1654
 
 
 Windows ReadingInputs cancellation and worker recovery now pass actual HTTP: final163427-61917869ebbf40dd8eb829f1ae6b6899, normal2s heartbeat,11 checks/exit0/API stopped, current four-layer Recommended compile0; manifestca9bcf3e3afd0ef0ceeecb157e0b9f008f94ff587df7ef143e92e672143b8e58. Earlier20ms result remains separate. Economic readonly reviewPASS; no production defect demonstrated. Other parser phases, browser/PG/Linux/Formal, large multipart and full-suite/MSBuild boundaries stay open; see[LOCAL-CHECK.md](LOCAL-CHECK.md).
+
+
+Large multipart retention prerequisite now has bounded Windows evidence:170051-355f5937ecbb4f99a2b466918a61da40 direct filter4/0/0;170512-a1c5f4aa2b8f42a5b25509ed51029c0d real HTTP17/exit0/API stopped. The226468B file succeeds with the framework temp path deliberately unavailable; malformed/duplicate/invalid-field/limited/disconnected uploads retain exact bytes or prefixes. See[LOCAL-CHECK.md](LOCAL-CHECK.md) for safe red evidence, corrections, hashes and scope. Maximum volume, browser/PG/Linux, all parser phases/full suites/MSBuild/Formal remain open.
+
+Multipart final economic readonly review PASS. Unrun: maximum volume/concurrent uploads/real disk full/hostile links and replacement races/successful registration with failed recycle; broader qualifications remain open.

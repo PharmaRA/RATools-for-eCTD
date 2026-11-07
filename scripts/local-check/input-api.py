@@ -26,6 +26,8 @@ with socket.socket() as reservation:
 base = 'http://127.0.0.1:' + str(port)
 env = {**os.environ, 'DOTNET_ROOT': str(sdk), 'DOTNET_NOLOGO': '1', 'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
        'ASPNETCORE_ENVIRONMENT': 'Development', 'ASPNETCORE_URLS': base,
+       # Fail before native DeleteOnClose creation if framework buffering is accidentally used.
+       'ASPNETCORE_TEMP': str(workspace / 'framework-temp-must-not-exist'),
        'ASPNETCORE_HOSTINGSTARTUPASSEMBLIES': 'InputApiStartup', 'Persistence__Provider': 'InMemory',
        'Deployment__Mode': 'LocalOnly', 'Security__ApiKey': token, 'Security__AllowedWorkspaceRoots__0': str(workspace),
        'FileSecrets__ApiKeyPath': '', 'FileSecrets__PostgreSqlPasswordPath': '',
@@ -33,7 +35,7 @@ env = {**os.environ, 'DOTNET_ROOT': str(sdk), 'DOTNET_NOLOGO': '1', 'DOTNET_CLI_
        'BackboneOutput__RetainJobRuns': '0', 'PackageValidation__StorageRoot': str(workspace / 'validation'),
        'PackageValidation__HeartbeatInterval': '00:00:02'}
 report = {'scope': 'Windows actual API/InMemory, external synthetic ZIP; not browser/Formal/PostgreSQL qualification',
-          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['large multipart disk buffering', 'real browser', 'PostgreSQL restart']}
+          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['real browser', 'PostgreSQL restart']}
 process = None; collector = None; lines = []
 
 
@@ -46,21 +48,41 @@ def request(path, body=None, status=200, raw=False, content_type=None):
     try: response = urlopen(Request(base + path, data=data, headers=headers), timeout=15)
     except HTTPError as error: response = error
     payload = response.read()
-    if response.status != status: raise AssertionError(f'{path}: expected {status}, actual {response.status}; {payload.decode(errors="replace")}')
+    if response.status != status: raise AssertionError(f'{path}: expected {status}, actual {response.status}; {payload.decode(errors="replace").replace(token, "[task-credential-redacted]")}')
     return payload if raw else json.loads(payload)
 
 
-def upload(application, archive_bytes, status, sequence=None):
-    # Stay below ASP.NET's disk-spill threshold; large-body temp cleanup is a separate gate.
+def multipart(application, archive_bytes, sequence=None, file_first=False, duplicate_file=False, duplicate_field=False, truncated=False):
     boundary = 'ratools-fixture-' + uuid.uuid4().hex
     fields = {'ApplicationId': application}
     if sequence: fields.update(SequenceNumber=sequence, RootRelativePath='bundle/' + sequence)
     parts = [f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode() for key, value in fields.items()]
-    parts += [f'--{boundary}\r\nContent-Disposition: form-data; name="File"; filename="external.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode(),
-              archive_bytes, f'\r\n--{boundary}--\r\n'.encode()]
-    body = b''.join(parts)
-    assert len(body) < 65536, 'Review multipart buffering before increasing this fixture'
-    return request('/api/package-validation-inputs/upload', body, status, content_type='multipart/form-data; boundary=' + boundary)
+    file_part = f'--{boundary}\r\nContent-Disposition: form-data; name="File"; filename="external.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode() + archive_bytes + b'\r\n'
+    parts = [file_part, *parts] if file_first else [*parts, file_part]
+    if duplicate_file: parts.append(file_part)
+    if duplicate_field: parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="ApplicationId"\r\n\r\n{application}\r\n'.encode())
+    if not truncated: parts.append(f'--{boundary}--\r\n'.encode())
+    return b''.join(parts), 'multipart/form-data; boundary=' + boundary
+
+
+def upload(application, archive_bytes, status, sequence=None, **options):
+    body, content_type = multipart(application, archive_bytes, sequence, **options)
+    return request('/api/package-validation-inputs/upload', body, status, content_type=content_type)
+
+
+def retained_forms():
+    return set((workspace / 'validation/form-uploads/_recycle').glob('*/package.zip'))
+
+
+def retained_form_after(before):
+    deadline = time.monotonic() + 5
+    while True:
+        added = retained_forms() - before
+        if added:
+            assert len(added) == 1, added
+            return next(iter(added)).read_bytes()
+        if time.monotonic() > deadline: raise TimeoutError('Multipart staging retention deadline')
+        time.sleep(.02)
 
 
 def xml(sequence, count):
@@ -71,10 +93,11 @@ def xml(sequence, count):
             '</m2-2-introduction></m2-common-technical-document-summaries></ectd>').encode()
 
 
-def start_api(disable_worker=False):
+def start_api(disable_worker=False, maximum_archive=None):
     global process, collector
     process = subprocess.Popen([str(sdk / 'dotnet.exe'), str(backend / 'RATools.Api.dll'), '--contentRoot', str(backend)],
-        cwd=backend, env={**env, 'PackageValidation__Enabled': 'false' if disable_worker else 'true'},
+        cwd=backend, env={**env, 'PackageValidation__Enabled': 'false' if disable_worker else 'true',
+                         **({'PackageValidation__ReadLimits__MaxArchiveBytes': str(maximum_archive)} if maximum_archive is not None else {})},
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace', creationflags=subprocess.CREATE_NO_WINDOW)
     def collect():
         for line in process.stdout: lines.append(line.replace(token, '[task-credential-redacted]'))
@@ -127,6 +150,47 @@ try:
     assert request('/api/package-validation-inputs/' + uploaded['id'] + '/file?' + urlencode({'logicalPath': '0001/index.xml'}), raw=True) == target
     report['facts']['upload'] = {'id': uploaded['id'], 'archiveSha256': hashlib.sha256(archive_bytes).hexdigest(), 'failedUploadRetained': True}
     report['passed'].append('explicit multipart retry registers the chosen root and serves its exact original XML bytes')
+    large_archive = workspace / 'large-multipart.zip'
+    with zipfile.ZipFile(large_archive, 'x', compression=zipfile.ZIP_STORED) as output:
+        output.writestr('bundle/0001/index.xml', target)
+        output.writestr('bundle/0001/payload.bin', b'retained multipart fixture\n' * 8192)
+    large_bytes = large_archive.read_bytes()
+    assert len(large_bytes) > 65536
+    before_form = retained_forms()
+    large_uploaded = upload(application, large_bytes, 201, '0001', file_first=True)
+    assert request('/api/package-validation-inputs/' + large_uploaded['id'] + '/file?' + urlencode({'logicalPath': '0001/index.xml'}), raw=True) == target
+    assert not (workspace / 'framework-temp-must-not-exist').exists()
+    assert retained_form_after(before_form) == large_bytes
+    report['facts']['largeMultipart'] = {'bytes': len(large_bytes), 'sha256': hashlib.sha256(large_bytes).hexdigest()}
+    report['passed'].append('multipart larger than framework spill threshold succeeds without framework temp files')
+    for options in [{'duplicate_file': True}, {'duplicate_field': True}]:
+        before_form = retained_forms()
+        upload(application, large_bytes, 400, file_first=True, **options)
+        assert retained_form_after(before_form) == large_bytes
+    report['passed'].append('duplicate multipart files and fields are rejected and the first complete file remains retained')
+    before_form = retained_forms()
+    upload('not-an-application-id', large_bytes, 400, file_first=True)
+    assert retained_form_after(before_form) == large_bytes
+    report['passed'].append('MVC field validation failure retains the already streamed upload')
+    before_form = retained_forms()
+    upload(application, large_bytes, 400, truncated=True)
+    truncated_bytes = retained_form_after(before_form)
+    assert 0 < len(truncated_bytes) <= len(large_bytes) and large_bytes.startswith(truncated_bytes)
+    report['passed'].append('truncated multipart request is rejected with its exact written prefix retained')
+    before_form = retained_forms()
+    aborted_body, aborted_type = multipart(application, large_bytes, '0001')
+    with socket.create_connection(('127.0.0.1', port), timeout=5) as client:
+        header = (f'POST /api/package-validation-inputs/upload HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n'
+                  f'X-RA-Tools-Api-Key: {token}\r\nContent-Type: {aborted_type}\r\nContent-Length: {len(aborted_body)}\r\n\r\n')
+        client.sendall(header.encode() + aborted_body[:90000])
+        deadline = time.monotonic() + 5
+        while not any(path.stat().st_size > 0 for path in (workspace / 'validation/form-uploads').glob('*/package.zip')):
+            if time.monotonic() > deadline: raise TimeoutError('Server must write staging bytes before client disconnect')
+            time.sleep(.02)
+        client.shutdown(socket.SHUT_WR)
+    interrupted_prefix = retained_form_after(before_form)
+    assert 0 < len(interrupted_prefix) < len(large_bytes) and large_bytes.startswith(interrupted_prefix)
+    report['passed'].append('client disconnect during multipart reception retains the exact written prefix')
     registered = {}
     for sequence in ['0000', '0001']:
         registered[sequence] = request('/api/package-validation-inputs', {**request_body, 'sequenceNumber': sequence, 'rootRelativePath': 'bundle/' + sequence}, 201)
@@ -237,6 +301,16 @@ try:
     request(cancel_url + '/report', status=410)
     report['facts']['cancellation'] = {'status': cancelled['status'], 'attemptCount': cancelled['attemptCount'], 'scope': 'separate InMemory API process with worker disabled; Pending cancellation only'}
     report['passed'].append('pending cancellation reaches Cancelled with zero worker attempts and no fabricated report')
+    stop_api()
+    start_api(disable_worker=True, maximum_archive=131072)
+    before_form = retained_forms()
+    limited = upload(application, large_bytes, 413, '0001')
+    assert limited['code'] == 'UPLOAD_LIMIT'
+    prefix = retained_form_after(before_form)
+    assert 0 < len(prefix) <= 131072 and large_bytes.startswith(prefix)
+    assert not (workspace / 'framework-temp-must-not-exist').exists()
+    assert all(path.name == '_recycle' for path in (workspace / 'validation/form-uploads').iterdir())
+    report['passed'].append('configured archive limit rejects multipart with 413 and retains the written prefix without active staging')
     report['exitCode'] = 0
 except Exception as error:
     report['error'] = str(error)
