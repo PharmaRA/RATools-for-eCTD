@@ -30,9 +30,10 @@ env = {**os.environ, 'DOTNET_ROOT': str(sdk), 'DOTNET_NOLOGO': '1', 'DOTNET_CLI_
        'Deployment__Mode': 'LocalOnly', 'Security__ApiKey': token, 'Security__AllowedWorkspaceRoots__0': str(workspace),
        'FileSecrets__ApiKeyPath': '', 'FileSecrets__PostgreSqlPasswordPath': '',
        'FileStorage__RootPath': str(workspace / 'uploads'), 'BackboneOutput__RootPath': str(workspace / 'publish'),
-       'BackboneOutput__RetainJobRuns': '0', 'PackageValidation__StorageRoot': str(workspace / 'validation')}
+       'BackboneOutput__RetainJobRuns': '0', 'PackageValidation__StorageRoot': str(workspace / 'validation'),
+       'PackageValidation__HeartbeatInterval': '00:00:02'}
 report = {'scope': 'Windows actual API/InMemory, external synthetic ZIP; not browser/Formal/PostgreSQL qualification',
-          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['large multipart disk buffering', 'active-worker cancellation', 'real browser', 'PostgreSQL restart']}
+          'passed': [], 'exitCode': 1, 'facts': {}, 'unrun': ['large multipart disk buffering', 'real browser', 'PostgreSQL restart']}
 process = None; collector = None; lines = []
 
 
@@ -179,6 +180,51 @@ try:
     assert changed['code'] == 'INPUT_CHANGED'
     assert request(url + '/report', raw=True) == report_bytes
     report['passed'].append('changed source refuses old location reads while the archived report remains byte-identical')
+    active_archive = workspace / 'active-cancel.zip'
+    with zipfile.ZipFile(active_archive, 'x', compression=zipfile.ZIP_STORED) as output:
+        output.writestr('bundle/0001/index.xml', target)
+        payload = b'controlled active-cancellation input\n' * 8192
+        for index in range(8):
+            with output.open(f'bundle/0001/payload-{index}.bin', 'w') as member:
+                for _ in range(32): member.write(payload)
+    with active_archive.open('rb') as stream: active_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+    active_input = request('/api/package-validation-inputs', {'applicationId': application, 'path': str(active_archive),
+        'sequenceNumber': '0001', 'rootRelativePath': 'bundle/0001'}, 201)
+    active = request('/api/package-validations', {'inputId': active_input['id'], 'profileSnapshotId': profile,
+        'mode': 'Development', 'idempotencyKey': str(uuid.uuid4())}, 202)
+    active_url = '/api/package-validations/' + active['id']
+    deadline = time.monotonic() + 30
+    while active['status'] == 'Pending':
+        if time.monotonic() > deadline: raise TimeoutError('Worker claim deadline')
+        time.sleep(.005); active = request(active_url)
+    assert active['status'] == 'Running' and active['attemptCount'] == 1 and active['startedUtc'], active
+    observed = {key: active[key] for key in ['status', 'stage', 'attemptCount', 'startedUtc']}
+    report['facts']['activeCancellation'] = {'observedBeforeCancel': observed,
+        'archiveBytes': active_archive.stat().st_size, 'archiveSha256': active_digest, 'heartbeatMilliseconds': 2000}
+    acknowledged = request(active_url + '/cancel', {}, 200)
+    assert acknowledged['cancellationRequested'], acknowledged
+    deadline = time.monotonic() + 30
+    while acknowledged['status'] in {'Pending', 'Running'}:
+        if time.monotonic() > deadline: raise TimeoutError('Active cancellation completion deadline')
+        time.sleep(.02); acknowledged = request(active_url)
+    assert acknowledged['status'] == 'Cancelled' and acknowledged['failureCode'] == 'CANCELLED'
+    assert acknowledged['attemptCount'] == 1 and not acknowledged['reportAvailable']
+    report['facts']['activeCancellation']['terminal'] = acknowledged
+    request(active_url + '/report', status=410)
+    assert request(active_url + '/findings', status=409)['stage'] == 'Cancelled'
+    report['passed'].append('actual worker Running attempt1 is cancelled; report410 and findings409 refuse completed evidence')
+    recovery = request('/api/package-validations', {'inputId': uploaded['id'], 'profileSnapshotId': profile,
+        'mode': 'Development', 'idempotencyKey': str(uuid.uuid4())}, 202)
+    deadline = time.monotonic() + 30
+    while recovery['status'] in {'Pending', 'Running'}:
+        if time.monotonic() > deadline: raise TimeoutError('Worker recovery completion deadline')
+        time.sleep(.05); recovery = request('/api/package-validations/' + recovery['id'])
+    assert recovery['status'] == 'Completed' and recovery['attemptCount'] == 1 and recovery['reportAvailable'], recovery
+    assert request(active_url) == acknowledged, 'Cancelled terminal was overwritten by late work'
+    request(active_url + '/report', status=410)
+    with active_archive.open('rb') as stream: assert hashlib.file_digest(stream, 'sha256').hexdigest() == active_digest
+    report['facts']['afterCancellation'] = recovery
+    report['passed'].append('same sequential worker completes its next run; cancelled state and original archive bytes remain unchanged')
     stop_api()
     start_api(disable_worker=True)
     cancel_input = request('/api/package-validation-inputs', {**request_body, 'sequenceNumber': '0001', 'rootRelativePath': 'bundle/0001'}, 201)

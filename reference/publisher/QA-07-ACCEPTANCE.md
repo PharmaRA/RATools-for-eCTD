@@ -79,3 +79,6 @@ Windows continuation after explicit local authorization: current four-layer Reco
 
 
 Windows upload-retention continuation: final162011-b33a76df77204d9dbba369a8d1654ba6 four-layer Recommended compilation and11/0/0; final162142-165ecf8d06c84720b91046a41060a2d1 actual HTTP9/exit0/API stopped. Old physical-deletion branch was inspected only, not executed. Logger-exception defect has10/1 red then11/0 green. Small multipart ambiguity/retry now passes with full failed-byte retention; large multipart spill cleanup, links/races, active cancellation/browser and broader qualifications remain open. Economic readonly reviewPASS. See[LOCAL-CHECK.md](LOCAL-CHECK.md). QA07 remains OPEN.
+
+
+Windows ReadingInputs cancellation and worker recovery now pass actual HTTP: final163427-61917869ebbf40dd8eb829f1ae6b6899, normal2s heartbeat,11 checks/exit0/API stopped, current four-layer Recommended compile0; manifestca9bcf3e3afd0ef0ceeecb157e0b9f008f94ff587df7ef143e92e672143b8e58. Earlier20ms result remains separate. Economic readonly reviewPASS; no production defect demonstrated. Other parser phases, browser/PG/Linux/Formal, large multipart and full-suite/MSBuild boundaries stay open; see[LOCAL-CHECK.md](LOCAL-CHECK.md).
