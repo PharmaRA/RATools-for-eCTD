@@ -30,6 +30,52 @@ const click = (text: string) => act(() => {
 describe('external comparison evidence panel', () => {
   afterEach(() => { for (const cleanup of dispose.splice(0)) cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
+  it('loads the archived report after the first successful registration', async () => {
+    const evidence = { runId: 'run', toolName: 'Synthetic validator', toolVersion: '1.0', packageDigest: 'a'.repeat(64),
+      reportSha256: 'b'.repeat(64), recordedUtc: '2026-11-07T00:00:00Z', digest: 'c'.repeat(64), differences: [] }
+    let registered = false
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/external-reports') && init?.method === 'POST') {
+        registered = true
+        return new Response(JSON.stringify(evidence), { status: 201 })
+      }
+      if (url.endsWith('/external-report/text')) return new Response('FIRST_ARCHIVED_REPORT', { status: registered ? 200 : 404 })
+      return registered ? new Response(JSON.stringify(evidence)) : new Response('{}', { status: 404 })
+    }))
+    render(<ExternalComparisonPanel runId="run" packageDigest={'a'.repeat(64)} />)
+    await waitFor(() => document.querySelector('#toolName') !== null)
+    act(() => {
+      for (const [selector, value] of [['#toolName', 'Synthetic validator'], ['#toolVersion', '1.0'], ['textarea', 'FIRST_ARCHIVED_REPORT']]) {
+        const element = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement
+        const prototype = element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+        Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(element, value)
+        element.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+    click('登记外部对照证据')
+    await waitFor(() => document.querySelector('[data-testid="external-report-text"]')?.textContent === 'FIRST_ARCHIVED_REPORT')
+    expect(document.body.textContent).toContain('Synthetic validator 1.0')
+    expect(document.body.textContent).not.toContain('此运行尚无外部对照证据')
+    expect(document.querySelector('#toolName')).toBeNull()
+  })
+
+  it('loads report text when another client registers evidence after an initial 404', async () => {
+    const evidence = { runId: 'run', toolName: 'Other client validator', toolVersion: '2.0', packageDigest: 'a'.repeat(64),
+      reportSha256: 'd'.repeat(64), recordedUtc: '2026-11-07T00:00:00Z', digest: 'e'.repeat(64), differences: [] }
+    let registered = false
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.endsWith('/external-report/text')) return new Response('OTHER_CLIENT_REPORT', { status: registered ? 200 : 404 })
+      return registered ? new Response(JSON.stringify(evidence)) : new Response('{}', { status: 404 })
+    }))
+    const client = render(<ExternalComparisonPanel runId="run" packageDigest={'a'.repeat(64)} />)
+    await waitFor(() => document.body.textContent!.includes('此运行尚无外部对照证据'))
+    registered = true
+    await act(async () => { await client.refetchQueries({ queryKey: ['package-validation-external', 'run'] }) })
+    await waitFor(() => document.querySelector('[data-testid="external-report-text"]')?.textContent === 'OTHER_CLIENT_REPORT')
+    expect(document.body.textContent).toContain('Other client validator 2.0')
+    expect(document.body.textContent).not.toContain('此运行尚无外部对照证据')
+  })
+
   it.each([401, 422, 500])('shows a %s error without claiming evidence is absent', async status => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'evidence unavailable' }), { status })))
     render(<ExternalComparisonPanel runId="run" packageDigest={'a'.repeat(64)} />)
