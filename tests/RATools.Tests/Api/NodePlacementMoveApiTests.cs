@@ -19,7 +19,9 @@ public sealed class NodePlacementMoveApiTests
     {
         using var workspace = new NodeMoveTestWorkspace();
         await workspace.SeedAsync();
-        var item = await workspace.AddAsync(node: workspace.Alpha);
+        var payload = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory,
+            "Fixtures/Publisher/sequences/0000/m1/us/12-cover-letters/cover.pdf"));
+        var item = await workspace.AddAsync(node: workspace.Alpha, payload: payload);
         await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Persistence:Provider", "InMemory");
@@ -56,7 +58,7 @@ public sealed class NodePlacementMoveApiTests
         using var missing = await client.PutAsJsonAsync(route, new { nodeInstanceId = workspace.Beta.NodeInstanceId, ctdSection = "m3.2.s.4.1" });
         Assert.Equal((HttpStatusCode)428, missing.StatusCode);
         using var moved = await client.PutAsJsonAsync(route, request);
-        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+        Assert.True(moved.StatusCode == HttpStatusCode.OK, await moved.Content.ReadAsStringAsync());
         var result = await moved.Content.ReadFromJsonAsync<DocumentPlacementDto>();
         Assert.Equal(workspace.Beta.NodeInstanceId, result!.NodeInstanceId);
         Assert.Equal(7, result.SortOrder);

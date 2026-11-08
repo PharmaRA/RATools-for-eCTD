@@ -76,7 +76,10 @@ public sealed class EctdXmlValidatorTests
         var package = CreatePackage() with
         {
             Application = new EctdApplicationMetadata("EU123456", "Acme Pharma", "EU", "eu-ectd-3.2.2", "maa"),
-            BackboneXml = BackboneXmlProfiles.EuEctd322Regional
+            BackboneXml = BackboneXmlProfiles.EuEctd322Regional,
+            EuRegional = new("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "ema", "maa", null, null,
+                ["EMA/H/C/000123"], "initial", "Acme Pharma", "EU-EMA", "centralised", ["Synthetic product"],
+                ["Synthetic substance"], "0001", ["0001"], "Initial sequence", "ema", "en", "combined")
         };
         var result = new EuRegionalXmlWriter().Write(package);
         var profile = new EuEctd322StandardsProfileProvider().GetProfile("eu-ectd-3.2.2");

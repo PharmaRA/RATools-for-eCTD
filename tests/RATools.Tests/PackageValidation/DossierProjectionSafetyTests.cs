@@ -90,9 +90,9 @@ public sealed class DossierProjectionSafetyTests
             Array.Empty<ParsedXmlElement>(), Array.Empty<ParsedCtdNode>(), leaves, Array.Empty<ParsedXmlId>(),
             Array.Empty<string>(), null);
         var xml = Construct<PackageXmlInspection>(capture.InputDigest, PackageValidationCatalog.UsProfile,
-            new string('a', 64), capture.Limits.Digest(), new[] { document }, Array.Empty<RuleCheckResult>());
+            new string('a', 64), capture.Limits.Digest(), new[] { document }, Array.Empty<RuleCheckResult>(), null);
         var lifecycle = Construct<PackageLifecycleInspection>(inputs, PackageValidationCatalog.UsProfile,
-            new[] { xml }, events, states, checks);
+            new[] { xml }, events, states, checks, null, null);
         return DossierProjectionBuilder.Build(lifecycle, new PackageDeliveryInput(inputs));
     }
 

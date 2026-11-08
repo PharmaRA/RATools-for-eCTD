@@ -60,11 +60,11 @@ internal sealed class NodeMoveTestWorkspace : IDisposable
         await Nodes.SaveSequenceAsync(Workspace.Graph, "0000", Workspace.Nodes, 0);
     }
 
-    public async Task<(SubmissionDocument Document, DocumentPlacement Placement)> AddAsync(string folder = "imported", SequenceNode? node = null)
+    public async Task<(SubmissionDocument Document, DocumentPlacement Placement)> AddAsync(string folder = "imported", SequenceNode? node = null, byte[]? payload = null)
     {
         var path = Path.Combine(Root, "0000", folder, "specification.pdf");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var content = System.Text.Encoding.UTF8.GetBytes("Synthetic PDF payload " + folder);
+        var content = payload ?? System.Text.Encoding.UTF8.GetBytes("Synthetic PDF payload " + folder);
         await File.WriteAllBytesAsync(path, content);
         var document = new SubmissionDocument("specification.pdf", "application/pdf", content.Length,
             Convert.ToHexString(SHA256.HashData(content)), Convert.ToHexString(MD5.HashData(content)), path);

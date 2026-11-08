@@ -58,7 +58,7 @@ public sealed class UsRegionalM1V33Tests
 
     private static IEnumerable<string> LoadLeafAcceptingM1ElementsFromDtd()
     {
-        var dtdPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "reference", "dtd", "us-regional-v3-3.dtd"));
+        var dtdPath = Path.Combine(RATools.Tests.PackageValidation.PackageRuleCatalogTests.Root, "reference", "dtd", "us-regional-v3-3.dtd");
         var dtd = File.ReadAllText(dtdPath);
         var matches = Regex.Matches(dtd, @"<!ELEMENT\s+(m1-[^\s]+)\s+\(\(leaf\s+\|\s+node-extension\)\*\)>");
         return matches.Select(x => x.Groups[1].Value);
