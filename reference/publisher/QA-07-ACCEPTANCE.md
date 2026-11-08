@@ -2,7 +2,7 @@
 
 Recorded 2026-11-07. Backend baseline `a2a05c5`; browser completion-state repair `a07b3c2`. QA-07 remains **in progress**, not fully accepted.
 
-Latest checkpoint (2026-11-08): **1,641/1,641 selected backend cases passed**, 183 explicitly unexecuted; three zero-warning builds and read-only review PASS. Runtime OpenAPI agreement is verified at TestServer pipeline level. See [current backend audit](BACKEND-NO-DELETE-AUDIT.md). QA-07 remains open.
+Latest checkpoint (2026-11-08): Windows 1,641 selected cases, Linux PostgreSQL 107 cases and the independent Linux filesystem case establish combined coverage of 1,744 cases after accounting for overlap; **80 native-related cases remain unqualified**. Fresh NuGet restore, current Linux MSBuild and bounded environment probes passed. This is not a single unfiltered full-suite run. See [environment recovery](QA-07-ENVIRONMENT-RECOVERY.md). QA-07 remains open.
 
 ## Verified checks
 
@@ -179,3 +179,6 @@ known-cleanup-preconditions.json仅复核原清单22个文件，File/Directory.D
 
 
 2026-11-08 QA07剩余可移植补验：最终 `.artifacts/local-check/20261108T193701-9f4c35398c074abca37213a198661999/` 发现1824项，191类1641项全部通过、0失败0未执行，三个实际MSBuild均0警告0错误，五份进程回执0/assigned/stopped/forcedfalse；最终代码及证据只读review PASS。四个混合类显式放行6方法7项，完整名称多重集合及逐类数量一致；仍有183项未运行（PG111/native PDF71/Linux1），精确清单unexecuted-tests.json。TestServer运行时OpenAPI与已存快照一致已验证，不再笼统称运行时合同未验证；不代表真实socket合同。首次192259因缺失NuGet缓存NETSDK1064未进入测试；98个官方包经原assets内容摘要及签名包完整性校验恢复，独占新建、受控回收编码副本，非fresh restore。环境探针：Instabox远程true继承网络/显式代理均exit4，PG进程变量未配置，docker/podman不可用，wsl列表exit1。FDA两地址直连/代理仍404，未取得原文。完整证据、摘要、边界见 [BACKEND-NO-DELETE-AUDIT.md](BACKEND-NO-DELETE-AUDIT.md)；QA07仍开放无过滤后端/freshrestore/当前平台联合/原生下载/官方与外部Formal资格。
+
+
+2026-11-08 环境恢复与PG补验：旧insta01名称失效，既有机器ID远程true已成功，当前名linux；/data仍满，利用已检查的/dev/shm独立目录与前台执行继续，未扩容/重启/删除。Linux大小写源码方法3/3（新增1，另2与Windows重叠），前台linux-platform10/10，PG16.15环境初始化/重启通过。真正空缓存NuGet还原211940-ae195e02全部通过，六assets仅新缓存/官方源无fallback，四进程组无剩余，246清理对象保留。当前Linux实际API/Migrator/Tests三个MSBuild均0warning/error，独立迁移31/重复0，最终PG213745-c79498e2为28类107/107、0失败0跳过，名称多重集合一致，PG与各阶段进程全停，最终代码/证据只读review PASS。首轮116/99/17保留；七个旧降级断言改为最新迁移明确无条件拒绝并验证完整迁移历史/原数据不变，HTTP fixture改已有任务根，生产保护未改。旧SQL55000条件guard未覆盖。PG与Windows重叠5case（4methods），跨运行组合覆盖1744，剩80原生相关（71native+9PG/native）；不是同次无过滤全套。当前Python内容宿主仍仅支持Windows。完整入口、失败、摘要及边界见[环境恢复记录](QA-07-ENVIRONMENT-RECOVERY.md)。浏览器当前验收另记，Formal/官方/外部资格继续开放。
