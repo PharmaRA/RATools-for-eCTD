@@ -28,7 +28,6 @@ public sealed class ApplicationDeletionCoordinator(
             throw new ApplicationDeleteConflictException(
                 $"Application {application.Id} has finalized sequence evidence and cannot be deleted through the draft path.");
         var workspacePath = application.WorkingDirectoryPath;
-        var purgePaths = new List<string>();
 
         await transaction.ExecuteAsync(async ct =>
         {
@@ -41,7 +40,6 @@ public sealed class ApplicationDeletionCoordinator(
             {
                 EnsureApplicationPurgeIsSafe(workspacePath, allDocuments, scope.SurvivingDocumentIds);
                 EnsurePublishJobPurgeIsSafeForApplication(application.Id, workspacePath, allPublishJobs);
-                purgePaths.AddRange(scope.CollectPurgePaths(allDocuments));
             }
 
             foreach (var placement in scope.InScopePlacements)
@@ -61,7 +59,8 @@ public sealed class ApplicationDeletionCoordinator(
 
         if (deleteMode == ApplicationDeleteMode.PurgeWorkspace)
         {
-            PurgeScopedPaths(purgePaths, workspacePath);
+            // Retain the complete workspace, including payloads and reports.
+            // Do not remove individual files before the directory move succeeds.
             await TryPurgeWorkspaceAsync(
                 () => workspaceDeletionService.DeleteApplicationWorkspaceAsync(workspacePath, cancellationToken));
         }
@@ -86,7 +85,6 @@ public sealed class ApplicationDeletionCoordinator(
                 $"Sequence {sequenceNumber} has finalized evidence and cannot be deleted through the draft path.");
 
         var workspacePath = application.WorkingDirectoryPath;
-        var purgePaths = new List<string>();
 
         var deleted = await transaction.ExecuteAsync(async ct =>
         {
@@ -99,7 +97,6 @@ public sealed class ApplicationDeletionCoordinator(
             {
                 var sequenceWorkspacePath = EnsureSequencePurgeIsSafe(workspacePath, sequenceNumber, allDocuments, scope.SurvivingDocumentIds);
                 EnsurePublishJobPurgeIsSafeForSequence(application.Id, sequenceNumber, sequenceWorkspacePath, allPublishJobs);
-                purgePaths.AddRange(scope.CollectPurgePaths(allDocuments));
             }
 
             foreach (var placement in scope.InScopePlacements)
@@ -131,8 +128,6 @@ public sealed class ApplicationDeletionCoordinator(
 
         if (deleteMode == ApplicationDeleteMode.PurgeWorkspace)
         {
-            var sequenceWorkspacePath = ResolveSequenceWorkspacePath(workspacePath, sequenceNumber);
-            PurgeScopedPaths(purgePaths, sequenceWorkspacePath);
             await TryPurgeWorkspaceAsync(
                 () => workspaceDeletionService.DeleteSequenceWorkspaceAsync(workspacePath, sequenceNumber, cancellationToken));
         }
@@ -244,31 +239,6 @@ public sealed class ApplicationDeletionCoordinator(
         }
 
         return sequenceWorkspacePath;
-    }
-
-    private static void PurgeScopedPaths(IReadOnlyCollection<string> candidatePaths, string scopeRoot)
-    {
-        foreach (var candidatePath in candidatePaths
-                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                     .OrderByDescending(x => x.Length))
-        {
-            if (!WorkspacePathGuard.IsInsideScope(candidatePath, scopeRoot))
-            {
-                continue;
-            }
-
-            var fullPath = Path.GetFullPath(candidatePath);
-            if (File.Exists(fullPath))
-            {
-                File.Delete(fullPath);
-                continue;
-            }
-
-            if (Directory.Exists(fullPath))
-            {
-                Directory.Delete(fullPath, true);
-            }
-        }
     }
 
     private static async Task TryPurgeWorkspaceAsync(Func<Task> purgeAction)

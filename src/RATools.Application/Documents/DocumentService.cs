@@ -109,11 +109,18 @@ public sealed class DocumentService(
         {
             await mutation.CommitAsync(ct => repository.AddAsync(document, ct), cancellationToken);
         }
-        catch
+        catch (Exception uploadException)
         {
             using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            if (await repository.GetAsync(document.Id, cleanup.Token) is null && File.Exists(storedFile.StoragePath))
-                File.Delete(storedFile.StoragePath);
+            try
+            {
+                if (await repository.GetAsync(document.Id, cleanup.Token) is null)
+                    RetainDocumentFile(documentStorageBoundary.EnsureAllowedDocumentPath(document));
+            }
+            catch (Exception retentionException)
+            {
+                uploadException.Data["UploadRetentionFailure"] = retentionException;
+            }
             throw;
         }
         return document.ToDto() with { WorkspaceRevision = mutation.Revision };
@@ -197,11 +204,38 @@ public sealed class DocumentService(
 
         if (!sharedPathExists && File.Exists(storagePath))
         {
-            File.Delete(storagePath);
+            RetainDocumentFile(storagePath);
             await TryDeleteEmptyWorkspaceFoldersAsync(storagePath, cancellationToken);
         }
 
         return true;
+    }
+
+    // The caller has validated ownership. Keep the original bytes in a sibling
+    // recycle directory; a failed move leaves the original file in place.
+    private static void RetainDocumentFile(string storagePath)
+    {
+        var source = Path.GetFullPath(storagePath);
+        EnsureNoLinks(source);
+        if (!File.Exists(source)) return;
+        var parent = Path.GetDirectoryName(source) ?? throw new IOException("Document storage must have an owning directory.");
+        var recycle = Path.Combine(parent, "_recycle");
+        EnsureNoLinks(recycle);
+        Directory.CreateDirectory(recycle);
+        EnsureNoLinks(recycle);
+        var destination = Path.GetFullPath(Path.Combine(recycle, Guid.NewGuid().ToString("N")));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(destination), recycle, comparison))
+            throw new IOException("Document retention escaped its owning directory.");
+        EnsureNoLinks(source);
+        File.Move(source, destination);
+    }
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Document retention must not traverse links.");
     }
 
     private static void ValidateAllowedFileName(string fileName)

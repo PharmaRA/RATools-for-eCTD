@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves','retention')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
 $ErrorActionPreference = 'Stop'
 if($PrunerRootProbeOnly -and ($TestGroup -ne 'pruner' -or -not $RunSelectedTests)){throw 'Root probe requires the pruner runtime group.'}
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -25,6 +25,7 @@ if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-sto
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
+if($RunSelectedTests -and $TestGroup -eq 'retention') { $summary.task='msbuild-retention'; $summary.scope='Windows 26 document/workspace retention cases; InMemory and real files; not database/native tool/full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'node-moves') { $summary.task='msbuild-node-moves'; $summary.scope='Windows 31 node move, journal retention and recovery cases with real files and links; InMemory; not PostgreSQL, Linux, hostile replacement races or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'links') { $summary.task='msbuild-links'; $summary.scope='Windows 40 path/import/API security cases with real junctions and file symlinks; TestServer/InMemory; not Linux, real sockets, hostile replacement races or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'documents') { $summary.task='msbuild-documents'; $summary.scope='Windows 35 metadata transaction, sequence lifecycle and PDF rule cases; test repositories/transactions and fake PDF inspector; not database, actual PDF engine or full suite qualification' }
@@ -281,6 +282,10 @@ public static class MsbuildDeleteAccessProbe {
             $selected=@{'RATools.Tests.Workspaces.CtdNodeMoveTests'=31}
             $expectedTotal=31
         }
+        if($TestGroup -eq 'retention') {
+            $selected=@{'RATools.Tests.Documents.DocumentRetentionWorkflowTests'=11;'RATools.Tests.Documents.DocumentServiceDeleteTests'=2;'RATools.Tests.Infrastructure.WorkspaceDeletionServiceTests'=13}
+            $expectedTotal=26
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
@@ -289,7 +294,7 @@ public static class MsbuildDeleteAccessProbe {
             foreach($path in @('tests/RATools.Tests/Applications/ImportTestServices.cs','tests/RATools.Tests/TestDoubles/TestWorkspaceMutations.cs','tests/RATools.Tests/TestDoubles/PermissiveDocumentStorageBoundary.cs')) { $selectedSources += Join-Path $repo $path }
         }
         if($TestGroup -eq 'api') { $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageFileInspectorTests.cs' }
-        if($TestGroup -in @('package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves')) {
+        if($TestGroup -in @('package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves','retention')) {
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/RetainedPackageTestFiles.cs'
             $selectedSources += Join-Path $repo 'tests/RATools.Tests/PackageValidation/PackageRuleCatalogTests.cs'
         }
@@ -303,6 +308,9 @@ public static class MsbuildDeleteAccessProbe {
         }
         if($TestGroup -eq 'node-moves') {
             foreach($path in @('tests/RATools.Tests/Workspaces/NodeMoveTestWorkspace.cs','tests/RATools.Tests/Workspaces/CtdNodePathTests.cs','src/RATools.Application/Ctd/NodeFileMoveJournal.cs','src/RATools.Application/Ctd/NodeFileMoveRecovery.cs','src/RATools.Application/Ctd/CtdNodePlacementService.cs','src/RATools.Infrastructure/Storage/LocalFileStorage.cs')) { $selectedSources += Join-Path $repo $path }
+        }
+        if($TestGroup -eq 'retention') {
+            foreach($path in @('src/RATools.Application/Documents/DocumentService.cs','src/RATools.Application/Applications/ApplicationDeletionCoordinator.cs','src/RATools.Infrastructure/Storage/WorkspaceDeletionService.cs','src/RATools.Infrastructure/Storage/LocalFileStorage.cs','tests/RATools.Tests/TestDoubles/TestWorkspaceMutations.cs','tests/RATools.Tests/TestDoubles/PermissiveDocumentStorageBoundary.cs')) { $selectedSources += Join-Path $repo $path }
         }
         foreach($source in $selectedSources) {
             if(Select-String -LiteralPath $source -Pattern '\b(File|Directory)\s*\.\s*Delete\s*\(|FileOptions\.DeleteOnClose' -Quiet) {
