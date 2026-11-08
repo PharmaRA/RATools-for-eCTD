@@ -45,7 +45,7 @@ public sealed class RegionalActivationAcceptanceTests
         {
             ApplicationName = typeof(StandardsSnapshotsController).Assembly.GetName().Name,
             EnvironmentName = "Development",
-            ContentRootPath = Path.GetFullPath(".artifacts/p5-06-controller")
+            ContentRootPath = Path.GetFullPath(".")
         });
         builder.Configuration.Sources.Clear(); builder.Logging.ClearProviders();
         builder.Services.AddSingleton(service);

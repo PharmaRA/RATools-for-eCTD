@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql;
 using System.Data.Common;
 using RATools.Application.Applications;
 using RATools.Infrastructure.Persistence.EfCore;
@@ -30,13 +29,13 @@ public sealed class PostgresApplicationImportTests(PostgresFixture fixture)
         Assert.Equal(8, await verify.ImportedBackbones.CountAsync(row => row.ApplicationId == result.ApplicationId));
         Assert.All(await verify.Sequences.Where(row => row.ApplicationId == result.ApplicationId).ToArrayAsync(),
             row => Assert.Equal(1, row.WorkspaceRevision));
-        var downgrade = await Assert.ThrowsAsync<PostgresException>(() => verify.GetService<IMigrator>()
+        var applied = (await verify.Database.GetAppliedMigrationsAsync()).ToArray();
+        var downgrade = await Assert.ThrowsAsync<NotSupportedException>(() => verify.GetService<IMigrator>()
             .MigrateAsync("20260908131138_AddCtdNodeInstances"));
-        Assert.Equal("55000", downgrade.SqlState);
+        Assert.Contains("Original regional import evidence", downgrade.Message);
+        Assert.Equal(applied, (await verify.Database.GetAppliedMigrationsAsync()).ToArray());
         Assert.Equal(8, await verify.ImportedBackbones.CountAsync(row => row.ApplicationId == result.ApplicationId));
-        // EF applies each migration's Down independently, so migrations newer than the
-        // guarded one are already reverted before the guard aborts the downgrade.
-        // Restore the shared test database before asserting that it is current again.
+        // The current evidence guard rejects before any schema change.
         await verify.GetService<IMigrator>().MigrateAsync();
         Assert.Empty(await verify.Database.GetPendingMigrationsAsync());
     }

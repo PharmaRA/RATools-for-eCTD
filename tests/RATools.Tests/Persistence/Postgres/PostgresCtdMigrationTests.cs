@@ -23,7 +23,7 @@ public sealed class PostgresCtdMigrationTests
         { Converters = { new JsonStringEnumConverter() } };
 
     [RequiresPostgresFact]
-    public async Task IndependentMigratorUpgradesAnEmptyDatabaseTwiceAndEmptySchemaCanBeRolledBack()
+    public async Task IndependentMigratorUpgradesAnEmptyDatabaseTwiceAndCurrentSchemaRefusesDowngrade()
     {
         await using var database = await TemporaryDatabase.CreateAsync();
         var first = await database.RunMigratorAsync();
@@ -32,8 +32,11 @@ public sealed class PostgresCtdMigrationTests
         await using var context = database.CreateContext();
         Assert.Equal(160, await context.CtdDefinitions.CountAsync());
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
-        await context.GetService<IMigrator>().MigrateAsync(PreviousMigration);
-        Assert.Contains("Applied", await database.RunMigratorAsync());
+        var applied = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        var error = await Assert.ThrowsAsync<NotSupportedException>(() => context.GetService<IMigrator>().MigrateAsync(PreviousMigration));
+        Assert.Contains("Original regional import evidence", error.Message);
+        Assert.Equal(applied, (await context.Database.GetAppliedMigrationsAsync()).ToArray());
+        Assert.Contains("no migrations were applied", await database.RunMigratorAsync());
         Assert.Equal(160, await context.CtdDefinitions.CountAsync());
     }
 
@@ -47,12 +50,14 @@ public sealed class PostgresCtdMigrationTests
         var input = new RegisteredPackageInput(Guid.NewGuid(), Guid.NewGuid(), "0000", "external-source", null,
             PackageSourceKind.Directory, new string('a', 64), "{}", new PackageReadLimits(), DateTime.UtcNow, false);
         await store.RegisterInputAsync(input);
-        var error = await Assert.ThrowsAsync<PostgresException>(() => context.GetService<IMigrator>()
+        var applied = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        var error = await Assert.ThrowsAsync<NotSupportedException>(() => context.GetService<IMigrator>()
             .MigrateAsync("20261002170848_PreserveImportedBackbones"));
-        Assert.Equal("55000", error.SqlState);
+        Assert.Contains("Original regional import evidence", error.Message);
+        Assert.Equal(applied, (await context.Database.GetAppliedMigrationsAsync()).ToArray());
         Assert.Equal(input.InputDigest, (await store.GetInputAsync(input.Id))!.InputDigest);
         Assert.Contains("20261002235629_AddIndependentPackageValidation", await context.Database.GetAppliedMigrationsAsync());
-        // The preceding, empty coverage migration may already have rolled back.
+        // Current regional evidence protection rejects before any earlier Down runs.
         await database.RunMigratorAsync();
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
     }
@@ -94,9 +99,11 @@ public sealed class PostgresCtdMigrationTests
         Assert.Null(Assert.Single((await store.ListRunsAsync(run.ApplicationId, 0, 10)).Items).CoverageSummary);
         Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
         Assert.Equal("MISSING_A", Assert.Single((await store.GetFindingsAsync(run.Id, new(NodePath: "m3-2-s-4-1"))).Items).Code);
-        var error = await Assert.ThrowsAsync<PostgresException>(() => context.GetService<IMigrator>()
+        var applied = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        var error = await Assert.ThrowsAsync<NotSupportedException>(() => context.GetService<IMigrator>()
             .MigrateAsync("20261002235629_AddIndependentPackageValidation"));
-        Assert.Equal("55000", error.SqlState);
+        Assert.Contains("Original regional import evidence", error.Message);
+        Assert.Equal(applied, (await context.Database.GetAppliedMigrationsAsync()).ToArray());
         await database.RunMigratorAsync();
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
         Assert.Equal(json, await store.GetReportJsonAsync(run.Id));
@@ -170,15 +177,13 @@ public sealed class PostgresCtdMigrationTests
             Assert.Equal(sha256, document.Sha256);
             Assert.Equal(md5, document.Md5);
             Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
-            // EF commits individual migrations. Remove the empty provenance layer
-            // first, then test the populated node migration's own downgrade guard.
-            await upgraded.GetService<IMigrator>().MigrateAsync("20260908131138_AddCtdNodeInstances");
-            var error = await Assert.ThrowsAsync<PostgresException>(() => upgraded.GetService<IMigrator>().MigrateAsync(PreviousMigration));
-            Assert.Equal("55000", error.SqlState);
+            var applied = (await upgraded.Database.GetAppliedMigrationsAsync()).ToArray();
+            var error = await Assert.ThrowsAsync<NotSupportedException>(() => upgraded.GetService<IMigrator>().MigrateAsync(PreviousMigration));
+            Assert.Contains("Original regional import evidence", error.Message);
+            Assert.Equal(applied, (await upgraded.Database.GetAppliedMigrationsAsync()).ToArray());
             Assert.Equal(ids.Length, await upgraded.CtdNodeInstances.CountAsync());
-            var pendingAfterDowngrade = (await upgraded.Database.GetPendingMigrationsAsync()).Count();
-            Assert.True(pendingAfterDowngrade > 0);
-            Assert.Contains($"Applied {pendingAfterDowngrade} database migration(s)", await database.RunMigratorAsync());
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
+            Assert.Contains("no migrations were applied", await database.RunMigratorAsync());
             Assert.Empty(await upgraded.Database.GetPendingMigrationsAsync());
         }
         finally { RetainedPackageTestFiles.RetainDirectory(directory); }

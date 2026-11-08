@@ -175,14 +175,13 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
         await using var context = fixture.CreateDbContext();
         var store = new EfCoreFinalizationStore(context);
         await store.RegisterAsync(Snapshot(applicationId, sequenceNumber, run.Id, run.Binding));
-        // The Down guard raises before any table is dropped, so a failed downgrade is a
-        // no-op on the shared schema. It must refuse once a committed snapshot exists.
-        var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => context.GetService<
+        // The latest regional evidence migration rejects every downgrade before
+        // any earlier Down runs; the committed snapshot and schema must remain.
+        var applied = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        var error = await Assert.ThrowsAsync<NotSupportedException>(() => context.GetService<
             Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync("20261018042240_AddPackageValidationProjection"));
-        Assert.Equal("55000", error.SqlState);
-        // EF applies each migration's Down independently: the newer, unguarded draft
-        // migration was already reverted before the snapshot guard aborted the downgrade.
-        // Restore the shared test database before asserting that it is current again.
+        Assert.Contains("Original regional import evidence", error.Message);
+        Assert.Equal(applied, (await context.Database.GetAppliedMigrationsAsync()).ToArray());
         await context.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync();
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
         Assert.NotNull(await store.GetAsync((await store.ListBySequenceAsync(applicationId, sequenceNumber))[0].Id));
@@ -244,22 +243,14 @@ public sealed class PostgresFinalizationTests(PostgresFixture fixture)
                     ct => store.AppendDraftAsync(reused, ct)));
         }
         await using var downgrade = fixture.CreateDbContext();
-        try
-        {
-            var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => downgrade.GetService<
+        var applied = (await downgrade.Database.GetAppliedMigrationsAsync()).ToArray();
+        var error = await Assert.ThrowsAsync<NotSupportedException>(() => downgrade.GetService<
                 Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync("20261018071412_RefineFinalizationUniqueness"));
-            Assert.Equal("55000", error.SqlState);
-            await downgrade.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync();
-            Assert.Empty(await downgrade.Database.GetPendingMigrationsAsync());
-            Assert.NotNull(await new EfCoreFinalizationStore(downgrade).FindDraftAsync(snapshot.Id));
-        }
-        finally
-        {
-            // Drafts are guarded evidence on downgrade; remove this test's row so later
-            // downgrade tests in the shared database exercise their own guard.
-            await downgrade.Set<FinalizedDraftRevisionRecord>().Where(row => row.FinalizedSequenceId == snapshot.Id)
-                .ExecuteDeleteAsync();
-        }
+        Assert.Contains("Original regional import evidence", error.Message);
+        Assert.Equal(applied, (await downgrade.Database.GetAppliedMigrationsAsync()).ToArray());
+        await downgrade.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>().MigrateAsync();
+        Assert.Empty(await downgrade.Database.GetPendingMigrationsAsync());
+        Assert.NotNull(await new EfCoreFinalizationStore(downgrade).FindDraftAsync(snapshot.Id));
     }
 
     private async Task<PackageValidationRun> SeedCompletedRunAsync(Guid applicationId, string sequenceNumber)
