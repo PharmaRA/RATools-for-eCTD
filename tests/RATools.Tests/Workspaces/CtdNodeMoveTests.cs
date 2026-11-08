@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Abstractions.Persistence;
 using RATools.Application.Workspaces;
 using RATools.Domain.Ctd;
@@ -10,6 +11,89 @@ namespace RATools.Tests.Workspaces;
 [Trait("Category", "PathSecurity")]
 public sealed class CtdNodeMoveTests
 {
+    [Fact]
+    public async Task CompletedJournalRetainsExactBytesAndRepeatedCompletionIsNoOp()
+    {
+        using var scope = new NodeMoveTestWorkspace();
+        await scope.SeedAsync(); var item = await scope.AddAsync(node: scope.Alpha);
+        scope.Prepare(item.Document, item.Placement);
+        var source = JournalPath(scope, item.Placement.Id);
+        var original = await File.ReadAllBytesAsync(source);
+        scope.Journal.Complete(scope.Application, item.Placement.Id);
+        scope.Journal.Complete(scope.Application, item.Placement.Id);
+        Assert.False(File.Exists(source)); Assert.Empty(scope.Journal.Read(scope.Application));
+        var retained = Assert.Single(Directory.GetFiles(Path.Combine(Path.GetDirectoryName(source)!, "_recycle")));
+        Assert.Equal(original, await File.ReadAllBytesAsync(retained));
+    }
+
+    [Fact]
+    public async Task BlockedJournalRecycleKeepsPendingRecordAndExactBytes()
+    {
+        using var scope = new NodeMoveTestWorkspace();
+        await scope.SeedAsync(); var item = await scope.AddAsync(node: scope.Alpha);
+        var intent = scope.Prepare(item.Document, item.Placement);
+        var source = JournalPath(scope, item.Placement.Id);
+        var original = await File.ReadAllBytesAsync(source);
+        var recycle = Path.Combine(Path.GetDirectoryName(source)!, "_recycle");
+        await File.WriteAllTextAsync(recycle, "blocked");
+        Assert.Throws<IOException>(() => scope.Journal.Complete(scope.Application, item.Placement.Id));
+        Assert.Equal(original, await File.ReadAllBytesAsync(source));
+        Assert.Equal(intent, Assert.Single(scope.Journal.Read(scope.Application)));
+        Assert.Equal("blocked", await File.ReadAllTextAsync(recycle));
+    }
+
+    [Fact]
+    public void MissingJournalCompletionDoesNotCreateStorage()
+    {
+        using var scope = new NodeMoveTestWorkspace();
+        scope.Journal.Complete(scope.Application, Guid.NewGuid());
+        Assert.Empty(Directory.GetFileSystemEntries(scope.Root));
+    }
+
+    [Fact]
+    public async Task CommittedMoveWithBlockedJournalRecycleCanRecoverWithoutReversingMove()
+    {
+        using var scope = new NodeMoveTestWorkspace();
+        await scope.SeedAsync(); var item = await scope.AddAsync(node: scope.Alpha);
+        var journalDirectory = Path.GetDirectoryName(JournalPath(scope, item.Placement.Id))!;
+        Directory.CreateDirectory(journalDirectory);
+        var blocker = Path.Combine(journalDirectory, "_recycle"); await File.WriteAllTextAsync(blocker, "blocked");
+        await Assert.ThrowsAsync<IOException>(() => scope.Service.MoveAsync(item.Placement.Id, new(scope.Beta.NodeInstanceId, 7, 1)));
+        var intent = Assert.Single(scope.Journal.Read(scope.Application));
+        Assert.True(File.Exists(intent.TargetPath)); Assert.False(File.Exists(intent.SourcePath));
+        Assert.Equal(2, await scope.RevisionAsync());
+        Assert.Equal(scope.Beta.NodeInstanceId, (await scope.Placements.GetAsync(item.Placement.Id))!.NodeInstanceId);
+        var original = await File.ReadAllBytesAsync(JournalPath(scope, item.Placement.Id));
+        RetainedPackageTestFiles.RetainFile(scope.Root, blocker);
+        await scope.Recovery().RecoverAsync(); await scope.Recovery().RecoverAsync();
+        Assert.Empty(scope.Journal.Read(scope.Application)); Assert.True(File.Exists(intent.TargetPath));
+        Assert.Equal(2, await scope.RevisionAsync());
+        Assert.Equal(original, await File.ReadAllBytesAsync(Assert.Single(Directory.GetFiles(blocker))));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task JournalCompletionRejectsSourceAndRecycleLinks(bool recycleLink)
+    {
+        using var scope = new NodeMoveTestWorkspace(); using var outside = new NodeMoveTestWorkspace();
+        await scope.SeedAsync(); var item = await scope.AddAsync(node: scope.Alpha);
+        scope.Prepare(item.Document, item.Placement);
+        var source = JournalPath(scope, item.Placement.Id); var original = await File.ReadAllBytesAsync(source);
+        var target = Path.Combine(outside.Root, "sentinel.json"); await File.WriteAllBytesAsync(target, original);
+        var link = recycleLink ? Path.Combine(Path.GetDirectoryName(source)!, "_recycle") : source;
+        if (!recycleLink) RetainedPackageTestFiles.RetainFile(scope.Root, source);
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(scope.Root, link, outside.Root,
+            recycleLink ? outside.Root : target, directory: recycleLink);
+        Assert.Throws<InvalidOperationException>(() => scope.Journal.Complete(scope.Application, item.Placement.Id));
+        Assert.Equal(original, await File.ReadAllBytesAsync(target));
+        Assert.Single(Directory.GetFileSystemEntries(outside.Root));
+        if (recycleLink) Assert.Equal(original, await File.ReadAllBytesAsync(source));
+    }
+
+    private static string JournalPath(NodeMoveTestWorkspace scope, Guid placementId) =>
+        Path.Combine(scope.Root, ".ratools", "node-moves", placementId.ToString("N") + ".json");
+
     [Fact]
     public async Task PreviewDoesNotWriteAndSameNamedFilesRemainDistinct()
     {
@@ -128,7 +212,7 @@ public sealed class CtdNodeMoveTests
         var item = await scope.AddAsync(node: scope.Alpha);
         item.Placement.ReviseOperation(DocumentPlacementOperation.Delete);
         await scope.Placements.UpdateAsync(item.Placement);
-        File.Delete(item.Document.StoragePath);
+        RetainedPackageTestFiles.RetainFile(scope.Root, item.Document.StoragePath);
         var result = await scope.Service.MoveAsync(item.Placement.Id, new(scope.Alpha.NodeInstanceId, 7, 1));
         Assert.Equal(item.Document.StoragePath, result.TargetPath);
         Assert.Equal(2, result.WorkspaceRevision);
@@ -228,7 +312,7 @@ public sealed class CtdNodeMoveTests
         using var scope = new NodeMoveTestWorkspace();
         await scope.SeedAsync();
         var item = await scope.AddAsync(node: scope.Alpha);
-        if (reason == "missing") File.Delete(item.Document.StoragePath);
+        if (reason == "missing") RetainedPackageTestFiles.RetainFile(scope.Root, item.Document.StoragePath);
         if (reason == "unresolved-lifecycle")
         {
             item.Placement.ReviseOperation(DocumentPlacementOperation.Replace);
@@ -286,15 +370,7 @@ public sealed class CtdNodeMoveTests
         Directory.CreateDirectory(Path.GetDirectoryName(link)!);
         var sentinel = Path.Combine(outside.Root, "specification.pdf");
         await File.WriteAllTextAsync(sentinel, "external");
-        if (OperatingSystem.IsWindows())
-        {
-            var info = new System.Diagnostics.ProcessStartInfo("cmd.exe") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-            foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, outside.Root }) info.ArgumentList.Add(argument);
-            using var process = System.Diagnostics.Process.Start(info)!;
-            await process.WaitForExitAsync();
-            Assert.Equal(0, process.ExitCode);
-        }
-        else Directory.CreateSymbolicLink(link, outside.Root);
+        var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(scope.Root, link, outside.Root, outside.Root);
         try
         {
             await Assert.ThrowsAsync<RATools.Application.Documents.DocumentStorageBoundaryException>(() =>
@@ -302,6 +378,6 @@ public sealed class CtdNodeMoveTests
             Assert.Equal("external", await File.ReadAllTextAsync(sentinel));
             Assert.True(File.Exists(item.Document.StoragePath));
         }
-        finally { Directory.Delete(link); }
+        finally { ownedLink.Dispose(); }
     }
 }

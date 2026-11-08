@@ -43,6 +43,32 @@ public sealed class NodeFileMoveJournal(IWorkspacePathPolicy policy)
         }).ToArray();
     }
 
-    public void Complete(SubmissionApplication application, Guid placementId) => File.Delete(policy.EnsureAllowed(
-        Path.Combine(DirectoryPath(application), placementId.ToString("N") + ".json")));
+    public void Complete(SubmissionApplication application, Guid placementId)
+    {
+        var directory = Path.GetFullPath(DirectoryPath(application));
+        var path = Path.Combine(directory, placementId.ToString("N") + ".json");
+        policy.EnsureAllowed(path);
+        EnsureNoLinks(path);
+        if (!File.Exists(path)) return;
+        // Completed evidence is retained outside the top-level pending inventory.
+        // A failed move leaves the original record pending for recovery.
+        var recycle = Path.Combine(directory, "_recycle");
+        policy.EnsureAllowed(recycle); EnsureNoLinks(recycle);
+        Directory.CreateDirectory(recycle); EnsureNoLinks(recycle);
+        var destination = Path.Combine(recycle, placementId.ToString("N") + "-" + Guid.NewGuid().ToString("N") + ".json");
+        policy.EnsureAllowed(destination);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(Path.GetDirectoryName(path), directory, comparison) ||
+            !string.Equals(Path.GetDirectoryName(destination), recycle, comparison))
+            throw new InvalidOperationException("Node move journal retention escaped its owning directory.");
+        EnsureNoLinks(path);
+        File.Move(path, destination);
+    }
+
+    private static void EnsureNoLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
+            if (Path.Exists(current) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("Node move journal retention must not traverse links.");
+    }
 }

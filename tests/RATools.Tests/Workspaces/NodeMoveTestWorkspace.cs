@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
@@ -18,7 +19,7 @@ namespace RATools.Tests.Workspaces;
 
 internal sealed class NodeMoveTestWorkspace : IDisposable
 {
-    public string Root { get; } = Path.Combine(Path.GetTempPath(), "node-move-" + Guid.NewGuid().ToString("N"));
+    public string Root { get; } = RetainedPackageTestFiles.Create();
     public SubmissionApplication Application { get; }
     public IApplicationRepository Applications { get; }
     public IDocumentRepository Documents { get; }
@@ -87,7 +88,7 @@ internal sealed class NodeMoveTestWorkspace : IDisposable
         return intent;
     }
 
-    public void Dispose() => Directory.Delete(Root, recursive: true);
+    public void Dispose() => RetainedPackageTestFiles.RetainDirectory(Root);
 }
 
 internal sealed class FaultingFiles : IFileStorage
