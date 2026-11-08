@@ -8,7 +8,7 @@ import zipfile
 
 root = Path.cwd()
 binding = json.loads((root / 'job-config.json').read_text(encoding='utf-8-sig'))['verifiedFrontend']
-if not re.fullmatch(r'/(data/home|tmp)/ratools-remote/[a-zA-Z0-9_-]+', binding['remote']):
+if not re.fullmatch(r'/(data/home|tmp|dev/shm)/ratools-remote/[a-zA-Z0-9_-]+', binding['remote']):
     raise RuntimeError('Frontend evidence root is outside the allowed run roots')
 previous = Path(binding['remote'])
 for path in [previous, *previous.parents]:

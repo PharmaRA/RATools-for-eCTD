@@ -2,13 +2,14 @@
 param(
     [Parameter(Mandatory)][ValidateSet('test', 'build')][string]$Task,
     [ValidateSet('frontend', 'linux-platform', 'linux-resources', 'backend-browser', 'postgres-platform', 'backend-pg-browser')][string]$Scope = 'frontend',
-    [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'insta01',
-    [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
+    [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Machine = 'm_agquz43gf246rsedwy3bkathci',
+    [ValidateSet('/data/home/ratools-remote', '/tmp/ratools-remote', '/dev/shm/ratools-remote', IgnoreCase = $false)][string]$RemoteRoot = '/data/home/ratools-remote',
     [string]$CliPath,
     [string[]]$TestFiles = @('src/ErrorBoundary.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx'),
     [string[]]$LintFiles = @(),
     [ValidatePattern('^[0-9]{8}T[0-9]{6}-[a-f0-9]{32}$')][string]$VerifiedFrontendRun,
     [switch]$BrowserProbe,
+    [switch]$Foreground,
     [ValidateRange(1, 180)][int]$WaitMinutes = 30,
     [string]$Resume
 )
@@ -16,6 +17,7 @@ $ErrorActionPreference = 'Stop'
 if ($BrowserProbe -and $Task -ne 'build') { throw 'BrowserProbe requires -Task build so it uses the current production output.' }
 if ($Scope -ne 'frontend' -and ($BrowserProbe -or $LintFiles.Count)) { throw 'BrowserProbe and LintFiles require frontend scope.' }
 if ($VerifiedFrontendRun -and ($Task -ne 'test' -or $Scope -ne 'backend-pg-browser' -or $Resume)) { throw 'VerifiedFrontendRun requires a new backend-pg-browser test.' }
+if ($Foreground -and ($Resume -or $Scope -notin @('postgres-platform', 'linux-platform'))) { throw 'Foreground requires a new bounded postgres-platform or linux-platform task.' }
 $repo = Split-Path -Parent $PSScriptRoot
 # An already-running parent application may not inherit a newly persisted user
 # variable. Pass only this named variable to children, never print or serialize it.
@@ -70,7 +72,7 @@ if ($Resume) {
     if (-not $resumePath.StartsWith($evidenceRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Resume must name a run.json under .artifacts/remote-check.' }
     $state = Get-Content -LiteralPath $resumePath -Raw | ConvertFrom-Json
     if ($state.machine -ne $Machine -or $state.task -ne $Task -or (Resolve-CheckScope $state.scope) -ne $Scope -or $state.jobId -notmatch '^[a-zA-Z0-9_-]+$' -or
-        $state.remote -cnotmatch '^/(data/home|tmp)/ratools-remote/[a-zA-Z0-9_-]+$' -or
+        $state.remote -cnotmatch '^/(data/home|tmp|dev/shm)/ratools-remote/[a-zA-Z0-9_-]+$' -or
         $state.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Resume state does not match the requested job.' }
     $evidence = Split-Path -Parent $resumePath
 } else {
@@ -167,7 +169,7 @@ if ($Resume) {
         $config = @{ task = $Task; scope = $Scope; testFiles = $TestFiles; lintFiles = $LintFiles; browserProbe = [bool]$BrowserProbe; sourceHead = (& git -C $repo rev-parse HEAD) }
         if ($VerifiedFrontendRun) {
             $previous = Get-Content -LiteralPath (Join-Path $repo ".artifacts/remote-check/$VerifiedFrontendRun/run.json") -Raw | ConvertFrom-Json
-            if ($previous.machine -ne $Machine -or $previous.remote -cnotmatch '^/(data/home|tmp)/ratools-remote/[a-zA-Z0-9_-]+$' -or
+            if ($previous.machine -ne $Machine -or $previous.remote -cnotmatch '^/(data/home|tmp|dev/shm)/ratools-remote/[a-zA-Z0-9_-]+$' -or
                 $previous.sourceSha256 -notmatch '^[a-f0-9]{64}$') { throw 'Frontend source run identity is invalid.' }
             $config.verifiedFrontend = @{ remote = $previous.remote; sourceSha256 = $previous.sourceSha256 }
         }
@@ -187,11 +189,25 @@ if ($Resume) {
     if ($Scope -in @('linux-resources', 'backend-browser', 'backend-pg-browser')) {
         $jobCommand = "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/manager-launch.py $digest"
     }
-    $launch = Invoke-Instabox @('exec', $Machine, '--background', '--json', '--cwd', $remote, '--', $jobCommand)
-    Require-Transport $launch 'Background job launch'
-    $job = $launch.Output | ConvertFrom-Json
-    $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; jobId = $job.jobId; sourceSha256 = $digest; sourceHead = $config.sourceHead;
+    $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; sourceSha256 = $digest; sourceHead = $config.sourceHead;
         command = $jobCommand; entrySha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    if ($Foreground) {
+        $state.execution = 'foreground'
+        $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'run.json')
+        $launch = Invoke-Instabox @('exec', $Machine, '--json', '--timeout', '600', '--cwd', $remote, '--', $jobCommand)
+        $foregroundResult = $launch.Output | ConvertFrom-Json
+        $receipt = @{ cliExitCode = $launch.Code }
+        foreach ($key in @('exitCode', 'timedOut', 'truncated', 'oomKilled', 'durationMs')) { $receipt[$key] = $foregroundResult.$key }
+        $receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'foreground-execution.json')
+        if ($null -eq $foregroundResult.exitCode -or $launch.Code -ne $foregroundResult.exitCode -or
+            $foregroundResult.timedOut -cne $false -or $foregroundResult.truncated -cne $false -or
+            $foregroundResult.oomKilled -cne $false) { throw 'Foreground result is incomplete; retain evidence and inspect task processes before retrying.' }
+    } else {
+        $launch = Invoke-Instabox @('exec', $Machine, '--background', '--json', '--cwd', $remote, '--', $jobCommand)
+        Require-Transport $launch 'Background job launch'
+        $job = $launch.Output | ConvertFrom-Json
+        $state.jobId = $job.jobId
+    }
     $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'run.json')
 }
 
@@ -200,16 +216,22 @@ Write-Host "Command: $(if ($state.command) { $state.command } else { 'python3 sc
 Write-Host "Evidence: $evidence; remote: $($state.remote)"
 $deadline = [DateTime]::UtcNow.AddMinutes($WaitMinutes)
 do {
-    $wait = Invoke-Instabox @('jobs', 'wait', $Machine, $state.jobId, '--timeout', '20s', '--json')
-    $finished = $null
-    try { $finished = $wait.Output | ConvertFrom-Json } catch { }
-    $hasFinalRecord = $null -ne $finished -and $finished.jobId -eq $state.jobId -and $null -ne $finished.exitCode
+    if ($Foreground) {
+        $wait = @{ Code = $launch.Code }
+        $finished = $foregroundResult
+        $hasFinalRecord = $true
+    } else {
+        $wait = Invoke-Instabox @('jobs', 'wait', $Machine, $state.jobId, '--timeout', '20s', '--json')
+        $finished = $null
+        try { $finished = $wait.Output | ConvertFrom-Json } catch { }
+        $hasFinalRecord = $null -ne $finished -and $finished.jobId -eq $state.jobId -and $null -ne $finished.exitCode
+    }
     if ($wait.Code -eq 124 -and -not $hasFinalRecord) {
         Write-Host 'Remote job still running; waiting for its final status.'
     } else {
         # A job can itself exit 3 or 124: a matching final record takes precedence.
         if (-not $hasFinalRecord) { throw "Remote job state unavailable/mismatched (CLI exit $($wait.Code)); resume using run.json." }
-        $finished | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $evidence 'job-result.json')
+        if (-not $Foreground) { $finished | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $evidence 'job-result.json') }
         Write-Host "Remote job ended with exit $($finished.exitCode); retrieving evidence."
         $downloadDirectory = $evidence
         if (Test-Path -LiteralPath (Join-Path $downloadDirectory 'results')) {
