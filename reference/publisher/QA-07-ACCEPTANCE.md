@@ -2,7 +2,7 @@
 
 Recorded 2026-11-07. Backend baseline `a2a05c5`; browser completion-state repair `a07b3c2`. QA-07 remains **in progress**, not fully accepted.
 
-Latest checkpoint (2026-11-08): Windows 1,641 selected cases, Linux PostgreSQL 107 cases and the independent Linux filesystem case establish combined coverage of 1,744 cases after accounting for overlap; **80 native-related cases remain unqualified**. Fresh NuGet restore, current Linux MSBuild and bounded environment probes passed. This is not a single unfiltered full-suite run. See [environment recovery](QA-07-ENVIRONMENT-RECOVERY.md). QA-07 remains open.
+Latest checkpoint (2026-11-09): reviewed Linux qpdf54 + PostgreSQL/qpdf7 add 61 cases to the previous combined coverage, reaching **1,805/1,824; 19 remain unqualified**. The count explicitly maps the reviewed migration-test rename and preserves parameterized-case multiplicity. Current Linux resource probes separately pass 3+3+1. Fresh NuGet restore, actual Linux MSBuild and Development native browser download/API+PG restart passed. This is not a single unfiltered full-suite run. See [native acceptance and exact remaining cases](QA-07-NATIVE-ACCEPTANCE.md), [environment recovery](QA-07-ENVIRONMENT-RECOVERY.md), and [browser evidence](FINALIZATION-ACTUAL-BROWSER.md). Windows content/native protection, full-suite and official/external/Formal qualification keep QA-07 open.
 
 ## Verified checks
 

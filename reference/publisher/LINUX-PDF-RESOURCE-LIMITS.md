@@ -32,3 +32,25 @@ Economic read-only review of code and final evidence PASS. Evidence is in that r
 Earlier run141035 failed before tool execution due to cross-hierarchy migration; it is not a resource pass. Run141531 had passing child checks but --pipe waited indefinitely on a retained unit; its launcher was explicitly terminated with exit143 and the summary-binding check rejected overall success. The replacement manager-launch receipt path passed in142045;142441 additionally proves the real polling-failure cleanup. All artifacts remain preserved.
 
 This qualifies the **actual qpdf process host with controlled helper workloads**. It does not establish actual qpdf12.4.1 PDF output, Python3.11.9/PyMuPDF content execution/OCR, all resource workloads, an exact cumulative CPU cutoff, Windows regression, full MSBuild or Recommended-analyzer parity. Those gates remain distinct.
+
+
+## Current foreground revalidation — 2026-11-09
+
+`pwsh -NoProfile -File scripts/remote-check.ps1 -Task test -Scope linux-resources -RemoteRoot /dev/shm/ratools-remote -Foreground -WaitMinutes 1`
+
+Run `20261109T000339-152b9f5adc114109be2c2d540197c4c2` passed resource3,
+process-tree3 and injected manager-fault1. The actual foreground transport
+completed in24.405s without timeout/truncation/OOM. Four stages exited zero;
+all788 source-manifest entries match the archive and current files in final
+read-only review. Memory pressure recorded oom_kill4/groupkill1; sampled CPU
+usage was201974us against200000us; accounting fault recovered its slot. All
+five recorded groups were populated0. Injected poll exit5 stopped the worker
+and migrated child, and the outer manager had MainPID0/exit0/timeout480.
+Source archive SHA256: `5ce232d10b68995a2e97fb5dd5fcd89d2ec411e5ac57c61097a4d7c2235fec72`.
+
+The launcher now rejects existing unit/resource names before launch or cleanup,
+includes launch failures in its cleanup guard, and uses480s inside the600s CLI
+foreground deadline. Background retains1800s. This is current direct-csc
+resource-host verification; these seven probes do not add backend xUnit cases
+or qualify Windows content. Actual qpdf54+PG/qpdf7 is a separate run documented
+in [QA-07-NATIVE-ACCEPTANCE.md](QA-07-NATIVE-ACCEPTANCE.md).

@@ -84,3 +84,8 @@ is maintained in `docs/plans/quality-improvement.md`.
 Evidence: `.artifacts/qa-07-official-sources/20261108T112504Z-07fb0ab5a4384a81bcd690631a3f8b26/receipts.json` and four retained `.response` files. Both URLs above were requested directly and through the local port 7890 proxy. All four requests ended at `https://www.fda.gov/apology_objects/abuse-detection-apology.html`, returned HTTP 404 and the same 10 non-PDF bytes, SHA-256 `493fda53120050f85836032324409be6c6484f90a0755ae0c6a673ba7626818b`. Requested/final URLs, UTC, response size, status and PDF magic checks are recorded.
 
 No FDA original was obtained. Repeated commentary claiming an actual search receipt for “4.7 / 2026-10-16” had no corresponding search result and is withdrawn. This checkpoint relies only on the retained download receipts, makes no current-version assertion, and leaves the official-source and Formal gates open. The redirect identifies the observed response endpoint; it does not independently establish why access failed.
+
+
+## Remote Linux retry after environment recovery
+
+On 2026-11-08 the same two FDA URLs were also requested from the recovered Linux machine. Both returned HTTP404 at the same abuse-detection endpoint, with the same10 non-PDF bytes and SHA-256 `493fda53120050f85836032324409be6c6484f90a0755ae0c6a673ba7626818b`. Receipts and responses were downloaded under `.artifacts/qa-07-official-sources/remote-fda-20261108T231809-570bfd87bb3c42039e27513d676c2fc1/`. This establishes an additional actual network attempt, not a current FDA version or original-source acquisition. The source and external Formal gates remain open.

@@ -1,9 +1,13 @@
 # QA-07 environment recovery — 2026-11-08
 
 Remote execution, isolated PostgreSQL, fresh NuGet restore and current Linux
-MSBuild/PostgreSQL regression are now verified. QA-07 remains open: these checks
-do not qualify the 80 remaining native PDF cases, an unfiltered backend run,
-current combined native resource/browser/database execution, or Formal use.
+MSBuild/PostgreSQL regression are now verified. The later [native acceptance](QA-07-NATIVE-ACCEPTANCE.md)
+adds qpdf54 + PostgreSQL/qpdf7 and current Linux resource probes: combined backend
+coverage is now 1,805/1,824, with 19 Windows content/native cases unqualified.
+Development native browser download and API/PG restart also passed. QA-07 remains
+open for Windows native cleanup protection, unfiltered full-suite execution,
+official/external qualification and Formal use. Historical counts below describe
+their individual checkpoints.
 
 ## Environment and execution
 
