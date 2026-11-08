@@ -23,6 +23,7 @@ using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
 
 using RATools.Tests.TestDoubles;
+using RATools.Tests.PackageValidation;
 
 namespace RATools.Tests.Publishing.EuRegional;
 
@@ -35,8 +36,7 @@ public sealed class EuPublishEndToEndTests
     [Fact]
     public async Task ExecuteAsync_RejectsSharedOnlyEuSequenceWithoutRegionalHead()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-eu-e2e-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(root);
+        var root = RetainedPackageTestFiles.Create();
 
         try
         {
@@ -114,10 +114,7 @@ public sealed class EuPublishEndToEndTests
         }
         finally
         {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
+            RetainedPackageTestFiles.RetainDirectory(root);
         }
     }
 

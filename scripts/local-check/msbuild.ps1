@@ -20,7 +20,7 @@ if($RunSelectedTests -and $TestGroup -eq 'contracts') { $summary.task='msbuild-c
 if($RunSelectedTests -and $TestGroup -eq 'import') { $summary.task='msbuild-import'; $summary.scope='Windows actual MSBuild plus real VSTest for 3 explicit classes/42 expected import and lifecycle cases; InMemory and EF InMemory provider; not PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'nodes') { $summary.task='msbuild-nodes'; $summary.scope='Windows actual MSBuild plus real VSTest for 2 explicit classes/34 expected node publication and import cases; InMemory; not PostgreSQL, full suite or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'package') { $summary.task='msbuild-package'; $summary.scope='Windows actual MSBuild plus real VSTest for 6 explicit classes/189 expected independent package validation cases; retained fixture files; not PostgreSQL, full suite, fresh restore or Formal qualification' }
-if($RunSelectedTests -and $TestGroup -eq 'publishing') { $summary.task='msbuild-publishing'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 explicit classes/70 expected publication cases; retained fixture files and InMemory stores; not PostgreSQL, full suite, fresh restore or Formal qualification' }
+if($RunSelectedTests -and $TestGroup -eq 'publishing') { $summary.task='msbuild-publishing'; $summary.scope='Windows actual MSBuild plus real VSTest for 8 explicit classes/71 expected publication cases; retained fixture files and InMemory stores; not PostgreSQL, full suite, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-storage'; $summary.scope='Windows actual MSBuild plus real VSTest for 5 local file upload retention cases; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
@@ -205,8 +205,9 @@ public static class MsbuildDeleteAccessProbe {
                 'RATools.Tests.Publishing.PackageModel.EctdPackageModelBuilderTests'=19
                 'RATools.Tests.Publishing.MultiInstanceRoundTripTests'=2
                 'RATools.Tests.Publishing.PublishJobServiceRealEctdIntegrationTests'=1
+                'RATools.Tests.Publishing.EuRegional.EuPublishEndToEndTests'=1
             }
-            $expectedTotal=70
+            $expectedTotal=71
             foreach($path in @('reference/publisher/contract-examples.json','reference/publisher/package-rules-v1.json','reference/publisher/package-rules-v1.sha256')) { Fingerprint (Join-Path $repo $path) }
         }
         if($TestGroup -eq 'storage') {
