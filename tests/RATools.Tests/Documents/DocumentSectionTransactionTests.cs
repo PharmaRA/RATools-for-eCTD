@@ -146,7 +146,7 @@ public sealed class DocumentSectionTransactionTests
             var source = await workspace.AddDocumentAsync("0000", "m1.2", "move.txt", "move payload");
             var connection = new SqliteConnection("Data Source=:memory:");
             await connection.OpenAsync();
-            var database = new RAToolsDbContext(new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).Options);
+            var database = new RAToolsDbContext(new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>().Options);
             await database.Database.EnsureCreatedAsync();
             var applications = new EfCoreApplicationRepository(database);
             var documents = new EfCoreDocumentRepository(database);

@@ -101,7 +101,7 @@ public sealed class DurablePublishJobQueueTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).Options;
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>().Options;
         await using var firstContext = new RAToolsDbContext(options);
         await firstContext.Database.EnsureCreatedAsync();
         var firstRepository = new EfCorePublishJobRepository(firstContext);
@@ -134,7 +134,7 @@ public sealed class DurablePublishJobQueueTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).Options;
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>().Options;
         await using var context = new RAToolsDbContext(options);
         await context.Database.EnsureCreatedAsync();
         var repository = new EfCorePublishJobRepository(context);
@@ -165,7 +165,7 @@ public sealed class DurablePublishJobQueueTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).Options;
+        var options = new DbContextOptionsBuilder<RAToolsDbContext>().UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>().Options;
         await using var context = new RAToolsDbContext(options);
         await context.Database.EnsureCreatedAsync();
         var repository = new EfCorePublishJobRepository(context);

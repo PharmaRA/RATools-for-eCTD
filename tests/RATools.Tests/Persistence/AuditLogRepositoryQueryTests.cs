@@ -164,7 +164,7 @@ public sealed class AuditLogRepositoryQueryTests
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
         var options = new DbContextOptionsBuilder<RAToolsDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>()
             .Options;
         await using var dbContext = new RAToolsDbContext(options);
         await dbContext.Database.EnsureCreatedAsync();

@@ -112,7 +112,7 @@ public sealed class EfCorePersistenceTransactionTests
     private static async Task<RAToolsDbContext> CreateDbContextAsync(SqliteConnection connection)
     {
         var options = new DbContextOptionsBuilder<RAToolsDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>()
             .Options;
         var dbContext = new RAToolsDbContext(options);
         await dbContext.Database.EnsureCreatedAsync();

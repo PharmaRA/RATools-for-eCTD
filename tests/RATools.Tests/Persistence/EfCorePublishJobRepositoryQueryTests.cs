@@ -157,7 +157,7 @@ public sealed class EfCorePublishJobRepositoryQueryTests
         params IInterceptor[] interceptors)
     {
         var options = new DbContextOptionsBuilder<RAToolsDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connection).ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCustomizer, RATools.Tests.TestDoubles.SqliteTestModelCustomizer>()
             .AddInterceptors(interceptors)
             .Options;
         var dbContext = new RAToolsDbContext(options);
