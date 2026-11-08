@@ -144,3 +144,6 @@ Current Python content processing deliberately refuses Linux in production
 `PdfContentProcess` and `PythonPdfContentEngine`. Installing Python alone cannot
 qualify that capability. Native tool enforcement, current combined browser/PG/
 resources, full-suite and official/external Formal gates remain separate.
+
+
+2026-11-08 当前浏览器补验：新前端build215950类型检查/29预算通过，静态产物在Linux Chromium运行；当前API/Migrator来自PG最终实际MSBuild且111/52输出摘要固定。InMemory223734为7browser+3ZIP/PDF通过；PG230609-61d082f8为8browser+3通过，原生下载completed、ZIP69937B，API/PG重启后26584B报告逐字节一致、workspace/manifest/versions不变，PG/profile/阶段进程残留均空。首轮profile socket过长和缺Migrator依赖失败保留，短唯一根及完整独立migrator输出修复；未放宽seccomp。精确SHA和证据见[当前浏览器验收](FINALIZATION-ACTUAL-BROWSER.md)。本项关闭选定Development原生下载与当前API/PG进程重启，不代表Formal、机器重启/崩溃、复杂PDF或全部资源/native联合。

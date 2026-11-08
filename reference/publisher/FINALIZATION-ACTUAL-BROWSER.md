@@ -68,3 +68,70 @@ The actual report endpoint is read before and after restart, with HTTP200 and ex
 The PostgreSQL adapter is confined to native database processes. Product API/browser/migrator inherit the no-delete seccomp guard, without the PostgreSQL preload shim. Four database shutdown process lists and the final remaining-native list are empty;45 recycle entries are retained. `postgres-platform.json`, `backend-browser.json`, `download-pdf.json`, migration logs and both full report files are downloaded locally. Prior135216-30d76a491bb3427d987c4c9de1c9d111 ran successfully but lacked explicit migration-count and report-byte assertions; it is supporting evidence, superseded by this final run.
 
 This closes the selected **PostgreSQL-backed Development browser plus API/database process-restart** gate. It does not cover machine reboot, crash/power-loss recovery, all historical migrations, the complete backend/frontend suites, Windows, complex PDF cases or Formal successful delivery/receipts. Compilation remains the documented Linux direct-csc path, not MSBuild/analyzer parity. No production business code or qualification gate changed in this subtask.
+
+
+## 2026-11-08 current MSBuild/browser/native-download acceptance
+
+Current API and DatabaseMigrator binaries now come from the actual Linux MSBuild
+run recorded in [QA-07-ENVIRONMENT-RECOVERY.md](QA-07-ENVIRONMENT-RECOVERY.md), not
+from the historical direct-csc backend build. Before reuse, all 862 source inputs
+were rechecked; 111 API output files and 52 independent migrator output files
+were bound to SHA-256 inventories. Independent copies are used for the browser.
+The original API deps manifest is retained, with only the test-only ephemeral
+DataProtection startup assembly added to its copied manifest. Product source and
+business qualification gates are unchanged.
+
+Frontend evidence is `.artifacts/local-check/browser-build-20261108T215950-044b983f83bb492b834cb102018ab983/`:
+217 input hashes (211 frontend and six supporting inputs) match current files,
+193 app roots plus one node root have zero TypeScript diagnostics, and all 29
+original production budgets pass. Build Job exit0/stopped/forcedfalse. Thirty
+static assets are bound to the uploaded browser archive. This is a **Windows
+production frontend build running in a Linux browser**, not a Linux frontend
+build or fresh frontend installation claim.
+
+InMemory browser run
+`.artifacts/local-check/linux-browser-20261108T223734-eca83af56b5045bdac0651d794110a83/`
+passes seven checks plus three independent ZIP/PDF checks. Native Chromium emits
+`Browser.downloadProgress` with `state=completed`; the persisted ZIP is 69,937
+bytes, SHA-256 `261ff5d06a46e076e0dc6da0db211d4cfb2668718f49c44d37ce4f4d8ec1ca88`.
+Both ZIP and original 598-byte synthetic PDF were retrieved locally. Source
+archive SHA-256 is `91e237776124760fe753bfe87379200dceb562c7f2ca5e07ec48d23e235b5bb9`.
+First run `222822-fc91c4e4a8894b2cb0ba090c9d66e608` passed upload/assembly/writer/
+validation but Chromium could not create its too-long Unix socket path. The next
+run used a unique short `/dev/shm/rb-*` root. Failed profile/crash evidence remains;
+seccomp was not relaxed.
+
+Current PostgreSQL restart run
+`.artifacts/local-check/linux-pg-browser-20261108T230609-61d082f80708478bb997a3d41c323869/`
+passes **eight browser checks and three ZIP/PDF checks**, overall exit0, no timeout,
+truncation or OOM. A unique database on the verified PG16.15 cluster receives 31
+migrations; after API and database clean restart, the migrator applies zero.
+The API PID changes 113137 to 113473. Full workspace, immutable manifest and
+finalized-version list remain equal; the browser reloads and reopens the snapshot.
+Both before/after report files are exactly 26,584 bytes and byte-identical,
+SHA-256 `c18e08ada6317f7e8593989bcbdb2e8ea86e8a60ff4acc762597fe6a1aa9a0ca`.
+The native download completes and the local ZIP is 69,937 bytes,
+SHA-256 `31b6917f3ed2f31a47e8b85caa88cdd87ed47de434f1ed126efb11ae8d1fbbd3`.
+Its one PDF is byte-identical to the uploaded synthetic fixture, and backbone
+href/MD5 match. Source archive SHA-256:
+`0d5df197527df7d508cb321dffdeb45728c1c410752eb2b208a4e84795e67327`.
+
+Two PG shutdown lists, the coordinator native list, outer PG list, all three
+stage process groups and Chromium-profile list are empty. The task acquires a
+lifecycle marker only after refusing any existing PG instance; outer cleanup
+can therefore stop owned PG workers even if the coordinator times out. The exact
+no-delete.py launch and source guard hash are retained. Timeout cleanup is
+reviewed code, not a dynamically injected timeout acceptance claim.
+
+First PG browser run `230046-58abc31c3b3e4ebf876acd8a7f4b9b10` failed before product
+migration because copying only the three migrator main files omitted its
+configuration dependency. The final run preserves the complete 52-file migrator
+output separately and points the existing browser protocol to it. That earlier
+failure and its clean PG shutdown remain recorded.
+
+These results close the current Development native browser download and selected
+PostgreSQL/API process-restart gates. They do not qualify machine reboot/crash
+recovery, complex PDF content/OCR, the complete native test suite, a single
+combined resources/native/database run, or Formal successful delivery/receipts.
+The InMemory accepted driver predates the added PG branch; each source archive
+binds its own result. Only the final PG run covers the current PG driver branch.

@@ -7,7 +7,7 @@ import { startProcess, fetchDeadline as fetch } from './browser-process.mjs'
 
 const root = resolve('..'), results = resolve('../results'), backend = resolve('../backend')
 const sdk = '/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423'
-const workspace = `${root}/browser-workspace`, profile = `/data/home/qa07-real-${randomUUID().slice(0, 8)}`
+const workspace = `${root}/browser-workspace`, profile = `${root}/browser-profile-${randomUUID().slice(0, 8)}`
 for (const path of [workspace, profile, `${profile}/tmp`, `${profile}/downloads`]) await mkdir(path)
 const apiKey = randomBytes(32).toString('hex') // Task-only auth, never persisted in evidence.
 const postgres = process.env.QA07_POSTGRES === 'true'
@@ -43,7 +43,7 @@ const stop = async process => {
   }
 }
 const migrate = async label => {
-  const child = startProcess(`${sdk}/dotnet`, [`${backend}/RATools.DatabaseMigrator.dll`], { env, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = startProcess(`${sdk}/dotnet`, [process.env.QA07_MIGRATOR_DLL || `${backend}/RATools.DatabaseMigrator.dll`], { env, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
   let log = ''; child.process.stdout.on('data', data => { log += data }); child.process.stderr.on('data', data => { log += data })
   try {
     await child.ready

@@ -182,3 +182,6 @@ known-cleanup-preconditions.json仅复核原清单22个文件，File/Directory.D
 
 
 2026-11-08 环境恢复与PG补验：旧insta01名称失效，既有机器ID远程true已成功，当前名linux；/data仍满，利用已检查的/dev/shm独立目录与前台执行继续，未扩容/重启/删除。Linux大小写源码方法3/3（新增1，另2与Windows重叠），前台linux-platform10/10，PG16.15环境初始化/重启通过。真正空缓存NuGet还原211940-ae195e02全部通过，六assets仅新缓存/官方源无fallback，四进程组无剩余，246清理对象保留。当前Linux实际API/Migrator/Tests三个MSBuild均0warning/error，独立迁移31/重复0，最终PG213745-c79498e2为28类107/107、0失败0跳过，名称多重集合一致，PG与各阶段进程全停，最终代码/证据只读review PASS。首轮116/99/17保留；七个旧降级断言改为最新迁移明确无条件拒绝并验证完整迁移历史/原数据不变，HTTP fixture改已有任务根，生产保护未改。旧SQL55000条件guard未覆盖。PG与Windows重叠5case（4methods），跨运行组合覆盖1744，剩80原生相关（71native+9PG/native）；不是同次无过滤全套。当前Python内容宿主仍仅支持Windows。完整入口、失败、摘要及边界见[环境恢复记录](QA-07-ENVIRONMENT-RECOVERY.md)。浏览器当前验收另记，Formal/官方/外部资格继续开放。
+
+
+2026-11-08 当前浏览器补验：新前端build215950类型检查/29预算通过，静态产物在Linux Chromium运行；当前API/Migrator来自PG最终实际MSBuild且111/52输出摘要固定。InMemory223734为7browser+3ZIP/PDF通过；PG230609-61d082f8为8browser+3通过，原生下载completed、ZIP69937B，API/PG重启后26584B报告逐字节一致、workspace/manifest/versions不变，PG/profile/阶段进程残留均空。首轮profile socket过长和缺Migrator依赖失败保留，短唯一根及完整独立migrator输出修复；未放宽seccomp。精确SHA和证据见[当前浏览器验收](FINALIZATION-ACTUAL-BROWSER.md)。本项关闭选定Development原生下载与当前API/PG进程重启，不代表Formal、机器重启/崩溃、复杂PDF或全部资源/native联合。
