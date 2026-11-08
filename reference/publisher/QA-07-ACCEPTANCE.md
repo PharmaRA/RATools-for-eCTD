@@ -6,6 +6,13 @@ Latest checkpoint (2026-11-09): reviewed Linux qpdf54 + PostgreSQL/qpdf7 add 61 
 
 ## Verified checks
 
+Windows native precondition update (2026-11-09): three restricted-token/ACL
+permission probes rejected the proposed guard. Even full restricting SID checks
+plus caller DELETE/DELETE_CHILD deny allowed `CREATE_NEW` with WRITE+DELETE on
+the returned handle. No actual deletion/native execution occurred, and all
+canaries were retained. The remaining19 are unrun; see the evidence and next
+prerequisite in [native acceptance](QA-07-NATIVE-ACCEPTANCE.md).
+
 | Scope | Result | Evidence under `.artifacts/qa-07-20261107/` |
 | --- | --- | --- |
 | Assembly and actual loopback HTTP | 55 passed | `assembly/tests.log` |

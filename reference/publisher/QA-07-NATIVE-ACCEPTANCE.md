@@ -108,3 +108,59 @@ This scope compiles four current backend layers via direct csc, not MSBuild.
 These seven probes are outside the 1,824-case baseline and do not replace the
 three Windows-specific tests. Deployment requirements and sampled-CPU limits
 remain as documented in [LINUX-PDF-RESOURCE-LIMITS.md](LINUX-PDF-RESOURCE-LIMITS.md).
+
+## Windows execution precondition: proposed token/ACL guard rejected
+
+Three actual permission probes are retained under
+`.artifacts/local-check/windows-native-permissions-20261109T002053-5fd752af838d496ab8adf854c6205f53/`.
+Each has its own `probe.ps1` and `result.json`; the second and third are in
+`caller-deny/` and `full-restricted/`. Original task-directory ACLs were backed
+up under `backups/qa-07-local-20261109/windows-native-permissions/` before changes.
+The probes used current-thread restricted-token impersonation, not native tool
+execution or a qualified restricted process launch.
+
+The proposed write-restricted token granted only the task's unique SID write
+access, with DELETE/DELETE_CHILD/WRITE_DAC/WRITE_OWNER denied for that SID and
+an Owner Rights rule limiting implicit owner access. Outside writes were denied,
+but existing-file DELETE and parent DELETE_CHILD requests still succeeded.
+Two stronger variants then added the current caller's DELETE/DELETE_CHILD deny;
+the last also removed WRITE_RESTRICTED to require full restricted-token checks.
+
+| Permission request | Write-restricted + caller deny | Full restricted + caller deny |
+| --- | --- | --- |
+| Task file write | Allowed | Allowed |
+| Existing task file DELETE | Denied (5) | Denied (5) |
+| Task directory DELETE_CHILD | Denied (5) | Denied (5) |
+| Outside file write | Denied (5) | Denied (5) |
+| Outside file DELETE | Allowed | Denied (5) |
+| CREATE_NEW with GENERIC_WRITE and DELETE | **Allowed** | **Allowed** |
+
+The creation-time request was exactly `0x40010000`. Each successful request
+only closed the returned handle: no DELETE_ON_CLOSE, disposition/deletion API,
+or move was invoked. All test files remain retained; the outside sentinel hash
+was unchanged. Explicit protected-DACL creation failed with access denied;
+subsequent error 2 means that file was absent, not a successful permission check.
+Final read-only review of source differences and all three receipts passed.
+
+Microsoft's [DeleteFileW documentation](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-deletefilew)
+explicitly describes obtaining requested DELETE access on a newly created
+file's returned handle even when inherited ACLs prevent reopening it for
+deletion. The official page and HTTP200/SHA-256/UTC receipt are retained beside
+these probes. The separately retained CreateRestrictedToken/CreateProcessAsUserW
+documentation informed the candidate; documentation alone was not counted as
+runtime protection.
+
+These probes **reject this token + ACL design as the native no-delete boundary**.
+Restricted-launching the entire VSTest tree does not resolve the demonstrated
+creation-time handle behavior. No qpdf/PyMuPDF/OCR native process or remaining
+19-case test was launched under this rejected design. An additional process
+wrapper would also change the existing four-process Job limit and inherited
+pipe tests; an assembly resolver proxy was not adopted. No production Windows
+code, system policy or tool installation was changed.
+
+The next prerequisite is a Windows execution boundary that rejects destructive
+native file operations, including creation-time delete access and inherited
+handles, while preserving the tested Job/process-tree behavior. This probe
+does not establish that all Windows isolation methods are impossible. Until
+that prerequisite is demonstrated, the remaining count stays **19** and QA-07
+remains open.
