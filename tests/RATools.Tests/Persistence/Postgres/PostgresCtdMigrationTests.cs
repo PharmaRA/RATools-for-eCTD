@@ -111,16 +111,15 @@ public sealed class PostgresCtdMigrationTests
         var applicationId = Guid.NewGuid();
         var documentId = Guid.NewGuid();
         var placementId = Guid.NewGuid();
-        var directory = Path.Combine(Path.GetTempPath(), $"ratools-ctd-upgrade-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(directory);
-        var path = Path.Combine(directory, "specification.pdf");
-        var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Publisher", "sequences", "0000", "m1", "us", "12-cover-letters", "cover.pdf");
-        File.Copy(source, path);
-        var originalBytes = await File.ReadAllBytesAsync(path);
-        var sha256 = Convert.ToHexString(SHA256.HashData(originalBytes)).ToLowerInvariant();
-        var md5 = Convert.ToHexString(MD5.HashData(originalBytes)).ToLowerInvariant();
+        var directory = RetainedPackageTestFiles.Create();
         try
         {
+            var path = Path.Combine(directory, "specification.pdf");
+            var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Publisher", "sequences", "0000", "m1", "us", "12-cover-letters", "cover.pdf");
+            File.Copy(source, path);
+            var originalBytes = await File.ReadAllBytesAsync(path);
+            var sha256 = Convert.ToHexString(SHA256.HashData(originalBytes)).ToLowerInvariant();
+            var md5 = Convert.ToHexString(MD5.HashData(originalBytes)).ToLowerInvariant();
             await using (var connection = new NpgsqlConnection(database.ConnectionString))
             {
                 await connection.OpenAsync();
@@ -182,10 +181,10 @@ public sealed class PostgresCtdMigrationTests
             Assert.Contains($"Applied {pendingAfterDowngrade} database migration(s)", await database.RunMigratorAsync());
             Assert.Empty(await upgraded.Database.GetPendingMigrationsAsync());
         }
-        finally { Directory.Delete(directory, recursive: true); }
+        finally { RetainedPackageTestFiles.RetainDirectory(directory); }
     }
 
-    private sealed class TemporaryDatabase(string connectionString, string adminConnectionString, string name) : IAsyncDisposable
+    private sealed class TemporaryDatabase(string connectionString) : IAsyncDisposable
     {
         public string ConnectionString { get; } = connectionString;
 
@@ -199,7 +198,7 @@ public sealed class PostgresCtdMigrationTests
             await using var command = new NpgsqlCommand($"CREATE DATABASE \"{name}\"", connection);
             await command.ExecuteNonQueryAsync();
             builder.Database = name;
-            return new TemporaryDatabase(builder.ConnectionString, admin, name);
+            return new TemporaryDatabase(builder.ConnectionString);
         }
 
         public RAToolsDbContext CreateContext() => new(new DbContextOptionsBuilder<RAToolsDbContext>().UseNpgsql(ConnectionString).Options);
@@ -226,12 +225,8 @@ public sealed class PostgresCtdMigrationTests
             return await output;
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            await using var connection = new NpgsqlConnection(adminConnectionString);
-            await connection.OpenAsync();
-            await using var command = new NpgsqlCommand($"DROP DATABASE \"{name}\" WITH (FORCE)", connection);
-            await command.ExecuteNonQueryAsync();
-        }
+        // Keep the uniquely named qualification database for inspection.
+        // No destructive cleanup is allowed, including on a failed test.
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

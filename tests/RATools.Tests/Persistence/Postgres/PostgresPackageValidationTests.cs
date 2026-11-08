@@ -42,7 +42,7 @@ public sealed class PostgresPackageValidationTests(PostgresFixture fixture)
             var report = await service.InspectAsync(lease.Run);
             Assert.True(await store.CompleteAsync(runId, lease.Token, lease.Owner, DateTime.UtcNow, report));
         }
-        File.Delete(files.PathOf("0000/index.xml"));
+        files.RetainMissingFile(files.PathOf("0000/index.xml"));
         await using var verify = fixture.CreateDbContext();
         var persisted = new EfCorePackageValidationStore(verify);
         Assert.NotNull(await persisted.GetReportJsonAsync(runId));
