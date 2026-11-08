@@ -7,13 +7,20 @@ import time
 
 root = Path.cwd()
 unit = 'ratools-' + root.name + '.service'
+timeout_seconds = int(sys.argv[2]) if len(sys.argv) > 2 else 1800
+if not 30 <= timeout_seconds <= 1800:
+    raise ValueError('Manager timeout must be between 30 and 1800 seconds')
 command = ['systemd-run', '--user', '--quiet', '--service-type=exec', '--unit=' + unit,
            '--property=RemainAfterExit=yes', '--working-directory=' + str(root),
            'python3', 'scripts/remote-check/no-delete.py', 'python3', 'scripts/remote-check/job.py', sys.argv[1]]
-subprocess.run(command, check=True, timeout=20)
 owned_group = Path('/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service') / ('ratools-' + root.name)
+existing = subprocess.run(['systemctl', '--user', 'show', unit, '--property=LoadState'],
+                          capture_output=True, text=True, timeout=10)
+if existing.stdout.strip() != 'LoadState=not-found' or owned_group.exists():
+    raise RuntimeError('Existing unit/resource name refused before launch or cleanup')
 try:
-    deadline = time.monotonic() + 1800
+    subprocess.run(command, check=True, timeout=20)
+    deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         response = subprocess.run(['systemctl', '--user', 'show', unit,
             '--property=ActiveState,SubState,ExecMainCode,ExecMainStatus,MainPID'], capture_output=True, text=True, check=True, timeout=10)
@@ -23,12 +30,12 @@ try:
             if owned_group.exists() and 'populated 1' in (owned_group / 'cgroup.events').read_text():
                 raise RuntimeError('Exited worker left live PDF resource descendants')
             receipt = root / 'results/manager-launch.json'
-            if receipt.parent.exists(): receipt.write_text(json.dumps({'unit': unit, 'state': state, 'exitCode': code}, indent=2))
+            if receipt.parent.exists(): receipt.write_text(json.dumps({'unit': unit, 'state': state, 'exitCode': code, 'timeoutSeconds': timeout_seconds}, indent=2))
             sys.exit(code)
         time.sleep(1)
     raise TimeoutError('User manager job exceeded its deadline')
 except Exception:
-    # Reached only after successful creation of this unique unit. Its tools can
+    # The unit name was confirmed unused before launch. Its tools can
     # have migrated into the task sibling subtree, so terminate both boundaries.
     try:
         subprocess.run(['systemctl', '--user', 'kill', '--kill-whom=all', '--signal=SIGKILL', unit], check=False, timeout=10)

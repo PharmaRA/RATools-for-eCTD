@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 if ($BrowserProbe -and $Task -ne 'build') { throw 'BrowserProbe requires -Task build so it uses the current production output.' }
 if ($Scope -ne 'frontend' -and ($BrowserProbe -or $LintFiles.Count)) { throw 'BrowserProbe and LintFiles require frontend scope.' }
 if ($VerifiedFrontendRun -and ($Task -ne 'test' -or $Scope -ne 'backend-pg-browser' -or $Resume)) { throw 'VerifiedFrontendRun requires a new backend-pg-browser test.' }
-if ($Foreground -and ($Resume -or $Scope -notin @('postgres-platform', 'linux-platform'))) { throw 'Foreground requires a new bounded postgres-platform or linux-platform task.' }
+if ($Foreground -and ($Resume -or $Scope -notin @('postgres-platform', 'linux-platform', 'linux-resources'))) { throw 'Foreground requires a new bounded postgres-platform, linux-platform or linux-resources task.' }
 $repo = Split-Path -Parent $PSScriptRoot
 # An already-running parent application may not inherit a newly persisted user
 # variable. Pass only this named variable to children, never print or serialize it.
@@ -188,6 +188,7 @@ if ($Resume) {
     $jobCommand = "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/job.py $digest"
     if ($Scope -in @('linux-resources', 'backend-browser', 'backend-pg-browser')) {
         $jobCommand = "python3 scripts/remote-check/no-delete.py python3 scripts/remote-check/manager-launch.py $digest"
+        if ($Foreground) { $jobCommand += ' 480' }
     }
     $state = @{ machine = $Machine; task = $Task; scope = $Scope; remote = $remote; sourceSha256 = $digest; sourceHead = $config.sourceHead;
         command = $jobCommand; entrySha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant() }
