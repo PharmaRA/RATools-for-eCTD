@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Net;
 using System.Net.Http.Json;
 using System.ComponentModel;
@@ -115,10 +116,7 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
         using var outsideRoot = new TemporaryDirectory();
         Directory.CreateDirectory(Path.Combine(outsideRoot.Path, "outside-child"));
         var linkPath = Path.Combine(allowedRoot.Path, "link");
-        if (!TryCreateDirectorySymlink(linkPath, outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, linkPath, outsideRoot.Path, outsideRoot.Path);
 
         var client = CreateClient(allowedRoot.Path, "local-dev-key");
         client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
@@ -142,10 +140,7 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
         using var outsideRoot = new TemporaryDirectory();
         Directory.CreateDirectory(Path.Combine(outsideRoot.Path, "outside-child"));
         var linkRoot = Path.Combine(tempRoot.Path, "link-root");
-        if (!TryCreateDirectorySymlink(linkRoot, outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(tempRoot.Path, linkRoot, outsideRoot.Path, outsideRoot.Path);
 
         var client = CreateClient(linkRoot, "local-dev-key");
         client.DefaultRequestHeaders.Add("X-RA-Tools-Api-Key", "local-dev-key");
@@ -401,24 +396,11 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
 
     private sealed record DirectoryResolutionResponse(string FullPath, bool IsAccessible);
 
-    private static bool TryCreateDirectorySymlink(string linkPath, string targetPath)
-    {
-        try
-        {
-            Directory.CreateSymbolicLink(linkPath, targetPath);
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException or Win32Exception)
-        {
-            return false;
-        }
-    }
-
     private sealed class TemporaryDirectory : IDisposable
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-security-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -428,7 +410,7 @@ public sealed class SecurityBoundaryTests : IClassFixture<WebApplicationFactory<
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

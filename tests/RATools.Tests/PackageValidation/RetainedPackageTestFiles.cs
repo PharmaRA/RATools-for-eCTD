@@ -59,6 +59,43 @@ internal static class RetainedPackageTestFiles
         Assert.True(Directory.Exists(expectedTarget));
     }
 
+    public static IDisposable CreateOwnedLink(string root, string link, string targetRoot, string target, bool directory = true)
+    {
+        ValidateChild(root, link); ValidateRoot(targetRoot);
+        if (!string.Equals(Path.GetFullPath(target), Path.GetFullPath(targetRoot), Comparison)) ValidateChild(targetRoot, target);
+        EnsureNoLinks(link); EnsureNoLinks(target);
+        Assert.False(Path.Exists(link));
+        Assert.True(directory ? Directory.Exists(target) : File.Exists(target));
+        if (directory && OperatingSystem.IsWindows())
+        {
+            var start = new System.Diagnostics.ProcessStartInfo("cmd.exe") { UseShellExecute = false, CreateNoWindow = true };
+            foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, target }) start.ArgumentList.Add(argument);
+            using var process = System.Diagnostics.Process.Start(start)!; process.WaitForExit(); Assert.Equal(0, process.ExitCode);
+        }
+        else if (directory) Directory.CreateSymbolicLink(link, target);
+        else File.CreateSymbolicLink(link, target);
+        return new OwnedLink(root, link, targetRoot, target, directory);
+    }
+
+    private sealed class OwnedLink(string root, string link, string targetRoot, string target, bool directory) : IDisposable
+    {
+        public void Dispose()
+        {
+            ValidateChild(root, link); ValidateRoot(targetRoot);
+            if (!string.Equals(Path.GetFullPath(target), Path.GetFullPath(targetRoot), Comparison)) ValidateChild(targetRoot, target);
+            EnsureNoLinks(Path.GetDirectoryName(link)!); EnsureNoLinks(target);
+            FileSystemInfo info = directory ? new DirectoryInfo(link) : new FileInfo(link);
+            Assert.True((info.Attributes & FileAttributes.ReparsePoint) != 0);
+            Assert.True(string.Equals(info.ResolveLinkTarget(returnFinalTarget: true)?.FullName, Path.GetFullPath(target), Comparison));
+            var originalTarget = info.LinkTarget;
+            var destination = Destination("_reviewed-links", Path.GetFileName(link));
+            if (directory) Directory.Move(link, destination); else File.Move(link, destination);
+            FileSystemInfo retained = directory ? new DirectoryInfo(destination) : new FileInfo(destination);
+            Assert.Equal(originalTarget, retained.LinkTarget);
+            Assert.True(directory ? Directory.Exists(target) : File.Exists(target));
+        }
+    }
+
     public static void AssertOnlyRecycledCaptures(string captureParent)
     {
         EnsureNoLinks(captureParent);

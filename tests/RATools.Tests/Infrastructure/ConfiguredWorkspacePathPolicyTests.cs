@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using Microsoft.Extensions.Options;
 using RATools.Infrastructure.Security;
 using RATools.Infrastructure.Storage;
@@ -57,7 +58,7 @@ public sealed class ConfiguredWorkspacePathPolicyTests
     [Fact]
     public void EnsureAllowed_RejectsSiblingWithSharedPrefix()
     {
-        var parent = Path.Combine(Path.GetTempPath(), $"ratools-policy-{Guid.NewGuid():N}");
+        var parent = RetainedPackageTestFiles.Create();
         var rootPath = Path.Combine(parent, "root");
         var siblingPath = Path.Combine(parent, "root-sibling");
         Directory.CreateDirectory(rootPath);
@@ -75,7 +76,7 @@ public sealed class ConfiguredWorkspacePathPolicyTests
         {
             if (Directory.Exists(parent))
             {
-                Directory.Delete(parent, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(parent);
             }
         }
     }
@@ -86,10 +87,7 @@ public sealed class ConfiguredWorkspacePathPolicyTests
         using var allowedRoot = new TemporaryDirectory();
         using var outsideRoot = new TemporaryDirectory();
         var linkPath = Path.Combine(allowedRoot.Path, "link");
-        if (!TryCreateDirectorySymbolicLink(linkPath, outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, linkPath, outsideRoot.Path, outsideRoot.Path);
 
         var policy = CreatePolicy([allowedRoot.Path]);
 
@@ -106,58 +104,13 @@ public sealed class ConfiguredWorkspacePathPolicyTests
         var targetPath = Path.Combine(outsideRoot.Path, "outside.txt");
         File.WriteAllText(targetPath, "outside content");
         var linkPath = Path.Combine(allowedRoot.Path, "link.txt");
-        if (!TryCreateFileSymbolicLink(linkPath, targetPath))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, linkPath, outsideRoot.Path, targetPath, directory: false);
 
         var policy = CreatePolicy([allowedRoot.Path]);
 
         var exception = Assert.Throws<InvalidOperationException>(() => policy.EnsureAllowed(linkPath));
 
         Assert.Contains("reparse point", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryCreateDirectorySymbolicLink(string linkPath, string targetPath)
-    {
-        try
-        {
-            Directory.CreateSymbolicLink(linkPath, targetPath);
-            return true;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-        catch (PlatformNotSupportedException)
-        {
-            return false;
-        }
-    }
-
-    private static bool TryCreateFileSymbolicLink(string linkPath, string targetPath)
-    {
-        try
-        {
-            File.CreateSymbolicLink(linkPath, targetPath);
-            return true;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-        catch (PlatformNotSupportedException)
-        {
-            return false;
-        }
     }
 
     private static ConfiguredWorkspacePathPolicy CreatePolicy(string[] roots)
@@ -170,7 +123,7 @@ public sealed class ConfiguredWorkspacePathPolicyTests
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-policy-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -180,7 +133,7 @@ public sealed class ConfiguredWorkspacePathPolicyTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

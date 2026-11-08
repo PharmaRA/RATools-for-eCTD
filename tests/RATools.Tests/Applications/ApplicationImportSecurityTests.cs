@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.ComponentModel;
 using Microsoft.Extensions.Options;
 using RATools.Application.Abstractions.Persistence;
@@ -35,10 +36,7 @@ public sealed class ApplicationImportSecurityTests
         using var outsideRoot = new TemporaryDirectory();
         await File.WriteAllTextAsync(Path.Combine(outsideRoot.Path, "index.xml"), "<ectd />");
         var sequenceLinkPath = Path.Combine(allowedRoot.Path, "0001");
-        if (!TryCreateDirectorySymlink(sequenceLinkPath, outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, sequenceLinkPath, outsideRoot.Path, outsideRoot.Path);
 
         var service = CreateImportService(allowedRoot.Path);
 
@@ -58,10 +56,7 @@ public sealed class ApplicationImportSecurityTests
         var outsideIndexPath = Path.Combine(outsideRoot.Path, "index.xml");
         await File.WriteAllTextAsync(outsideIndexPath, "<ectd />");
         var indexLinkPath = Path.Combine(sequencePath, "index.xml");
-        if (!TryCreateFileSymlink(indexLinkPath, outsideIndexPath))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, indexLinkPath, outsideRoot.Path, outsideIndexPath, directory: false);
 
         var service = CreateImportService(allowedRoot.Path);
 
@@ -87,10 +82,7 @@ public sealed class ApplicationImportSecurityTests
             """);
         await File.WriteAllTextAsync(Path.Combine(outsideRoot.Path, "leaf.pdf"), "outside");
         var docsLinkPath = Path.Combine(sequencePath, "docs");
-        if (!TryCreateDirectorySymlink(docsLinkPath, outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, docsLinkPath, outsideRoot.Path, outsideRoot.Path);
 
         var service = CreateImportService(allowedRoot.Path);
 
@@ -111,10 +103,7 @@ public sealed class ApplicationImportSecurityTests
         await File.WriteAllTextAsync(Path.Combine(sequencePath, "index.xml"), "<ectd />");
         var outsideXml = Path.Combine(outsideRoot.Path, "regional.xml");
         await File.WriteAllTextAsync(outsideXml, "<must-not-be-read");
-        if (!TryCreateFileSymlink(Path.Combine(regionalDirectory, "us-regional.xml"), outsideXml))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, Path.Combine(regionalDirectory, "us-regional.xml"), outsideRoot.Path, outsideXml, directory: false);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateImportService(allowedRoot.Path).ImportAsync(
             new ImportApplicationRequest(allowedRoot.Path, "us-fda-ectd-3.2.2", "Sponsor")));
@@ -137,10 +126,7 @@ public sealed class ApplicationImportSecurityTests
             </fda-regional>
             """);
         await File.WriteAllTextAsync(Path.Combine(outsideRoot.Path, "leaf.txt"), "must not be read");
-        if (!TryCreateDirectorySymlink(Path.Combine(regionalDirectory, "docs"), outsideRoot.Path))
-        {
-            return;
-        }
+        using var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, Path.Combine(regionalDirectory, "docs"), outsideRoot.Path, outsideRoot.Path);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateImportService(allowedRoot.Path).ImportAsync(
             new ImportApplicationRequest(allowedRoot.Path, "us-fda-ectd-3.2.2", "Sponsor")));
@@ -158,32 +144,6 @@ public sealed class ApplicationImportSecurityTests
             {
                 AllowedWorkspaceRoots = [allowedRoot]
             })));
-    }
-
-    private static bool TryCreateDirectorySymlink(string linkPath, string targetPath)
-    {
-        try
-        {
-            Directory.CreateSymbolicLink(linkPath, targetPath);
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException or Win32Exception)
-        {
-            return false;
-        }
-    }
-
-    private static bool TryCreateFileSymlink(string linkPath, string targetPath)
-    {
-        try
-        {
-            File.CreateSymbolicLink(linkPath, targetPath);
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException or Win32Exception)
-        {
-            return false;
-        }
     }
 
     private sealed class RejectingWorkspacePathPolicy : IWorkspacePathPolicy
@@ -227,7 +187,7 @@ public sealed class ApplicationImportSecurityTests
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ratools-import-security-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -237,7 +197,7 @@ public sealed class ApplicationImportSecurityTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }

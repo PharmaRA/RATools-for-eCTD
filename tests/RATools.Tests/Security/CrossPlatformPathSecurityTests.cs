@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,7 +41,7 @@ public sealed class CrossPlatformPathSecurityTests
         var sentinelPath = Path.Combine(outsideRoot.Path, "sentinel.txt");
         await File.WriteAllTextAsync(sentinelPath, "must remain unchanged");
         var linkPath = Path.Combine(allowedRoot.Path, "linked-workspace");
-        CreatePlatformDirectoryLink(linkPath, outsideRoot.Path);
+        var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(allowedRoot.Path, linkPath, outsideRoot.Path, outsideRoot.Path);
 
         try
         {
@@ -55,7 +56,7 @@ public sealed class CrossPlatformPathSecurityTests
         }
         finally
         {
-            DeleteDirectoryLink(linkPath);
+            ownedLink.Dispose();
         }
     }
 
@@ -73,7 +74,7 @@ public sealed class CrossPlatformPathSecurityTests
         var applicationRoot = Path.Combine(outputRoot.Path, ApplicationId.ToString("N"));
         Directory.CreateDirectory(applicationRoot);
         var linkPath = Path.Combine(applicationRoot, linkedApplicationChild);
-        CreatePlatformDirectoryLink(linkPath, outsideRoot.Path);
+        var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(outputRoot.Path, linkPath, outsideRoot.Path, outsideRoot.Path);
 
         try
         {
@@ -94,7 +95,7 @@ public sealed class CrossPlatformPathSecurityTests
         }
         finally
         {
-            DeleteDirectoryLink(linkPath);
+            ownedLink.Dispose();
         }
     }
 
@@ -108,11 +109,11 @@ public sealed class CrossPlatformPathSecurityTests
         var jobsRoot = Path.Combine(outputRoot.Path, ApplicationId.ToString("N"), "_jobs");
         Directory.CreateDirectory(jobsRoot);
         var staleLinkPath = Path.Combine(jobsRoot, Guid.NewGuid().ToString("N"));
-        CreatePlatformDirectoryLink(staleLinkPath, outsideRoot.Path);
-        Directory.SetLastWriteTimeUtc(outsideRoot.Path, DateTime.UtcNow.AddDays(-2));
+        var ownedLink = RetainedPackageTestFiles.CreateOwnedLink(outputRoot.Path, staleLinkPath, outsideRoot.Path, outsideRoot.Path);
 
         try
         {
+            Directory.SetLastWriteTimeUtc(outsideRoot.Path, DateTime.UtcNow.AddDays(-2));
             var before = CaptureFileSystemState(outsideRoot.Path);
             var writer = CreateWriter(outputRoot.Path, retainJobRuns: 1);
 
@@ -130,7 +131,7 @@ public sealed class CrossPlatformPathSecurityTests
         }
         finally
         {
-            DeleteDirectoryLink(staleLinkPath);
+            ownedLink.Dispose();
         }
     }
 
@@ -172,49 +173,6 @@ public sealed class CrossPlatformPathSecurityTests
                 ? char.ToUpperInvariant(character)
                 : character).ToArray());
 
-    private static void CreatePlatformDirectoryLink(string linkPath, string targetPath)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            Directory.CreateSymbolicLink(linkPath, targetPath);
-            return;
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        startInfo.ArgumentList.Add("/d");
-        startInfo.ArgumentList.Add("/c");
-        startInfo.ArgumentList.Add("mklink");
-        startInfo.ArgumentList.Add("/J");
-        startInfo.ArgumentList.Add(linkPath);
-        startInfo.ArgumentList.Add(targetPath);
-
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Unable to start mklink for the Windows junction test.");
-        var standardOutput = process.StandardOutput.ReadToEnd();
-        var standardError = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException(
-                $"Unable to create Windows junction (exit {process.ExitCode}): {standardOutput} {standardError}");
-        }
-    }
-
-    private static void DeleteDirectoryLink(string linkPath)
-    {
-        if (Directory.Exists(linkPath))
-        {
-            Directory.Delete(linkPath);
-        }
-    }
-
     private sealed record FileSystemEntryState(
         string RelativePath,
         FileAttributes Attributes,
@@ -226,7 +184,7 @@ public sealed class CrossPlatformPathSecurityTests
     {
         public TemporaryDirectory(string prefix)
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{prefix}-{Guid.NewGuid():N}");
+            Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
         }
 
@@ -236,7 +194,7 @@ public sealed class CrossPlatformPathSecurityTests
         {
             if (Directory.Exists(Path))
             {
-                Directory.Delete(Path, recursive: true);
+                RetainedPackageTestFiles.RetainDirectory(Path);
             }
         }
     }
