@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Security.AccessControl;
@@ -93,7 +94,7 @@ public sealed class PublishReportStoreTests
     [InlineData(true)]
     public async Task ReadAsync_ReadsArchivedReportAfterWorkDirectoryIsPruned(bool failedLogger)
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-report-retention-{Guid.NewGuid():N}");
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, $"publish-report-retention-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         try
         {
@@ -155,7 +156,7 @@ public sealed class PublishReportStoreTests
     [Trait("Category", "PathSecurity")]
     public async Task ReadAsync_RejectsArchivedReportOutsideAllowedWorkspace()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-report-boundary-{Guid.NewGuid():N}");
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, $"publish-report-boundary-{Guid.NewGuid():N}");
         var allowedRoot = Path.Combine(root, "allowed");
         Directory.CreateDirectory(allowedRoot);
         try
@@ -195,7 +196,7 @@ public sealed class PublishReportStoreTests
     [Fact]
     public async Task ReplacingExistingPackageRetainsItsOriginalZipBytes()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-report-package-{Guid.NewGuid():N}");
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, $"publish-report-package-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         try
         {
@@ -218,7 +219,7 @@ public sealed class PublishReportStoreTests
     [InlineData(true)]
     public async Task RetentionFailureAndUnownedDirectoryDoNotLosePublishedArtifacts(bool failedLogger)
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-report-failure-{Guid.NewGuid():N}");
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, $"publish-report-failure-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         try
         {
@@ -244,7 +245,7 @@ public sealed class PublishReportStoreTests
     private static void RetainFixture(string root)
     {
         var full = Path.GetFullPath(root);
-        var parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath()));
+        var parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(RetainedPackageTestFiles.ScratchParent));
         if (!string.Equals(Path.GetDirectoryName(full), parent, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
             !Path.GetFileName(full).StartsWith("publish-report-", StringComparison.Ordinal)) throw new InvalidOperationException("Unexpected fixture root.");
         if ((File.GetAttributes(full) & FileAttributes.ReparsePoint) != 0) throw new InvalidOperationException("Fixture links require inspection.");
@@ -260,7 +261,7 @@ public sealed class PublishReportStoreTests
     [SupportedOSPlatform("windows")]
     public async Task RetentionEnumerationDenied_DoesNotFailAlreadyGeneratedPackage()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"publish-report-enumeration-{Guid.NewGuid():N}");
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, $"publish-report-enumeration-{Guid.NewGuid():N}");
         var app = Guid.NewGuid();
         var jobs = Path.Combine(root, app.ToString("N"), "_jobs");
         Directory.CreateDirectory(jobs);

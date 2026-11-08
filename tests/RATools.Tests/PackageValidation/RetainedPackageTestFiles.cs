@@ -7,6 +7,19 @@ internal static class RetainedPackageTestFiles
     private static string Parent => Path.GetFullPath(Path.Combine(PackageRuleCatalogTests.Root, ".artifacts", "package-regression"));
     private static StringComparison Comparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
+    // Audited fixtures may move/recycle their own files. Keep them outside the
+    // runner's deny-delete TEMP, which continues to protect tool-owned scratch.
+    public static string ScratchParent
+    {
+        get
+        {
+            var path = Path.GetFullPath(Path.Combine(PackageRuleCatalogTests.Root, ".artifacts", "managed-test-fixtures"));
+            EnsureNoLinks(path);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+    }
+
     public static string Create()
     {
         var root = Path.Combine(Parent, Guid.NewGuid().ToString("N"));

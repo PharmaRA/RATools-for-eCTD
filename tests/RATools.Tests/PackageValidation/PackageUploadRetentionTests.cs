@@ -13,7 +13,7 @@ namespace RATools.Tests.PackageValidation;
 // All fixtures are retained; disposal must not erase failed-upload evidence.
 public sealed class PackageUploadRetentionTests
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-upload-retention-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-upload-retention-" + Guid.NewGuid().ToString("N"));
 
     [Fact]
     public async Task AmbiguousZip_RetainsOriginalBytesAndSelectionCandidates()

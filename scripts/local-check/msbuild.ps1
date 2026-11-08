@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves','retention')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
+param([Parameter(Mandatory)][string]$Evidence, [switch]$RunSelectedTests, [ValidateSet('core','contracts','import','nodes','package','publishing','storage','workspace','api','pruner','fixtures','config','documents','links','node-moves','retention','managed')][string]$TestGroup = 'core', [switch]$PrunerRootProbeOnly)
 $ErrorActionPreference = 'Stop'
 if($PrunerRootProbeOnly -and ($TestGroup -ne 'pruner' -or -not $RunSelectedTests)){throw 'Root probe requires the pruner runtime group.'}
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -25,6 +25,7 @@ if($RunSelectedTests -and $TestGroup -eq 'storage') { $summary.task='msbuild-sto
 if($RunSelectedTests -and $TestGroup -eq 'workspace') { $summary.task='msbuild-workspace'; $summary.scope='Windows actual MSBuild plus real VSTest for 13 workspace retention cases including real links and root rejection; not HTTP, database, malicious concurrent replacement or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'api') { $summary.task='msbuild-api'; $summary.scope='Windows actual MSBuild plus real VSTest for 7 API classes/39 cases with ASP.NET TestServer and InMemory persistence; not real socket, PostgreSQL, full suite or Formal qualification' }
 $inputs = @{}; $tools = @{}
+if($RunSelectedTests -and $TestGroup -eq 'managed') { $summary.task='msbuild-managed'; $summary.scope='Audited Windows managed backend classes reconciled with real VSTest discovery; explicit prerequisite exclusions; not unfiltered full suite, PostgreSQL, native PDF, Linux, fresh restore or Formal qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'retention') { $summary.task='msbuild-retention'; $summary.scope='Windows 26 document/workspace retention cases; InMemory and real files; not database/native tool/full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'node-moves') { $summary.task='msbuild-node-moves'; $summary.scope='Windows 31 node move, journal retention and recovery cases with real files and links; InMemory; not PostgreSQL, Linux, hostile replacement races or full suite qualification' }
 if($RunSelectedTests -and $TestGroup -eq 'links') { $summary.task='msbuild-links'; $summary.scope='Windows 40 path/import/API security cases with real junctions and file symlinks; TestServer/InMemory; not Linux, real sockets, hostile replacement races or full suite qualification' }
@@ -141,6 +142,11 @@ public static class MsbuildDeleteAccessProbe {
         $summary.steps+=@{project=$layer;command=$command;exitCode=$code}
         Write-Host "MSBuild $layer exit $code"
         if($code -ne 0){throw "MSBuild $layer failed; see build log"}
+    }
+    if($RunSelectedTests -and $TestGroup -eq 'managed') {
+        Fingerprint (Join-Path $PSScriptRoot 'backend-inventory.py')
+        & python (Join-Path $PSScriptRoot 'backend-inventory.py') $Evidence
+        if($LASTEXITCODE -ne 0){throw 'Backend direct-deletion preflight failed'}
     }
     if($RunSelectedTests) {
         $env:RATOOLS_TEST_REPOSITORY_ROOT=$repo
@@ -286,6 +292,30 @@ public static class MsbuildDeleteAccessProbe {
             $selected=@{'RATools.Tests.Documents.DocumentRetentionWorkflowTests'=11;'RATools.Tests.Documents.DocumentServiceDeleteTests'=2;'RATools.Tests.Infrastructure.WorkspaceDeletionServiceTests'=13}
             $expectedTotal=26
         }
+        if($TestGroup -eq 'managed') {
+            $env:ASPNETCORE_TEST_CONTENTROOT_RATOOLS_API=Join-Path $repo 'src/RATools.Api'
+            $summary.apiTestContentRoot='src/RATools.Api'
+            $inventory=Get-Content -LiteralPath (Join-Path $Evidence 'backend-inventory.json') -Raw | ConvertFrom-Json
+            $assembly=Join-Path $Evidence 'bin/RATools.Tests/Release/net8.0/RATools.Tests.dll'
+            $discovery=Join-Path $Evidence 'discovery.log'
+            $code=[BrowserJob]::Run($dotnet,('vstest "'+$assembly+'" /ListTests'),$repo,$discovery,(Join-Path $Evidence 'discovery.process-tree.json'))
+            if($code -ne 0){throw 'VSTest discovery failed'}
+            $discovered=@(Get-Content -LiteralPath $discovery | ForEach-Object {$_.Trim()} | Where-Object {$_ -match '^RATools\.Tests\.'})
+            if($discovered.Count -eq 0){throw 'No VSTest test cases discovered'}
+            $discovered | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Evidence 'discovered-tests.json')
+            $selected=@{}; $classified=0
+            foreach($entry in $inventory.classes) {
+                $cases=@($discovered | Where-Object {$_.StartsWith($entry.class+'.',[StringComparison]::Ordinal)})
+                if($cases.Count -eq 0){throw "Inventory class absent from discovery: $($entry.class)"}
+                $classified+=$cases.Count
+                if($entry.selected){$selected[$entry.class]=$cases.Count}
+            }
+            if($classified -ne $discovered.Count){throw 'Discovery contains unclassified or duplicate test classes'}
+            $expectedTotal=($selected.Values | Measure-Object -Sum).Sum
+            $summary.discoveryTotal=$discovered.Count
+            $summary.excludedCases=$discovered.Count-$expectedTotal
+            $summary.selectedClasses=$selected.Count
+        }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
         $selectedSources = @($selected.Keys | ForEach-Object { Join-Path $repo ('tests/RATools.Tests/' + $_.Substring('RATools.Tests.'.Length).Replace('.','/') + '.cs') })
@@ -312,6 +342,9 @@ public static class MsbuildDeleteAccessProbe {
         if($TestGroup -eq 'retention') {
             foreach($path in @('src/RATools.Application/Documents/DocumentService.cs','src/RATools.Application/Applications/ApplicationDeletionCoordinator.cs','src/RATools.Infrastructure/Storage/WorkspaceDeletionService.cs','src/RATools.Infrastructure/Storage/LocalFileStorage.cs','tests/RATools.Tests/TestDoubles/TestWorkspaceMutations.cs','tests/RATools.Tests/TestDoubles/PermissiveDocumentStorageBoundary.cs')) { $selectedSources += Join-Path $repo $path }
         }
+        if($TestGroup -eq 'managed') {
+            $selectedSources=@() # All backend source was checked by backend-inventory.py, excluding descriptive line comments.
+        }
         foreach($source in $selectedSources) {
             if(Select-String -LiteralPath $source -Pattern '\b(File|Directory)\s*\.\s*Delete\s*\(|FileOptions\.DeleteOnClose' -Quiet) {
                 throw 'Selected fixture contains physical deletion; review and replace with retention before execution.'
@@ -334,6 +367,11 @@ public static class MsbuildDeleteAccessProbe {
             $ids=@($trx.TestRun.TestDefinitions.UnitTest | Where-Object { $_.TestMethod.className.Split(',')[0] -eq $class } | ForEach-Object {$_.id})
             $cases=@($trx.TestRun.Results.UnitTestResult | Where-Object {$_.testId -in $ids})
             if($cases.Count -ne $selected[$class]){throw "Unexpected executed case count for $class : $($cases.Count)"}
+        }
+        if($TestGroup -eq 'managed') {
+            $expectedNames=@($discovered | Where-Object { $name=$_; @($selected.Keys | Where-Object {$name.StartsWith($_+'.',[StringComparison]::Ordinal)}).Count -eq 1 } | Sort-Object)
+            $actualNames=@($trx.TestRun.Results.UnitTestResult | ForEach-Object {$_.testName} | Sort-Object)
+            if(Compare-Object $expectedNames $actualNames){throw 'Executed test names differ from the selected discovery inventory'}
         }
         if($code -ne 0 -or $summary.tests.failed -ne 0 -or $summary.tests.notExecuted -ne 0 -or $summary.tests.passed -ne $expectedTotal){throw 'Selected runtime checks failed; see TRX and selected-tests.log'}
     }

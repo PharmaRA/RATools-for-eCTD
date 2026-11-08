@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -255,7 +256,7 @@ public sealed class ReleaseDeliveryPackageTests : IAsyncDisposable
 
     private sealed class Fixture
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), "ratools-qa03-evidence", Guid.NewGuid().ToString("N"));
+        public string Root { get; } = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-qa03-evidence", Guid.NewGuid().ToString("N"));
         private Guid ApplicationId { get; } = Guid.NewGuid();
         public LocalReleaseCaptureStore Store => NewStore();
         public LocalReleaseCaptureStore NewStore() => new(Options.Create(new BackboneOutputOptions { RootPath = Root }));
@@ -289,7 +290,7 @@ public sealed class ReleaseDeliveryPackageTests : IAsyncDisposable
         {
             if (!Directory.Exists(fixture.Root)) continue;
             var full = Path.GetFullPath(fixture.Root);
-            Assert.StartsWith(Path.Combine(Path.GetTempPath(), "ratools-qa03-evidence") + Path.DirectorySeparatorChar, full, StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith(Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-qa03-evidence") + Path.DirectorySeparatorChar, full, StringComparison.OrdinalIgnoreCase);
             var pending = new Stack<string>();
             pending.Push(full);
             while (pending.TryPop(out var directory))

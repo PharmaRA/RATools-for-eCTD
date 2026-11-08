@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using RATools.Application.Abstractions.Security;
 using RATools.Infrastructure.Publishing;
 
@@ -8,7 +9,7 @@ public sealed class PublishReportAtomicityTests
     [Fact]
     public async Task CancellationDuringReportWritePreservesThePreviousCompleteReport()
     {
-        var root = Path.Combine(Path.GetTempPath(), "ratools-qa02-retained", Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-qa02-retained", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var reportPath = Path.Combine(root, "report.json");
         const string previous = "{\"complete\":\"previous\"}";
@@ -28,7 +29,7 @@ public sealed class PublishReportAtomicityTests
     [Fact]
     public async Task SuccessfulReplacementPublishesTheCompleteTextAndRecyclesPreviousBytes()
     {
-        var root = Path.Combine(Path.GetTempPath(), "ratools-qa02-retained", Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-qa02-retained", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var reportPath = Path.Combine(root, "report.json");
         await File.WriteAllTextAsync(reportPath, "previous");

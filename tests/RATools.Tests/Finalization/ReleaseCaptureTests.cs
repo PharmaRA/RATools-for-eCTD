@@ -1,3 +1,4 @@
+using RATools.Tests.PackageValidation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,7 +13,7 @@ namespace RATools.Tests.Finalization;
 // measured hashes, deterministic manifests and content-addressed directories.
 public sealed class ReleaseCaptureTests : IAsyncDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-release-capture-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-release-capture-" + Guid.NewGuid().ToString("N"));
     private readonly LocalReleaseCaptureStore _store;
     private readonly Guid _application = Guid.NewGuid();
 
@@ -243,7 +244,7 @@ public sealed class ReleaseCaptureTests : IAsyncDisposable
         if (Directory.Exists(_root) && OperatingSystem.IsWindows())
         {
             Assert.Equal(Path.GetFullPath(_root), new DirectoryInfo(_root).FullName);
-            Assert.StartsWith(Path.GetTempPath(), Path.GetFullPath(_root), StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith(RetainedPackageTestFiles.ScratchParent, Path.GetFullPath(_root), StringComparison.OrdinalIgnoreCase);
             var pending = new Stack<string>();
             pending.Push(_root);
             while (pending.TryPop(out var current))

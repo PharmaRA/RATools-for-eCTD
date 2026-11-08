@@ -20,7 +20,7 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class MultipartRetentionTests
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "ratools-multipart-retention-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-multipart-retention-" + Guid.NewGuid().ToString("N"));
 
     [Fact]
     public async Task StorageIoFailure_Returns422InsteadOfUnhandledError()
