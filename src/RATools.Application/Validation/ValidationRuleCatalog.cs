@@ -56,6 +56,7 @@ public static class ValidationRuleCatalog
             // PDF 合规（PdfComplianceRule 发出，规则引擎路径）
             ["PDF_PARSE_FAILED"] = new("PdfCompliance", "Open and repair or replace the PDF, then rerun publish readiness."),
             ["PDF_VERSION_UNSUPPORTED"] = new("PdfCompliance", "Save the PDF as a supported FDA eCTD PDF version before publishing."),
+            ["PDF_VERSION_UNQUALIFIED"] = new("PdfCompliance", "Use a PDF version accepted by the captured profile mapping or supply qualified regional acceptance evidence."),
             ["PDF_VERSION_LEGACY"] = new("PdfCompliance", "Consider re-saving the PDF as version 1.4 or later before publishing."),
             ["PDF_ENCRYPTED"] = new("PdfCompliance", "Remove encryption or password protection from the PDF before publishing."),
             ["PDF_SECURITY_RESTRICTED"] = new("PdfCompliance", "Remove PDF security restrictions that prevent review operations."),
