@@ -87,6 +87,16 @@ def run(name, command, env, timeout=180, allow_failure=False):
 try:
     if 'Seccomp:\t2' not in Path('/proc/self/status').read_text():
         raise RuntimeError('Inherited project no-delete guard required')
+    if config.get('qpdfOnly'):
+        allowed = {'RATools.Tests.DocumentProcessing.PostgresPdfRenameTests',
+                   'RATools.Tests.DocumentProcessing.PostgresProcessingAdoptionTests'}
+        if set(config['classes']) != allowed or not Path(os.environ.get('RATOOLS_QPDF', '')).is_file():
+            raise RuntimeError('qpdf-only mode requires the two reviewed classes and explicit executable')
+        cgroup = Path(os.environ.get('RATOOLS_PDF_CGROUP_ROOT', ''))
+        if not str(cgroup).startswith('/sys/fs/cgroup/') or not (cgroup / 'cgroup.subtree_control').is_file():
+            raise RuntimeError('qpdf-only mode requires delegated resource enforcement')
+        native_classes -= allowed
+        summary['scope'] = 'Actual Linux MSBuild and two PostgreSQL/qpdf classes; not Python/full suite'
     for relative, digest in config['sources'].items():
         path = root / relative
         if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:

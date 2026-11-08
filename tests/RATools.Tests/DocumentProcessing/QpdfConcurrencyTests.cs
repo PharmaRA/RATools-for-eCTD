@@ -4,6 +4,10 @@ namespace RATools.Tests.DocumentProcessing;
 
 public sealed class QpdfConcurrencyTests
 {
+    private static string PythonExecutable => Environment.GetEnvironmentVariable("RATOOLS_TEST_PYTHON")
+        ?? "C:/Program Files/Python311/python.exe";
+    private static string QpdfExecutable => Environment.GetEnvironmentVariable("RATOOLS_QPDF")
+        ?? Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe");
     [Fact]
     public async Task StderrFailureDrainsThePendingOutputWriteBeforeDisposingStreamsOrReleasingTheSlot()
     {
@@ -23,7 +27,7 @@ public sealed class QpdfConcurrencyTests
         var processId = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
         var engine = new QpdfProcessingEngine(new QpdfProcessingOptions
         {
-            ExecutablePath = "C:/Program Files/Python311/python.exe", ExecutableArguments = ["-I", "-B", "-c", helper, trigger],
+            ExecutablePath = PythonExecutable, ExecutableArguments = ["-I", "-B", "-c", helper, trigger],
             OutputStreamFactory = _ => output, ProcessStartedCallback = id => processId.TrySetResult(id)
         }, budget);
         var method = typeof(QpdfProcessingEngine).GetMethod("RunToFileAsync",
@@ -90,7 +94,7 @@ public sealed class QpdfConcurrencyTests
         var source = Path.GetFullPath("tests/RATools.Tests/Fixtures/PdfProcessing/navigation-source.pdf");
         var engine = new QpdfProcessingEngine(new QpdfProcessingOptions
         {
-            ExecutablePath = "C:/Program Files/Python311/python.exe", ExecutableArguments = ["-I", "-B", "-c", "while True: pass"],
+            ExecutablePath = PythonExecutable, ExecutableArguments = ["-I", "-B", "-c", "while True: pass"],
             MaxCpuTime = TimeSpan.FromSeconds(1)
         }, budget);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -101,7 +105,7 @@ public sealed class QpdfConcurrencyTests
         Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(10));
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var normal = new QpdfProcessingEngine(new QpdfProcessingOptions
-        { ExecutablePath = Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe") }, budget);
+        { ExecutablePath = QpdfExecutable }, budget);
         Assert.Equal(2, (await normal.InspectAsync(source, 8 * 1024 * 1024, deadline.Token)).PageCount);
     }
 
@@ -128,7 +132,7 @@ public sealed class QpdfConcurrencyTests
         using var budget = new PdfToolProcessBudget(1);
         var engine = new QpdfProcessingEngine(new QpdfProcessingOptions
         {
-            ExecutablePath = "C:/Program Files/Python311/python.exe", ExecutableArguments = ["-I", "-B", "-c", helper, record],
+            ExecutablePath = PythonExecutable, ExecutableArguments = ["-I", "-B", "-c", helper, record],
             MaxMemoryBytes = 64 * 1024 * 1024
         }, budget);
         await engine.ExecuteAsync(new(Path.GetFullPath("tests/RATools.Tests/Fixtures/PdfProcessing/navigation-source.pdf"),
@@ -146,12 +150,12 @@ public sealed class QpdfConcurrencyTests
         var script = Path.GetFullPath("scripts/pdf_content_worker.py");
         using var engine = new PythonPdfContentEngine(new PdfContentEngineOptions
         {
-            Enabled = true, PythonExecutablePath = "C:/Program Files/Python311/python.exe", ScriptPath = script,
+            Enabled = true, PythonExecutablePath = PythonExecutable, ScriptPath = script,
             ScriptSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(script))).ToLowerInvariant(),
             ScratchDirectory = Path.GetFullPath(".artifacts/qa-04-20261106/r06-content/" + Guid.NewGuid().ToString("N"))
         }, new QpdfProcessingOptions
         {
-            ExecutablePath = Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe")
+            ExecutablePath = QpdfExecutable
         }, budget);
         try
         {
@@ -172,7 +176,7 @@ public sealed class QpdfConcurrencyTests
         var starts = 0;
         QpdfProcessingOptions Options() => new()
         {
-            ExecutablePath = Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe"),
+            ExecutablePath = QpdfExecutable,
             ProcessStartedCallback = _ =>
             {
                 Interlocked.Increment(ref starts); firstStarted.TrySetResult();
@@ -206,7 +210,7 @@ public sealed class QpdfConcurrencyTests
         var source = Path.GetFullPath("tests/RATools.Tests/Fixtures/PdfProcessing/navigation-source.pdf");
         var missing = new QpdfProcessingEngine(new QpdfProcessingOptions { ExecutablePath = "ratools-no-such-qpdf-executable" }, budget);
         await Assert.ThrowsAnyAsync<Exception>(() => missing.InspectAsync(source, 8 * 1024 * 1024));
-        var path = Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe");
+        var path = QpdfExecutable;
         var broken = new QpdfProcessingEngine(new QpdfProcessingOptions { ExecutablePath = path,
             ProcessStartedCallback = _ => throw new IOException("Injected callback failure.") }, budget);
         await Assert.ThrowsAsync<IOException>(() => broken.InspectAsync(source, 8 * 1024 * 1024));
@@ -223,7 +227,7 @@ public sealed class QpdfConcurrencyTests
         var started = 0;
         var engine = new QpdfProcessingEngine(new QpdfProcessingOptions
         {
-            ExecutablePath = Path.GetFullPath(".artifacts/tools/qpdf-12.4.1/qpdf-12.4.1-msvc64/bin/qpdf.exe"),
+            ExecutablePath = QpdfExecutable,
             ProcessStartedCallback = _ =>
             {
                 if (Interlocked.Increment(ref started) == 2) twoStarted.TrySetResult();
