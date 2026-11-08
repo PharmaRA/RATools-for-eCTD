@@ -142,3 +142,6 @@ known-cleanup-preconditions.json仅复核原清单22个文件，File/Directory.D
 这不是无过滤全后端通过；190排除项、fresh restore、当前PG/Linux/native内容工具联合、原生下载/外部Formal均仍开放。PG当前连接/原生清理与迁移降级前置未完成，qpdf/Python/Tesseract原生清理无本轮证明；managed集合仍含SQLite、受控shell链接造景、Windows回收API。全部本轮证据和回收材料保留，未物理删除。四处生产清理修复已提交2921b4d，QA07继续进行中。
 
 本轮独立修复提交：2921b4d（文档/工作区回收）；0c6a01b（PDF版本资格问题码目录）；791a1a3（SQLite测试约束适配）；648f1c6（投影/DTD/EU/节点API夹具）。最终运行证据绑定提交前源码清单，各提交未再修改已验证的实现。
+
+
+2026-11-08 QA07剩余可移植补验：最终 `.artifacts/local-check/20261108T193701-9f4c35398c074abca37213a198661999/` 发现1824项，191类1641项全部通过、0失败0未执行，三个实际MSBuild均0警告0错误，五份进程回执0/assigned/stopped/forcedfalse；最终代码及证据只读review PASS。四个混合类显式放行6方法7项，完整名称多重集合及逐类数量一致；仍有183项未运行（PG111/native PDF71/Linux1），精确清单unexecuted-tests.json。TestServer运行时OpenAPI与已存快照一致已验证，不再笼统称运行时合同未验证；不代表真实socket合同。首次192259因缺失NuGet缓存NETSDK1064未进入测试；98个官方包经原assets内容摘要及签名包完整性校验恢复，独占新建、受控回收编码副本，非fresh restore。环境探针：Instabox远程true继承网络/显式代理均exit4，PG进程变量未配置，docker/podman不可用，wsl列表exit1。FDA两地址直连/代理仍404，未取得原文。完整证据、摘要、边界见 [BACKEND-NO-DELETE-AUDIT.md](BACKEND-NO-DELETE-AUDIT.md)；QA07仍开放无过滤后端/freshrestore/当前平台联合/原生下载/官方与外部Formal资格。

@@ -23,7 +23,7 @@ pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild-managed
 
 runner 先执行真实 API、DatabaseMigrator、完整 Tests MSBuild，再执行 VSTest 发现。每个已发现用例必须归属库存类；选中的类按实际发现数量计数，执行后的 TRX 名称集合必须与所选发现名称一致，且失败/未执行数必须为零。保存独立的发现、构建和执行进程回执。
 
-当前排除 45 个类：31 个 PostgreSQL 或混合数据库类、13 个原生 PDF 工具类、1 个含 Linux 文件系统用例的混合类。整类排除会同时留下其中可移植用例，具体名称和数量以每次库存与发现清单为准。排除不是通过或框架 skip。
+当前选择 191 类，其中四个混合类仅执行显式白名单中的六个方法／七个用例，其余 187 类完整选择。另有 41 类整体排除；合计 183 个未运行用例（PostgreSQL 111、原生 PDF 71、Linux 文件系统 1）。精确名单保存在最新运行的 `unexecuted-tests.json`；排除不是通过或框架 skip。managed 入口要求 `RATOOLS_TEST_POSTGRES` 未配置，防止混合类 collection fixture 意外连接数据库。
 
 - PostgreSQL：当前进程未配置 `RATOOLS_TEST_POSTGRES`，未启动测试数据库。迁移降级行为、原生清理控制及独立 migrator 产物定位仍待验证；两类 PDF 数据库测试使用普通 Fact/Theory，不能假定缺环境会自动 skip。
 - 原生 PDF：Windows Job/cgroup 是进程树与资源限制，不能作为删除拦截证明。qpdf stdout 输出、Python `-B` 及脚本保留暂存文件减小已知风险，仍未验证 qpdf/PyMuPDF/Tesseract 内部清理。未经该前置不执行这些类。
@@ -54,3 +54,18 @@ runner 先执行真实 API、DatabaseMigrator、完整 Tests MSBuild，再执行
 全后端无过滤执行、fresh restore、当前 Linux/PostgreSQL/原生内容工具联合、原生浏览器下载和外部 Formal 资格继续开放。
 
 本轮独立修复提交：2921b4d（文档/工作区回收）；0c6a01b（PDF版本资格问题码目录）；791a1a3（SQLite测试约束适配）；648f1c6（投影/DTD/EU/节点API夹具）。最终运行证据绑定提交前源码清单，各提交未再修改已验证的实现。
+
+
+## 2026-11-08 剩余可移植用例补验
+
+最终运行 `.artifacts/local-check/20261108T193701-9f4c35398c074abca37213a198661999/`：发现 **1,824** 项，执行 **191 类／1,641 项，全部通过、0 失败、0 未执行**。789 份 C# 源码列明的直接删除模式命中 0。三个 MSBuild 均 0 警告/0 错误；Api、DatabaseMigrator、Tests、discovery、selected-tests 五份回执均 exit0、assignedBeforeResume/processTreeStopped=true、forcedTreeStop=false。最终代码与运行证据只读 review PASS；两个 runner 脚本当前哈希匹配 source manifest。
+
+新增七项包括内存流哈希缓存 2、FDA 显式标识 HTTP 保存→XML→再导入 1、EU 双 envelope/独立 PI context 往返 2、区域准入与引擎身份 2。HTTP 场景实际使用 loopback 与 InMemory；区域准入验证保留 Formal 拒绝，不是正式成功交付。精确方法过滤及 `selected-test-names.json` 与 TRX 完整名称多重集合、逐类数量均一致。既有 `OpenApiContractTests.RuntimeDocument_MatchesCommittedSnapshot` 也通过：当前 API 在 TestServer pipeline 生成的 OpenAPI 与已存快照深度相等，属于运行时合同验证，不是实际网络端口验证。
+
+- source manifest SHA-256：`ae446aaa78f60adbb9bffda29a07b4ec0c8a786350e0c043ab7a1dc05d939548`。
+- TRX SHA-256：`e9043aa87f9464153930aeb434815c63a3d812c67504ca2f3195af6958cfb846`。
+- inventory SHA-256：`b1e8ed38cd3f24aaf1f960732797f9e7ab633e324a12e790be0bba0088da76a3`。
+
+首次 `20261108T192259-d18b81af024d47ba82987c0f81611715` 在 API 构建发生 NETSDK1064，测试未启动。既有 assets 引用的缓存有 98 个缺失/不完整包；从官方 NuGet 下载并保留归档，用 SDK NuGet 库验证内容 SHA-512 与原 assets 相等、签名包完整性通过后，以独占新建补齐缺失文件。已有内容冲突即停止；过程没有覆盖或物理删除。一次解包因 URI 编码的 `portable-net45+win8` 路径校验停止，按 NuGet 文件名解码后续接，两个编码名副本经链接/硬链接及字节核对移入证据目录 `_recycle`。恢复证据：`.artifacts/local-check/dependency-recovery-20261108T192916-c76ccd29531d420aa85fb7d989be6b0c/`。review 独立核对 98 个包集合及归档 SHA-256 一致；没有重放写入或重新执行签名校验。本项是既有资产约束下的缓存恢复，不是 fresh restore，也不宣称完成证书信任链资格。
+
+同轮 `environment-probe.json`：Instabox CLI 存在且进程变量已配置，远程 `true` 的继承网络与 7890 代理探测均 exit4，无超时；原始输出丢弃，不能据此判断失败原因。PostgreSQL 进程变量未配置；docker/podman 命令不可用；wsl 可找到但列表命令 exit1，未获得可用 Linux 环境。183 个排除用例、无过滤全套、fresh restore、当前 Linux/PG/native 联合、原生浏览器下载和官方/外部 Formal 门禁仍开放。FDA 原文取证重试见 [OFFICIAL-SOURCE-REFRESH.md](OFFICIAL-SOURCE-REFRESH.md)。

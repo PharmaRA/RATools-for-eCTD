@@ -293,6 +293,9 @@ public static class MsbuildDeleteAccessProbe {
             $expectedTotal=26
         }
         if($TestGroup -eq 'managed') {
+            if(-not [string]::IsNullOrWhiteSpace($env:RATOOLS_TEST_POSTGRES)) {
+                throw 'Managed-only qualification requires RATOOLS_TEST_POSTGRES to be absent: mixed-class collection fixtures must not open a database.'
+            }
             $env:ASPNETCORE_TEST_CONTENTROOT_RATOOLS_API=Join-Path $repo 'src/RATools.Api'
             $summary.apiTestContentRoot='src/RATools.Api'
             $inventory=Get-Content -LiteralPath (Join-Path $Evidence 'backend-inventory.json') -Raw | ConvertFrom-Json
@@ -303,18 +306,36 @@ public static class MsbuildDeleteAccessProbe {
             $discovered=@(Get-Content -LiteralPath $discovery | ForEach-Object {$_.Trim()} | Where-Object {$_ -match '^RATools\.Tests\.'})
             if($discovered.Count -eq 0){throw 'No VSTest test cases discovered'}
             $discovered | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Evidence 'discovered-tests.json')
-            $selected=@{}; $classified=0
+            $selected=@{}; $classified=0; $selectedNames=@(); $managedFilters=@()
             foreach($entry in $inventory.classes) {
                 $cases=@($discovered | Where-Object {$_.StartsWith($entry.class+'.',[StringComparison]::Ordinal)})
                 if($cases.Count -eq 0){throw "Inventory class absent from discovery: $($entry.class)"}
                 $classified+=$cases.Count
-                if($entry.selected){$selected[$entry.class]=$cases.Count}
+                if($entry.selected){
+                    $allowed=@($entry.allowedMethods)
+                    if($allowed.Count -gt 0){
+                        $chosen=@()
+                        foreach($method in $allowed){
+                            $fullMethod=$entry.class+'.'+$method
+                            $matches=@($cases | Where-Object {$_ -eq $fullMethod -or $_.StartsWith($fullMethod+'(',[StringComparison]::Ordinal)})
+                            if($matches.Count -eq 0){throw "Allowlisted method absent from discovery: $fullMethod"}
+                            $chosen+=$matches
+                            $managedFilters+='FullyQualifiedName='+$fullMethod
+                        }
+                    } else {
+                        $chosen=$cases
+                        $managedFilters+='FullyQualifiedName~'+$entry.class+'.'
+                    }
+                    $selected[$entry.class]=$chosen.Count
+                    $selectedNames+=$chosen
+                }
             }
             if($classified -ne $discovered.Count){throw 'Discovery contains unclassified or duplicate test classes'}
             $expectedTotal=($selected.Values | Measure-Object -Sum).Sum
             $summary.discoveryTotal=$discovered.Count
             $summary.excludedCases=$discovered.Count-$expectedTotal
             $summary.selectedClasses=$selected.Count
+            $selectedNames | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Evidence 'selected-test-names.json')
         }
         # This bounded test-source preflight supplements the output ACL: fixtures
         # also own retained workspace files outside the build output tree.
@@ -351,6 +372,7 @@ public static class MsbuildDeleteAccessProbe {
             }
         }
         $filter=($selected.Keys | Sort-Object | ForEach-Object { 'FullyQualifiedName~'+$_+'.' }) -join '|'
+        if($TestGroup -eq 'managed'){$filter=$managedFilters -join '|'}
         if($PrunerRootProbeOnly){$filter='FullyQualifiedName=RATools.Tests.Application.WorkspacePathGuardTests.FilesystemRootScopeIsRejectedBeforeEnumeratingCandidates'}
         $assembly=Join-Path $Evidence 'bin/RATools.Tests/Release/net8.0/RATools.Tests.dll'
         $results=Join-Path $Evidence 'test-results'; New-Item -ItemType Directory -Path $results | Out-Null
@@ -369,7 +391,7 @@ public static class MsbuildDeleteAccessProbe {
             if($cases.Count -ne $selected[$class]){throw "Unexpected executed case count for $class : $($cases.Count)"}
         }
         if($TestGroup -eq 'managed') {
-            $expectedNames=@($discovered | Where-Object { $name=$_; @($selected.Keys | Where-Object {$name.StartsWith($_+'.',[StringComparison]::Ordinal)}).Count -eq 1 } | Sort-Object)
+            $expectedNames=@($selectedNames | Sort-Object)
             $actualNames=@($trx.TestRun.Results.UnitTestResult | ForEach-Object {$_.testName} | Sort-Object)
             if(Compare-Object $expectedNames $actualNames){throw 'Executed test names differ from the selected discovery inventory'}
         }

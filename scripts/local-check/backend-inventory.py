@@ -21,6 +21,14 @@ native_classes = {
     'ProcessingWorkflowTests', 'QpdfConcurrencyTests', 'QpdfNavigationIntegrityTests',
     'QpdfProcessingEngineTests',
 }
+portable_methods = {
+    'ImportFileHashCacheTests': ['DistinctCaseSensitiveAddressesDoNotReuseTheFirstByteSourcesDigest',
+                               'GetAsync_ComputesMd5AndSha256FromOneOpenPerPath'],
+    'FdaM1EndToEndTests': ['ActualHttpSaveOfExplicitIdentifiersReachesDistinctFormXmlAndFullReimport'],
+    'EuM1EndToEndTests': ['ActualHttpSaveKeepsBothEnvelopesAndIndependentPiContextsThroughOutputAndReimport'],
+    'RegionalActivationAcceptanceTests': ['ActualHttpCapturesExposeDistinctRegionalRulesAndRetainRequiredQualificationGaps',
+                                          'ChangedRegionalBehaviorCannotReusePreRegionalEngineIdentity'],
+}
 test_attribute = re.compile(r'\[(?:Fact|Theory|RequiresPostgresFact|LinuxFact|WindowsFact)(?:\(|\])')
 deletion = re.compile(r'\b(?:File|Directory)\s*\.\s*Delete\s*\(|FileOptions\s*\.\s*DeleteOnClose|\bDROP\s+DATABASE\b')
 sources = {}
@@ -54,18 +62,20 @@ for folder in ('tests/RATools.Tests', 'src/RATools.Domain', 'src/RATools.Applica
         name = primary[1]
         reasons = []
         if name.startswith('Postgres') or 'RequiresPostgresFact' in text or 'RATOOLS_TEST_POSTGRES' in text:
-            reasons.append('PostgreSQL environment/native cleanup/migration prerequisites; mixed classes excluded in full')
+            reasons.append('PostgreSQL environment/native cleanup/migration prerequisites; only explicitly allowed methods may run')
         if name in native_classes:
             reasons.append('Native PDF tool cleanup qualification pending')
         if '[LinuxFact' in text:
-            reasons.append('Linux filesystem prerequisite; mixed class excluded in full')
+            reasons.append('Linux filesystem prerequisite; only explicitly allowed methods may run')
+        methods = portable_methods.get(name, [])
         classes.append({'class': namespace[1] + '.' + name, 'source': relative.as_posix(),
-                        'selected': not reasons, 'reasons': reasons})
+                        'selected': not reasons or bool(methods), 'reasons': reasons,
+                        'allowedMethods': methods})
 
 result = {'scope': 'All backend C# source direct deletion audit and test class inventory; not native qualification',
           'sources': sources, 'classes': classes, 'directDeletionViolations': violations,
           'reviewedWindowsRecycleCalls': recycle_calls,
-          'limits': ['No PostgreSQL or native PDF test execution', 'Mixed prerequisite classes are excluded in full',
+          'limits': ['No PostgreSQL or native PDF test execution', 'Four reviewed mixed classes use explicit method allowlists; other prerequisite methods remain excluded',
                      'Windows recycle calls remain allowed; library internals are not proven by this scan']}
 (output / 'backend-inventory.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
 print(f'Backend inventory: {len(sources)} source files; {sum(c["selected"] for c in classes)} selected classes; '
