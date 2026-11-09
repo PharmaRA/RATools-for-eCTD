@@ -8,7 +8,8 @@ if(-not $Evidence.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){th
 $build=Get-Content -LiteralPath (Join-Path $Evidence 'build.json') -Raw | ConvertFrom-Json
 $guard=Join-Path $PSScriptRoot 'NativeNoDelete.cs';$probe=Join-Path $Evidence 'GuardProbe.dll'
 if((Get-FileHash -LiteralPath $guard -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.guardSourceSha256 -or (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.assemblySha256){throw 'Guard/source build identity changed'}
-Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'))
+if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'RetainedMovePolicy.cs') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.retainedMovePolicySha256){throw 'Move policy identity changed'}
+Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'),(Join-Path $PSScriptRoot 'RetainedMovePolicy.cs'),(Join-Path $PSScriptRoot 'RetainedMoveTests.cs'))
 if([GuardPolicyTests]::Run() -ne 25){throw 'Policy preflight failed'}
 $dotnet=Join-Path $repo '.artifacts/tools/dotnet-8.0.423/dotnet.exe'
 $summary=@{passed=$false;steps=@();scope='Windows x64 guarded compiler and synthetic permission/process probes, not remaining19 native acceptance'}
@@ -18,13 +19,18 @@ try {
     @{name='exception';mode='exception';timeout=30;fault='none';expected=42;guarded=1},
     @{name='before-patch';mode='parent';timeout=30;fault='before-patch';expected=1;guarded=0},
     @{name='after-patch';mode='parent';timeout=30;fault='after-patch';expected=1;guarded=1},
-    @{name='timeout';mode='wait';timeout=4;fault='none';expected=124;guarded=1}
+    @{name='timeout';mode='wait';timeout=4;fault='none';expected=124;guarded=1},
+    @{name='retained-move';mode='move';timeout=30;fault='none';expected=0;guarded=1;move=$true},
+    @{name='cli-initialization';mode='cli';timeout=30;fault='none';expected=0;guarded=1;cli=$true}
  )) {
     $run=Join-Path $Evidence $case.name
     if(Test-Path -LiteralPath $run){throw 'Existing verification run refused'}
     New-Item -ItemType Directory -Path $run | Out-Null
+    $probeRoot=$run;$moveRoot=$null;$cliRoot=$null;$cliExe=$null;$cliSha=$null
+    if($case.move){$moveRoot=Join-Path $run 'fixtures';New-Item -ItemType Directory -Path $moveRoot | Out-Null;$probeRoot=$moveRoot}
+    if($case.cli){$cliRoot=Join-Path $run 'fixtures';New-Item -ItemType Directory -Path $cliRoot | Out-Null;$probeRoot=$cliRoot;$cliExe=$dotnet;$cliSha=(Get-FileHash -LiteralPath $dotnet -Algorithm SHA256).Hash.ToLowerInvariant()}
     $receipt=Join-Path $run 'process.json';$log=Join-Path $run 'probe.log'
-    $code=[NativeNoDelete]::Run($dotnet,@($probe,$case.mode,$run),$repo,$log,$receipt,$case.timeout,$case.fault)
+    $code=[NativeNoDelete]::Run($dotnet,@($probe,$case.mode,$probeRoot),$repo,$log,$receipt,$case.timeout,$case.fault,$moveRoot,$cliRoot,$cliExe,$cliSha)
     $result=Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
     if($code -ne $case.expected -or $result.exitCode -ne $code -or $result.processTreeStopped -ne $true -or $result.assignedBeforeResume -ne $true){throw "Unexpected verification outcome: $($case.name)"}
     $created=@($result.events | Where-Object kind -eq 'created')
@@ -38,9 +44,18 @@ try {
       foreach($name in @('parent','child','grandchild')){if((Get-Content -LiteralPath (Join-Path $run ($name+'-retained.txt')) -Raw) -cne 'retained'){throw 'Retained sentinel differs'}}
     }
     if($case.name -eq 'timeout' -and -not (Select-String -LiteralPath $log -SimpleMatch 'verified-before-wait' -Quiet)){throw 'Timeout occurred before guarded probe started'}
+    if($case.move){
+      $decisions=@($result.events | Where-Object kind -eq 'move-decision')
+      if(@($decisions | Where-Object allowed -eq $true).Count -ne 2 -or @($decisions | Where-Object allowed -eq $false).Count -lt 1){throw 'Move permission/refusal evidence incomplete'}
+      $row=Get-Content -LiteralPath $log -Raw | ConvertFrom-Json
+      if($row.passed -ne $true -or $row.rejectionAndPassthroughChecks -ne 17){throw 'Move probe did not complete existing guard assertions'}
+    }
+    if($case.cli){$decisions=@($result.events | Where-Object kind -eq 'move-decision');if(@($decisions | Where-Object allowed -eq $true).Count -ne 5 -or @($decisions | Where-Object allowed -eq $false).Count -lt 1){throw 'CLI initialization permission/refusal evidence incomplete'}}
     if($case.name -in @('before-patch','after-patch','timeout') -and $result.forcedTreeStop -ne $true){throw 'Fault cleanup did not terminate its owned process'}
     $summary.steps+=@{name=$case.name;expectedExit=$case.expected;exitCode=$code;guarded=$result.guardedProcesses;jobProcesses=$result.totalJobProcesses;stopped=$result.processTreeStopped}
  }
+ $summary.retainedMovePathChecks=[RetainedMoveTests]::Run((Join-Path $Evidence 'move-path-checks'))
+ if($summary.retainedMovePathChecks -ne 14){throw 'Move path checks incomplete'}
  $summary.passed=$true
 } finally {
  $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $Evidence 'verification.json')

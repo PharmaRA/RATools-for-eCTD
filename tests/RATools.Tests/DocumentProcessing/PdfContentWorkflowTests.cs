@@ -137,7 +137,7 @@ internal sealed class PdfContentTestRig : IDisposable
     };
     public static async Task<PdfContentTestRig> CreateAsync(string mode)
     {
-        var root = Path.GetFullPath(".artifacts/p508-csharp-tests/" + Guid.NewGuid().ToString("N"));
+        var root = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("RATOOLS_NATIVE_FIXTURE_ROOT") ?? ".artifacts/p508-csharp-tests", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(Path.Combine(root, "0001", "m3"));
         var path = Path.Combine(root, "0001", "m3", "source.pdf");
         await CreateFixtureAsync(mode, path);

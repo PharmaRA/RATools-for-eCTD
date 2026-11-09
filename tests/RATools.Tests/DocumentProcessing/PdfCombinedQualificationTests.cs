@@ -297,7 +297,7 @@ internal sealed class PdfCombinedQualificationRig : IDisposable
 
     public static async Task<PdfCombinedQualificationRig> CreateAsync(int pages = 4, bool large = false)
     {
-        var root = Path.GetFullPath(".artifacts/p509-joint/" + Guid.NewGuid().ToString("N"));
+        var root = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("RATOOLS_NATIVE_FIXTURE_ROOT") ?? ".artifacts/p509-joint", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(Path.Combine(root, "0000", "uploads"));
         var app = new SubmissionApplication("000001", "US", "Synthetic", root, "us-fda-ectd-3.2.2");
         app.CreateSequence("0000", "original", "P5 joint qualification").RevisePublishingMetadata(Metadata());
