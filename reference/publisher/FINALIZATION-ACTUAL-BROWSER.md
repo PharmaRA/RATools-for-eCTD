@@ -1,5 +1,11 @@
 # Actual backend finalization browser acceptance
 
+Current status (2026-11-09): the November8 current-MSBuild/browser section below
+accepts nonempty Development native downloads and API/PostgreSQL clean process
+restart. Formal capture/delivery/receipts remain open, including the regional
+context implementation gate; see03-F in the [QA-07 closure checklist](QA-07-CLOSURE-CHECKLIST.md).
+The November7 counts and open-gate descriptions below are historical.
+
 2026-11-07 QA-07 now has real Chromium evidence against the current source API and production frontend for a **synthetic empty US Development sequence with InMemory persistence**. This complements the earlier synthetic API contract tests. It does not qualify Formal delivery, receipts, PostgreSQL restart or nonempty PDF packages.
 
 The unified Instabox entry is:

@@ -6,6 +6,8 @@
 
 ## 审计与修复
 
+总体验收以[QA-07固定关闭清单](QA-07-CLOSURE-CHECKLIST.md)为准：定向后端条款已关闭；Formal实现/链路、Linux Python内容、官方规则及外部对照仍开放。同次无过滤全套未运行，作为增强验证单列，不重新打开已接受的1824项。
+
 范围为 `tests/RATools.Tests` 和 Domain、Application、Infrastructure、Api、DatabaseMigrator 五层 C# 源码，排除生成目录 bin/obj/App_Data；PDF 直接依赖另检查 `scripts/pdf_content_worker.py`。每次运行的 `backend-inventory.json` 保存逐文件 SHA-256、测试类、选择/排除原因及直接调用命中。
 
 - 测试侧已知 22 文件清单之外，生产层发现 `DocumentService` 两处 `File.Delete`，`ApplicationDeletionCoordinator` 两处 `File/Directory.Delete`。原分支仅静态确认，未运行物理删除来制造红灯。

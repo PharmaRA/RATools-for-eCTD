@@ -1,13 +1,13 @@
 # QA-07 environment recovery — 2026-11-08
 
-Remote execution, isolated PostgreSQL, fresh NuGet restore and current Linux
-MSBuild/PostgreSQL regression are now verified. The later [native acceptance](QA-07-NATIVE-ACCEPTANCE.md)
-adds qpdf54 + PostgreSQL/qpdf7 and current Linux resource probes: combined backend
-coverage is now 1,805/1,824, with 19 Windows content/native cases unqualified.
-Development native browser download and API/PG restart also passed. QA-07 remains
-open for Windows native cleanup protection, unfiltered full-suite execution,
-official/external qualification and Formal use. Historical counts below describe
-their individual checkpoints.
+This record preserves the remote platform, **successful Linux fresh NuGet restore**,
+MSBuild and PostgreSQL evidence. Current backend coverage is1824/1824 across runs,
+including the Windows native cases subsequently accepted in
+[native acceptance](QA-07-NATIVE-ACCEPTANCE.md). Development native download and
+API/PG restart also passed. Formal implementation/acceptance, Linux Python content
+and official/external qualification remain open as specified in the
+[fixed closure checklist](QA-07-CLOSURE-CHECKLIST.md). Counts and limitations below
+describe individual historical runs; they do not reopen already accepted work.
 
 ## Environment and execution
 

@@ -2,6 +2,8 @@
 
 Latest Windows checkpoint: resource/concurrency8, workflow7 and combined2 passed with final read-only review. PostgreSQL-content2 also passed in `pg2-11`, with database identity,31/0 migrations and clean remote shutdown; final read-only source/evidence review passed. Accepted coverage is **1,824/1,824 across separate runs**. This does not establish one unfiltered full-suite pass. Historical19-case boundaries below describe the earlier token/ACL checkpoint.
 
+The [fixed QA-07 closure checklist](QA-07-CLOSURE-CHECKLIST.md) defines the current remaining work: Formal implementation/acceptance, Linux Python content, official sources/rule mapping and external comparison. Windows content passes do not qualify Linux Python. The unfiltered-suite limitation below is an unestablished broader claim, not an extra prerequisite of the original targeted-runner clause.
+
 ## PostgreSQL content2: final execution
 
 Evidence: `.artifacts/local-check/pg2-11/`. The unchanged
