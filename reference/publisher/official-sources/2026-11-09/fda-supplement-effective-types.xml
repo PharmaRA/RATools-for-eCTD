@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!DOCTYPE supplement-effective-date-type [
+	<!ELEMENT supplement-effective-date-type (code-display+)>
+	<!ATTLIST supplement-effective-date-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<supplement-effective-date-type AsOf="20121101" version-number="1.1">
+	<code-display code="fdasedt1" display="Prior Approval Supplement (PAS)" status="active"/>
+	<code-display code="fdasedt2" display="Changes Being Effected-0 (CBE-0)" status="active"/>
+	<code-display code="fdasedt3" display="Changes Being Effected-30 (CBE-30)" status="active"/>
+</supplement-effective-date-type>

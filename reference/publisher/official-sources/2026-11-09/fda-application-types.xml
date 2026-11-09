@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified to include machine readable version number and version date - Added PMA and 510k application types that should only be used in the cross-reference-application-number element-->
+<!DOCTYPE application-type [
+	<!ELEMENT application-type (code-display+)>
+	<!ATTLIST application-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<application-type AsOf="20121101" version-number="1.1">
+	<code-display code="fdaat1" display="New Drug Application (NDA)" status="active"/>
+	<code-display code="fdaat2" display="Abbreviated New Drug Application (ANDA)" status="active"/>
+	<code-display code="fdaat3" display="Biologic License Application (BLA)" status="active"/>
+	<code-display code="fdaat4" display="Investigational New Drug (IND)" status="active"/>
+	<code-display code="fdaat5" display="Drug Master File (DMF)" status="active"/>
+	<code-display code="fdaat6" display="Emergency Use Authorization (EUA)" status="active"/>
+	
+	<!--The IDE, PMA, and 510k  application types should only be used in the cross-reference-application-number element--> 
+	<code-display code="fdaat7" display="Investigational Device Exemption (IDE)" status="active"/>
+	<code-display code="fdaat9" display="Premarket Approval Application (PMA)" status="active"/>
+	<code-display code="fdaat10" display="Premarket Notification 510k (510K)" status="active"/>
+	
+	<!--Do not use. For FDA use only--> 
+	<code-display code="fdaat8" display="Safety Issue (FDA Use Only)" status="active"/> 
+</application-type>

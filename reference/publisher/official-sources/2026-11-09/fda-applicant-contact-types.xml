@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!--version 1-2  Modified to add fdaact4-->
+<!DOCTYPE applicant-contact-type [
+	<!ELEMENT applicant-contact-type (code-display+)>
+	<!ATTLIST applicant-contact-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<applicant-contact-type AsOf="20130823" version-number="1.2">
+	<code-display code="fdaact1" display="Regulatory Contact" status="active"/>
+	<code-display code="fdaact2" display="Technical Contact" status="active"/>
+	<code-display code="fdaact3" display="United States Agent" status="active"/>
+	<code-display code="fdaact4" display="Promotional Labeling and Advertising Regulatory Contact" status="active"/>
+	</applicant-contact-type>

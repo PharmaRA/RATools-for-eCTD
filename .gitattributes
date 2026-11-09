@@ -4,6 +4,8 @@ reference/dtd/ich-ectd-3-2.dtd -text -whitespace
 reference/dtd/us-regional-v3-3.dtd -text -whitespace
 reference/eu-m1/3.1.1/util/dtd/* -text -whitespace
 reference/eu-m1/3.1.1/util/style/* -text -whitespace
+# QA-07 source snapshots bind the downloaded bytes, including HTML and XML.
+reference/publisher/official-sources/** -text -whitespace
 
 # The validation rule catalog pins the exact project policy source bytes.
 reference/publisher/contracts-v1.json -text

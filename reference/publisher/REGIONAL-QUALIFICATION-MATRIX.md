@@ -1,5 +1,11 @@
 # P6-09 declared regional qualification matrix
 
+QA-07 source update, 2026-11-09: [current FDA/EMA originals](QA-07-OFFICIAL-SOURCES.md)
+have now been acquired and frozen. FDA publishes criteria 4.7; the criteria 4.5
+rows below retain the historical trial scope. Current source acquisition does not
+upgrade these rows or bind a new production snapshot. Rule mapping, the six
+pending rows and independent business-validator comparison remain open.
+
 This matrix records the locally exercised development/trial scope. It is an
 evidence index, not activation of a regulatory profile. A selected row can be
 observed in a completed report while Formal finalization remains blocked by the
@@ -7,7 +13,7 @@ immutable snapshot gates, criteria inventory or external comparison evidence.
 
 | Region / profile | Application and operation | Country / language | Sections | Local status | Formal status |
 | --- | --- | --- | --- | --- | --- |
-| US M1 3.3 / criteria 4.5 | NDA-like synthetic application; new documents with explicit metadata | US / en | m1.1 forms, m1.2 cover metadata | Selected trial; positive and negative bounded XML cases | Blocked: FDA source/current criteria and complete inventory unverified |
+| US M1 3.3 / criteria 4.5 | NDA-like synthetic application; new documents with explicit metadata | US / en | m1.1 forms, m1.2 cover metadata | Selected trial; positive and negative bounded XML cases | Blocked: current 4.7 originals acquired; new snapshot binding, complete rule inventory and external qualification pending |
 | US | Promotional m1.15 | US / en | m1.15 | Explicitly pending / NotEvaluated | Blocked |
 | EU M1 3.1.1 / criteria 8.2 | MAA-like national application; new documents, initial/reformat/response reference rules | DE / de, FR / fr, BE / fr | envelope, PI contexts and related sequence | Selected national trial; repeated values and contexts exercised | Blocked: complete criteria and external comparison missing |
 | EU | Other countries, procedures or language combinations | Outside DE/FR/BE national trial | Other M1 scopes | Unsupported or NotEvaluated with explicit findings | Blocked |

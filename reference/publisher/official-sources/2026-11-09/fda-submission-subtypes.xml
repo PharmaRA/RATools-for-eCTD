@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!DOCTYPE submission-sub-type [
+	<!ELEMENT submission-sub-type (code-display+)>
+	<!ATTLIST submission-sub-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<submission-sub-type AsOf="20121101" version-number="1.1">
+	<code-display code="fdasst1" display="Original" status="active"/>
+	<code-display code="fdasst2" display="Presubmission" status="active"/>
+	<code-display code="fdasst3" display="Application" status="active"/>
+	<code-display code="fdasst4" display="Amendment" status="active"/>
+	<code-display code="fdasst5" display="Resubmission" status="active"/>
+	<code-display code="fdasst6" display="Report" status="active"/>
+	<code-display code="fdasst7" display="Correspondence" status="active"/>
+</submission-sub-type>

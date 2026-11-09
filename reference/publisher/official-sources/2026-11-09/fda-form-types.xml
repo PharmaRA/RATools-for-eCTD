@@ -1,0 +1,17 @@
+<!--  version 1-1  Modified file to include machine readable version date and version number --> 
+<!--  version 1-2  Modified file to include fdaft10 form 3988 --> 
+<!--  version 1-3  Modified file to change the status of fdaft10 form 3988 to active --> 
+<!--  version 1-4  Modified file to include fdaft11 form 3938 --> 
+<form-type AsOf="20210315" version-number="1.4">
+  <code-display code="fdaft1" display="Form FDA 1571: Investigational New Drug Application (IND)" status="active" /> 
+  <code-display code="fdaft2" display="Form FDA 356h: Application to Market a New Drug, Biologic, or an Antibiotic Drug for Human Use" status="active" /> 
+  <code-display code="fdaft3" display="Form FDA 3397: User Fee Cover Sheet" status="active" /> 
+  <code-display code="fdaft4" display="Form FDA 2252: Transmittal of Annual Reports for Drugs and Biologics for Human Use" status="active" /> 
+  <code-display code="fdaft5" display="Form FDA 2253: Transmittal of Advertisements and Promotional Labeling for Drugs and Biologics for Human Use" status="active" /> 
+  <code-display code="fdaft6" display="Form FDA 2567: Transmittal of Labels and Circulars" status="active" /> 
+  <code-display code="fdaft7" display="Form FDA 3674: Certification of Compliance" status="active" /> 
+  <code-display code="fdaft8" display="Form FDA 3792: Biosimilar User Fee Cover Sheet (BsUFA)" status="active" /> 
+  <code-display code="fdaft9" display="Form FDA 3794: Generic Drug User Fee Cover Sheet (GDUFA)" status="active" /> 
+  <code-display code="fdaft10" display="Form FDA 3988: Transmittal of PMR/PMC Submissions for Drugs and Biologics" status="active" /> 
+  <code-display code="fdaft11" display="Form FDA 3938: Drug Master File" status="active" /> 
+</form-type>

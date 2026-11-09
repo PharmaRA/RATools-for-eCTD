@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!--version 1-2  Modified the display name for code fdapmdt6-->
+<!DOCTYPE promotional-material-doc-type [
+	<!ELEMENT promotional-material-doc-type (code-display+)>
+	<!ATTLIST promotional-material-doc-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<promotional-material-doc-type AsOf="20140207" version-number="1.2">
+	<code-display code="fdapmdt1" display="Promotional 2253" status="active"/>
+	<code-display code="fdapmdt2" display="Request For Advisory Launch" status="active"/>
+	<code-display code="fdapmdt3" display="Request For Advisory Non-Launch" status="active"/>
+	<code-display code="fdapmdt4" display="Presubmission Accelerated Launch" status="active"/>
+	<code-display code="fdapmdt5" display="Presubmission Accelerated Non-launch" status="active"/>
+	<code-display code="fdapmdt6" display="Pre-Dissemination Review of Television Ads" status="active"/>
+</promotional-material-doc-type>

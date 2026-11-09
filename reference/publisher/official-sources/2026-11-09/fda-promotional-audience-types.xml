@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!DOCTYPE promotional-material-audience-type [
+	<!ELEMENT promotional-material-audience-type (code-display+)>
+	<!ATTLIST promotional-material-audience-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<promotional-material-audience-type AsOf="20121101" version-number="1.1">
+	<code-display code="fdapmat1" display="Consumer" status="active"/>
+	<code-display code="fdapmat2" display="Professional" status="active"/>
+</promotional-material-audience-type>
+

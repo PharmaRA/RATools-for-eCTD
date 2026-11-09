@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!DOCTYPE telephone-number-type [
+	<!ELEMENT telephone-number-type (code-display+)>
+	<!ATTLIST telephone-number-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<telephone-number-type AsOf="20121101" version-number="1.1">
+	<code-display code="fdatnt1" display="Business Telephone Number" status="active"/>
+	<code-display code="fdatnt2" display="Fax Telephone Number" status="active"/>
+	<code-display code="fdatnt3" display="Mobile Telephone Number" status="active"/>
+</telephone-number-type>

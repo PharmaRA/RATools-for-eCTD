@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "verifiedUtc": "2026-11-09T11:30:53.0554313Z",
+  "passed": true,
+  "scope": "Source-byte and provenance evidence verification only; not product or regulatory qualification",
+  "sourceSnapshotId": "qa07-official-sources-2026-11-09",
+  "sourceSnapshotSha256": "67cfb2e3d35631945cd8ba66c0deed6044ce26bc9bd514411b4953caad24ba84",
+  "sourcesChecked": 29,
+  "rejectedAcquisitionsExcluded": 7,
+  "packageAssetMatches": 7,
+  "baselineBindingsChecked": 3,
+  "refreshedExistingDocuments": 6,
+  "extractedPdfCount": 13,
+  "extractedPageCount": 286,
+  "extractor": "PyMuPDF 1.28.2",
+  "guardRuns": [
+    {
+      "receipt": ".artifacts/local-check/official-sources-20261109/extraction.process.json",
+      "receiptSha256": "650895e2e859a610d6b2ee2f2e600253b390c1371e43441df5920f930fdb9dc2",
+      "script": ".artifacts/local-check/official-sources-20261109/extract-public-pdfs.py",
+      "scriptSha256": "9d72da19fd43f053a96a03ab9d40ef73aa54e2b7e5c1a1db2e32959ad763ee1c",
+      "guardSourceSha256": "9f874a48ecbe885df79b8dccb54f6f53efac86dd755b93e31c635ce83214b511",
+      "retainedMovePolicySha256": "50a8ca86d9fd71736bde462b07c52c95934ba7195d115fb395f6fe213daf4586",
+      "ntdllSha256": "f528b1ff309d98c87e6a4021a1a1b11dfc8002eb49c3680cc16a26ae8f036a0f",
+      "pythonSha256": "5f7b89a612c9b8af1d6456cdfcd1dbe5ca630849e79aebced9bee9a6694952ec",
+      "rootExitCode": 0,
+      "guardedProcesses": 2,
+      "jobProcesses": 2,
+      "processTreeStopped": true
+    },
+    {
+      "receipt": ".artifacts/local-check/official-sources-20261109/support-extraction.process.json",
+      "receiptSha256": "f5be419f3800a13a6e525de751aa480d57d5e1ef06e524852c75848840325999",
+      "script": ".artifacts/local-check/official-sources-20261109/extract-support-pdfs.py",
+      "scriptSha256": "86cc65f0d4284dc29c643d026e06e636b6c786e178d25518ce274777237efad7",
+      "guardSourceSha256": "9f874a48ecbe885df79b8dccb54f6f53efac86dd755b93e31c635ce83214b511",
+      "retainedMovePolicySha256": "50a8ca86d9fd71736bde462b07c52c95934ba7195d115fb395f6fe213daf4586",
+      "ntdllSha256": "f528b1ff309d98c87e6a4021a1a1b11dfc8002eb49c3680cc16a26ae8f036a0f",
+      "pythonSha256": "5f7b89a612c9b8af1d6456cdfcd1dbe5ca630849e79aebced9bee9a6694952ec",
+      "rootExitCode": 0,
+      "guardedProcesses": 2,
+      "jobProcesses": 2,
+      "processTreeStopped": true
+    }
+  ],
+  "pdfExtractionOutputs": [
+    {
+      "id": "fda-criteria",
+      "sourceSha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
+      "pages": 74,
+      "textFile": "fda-criteria.text.json",
+      "textSha256": "aa04331e1c92083d145316c0dcafeaeb9f43a0628cdb7625d93c12e4140ee6ae"
+    },
+    {
+      "id": "fda-technical-guide",
+      "sourceSha256": "d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c",
+      "pages": 31,
+      "textFile": "fda-technical-guide.text.json",
+      "textSha256": "3aabe4e37cbefb26f5e2a57feb29fab733716520af43df64d85f01165035e920"
+    },
+    {
+      "id": "fda-m1-specification",
+      "sourceSha256": "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2",
+      "pages": 47,
+      "textFile": "fda-m1-specification.text.json",
+      "textSha256": "9db57c9ca1f07140fc50207af221e764587b156c32f8a80880f280e4c0b7784c"
+    },
+    {
+      "id": "fda-ctoc",
+      "sourceSha256": "04069ba39807b7d534ede9928422d758541aed9f7bc8060a60ae85263e9b34bb",
+      "pages": 43,
+      "textFile": "fda-ctoc.text.json",
+      "textSha256": "0497dca433f7bda2aab6e67c28db2b0a68a253f8b9dee4cfeb01a35cb9765303"
+    },
+    {
+      "id": "fda-file-formats",
+      "sourceSha256": "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b",
+      "pages": 8,
+      "textFile": "fda-file-formats.text.json",
+      "textSha256": "d1623fc6e4104afc20cc7b072f83b5b153b5217deae31a4bb9f99cc65ff0df65"
+    },
+    {
+      "id": "fda-pdf-specification",
+      "sourceSha256": "113faa128d34ca5c2b99184da2cf4da2e4359403204289892720c1f73afcae2a",
+      "pages": 10,
+      "textFile": "fda-pdf-specification.text.json",
+      "textSha256": "e3d0129763f31d409439abc3c68a1d1ef9a6a463a5a783444ab9670aba0eff50"
+    },
+    {
+      "id": "ema-guide-query",
+      "sourceSha256": "ae27b9a2258ac396071234539f2bbd88491dec03521c1b12ded135bdf49b2492",
+      "pages": 64,
+      "textFile": "ema-guide-query.text.json",
+      "textSha256": "246a7a1a9d57e3daddf8468c48a55bd303300d4f338cf62f331151b13aac409a"
+    },
+    {
+      "id": "ema-guide-release-notes-query",
+      "sourceSha256": "2fd472b0b3f1efaa297b1de92c9379845273e70d33c62db024670e219a1c5eb9",
+      "pages": 1,
+      "textFile": "ema-guide-release-notes-query.text.json",
+      "textSha256": "09d62608f01f8e67cfb540524aaf28b9a5ad5a326c4dd0dc0e0abe339c891332"
+    },
+    {
+      "id": "ema-criteria-release-notes-query",
+      "sourceSha256": "8e9a7b27cef444537a26a7a629a900c7f29900931e1c0130df756e7ad315d154",
+      "pages": 1,
+      "textFile": "ema-criteria-release-notes-query.text.json",
+      "textSha256": "23be56938135b0d865b562aabf39416ca20fcd06bc45e82014ea36b7e283de40"
+    },
+    {
+      "id": "ema-timeline-query",
+      "sourceSha256": "59ad244eb99f6bf2f077059b77d539b2395f2827feaf0d9288d60931c30c24ca",
+      "pages": 3,
+      "textFile": "ema-timeline-query.text.json",
+      "textSha256": "5a11fdec727c917dcdc1e53a1d4325d6368d929bef49177b58aeba25f0deb2cf"
+    },
+    {
+      "id": "ema-file-formats-query",
+      "sourceSha256": "9dc7d4d130e30b210db2be975d9ce575c6dd2acf35dca5a8742b2c78735d9572",
+      "pages": 2,
+      "textFile": "ema-file-formats-query.text.json",
+      "textSha256": "4c973012fcc87e155e31485b81c12b312790d61a0664caffc78b45af23b0c980"
+    },
+    {
+      "id": "fda-m1-addendum",
+      "sourceSha256": "8891c95a704eced0f369397e18baf6a54595e75b375616addac1c58b7402b3bc",
+      "pages": 1,
+      "textFile": "fda-m1-addendum.text.json",
+      "textSha256": "7e81274db135dd445602ffae4c4b738014eda418da3f3d6d4664452b6aada7f7"
+    },
+    {
+      "id": "fda-m1-addendum-2",
+      "sourceSha256": "acab7ac0e05e220009dbf3ce1b9c57a09f052b0710c0b6531529a588334409e5",
+      "pages": 1,
+      "textFile": "fda-m1-addendum-2.text.json",
+      "textSha256": "b36a2957b7cad9eb4688781ac06daf9154e5b140cad5f986f046687f5f1e6efc"
+    }
+  ],
+  "verifierScript": ".artifacts/local-check/official-sources-20261109/verify-delivery.ps1",
+  "verifierSha256": "68fd38ae893944a7340a7c71ad66e2c57d9dbca40d4f1e5c60c0bb22421c24c6",
+  "productionStandardsSnapshotBinding": "Pending",
+  "ruleMapping": "Pending",
+  "externalValidatorExecution": "NotExecuted"
+}

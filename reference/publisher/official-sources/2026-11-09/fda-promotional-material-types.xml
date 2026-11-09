@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--version 1-1  Modified file to include machine readable version date and version number-->
+<!--version 1-2  Added fdapmt 39 through 46; inactivated fdapmt17, fdapmt20 and fdapmt34; fdapmt11 was changed to 'Formulary Economic'; fdapmt12 was changed to 'Formulary Kit'; fdapmt26 was changed to 'Slides'-->
+<!--version 1-3  Added fdapmt 47 PDURS 'Prescription Drug Use Related Software' -->
+<!DOCTYPE promotional-material-type [
+	<!ELEMENT promotional-material-type (code-display+)>
+	<!ATTLIST promotional-material-type
+		AsOf CDATA #REQUIRED
+		version-number CDATA #REQUIRED
+	>
+	<!ELEMENT code-display (#PCDATA)>
+	<!ATTLIST code-display
+		code CDATA #REQUIRED
+		display CDATA #REQUIRED
+		status CDATA #REQUIRED
+	>
+]>
+<promotional-material-type AsOf="20190819" version-number="1.3">
+  <code-display code="fdapmt1" display="Audio" status="active"/> 
+  <code-display code="fdapmt2" display="Book" status="active"/> 
+  <code-display code="fdapmt3" display="Carrier" status="active"/> 
+  <code-display code="fdapmt4" display="Carton" status="active" /> 
+  <code-display code="fdapmt5" display="Catalog" status="active" /> 
+  <code-display code="fdapmt6" display="CD-ROM" status="active" /> 
+  <code-display code="fdapmt7" display="Direct Mail" status="active" /> 
+  <code-display code="fdapmt8" display="Drug Sample" status="active" /> 
+  <code-display code="fdapmt9" display="Exhibit" status="active" /> 
+  <code-display code="fdapmt10" display="File Card" status="active" /> 
+  <code-display code="fdapmt11" display="Formulary Economic" status="active" /> 
+  <code-display code="fdapmt12" display="Formulary Kit" status="active" /> 
+  <code-display code="fdapmt13" display="Giveaway" status="active" /> 
+  <code-display code="fdapmt14" display="House Organ" status="active"/> 
+  <code-display code="fdapmt15" display="Kit" status="active" /> 
+  <code-display code="fdapmt16" display="Monograph" status="active" /> 
+  <code-display code="fdapmt17" display="Other" status="inactive" /> 
+  <code-display code="fdapmt18" display="Press Release" status="active" /> 
+  <code-display code="fdapmt19" display="Print Ad" status="active"/> 
+  <code-display code="fdapmt20" display="Print Other" status="inactive" /> 
+  <code-display code="fdapmt21" display="Promotional Labeling" status="active" /> 
+  <code-display code="fdapmt22" display="Radio" status="active" /> 
+  <code-display code="fdapmt23" display="Reply Card" status="active" /> 
+  <code-display code="fdapmt24" display="Reprint" status="active" /> 
+  <code-display code="fdapmt25" display="Sales Aid" status="active" /> 
+  <code-display code="fdapmt26" display="Slides" status="active" /> 
+  <code-display code="fdapmt27" display="Telephone" status="active" /> 
+  <code-display code="fdapmt28" display="TV" status="active" /> 
+  <code-display code="fdapmt29" display="Video News Release" status="active"/> 
+  <code-display code="fdapmt30" display="Video" status="active" /> 
+  <code-display code="fdapmt31" display="www-banner" status="active" /> 
+  <code-display code="fdapmt32" display="www-ecomm" status="active" /> 
+  <code-display code="fdapmt33" display="www-links" status="active"/> 
+  <code-display code="fdapmt34" display="www-other" status="inactive" /> 
+  <code-display code="fdapmt35" display="www-soc-med" status="active" /> 
+  <code-display code="fdapmt36" display="www-website" status="active" /> 
+  <code-display code="fdapmt37" display="www-video" status="active" /> 
+  <code-display code="fdapmt38" display="www-mobile" status="active" /> 
+  <code-display code="fdapmt39" display="Corrective Internet" status="active" /> 
+  <code-display code="fdapmt40" display="Corrective Letter" status="active" /> 
+  <code-display code="fdapmt41" display="Corrective Print Ad" status="active" /> 
+  <code-display code="fdapmt42" display="Corrective TV" status="active" /> 
+  <code-display code="fdapmt43" display="Electronic Detail Aid" status="active" /> 
+  <code-display code="fdapmt44" display="Form" status="active" /> 
+  <code-display code="fdapmt45" display="Training Materials" status="active" />
+  <code-display code="fdapmt46" display="www-audio" status="active" />
+  <code-display code="fdapmt47" display="PDURS" status="active" />
+  </promotional-material-type>
+

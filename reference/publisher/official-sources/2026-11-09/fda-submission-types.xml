@@ -1,0 +1,16 @@
+<!-- version 1-1  Modified file to include machine readable version date and version number -->
+<!-- version 1-2  Modified file to include REMS Supplement -->
+<!-- version 1-3  Modified file to activate REMS Supplement -->
+<submission-type AsOf="20200727" version-number="1.3">
+<code-display code="fdast1" display="Original Application" status="active"/>
+<code-display code="fdast2" display="Efficacy Supplement" status="active"/>
+<code-display code="fdast3" display="Chemistry Manufacturing Controls Supplement" status="active"/>
+<code-display code="fdast4" display="Labeling Supplement" status="active"/>
+<code-display code="fdast5" display="Annual Report" status="active"/>
+<code-display code="fdast6" display="Product Correspondence" status="active"/>
+<code-display code="fdast7" display="Postmarketing Requirements or Postmarketing Commitments" status="active"/>
+<code-display code="fdast8" display="Promotional Labeling Advertising" status="active"/>
+<code-display code="fdast9" display="IND Safety Reports" status="active"/>
+<code-display code="fdast10" display="Periodic Safety Reports" status="active"/>
+<code-display code="fdast11" display="REMS Supplement" status="active"/>
+</submission-type>

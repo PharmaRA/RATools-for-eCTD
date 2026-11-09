@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "checkedOn": "2026-11-09",
+  "candidate": "LORENZ eValidator",
+  "status": "HistoricalCandidate_CurrentEntryPointNotLocated",
+  "historical": {
+    "source": "reference/publisher/decisions.json",
+    "productVersion": "22.1.0.02 rev.14638",
+    "fileVersion": "1.0.13859.0",
+    "entryPoint": "eValidatorConsole.exe",
+    "originalGuideSha256": "f256f57dbc95d2ed4a5b4c973f7880634ed48a23c7dffe6bb0a0dfb3eaf7e8b5",
+    "retainedGuideText": ".artifacts/publisher-g0/evalidator-guide.txt",
+    "retainedGuideTextSha256": "3c25df46ff4efc7fc2ca23929dfada41c9b1db5cbfda093e5399f4649c33f2ba"
+  },
+  "current": {
+    "executablePath": null,
+    "executableSha256": null,
+    "productVersion": null,
+    "licenseEdition": null,
+    "rulePackageVersion": null,
+    "report": null,
+    "execution": "NotAttempted_NoLocatedEntryPoint"
+  },
+  "boundedChecks": [
+    "PATH command lookup: eValidatorConsole.exe; no match",
+    "HKLM native/WOW6432Node and HKCU Windows Uninstall DisplayName matching LORENZ or eValidator; no match",
+    "C:/Program Files and C:/Program Files (x86), immediate directory names matching LORENZ or eValidator; no match",
+    "User/Public Desktop and User/All Users Start Menu Programs, immediate names matching LORENZ or eValidator; no match",
+    "Running process names matching LORENZ or eValidator; no match"
+  ],
+  "guideConstraints": [
+    "Retained 22.1 User Guide section 2.4.1: Basic does not support scripting mode or custom profiles",
+    "Section 2.4.2: ONE adds profile switching; other Basic limitations remain",
+    "Section 8.2: console entrypoint exists as a product feature, not proof of licensed use",
+    "Historical guide and FDA tool version cannot establish the current locally installed license or regulatory update"
+  ],
+  "nextRequiredInputs": [
+    "Actual executable location or a legally generated external report",
+    "Nonsecret edition and permitted invocation method",
+    "Exact regulatory profile and update version",
+    "Frozen input bytes and raw positive/negative reports"
+  ],
+  "boundary": "These bounded checks do not prove the software is absent from other or portable locations. No licensing files or user configuration were opened."
+}
