@@ -5,6 +5,17 @@ immutable evidence and admission gates. It does not activate FDA/EU regulatory
 qualification, introduce confirmed regional business metadata, or replace the
 remaining P6-03 through P6-09 work.
 
+QA07-05-S update, 2026-11-09: [production source binding](QA-07-SOURCE-BINDING.md)
+now captures 31 pinned official originals across FDA criteria 4.7 and EU criteria
+8.2 bundles (22 FDA / 10 EU, sharing ICH). The full version tuple and reference
+URLs must match before Sources becomes Verified. Original bytes, provenance,
+binding manifest and historical source inventory are embedded and retained in
+each applicable snapshot; archived reads do not consult today's provider. The
+service also checks archived Region, Guide and Criteria against its descriptor.
+Windows Standards 85/85 and five original PostgreSQL cases on Linux passed in
+separate runs. Rules, business scope, external comparison and Formal activation
+remain unqualified; source reference PDFs are not delivery assets.
+
 ## Identity and retained resources
 
 `StandardsProfileSnapshot` is content addressed as `sha256:<64 lowercase hex>`.

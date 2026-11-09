@@ -130,7 +130,10 @@ public sealed class StandardsSnapshotIntegrationTests
         Assert.Contains(reasons, reason => reason.StartsWith("ProfileNotActive:", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.StartsWith("BusinessScopeNotQualified:", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.StartsWith("EvidenceIncomplete:", StringComparison.Ordinal));
-        Assert.Contains(reasons, reason => reason.StartsWith("SourceVerificationIncomplete:", StringComparison.Ordinal));
+        Assert.Equal("Verified", Assert.Single(snapshot.Descriptor.Evidence, evidence => evidence.Category == "Sources").Status);
+        Assert.DoesNotContain(reasons, reason => reason.StartsWith("SourceVerificationIncomplete:", StringComparison.Ordinal));
+        Assert.Contains("EvidenceIncomplete: Rules", reasons);
+        Assert.Contains("EvidenceIncomplete: ExternalComparison", reasons);
         Assert.All(snapshot.Descriptor.Scopes, scope => { Assert.True(scope.CreateDraft); Assert.True(scope.TrialPublish); Assert.False(scope.Finalize); });
         Assert.Contains(snapshot.Evaluate(context, snapshot.Lifecycle.EffectiveFrom.AddDays(-1), SnapshotFixture.Template),
             reason => reason.StartsWith("ProfileDateNotApplicable:", StringComparison.Ordinal));

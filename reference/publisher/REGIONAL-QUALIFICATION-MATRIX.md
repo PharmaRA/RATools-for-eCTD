@@ -1,10 +1,12 @@
 # P6-09 declared regional qualification matrix
 
 QA-07 source update, 2026-11-09: [current FDA/EMA originals](QA-07-OFFICIAL-SOURCES.md)
-have now been acquired and frozen. FDA publishes criteria 4.7; the criteria 4.5
-rows below retain the historical trial scope. Current source acquisition does not
-upgrade these rows or bind a new production snapshot. Rule mapping, the six
-pending rows and independent business-validator comparison remain open.
+have been acquired and bound to production snapshots; see the
+[source binding acceptance](QA-07-SOURCE-BINDING.md) (Windows 85 and Linux-local
+PostgreSQL 5, separate runs). New FDA captures bind criteria 4.7; the criteria 4.5
+rows below retain their historical trial scope. Sources Verified does not upgrade
+these rows or activate a profile. Rule mapping, the six pending rows and
+independent business-validator comparison remain open.
 
 This matrix records the locally exercised development/trial scope. It is an
 evidence index, not activation of a regulatory profile. A selected row can be
@@ -13,7 +15,7 @@ immutable snapshot gates, criteria inventory or external comparison evidence.
 
 | Region / profile | Application and operation | Country / language | Sections | Local status | Formal status |
 | --- | --- | --- | --- | --- | --- |
-| US M1 3.3 / criteria 4.5 | NDA-like synthetic application; new documents with explicit metadata | US / en | m1.1 forms, m1.2 cover metadata | Selected trial; positive and negative bounded XML cases | Blocked: current 4.7 originals acquired; new snapshot binding, complete rule inventory and external qualification pending |
+| US M1 3.3 / criteria 4.5 | NDA-like synthetic application; new documents with explicit metadata | US / en | m1.1 forms, m1.2 cover metadata | Selected historical trial; positive and negative bounded XML cases | Blocked: new 4.7 source binding passed; complete rule inventory and external qualification pending |
 | US | Promotional m1.15 | US / en | m1.15 | Explicitly pending / NotEvaluated | Blocked |
 | EU M1 3.1.1 / criteria 8.2 | MAA-like national application; new documents, initial/reformat/response reference rules | DE / de, FR / fr, BE / fr | envelope, PI contexts and related sequence | Selected national trial; repeated values and contexts exercised | Blocked: complete criteria and external comparison missing |
 | EU | Other countries, procedures or language combinations | Outside DE/FR/BE national trial | Other M1 scopes | Unsupported or NotEvaluated with explicit findings | Blocked |
@@ -26,8 +28,9 @@ parser/archive evidence. It is not current 3.1.1 output qualification. P6-07's
 independent hand-written DE/FR/BE XML and the libxml2 comparison contain three
 valid outputs and six rejected structural mutations; this is structural DTD
 evidence, not an independent regional business validator. The FDA source check
-recorded both registered URLs as HTTP 404 on 2026-11-06, so the FDA current
-source and business criteria remain unverified.
+recorded both registered URLs as HTTP 404 on 2026-11-06. The 2026-11-09 source
+binding acceptance supersedes that acquisition blocker; business criteria remain
+unqualified.
 
 P6-08's local matrix adds six ProjectPolicy business checks, exact selected
 history/catalog binding, new engine identities, source locations and explicit

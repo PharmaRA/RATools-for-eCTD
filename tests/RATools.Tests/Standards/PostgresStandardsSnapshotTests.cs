@@ -23,9 +23,14 @@ public sealed class PostgresStandardsSnapshotTests
         Assert.Equal(stored[0].AcquiredUtc, stored[1].AcquiredUtc);
         Assert.Equal(1, await second.Set<StandardsSnapshotRecord>().CountAsync(row => row.Id == one.Id));
         var restored = (await new EfCoreStandardsSnapshotStore(second).GetAsync(one.Id))!;
+        Assert.Equal("4.7", restored.Descriptor.CriteriaVersion);
+        var criteria = Assert.Single(restored.Resources, resource => resource.Key == "official-fda-criteria");
+        Assert.Equal("2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c", criteria.Sha256);
+        Assert.Equal("Verified", Assert.Single(restored.Descriptor.Evidence, evidence => evidence.Category == "Sources").Status);
         Assert.Equal(JsonSerializer.Serialize(stored[0]), JsonSerializer.Serialize(restored));
         foreach (var resource in one.Resources)
             Assert.Equal(resource.ReadBytes(), restored.Resources.Single(item => item.Key == resource.Key).ReadBytes());
+        await OfficialSourceSnapshotTests.RetainCaptureEvidenceAsync(restored, "PostgreSQL US dual connection immutable source replay");
     }
 
     [RequiresPostgresFact]

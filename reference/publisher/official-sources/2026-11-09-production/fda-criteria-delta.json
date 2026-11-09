@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "qa07-fda-criteria-4.5-to-4.7",
+  "reviewedOn": "2026-11-09",
+  "source": {
+    "path": "reference/publisher/official-sources/2026-11-09/fda-criteria.pdf",
+    "sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
+    "fromVersion": "4.5",
+    "toVersion": "4.7",
+    "revisionHistoryPage": 2,
+    "effectiveDateDefinitionPage": 3
+  },
+  "catalog": {
+    "path": "reference/publisher/package-rules-v1.json",
+    "rawSha256": "7b270b6f185d0b41d130df158b55e00f978ed7f82e155ca51a528b883319e377",
+    "canonicalSha256": "305987d3459bcea30b50f0c399c517c889a5c00d046f808aa2384aa1e83cd0ed",
+    "ruleCount": 43,
+    "authorityIdsPresent": 0,
+    "identityNote": "Raw source SHA and canonical catalog identity are distinct; archived catalog bytes remain unchanged."
+  },
+  "changes": [
+    {
+      "authorityRuleId": "7",
+      "changedInVersion": "4.6",
+      "documentRevisionDate": "2026-08-17",
+      "change": "Problem and Corrective Action descriptions updated",
+      "sourcePage": 5,
+      "description": "Fillable form not included",
+      "severity": "High",
+      "effectiveOn": "2018-07-27",
+      "applicability": "Appropriate fillable form 356h, 2252, 1571 or 2253 (CBER only); application and submission context required",
+      "implementation": "Missing authoritative check",
+      "existingProjectRule": "US-FORM-ATTRIBUTES",
+      "existingRuleBoundary": "Nonblank form-type and attribute location only; does not inspect fillable-form presence or suitability",
+      "requiredCases": [
+        "Correct applicable fillable form present",
+        "Applicable form absent",
+        "Incorrect form for application or submission",
+        "Nonfillable substitute",
+        "CBER/CDER applicability"
+      ]
+    },
+    {
+      "authorityRuleId": "2024",
+      "changedInVersion": "4.7",
+      "documentRevisionDate": "2026-10-16",
+      "change": "Effective Date updated",
+      "sourcePage": 47,
+      "description": "All sequences for one regulatory activity must have a consistent submission type",
+      "severity": "High",
+      "effectiveOn": "2027-01-16",
+      "applicability": "Same parent regulatory activity across sequences; bound selection date governs applicability",
+      "implementation": "Missing authoritative check",
+      "existingProjectRule": "US-ADMIN-METADATA",
+      "existingRuleBoundary": "Metadata presence and identity checks do not prove cross-sequence activity type consistency",
+      "requiredCases": [
+        "Matching activity submission type",
+        "Conflicting parent activity submission type",
+        "Before effective date",
+        "On effective date",
+        "Missing or untrusted parent history"
+      ]
+    },
+    {
+      "authorityRuleId": "2025",
+      "changedInVersion": "4.7",
+      "documentRevisionDate": "2026-10-16",
+      "change": "Effective Date updated",
+      "sourcePage": 47,
+      "description": "A submission sub-type starting a new regulatory activity must have equal sequence number and submission-id",
+      "severity": "High",
+      "effectiveOn": "2027-01-16",
+      "applicability": "Only sub-types that start a new regulatory activity, with explicit official subtype mapping",
+      "implementation": "Missing authoritative check",
+      "existingProjectRule": "US-ADMIN-METADATA",
+      "existingRuleBoundary": "No authorityRuleId mapping or qualified per-rule effective-date behavior",
+      "requiredCases": [
+        "New activity with matching sequence/submission-id",
+        "New activity with mismatched sequence/submission-id",
+        "Continuation subtype",
+        "Before effective date",
+        "On effective date"
+      ]
+    },
+    {
+      "authorityRuleId": "2026",
+      "changedInVersion": "4.7",
+      "documentRevisionDate": "2026-10-16",
+      "change": "Effective Date updated",
+      "sourcePage": 47,
+      "description": "submission-id must refer to the sequence starting the parent regulatory activity",
+      "severity": "Medium",
+      "effectiveOn": "2027-01-16",
+      "applicability": "Submission sub-type that does not start a new regulatory activity; requires explicit parent activity history",
+      "implementation": "Missing authoritative check",
+      "existingProjectRule": "US-ADMIN-METADATA",
+      "existingRuleBoundary": "Metadata identity checks cannot be renamed as this official lifecycle rule",
+      "requiredCases": [
+        "Continuation refers to parent activity initial sequence",
+        "Continuation incorrectly refers to own sequence",
+        "Missing parent activity",
+        "Before effective date",
+        "On effective date"
+      ]
+    }
+  ],
+  "remainingGate": {
+    "internalRuleId": "US-CRITERIA-INVENTORY",
+    "implementationStatus": "NotImplemented",
+    "requiredForReadiness": true,
+    "manualClosureAllowed": false,
+    "scope": "Complete FDA atomic rule inventory, official applicability mapping, implementation, positive/negative acceptance and external comparison remain required."
+  },
+  "boundary": "Source-derived delta inventory only; does not claim a complete criteria inventory, implementation, scope exclusion or external validation pass."
+}

@@ -5,7 +5,8 @@ namespace RATools.Application.Standards;
 public sealed class FdaEctd322StandardsProfileProvider : IStandardsProfileProvider
 {
     private const string StandardsPageUrl = "https://www.fda.gov/drugs/electronic-regulatory-submission-and-review/ectd-submission-standards-ectd-v322-and-regional-m1";
-    private const string EctdOverviewUrl = "https://www.fda.gov/ectd";
+    private const string CriteriaUrl = "https://www.fda.gov/media/87056/download";
+    private const string TechnicalGuideUrl = "https://www.fda.gov/media/181847/download?attachment";
     private const string IchSpecificationUrl = "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf";
     private readonly BundledStandardsAssetResolver _assets;
 
@@ -29,8 +30,8 @@ public sealed class FdaEctd322StandardsProfileProvider : IStandardsProfileProvid
             "3.2.2",
             "3.3",
             "1.9",
-            "4.5",
-            [StandardsPageUrl, EctdOverviewUrl, IchSpecificationUrl],
+            "4.7",
+            [StandardsPageUrl, CriteriaUrl, TechnicalGuideUrl, IchSpecificationUrl],
             [
                 _assets.Build(
                     "ich-ectd-3-2-dtd",

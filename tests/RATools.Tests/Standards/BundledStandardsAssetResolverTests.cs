@@ -8,7 +8,7 @@ public sealed class BundledStandardsAssetResolverTests
     [Fact]
     public void Build_ReturnsAssetWithSha256FromBundledFile()
     {
-        using var assets = new TemporaryDirectory();
+        var assets = new RetainedDirectory();
         var relativePath = Path.Combine("reference", "dtd", "sample.dtd");
         var assetPath = Path.Combine(assets.Path, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
@@ -37,7 +37,7 @@ public sealed class BundledStandardsAssetResolverTests
     [Fact]
     public void Build_ThrowsWhenBundledAssetIsMissing()
     {
-        using var assets = new TemporaryDirectory();
+        var assets = new RetainedDirectory();
         var resolver = new BundledStandardsAssetResolver(assets.Path);
 
         void Act() => resolver.Build(
@@ -55,9 +55,9 @@ public sealed class BundledStandardsAssetResolverTests
         Assert.Contains("reference/dtd/missing.dtd", exception.Message);
     }
 
-    private sealed class TemporaryDirectory : IDisposable
+    private sealed class RetainedDirectory
     {
-        public TemporaryDirectory()
+        public RetainedDirectory()
         {
             Path = RetainedPackageTestFiles.Create();
             Directory.CreateDirectory(Path);
@@ -65,12 +65,7 @@ public sealed class BundledStandardsAssetResolverTests
 
         public string Path { get; }
 
-        public void Dispose()
-        {
-            if (Directory.Exists(Path))
-            {
-                RetainedPackageTestFiles.RetainDirectory(Path);
-            }
-        }
+        // Retain these tiny owned inputs as verification evidence. The resolver
+        // has no cleanup contract; running it does not require moving the root.
     }
 }

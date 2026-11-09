@@ -60,16 +60,25 @@ public sealed class StandardsSnapshotService(IStandardsSnapshotStore store, ISta
             var resource = StandardsSnapshotResource.Create("provider-" + asset.Key, asset.Category, asset.LocalRelativePath, Media(asset.LocalRelativePath), bytes);
             if (resource.Sha256 != asset.Sha256) throw new InvalidDataException("The provider asset changed during capture."); resources.Add(resource);
         }
+        var officialSources = BundledOfficialSources.Capture(profile);
+        if (officialSources is not null)
+        {
+            foreach (var resource in officialSources.Resources)
+            {
+                if (resources.Count >= 64 || resource.Length > remaining) throw new InvalidDataException("Snapshot resource budget exceeded.");
+                remaining -= resource.Length; resources.Add(resource);
+            }
+        }
         var lifecycle = profile.Lifecycle;
         var descriptor = new StandardsSnapshotDescriptor(profile.TemplateKey, profile.DisplayName, profile.RegulatoryAgency, profile.Region,
             profile.IchEctdVersion, profile.RegionalModule1Version, profile.TechnicalConformanceGuideVersion, profile.ValidationCriteriaVersion, alias,
             new(lifecycle?.EffectiveFrom ?? profile.Assets.Select(asset => asset.SupportedFrom ?? DateOnly.MinValue).DefaultIfEmpty(DateOnly.MinValue).Max(), lifecycle?.RetiredFrom,
                 lifecycle is null ? StandardsSnapshotStatus.AcquiredNotActive : Enum.Parse<StandardsSnapshotStatus>(lifecycle.Status.ToString()),
                 lifecycle?.RetirementPolicy ?? "Retain historical bytes; formal activation requires verified regional scope and evidence."),
-            profile.OfficialReferences.Order(StringComparer.Ordinal).Select(url => new StandardsSnapshotProvenance(url, url.Contains("ich.org", StringComparison.OrdinalIgnoreCase) ? profile.IchEctdVersion : "Unverified-version-selection",
+            officialSources?.Provenance ?? profile.OfficialReferences.Order(StringComparer.Ordinal).Select(url => new StandardsSnapshotProvenance(url, url.Contains("ich.org", StringComparison.OrdinalIgnoreCase) ? profile.IchEctdVersion : "Unverified-version-selection",
                 null, null, "Unverified", null)).ToArray(),
             [new("*", "*", "*", "*", "*", "*", true, true, false, "TrialOnly")],
-            [new("Sources", "Unverified", "Bundled assets are hash pinned; current official applicability has not been independently verified."),
+            [officialSources?.Evidence ?? new("Sources", "Unverified", "No verified official source set matches this complete profile version selection."),
              new("ControlledVocabulary", "Missing", "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified."),
              new("MetadataMapping", "Unverified", "P6 regional metadata mapping qualification remains pending."),
              new("Writer", "Unverified", "Regional writer scope requires the P6 evidence matrix."),
@@ -91,7 +100,9 @@ public sealed class StandardsSnapshotService(IStandardsSnapshotStore store, ISta
     {
         snapshot.Verify(); var profile = JsonSerializer.Deserialize<StandardsProfile>(snapshot.Resources.SingleOrDefault(resource => resource.Key == "profile")?.ReadBytes() ?? throw new InvalidDataException("The archived standards descriptor resource is missing."))
             ?? throw new InvalidDataException("The archived standards descriptor is missing.");
-        if (profile.TemplateKey != snapshot.TemplateKey || profile.IchEctdVersion != snapshot.Descriptor.IchEctdVersion || profile.RegionalModule1Version != snapshot.Descriptor.RegionalModule1Version)
+        if (profile.TemplateKey != snapshot.TemplateKey || profile.IchEctdVersion != snapshot.Descriptor.IchEctdVersion || profile.RegionalModule1Version != snapshot.Descriptor.RegionalModule1Version ||
+            profile.Region != snapshot.Descriptor.Region || profile.TechnicalConformanceGuideVersion != snapshot.Descriptor.GuideVersion ||
+            profile.ValidationCriteriaVersion != snapshot.Descriptor.CriteriaVersion)
             throw new InvalidDataException("Archived profile versions disagree with the snapshot identity.");
         return profile;
     }

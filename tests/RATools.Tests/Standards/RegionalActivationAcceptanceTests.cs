@@ -154,14 +154,19 @@ public sealed class RegionalActivationAcceptanceTests
         var reasons = restored.Evaluate(context, DateOnly.FromDateTime(restored.AcquiredUtc), restored.TemplateKey);
         Assert.DoesNotContain(reasons, reason => reason.StartsWith("ProfileNotActive:", StringComparison.Ordinal));
         Assert.DoesNotContain(reasons, reason => reason.StartsWith("BusinessScopeNotQualified:", StringComparison.Ordinal));
-        foreach (var category in new[] { "Sources", "ControlledVocabulary", "MetadataMapping", "Writer", "Rules", "ExternalComparison" })
+        Assert.Equal("Verified", Assert.Single(restored.Descriptor.Evidence, evidence => evidence.Category == "Sources").Status);
+        Assert.DoesNotContain("EvidenceIncomplete: Sources", reasons);
+        foreach (var category in new[] { "ControlledVocabulary", "MetadataMapping", "Writer", "Rules", "ExternalComparison" })
             Assert.Contains("EvidenceIncomplete: " + category, reasons);
-        Assert.Contains(reasons, reason => reason.StartsWith("SourceVerificationIncomplete:", StringComparison.Ordinal));
+        Assert.DoesNotContain(reasons, reason => reason.StartsWith("SourceVerificationIncomplete:", StringComparison.Ordinal));
         using var rules = new MemoryStream(restored.Resources.Single(resource => resource.Key == "rules").ReadBytes());
         var catalog = PackageValidationCatalog.Load(rules);
         foreach (var ruleId in EuIds) Assert.Contains(catalog.ForProfile(restored.RuleProfileAlias), rule => rule.InternalRuleId == ruleId);
         Assert.Equal(saved.Resources.Single(resource => resource.Key == "rules").Sha256,
             restored.Resources.Single(resource => resource.Key == "rules").Sha256);
+        var criteria = Assert.Single(restored.Resources, resource => resource.Key == "official-ema-criteria");
+        Assert.Equal("0f64339496564d89abe9e96376f29805dce2302a56f54ce12858d083315d1fd9", criteria.Sha256);
+        await OfficialSourceSnapshotTests.RetainCaptureEvidenceAsync(restored, "PostgreSQL EU new connection sources verified but Formal still blocked");
     }
 
     [Fact]

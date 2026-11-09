@@ -2,7 +2,7 @@
 
 核验日期：2026-11-09。对应[固定关闭清单](QA-07-CLOSURE-CHECKLIST.md)的 QA07-05-S/V。
 
-**官方原件下载阻塞已解决。** 本次保存或重新核对了29个 FDA/EMA 成功原件，冻结了 URL、取得 UTC、长度、SHA-256 和适用日期。05-S 的原件取得与离线来源快照已完成；生产 `StandardsProfileSnapshot` 的来源资源绑定仍待完成，因此不关闭05-S完整条款。05-R的规则映射、05-V的实际独立验证报告和Formal资格继续开放。
+**QA07-05-S已完成官方来源取得、生产绑定与声明的数据库验收。** 本文保留最初29个 FDA/EMA 成功原件的取得证据；随后补充ICH规格及EMA指南，31份原件进入生产 `StandardsProfileSnapshot`。Windows标准85/85与Linux本机真实PG5/5分别通过，见[生产绑定记录](QA-07-SOURCE-BINDING.md)及[最终回执](official-sources/2026-11-09-production/verification.json)。05-R的规则映射、05-V的实际独立验证报告和Formal资格继续开放。
 
 ## 固定交付
 
@@ -12,7 +12,7 @@
 - 原件归档位于同一目录；6份字节一致的EMA文档引用既有 [3.1.1 manifest](../eu-m1/3.1.1/manifest.json) 对应原件。来源快照同时绑定历史 `standards-scope.json`、EMA manifest、`decisions.json` 的摘要。
 - 请求回执、失败响应、文本提取和核验脚本保留在 `.artifacts/local-check/official-sources-20261109/`。新归档以 Git 属性禁用换行转换，原件不能因检出平台改变字节。
 
-该来源快照是本次查证的固定输入，不是已经激活的生产标准快照。历史报告使用的 FDA criteria 4.5 和旧快照保持原身份；新取得的4.7需要后续规则映射与新快照绑定。
+该29源清单是查证的固定输入，其Pending字段保留当时状态；后续31源生产绑定状态由上述新回执记录。历史报告使用的 FDA criteria 4.5 和旧快照保持原身份；新捕获以4.7绑定来源，完整规则映射仍由05-R负责。生产profile没有激活。
 
 ## 官方资料与适用性
 
@@ -52,6 +52,6 @@ FDA当前标准页记录其使用 **LORENZ eValidator 25.2**，Tool in Use as of
 
 ## 下一步与关闭边界
 
-05-S后续将此固定来源集绑定到新生产标准快照的资源与出处；05-R逐规则处理FDA4.5→4.7差异、未来生效条件及完整区域矩阵。05-V取得上述实际工具输入后，对相同字节包及变体运行独立验证并解释差异。03-F的Formal实现和04-P的Linux Python内容宿主仍按原清单验收。
+05-S已关闭。05-R继续依据[差异清单](official-sources/2026-11-09-production/fda-criteria-delta.json)逐规则处理FDA4.5→4.7差异、未来生效条件及完整区域矩阵。05-V取得上述实际工具输入后，对相同字节包及变体运行独立验证并解释差异。03-F的Formal实现和04-P的Linux Python内容宿主仍按原清单验收。
 
 本轮没有修改历史来源清单的资格状态，没有直接激活生产profile，也没有减少任何固定关闭条件。

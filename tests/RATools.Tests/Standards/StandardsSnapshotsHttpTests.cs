@@ -55,12 +55,15 @@ public sealed class StandardsSnapshotsHttpTests
             using var loaded = await client.GetAsync("/api/standards-snapshots/" + Uri.EscapeDataString(id));
             Assert.Equal(HttpStatusCode.OK, loaded.StatusCode);
             var resource = view.RootElement.GetProperty("resources").EnumerateArray()
-                .First(item => item.GetProperty("category").GetString() == "DTD");
+                .Single(item => item.GetProperty("key").GetString() == "official-ema-implementation-guide");
+            Assert.Equal("OfficialSource", resource.GetProperty("category").GetString());
+            Assert.Equal("ae27b9a2258ac396071234539f2bbd88491dec03521c1b12ded135bdf49b2492", resource.GetProperty("sha256").GetString());
             var key = resource.GetProperty("key").GetString()!;
             var digest = resource.GetProperty("sha256").GetString()!;
             var path = "/api/standards-snapshots/" + Uri.EscapeDataString(id) + "/resources/" + Uri.EscapeDataString(key) + "/content";
             using var full = await client.GetAsync(path);
             Assert.Equal(HttpStatusCode.OK, full.StatusCode);
+            Assert.Equal("application/pdf", full.Content.Headers.ContentType!.MediaType);
             Assert.Equal('"' + digest + '"', full.Headers.ETag!.Tag);
             var bytes = await full.Content.ReadAsByteArrayAsync();
             Assert.Equal(resource.GetProperty("length").GetInt64(), bytes.LongLength);

@@ -23,4 +23,39 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\bindings.json" LogicalName="RATools.OfficialSources.Bindings" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\source-snapshot.json" LogicalName="RATools.OfficialSources.Inventory" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-standards.html" LogicalName="RATools.OfficialSources.fda-standards" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-criteria.pdf" LogicalName="RATools.OfficialSources.fda-criteria" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\ema-m1.html" LogicalName="RATools.OfficialSources.ema-m1" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-technical-guide.pdf" LogicalName="RATools.OfficialSources.fda-technical-guide" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-m1-specification.pdf" LogicalName="RATools.OfficialSources.fda-m1-specification" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-ctoc.pdf" LogicalName="RATools.OfficialSources.fda-ctoc" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-file-formats.pdf" LogicalName="RATools.OfficialSources.fda-file-formats" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-pdf-specification.pdf" LogicalName="RATools.OfficialSources.fda-pdf-specification" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-us-dtd.zip" LogicalName="RATools.OfficialSources.fda-us-dtd" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-application-types.xml" LogicalName="RATools.OfficialSources.fda-application-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-submission-types.xml" LogicalName="RATools.OfficialSources.fda-submission-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-submission-subtypes.xml" LogicalName="RATools.OfficialSources.fda-submission-subtypes" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\eCTD 3.2.2 - EU M1 Implementation Guide v3.1.1.pdf" LogicalName="RATools.OfficialSources.ema-implementation-guide" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\eCTD 3.2.2 - EU M1 Validation Criteria v8.2.xlsx" LogicalName="RATools.OfficialSources.ema-criteria" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\eCTD 3.2.2 - EU M1 Implementation Guide v3.1.1 - Release Notes.pdf" LogicalName="RATools.OfficialSources.ema-guide-release-notes" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\EU M1 Validation Criteria v8.2 - Release Notes.pdf" LogicalName="RATools.OfficialSources.ema-criteria-release-notes" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\Implementation Timeline EU M1 IG v3.1.1 and validation criteria v8.2.pdf" LogicalName="RATools.OfficialSources.ema-timeline" />
+    <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\documents\EU Accepted File Formats for eCTD - June 2024.pdf" LogicalName="RATools.OfficialSources.ema-file-formats" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\ema-dtd-package.zip" LogicalName="RATools.OfficialSources.ema-dtd-package" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-applicant-contact-types.xml" LogicalName="RATools.OfficialSources.fda-applicant-contact-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-telephone-types.xml" LogicalName="RATools.OfficialSources.fda-telephone-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-supplement-effective-types.xml" LogicalName="RATools.OfficialSources.fda-supplement-effective-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-form-types.xml" LogicalName="RATools.OfficialSources.fda-form-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-promotional-audience-types.xml" LogicalName="RATools.OfficialSources.fda-promotional-audience-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-promotional-doc-types.xml" LogicalName="RATools.OfficialSources.fda-promotional-doc-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-promotional-material-types.xml" LogicalName="RATools.OfficialSources.fda-promotional-material-types" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-m1-addendum.pdf" LogicalName="RATools.OfficialSources.fda-m1-addendum" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-m1-addendum-2.pdf" LogicalName="RATools.OfficialSources.fda-m1-addendum-2" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-us-stylesheet.zip" LogicalName="RATools.OfficialSources.fda-us-stylesheet" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ich-specification.pdf" LogicalName="RATools.OfficialSources.ich-specification" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ema-harmonised-guidance.pdf" LogicalName="RATools.OfficialSources.ema-harmonised-guidance" />
+  </ItemGroup>
 </Project>

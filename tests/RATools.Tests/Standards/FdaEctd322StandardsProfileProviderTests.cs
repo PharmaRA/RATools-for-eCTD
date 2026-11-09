@@ -21,7 +21,7 @@ public sealed class FdaEctd322StandardsProfileProviderTests
         Assert.Equal("3.2.2", profile.IchEctdVersion);
         Assert.Equal("3.3", profile.UsRegionalModule1Version);
         Assert.Equal("1.9", profile.TechnicalConformanceGuideVersion);
-        Assert.Equal("4.5", profile.ValidationCriteriaVersion);
+        Assert.Equal("4.7", profile.ValidationCriteriaVersion);
         Assert.Contains(profile.OfficialReferences, x => x.Contains("fda.gov", StringComparison.OrdinalIgnoreCase));
     }
 

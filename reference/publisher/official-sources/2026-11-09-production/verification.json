@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "verifiedUtc": "2026-11-09T15:03:49.7585621Z",
+  "passed": true,
+  "task": "QA07-05-S",
+  "scope": "Production source capture and stored source replay for bundled FDA and EU development profiles; no Formal or complete regional rules qualification",
+  "bindingSha256": "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03",
+  "inventorySha256": "67cfb2e3d35631945cd8ba66c0deed6044ce26bc9bd514411b4953caad24ba84",
+  "sourceCount": 31,
+  "fdaSourceCount": 22,
+  "euSourceCount": 10,
+  "sourceCode": [
+    {
+      "path": "src/RATools.Application/RATools.Application.csproj",
+      "sha256": "5253d177fb092ba44f46aae70741f795f56326befccaaef0b7e222f9a3e76e91"
+    },
+    {
+      "path": "src/RATools.Application/Standards/BundledOfficialSources.cs",
+      "sha256": "78693c90ce01bff1b381628e7d75c7dc19afbea56ce0d126302b3cd8c3715bd0"
+    },
+    {
+      "path": "src/RATools.Application/Standards/FdaEctd322StandardsProfileProvider.cs",
+      "sha256": "9de41bded5f6a541fb7496b235da64ab89f939025220f7fc1541b4e8984c10a3"
+    },
+    {
+      "path": "src/RATools.Application/Standards/StandardsSnapshotService.cs",
+      "sha256": "0d5c52aeeaf8cc5ff99cc3f377292866042f4d1f717077f112d00a217482e45e"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/OfficialSourceSnapshotTests.cs",
+      "sha256": "f2329c3c8478adfb4d045dafb5027fea4d66a2fc9f207d4c364567732f030fc1"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/BundledStandardsAssetResolverTests.cs",
+      "sha256": "aed9c074e60ea40ebc73b55c50c3a625e053fbcff22383c72ebe939b3715c8e3"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/FdaEctd322StandardsProfileProviderTests.cs",
+      "sha256": "5facbd5fe7cd78ee21bf2aea7745cad8469c2d07b1cf011e2ab2f0db7697de68"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/StandardsSnapshotsHttpTests.cs",
+      "sha256": "ba7e48436e6ad0cea2675a8f7a49ba34817f24c2c87380014b6b3cf23c6bc5e4"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/StandardsSnapshotIntegrationTests.cs",
+      "sha256": "c8f051e61126f4430b736859031b139ef8c5d8f386d17950140abdedea066a3a"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/PostgresStandardsSnapshotTests.cs",
+      "sha256": "cb4781283f25716910050e65142bcec994d5f053e610a5afb7f893d4c1eb4bae"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/RegionalActivationAcceptanceTests.cs",
+      "sha256": "044bfe30dceabddba2abaaeeefc896cd4fa37618bd79cba35a9ed6f9fb9e8981"
+    }
+  ],
+  "build": {
+    "sourceManifestSha256": "4d3ef1e3ed753af3084ef5249262b0de327c6f70e43edfe1ebc3cdc130d6f561",
+    "projects": [
+      {
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.Api\\RATools.Api.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\official-binding-20261109\\green-2\\build\\Build.props\"",
+        "exitCode": 0,
+        "project": "Api"
+      },
+      {
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.DatabaseMigrator\\RATools.DatabaseMigrator.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\official-binding-20261109\\green-2\\build\\Build.props\"",
+        "exitCode": 0,
+        "project": "DatabaseMigrator"
+      },
+      {
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\tests\\RATools.Tests\\RATools.Tests.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\official-binding-20261109\\green-2\\build\\Build.props\"",
+        "exitCode": 0,
+        "project": "Tests"
+      }
+    ],
+    "guard": {
+      "path": ".artifacts/local-check/official-binding-20261109/green-2/build.process.json",
+      "sha256": "16c0e80d567f2727c2693053298ac1f7516c8a5242eb2dda13806ecd77345889",
+      "rootExitCode": 0,
+      "guardedProcesses": 26,
+      "jobProcesses": 26,
+      "processTreeStopped": true
+    }
+  },
+  "managed": {
+    "tests": {
+      "path": ".artifacts/local-check/official-binding-20261109/green-2/results/selected.trx",
+      "sha256": "1ce9182ae18555d95324e457f91766154636038368b05b372fb87372568f296c",
+      "total": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "names": [
+        "RATools.Tests.Standards.BundledStandardsAssetResolverTests.Build_ReturnsAssetWithSha256FromBundledFile",
+        "RATools.Tests.Standards.BundledStandardsAssetResolverTests.Build_ThrowsWhenBundledAssetIsMissing",
+        "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_PropagatesNonNotFoundProviderErrors",
+        "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ReturnsEuProfileFromEuProvider",
+        "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ReturnsProfileFromMatchingProvider",
+        "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ThrowsWhenNoProviderSupportsTemplate",
+        "RATools.Tests.Standards.EuEctd322StandardsProfileProviderTests.GetProfile_ExposesPinnedSourceLifecycleWithoutActivatingSkeleton",
+        "RATools.Tests.Standards.EuEctd322StandardsProfileProviderTests.StandardsLifecycle_StopsBeingEffectiveAtRetirementDate",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.AddApplication_RegistersStandardsProfileProvider",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_FailsWhenBundledDtdAssetIsMissing",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_IncludesBundledDtdAssetsWithChecksums",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_IncludesFdaBackboneXmlContract",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_ReturnsOfficialBaselineMetadata",
+        "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_ThrowsForUnsupportedTemplate",
+        "RATools.Tests.Standards.FinalizationSnapshotErrorTests.InvalidSnapshotRefusesFinalizationWithConflictAndNoRecordedRelease",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.AllHandAuthoredIchNodesSatisfyTheRuntimeSchemaAndTheIndependentDtd",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.AttributeValidationPreservesValuesAndDoesNotAcceptCaseInsensitiveAliases",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.ExtensionRequiresTitleAndContentAndCannotContainStandardSections",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"custom-production-site\", value: \"Alpha\", code: \"UnknownNodeAttribute\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"ID\", value: \"1-invalid-id\", code: \"InvalidNodeAttributeValue\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"  \", code: \"RequiredNodeAttributeMissing\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"\", code: \"RequiredNodeAttributeMissing\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"Manufacturer\", value: \"Alpha\", code: \"UnknownNodeAttribute\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"Alpha\\x01\", code: \"InvalidNodeAttributeValue\")",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.ParentContentEnforcesDtdOrderCardinalityAndExtensionPositions",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.RequiredAndOptionalBusinessAttributesMatchTheNineReviewedGroups",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.SchemaRejectsUnknownDefinitionsBrokenParentsAndMutableEnumerationBypasses",
+        "RATools.Tests.Standards.IchSectionDefinitionTests.SnapshotCoversAllExistingIchSectionsAndMatchesPinnedSourceBytes",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Criteria\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Guide\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Region\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.CapturedApplicabilityKeepsFutureFdaRuleDatesSeparateFromDocumentRevision",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.CurrentCaptureBindsRegulatoryCriteriaBytesAndVerifiedProvenance(template: \"eu-ectd-3.2.2\", key: \"official-ema-criteria\", criteriaVersion: \"8.2\", digest: \"0f64339496564d89abe9e96376f29805dce2302a56f54ce128\"···, length: 71307)",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.CurrentCaptureBindsRegulatoryCriteriaBytesAndVerifiedProvenance(template: \"us-fda-ectd-3.2.2\", key: \"official-fda-criteria\", criteriaVersion: \"4.7\", digest: \"2b390199bebb1b7cde65926d027120ae576ca304f2628950cc\"···, length: 885718)",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Criteria\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Guide\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Reference\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Region\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.NewSourceCaptureCannotBeBackdatedBeforeItsAcquisition",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.ReopenedCaptureReadsOriginalOfficialBytesWithoutConsultingCurrentProvider",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedProvenanceRejectsMissingOrReplacedOfficialBytes(replace: False)",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedProvenanceRejectsMissingOrReplacedOfficialBytes(replace: True)",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedSourcesDoNotQualifyUnimplementedRulesOrExternalComparison(template: \"eu-ectd-3.2.2\")",
+        "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedSourcesDoNotQualifyUnimplementedRulesOrExternalComparison(template: \"us-fda-ectd-3.2.2\")",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.DeliberateStructureDefectsFailTheIndependentDtdReader(id: \"duplicate-xml-id\")",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.DeliberateStructureDefectsFailTheIndependentDtdReader(id: \"missing-manufacturer\")",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.EveryHandAuthoredBackboneAndOfficialExcerptPassesTheSourceDtd",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.EveryPayloadAndIndexChecksumResolvesToTheActualFileBytes",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.FrozenPackageBytesMatchTheCompleteManifest(directory: \"external\", manifestProperty: \"externalFiles\")",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.FrozenPackageBytesMatchTheCompleteManifest(directory: \"sequences\", manifestProperty: \"files\")",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.LifecycleEdgesUseExactXmlAddressesAndHaveExplicitEffectiveSets",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.NodeAndLeafContextMatchesTheHandAuthoredBusinessOracle",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.OfficialExamplesRetainTheirIndependentAttributesAndExtension",
+        "RATools.Tests.Standards.PublisherReferenceFixtureTests.SyntheticPdfsContainThePublishedTestSentences",
+        "RATools.Tests.Standards.RegionalActivationAcceptanceTests.ActualHttpCapturesExposeDistinctRegionalRulesAndRetainRequiredQualificationGaps",
+        "RATools.Tests.Standards.RegionalActivationAcceptanceTests.ChangedRegionalBehaviorCannotReusePreRegionalEngineIdentity",
+        "RATools.Tests.Standards.RegionalMetadataPersistenceTests.StoredContextsEnforceApplicationSequenceAndPlacementOrNodeOwnership",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ActualCapturedResourcesRemainReadableAfterProviderAndAssetFilesChange",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.BundledCapturedScopeNeverBecomesFormalMerelyBecauseResourcesWereFrozen",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.CapturedResourcesRejectBytesOrMetadataThatNoLongerMatchTheirIdentity",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.CaptureRefusesAnEuTemplateBoundToTheUsRuleAlias",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ExplicitRunAndReleaseUseArchivedSnapshotAfterProviderAndSourceAssetsChange",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.FormalMissingOrUnqualifiedSnapshotIsRejectedWhileDevelopmentRetainsTrialScope",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.HistoricalSelectionKeepsItsOwnAssetsWhenTheSameAliasHasNewTargetBytes",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ImplicitSelectionLostResponseReplayKeepsOriginalSnapshotAfterProviderUpgrade",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyBindingsRequestsAndReleaseManifestsKeepTheirPreSnapshotDigests",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyHistoryRemainsUnverifiedInDevelopmentAndFormalAdmissionIsRejected",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyQueuedVerifiedHistoryRetainsItsArchivedBaselineAfterSnapshotInjection",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ProviderOnlyAssetUpgradeMayBeArchivedButCannotCreateAContradictoryValidationRun",
+        "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.SnapshotCapturePreservesAnImportedCustomRegionalPathThroughTheActualPackageBuilder",
+        "RATools.Tests.Standards.StandardsSnapshotsHttpTests.ActualHttpCaptureReplaysMetadataAndReadsImmutableResourceWithRangeAndEtag",
+        "RATools.Tests.Standards.StandardsSnapshotTests.BundledProfilesRemainTrialEvidenceAndCannotAuthorizeFormalSelection",
+        "RATools.Tests.Standards.StandardsSnapshotTests.CaptureStoresActualBytesAndRepeatedContentHasTheSameIdentity",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ConsumptionRejectsSameBytesMovedAwayFromTheDeclaredProviderAndDeliveryPath(xmlLogicalPath: False)",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ConsumptionRejectsSameBytesMovedAwayFromTheDeclaredProviderAndDeliveryPath(xmlLogicalPath: True)",
+        "RATools.Tests.Standards.StandardsSnapshotTests.InvalidVerifiedProvenanceCannotBecomeAnActiveSnapshot",
+        "RATools.Tests.Standards.StandardsSnapshotTests.LegacyBindingSerializationAndRequestDigestStayExactlyCompatible",
+        "RATools.Tests.Standards.StandardsSnapshotTests.RegionalTemplateCannotBeCapturedWithAnotherRegionsRuleAlias",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/CON.dtd\")",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/control\\x01.dtd\")",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/trailing .dtd \")",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ResourcePathsCannotHaveAmbiguousIdentities(first: \"util/dtd/SAME.dtd\", second: \"util/dtd/same.dtd\")",
+        "RATools.Tests.Standards.StandardsSnapshotTests.ResourcePathsCannotHaveAmbiguousIdentities(first: \"util/dtd/same.dtd\", second: \"util/dtd/same.dtd\")",
+        "RATools.Tests.Standards.StandardsSnapshotTests.TooManyProviderAssetsAreRejectedBeforeReadingMissingFiles",
+        "RATools.Tests.Standards.StandardsSnapshotTests.VerifiedEvidenceMustNameCapturedResourceBytes"
+      ]
+    },
+    "guard": {
+      "path": ".artifacts/local-check/official-binding-20261109/green-2/tests.process.json",
+      "sha256": "02b9ee134dac3ffda054b54e214ba5998bf6361ea7835118afc99bac1235a9bd",
+      "rootExitCode": 0,
+      "guardedProcesses": 5,
+      "jobProcesses": 5,
+      "processTreeStopped": true
+    }
+  },
+  "postgres": {
+    "scope": "Current Windows-built managed assemblies executed on Linux beside PostgreSQL; not a Linux rebuild, Windows remote transport pass or full suite",
+    "tests": [
+      {
+        "path": ".artifacts/local-check/official-binding-20261109/linux-v5-evidence/results/postgres-0.trx",
+        "sha256": "c1ed862fbcb508e02b598e2cb5f3c3bea17437fcc609ece352ecfb8bffbc49d2",
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "names": [
+          "RATools.Tests.Standards.PostgresStandardsSnapshotTests.TwoConnectionsArchiveExactlyOneIdentityAndReplayTheFirstAcquisition"
+        ]
+      },
+      {
+        "path": ".artifacts/local-check/official-binding-20261109/linux-v5-evidence/results/postgres-1.trx",
+        "sha256": "094e6594c027ab908a9bd97fb1260bda628d78687308025e2401acce97e38d6d",
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "names": [
+          "RATools.Tests.Standards.PostgresStandardsSnapshotTests.ArchiveRejectsUpdatesAndItsDatabaseGuardsCoverDeletionAndTruncation"
+        ]
+      },
+      {
+        "path": ".artifacts/local-check/official-binding-20261109/linux-v5-evidence/results/postgres-2.trx",
+        "sha256": "b03838901d1fe5f4bfad3ef72e35f1b0cfd3c875456833a59f04c18417b9b646",
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "names": [
+          "RATools.Tests.Standards.PostgresStandardsSnapshotTests.AnInsertedPayloadWithMismatchedDatabaseIdentityIsNeverReturned"
+        ]
+      },
+      {
+        "path": ".artifacts/local-check/official-binding-20261109/linux-v5-evidence/results/postgres-3.trx",
+        "sha256": "92c938740bed587abeac07a79c829e5ffdc15a59f84fa4b72364781117b8e994",
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "names": [
+          "RATools.Tests.Standards.PostgresStandardsSnapshotTests.SnapshotMigrationIsAppliedAndRuntimeModelMatchesItsSnapshot"
+        ]
+      },
+      {
+        "path": ".artifacts/local-check/official-binding-20261109/linux-v5-evidence/results/postgres-4.trx",
+        "sha256": "e551aef4815f3d91f67d1339a99b85491a933f1649bc3b28afe573b03e28e57b",
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "names": [
+          "RATools.Tests.Standards.RegionalActivationAcceptanceTests.ActiveFlagAndVerifiedScopeCannotBypassMissingEvidenceAfterNewDatabaseConnection"
+        ]
+      }
+    ],
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "testAssemblySha256": "840a16d77f297d98bac68a09e6157ad918a8b884526d742bc6a1a171645ea079",
+    "guard": {
+      "path": ".artifacts/local-check/official-binding-20261109/linux-execution-v5/process.json",
+      "sha256": "4d0646ac69ccb7e6e5c128022c9be7f6d9db7c742bef1ab8baf1ea6394300b8d",
+      "rootExitCode": 0,
+      "guardedProcesses": 4,
+      "jobProcesses": 4,
+      "processTreeStopped": true
+    },
+    "evidenceManifestSha256": "e30f564fdd1b0179da5e284e48ec02198cfa840c82dd9a1bb9459e7e4e3e7a33",
+    "evidenceFiles": {
+      "manager.json": {
+        "sha256": "3396189540aa0650dd5cc24361bed4e60faa3de7f1927aa94ac5eade58ae2b33",
+        "bytes": 276
+      },
+      "config.json": {
+        "sha256": "5103b69b8bdddef98d15c806c121e30a7221ac43e8bc6db4a398b4c447d4d7a1",
+        "bytes": 21985
+      },
+      "results/summary.json": {
+        "sha256": "da8f401f154ae6252ef119f51b0a58482e83632b447bba977c5454225832ca4e",
+        "bytes": 4755
+      },
+      "results/selected-names.json": {
+        "sha256": "24d2744cf6b21b6e752e94aad152ee2150c079162193aab213de04f056037c51",
+        "bytes": 644
+      },
+      "results/server-identity.log": {
+        "sha256": "9ac51691e607e1af1100b1f65bc1e74b31cff85f2b62173715f3816d6d5747b4",
+        "bytes": 171
+      },
+      "results/migrate.log": {
+        "sha256": "3d18c789b933e754893930a46fb43cac9aaa48fe3b99665b76a04382105c75c4",
+        "bytes": 53
+      },
+      "results/migrate-repeat.log": {
+        "sha256": "bd276ce028668925aa5c90d00a88153e68ecf618c172b50de101b4ce1121408e",
+        "bytes": 56
+      },
+      "stale-pid-recovery.json": {
+        "sha256": "3b7ba9ef6425f397727b828f71f83e20fe553211fb9f80ae044ed25473982727",
+        "bytes": 484
+      },
+      "bootstrap-revalidated.json": {
+        "sha256": "9af87f4f7378ea98aa93f33651b15ef0b2c8e98f49a95a3730480b6b47d5cb69",
+        "bytes": 114
+      },
+      "results/postgres-0.trx": {
+        "sha256": "c1ed862fbcb508e02b598e2cb5f3c3bea17437fcc609ece352ecfb8bffbc49d2",
+        "bytes": 2999
+      },
+      "results/postgres-1.trx": {
+        "sha256": "094e6594c027ab908a9bd97fb1260bda628d78687308025e2401acce97e38d6d",
+        "bytes": 2999
+      },
+      "results/postgres-2.trx": {
+        "sha256": "b03838901d1fe5f4bfad3ef72e35f1b0cfd3c875456833a59f04c18417b9b646",
+        "bytes": 2984
+      },
+      "results/postgres-3.trx": {
+        "sha256": "92c938740bed587abeac07a79c829e5ffdc15a59f84fa4b72364781117b8e994",
+        "bytes": 2975
+      },
+      "results/postgres-4.trx": {
+        "sha256": "e551aef4815f3d91f67d1339a99b85491a933f1649bc3b28afe573b03e28e57b",
+        "bytes": 3044
+      },
+      ".artifacts/official-source-capture-evidence/58ea564baa2349d98cd110eee5dd432f/capture.json": {
+        "sha256": "fc77f008faa15bf2f0e238bba341d5913d160754902dd3ca81981b932a7a96ad",
+        "bytes": 12600
+      },
+      ".artifacts/official-source-capture-evidence/07d4be7b7d594bb79896d4d519df1add/capture.json": {
+        "sha256": "569495710c1f171f2c84035929f10e638f5709d1aae2425875a1038a339cf185",
+        "bytes": 17006
+      }
+    },
+    "databaseIdentity": {
+      "port": 50997,
+      "database": "qa07_backend_51cc94827931414cb01a6f942907453b",
+      "version": "16.15 (Debian 16.15-1.pgdg13+2)",
+      "started": "2026-11-09 14:34:23.901403+00"
+    },
+    "identityMatched": true,
+    "initialMigrations": 31,
+    "repeatMigrations": 0,
+    "ownedStop": true,
+    "nativeProcessesRemaining": 0,
+    "serverGroupRemaining": 0,
+    "manager": {
+      "unit": "ratools-sourcepg-e6af3b5d088b420daae766d0fc3ec134.service",
+      "exitCode": 0,
+      "state": {
+        "MainPID": "0",
+        "Result": "success",
+        "ExecMainCode": "1",
+        "ExecMainStatus": "0",
+        "ControlGroup": "",
+        "ActiveState": "active"
+      },
+      "stopped": true
+    },
+    "transport": {
+      "cliExitCode": 0,
+      "exitCode": 0,
+      "timedOut": false,
+      "truncated": false,
+      "oomKilled": false,
+      "stderrPresent": false,
+      "result": {
+        "passed": true,
+        "exitCode": 0,
+        "files": null,
+        "stopped": true,
+        "tests": 5
+      }
+    },
+    "captureEvidenceSha256": "0c37317b9e97e283c8ebb1c04171ca5447e914f011e70c844f43a069ef637925"
+  },
+  "environment": {
+    "resolution": "Five original cases passed on Linux beside PostgreSQL after task-owned swap activation and retained stale-pid recovery",
+    "taskSwap": {
+      "observedUtc": "2026-11-09T23:01:14.847629+08:00",
+      "path": "/var/tmp/ratools-qa07-swap-4cd3f24a749a40949d248e683553c302/task.swap",
+      "active": true,
+      "sizeBytes": 2147483648,
+      "kernelSizeKiB": 2097148,
+      "usedKiB": 496296,
+      "regularFile": true,
+      "linkCount": 1,
+      "mode": "0o600"
+    },
+    "swapGuard": {
+      "path": ".artifacts/local-check/official-binding-20261109/linux-swap-status-v2/process.json",
+      "sha256": "f34efc0af8da30396838f79350825913c2d47be8fd2ea51114ba19f89a847db4",
+      "rootExitCode": 0,
+      "guardedProcesses": 4,
+      "jobProcesses": 4,
+      "processTreeStopped": true
+    },
+    "swapStatusReceiptSha256": "9f9822f29cdddc2982272033e5ce50f7734bb311941cde1e6d6d9a2c9bab6a39",
+    "fstabModified": false,
+    "swapDisabled": false,
+    "failureHistory": [
+      "pg-sources-1: Windows stage deadline; not passed",
+      "pg-sources-2: migration case passed, TwoConnections Npgsql read-stream timeout; group not passed",
+      "linux initial and v3: systemd oom-kill; no completed five-case summary"
+    ],
+    "notes": "Swap remains enabled; environment is not restored. The 256MiB value limits each managed GC heap, not process-tree RSS. A service peak of 268705792 bytes was observed in the recorded OOM investigation; it is not a peak measured for both failed runs."
+  },
+  "redEvidence": {
+    "run": ".artifacts/local-check/official-binding-20261109/red-3",
+    "passed": 3,
+    "failed": 13,
+    "skipped": 0
+  },
+  "limits": [
+    "The 85 managed and 5 PostgreSQL tests are separate runs, not a full repository suite.",
+    "The US PostgreSQL identity includes a test-specific DisplayName; the EU receipt deliberately sets Active and a verified scope to prove other evidence still rejects Formal.",
+    "Rules, confirmed regional business scope, external comparison, Formal success and Linux Python qualification remain open."
+  ]
+}

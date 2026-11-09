@@ -1,0 +1,979 @@
+{
+  "scope": "Synthetic PostgreSQL acceptance records, not submission or activated Formal qualification",
+  "captures": [
+    {
+      "scenario": "PostgreSQL US dual connection immutable source replay",
+      "Id": "sha256:c6bc4bd039f817339702d3af309417a79b60fc1fe125d19e6f73f7ac84732eaa",
+      "AcquiredUtc": "2026-11-09T14:34:31.6577563Z",
+      "Descriptor": {
+        "TemplateKey": "us-fda-ectd-3.2.2",
+        "DisplayName": "FDA CDER/CBER eCTD v3.2.2 + US Regional M1 v3.3 test c55d6c2e05db454e81b5180ac534fa2e",
+        "RegulatoryAgency": "FDA CDER/CBER",
+        "Region": "United States",
+        "IchEctdVersion": "3.2.2",
+        "RegionalModule1Version": "3.3",
+        "GuideVersion": "1.9",
+        "CriteriaVersion": "4.7",
+        "RuleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+        "Lifecycle": {
+          "EffectiveFrom": "2015-12-01",
+          "RetiredFrom": null,
+          "Status": 1,
+          "RetirementPolicy": "Retain historical bytes; formal activation requires verified regional scope and evidence."
+        },
+        "Provenance": [
+          {
+            "SourceUrl": "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
+            "Version": "3.2.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/applicant-contact-type.xml",
+            "Version": "1.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "4c320f78c2b43f76eaec2e5c661a581497824f925fc9db73fc2b37c5338e2764"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/application-type.xml",
+            "Version": "1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "c20bac558d306e72138597f3192df0463c355f97baa2be7002932024da25f93b"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/form-type.xml",
+            "Version": "1.4",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "bc7f39a1f94224eb295b806fecd2078d36e19e416cdffaacf37bd3321d9c165e"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/promotional-material-audience-type.xml",
+            "Version": "1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "acef2a4f5dcdb51600fd7d02b72ac439369f087c1a56d74e1ba2392cff087405"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/promotional-material-doc-type.xml",
+            "Version": "1.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "b7849e2ff54b639831f7eea2de53784d80c059dd6389d9a22c2836a967386efc"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/promotional-material-type.xml",
+            "Version": "1.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "f7a86519c09427037c979fafbce1510c33c1cd76a5548a305791ff46acde1683"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/submission-sub-type.xml",
+            "Version": "1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "1ef337700e99f49eec2ed3aca980d999558abe7156289757a091d562340e31f9"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/submission-type.xml",
+            "Version": "1.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "9606d4375c9c584779a239da1e7104ff7a0588356795698d492562dffcc71fa5"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/supplement-effective-date-type.xml",
+            "Version": "1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "a49f319ba0a6ac86415c8deea2805d1e41a2616f712daf29835a06815483ddb7"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/telephone-number-type.xml",
+            "Version": "1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "c00023d895135fdd18abcb826dd160accf0f48f58d0f93d5e82ea5af8a0b6da0"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/us-regional-v3-3.zip",
+            "Version": "3.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "a5a59234500c36fa66ede9222e263e7dcbcd5943676de4e34e569da950b5758f"
+          },
+          {
+            "SourceUrl": "https://www.accessdata.fda.gov/static/eCTD/us-regional.zip",
+            "Version": "2.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "ecfd18683a23db598ec2a8ee841f098bd27d47ed00c648dfedcbdd4a4aecc37e"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/drugs/electronic-regulatory-submission-and-review/ectd-submission-standards-ectd-v322-and-regional-m1",
+            "Version": "US M1 3.3 / criteria 4.7",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "a49d976c29bfd8ceaf6f53a10f0c8dcd3eebf90295f15b63a87b76757ac57bcd"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/159378/download?attachment",
+            "Version": "2.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "acab7ac0e05e220009dbf3ce1b9c57a09f052b0710c0b6531529a588334409e5"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/159379/download?attachment",
+            "Version": "2.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "8891c95a704eced0f369397e18baf6a54595e75b375616addac1c58b7402b3bc"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/159382/download?attachment",
+            "Version": "2.6",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/181847/download?attachment",
+            "Version": "1.9",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/181848/download?attachment",
+            "Version": "2.3.5",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "04069ba39807b7d534ede9928422d758541aed9f7bc8060a60ae85263e9b34bb"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/76797/download?attachment",
+            "Version": "4.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "113faa128d34ca5c2b99184da2cf4da2e4359403204289892720c1f73afcae2a"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/85816/download?attachment",
+            "Version": "9.3",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b"
+          },
+          {
+            "SourceUrl": "https://www.fda.gov/media/87056/download",
+            "Version": "4.7",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c"
+          }
+        ],
+        "Scopes": [
+          {
+            "ApplicationType": "*",
+            "ProcedureType": "*",
+            "Country": "*",
+            "Language": "*",
+            "SectionScope": "*",
+            "Operation": "*",
+            "CreateDraft": true,
+            "TrialPublish": true,
+            "Finalize": false,
+            "EvidenceStatus": "TrialOnly"
+          }
+        ],
+        "Evidence": [
+          {
+            "Category": "Sources",
+            "Status": "Verified",
+            "Reason": "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.",
+            "EvidenceSha256": "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03"
+          },
+          {
+            "Category": "ControlledVocabulary",
+            "Status": "Missing",
+            "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "MetadataMapping",
+            "Status": "Unverified",
+            "Reason": "P6 regional metadata mapping qualification remains pending.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "Writer",
+            "Status": "Unverified",
+            "Reason": "Regional writer scope requires the P6 evidence matrix.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "Rules",
+            "Status": "Unverified",
+            "Reason": "Pinned rule mappings do not establish regional qualification.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "ExternalComparison",
+            "Status": "Missing",
+            "Reason": "No independent regional comparison evidence activates this snapshot.",
+            "EvidenceSha256": null
+          }
+        ]
+      },
+      "RuleProfileAlias": "us-fda-3.2.2-m1-3.3-development-v1",
+      "Resources": [
+        {
+          "Key": "controlled-vocabulary-source",
+          "Category": "ControlledVocabulary",
+          "RelativePath": "reference/publisher/vocabulary-node-schema.json",
+          "MediaType": "application/json",
+          "Length": 142506,
+          "Sha256": "12822ec730f9efcdd75ebf1e2d917c8f75878b4f3c49d389eff0a02ee5d67805"
+        },
+        {
+          "Key": "node-paths",
+          "Category": "NodeSchema",
+          "RelativePath": "reference/publisher/ich-3.2.2-node-paths.json",
+          "MediaType": "application/json",
+          "Length": 14844,
+          "Sha256": "987a2354e3dbbde7c321083ffb2fe5a7a2919d44bff9ef16661b196bc591e124"
+        },
+        {
+          "Key": "node-schema",
+          "Category": "NodeSchema",
+          "RelativePath": "reference/publisher/ich-3.2.2-nodes.json",
+          "MediaType": "application/json",
+          "Length": 142506,
+          "Sha256": "12822ec730f9efcdd75ebf1e2d917c8f75878b4f3c49d389eff0a02ee5d67805"
+        },
+        {
+          "Key": "official-fda-applicant-contact-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-applicant-contact-types.xml",
+          "MediaType": "application/xml",
+          "Length": 951,
+          "Sha256": "4c320f78c2b43f76eaec2e5c661a581497824f925fc9db73fc2b37c5338e2764"
+        },
+        {
+          "Key": "official-fda-application-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-application-types.xml",
+          "MediaType": "application/xml",
+          "Length": 1711,
+          "Sha256": "c20bac558d306e72138597f3192df0463c355f97baa2be7002932024da25f93b"
+        },
+        {
+          "Key": "official-fda-criteria",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-criteria.pdf",
+          "MediaType": "application/pdf",
+          "Length": 885718,
+          "Sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c"
+        },
+        {
+          "Key": "official-fda-ctoc",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-ctoc.pdf",
+          "MediaType": "application/pdf",
+          "Length": 724500,
+          "Sha256": "04069ba39807b7d534ede9928422d758541aed9f7bc8060a60ae85263e9b34bb"
+        },
+        {
+          "Key": "official-fda-file-formats",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-file-formats.pdf",
+          "MediaType": "application/pdf",
+          "Length": 278932,
+          "Sha256": "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b"
+        },
+        {
+          "Key": "official-fda-form-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-form-types.xml",
+          "MediaType": "application/xml",
+          "Length": 1753,
+          "Sha256": "bc7f39a1f94224eb295b806fecd2078d36e19e416cdffaacf37bd3321d9c165e"
+        },
+        {
+          "Key": "official-fda-m1-addendum",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-m1-addendum.pdf",
+          "MediaType": "application/pdf",
+          "Length": 38475,
+          "Sha256": "8891c95a704eced0f369397e18baf6a54595e75b375616addac1c58b7402b3bc"
+        },
+        {
+          "Key": "official-fda-m1-addendum-2",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-m1-addendum-2.pdf",
+          "MediaType": "application/pdf",
+          "Length": 34404,
+          "Sha256": "acab7ac0e05e220009dbf3ce1b9c57a09f052b0710c0b6531529a588334409e5"
+        },
+        {
+          "Key": "official-fda-m1-specification",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-m1-specification.pdf",
+          "MediaType": "application/pdf",
+          "Length": 538853,
+          "Sha256": "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2"
+        },
+        {
+          "Key": "official-fda-pdf-specification",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-pdf-specification.pdf",
+          "MediaType": "application/pdf",
+          "Length": 77649,
+          "Sha256": "113faa128d34ca5c2b99184da2cf4da2e4359403204289892720c1f73afcae2a"
+        },
+        {
+          "Key": "official-fda-promotional-audience-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-promotional-audience-types.xml",
+          "MediaType": "application/xml",
+          "Length": 760,
+          "Sha256": "acef2a4f5dcdb51600fd7d02b72ac439369f087c1a56d74e1ba2392cff087405"
+        },
+        {
+          "Key": "official-fda-promotional-doc-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-promotional-doc-types.xml",
+          "MediaType": "application/xml",
+          "Length": 1206,
+          "Sha256": "b7849e2ff54b639831f7eea2de53784d80c059dd6389d9a22c2836a967386efc"
+        },
+        {
+          "Key": "official-fda-promotional-material-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-promotional-material-types.xml",
+          "MediaType": "application/xml",
+          "Length": 4335,
+          "Sha256": "f7a86519c09427037c979fafbce1510c33c1cd76a5548a305791ff46acde1683"
+        },
+        {
+          "Key": "official-fda-standards",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-standards.html",
+          "MediaType": "text/html",
+          "Length": 54925,
+          "Sha256": "a49d976c29bfd8ceaf6f53a10f0c8dcd3eebf90295f15b63a87b76757ac57bcd"
+        },
+        {
+          "Key": "official-fda-submission-subtypes",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-submission-subtypes.xml",
+          "MediaType": "application/xml",
+          "Length": 1034,
+          "Sha256": "1ef337700e99f49eec2ed3aca980d999558abe7156289757a091d562340e31f9"
+        },
+        {
+          "Key": "official-fda-submission-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-submission-types.xml",
+          "MediaType": "application/xml",
+          "Length": 1219,
+          "Sha256": "9606d4375c9c584779a239da1e7104ff7a0588356795698d492562dffcc71fa5"
+        },
+        {
+          "Key": "official-fda-supplement-effective-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-supplement-effective-types.xml",
+          "MediaType": "application/xml",
+          "Length": 876,
+          "Sha256": "a49f319ba0a6ac86415c8deea2805d1e41a2616f712daf29835a06815483ddb7"
+        },
+        {
+          "Key": "official-fda-technical-guide",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-technical-guide.pdf",
+          "MediaType": "application/pdf",
+          "Length": 558820,
+          "Sha256": "d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c"
+        },
+        {
+          "Key": "official-fda-telephone-types",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-telephone-types.xml",
+          "MediaType": "application/xml",
+          "Length": 797,
+          "Sha256": "c00023d895135fdd18abcb826dd160accf0f48f58d0f93d5e82ea5af8a0b6da0"
+        },
+        {
+          "Key": "official-fda-us-dtd",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-us-dtd.zip",
+          "MediaType": "application/zip",
+          "Length": 4539,
+          "Sha256": "a5a59234500c36fa66ede9222e263e7dcbcd5943676de4e34e569da950b5758f"
+        },
+        {
+          "Key": "official-fda-us-stylesheet",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/fda-us-stylesheet.zip",
+          "MediaType": "application/zip",
+          "Length": 7267,
+          "Sha256": "ecfd18683a23db598ec2a8ee841f098bd27d47ed00c648dfedcbdd4a4aecc37e"
+        },
+        {
+          "Key": "official-ich-specification",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ich-specification.pdf",
+          "MediaType": "application/pdf",
+          "Length": 742989,
+          "Sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0"
+        },
+        {
+          "Key": "official-source-bindings",
+          "Category": "Sources",
+          "RelativePath": "metadata/official-sources/bindings-2026-11-09.json",
+          "MediaType": "application/json",
+          "Length": 20258,
+          "Sha256": "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03"
+        },
+        {
+          "Key": "official-source-inventory",
+          "Category": "SourceInventory",
+          "RelativePath": "metadata/official-sources/inventory-2026-11-09.json",
+          "MediaType": "application/json",
+          "Length": 36504,
+          "Sha256": "67cfb2e3d35631945cd8ba66c0deed6044ce26bc9bd514411b4953caad24ba84"
+        },
+        {
+          "Key": "profile",
+          "Category": "Profile",
+          "RelativePath": "metadata/profile.json",
+          "MediaType": "application/json",
+          "Length": 1908,
+          "Sha256": "23085bb42c0dfc09b02b5e3db9f08df6aac87c982905fdfe863788ba6219c0a4"
+        },
+        {
+          "Key": "provider-ich-ectd-3-2-dtd",
+          "Category": "DTD",
+          "RelativePath": "reference/dtd/ich-ectd-3-2.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 31400,
+          "Sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+        },
+        {
+          "Key": "provider-us-regional-v3-3-dtd",
+          "Category": "DTD",
+          "RelativePath": "reference/dtd/us-regional-v3-3.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 35113,
+          "Sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec"
+        },
+        {
+          "Key": "rules",
+          "Category": "RuleMapping",
+          "RelativePath": "reference/publisher/package-rules-v1.json",
+          "MediaType": "application/json",
+          "Length": 75886,
+          "Sha256": "7b270b6f185d0b41d130df158b55e00f978ed7f82e155ca51a528b883319e377"
+        },
+        {
+          "Key": "xml-eu-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-regional.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 4891,
+          "Sha256": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759"
+        },
+        {
+          "Key": "xml-eu-envelope",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-envelope.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 3470,
+          "Sha256": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73"
+        },
+        {
+          "Key": "xml-eu-leaf",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-leaf.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 2212,
+          "Sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+        },
+        {
+          "Key": "xml-eu-style",
+          "Category": "XSL",
+          "RelativePath": "util/style/eu-regional.xsl",
+          "MediaType": "application/xml",
+          "Length": 25642,
+          "Sha256": "f212c58519b1d4e37a7152e9a6cf0ca4f335fccc8212b1f616e4c998b2f7ea81"
+        },
+        {
+          "Key": "xml-ich-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/ich-ectd-3-2.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 31400,
+          "Sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+        },
+        {
+          "Key": "xml-ich-style",
+          "Category": "XSL",
+          "RelativePath": "util/style/ectd-2-0.xsl",
+          "MediaType": "application/xml",
+          "Length": 2049,
+          "Sha256": "41bf6aaf78fa1ba736951174c5e3dc6724410f4d5d9332034dac9b2c8d34dcd1"
+        },
+        {
+          "Key": "xml-manifest",
+          "Category": "XmlAssetManifest",
+          "RelativePath": "reference/publisher/package-xml-assets-v1.json",
+          "MediaType": "application/json",
+          "Length": 5145,
+          "Sha256": "71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1"
+        },
+        {
+          "Key": "xml-us-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/us-regional-v3-3.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 35113,
+          "Sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec"
+        }
+      ]
+    },
+    {
+      "scenario": "PostgreSQL EU new connection sources verified but Formal still blocked",
+      "Id": "sha256:735c009fb1a7abbd091045829b0dd8329a5ac754e38b8b8f5c91111890fd07ff",
+      "AcquiredUtc": "2026-11-09T14:34:42.3397738Z",
+      "Descriptor": {
+        "TemplateKey": "eu-ectd-3.2.2",
+        "DisplayName": "Synthetic active-only gate attempt 573d0a8e978e49ab939dfbd591b2f896",
+        "RegulatoryAgency": "European Medicines Agency",
+        "Region": "EU",
+        "IchEctdVersion": "3.2.2",
+        "RegionalModule1Version": "3.1.1",
+        "GuideVersion": "6.0.1",
+        "CriteriaVersion": "8.2",
+        "RuleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+        "Lifecycle": {
+          "EffectiveFrom": "2025-12-01",
+          "RetiredFrom": null,
+          "Status": 0,
+          "RetirementPolicy": "Retain each published EU M1 snapshot for historical lifecycle validation. Mark a snapshot retired only after EMA publishes a replacement with an announced effective date; never silently rewrite an existing application lifecycle."
+        },
+        "Provenance": [
+          {
+            "SourceUrl": "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
+            "Version": "3.2.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/EU%20Accepted%20File%20Formats%20for%20eCTD%20-%20June%202024.pdf?download=1",
+            "Version": "1.0",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "9dc7d4d130e30b210db2be975d9ce575c6dd2acf35dca5a8742b2c78735d9572"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/Harmonised%20guidance%20eCTD%20-%20version%206.0.1.pdf?download=1&source=qa07",
+            "Version": "6.0.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "049ffdf9130c07e32363db12cb22b4f869940375ca176de39a52aa9220a94249"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/Implementation%20Timeline%20EU%20M1%20IG%20v3.1.1%20and%20validation%20criteria%20v8.2.pdf?download=1",
+            "Version": "EU M1 3.1.1 / criteria 8.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "59ad244eb99f6bf2f077059b77d539b2395f2827feaf0d9288d60931c30c24ca"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Implementation%20Guide%20v3.1.1%20-%20Release%20Notes.pdf?download=1",
+            "Version": "3.1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "2fd472b0b3f1efaa297b1de92c9379845273e70d33c62db024670e219a1c5eb9"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Implementation%20Guide%20v3.1.1.pdf?download=1",
+            "Version": "3.1.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "ae27b9a2258ac396071234539f2bbd88491dec03521c1b12ded135bdf49b2492"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Validation%20Criteria%20v8.2%20-%20Release%20Notes.pdf?download=1",
+            "Version": "8.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "8e9a7b27cef444537a26a7a629a900c7f29900931e1c0130df756e7ad315d154"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/eCTD%203.2.2%20-%20EU%20M1%20Validation%20Criteria%20v8.2.xlsx?download=1",
+            "Version": "8.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "0f64339496564d89abe9e96376f29805dce2302a56f54ce12858d083315d1fd9"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/index.htm",
+            "Version": "EU M1 3.1.1 / criteria 8.2",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "72b9a7b2d720b2f48f3f4f18805d4b768215a8414601a7655be8867b049aa116"
+          },
+          {
+            "SourceUrl": "https://esubmission.ema.europa.eu/eumodule1/util_zips/util%20(4).zip?download=1",
+            "Version": "3.1",
+            "AcquiredOn": "2026-11-09",
+            "VerifiedOn": "2026-11-09",
+            "VerificationStatus": "Verified",
+            "Sha256": "1938d04486ea07018972bf0e4e4fbb2f5f302d0becdbebff652f14c4441031ba"
+          }
+        ],
+        "Scopes": [
+          {
+            "ApplicationType": "maa",
+            "ProcedureType": "national",
+            "Country": "DE",
+            "Language": "de",
+            "SectionScope": "m1",
+            "Operation": "new",
+            "CreateDraft": true,
+            "TrialPublish": true,
+            "Finalize": true,
+            "EvidenceStatus": "Verified"
+          }
+        ],
+        "Evidence": [
+          {
+            "Category": "Sources",
+            "Status": "Verified",
+            "Reason": "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.",
+            "EvidenceSha256": "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03"
+          },
+          {
+            "Category": "ControlledVocabulary",
+            "Status": "Missing",
+            "Reason": "Captured DTD/schema constraints are retained; complete regional business code lists remain unqualified.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "MetadataMapping",
+            "Status": "Unverified",
+            "Reason": "P6 regional metadata mapping qualification remains pending.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "Writer",
+            "Status": "Unverified",
+            "Reason": "Regional writer scope requires the P6 evidence matrix.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "Rules",
+            "Status": "Unverified",
+            "Reason": "Pinned rule mappings do not establish regional qualification.",
+            "EvidenceSha256": null
+          },
+          {
+            "Category": "ExternalComparison",
+            "Status": "Missing",
+            "Reason": "No independent regional comparison evidence activates this snapshot.",
+            "EvidenceSha256": null
+          }
+        ]
+      },
+      "RuleProfileAlias": "eu-3.2.2-m1-3.1.1-development-v1",
+      "Resources": [
+        {
+          "Key": "controlled-vocabulary-source",
+          "Category": "ControlledVocabulary",
+          "RelativePath": "reference/publisher/vocabulary-node-schema.json",
+          "MediaType": "application/json",
+          "Length": 142506,
+          "Sha256": "12822ec730f9efcdd75ebf1e2d917c8f75878b4f3c49d389eff0a02ee5d67805"
+        },
+        {
+          "Key": "node-paths",
+          "Category": "NodeSchema",
+          "RelativePath": "reference/publisher/ich-3.2.2-node-paths.json",
+          "MediaType": "application/json",
+          "Length": 14844,
+          "Sha256": "987a2354e3dbbde7c321083ffb2fe5a7a2919d44bff9ef16661b196bc591e124"
+        },
+        {
+          "Key": "node-schema",
+          "Category": "NodeSchema",
+          "RelativePath": "reference/publisher/ich-3.2.2-nodes.json",
+          "MediaType": "application/json",
+          "Length": 142506,
+          "Sha256": "12822ec730f9efcdd75ebf1e2d917c8f75878b4f3c49d389eff0a02ee5d67805"
+        },
+        {
+          "Key": "official-ema-criteria",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-criteria.xlsx",
+          "MediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Length": 71307,
+          "Sha256": "0f64339496564d89abe9e96376f29805dce2302a56f54ce12858d083315d1fd9"
+        },
+        {
+          "Key": "official-ema-criteria-release-notes",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-criteria-release-notes.pdf",
+          "MediaType": "application/pdf",
+          "Length": 97713,
+          "Sha256": "8e9a7b27cef444537a26a7a629a900c7f29900931e1c0130df756e7ad315d154"
+        },
+        {
+          "Key": "official-ema-dtd-package",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-dtd-package.zip",
+          "MediaType": "application/zip",
+          "Length": 14828,
+          "Sha256": "1938d04486ea07018972bf0e4e4fbb2f5f302d0becdbebff652f14c4441031ba"
+        },
+        {
+          "Key": "official-ema-file-formats",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-file-formats.pdf",
+          "MediaType": "application/pdf",
+          "Length": 82066,
+          "Sha256": "9dc7d4d130e30b210db2be975d9ce575c6dd2acf35dca5a8742b2c78735d9572"
+        },
+        {
+          "Key": "official-ema-guide-release-notes",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-guide-release-notes.pdf",
+          "MediaType": "application/pdf",
+          "Length": 97223,
+          "Sha256": "2fd472b0b3f1efaa297b1de92c9379845273e70d33c62db024670e219a1c5eb9"
+        },
+        {
+          "Key": "official-ema-harmonised-guidance",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-harmonised-guidance.pdf",
+          "MediaType": "application/pdf",
+          "Length": 1090327,
+          "Sha256": "049ffdf9130c07e32363db12cb22b4f869940375ca176de39a52aa9220a94249"
+        },
+        {
+          "Key": "official-ema-implementation-guide",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-implementation-guide.pdf",
+          "MediaType": "application/pdf",
+          "Length": 1002589,
+          "Sha256": "ae27b9a2258ac396071234539f2bbd88491dec03521c1b12ded135bdf49b2492"
+        },
+        {
+          "Key": "official-ema-m1",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-m1.html",
+          "MediaType": "text/html",
+          "Length": 43026,
+          "Sha256": "72b9a7b2d720b2f48f3f4f18805d4b768215a8414601a7655be8867b049aa116"
+        },
+        {
+          "Key": "official-ema-timeline",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ema-timeline.pdf",
+          "MediaType": "application/pdf",
+          "Length": 59480,
+          "Sha256": "59ad244eb99f6bf2f077059b77d539b2395f2827feaf0d9288d60931c30c24ca"
+        },
+        {
+          "Key": "official-ich-specification",
+          "Category": "OfficialSource",
+          "RelativePath": "official-sources/ich-specification.pdf",
+          "MediaType": "application/pdf",
+          "Length": 742989,
+          "Sha256": "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0"
+        },
+        {
+          "Key": "official-source-bindings",
+          "Category": "Sources",
+          "RelativePath": "metadata/official-sources/bindings-2026-11-09.json",
+          "MediaType": "application/json",
+          "Length": 20258,
+          "Sha256": "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03"
+        },
+        {
+          "Key": "official-source-inventory",
+          "Category": "SourceInventory",
+          "RelativePath": "metadata/official-sources/inventory-2026-11-09.json",
+          "MediaType": "application/json",
+          "Length": 36504,
+          "Sha256": "67cfb2e3d35631945cd8ba66c0deed6044ce26bc9bd514411b4953caad24ba84"
+        },
+        {
+          "Key": "profile",
+          "Category": "Profile",
+          "RelativePath": "metadata/profile.json",
+          "MediaType": "application/json",
+          "Length": 3371,
+          "Sha256": "96c1ec3ed526806b8beda5ddca43300510819f679244d9799c56f897e8a87331"
+        },
+        {
+          "Key": "provider-ectd-stylesheet",
+          "Category": "XSL",
+          "RelativePath": "reference/eu-m1/3.1.1/util/style/ectd-2-0.xsl",
+          "MediaType": "application/xml",
+          "Length": 2049,
+          "Sha256": "41bf6aaf78fa1ba736951174c5e3dc6724410f4d5d9332034dac9b2c8d34dcd1"
+        },
+        {
+          "Key": "provider-eu-envelope-module",
+          "Category": "DTD",
+          "RelativePath": "reference/eu-m1/3.1.1/util/dtd/eu-envelope.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 3470,
+          "Sha256": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73"
+        },
+        {
+          "Key": "provider-eu-leaf-module",
+          "Category": "DTD",
+          "RelativePath": "reference/eu-m1/3.1.1/util/dtd/eu-leaf.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 2212,
+          "Sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+        },
+        {
+          "Key": "provider-eu-regional-dtd",
+          "Category": "DTD",
+          "RelativePath": "reference/eu-m1/3.1.1/util/dtd/eu-regional.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 4891,
+          "Sha256": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759"
+        },
+        {
+          "Key": "provider-eu-regional-stylesheet",
+          "Category": "XSL",
+          "RelativePath": "reference/eu-m1/3.1.1/util/style/eu-regional.xsl",
+          "MediaType": "application/xml",
+          "Length": 25642,
+          "Sha256": "f212c58519b1d4e37a7152e9a6cf0ca4f335fccc8212b1f616e4c998b2f7ea81"
+        },
+        {
+          "Key": "provider-ich-ectd-3-2-dtd",
+          "Category": "DTD",
+          "RelativePath": "reference/dtd/ich-ectd-3-2.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 31400,
+          "Sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+        },
+        {
+          "Key": "rules",
+          "Category": "RuleMapping",
+          "RelativePath": "reference/publisher/package-rules-v1.json",
+          "MediaType": "application/json",
+          "Length": 75886,
+          "Sha256": "7b270b6f185d0b41d130df158b55e00f978ed7f82e155ca51a528b883319e377"
+        },
+        {
+          "Key": "xml-eu-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-regional.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 4891,
+          "Sha256": "a8c7d013369d448cb2a53270137f6e71538906c38046f03580a2fc1429919759"
+        },
+        {
+          "Key": "xml-eu-envelope",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-envelope.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 3470,
+          "Sha256": "ccc9d19c54dfea39712e36dd0145016f32a751a781da972a6dfabd77174f7a73"
+        },
+        {
+          "Key": "xml-eu-leaf",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/eu-leaf.mod",
+          "MediaType": "application/xml-dtd",
+          "Length": 2212,
+          "Sha256": "e37b4334ad5b906902088868ccaa3b94937dd9bc11b13a2c79436ec42256ce2e"
+        },
+        {
+          "Key": "xml-eu-style",
+          "Category": "XSL",
+          "RelativePath": "util/style/eu-regional.xsl",
+          "MediaType": "application/xml",
+          "Length": 25642,
+          "Sha256": "f212c58519b1d4e37a7152e9a6cf0ca4f335fccc8212b1f616e4c998b2f7ea81"
+        },
+        {
+          "Key": "xml-ich-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/ich-ectd-3-2.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 31400,
+          "Sha256": "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+        },
+        {
+          "Key": "xml-ich-style",
+          "Category": "XSL",
+          "RelativePath": "util/style/ectd-2-0.xsl",
+          "MediaType": "application/xml",
+          "Length": 2049,
+          "Sha256": "41bf6aaf78fa1ba736951174c5e3dc6724410f4d5d9332034dac9b2c8d34dcd1"
+        },
+        {
+          "Key": "xml-manifest",
+          "Category": "XmlAssetManifest",
+          "RelativePath": "reference/publisher/package-xml-assets-v1.json",
+          "MediaType": "application/json",
+          "Length": 5145,
+          "Sha256": "71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1"
+        },
+        {
+          "Key": "xml-us-dtd",
+          "Category": "DTD",
+          "RelativePath": "util/dtd/us-regional-v3-3.dtd",
+          "MediaType": "application/xml-dtd",
+          "Length": 35113,
+          "Sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec"
+        }
+      ]
+    }
+  ]
+}
