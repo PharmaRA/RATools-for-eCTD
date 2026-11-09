@@ -1,11 +1,76 @@
 # QA-07 native acceptance — 2026-11-09
 
-Latest Windows checkpoint: the new [native interception harness](WINDOWS-NATIVE-NO-DELETE.md) passed synthetic qualification, native version probes and protected current MSBuild. Eight Windows resource/concurrency cases and six independently reviewed workflow cases passed, bringing accepted combined coverage to **1,819/1,824; 5 remain**. Workflow7 subsequently completed6 passed/1 failed: the legacy navigation output move fails with access denied on a code path that requires rename, consistent with the strict policy. The workflow group remains failed; its one legacy case and Combined2/PostgreSQL-content2 remain open. Historical19-case boundaries below describe the earlier token/ACL checkpoint.
+Latest Windows checkpoint: resource/concurrency8, workflow7 and combined2 passed with final read-only review. PostgreSQL-content2 also passed in `pg2-11`, with database identity,31/0 migrations and clean remote shutdown; final read-only source/evidence review passed. Accepted coverage is **1,824/1,824 across separate runs**. This does not establish one unfiltered full-suite pass. Historical19-case boundaries below describe the earlier token/ACL checkpoint.
 
-Current Linux qpdf **54/54** and PostgreSQL/qpdf **7/7** passed, with zero
+## PostgreSQL content2: final execution
+
+Evidence: `.artifacts/local-check/pg2-11/`. The unchanged
+`PostgresPdfContentTests.ContentEvidenceRoundTripsAndAdoptionCommitsOrRollsBackAtomically`
+executed both `rejectRevision:false` and `true`, with2 passed,0 failed,0 skipped.
+The original assertions cover retained content evidence, independent context
+reads, committed/idempotent adoption, rejected-revision rollback, unchanged
+source bytes and workspace revision. Discovery and TRX names match as multisets.
+
+The Windows identity probe matched the unique database, server port, version and
+postmaster start time before migration. The current independent Windows migrator
+applied31 migrations, then0. All five stages exited0, and each child's connection
+alias was present with the conflicting colon alias absent. All166 created process
+instances matched guard and Job counts and exited; the outer receipt records
+forced final cleanup. The remote manager/service/server exited0 after the exact
+owned stop marker, with no remaining native processes or server process group.
+Transport exited0 without timeout, truncation or OOM. The session took283,530ms.
+
+| PG2 artifact | SHA-256 |
+| --- | --- |
+| Final TRX | `9a9eccab57acbb7b9d4bb94e0d802b17dc69566b1b2545d7807a07e1db5f87e7` |
+| Remote source archive | `3b5a0dc697fc9c12e42e643e32ac2f694ae96b299d9578962fe4b12a487d9034` |
+| Python relay | `c4264258666bfe2109b898e9891f6cd8d16c5761154784cbb908bbd8ad687c28` |
+| SSH wrapper | `7a0ac1f57a78abcaf568b9787949c0f46ed3e2360b65224dfbbfbf3ffebdd497` |
+
+Failed attempts `pg2-1` through `pg2-10` remain retained. The first exposed the
+PowerShell `cli` alias shadowing a helper function; the helper is now
+`Invoke-TaskCli`. Direct SSH later timed out. The task-only Python binary SOCKS5
+relay through local7890 passed actual authentication and banner checks in
+`tunnel-17`, with8 guarded/Job instances stopped. Earlier .NET relay attempts
+did not qualify; their exact failure cause remains unproven. No guard class was
+added to resolve networking. Raw SSH diagnostics and credentials were not retained.
+
+`pg2-5` reached31/0 migrations but both content cases failed because VSTest changed
+the working directory to its output directory, making the fixture's relative
+qpdf path absent. Setting the existing `RATOOLS_TEST_REPOSITORY_ROOT` opt-in fixed
+that harness error without product or fixture changes. A separate diagnostic
+supported a missing migrator connection value. The retained synthetic probe
+`pg-environment-alias-1/result.json` demonstrates that PowerShell7.6.5/.NET10.0.11
+`SetEnvironmentVariable(name,$null)` leaves an empty child-environment key.
+Each child now explicitly removes competing aliases and writes its required
+connection variable. This proves the empty-key mechanism, not every historical
+failure's cause. The first migration exceeded100s in `pg2-10`; `pg2-11` passed
+with a200s stage limit and360s session budget, below the remote400s watchdog.
+The independent deadlines are cleanup bounds, not a guarantee every failure
+branch finishes within the600s outer limit.
+
+The two PG cases used CLI initialization mode with business moves disabled.
+No product code, test assertions or native refusal policy changed for PG2.
+Final review independently checked all15 launch bindings,130 output bindings,
+881 source inputs, the exact TRX multiset and166 process-instance lifecycles.
+Official-source/rule mapping, a fixed external validator and Formal delivery/
+receipt qualification remain open, as does an unfiltered full-suite run.
+
+Final Windows evidence is `.artifacts/local-check/w1/` (workflow7, zero failures/skips, 435 guarded/Job process instances stopped) and `.artifacts/local-check/c1/` (combined2, zero failures/skips, 181 instances stopped). The workflow run permits one actual qpdf promotion and refuses two unrelated moves. The combined run permits four qpdf promotions and two single-file assembly-directory promotions, and refuses two unrelated moves. Final target file IDs, volumes, link counts and retained bytes were checked independently. Two fixture changes only allow a task-owned root through `RATOOLS_NATIVE_FIXTURE_ROOT`; business assertions are unchanged.
+
+| Accepted artifact | SHA-256 |
+| --- | --- |
+| Workflow7 TRX | `7eae13979c6146e8529ab8b4390922fd2eb09b7764ce976f5c8892654fb961ef` |
+| Combined2 TRX | `4ebd50c92257aaa8ff6f36eafc16369e57740f7fe5138331744b985ce2cd88d6` |
+| Current 881-input build manifest | `4a1f184778443dfcce5f7c5d713d8b3211d311d1f254947caa669be8324cb44c` |
+| Current test DLL | `4afee4ebd45b4d64bb56f9e0a184acfa461e7b5cdf6431b23a5fb8776399b205` |
+
+The combined run includes the160-page, 31,573,516-byte fixture, cancellation/retry, archived evidence and original resource assertions. Cancellation was23ms; first/retry memory was332,193,792/332,402,688 bytes below1GiB, and CPU was9,578/9,343ms below180,000ms. This remains synthetic Development qualification; Formal delivery and external regulatory qualification remain open.
+
+At the earlier Linux checkpoint, qpdf **54/54** and PostgreSQL/qpdf **7/7** passed, with zero
 failed/skipped cases and final read-only code/evidence review PASS. These 61
 cases add to the previously accepted 1,744 across separate executions, yielding
-**1,805 of 1,824 covered; 19 remain unqualified**. This is not an unfiltered
+**1,805 of 1,824 covered;19 then remained unqualified**. This is not an unfiltered
 full-suite run. Linux resource probes separately passed seven checks.
 
 ## Native tool provenance and execution
@@ -59,7 +124,7 @@ barriers, cleanup and Windows-only guards are unchanged. The final run above
 passed all 54. `/usr/bin/python3` only ran controlled standard-library helpers;
 this does not qualify PyMuPDF/OCR content processing.
 
-## Coverage accounting and remaining cases
+## Historical coverage accounting at the 1,805 checkpoint
 
 The Windows discovery baseline retains the old migration method name
 `PostgresCtdMigrationTests.IndependentMigratorUpgradesAnEmptyDatabaseTwiceAndEmptySchemaCanBeRolledBack`.
@@ -71,7 +136,7 @@ Windows/Linux truncated parameter display names also differ; preserve the
 baseline multiset and repeated-case counts instead of raw string-set unions.
 The 61 cases in this record have no overlap with the previous 1,744.
 
-| Remaining class / methods | Cases |
+| Then-remaining class / methods | Cases |
 | --- | ---: |
 | `PdfCombinedQualificationTests` | 2 |
 | `PdfContentHttpTests` | 1 |
@@ -82,7 +147,7 @@ The 61 cases in this record have no overlap with the previous 1,744.
 
 Production `PdfContentProcess` and `PythonPdfContentEngine` deliberately refuse
 Linux content execution. Windows Job limits do not prove native filesystem
-cleanup protection. These 19 cases require a qualified Windows native no-delete
+cleanup protection. At that checkpoint these19 cases required a qualified Windows native no-delete
 execution path before running; Linux early returns are not accepted coverage.
 Full unfiltered backend execution, current official-source/rule mapping,
 version-fixed external validation and Formal delivery/receipt qualification

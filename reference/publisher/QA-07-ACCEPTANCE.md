@@ -2,7 +2,7 @@
 
 Recorded 2026-11-07. Backend baseline `a2a05c5`; browser completion-state repair `a07b3c2`. QA-07 remains **in progress**, not fully accepted.
 
-Latest checkpoint (2026-11-09, Windows continuation): guarded Windows resource/concurrency8 and six independent workflow cases passed, bringing accepted cross-run coverage to **1,819/1,824; 5 remain**. The native interception harness passed25 policy checks, synthetic process-tree/fault scenarios, actual tool version probes and protected current MSBuild. Workflow7 then completed6 passed/1 failed with access denied on the legacy navigation path requiring a non-overwriting qpdf output move, consistent with the strict guard; no per-syscall denial trace was recorded. Combined2 and PostgreSQL-content2 remain open. Counts preserve the reviewed migration rename and parameter multiplicity; this is not one unfiltered full-suite run. See [Windows protection](WINDOWS-NATIVE-NO-DELETE.md) and [native acceptance](QA-07-NATIVE-ACCEPTANCE.md). Official/external/Formal qualification also remains open.
+Latest checkpoint (2026-11-09, Windows continuation): guarded resource/concurrency8, workflow7, combined2 and the final PostgreSQL-content2 passed with final read-only review. `pg2-11` confirms identity,31/0 migrations and both process trees stopped. Accepted coverage reaches **1,824/1,824 across separate runs**. Current API/Migrator/Tests MSBuild completed with zero warnings/errors and881 bound source inputs. Counts preserve the reviewed migration rename and parameter multiplicity; this is not one unfiltered full-suite run. See [Windows protection](WINDOWS-NATIVE-NO-DELETE.md) and [native acceptance](QA-07-NATIVE-ACCEPTANCE.md). Official/external/Formal qualification remains open.
 
 ## Verified checks
 

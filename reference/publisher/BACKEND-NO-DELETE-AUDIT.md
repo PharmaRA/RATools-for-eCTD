@@ -2,6 +2,8 @@
 
 2026-11-08，用户明确授权审计全部后端测试文件及其直接生产调用链，并修复执行前置。此记录区分源码检查、实际运行及尚未完成的资格，不把过滤后的集合称作无过滤全套。
 
+最新状态（2026-11-09）：Windows 原生保护下 resources8、workflow7、combined2 及 `pg2-11` 的最后两项 PostgreSQL 内容事务测试均已通过最终只读 review，identity/迁移31/0/两端清理齐全。跨运行去重验收覆盖 **1824/1824**。两处旧 fixture 只新增可选任务根；本次 PG 修复仅涉及 runner 的测试工作目录、子进程环境和网络代理，PG 测试断言/产品/guard策略未改。当前实际三项目 MSBuild 零警告/错误，881输入绑定；完整证据见 [原生验收](QA-07-NATIVE-ACCEPTANCE.md) 与 [Windows禁删保护](WINDOWS-NATIVE-NO-DELETE.md)。这仍不是无过滤同次后端全套，官方规则映射、固定外部验证器与Formal门禁继续开放。
+
 ## 审计与修复
 
 范围为 `tests/RATools.Tests` 和 Domain、Application、Infrastructure、Api、DatabaseMigrator 五层 C# 源码，排除生成目录 bin/obj/App_Data；PDF 直接依赖另检查 `scripts/pdf_content_worker.py`。每次运行的 `backend-inventory.json` 保存逐文件 SHA-256、测试类、选择/排除原因及直接调用命中。
