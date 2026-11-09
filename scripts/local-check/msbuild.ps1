@@ -118,7 +118,8 @@ try {
         if((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'ACL backup path must not traverse links.' }
     }
     New-Item -ItemType Directory -Path $backup -Force | Out-Null
-    $aclStream=[IO.FileStream]::new((Join-Path $backup ((Split-Path -Leaf $Evidence)+'.acl')),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $summary.aclBackup=Join-Path $backup ((Split-Path -Leaf $Evidence)+'-'+[guid]::NewGuid().ToString('N')+'.acl')
+    $aclStream=[IO.FileStream]::new($summary.aclBackup,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
     try { $descriptor=$acl.GetSecurityDescriptorBinaryForm(); $aclStream.Write($descriptor,0,$descriptor.Length) } finally { $aclStream.Dispose() }
     $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User
     $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,([Security.AccessControl.FileSystemRights]::Delete -bor [Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles),([Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit),[Security.AccessControl.PropagationFlags]::None,[Security.AccessControl.AccessControlType]::Deny))
