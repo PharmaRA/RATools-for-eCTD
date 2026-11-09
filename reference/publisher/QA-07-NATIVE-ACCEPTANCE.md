@@ -1,5 +1,7 @@
 # QA-07 native acceptance — 2026-11-09
 
+Latest Windows checkpoint: the new [native interception harness](WINDOWS-NATIVE-NO-DELETE.md) passed synthetic qualification, native version probes and protected current MSBuild. Eight Windows resource/concurrency cases and six independently reviewed workflow cases passed, bringing accepted combined coverage to **1,819/1,824; 5 remain**. Workflow7 subsequently completed6 passed/1 failed: the legacy navigation output move fails with access denied on a code path that requires rename, consistent with the strict policy. The workflow group remains failed; its one legacy case and Combined2/PostgreSQL-content2 remain open. Historical19-case boundaries below describe the earlier token/ACL checkpoint.
+
 Current Linux qpdf **54/54** and PostgreSQL/qpdf **7/7** passed, with zero
 failed/skipped cases and final read-only code/evidence review PASS. These 61
 cases add to the previously accepted 1,744 across separate executions, yielding
@@ -158,9 +160,9 @@ wrapper would also change the existing four-process Job limit and inherited
 pipe tests; an assembly resolver proxy was not adopted. No production Windows
 code, system policy or tool installation was changed.
 
-The next prerequisite is a Windows execution boundary that rejects destructive
+At that checkpoint, the next prerequisite was a Windows execution boundary that rejects destructive
 native file operations, including creation-time delete access and inherited
 handles, while preserving the tested Job/process-tree behavior. This probe
-does not establish that all Windows isolation methods are impossible. Until
-that prerequisite is demonstrated, the remaining count stays **19** and QA-07
-remains open.
+does not establish that all Windows isolation methods are impossible. The later
+interception harness and8-case acceptance advance that boundary; the rejected
+token/ACL design remains rejected. QA-07 remains open.

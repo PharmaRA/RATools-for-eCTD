@@ -2,15 +2,15 @@
 
 Recorded 2026-11-07. Backend baseline `a2a05c5`; browser completion-state repair `a07b3c2`. QA-07 remains **in progress**, not fully accepted.
 
-Latest checkpoint (2026-11-09): reviewed Linux qpdf54 + PostgreSQL/qpdf7 add 61 cases to the previous combined coverage, reaching **1,805/1,824; 19 remain unqualified**. The count explicitly maps the reviewed migration-test rename and preserves parameterized-case multiplicity. Current Linux resource probes separately pass 3+3+1. Fresh NuGet restore, actual Linux MSBuild and Development native browser download/API+PG restart passed. This is not a single unfiltered full-suite run. See [native acceptance and exact remaining cases](QA-07-NATIVE-ACCEPTANCE.md), [environment recovery](QA-07-ENVIRONMENT-RECOVERY.md), and [browser evidence](FINALIZATION-ACTUAL-BROWSER.md). Windows content/native protection, full-suite and official/external/Formal qualification keep QA-07 open.
+Latest checkpoint (2026-11-09, Windows continuation): guarded Windows resource/concurrency8 and six independent workflow cases passed, bringing accepted cross-run coverage to **1,819/1,824; 5 remain**. The native interception harness passed25 policy checks, synthetic process-tree/fault scenarios, actual tool version probes and protected current MSBuild. Workflow7 then completed6 passed/1 failed with access denied on the legacy navigation path requiring a non-overwriting qpdf output move, consistent with the strict guard; no per-syscall denial trace was recorded. Combined2 and PostgreSQL-content2 remain open. Counts preserve the reviewed migration rename and parameter multiplicity; this is not one unfiltered full-suite run. See [Windows protection](WINDOWS-NATIVE-NO-DELETE.md) and [native acceptance](QA-07-NATIVE-ACCEPTANCE.md). Official/external/Formal qualification also remains open.
 
 ## Verified checks
 
-Windows native precondition update (2026-11-09): three restricted-token/ACL
+Historical Windows native precondition update (2026-11-09, before interception): three restricted-token/ACL
 permission probes rejected the proposed guard. Even full restricting SID checks
 plus caller DELETE/DELETE_CHILD deny allowed `CREATE_NEW` with WRITE+DELETE on
 the returned handle. No actual deletion/native execution occurred, and all
-canaries were retained. The remaining19 are unrun; see the evidence and next
+canaries were retained. At that checkpoint all19 remained unrun; see the later interception evidence and next
 prerequisite in [native acceptance](QA-07-NATIVE-ACCEPTANCE.md).
 
 | Scope | Result | Evidence under `.artifacts/qa-07-20261107/` |
