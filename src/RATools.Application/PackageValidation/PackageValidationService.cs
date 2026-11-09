@@ -265,9 +265,9 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
         foreach (var entry in request.History)
         {
             var input = await store.GetInputAsync(entry.InputId, cancellationToken).ConfigureAwait(false) ?? throw new InvalidDataException();
-            history[input.SequenceNumber] = entry.StandardsSnapshotId is { } id ? PackageStandardsContext.FromSnapshot(await snapshots.GetAsync(id, cancellationToken).ConfigureAwait(false)) : PackageStandardsContext.Current;
+            history[input.SequenceNumber] = entry.StandardsSnapshotId is { } id ? PackageStandardsContext.FromSnapshot(await snapshots.GetAsync(id, cancellationToken).ConfigureAwait(false), selectionDate: run.Binding.SelectionDate) : PackageStandardsContext.Current;
         }
-        var context = PackageStandardsContext.FromSnapshot(snapshot, history);
+        var context = PackageStandardsContext.FromSnapshot(snapshot, history, run.Binding.SelectionDate);
         if (context.Catalog.Digest != run.Binding.RulesDigest || snapshot.RuleProfileAlias != run.Binding.ProfileSnapshotId) throw new InvalidDataException("The exact standards snapshot differs from the run rule binding.");
         return context;
     }

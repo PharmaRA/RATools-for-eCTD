@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "catalogVersion": "package-rules-v1",
   "purpose": "Development inventory and fail-closed coverage contract. This is not a complete FDA/EU regulatory criteria inventory or a declaration of formal readiness.",
-  "reviewedOn": "2026-10-03",
+  "reviewedOn": "2026-11-09",
   "sources": [
     {
       "id": "ich-ectd-3.2.2",
@@ -43,6 +43,14 @@
       "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/package-xml-assets-v1.json",
       "sha256": "71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1",
       "verificationStatus": "Verified"
+    },
+    {
+      "id": "fda-validation-criteria-4.7",
+      "kind": "RegulatorySpecification",
+      "version": "4.7",
+      "url": "https://www.fda.gov/media/87056/download",
+      "sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
+      "verificationStatus": "Verified"
     }
   ],
   "profiles": [
@@ -56,9 +64,9 @@
     {
       "profileSnapshotId": "us-fda-3.2.2-m1-3.3-development-v1",
       "templateKey": "us-fda-ectd-3.2.2",
-      "description": "US M1 3.3 development scope; current FDA source unverified",
+      "description": "US M1 3.3 development scope with pinned FDA criteria 4.7 source and bounded atomic checks",
       "qualifiedForFinalization": false,
-      "qualificationReason": "Current FDA sources, complete regional criteria and external qualification remain unverified."
+      "qualificationReason": "Complete official rule implementation, confirmed regional scope and external comparison remain unqualified."
     },
     {
       "profileSnapshotId": "eu-3.2.2-m1-3.1.1-development-v1",
@@ -1267,8 +1275,8 @@
     {
       "internalRuleId": "US-CRITERIA-INVENTORY",
       "authorityRuleId": null,
-      "sourceId": "fda-us-m1-3.3",
-      "sourceSection": "Unverified current FDA validation criteria and technical conformance guide",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7, pp. 3-69; complete 147-entry inventory",
       "title": "Complete and verified current FDA criteria inventory",
       "category": "Qualification",
       "ruleVersion": "1",
@@ -1281,7 +1289,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "NotImplemented",
-      "implementationNote": "Current source, effective dates and official rule IDs are unverified. Existing labels M1 3.3 / criteria 4.5 / guide 1.9 are not qualification evidence. P6 and external comparison must populate atomic regional criteria.",
+      "implementationNote": "Current official originals and all 147 rule entries are inventoried; only explicitly implemented atomic checks have runtime coverage. Remaining rules, scope and external comparison still block qualification.",
       "positiveFixtures": [],
       "negativeFixtures": [],
       "componentEvidence": [],
@@ -1522,6 +1530,285 @@
       "componentEvidence": [
         "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
         "src/RATools.Application/PackageValidation/PackageDeliveryInspector.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2035",
+      "authorityRuleId": "2035",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 50, error 2035; official severity Low; effective 2015-06-15",
+      "title": "Submission description exceeds 128 characters",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2036",
+      "authorityRuleId": "2036",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 50, error 2036; official severity High; effective 2015-06-15",
+      "title": "No application element with application-containing-files value of “true”",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2037",
+      "authorityRuleId": "2037",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 51, error 2037; official severity High; effective 2015-06-15",
+      "title": "More than one application-containing-files element has a value of \"true\"",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2038",
+      "authorityRuleId": "2038",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 51, error 2038; official severity Low; effective 2015-06-15",
+      "title": "Cross-reference-application-number must contain 6 numeric digits only",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2042",
+      "authorityRuleId": "2042",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 52, error 2042; official severity Low; effective 2015-06-15",
+      "title": "Email address exceeds 64 characters",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2044",
+      "authorityRuleId": "2044",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 53, error 2044; official severity Medium; effective 2015-06-15",
+      "title": "id element must contain 9 digits only",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-3036",
+      "authorityRuleId": "3036",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 55, error 3036; official severity High; effective 2008-03-10",
+      "title": "Application number must contain 6 numeric digits only",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2008-03-10. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-3050",
+      "authorityRuleId": "3050",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 55, error 3050; official severity High; effective 2008-03-10",
+      "title": "Submission sequence number must contain 4 numeric digits only",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2008-03-10. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-3065",
+      "authorityRuleId": "3065",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 55, error 3065; official severity High; effective 2015-06-15",
+      "title": "Submission-id element must contain 4 numeric digits only",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Selected US M1 DTD 3.3 parsed administrative fields; bound selection date on or after 2015-06-15. Missing date or incomplete/DTD-invalid input cannot establish coverage. All applications and repeated fields are inspected; optional cross-references are checked only when present.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
       ],
       "externalComparisonEvidence": []
     }

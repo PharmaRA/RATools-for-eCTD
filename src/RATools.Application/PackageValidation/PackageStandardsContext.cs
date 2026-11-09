@@ -9,15 +9,16 @@ namespace RATools.Application.PackageValidation;
 // One immutable inspection context. History selects its own context by sequence;
 // an absent legacy selection stays explicitly legacy, never rewritten as current.
 public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, PackageXmlAssets assets, SectionDefinitionSet nodeSchema,
-    string? snapshotId = null, IReadOnlyDictionary<string, PackageStandardsContext>? history = null)
+    string? snapshotId = null, IReadOnlyDictionary<string, PackageStandardsContext>? history = null, DateOnly? selectionDate = null)
 {
     public ValidationRuleCatalog Catalog { get; } = catalog;
     public PackageXmlAssets Assets { get; } = assets;
     public SectionDefinitionSet NodeSchema { get; } = nodeSchema;
     public string? SnapshotId { get; } = snapshotId;
+    public DateOnly? SelectionDate { get; } = selectionDate;
     public PackageStandardsContext ForSequence(string sequence) => history?.GetValueOrDefault(sequence) ?? this;
     public static PackageStandardsContext Current => new(PackageValidationCatalog.Current, PackageXmlAssets.Current, IchSectionDefinitions.Current);
-    public static PackageStandardsContext FromSnapshot(StandardsProfileSnapshot snapshot, IReadOnlyDictionary<string, PackageStandardsContext>? history = null)
+    public static PackageStandardsContext FromSnapshot(StandardsProfileSnapshot snapshot, IReadOnlyDictionary<string, PackageStandardsContext>? history = null, DateOnly? selectionDate = null)
     {
         snapshot.Verify();
         byte[] Resource(string key) => snapshot.Resources.SingleOrDefault(resource => resource.Key == key)?.ReadBytes() ?? throw new InvalidDataException("The standards snapshot is incomplete: " + key);
@@ -35,6 +36,6 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
                 mapped.LogicalPath != delivery || captured.Sha256 != declared.Sha256 || mapped.Sha256 != captured.Sha256)
                 throw new InvalidDataException("The archived provider and XML inspection assets do not describe the same standard bytes; this snapshot remains readable but cannot authorize a new inspection or capture.");
         }
-        return new(catalog, assets, IchSectionDefinitions.Load(schema), snapshot.Id, history);
+        return new(catalog, assets, IchSectionDefinitions.Load(schema), snapshot.Id, history, selectionDate);
     }
 }

@@ -180,6 +180,9 @@ public sealed class StandardsSnapshotIntegrationTests
         var (run, report) = await validation.CompleteAsync(queued.Run);
         Assert.Equal(snapshot.Id, report.Binding.StandardsSnapshotId);
         Assert.Equal(ValidationFixture.Today, report.Binding.SelectionDate);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2035").CheckStatus);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2044").CheckStatus);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2036").CheckStatus);
         Assert.Equal(ValidationFixture.Context, report.Binding.StandardsBusinessContext);
         Assert.Equal(queued.Run.RequestDigest, run.RequestDigest);
         Assert.False(report.IsReadyForFinalization);
@@ -406,7 +409,13 @@ public sealed class StandardsSnapshotIntegrationTests
         var queued = await validation.Service.EnqueueAsync(new(validation.Input.Id, PackageValidationCatalog.UsProfile,
             PackageValidationMode.Development, "custom-imported-regional-path", StandardsSnapshotId: snapshot.Id));
         var (run, report) = await validation.CompleteAsync(queued.Run);
-        Assert.DoesNotContain(report.Coverage.SelectMany(rule => rule.Findings), finding => finding.CheckStatus == CheckStatus.Fail);
+        // This legacy builder maps the six-digit application number to applicant id.
+        // Preserve its exact bytes and expose the new official defect; only typed
+        // regional metadata can supply a distinct applicant identifier.
+        Assert.Equal("FDA47-2044", Assert.Single(report.Coverage.SelectMany(rule => rule.Findings),
+            finding => finding.CheckStatus == CheckStatus.Fail).RuleId);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2036").CheckStatus);
+        Assert.False(report.IsReadyForFinalization);
         fixture.Provider.RefuseReads = true;
         var files = new RecordingReleaseStore(fixture.Root);
         var capture = await new ReleaseCaptureService(validation.Store,
@@ -450,7 +459,7 @@ public sealed class StandardsSnapshotIntegrationTests
             var package = new EctdSequencePackage(app.Id, "000001", "0001", SnapshotFixture.Template, "3.2.2", "3.3", profile.BackboneXml!,
                 new("000001", "Synthetic Sponsor", "US", SnapshotFixture.Template, "nda"),
                 new("0001", "original-application", "application", "Snapshot integration", "Synthetic Sponsor", null),
-                new("000001", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "regulatory", "5550100", "business",
+                new(customRegionalPath is null ? "123456789" : "000001", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "regulatory", "5550100", "business",
                     "synthetic@example.test", "nda", "original-application", "application", null), [], [], [], Nodes: []);
             if (customRegionalPath is not null) package = package with { BackboneXml = package.BackboneXml with
             { Regional = package.BackboneXml.Regional with { RelativePath = customRegionalPath, DtdSystemId = "../../../util/dtd/us-regional-v3-3.dtd" } } };

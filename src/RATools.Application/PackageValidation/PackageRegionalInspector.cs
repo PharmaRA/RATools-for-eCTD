@@ -6,8 +6,8 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v2";
-    private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE"];
+    public const string RegionalEngineVersion = "package-regional-inspector-v3";
+    private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
     public PackageRegionalInspection Inspect(PackageInputSet inputs, PackageLifecycleInspection lifecycle, CancellationToken cancellationToken = default)
@@ -22,6 +22,7 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
             EuIds.Contains(rule.InternalRuleId, StringComparer.Ordinal)).ToDictionary(rule => rule.InternalRuleId, StringComparer.Ordinal);
         var findings = selected.Keys.ToDictionary(id => id, _ => new List<ValidationFinding>(), StringComparer.Ordinal);
         var observed = selected.Keys.ToDictionary(id => id, _ => false, StringComparer.Ordinal);
+        var applicable = selected.Keys.ToDictionary(id => id, _ => false, StringComparer.Ordinal);
         var count = 0;
         var limited = false;
         foreach (var (sequence, capture) in inputs.Sequences.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -39,6 +40,16 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
             foreach (var rule in scoped)
             {
                 observed[rule.InternalRuleId] = true;
+                if (Fda47RegionalRules.IsOfficial(rule))
+                {
+                    if (!Fda47RegionalRules.HasPinnedSource(rule, sequenceContext.Catalog) || sequenceContext.SelectionDate is null)
+                    {
+                        Add(rule, CheckStatus.NotEvaluated, "FDA_RULE_POLICY_UNBOUND", "Official checks require the supported pinned rule source and an explicit bound selection date.", new(sequence, sequence + "/" + regionalProfile.DefaultRelativePath));
+                        continue;
+                    }
+                    if (sequenceContext.SelectionDate < Fda47RegionalRules.EffectiveFrom(rule)) continue;
+                }
+                applicable[rule.InternalRuleId] = true;
                 if (documents.Length == 0)
                 {
                     Add(rule, xml is null || xml.Backbones.Any(item => !item.ReadComplete) ? CheckStatus.NotEvaluated : CheckStatus.Fail,
@@ -63,8 +74,9 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         return new(selected.Values.Select(rule =>
         {
             var items = findings[rule.InternalRuleId];
-            var status = items.Any(item => item.CheckStatus == CheckStatus.Fail) ? CheckStatus.Fail : limited || !observed[rule.InternalRuleId] || items.Any(item => item.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : CheckStatus.Pass;
-            return new RuleCheckResult(rule.InternalRuleId, status, $"ProjectPolicy {rule.SourceId}: {rule.SourceSection}. " +
+            var status = items.Any(item => item.CheckStatus == CheckStatus.Fail) ? CheckStatus.Fail : limited || !observed[rule.InternalRuleId] || items.Any(item => item.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : !applicable[rule.InternalRuleId] ? CheckStatus.NotApplicable : CheckStatus.Pass;
+            return new RuleCheckResult(rule.InternalRuleId, status, $"{(rule.AuthorityRuleId is null ? "ProjectPolicy" : "FDA " + rule.AuthorityRuleId)} {rule.SourceId}: {rule.SourceSection}. " +
+                (status == CheckStatus.NotApplicable ? "The bound selection date precedes this rule's effective date. " : "") +
                 (status == CheckStatus.Pass ? "Selected regional business checks completed against parsed selected inputs." : "See located defects and unresolved regional scope."), items);
         }));
 
@@ -100,7 +112,10 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         }
         private void InspectUs()
         {
-            if (rule.InternalRuleId == "US-ADMIN-METADATA")
+            if (Fda47RegionalRules.IsOfficial(rule))
+                Fda47RegionalRules.Inspect(document, rule, (element, field, message) =>
+                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, element.Text, field));
+            else if (rule.InternalRuleId == "US-ADMIN-METADATA")
             {
                 var admin = Child(document.Elements[0], "admin"); var applicant = Child(admin, "applicant-info");
                 foreach (var name in new[] { "id", "company-name", "submission-description" }) Required(Child(applicant, name), name);

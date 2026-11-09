@@ -1,0 +1,2847 @@
+{
+  "schemaVersion": 1,
+  "id": "fda-ectd-validation-criteria-4.7",
+  "version": "4.7",
+  "reviewedOn": "2026-11-09",
+  "source": {
+    "path": "reference/publisher/official-sources/2026-11-09/fda-criteria.pdf",
+    "sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
+    "pages": 74,
+    "textSha256": "aa04331e1c92083d145316c0dcafeaeb9f43a0628cdb7625d93c12e4140ee6ae",
+    "effectiveDateDefinitionPage": 3
+  },
+  "scope": "Complete 147-entry current FDA 4.7 source inventory. An entry does not imply its check is implemented, applicable to every submission or externally qualified.",
+  "severityPolicy": "FDA High maps to Error, Medium to Warning and Low to Info in the project report; official severity is retained independently. These levels do not predict FDA receipt decisions.",
+  "rules": [
+    {
+      "authorityRuleId": "2",
+      "sourcePage": 4,
+      "group": "File Check",
+      "description": "eCTD submission missing us-regional.xml file",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/2/2017",
+      "effectiveOn": "2017-04-02",
+      "problem": "You have submitted an eCTD submission without the required us-regional.xml file",
+      "correctiveAction": "Resubmit with us-regional.xml file",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1, ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3",
+      "sourcePage": 4,
+      "group": "File Check",
+      "description": "Single file submission",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "5/31/2016",
+      "effectiveOn": "2016-05-31",
+      "problem": "You have a submitted a single file",
+      "correctiveAction": "Resubmit folder containing file(s)/subfolders",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "4",
+      "sourcePage": 4,
+      "group": "File Check",
+      "description": "Submission containing no files",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "5/31/2016",
+      "effectiveOn": "2016-05-31",
+      "problem": "Submission does not contain files",
+      "correctiveAction": "Resubmit folder containing file(s)/subfolders",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1, ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5",
+      "sourcePage": 5,
+      "group": "M1",
+      "description": "Application Mismatch",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/2/2017",
+      "effectiveOn": "2017-04-02",
+      "problem": "Application Type/Number in the FDA Form does not match Application Type/Number in us-regional.xml",
+      "correctiveAction": "Resubmit using consistent Application Type/Number between FDA Form and us-regional.xml",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "6",
+      "sourcePage": 5,
+      "group": "General",
+      "description": "Submission is not in eCTD format",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "5/5/2017",
+      "effectiveOn": "2017-05-05",
+      "problem": "You are required to submit in eCTD format",
+      "correctiveAction": "Resubmit using eCTD format",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Certain Human Pharmaceutical Product Applications and Related Submissions Using the eCTD Specification",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "7",
+      "sourcePage": 5,
+      "group": "General",
+      "description": "Fillable form not included",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "7/27/2018",
+      "effectiveOn": "2018-07-27",
+      "problem": "You have submitted without including the appropriate fillable form 356h, 2252, 1571, or 2253 (CBER only)",
+      "correctiveAction": "Resubmit with the appropriate fillable form 356h, 2252, 1571, or 2253",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Certain Human Pharmaceutical Product Applications and Related Submissions Using the eCTD Specification",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1034",
+      "sourcePage": 6,
+      "group": "File checks",
+      "description": "Invalid leaf element operation",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have submitted a leaf and did not include the operation attribute. The system substituted \"New.\"",
+      "correctiveAction": "If the operation attribute should not have been \"New,\" submit two new leaves. The first leaf should delete the leaf submitted without the operation attribute. The second should associate the file referenced by the first leaf to the leaf you had originally intended to modify.",
+      "guidanceSource": "DTDs; ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1038",
+      "sourcePage": 6,
+      "group": "File checks",
+      "description": "Application form and cover letter should be \"New\"",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a form or cover letter using an operator other than \"New.\"",
+      "correctiveAction": "No corrective action is necessary as occasionally there is a need to replace an incorrect document. Modify your SOPs to ensure the \"New\" operator is used with forms and cover letters except for exception cases.",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1051",
+      "sourcePage": 7,
+      "group": "File checks",
+      "description": "Extraneous leaf element path",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have specified a hlink:xref path for an operation that does not require one, e.g., \"Delete.\"",
+      "correctiveAction": "Modify your SOPs to ensure extraneous information is not submitted.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1068",
+      "sourcePage": 7,
+      "group": "File checks",
+      "description": "Extraneous modified leaf element path",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have specified a modified-file path for an operation that does not require one, e.g., \"New.\"",
+      "correctiveAction": "Modify your SOPs to ensure extraneous information is not submitted.",
+      "guidanceSource": "ICH Q&A 36 #4",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1085",
+      "sourcePage": 7,
+      "group": "File checks",
+      "description": "Leaf element path length exceeds maximum (230 characters)",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "There is a maximum path length of 230 characters. Internal processing adds additional characters to your paths which may invalidate your links.",
+      "correctiveAction": "Corrective action may be necessary. Examine your naming conventions to reduce the length of path statements.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1102",
+      "sourcePage": 8,
+      "group": "File checks",
+      "description": "Leaf element path contains invalid characters: backslash(\\), colon(:), asterisk(*), question mark(?), less than(<), greater than(>), pipe(|), or space ( )",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your path statement contains invalid characters. Since the restriction on characters in the path is an operating system constraint there is likely to be an orphaned file caused by a mismatch between the path specified for the leaf and the actual path of the file referenced by the leaf.",
+      "correctiveAction": "Resubmit a corrected leaf in a future submission with the operation attribute of \"Replace\" to replace the original erroneous leaf.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1111",
+      "sourcePage": 8,
+      "group": "File checks",
+      "description": "More than one version of the us-regional.xml file exists",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "More than one us-regional.xml was found in the same sequence; the M1 element contains two leafs for regional files.",
+      "correctiveAction": "Resubmit with only one us-regional.xml and only one reference to a regional file per submission sequence.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1119",
+      "sourcePage": 9,
+      "group": "File checks",
+      "description": "Missing required file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "A required file in the UTIL folder is missing.",
+      "correctiveAction": "Corrective action may be necessary. Modify your SOPs to prevent this in the future.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; ICH Q&A 36 #2, 6, and 8",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1130",
+      "sourcePage": 9,
+      "group": "File checks",
+      "description": "Required file checksum value in the util folder must match the expected checksum",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a required file which has been altered (DTD or stylesheet in the UTIL folder).",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to prevent this in the future and ensure the required file is not altered.",
+      "guidanceSource": "ICH Q&A 36 #2, 6, and 8",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1136",
+      "sourcePage": 9,
+      "group": "File checks",
+      "description": "Omitted leaf element path",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have not provided the path to the file that should be referenced by the leaf.",
+      "correctiveAction": "Resubmit the leaf specifying the file path to the original document in a later submission. Use the operational attribute of \"Replace\" to replace the original incorrect leaf.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; ICH Q&A 36 #13",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1153",
+      "sourcePage": 10,
+      "group": "File checks",
+      "description": "Missing modified file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The leaf referenced in the modified-file element cannot be found.",
+      "correctiveAction": "In your next submission submit a leaf modifying the leaf that generated this error using the operation attribute of \"Delete.\" In the same submission resubmit the leaf that generated this error correcting the modified-file reference.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1154",
+      "sourcePage": 10,
+      "group": "File checks",
+      "description": "A leaf referenced in the modified-file element was not originally submitted to all applications in the grouped submission",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You are using an operator attribute on a leaf that has been found in a different application, but has not been submitted to this application.",
+      "correctiveAction": "In your next submission, submit a leaf modifying the leaf that generated this error using the operation attribute of \"Delete.\" In the same submission, resubmit the leaf that generated this error correcting the modified-file reference.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1170",
+      "sourcePage": 11,
+      "group": "File checks",
+      "description": "Omitted leaf element modified file path",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The file path is not specified.",
+      "correctiveAction": "Resubmit the missing file path in a later submission referencing the original document using the operation attribute of \"Replace.\"",
+      "guidanceSource": "ICH Q&A 36 #4; ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1204",
+      "sourcePage": 11,
+      "group": "File checks",
+      "description": "File name contains invalid characters: tilde(~), forward slash(/), backslash(\\), colon(:), asterisk(*), question mark(?), single quote('), double quote(\") less than(<), greater than(>), pipe(|), or space( )",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The file name contains invalid characters.",
+      "correctiveAction": "Modify your SOPs to ensure file names do not contain invalid characters.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1221",
+      "sourcePage": 11,
+      "group": "File checks",
+      "description": "File name exceeds maximum length (64 characters) per eCTD specification",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The file name exceeds maximum length (64 characters).",
+      "correctiveAction": "Modify your SOPs to ensure files names do not exceed the maximum length (64 characters) per the eCTD Specification.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1238",
+      "sourcePage": 12,
+      "group": "File checks",
+      "description": "File size exceeds maximum limit (400 MB) per eCTD specification",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The file size exceeds the maximum limit (400 MB). Note: This limit may not be applicable if your file is a dataset. Please refer to the Study Data Technical Conformance Guide for current information regarding dataset file sizes.",
+      "correctiveAction": "No corrective action is necessary. You should generally avoid sending files with sizes that exceed the eCTD Specification.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1255",
+      "sourcePage": 12,
+      "group": "File checks",
+      "description": "Invalid file extension",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You provided a file extension that is not allowed in this section.",
+      "correctiveAction": "Only certain file extensions are valid in certain sections, therefore it is important to submit extensions only in the sections in which they are allowed. Corrective action may be necessary based on where the file with the invalid extension appears in the submission. You will be contacted if corrective action is necessary.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; Specifications for File Format Types Using eCTD Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1276",
+      "sourcePage": 13,
+      "group": "File checks",
+      "description": "Leaf element title leads or ends with a space",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Leaf element title leads or ends with a space.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that leaf element titles do not lead or end with a space.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1289",
+      "sourcePage": 13,
+      "group": "File checks",
+      "description": "Omitted leaf element title",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have omitted the title of a leaf element.",
+      "correctiveAction": "Resubmit a replacement leaf element in a later submission referencing the original leaf using the operation attribute of \"Replace.\"",
+      "guidanceSource": "ICH Q&A 36 #20; ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1298",
+      "sourcePage": 13,
+      "group": "File checks",
+      "description": "File does not contain a file extension",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have provided a file that does not have a file extension such as .pdf, .xpt, etc.",
+      "correctiveAction": "Resubmit a replacement leaf element in a later submission referencing the original leaf using the operation attribute of \"Replace.\"",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1306",
+      "sourcePage": 14,
+      "group": "File checks",
+      "description": "No leaf element for file",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/1/2022",
+      "effectiveOn": "2022-03-01",
+      "problem": "You have submitted the file(s) listed in the validation report without a corresponding reference in the backbone.",
+      "correctiveAction": "Resubmit, corrective action is based on the underlying reason for the error. If the error is the result of a simple omission of a leaf element, then you should ensure the leaf element file is included in the submission before resubmitting. If the error occurred due to a difference between the name of the file in a leaf reference and the actual name of the file, then you should correct the leaf element before resubmitting.",
+      "guidanceSource": "ICH Q&A 36 #13; ICH eCTD Specification V3.2.2; eCTD Comprehensive Table of Contents Headings and Hierarchy",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1314",
+      "sourcePage": 14,
+      "group": "File checks",
+      "description": "Non-required file exists",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have submitted files in the UTIL folder that are not required.",
+      "correctiveAction": "Modify your SOPs to ensure that only required files are placed in the UTIL folder.",
+      "guidanceSource": "ICH Q&A #51",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1322",
+      "sourcePage": 15,
+      "group": "File checks",
+      "description": "Folder contains no files or sub folders",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "Your submission includes a file folder that contains no files or sub folders.",
+      "correctiveAction": "Modify your SOPs so that you do not submit empty folders in the future.",
+      "guidanceSource": "ICH Q&A #54",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1323",
+      "sourcePage": 15,
+      "group": "File checks",
+      "description": "No file for leaf element",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/1/2022",
+      "effectiveOn": "2022-03-01",
+      "problem": "You have referenced the file(s) listed in the validation report from the us-regional.xml or index.xml files without providing the actual file(s).",
+      "correctiveAction": "Resubmit, corrective action is based on the underlying reason for the error. If the error is the result of a simple omission of the file, then you should ensure the file is included in the submission before resubmitting. If the error occurred due to a difference between the name of the file in a leaf reference and the actual name of a file, then you should correct the leaf element before resubmitting.",
+      "guidanceSource": "ICH Q&A 36 #12; ICH eCTD Specification V3.2.2; eCTD Comprehensive Table of Contents Headings and Hierarchy",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1344",
+      "sourcePage": 16,
+      "group": "General",
+      "description": "Attribute value leads or ends with a space",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Attribute value leads or ends with a space.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that attribute values do not lead or end with a space.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1357",
+      "sourcePage": 16,
+      "group": "General",
+      "description": "Required attribute value omitted in M2 - M5",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You did not specify a required attribute in a heading element or STF XML file in m2 through m5, e.g. 'indication' in the section 5.3.5 element or 'type of control' in the STF XML file for a study in section 5.3.5.1.",
+      "correctiveAction": "Corrective action may be necessary. If corrective action is necessary, you will be contacted by FDA. Modify your SOPs to ensure that attributes are used as described in the eCTD Specification.",
+      "guidanceSource": "DTDs; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1362",
+      "sourcePage": 17,
+      "group": "General",
+      "description": "An attribute appears multiple times in the stf.xml file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have duplicated an attribute, e.g., two 'type-of-control' attributes in a STF XML file. Viewer will ignore duplicate attributes and display only the first attribute.",
+      "correctiveAction": "Corrective action may be necessary. If corrective action is necessary, you will be contacted by FDA. Modify your SOPs to ensure that attributes are used as described in the eCTD Specification.",
+      "guidanceSource": "DTDs; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1368",
+      "sourcePage": 17,
+      "group": "General",
+      "description": "Extraneous attribute",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have submitted an attribute that is not called for in the specification, e.g. 'manufacturer' in a Module 4 or Module 5 heading element or 'species' in a Module 5 STF.",
+      "correctiveAction": "No corrective action is currently possible. Modify your SOPs to ensure that attributes are used as described in the eCTD Specification.",
+      "guidanceSource": "DTDs; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1374",
+      "sourcePage": 18,
+      "group": "General",
+      "description": "Checksum value must match the actual checksum",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your checksum value does not match the actual checksum.",
+      "correctiveAction": "Corrective action is based on the underlying reason for the error. You should determine if the issue is simply a miscalculation or misapplication of a checksum; if so, no corrective action is necessary. If you determine that the incorrect file was submitted you should submit the corrected file in a future submissions with a leaf element referencing the original leaf with an operation attribute of \"Replace.\" If you believe that an error has occurred and that the file you have submitted may have become corrupt you should contact your appropriate Center representative.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1391",
+      "sourcePage": 18,
+      "group": "General",
+      "description": "Invalid checksum formatting in index-md5.txt.",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You are using an invalid checksum format, i.e., you have not specified the 32 characters produced as part of generating the MD5 checksum, or you have included trailing spaces or carriage returns.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure the proper MD5 checksum format is used.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1408",
+      "sourcePage": 19,
+      "group": "General",
+      "description": "Invalid checksum type",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have used an invalid checksum type.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure the use of MD5 checksums.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1425",
+      "sourcePage": 19,
+      "group": "General",
+      "description": "Omitted checksum value",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have omitted the checksum value.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that the MD5 checksums are specified.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1426",
+      "sourcePage": 19,
+      "group": "General",
+      "description": "Unexpected checksum value",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have provided a checksum when the leaf operation is \"Delete.\"",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that the checksums are not specified for delete operations.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1442",
+      "sourcePage": 20,
+      "group": "General",
+      "description": "Omitted DTD version in index.xml file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have omitted the DTD version in the index.xml file.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is specified in the index.xml file.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1445",
+      "sourcePage": 20,
+      "group": "General",
+      "description": "Omitted DTD version in us-regional.xml file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have omitted the DTD version in the us-regional.xml file.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is specified in the us- regional.xml file.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1454",
+      "sourcePage": 20,
+      "group": "M1",
+      "description": "Company name is missing",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have omitted the company name in the us-regional.xml file.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission.",
+      "guidanceSource": "DTDs; The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1459",
+      "sourcePage": 21,
+      "group": "General",
+      "description": "Unsupported DTD version in index.xml file",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You are using an unsupported DTD version in the index.xml file.",
+      "correctiveAction": "Resubmit your submission using a version of the DTD that is supported. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA eCTD Website",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1463",
+      "sourcePage": 21,
+      "group": "General",
+      "description": "Unsupported DTD version in us-regional.xml file",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You are using an unsupported DTD version in the us- regional.xml file.",
+      "correctiveAction": "Resubmit your submission using a version of the DTD that is supported. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1; FDA eCTD and Module 1 Website",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1476",
+      "sourcePage": 21,
+      "group": "General",
+      "description": "Node-extension exists",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have included node extensions in your submissions. Node extensions are strongly discouraged by FDA.",
+      "correctiveAction": "Modify your SOPs to ensure that node extensions are not used in future submissions.",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1478",
+      "sourcePage": 22,
+      "group": "General",
+      "description": "Node-extension does not have a title",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Node extension is supplied without a title.",
+      "correctiveAction": "In a future submission, a leaf should be provided that references the original node-extension leaf specifying the \"Delete\" operation. A new leaf using an existing eCTD heading should be also submitted specifying the operation attribute of \"New\" taking care to include all required elements and attributes. The use of node extensions is strongly discouraged.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1482",
+      "sourcePage": 22,
+      "group": "General",
+      "description": "Node-extension title leads or ends with a space",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The node-extension title begins or ends with a space.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that node extensions are not used in future submissions. The use of node extensions is strongly discouraged.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1496",
+      "sourcePage": 23,
+      "group": "M1",
+      "description": "Application type is invalid",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "The application type must match a valid, supported application type from the specification and/or attribute xml file if applicable.",
+      "correctiveAction": "Resubmit your application specifying a valid application type. Certain application types in the attribute file are used only for cross-referenced applications, and it's noted in the attribute file. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "DTDs; The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1500",
+      "sourcePage": 23,
+      "group": "General",
+      "description": "Text data was truncated",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted data that exceed the maximum limits.",
+      "correctiveAction": "No corrective action is necessary. This is a warning to examine your naming conventions to reduce the size of the data values. Titles and keywords are limited to 512 characters.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1519",
+      "sourcePage": 24,
+      "group": "M1",
+      "description": "Application number does not match the folder name",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your application number in the us-regional.xml file does not match the folder name or the application number referenced for application-containing-files=\"true\" does not match the folder name.",
+      "correctiveAction": "Your application number and folder name must match; please correct one of them.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1544",
+      "sourcePage": 24,
+      "group": "M1",
+      "description": "Company name must remain constant",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The company name has changed.",
+      "correctiveAction": "No corrective action is necessary since company names do change from time to time. Modify your SOPs to ensure that company name is used consistently from submission to submission. The company name should only change when there is an actual name change.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1545",
+      "sourcePage": 25,
+      "group": "M1",
+      "description": "Promotional labeling and advertising regulatory contact is missing",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You did not provide the promotional labeling and advertising regulatory contact for a Promotional Labeling Advertising submission (submission-type=Promotional Labeling Advertising).",
+      "correctiveAction": "Ensure that a promotional labeling and advertising regulatory contact is provided for all future promotional labeling and advertising submissions.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1550",
+      "sourcePage": 25,
+      "group": "M1",
+      "description": "Material-id exceeds 30 characters",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You provided a material-id that exceeds the 30 character limitation.",
+      "correctiveAction": "Ensure each material-id is within character limitations in future submissions.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1551",
+      "sourcePage": 26,
+      "group": "M1",
+      "description": "2253 submission does not include Product Labeling",
+      "severity": "High - CDER",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "10/18/2021",
+      "effectiveOn": "2021-10-18",
+      "problem": "Your 2253 submission did not include Product Labeling. Firms must submit the most current product labeling to section 1.14.6",
+      "correctiveAction": "Resubmit the 2253 submission with most current product labeling",
+      "guidanceSource": "FDA Form 2253 instructions; Firms must submit the most current product labeling, as required in 21 CFR 314.81(b)(3)(i), to section 1.14.6; Providing Regulatory Submissions in Electronic and Non-Electronic Format — Promotional Labeling and Advertising Materials for Human Prescription Drugs, Guidance for Industry",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1553",
+      "sourcePage": 26,
+      "group": "M1",
+      "description": "The only valid FDA Form to include in a 2253 submission is FDA Form 2253",
+      "severity": "High - CDER",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "10/18/2021",
+      "effectiveOn": "2021-10-18",
+      "problem": "You have submitted an eCTD submission with an eCTD Submission Type of Promotional Labeling and included a Form which is not a 2253. Only 2253 Forms are allowed with a submission of this type.",
+      "correctiveAction": "Resubmit without the non-2253 Form",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic and Non- Electronic Format — Promotional Labeling and Advertising Materials for Human Prescription Drugs, Guidance for Industry",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1554",
+      "sourcePage": 27,
+      "group": "M1",
+      "description": "Promotional Material Issue Date Format is incorrect",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/15/2021",
+      "effectiveOn": "2021-03-15",
+      "problem": "The Promotional Material Issue Date in the submission does not match the proper format of YYYYMMDD",
+      "correctiveAction": "Resubmit following the date format YYYYMMDD",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic and Non- Electronic Format — Promotional Labeling and Advertising Materials for Human Prescription Drugs, Guidance for Industry",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1636",
+      "sourcePage": 27,
+      "group": "M1",
+      "description": "The submission-id referenced has not been received and/or processed",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "The submission-id referenced has not been received and/or processed.",
+      "correctiveAction": "Resubmit, corrective action is based on the underlying reason for the error. If the incorrect submission-id was submitted, correct the submission-id before resubmitting. If the correct submission-id was submitted, ensure the sequence number matches the submission-id and the correct submission-type and submission sub-type are provided for the new regulatory activity.",
+      "guidanceSource": "DTDs; The eCTD Backbone Files Specification for Module 1; General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1681",
+      "sourcePage": 28,
+      "group": "M1",
+      "description": "Issue-date attribute value is missing",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You did not provide the issue-date for one or more promotional materials in a 2253 submission (promotional- material-doc-type=promotional 2253).",
+      "correctiveAction": "Ensure that an issue date is provided for each promotional material in future 2253 submissions.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1697",
+      "sourcePage": 28,
+      "group": "M1",
+      "description": "Sequence number was previously submitted",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "The sequence number used in your submission has already been submitted to the application.",
+      "correctiveAction": "Resubmit your submission ensuring that you use a 4 numeric digit sequence number that is unique within the application.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1714",
+      "sourcePage": 28,
+      "group": "M1",
+      "description": "Sequence number does not match the folder name",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The sequence number for the application containing files (application-containing-files=\"true\") does not match the folder name.",
+      "correctiveAction": "Resubmit your submission ensuring that the sequence number for the application containing files (application-containing- files=”true”) matches the folder name for DTD V3.2.",
+      "guidanceSource": "ICH Q&A 36 #19",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1731",
+      "sourcePage": 29,
+      "group": "STF",
+      "description": "Cumulative STF files are not allowed",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "FDA only accepts the accumulative approach to STF.",
+      "correctiveAction": "Resubmit your submission ensuring that the STF files created follow the accumulative approach.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1734",
+      "sourcePage": 29,
+      "group": "General",
+      "description": "A dataset named ts.xpt with information on study start date must be present for each study in Module 4, sections 4.2.3.1, 4.2.3.2, 4.2.3.4, and in Module 5, sections 5.3.1.1, 5.3.1.2, 5.3.3.1, 5.3.3.2, 5.3.3.3, 5.3.3.4, 5.3.4, 5.3.5.1, 5.3.5.2",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "9/15/2021 (CBER module 4 sections, 03/16/2023)",
+      "effectiveOn": null,
+      "problem": "You have not submitted a dataset named ts.xpt with information on study start date for each study in Module 4, section 4.2, or in Module 5, section 5.3",
+      "correctiveAction": "Resubmit, including a dataset named ts.xpt with information on study start date for each study in Module 4, section 4.2, and Module 5, section 5.3",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Standardized Study Data; Study Data Technical Conformance Guide.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1735",
+      "sourcePage": 30,
+      "group": "STF",
+      "description": "The correct STF file-tags must be used for all standardized datasets and corresponding define.xml files in Module 4, sections 4.2.3.1, 4.2.3.2, 4.2.3.4, and in Module 5, sections 5.3.1.1, 5.3.1.2, 5.3.3.1, 5.3.3.2, 5.3.3.3, 5.3.3.4, 5.3.4, 5.3.5.1, 5.3.5.2",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "9/15/2021 (CBER module 4 sections, 03/16/2023)",
+      "effectiveOn": null,
+      "problem": "You have submitted standardized XPT files or define.xml files without correct file tag. Valid file tags for XPT files are: data-tabulation-dataset-sdtm data-tabulation-dataset-send analysis-dataset-adam Valid file tags for corresponding define.xml files are: data-tabulation-data-definition analysis-data-definition",
+      "correctiveAction": "Resubmit using one of the valid file tags for all submitted datasets.",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Certain Human Pharmaceutical Product Applications and Related Submissions Using the eCTD Specification; Providing Regulatory Submissions in Electronic Format – Standardized Study Data; Study Data Technical Conformance Guide.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1736",
+      "sourcePage": 31,
+      "group": "General",
+      "description": "For Standard for Exchange of Nonclinical Data (SEND) data, a Demographic (DM) dataset and define.xml must be submitted in Module 4, sections 4.2.3.1, 4.2.3.2, 4.2.3.4 For Study Data Tabulation Model (SDTM) data, a DM dataset and define.xml must be submitted in Module 5, sections 5.3.1.1, 5.3.1.2, 5.3.3.1, 5.3.3.2, 5.3.3.3, 5.3.3.4, 5.3.4, 5.3.5.1, 5.3.5.2 For Analysis Data Model (ADaM) data, an ADaM Subject level analysis dataset (ADSL) dataset and define.xml must be submitted in Module 5, sections 5.3.1.1, 5.3.1.2, 5.3.3.1, 5.3.3.2, 5.3.3.3, 5.3.3.4, 5.3.4, 5.3.5.1, 5.3.5.2",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "9/15/2021 (CBER module 4 sections, 03/16/2023)",
+      "effectiveOn": null,
+      "problem": "You have not submitted SEND DM and corresponding define.xml for each study in Module 4, section 4.2. You have not submitted SDTM DM and corresponding define.xml for each study in Module 5, section 5.3. You have not submitted ADSL, and corresponding define.xml for each study in Module 5, section 5.3.",
+      "correctiveAction": "Resubmit the submission with the SEND DM and corresponding define.xml for each study in Module 4, section 4.2. Resubmit including SDTM DM and corresponding define.xml for each study in Module 5, section 5.3. Resubmit including ADSL and corresponding define.xml for each study in Module 5, section 5.3.",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Standardized Study Data; Study Data Technical Conformance Guide.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1737",
+      "sourcePage": 32,
+      "group": "General",
+      "description": "For each study referenced by an STF file in Module 4 and Module 5, no more than one dataset of the same file name and leaf title should be submitted using the lifecycle operator “new.” STFs are not required for 4.3 Literature references, 5.2 Tabular listings, 5.4 Literature references and 5.3.6 Postmarketing reports",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/16/2023",
+      "effectiveOn": "2023-03-16",
+      "problem": "You have submitted more than one dataset of the same type using the lifecycle operator “new” for a study.",
+      "correctiveAction": "In future submissions, ensure that only one dataset of each type is marked using the lifecycle operator “new”.",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Certain Human Pharmaceutical Product Applications and Related Submissions Using the eCTD Specification; eCTD Technical Conformance Guide; Study Data Technical Conformance Guide.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1738",
+      "sourcePage": 32,
+      "group": "General",
+      "description": "STF Study ID should match STUDYID or SPREFID listed in the referenced Trial Summary (ts.xpt) file. STFs are not required for 4.3 Literature references, 5.2 Tabular listings, 5.4 Literature references and 5.3.6 Postmarketing reports",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/16/2023",
+      "effectiveOn": "2023-03-16",
+      "problem": "The STF Study ID does not match the STUDYID or SPREFID listed in the referenced ts.xpt file (not an exact match).",
+      "correctiveAction": "Ensure ts.xpt is referenced under the correct STF. If ts.xpt is under the correct STF, update the STUDYID or SPREFID in the ts.xpt and other referenced study data files. Modify your SOPs to ensure that a consistent Study ID (exact match) is used.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files; Providing Regulatory Submissions in Electronic Format – Standardized Study Data; Study Data Technical Conformance Guide; General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1748",
+      "sourcePage": 33,
+      "group": "STF",
+      "description": "Omitted STF DTD version in leaf element",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Omitted STF DTD version in leaf element.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is in the leaf element.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1752",
+      "sourcePage": 33,
+      "group": "STF",
+      "description": "Omitted STF DTD version in STF XML file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Omitted STF DTD version in the STF XML file.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is specified in the STF XML file.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1765",
+      "sourcePage": 34,
+      "group": "STF",
+      "description": "STF DTD version must match the XML file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your STF DTD version listed in the leaf element does not match the DTD version in the STF XML file.",
+      "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version specified in the leaf matches that specified in the STF XML file.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1782",
+      "sourcePage": 34,
+      "group": "STF",
+      "description": "Unsupported STF DTD version in leaf element",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You are using an unsupported STF DTD version in a leaf element.",
+      "correctiveAction": "Resubmit your submission using a version of the DTD that is supported. For STF Version 2.2 references, the version value should be indicated as \"STF Version 2.2\" exactly. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1786",
+      "sourcePage": 35,
+      "group": "STF",
+      "description": "Unsupported STF DTD version in STF XML file",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You are using an unsupported STF DTD version in a STF XML file.",
+      "correctiveAction": "Resubmit your submission using a version of the DTD that is supported. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1789",
+      "sourcePage": 35,
+      "group": "STF",
+      "description": "A file has been submitted in a study section without providing an STF file. STFs are not required for 4.3 Literature references, 5.2 Tabular listings, 5.4 Literature references and 5.3.6 Postmarketing reports",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "9/15/2021",
+      "effectiveOn": "2021-09-15",
+      "problem": "All files in a study section must be referenced by an STF file.",
+      "correctiveAction": "Resubmit, referencing all files submitted in a required study section in an STF file.",
+      "guidanceSource": "Providing Regulatory Submissions in Electronic Format – Certain Human Pharmaceutical Product Applications and Related Submissions Using the eCTD Specification; the eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1799",
+      "sourcePage": 36,
+      "group": "STF",
+      "description": "STF cannot reference another STF",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The STF may not reference another STF.",
+      "correctiveAction": "Resubmit your submission ensuring that STFs do not reference other STFs. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1816",
+      "sourcePage": 36,
+      "group": "STF",
+      "description": "STF does not relate to any leaf elements",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "STF does not relate to any leaf elements.",
+      "correctiveAction": "In a future submission, you should include an STF that includes references to appropriate leaf elements. Modify your SOPs to ensure that all STFs submitted reference leaf elements.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1833",
+      "sourcePage": 37,
+      "group": "STF",
+      "description": "STF relates to a non-existent leaf element",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "STF relates to a non-existent leaf element.",
+      "correctiveAction": "In a future submission, you should include an STF that includes references to existing leaf elements. Modify your SOPs to ensure that all STFs submitted reference leaf elements.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1850",
+      "sourcePage": 37,
+      "group": "STF",
+      "description": "Study ID for STF must remain constant",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have appended an STF with a second STF and the two Study IDs are different (not an exact match). The reviewer will see two studies instead of one.",
+      "correctiveAction": "\"Delete\" leaf references in the index.xml for the files with incorrect Study IDs and then add the leaf references as \"New\" to the index.xml and STF for the study that should remain. Modify your SOPs to ensure that a consistent Study ID (exact match) is used.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1867",
+      "sourcePage": 38,
+      "group": "STF",
+      "description": "Invalid STF file extension",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have included an invalid STF file extension.",
+      "correctiveAction": "Corrective action may be necessary. If corrective action is necessary, you will be contacted. Modify your SOPs to ensure that the name for the STF XML file starts with the term \"stf-\" followed by the alphanumeric code used by the sponsor to unambiguously identify the study (i.e., study-id) and followed by \".xml\" to complete the file name.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1884",
+      "sourcePage": 38,
+      "group": "STF",
+      "description": "Invalid STF file name",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have included an invalid STF file name.",
+      "correctiveAction": "Modify your SOPs to ensure that the name for the STF XML file starts with the term \"stf-\" followed by the alphanumeric code used by the sponsor to unambiguously identify the study (i.e., study-id) and followed by \".xml\" as the file extension to complete the file name.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1901",
+      "sourcePage": 39,
+      "group": "STF",
+      "description": "Invalid STF TOC location",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your leaf that points to the STF is under an invalid heading area or invalid module. For example, STFs can only be associated with certain headings under Modules 4 or 5.",
+      "correctiveAction": "In a future submission, place the STF under the correct module and heading element. Modify your SOPs to ensure that STFs are included only in Modules 4 and 5.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1918",
+      "sourcePage": 39,
+      "group": "STF",
+      "description": "Omitted STF doc-content file tag",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have omitted the STF doc-content file tag which prevents the proper classification of the file within the submission.",
+      "correctiveAction": "In a future submission you should include an updated STF file that reflects the proper doc-content file tag using the \"Replace\" operator.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1935",
+      "sourcePage": 40,
+      "group": "STF",
+      "description": "Multiple STF doc-content file tags",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have multiple STF doc-content file tags; processor will process the first tag but will ignore any additional tags.",
+      "correctiveAction": "No corrective action is possible due to current STF limitations. Modify your SOPs to ensure that only a single doc-content file tag is used.",
+      "guidanceSource": "DTDs; General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1953",
+      "sourcePage": 40,
+      "group": "STF",
+      "description": "STF XML title and leaf element title do not match",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "Your STF study title and leaf element title do not match; viewer will show the title in the stf.xml file only.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that STF titles match the provided leaf title.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1969",
+      "sourcePage": 41,
+      "group": "STF",
+      "description": "Invalid STF XML file",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have submitted an invalid stf-xxxxxxxx.xml file. This error will occur when: no Study ID is defined, there are no child nodes in the XML document, or the XML document fails to load.",
+      "correctiveAction": "In a future submission, delete the leaves which were referenced in the previous invalid stf-xxxxxxx.xml file. Submit a new valid stf-xxxxxxxx.xml files and use the \"new\" operator attribute to re-reference the previously submitted leaves in the STF files.",
+      "guidanceSource": "DTDs; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1981",
+      "sourcePage": 41,
+      "group": "STF",
+      "description": "STF XML file is missing",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have referenced an STF XML file in the hlink:xref attribute of a leaf and the system is unable to locate the file.",
+      "correctiveAction": "Resubmit the missing STF XML file in a new submission sequence and re-reference the appropriate leaves using the operation attribute of \"Replace.\"",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1985",
+      "sourcePage": 42,
+      "group": "STF",
+      "description": "The study title for the STF is missing",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have omitted the title within the STF XML file. The title is required for STFs submitted using the version 2 specification.",
+      "correctiveAction": "In a new submission sequence, resubmit the STF file which includes the corrected study title (it is not necessary to resubmit files or regenerate leaves). Ensure that your Study ID is identical to what you previously submitted.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "1990",
+      "sourcePage": 42,
+      "group": "STF",
+      "description": "The same STF XML is referenced more than once.",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted one STF XML file and referenced that STF XML file in more than one section.",
+      "correctiveAction": "Only the first study will appear when an STF XML file is referenced more than once. Add a new study STF XML file and one PDF file that states the study is located in another section and provides a link to the study.",
+      "guidanceSource": "ICH Q&A 60",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2001",
+      "sourcePage": 43,
+      "group": "M1",
+      "description": "An older version of the DTD has been used after a submission to the application used a higher version.",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You referenced a version of the DTD that can no longer be used for the application because a previous submission(s) to the same application referenced a higher, more recent version.",
+      "correctiveAction": "Resubmit your submission using the same or higher version of the DTD referenced in previous submissions. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "DTDs; The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2002",
+      "sourcePage": 43,
+      "group": "Schema Error",
+      "description": "XML didn't pass validation with the schema (DTD) and attribute files",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You provided an index.xml, us-regional.xml or stf.xml file which does not conform to the schema (DTD) and/or attribute files.",
+      "correctiveAction": "Resubmit your submission ensuring that you use xml files valid with the schema (DTD) and attribute files as applicable. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; The eCTD Backbone Files Specification for Module 1; General good practice to ensure reviewability",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2003",
+      "sourcePage": 44,
+      "group": "M1",
+      "description": "us-regional.xml is not referencing the DTD and stylesheet at an approved valid location",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You submitted a submission with its us-regional.xml referencing incorrect DTD and stylesheet file locations.",
+      "correctiveAction": "Resubmit your submission that contains a us-regional.xml that references the valid, correct versions of the DTD and stylesheet. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2012",
+      "sourcePage": 44,
+      "group": "M1",
+      "description": "A required attribute value in M1 is missing",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have failed to provide a required attribute value for an M1 element.",
+      "correctiveAction": "Resubmit the submission and ensure all required attribute values are provided. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2013",
+      "sourcePage": 45,
+      "group": "M1",
+      "description": "Invalid M1 attribute value",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You submitted a submission that refers to an M1 attribute value that has a status of invalid or the value itself is not allowed according to the corresponding referenced attribute type list.",
+      "correctiveAction": "Resubmit the submission and ensure all provided M1 attributes are valid. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2021",
+      "sourcePage": 45,
+      "group": "M1",
+      "description": "A submission sub-type error occurred because this particular submission sub-type is only allowed once for each regulatory activity.",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You used a submission sub-type that was provided in a previous submission to the same regulatory activity. Certain submission sub-types (application, original, report, correspondence) can only be submitted once for each regulatory activity (e.g., original- application should only have one submission with a sub-type value \"application\").",
+      "correctiveAction": "You will be contacted if corrective action is necessary. Modify your SOPs to ensure that the submission sub-types which should only be used once for each regulatory activity, are not used again for subsequent submissions to the same regulatory activity.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2022",
+      "sourcePage": 46,
+      "group": "M1",
+      "description": "Submission-sub-type is invalid for submission-type",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have used a submission-sub-type which is not allowed for the submission-type and/or type of application.",
+      "correctiveAction": "Resubmit the submission using a valid submission-sub-type. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2023",
+      "sourcePage": 46,
+      "group": "M1",
+      "description": "All grouped submission submission-sub-type values must be the same",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have referenced more than one application and the submission sub-type values are not the same.",
+      "correctiveAction": "Resubmit the submission and provide the same submission sub-type for all applications referenced in the us-regional.xml. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2024",
+      "sourcePage": 47,
+      "group": "M1",
+      "description": "For all sequences for a regulatory activity the submission type must be consistent.",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "01/16/2027",
+      "effectiveOn": "2027-01-16",
+      "problem": "You have used a submission type that is different than the submission type of the parent regulatory activity.",
+      "correctiveAction": "Resubmit the submission with a submission type that matches the parent regulatory activity type.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2025",
+      "sourcePage": 47,
+      "group": "M1",
+      "description": "The eCTD sequence number of the submission sub-type that starts a new regulatory activity and the submission-id must match.",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "01/16/2027",
+      "effectiveOn": "2027-01-16",
+      "problem": "You have used a submission sub-type that begins a new regulatory activity and the eCTD sequence number does not match the submission-id.",
+      "correctiveAction": "Resubmit the submission where the eCTD sequence number matches the submission-id for the new regulatory activity.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2026",
+      "sourcePage": 47,
+      "group": "M1",
+      "description": "The submission-id must reference the eCTD sequence number for the parent regulatory activity",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "01/16/2027",
+      "effectiveOn": "2027-01-16",
+      "problem": "You have used a submission-id that matches the eCTD sequence number and the submission sub-type does not start a new regulatory activity.",
+      "correctiveAction": "You will be contacted if corrective action is necessary. Modify your SOPs to ensure that the submission-id references the sequence number that begins the regulatory activity.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2031",
+      "sourcePage": 48,
+      "group": "M1",
+      "description": "All grouped submission application-type values must be the same",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have referenced more than one application and the application-type values are not the same.",
+      "correctiveAction": "Resubmit the submission and provide the same application- type for all applications referenced in the us-regional.xml. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2032",
+      "sourcePage": 48,
+      "group": "M1",
+      "description": "All grouped submission submission-type values must be the same",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have referenced more than one application and the submission-type values are not the same.",
+      "correctiveAction": "Resubmit the submission and provide the same submission- type for all applications referenced in the us-regional.xml. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2033",
+      "sourcePage": 49,
+      "group": "M1",
+      "description": "Different sequence numbers are referenced for the same application number",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You referenced different sequence numbers to the same application in a grouped submission. When submitting to different regulatory activities in the same application, use the same sequence number for each submission.",
+      "correctiveAction": "Resubmit, ensure the same sequence number is referenced for all regulatory activities to the same application number.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2034",
+      "sourcePage": 49,
+      "group": "M1",
+      "description": "Submission-type is invalid for application-type",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have used a submission-type which is not allowed for the application type.",
+      "correctiveAction": "Resubmit the submission using a valid submission-type. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2035",
+      "sourcePage": 50,
+      "group": "M1",
+      "description": "Submission description exceeds 128 characters",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You provided a submission description that exceeds the 128 character limit.",
+      "correctiveAction": "Ensure future submissions do not have a submission- description that exceeds 128 characters.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2035"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2036",
+      "sourcePage": 50,
+      "group": "M1",
+      "description": "No application element with application-containing-files value of “true”",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You did not provide an application-containing-files value=\"true\" for any applications referenced in the us- regional.xml.",
+      "correctiveAction": "Resubmit the submission indicating which application contains the files by ensuring the application's application- containing-files element has a value=\"true.\" You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2036"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2037",
+      "sourcePage": 51,
+      "group": "M1",
+      "description": "More than one application-containing-files element has a value of \"true\"",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have reference more than one application with an application-containing-files value= \"true.\"",
+      "correctiveAction": "Resubmit the submission indicating which application contains the files by ensuring the application's application- containing-files element has a value=\"true.\" You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2037"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2038",
+      "sourcePage": 51,
+      "group": "M1",
+      "description": "Cross-reference-application-number must contain 6 numeric digits only",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "Your cross-reference-application-number must be 6 numeric digits in length.",
+      "correctiveAction": "In a future submission, reference the correct six (6) digit application number.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2038"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2041",
+      "sourcePage": 52,
+      "group": "M1",
+      "description": "Supplement-effective-date-type attribute value is missing",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You did not provide the supplement-effective-date-type for this first submission to the supplement.",
+      "correctiveAction": "Include a supplement-effective-date-type in the first submission to a new supplement.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2042",
+      "sourcePage": 52,
+      "group": "M1",
+      "description": "Email address exceeds 64 characters",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You provided an email address that exceeds the 64 character limitation.",
+      "correctiveAction": "Ensure email addresses are within character limitations in future submissions.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2042"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2043",
+      "sourcePage": 52,
+      "group": "M1",
+      "description": "id element has changed",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You are using an company id element that is different than the id used in previous submissions to the application.",
+      "correctiveAction": "No corrective action is necessary since id can change from time to time. Modify your SOPs to ensure that same id is used consistently in future submissions to the application. The id should change only when there is a change in ownership of the application.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "2044",
+      "sourcePage": 53,
+      "group": "M1",
+      "description": "id element must contain 9 digits only",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You provided an id that is not 9 numeric digits.",
+      "correctiveAction": "Ensure future submissions include an id that is 9 numeric digits.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2044"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "2045",
+      "sourcePage": 53,
+      "group": "M1",
+      "description": "Invalid form type for eCTD location",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "You have included an invalid form-type attribute value in the submission-information section.",
+      "correctiveAction": "Reference the form in the m1-1-forms section and not in submission-information in the admin section of the us- regional.xml.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3001",
+      "sourcePage": 53,
+      "group": "STF",
+      "description": "STF doc-content title used",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "You have included a STF doc-content title. This title is not visible to the reviewer and should not be used. The leaf title is visible to reviewers.",
+      "correctiveAction": "Corrective action may be necessary. In future submissions, ensure that doc-content titles for each document referenced in the STF XML are not included.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3015",
+      "sourcePage": 54,
+      "group": "STF",
+      "description": "The element 'file-tag' preceded the element 'property'",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "In the STF XML the 'property' element should come before its sibling element 'file-tag'.",
+      "correctiveAction": "Modify your SOPs to ensure your STF is in conformance with the ordering as described in the specification and the DTD.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3029",
+      "sourcePage": 54,
+      "group": "STF",
+      "description": "Use of content-block is not recommended",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Although content block is in both DTD versions, the specification does not refer to it; it is recommended that you do not use it.",
+      "correctiveAction": "Remove the content block element in the identified stf- xxxxxxxx.xml and resubmit at time of next planned submission.",
+      "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3036",
+      "sourcePage": 55,
+      "group": "M1",
+      "description": "Application number must contain 6 numeric digits only",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "The application number must be 6 numeric digits in length.",
+      "correctiveAction": "Resubmit your submission specifying a properly formatted application number. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-3036"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "3050",
+      "sourcePage": 55,
+      "group": "M1",
+      "description": "Submission sequence number must contain 4 numeric digits only",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "3/10/2008",
+      "effectiveOn": "2008-03-10",
+      "problem": "Your submission's sequence number must be 4 numeric digits in length.",
+      "correctiveAction": "Resubmit your submission specifying a properly formatted sequence number.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-3050"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "3065",
+      "sourcePage": 55,
+      "group": "M1",
+      "description": "Submission-id element must contain 4 numeric digits only",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "6/15/2015",
+      "effectiveOn": "2015-06-15",
+      "problem": "Your submission-id must be 4 numeric digits in length.",
+      "correctiveAction": "Resubmit your submission specifying a properly formatted submission-id number. You may resubmit using the original sequence number of the submission.",
+      "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-3065"
+        ],
+        "evidence": [
+          "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+        ],
+        "note": "First bounded M1 field batch; current-run acceptance is recorded separately. No external comparison or full regional qualification."
+      }
+    },
+    {
+      "authorityRuleId": "3078",
+      "sourcePage": 56,
+      "group": "General",
+      "description": "eCTD element does not contain any leaf elements",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have included a lowest level element that does not contain any leaf elements.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure lowest level elements contain leaf elements.",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "3102",
+      "sourcePage": 56,
+      "group": "PDF",
+      "description": "Failed to process PDF contents",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with contents that cannot be processed, e.g. a corrupted or invalid PDF document.",
+      "correctiveAction": "Resubmit a corrected leaf in a future submission with the operation attribute of \"Replace\" and an updated valid PDF file.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5005",
+      "sourcePage": 57,
+      "group": "PDF",
+      "description": "Non standard font (not embedded)",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have used a non-standard font and failed to fully embed the font. You should limit fonts to standard fonts. If you use non-standard fonts you should fully embed them in the PDF file.",
+      "correctiveAction": "Resubmit a corrected leaf in a future submission with the operation attribute of \"Replace\" and an updated PDF file with all non standard fonts embedded.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5020",
+      "sourcePage": 57,
+      "group": "PDF",
+      "description": "PDF security used",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a PDF file with security settings that limit the ability to select text or graphics, or make other changes. This prevents agencies from copying text and taking other actions with submitted documents. (Not applicable for FDA Forms)",
+      "correctiveAction": "Resubmit a corrected leaf in a future submission with the operation attribute of \"Replace\" and an updated PDF file without restrictions.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5029",
+      "sourcePage": 58,
+      "group": "M1",
+      "description": "Misnamed form",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You may have submitted an application form that is not named correctly (a 1571 form missing 1571 in its filename or 356 form with missing 356h in its file name). If so, this will prevent automated processing of the form.",
+      "correctiveAction": "In the future, ensure that your application form is named 356h.pdf or 1571.pdf. It is also good practice to follow a similar approach when submitting other FDA forms (e.g., 2252, 3674, etc.).",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5030",
+      "sourcePage": 58,
+      "group": "M1",
+      "description": "Application number in form does not match application number in us-regional.xml",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "The application number in your application form does not match the application number supplied in your us- regional.xml file. Note: This error can be ignored for trans BLAs.",
+      "correctiveAction": "Resubmit, ensure the application number in the form matches the application number in the us-regional.xml.",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5032",
+      "sourcePage": 59,
+      "group": "M1",
+      "description": "Multiple application forms present for the same application",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted more than one application form for the same application.",
+      "correctiveAction": "In future submissions, include only one file with the form number as part of the file name. For example, only include one file named 356h.pdf for an NDA, and do not include 356h in the file names of other ancillary documents.",
+      "guidanceSource": "FDA Presentations",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5034",
+      "sourcePage": 59,
+      "group": "M1",
+      "description": "Application form placed in wrong TOC location",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted an application form that was not placed in the correct TOC location.",
+      "correctiveAction": "If corrective action is necessary, you will be contacted. You should provide forms in the correct Module 1 location as specified in the applicable eCTD Backbone Files Specification for Module 1.",
+      "guidanceSource": "FDA Presentations; The eCTD Backbone Files Specification for Module 1",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5035",
+      "sourcePage": 60,
+      "group": "PDF",
+      "description": "PDF version of document is incorrect",
+      "severity": "Low",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document using a PDF version that is not consistent with ICH / regional guidance.",
+      "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that documents in future submissions conform to the published standards.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5038",
+      "sourcePage": 60,
+      "group": "M1",
+      "description": "Wrong application form",
+      "severity": "High",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted the wrong application form based on your application type, that is, you have submitted a form named 1571.pdf for an NDA/ANDA/BLA, a form named 356h.pdf for an IND or a form named 2252.pdf for a sequence that is not an annual report.",
+      "correctiveAction": "Resubmit your submission with the correct application form. You may resubmit using the original sequence number of the submission. Modify your SOPs to ensure that your submission has a the correct type of form correctly named 356h.pdf or 1571.pdf and referenced in the correct eCTD location.",
+      "guidanceSource": "FDA Presentations; FDA Form Instructions",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5040",
+      "sourcePage": 61,
+      "group": "PDF",
+      "description": "PDF does not have 'Fast Web Access' active",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a PDF that has been created without 'Fast Web Access' active.",
+      "correctiveAction": "Ensure that documents in future submissions are created with the 'Fast Web Access' option.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; ICH Q&A 36 #23",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5045",
+      "sourcePage": 61,
+      "group": "PDF",
+      "description": "PDF opening settings not optimal",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a PDF that does not open in the desired view.",
+      "correctiveAction": "Ensure that PDF Opening settings are correct for all future submissions. The initial view of the PDF files should be set as Bookmarks and Pages in the Navigation Panel. If there are no bookmarks, the initial view should be set to Pages only. PDFs should open in 'most recent view' (i.e. 'inherit zoom' for bookmarks and links, and 'default' in open dialogue box).",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5050",
+      "sourcePage": 62,
+      "group": "PDF",
+      "description": "Document has password protection",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that has password protection and cannot be opened. (Not applicable for FDA Forms)",
+      "correctiveAction": "Resubmit the protected file in a later submission referencing the original leaf using the operation attribute of \"Replace.\"",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; ICH Q&A 36 #21",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5055",
+      "sourcePage": 62,
+      "group": "PDF",
+      "description": "Document has annotations, only PDFs in module 1, section 1.15 are permitted to have annotations.",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "9/14/2016",
+      "effectiveOn": "2016-09-14",
+      "problem": "You have submitted a document that has PDF annotations, only PDFs in module 1, section 1.15 are permitted to have annotations.",
+      "correctiveAction": "Ensure that documents in future submissions do not have annotations, only PDFs in module 1, section 1.15 are permitted to have annotations..",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5057",
+      "sourcePage": 63,
+      "group": "PDF",
+      "description": "Document contains no text",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that is a scanned image only and is not text searchable.",
+      "correctiveAction": "Ensure that documents in future submissions are text searchable whenever possible (minimize the use of scanned documents).",
+      "guidanceSource": "FDA Portable Document Format Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5100",
+      "sourcePage": 63,
+      "group": "PDF",
+      "description": "Broken bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more bookmarks pointing to a file that does not exist.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have broken bookmarks.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5101",
+      "sourcePage": 63,
+      "group": "PDF",
+      "description": "Corrupt bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more bookmarks pointing to a file that cannot be opened.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have corrupt bookmarks.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5102",
+      "sourcePage": 64,
+      "group": "PDF",
+      "description": "Bookmark has non-existent named destination or page",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more bookmarks pointing to a named destination or page that does not exist.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have bookmarks linking to non-existent pages or named destinations.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5103",
+      "sourcePage": 64,
+      "group": "PDF",
+      "description": "Multiple action bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more bookmarks containing multiple actions.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have bookmarks triggering multiple actions.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5105",
+      "sourcePage": 64,
+      "group": "PDF",
+      "description": "External bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that makes reference to one or more external bookmarks (e.g. web links, email links).",
+      "correctiveAction": "Ensure that documents in future submissions do not have bookmarks that are external to the application.",
+      "guidanceSource": "ICH Q&A 64",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5110",
+      "sourcePage": 65,
+      "group": "PDF",
+      "description": "Inactive bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that has one or more inactive bookmarks.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have inactive bookmarks.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5115",
+      "sourcePage": 65,
+      "group": "PDF",
+      "description": "Non-relative bookmark",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that has one or more non- relative (absolute) bookmarks.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions have only relative bookmarks.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications; ICH Q&A 36 #23",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5117",
+      "sourcePage": 66,
+      "group": "PDF",
+      "description": "Bookmark does not 'Inherit Zoom'",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more bookmarks that are not set to 'Inherit Zoom'.",
+      "correctiveAction": "Ensure that all bookmarks are set to 'Inherit Zoom'.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications; Final Guidance for Industry: Providing Regulatory Submissions in Electronic Format--Human Pharmaceutical Applications and Related Submissions Using the eCTD Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5200",
+      "sourcePage": 66,
+      "group": "PDF",
+      "description": "Broken hyperlink",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more hyperlinks pointing to a file that does not exist.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have broken hyperlinks.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5201",
+      "sourcePage": 67,
+      "group": "PDF",
+      "description": "Corrupt link",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more links pointing to a file that cannot be opened.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have corrupt links.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5202",
+      "sourcePage": 67,
+      "group": "PDF",
+      "description": "Link has non-existent named destination or page",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more hyperlinks pointing to a named destination or page that does not exist.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have links pointing to non-existent pages or named destinations.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5203",
+      "sourcePage": 68,
+      "group": "PDF",
+      "description": "Multiple action hyperlink",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more hyperlinks containing multiple actions.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have links triggering multiple actions.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5205",
+      "sourcePage": 68,
+      "group": "PDF",
+      "description": "External hyperlink",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that makes reference to one or more web references in a hyperlink (e.g. web links, email links).",
+      "correctiveAction": "Ensure that documents in future submissions do not have hyperlinks that are external to the application.",
+      "guidanceSource": "ICH Q&A 64",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5210",
+      "sourcePage": 68,
+      "group": "PDF",
+      "description": "Inactive hyperlink",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that has one or more inactive hyperlinks.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have inactive hyperlinks.",
+      "guidanceSource": "General good practice to ensure reviewability.",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5215",
+      "sourcePage": 69,
+      "group": "PDF",
+      "description": "Non-relative hyperlink",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document that has one or more non- relative (absolute) hyperlinks.",
+      "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have non-relative hyperlinks.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications; ICH Q&A 36 #23",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    },
+    {
+      "authorityRuleId": "5217",
+      "sourcePage": 69,
+      "group": "PDF",
+      "description": "Link does not 'Inherit Zoom'",
+      "severity": "Medium",
+      "usDtdVersion": "3.3",
+      "effectiveDateRaw": "4/30/2013",
+      "effectiveOn": "2013-04-30",
+      "problem": "You have submitted a document with one or more links that are not set to 'Inherit Zoom'.",
+      "correctiveAction": "Ensure that all links in future submissions are set to 'Inherit Zoom'.",
+      "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications; Final Guidance for Industry: Providing Regulatory Submissions in Electronic Format--Human Pharmaceutical Applications and Related Submissions Using the eCTD Specifications",
+      "implementation": {
+        "status": "NotAssessed",
+        "internalRuleIds": [],
+        "evidence": [],
+        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+      }
+    }
+  ],
+  "effectiveDatePolicy": "effectiveDateRaw is authoritative. A null effectiveOn with a dated qualifier means multiple applicability dates, not TBD; 1734/1735/1736 retain the CBER Module 4 date separately in raw text. These rules are not executable in this batch."
+}

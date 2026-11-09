@@ -27,7 +27,7 @@ public sealed class PackageRegionalInspectionTests
         var report = result.CreateReport(PackageValidationMode.Formal);
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(report.Coverage, item => item.RuleId == "US-CRITERIA-INVENTORY").CheckStatus);
         Assert.False(report.IsReadyForFinalization);
-        Assert.Contains("package-regional-inspector-v2", result.EngineVersion, StringComparison.Ordinal);
+        Assert.Contains(PackageRegionalInspector.RegionalEngineVersion, result.EngineVersion, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -291,7 +291,7 @@ public sealed class PackageRegionalInspectionTests
     {
         var app = Guid.Parse("bcb2ea58-2848-4aa7-8882-10c5e5ad5e13");
         var target = new MemoryInput(app, "0001", regional, profile, invalidPdf);
-        var old = new MemoryInput(app, "0000", historyXml ?? Eu("initial", "0000").Replace(">0001<", ">0000<", StringComparison.Ordinal), PackageValidationCatalog.EuProfile);
+        var old = new MemoryInput(app, "0000", historyXml ?? Eu("initial", "0000").Replace(">0001<", ">0000<", StringComparison.Ordinal), profile);
         var baseline = new HistoryBaselineManifest(app, "0001", selectHistory ? [new("0000", HistorySourceKind.ImportedExternal, old.SourceId, old.InputDigest, profile, HistoryTrustStatus.Unverified)] : []);
         var inputs = new PackageInputSet(target, baseline, selectHistory ? [old] : []);
         return await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: context).InspectAsync(new(inputs), profile);

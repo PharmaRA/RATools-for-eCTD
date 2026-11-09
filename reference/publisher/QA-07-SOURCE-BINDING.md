@@ -25,7 +25,7 @@
 | 2025 | 4.7修改Effective Date | 2027-01-16，High | 新活动的sequence／submission-id对应及subtype适用性尚缺 |
 | 2026 | 4.7修改Effective Date | 2027-01-16，Medium | 延续活动指向父活动起始序列的规则尚缺 |
 
-现有43条catalog规则的`authorityRuleId`均为空。FDA来源直接关联的是DTD结构检查和仍为NotImplemented的`US-CRITERIA-INVENTORY`门禁；项目规则没有被改名为FDA官方规则。现有catalog字节、canonical摘要及历史声明保持原样，后续05-R负责完整原子规则映射和适用性执行。
+本次来源绑定验收时（提交a176396），43条catalog规则的`authorityRuleId`均为空。FDA来源直接关联的是DTD结构检查和仍为NotImplemented的`US-CRITERIA-INVENTORY`门禁；该次验收没有改写catalog。后续按用户确认直接实施FDA4.7全文，当前147条来源清单及首批九条原子规则见[FDA4.7实施记录](QA-07-FDA47-RULES.md)，历史声明保留原时点范围。
 
 补充EMA指南封面的2025-03-01指version6.0，6.0.1只明确June 2025发布；没有把前者当成6.0.1生效日。FDA准则4.7的文件修订日也不替代各条规则Effective Date。
 

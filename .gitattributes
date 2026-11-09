@@ -30,3 +30,7 @@ tests/RATools.Tests/Fixtures/PdfProcessing/** -text
 reference/publisher/pdf-navigation-qualification/** -text
 reference/publisher/pdf-navigation-qualification/**/*.json whitespace=cr-at-eol
 scripts/qualify_pdf_navigation.py text eol=lf
+
+# FDA 4.7 inventory, acceptance receipts and pre-upgrade replay bind exact bytes.
+reference/publisher/fda/4.7/*.json -text whitespace=cr-at-eol
+tests/RATools.Tests/Fixtures/Publisher/fda47-before-package-rules-a176396.json -text whitespace=cr-at-eol

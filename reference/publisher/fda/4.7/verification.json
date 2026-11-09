@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 1,
+  "task": "QA07-05-R FDA4.7 first M1 field batch",
+  "verifiedUtc": "2026-11-09T16:20:01.5149713Z",
+  "passed": true,
+  "scope": "Nine atomic FDA 4.7 checks and single-application writer correction; complete 147-rule implementation and Formal qualification remain open.",
+  "inventory": {
+    "path": "reference/publisher/fda/4.7/criteria-inventory.json",
+    "sha256": "512cbf8b8e1045bfb20a918cfa4c7291024a4ce6eac89faeabc18b0b2e43e51f",
+    "officialPdfSha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
+    "ruleCount": 147,
+    "implemented": 9,
+    "notAssessed": 138,
+    "officialAppendixRuleCount": 146,
+    "appendixMissingRule": "2026"
+  },
+  "catalog": {
+    "ruleCount": 52,
+    "canonicalSha256": "836bea164c8588a8d567b76037468ab0ca44277e42607d81e8a25c7adaf224df",
+    "script": "scripts/tests/test_package_rule_catalog.py",
+    "scriptSha256": "763454a1a86e8f70494b337ede1e8e910b120e222d304c93c0bb1c0b5780bade",
+    "checkLogSha256": "4a5f0db62a40fedfac814ddba76ce6c064300f6df15d33bf6fd5780dda6daa99",
+    "guard": {
+      "path": ".artifacts/local-check/fda47-rules-20261109/catalog-check.process.json",
+      "sha256": "42464d8503a3962e32da7c21deef0b15e04b40e5bd3031278a1b530aa3d9ed36",
+      "rootExitCode": 0,
+      "created": 2,
+      "guarded": 2,
+      "job": 2,
+      "exited": 2,
+      "processTreeStopped": true
+    }
+  },
+  "build": {
+    "sourceHead": "a176396e219068422693bae1d15af9c82680cc63",
+    "sourceManifestSha256": "ba11da8a323e1acc23269c8ed4d769f9ec6610cea39917f5039fd7b8b280fdb6",
+    "testAssemblySha256": "0622332a230938b33486b4e47d68c8752bfcf73a9b8e7cb4358d231742605ead",
+    "projects": [
+      {
+        "exitCode": 0,
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.Api\\RATools.Api.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-rules-20261109\\regression-3\\build\\Build.props\"",
+        "project": "Api"
+      },
+      {
+        "exitCode": 0,
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.DatabaseMigrator\\RATools.DatabaseMigrator.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-rules-20261109\\regression-3\\build\\Build.props\"",
+        "project": "DatabaseMigrator"
+      },
+      {
+        "exitCode": 0,
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\tests\\RATools.Tests\\RATools.Tests.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-rules-20261109\\regression-3\\build\\Build.props\"",
+        "project": "Tests"
+      }
+    ],
+    "guard": {
+      "path": ".artifacts/local-check/fda47-rules-20261109/regression-3/build.process.json",
+      "sha256": "c5850f734db1b9f9fffbf7adb8a3de16dd8d54ccc5b6f1807cf53596d2c3e543",
+      "rootExitCode": 0,
+      "created": 26,
+      "guarded": 26,
+      "job": 26,
+      "exited": 26,
+      "processTreeStopped": true
+    }
+  },
+  "sourceBindings": [
+    {
+      "path": "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+      "sha256": "8ca9388f85612a4ea15116a61ced0a55caada96f69ba7e9fdbcef974412ac9f4"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+      "sha256": "4f0567a2f49faf822da423a2736257432e311802c967eea0b37a0d8f9a302063"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/PackageStandardsContext.cs",
+      "sha256": "387f1c70a4438a582e83e1d77acc3dad5e10fff00f890933eef4606b4e86b981"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/PackageValidationService.cs",
+      "sha256": "80460cd5d3da8b9aa151b4fe60492d4dedb0c7ead562efcab8a7be590b217c12"
+    },
+    {
+      "path": "src/RATools.Application/Publishing/UsRegional/UsRegionalXmlWriter.cs",
+      "sha256": "b8f56b55b08132a6b153a1bbaa0b4ebfb54dcd1429ff90007c0d3235f8dc3ed1"
+    },
+    {
+      "path": "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs",
+      "sha256": "eabc020a254a06a21c3e67ec392da190ce8b3953cad4c52483a31c36772bbb1e"
+    },
+    {
+      "path": "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs",
+      "sha256": "7223e7b59807c2debfaece9a7e250a92fd922ae11d2788716858c3d1acaef649"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/StandardsSnapshotIntegrationTests.cs",
+      "sha256": "e76ac87762fc99c5fc090a8e436ee986dcfaf923baa760ef8a0ebe9b4000ce1d"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/RegionalActivationAcceptanceTests.cs",
+      "sha256": "ff18ca83367efe5618e226fc63e4f9e820a6a68670e34b3770c2f360ed10ca65"
+    },
+    {
+      "path": "tests/RATools.Tests/Fixtures/Publisher/fda47-before-package-rules-a176396.json",
+      "sha256": "7b270b6f185d0b41d130df158b55e00f978ed7f82e155ca51a528b883319e377"
+    },
+    {
+      "path": "reference/publisher/package-rules-v1.json",
+      "sha256": "e214653e2fb92e4434b52cd147023823d6b5cf8f36ed94d94832707dff54e9da"
+    }
+  ],
+  "tests": {
+    "total": 197,
+    "passed": 197,
+    "failed": 0,
+    "skipped": 0,
+    "newFdaCases": 40,
+    "filter": "(FullyQualifiedName~RATools.Tests.PackageValidation.Fda47RegionalRulesTests|FullyQualifiedName~RATools.Tests.PackageValidation.PackageRegionalInspectionTests|FullyQualifiedName~RATools.Tests.PackageValidation.PackageRuleCatalogTests|FullyQualifiedName~RATools.Tests.Standards)&FullyQualifiedName!~PostgresStandardsSnapshotTests&FullyQualifiedName!~ActiveFlagAndVerifiedScopeCannotBypassMissingEvidenceAfterNewDatabaseConnection",
+    "trxSha256": "e6d6924c77a16c18db245df0e2b947b7ec5b85f3e7d99097cec4dea65bf3be6b",
+    "names": [
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.ArchivedCatalogDoesNotAcquireCurrentOfficialChecks",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.BoundSelectionDateControlsOfficialEffectiveDate(year: 2015, month: 6, day: 14, expected: NotApplicable)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.BoundSelectionDateControlsOfficialEffectiveDate(year: 2015, month: 6, day: 15, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.BoundSelectionDateControlsOfficialEffectiveDate(year: 2026, month: 11, day: 9, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.CharacterLimitCountsUnicodeScalarsWithoutTrimming(count: 128, expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.CharacterLimitCountsUnicodeScalarsWithoutTrimming(count: 129, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.CompleteXmlWithoutDoctypeCannotAcquireOfficialCoverage",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.CurrentFdaRulesObserveValidAdminWithoutClaimingCompleteQualification",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.DeclaredCharacterLimitsIncludeTheBoundary(id: \"2035\", original: \"Description\", length: 128, expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.DeclaredCharacterLimitsIncludeTheBoundary(id: \"2035\", original: \"Description\", length: 129, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.DeclaredCharacterLimitsIncludeTheBoundary(id: \"2042\", original: \"a@example.invalid\", length: 64, expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.DeclaredCharacterLimitsIncludeTheBoundary(id: \"2042\", original: \"a@example.invalid\", length: 65, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EachOptionalCrossReferenceRequiresSixAsciiDigits(value: \" 654321 \", expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EachOptionalCrossReferenceRequiresSixAsciiDigits(value: \"65432\", expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EachOptionalCrossReferenceRequiresSixAsciiDigits(value: \"654321\", expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EachOptionalCrossReferenceRequiresSixAsciiDigits(value: \"65432a\", expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EachOptionalCrossReferenceRequiresSixAsciiDigits(value: \"６５４３２１\", expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.EuProfileDoesNotAcquireFdaRules",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.GroupedApplicationsMayHaveOnlyOneFileOwner(secondValue: \"false\", expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.GroupedApplicationsMayHaveOnlyOneFileOwner(secondValue: \"true\", expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.LaterContactAndGroupedApplicationAreNotSkipped",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.MissingAndTruncatedRegionalInputsCannotPassOfficialRules",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.MissingSelectionDateDoesNotInventOfficialCoverage",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NoApplicationContainingFilesIsASeparateHighSeverityFailure",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"2044\", before: \"<id>123456789</id>\", after: \"<id>12345678</id>\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"2044\", before: \"<id>123456789</id>\", after: \"<id>12345678a</id>\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"2044\", before: \"<id>123456789</id>\", after: \"<id>１２３４５６７８９</id>\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3036\", before: \">123456<\", after: \">12345<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3036\", before: \">123456<\", after: \">12345x<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3036\", before: \">123456<\", after: \">１２３４５６<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3050\", before: \">0001<\", after: \">001<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3050\", before: \">0001<\", after: \">00a1<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3050\", before: \">0001<\", after: \">０００１<\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3065\", before: \"submission-type=\\\"original-application\\\">0001\", after: \"submission-type=\\\"original-application\\\">001\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3065\", before: \"submission-type=\\\"original-application\\\">0001\", after: \"submission-type=\\\"original-application\\\">00a1\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.NumericFieldsRequireExactAsciiDigitCounts(id: \"3065\", before: \"submission-type=\\\"original-application\\\">0001\", after: \"submission-type=\\\"original-application\\\">０００１\")",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.ReplacedOfficialSourceCannotAuthorizeChecksWithTheSameIds",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.SelectedHistoryKeepsItsOwnCatalogAndEffectiveDate(archived: False, historyYear: 2014, expected: Pass)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.SelectedHistoryKeepsItsOwnCatalogAndEffectiveDate(archived: False, historyYear: 2026, expected: Fail)",
+      "RATools.Tests.PackageValidation.Fda47RegionalRulesTests.SelectedHistoryKeepsItsOwnCatalogAndEffectiveDate(archived: True, historyYear: 2026, expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.CompleteEuMultivaluesAndPiHaveObservedCoverageWithoutUsChecks",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.CompleteUsAdminAndTwoDistinctFormsHaveObservedScopedCoverage",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"<company-name>Applicant</company-name>\", after: \"<company-name />\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"<email>a@example.invalid</email>\", after: \"<email />\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"<id>applicant-id</id>\", after: \"<id> </id>\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"<sequence-number submission-sub-type=\\\"original\\\">\"···, after: \"<sequence-number submission-sub-type=\\\"original\\\">\"···)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"<submission-description>Description</submission-de\"···, after: \"\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"applicant-contact-type=\\\"regulatory\\\"\", after: \"applicant-contact-type=\\\" \\\"\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"submission-type=\\\"original-application\\\"\", after: \"submission-type=\\\"\\\"\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DtdValidBlankOrWrongSequenceUsMetadataIsLocatedAndBlocks(before: \"telephone-number-type=\\\"business\\\"\", after: \"telephone-number-type=\\\"\\\"\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.DuplicateRegionalObservationsAreRejectedInsteadOfCollapsedIntoPassingCoverage",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"initial\", related: \"0000\", selectHistory: False, expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"reformat\", related: \"0001\", selectHistory: False, expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"0000\", selectHistory: False, expected: NotEvaluated)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"0000\", selectHistory: True, expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"0001\", selectHistory: False, expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"0002\", selectHistory: False, expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"00x0\", selectHistory: False, expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRelatedSequenceUsesActualSelectedSameApplicationHistory(unit: \"response\", related: \"foreign/0000\", selectHistory: False, expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"<identifier>business-id</identifier>\", after: \"<identifier />\", id: \"EU-ENVELOPE-METADATA\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"<invented-name>Second</invented-name>\", after: \"<invented-name />\", id: \"EU-ENVELOPE-METADATA\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"<m1-3-pi>\", after: \"<m1-3-pi form-type=\\\"1571\\\">\", id: \"EU-PI-CONTEXT\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"<number>track-two</number>\", after: \"<number />\", id: \"EU-ENVELOPE-METADATA\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"code=\\\"DE-BFARM\\\"\", after: \"code=\\\"FR-ANSM\\\"\", id: \"EU-ENVELOPE-METADATA\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"country=\\\"de\\\" xml:lang=\\\"de\\\" type=\\\"spc\\\"\", after: \"country=\\\"invalid\\\" xml:lang=\\\"de\\\" type=\\\"spc\\\"\", id: \"EU-PI-CONTEXT\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"type=\\\"spc\\\"\", after: \"type=\\\"unknown\\\"\", id: \"EU-PI-CONTEXT\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.EuRequiredValuesCombinationsAndPiContextsFailAtTheActualParsedElement(before: \"xml:lang=\\\"de\\\"\", after: \"xml:lang=\\\"xx\\\"\", id: \"EU-PI-CONTEXT\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.FdaNamedFilePolicyIsNotBlindlyRegisteredForEu",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.HistoricalSequenceUsesItsOwnArchivedCatalogWithoutInjectingCurrentRegionalRules",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.IndependentSharedPdfFindingsUseTheSelectedCatalogSeverity",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.LegacyCapturedCatalogReplaysWithoutInjectingNewRulesAndNewEngineCannotReuseOldIdentity",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.PartialRegionalXmlAndMissingRegionalBackboneCannotBePassing",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryEnvelopeMustDeclareItsActualSelectedSequenceEvenUnderAnOldCatalog(declaredSequence: \"\", expected: NotEvaluated)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryEnvelopeMustDeclareItsActualSelectedSequenceEvenUnderAnOldCatalog(declaredSequence: \"0000\", expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryEnvelopeMustDeclareItsActualSelectedSequenceEvenUnderAnOldCatalog(declaredSequence: \"0001\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryEnvelopeMustDeclareItsActualSelectedSequenceEvenUnderAnOldCatalog(declaredSequence: \"00x0\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryIdentityAndSequenceComeFromTheSameActualEnvelope(firstSequence: \"0000\", secondSequence: \"\", secondIdentity: \"business-id\", expected: NotEvaluated)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryIdentityAndSequenceComeFromTheSameActualEnvelope(firstSequence: \"0000\", secondSequence: \"0000\", secondIdentity: \"business-id\", expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryIdentityAndSequenceComeFromTheSameActualEnvelope(firstSequence: \"0000\", secondSequence: \"0001\", secondIdentity: \"foreign-business\", expected: Pass)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.RelatedHistoryIdentityAndSequenceComeFromTheSameActualEnvelope(firstSequence: \"0001\", secondSequence: \"0000\", secondIdentity: \"foreign-business\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SelectedFrenchAndBelgianNationalEnvelopePoliciesHavePositiveCoverage(country: \"be\", agency: \"BE-FAMHP\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SelectedFrenchAndBelgianNationalEnvelopePoliciesHavePositiveCoverage(country: \"fr\", agency: \"FR-ANSM\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SelectedHistoryMustMatchActualEnvelopeBusinessIdentity(historicalIdentity: \"\", expected: NotEvaluated)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SelectedHistoryMustMatchActualEnvelopeBusinessIdentity(historicalIdentity: \"foreign-business\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SharedPdfAlgorithmUsesDeclaredProfileVersionPolicy(key: \"eu-ectd-3.2.2\", criteria: \"8.2\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.SharedPdfAlgorithmUsesDeclaredProfileVersionPolicy(key: \"us-fda-ectd-3.2.2\", criteria: \"4.5\")",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.TheSameUsFormContentRequiresItsDeclaredUsProfile",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.UsFormAndUnselectedPromotionalScopeDoNotSilentlyPass(before: \"</m1-regional>\", after: \"<m1-15-promotional-material /></m1-regional>\", rule: \"US-SUBMISSION-SCOPE\", expected: NotEvaluated)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.UsFormAndUnselectedPromotionalScopeDoNotSilentlyPass(before: \"<m1-1-forms>\", after: \"<m1-1-forms form-type=\\\"1571\\\">\", rule: \"US-FORM-ATTRIBUTES\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRegionalInspectionTests.UsFormAndUnselectedPromotionalScopeDoNotSilentlyPass(before: \"form-type=\\\"1571\\\"\", after: \"form-type=\\\" \\\"\", rule: \"US-FORM-ATTRIBUTES\", expected: Fail)",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ChangingAnyRulePolicyOrProvenanceChangesTheDigest(field: \"applicableScope\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ChangingAnyRulePolicyOrProvenanceChangesTheDigest(field: \"implementationNote\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ChangingAnyRulePolicyOrProvenanceChangesTheDigest(field: \"ruleVersion\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ChangingAnyRulePolicyOrProvenanceChangesTheDigest(field: \"sourceSection\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.DuplicateCatalogIdentitiesAreRejected(inventory: \"profiles\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.DuplicateCatalogIdentitiesAreRejected(inventory: \"rules\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.DuplicateCatalogIdentitiesAreRejected(inventory: \"sources\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.EmbeddedCatalogMatchesIndependentPythonDigestAndPreservesQualificationGaps",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ImplementedRequiresPositiveAndNegativeEvidenceAndManualRequiresExplicitPolicy",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.MissingPolicyMembersAreNotSilentlyDefaulted(field: \"allowsManualClosure\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.MissingPolicyMembersAreNotSilentlyDefaulted(field: \"authorityRuleId\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.MissingPolicyMembersAreNotSilentlyDefaulted(field: \"implementationStatus\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.MissingPolicyMembersAreNotSilentlyDefaulted(field: \"positiveFixtures\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.MissingPolicyMembersAreNotSilentlyDefaulted(field: \"requiredForReadiness\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ReferencesMustResolve(field: \"profileSnapshotIds\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.ReferencesMustResolve(field: \"sourceId\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.RuleListsAreDefensivelyCopiedAndCannotMutateCatalogPolicy",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.UnknownEnumsAreRejected(field: \"applicability\", value: \"Guess\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.UnknownEnumsAreRejected(field: \"implementationStatus\", value: \"Magic\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.UnknownEnumsAreRejected(field: \"severity\", value: \"Critical\")",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.UnknownFieldsNumericEnumsAndDuplicatePropertiesAreRejected",
+      "RATools.Tests.PackageValidation.PackageRuleCatalogTests.VerifiedSourcesRequireHashAndUnverifiedSourcesPreventProfileQualification",
+      "RATools.Tests.Standards.BundledStandardsAssetResolverTests.Build_ReturnsAssetWithSha256FromBundledFile",
+      "RATools.Tests.Standards.BundledStandardsAssetResolverTests.Build_ThrowsWhenBundledAssetIsMissing",
+      "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_PropagatesNonNotFoundProviderErrors",
+      "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ReturnsEuProfileFromEuProvider",
+      "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ReturnsProfileFromMatchingProvider",
+      "RATools.Tests.Standards.CompositeStandardsProfileProviderTests.GetProfile_ThrowsWhenNoProviderSupportsTemplate",
+      "RATools.Tests.Standards.EuEctd322StandardsProfileProviderTests.GetProfile_ExposesPinnedSourceLifecycleWithoutActivatingSkeleton",
+      "RATools.Tests.Standards.EuEctd322StandardsProfileProviderTests.StandardsLifecycle_StopsBeingEffectiveAtRetirementDate",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.AddApplication_RegistersStandardsProfileProvider",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_FailsWhenBundledDtdAssetIsMissing",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_IncludesBundledDtdAssetsWithChecksums",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_IncludesFdaBackboneXmlContract",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_ReturnsOfficialBaselineMetadata",
+      "RATools.Tests.Standards.FdaEctd322StandardsProfileProviderTests.GetProfile_ThrowsForUnsupportedTemplate",
+      "RATools.Tests.Standards.FinalizationSnapshotErrorTests.InvalidSnapshotRefusesFinalizationWithConflictAndNoRecordedRelease",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.AllHandAuthoredIchNodesSatisfyTheRuntimeSchemaAndTheIndependentDtd",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.AttributeValidationPreservesValuesAndDoesNotAcceptCaseInsensitiveAliases",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.ExtensionRequiresTitleAndContentAndCannotContainStandardSections",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"custom-production-site\", value: \"Alpha\", code: \"UnknownNodeAttribute\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"ID\", value: \"1-invalid-id\", code: \"InvalidNodeAttributeValue\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"  \", code: \"RequiredNodeAttributeMissing\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"\", code: \"RequiredNodeAttributeMissing\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"Manufacturer\", value: \"Alpha\", code: \"UnknownNodeAttribute\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.InvalidAttributesHaveFieldLevelDiagnostics(key: \"manufacturer\", value: \"Alpha\\x01\", code: \"InvalidNodeAttributeValue\")",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.ParentContentEnforcesDtdOrderCardinalityAndExtensionPositions",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.RequiredAndOptionalBusinessAttributesMatchTheNineReviewedGroups",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.SchemaRejectsUnknownDefinitionsBrokenParentsAndMutableEnumerationBypasses",
+      "RATools.Tests.Standards.IchSectionDefinitionTests.SnapshotCoversAllExistingIchSectionsAndMatchesPinnedSourceBytes",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Criteria\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Guide\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.ArchivedProfileRejectsAContradictorySnapshotVersionWithoutConsultingTheProvider(field: \"Region\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.CapturedApplicabilityKeepsFutureFdaRuleDatesSeparateFromDocumentRevision",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.CurrentCaptureBindsRegulatoryCriteriaBytesAndVerifiedProvenance(template: \"eu-ectd-3.2.2\", key: \"official-ema-criteria\", criteriaVersion: \"8.2\", digest: \"0f64339496564d89abe9e96376f29805dce2302a56f54ce128\"···, length: 71307)",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.CurrentCaptureBindsRegulatoryCriteriaBytesAndVerifiedProvenance(template: \"us-fda-ectd-3.2.2\", key: \"official-fda-criteria\", criteriaVersion: \"4.7\", digest: \"2b390199bebb1b7cde65926d027120ae576ca304f2628950cc\"···, length: 885718)",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Criteria\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Guide\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Reference\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.DifferentProfileVersionsCannotBorrowTheCurrentOfficialSourceQualification(field: \"Region\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.NewSourceCaptureCannotBeBackdatedBeforeItsAcquisition",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.ReopenedCaptureReadsOriginalOfficialBytesWithoutConsultingCurrentProvider",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedProvenanceRejectsMissingOrReplacedOfficialBytes(replace: False)",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedProvenanceRejectsMissingOrReplacedOfficialBytes(replace: True)",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedSourcesDoNotQualifyUnimplementedRulesOrExternalComparison(template: \"eu-ectd-3.2.2\")",
+      "RATools.Tests.Standards.OfficialSourceSnapshotTests.VerifiedSourcesDoNotQualifyUnimplementedRulesOrExternalComparison(template: \"us-fda-ectd-3.2.2\")",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.DeliberateStructureDefectsFailTheIndependentDtdReader(id: \"duplicate-xml-id\")",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.DeliberateStructureDefectsFailTheIndependentDtdReader(id: \"missing-manufacturer\")",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.EveryHandAuthoredBackboneAndOfficialExcerptPassesTheSourceDtd",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.EveryPayloadAndIndexChecksumResolvesToTheActualFileBytes",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.FrozenPackageBytesMatchTheCompleteManifest(directory: \"external\", manifestProperty: \"externalFiles\")",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.FrozenPackageBytesMatchTheCompleteManifest(directory: \"sequences\", manifestProperty: \"files\")",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.LifecycleEdgesUseExactXmlAddressesAndHaveExplicitEffectiveSets",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.NodeAndLeafContextMatchesTheHandAuthoredBusinessOracle",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.OfficialExamplesRetainTheirIndependentAttributesAndExtension",
+      "RATools.Tests.Standards.PublisherReferenceFixtureTests.SyntheticPdfsContainThePublishedTestSentences",
+      "RATools.Tests.Standards.RegionalActivationAcceptanceTests.ActualHttpCapturesExposeDistinctRegionalRulesAndRetainRequiredQualificationGaps",
+      "RATools.Tests.Standards.RegionalActivationAcceptanceTests.ChangedRegionalBehaviorCannotReusePreRegionalEngineIdentity",
+      "RATools.Tests.Standards.RegionalMetadataPersistenceTests.StoredContextsEnforceApplicationSequenceAndPlacementOrNodeOwnership",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ActualCapturedResourcesRemainReadableAfterProviderAndAssetFilesChange",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.BundledCapturedScopeNeverBecomesFormalMerelyBecauseResourcesWereFrozen",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.CapturedResourcesRejectBytesOrMetadataThatNoLongerMatchTheirIdentity",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.CaptureRefusesAnEuTemplateBoundToTheUsRuleAlias",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ExplicitRunAndReleaseUseArchivedSnapshotAfterProviderAndSourceAssetsChange",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.FormalMissingOrUnqualifiedSnapshotIsRejectedWhileDevelopmentRetainsTrialScope",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.HistoricalSelectionKeepsItsOwnAssetsWhenTheSameAliasHasNewTargetBytes",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ImplicitSelectionLostResponseReplayKeepsOriginalSnapshotAfterProviderUpgrade",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyBindingsRequestsAndReleaseManifestsKeepTheirPreSnapshotDigests",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyHistoryRemainsUnverifiedInDevelopmentAndFormalAdmissionIsRejected",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.LegacyQueuedVerifiedHistoryRetainsItsArchivedBaselineAfterSnapshotInjection",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.ProviderOnlyAssetUpgradeMayBeArchivedButCannotCreateAContradictoryValidationRun",
+      "RATools.Tests.Standards.StandardsSnapshotIntegrationTests.SnapshotCapturePreservesAnImportedCustomRegionalPathThroughTheActualPackageBuilder",
+      "RATools.Tests.Standards.StandardsSnapshotsHttpTests.ActualHttpCaptureReplaysMetadataAndReadsImmutableResourceWithRangeAndEtag",
+      "RATools.Tests.Standards.StandardsSnapshotTests.BundledProfilesRemainTrialEvidenceAndCannotAuthorizeFormalSelection",
+      "RATools.Tests.Standards.StandardsSnapshotTests.CaptureStoresActualBytesAndRepeatedContentHasTheSameIdentity",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ConsumptionRejectsSameBytesMovedAwayFromTheDeclaredProviderAndDeliveryPath(xmlLogicalPath: False)",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ConsumptionRejectsSameBytesMovedAwayFromTheDeclaredProviderAndDeliveryPath(xmlLogicalPath: True)",
+      "RATools.Tests.Standards.StandardsSnapshotTests.InvalidVerifiedProvenanceCannotBecomeAnActiveSnapshot",
+      "RATools.Tests.Standards.StandardsSnapshotTests.LegacyBindingSerializationAndRequestDigestStayExactlyCompatible",
+      "RATools.Tests.Standards.StandardsSnapshotTests.RegionalTemplateCannotBeCapturedWithAnotherRegionsRuleAlias",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/CON.dtd\")",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/control\\x01.dtd\")",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ResourceAddressesUsePortableCanonicalSegments(path: \"util/trailing .dtd \")",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ResourcePathsCannotHaveAmbiguousIdentities(first: \"util/dtd/SAME.dtd\", second: \"util/dtd/same.dtd\")",
+      "RATools.Tests.Standards.StandardsSnapshotTests.ResourcePathsCannotHaveAmbiguousIdentities(first: \"util/dtd/same.dtd\", second: \"util/dtd/same.dtd\")",
+      "RATools.Tests.Standards.StandardsSnapshotTests.TooManyProviderAssetsAreRejectedBeforeReadingMissingFiles",
+      "RATools.Tests.Standards.StandardsSnapshotTests.VerifiedEvidenceMustNameCapturedResourceBytes"
+    ],
+    "guard": {
+      "path": ".artifacts/local-check/fda47-rules-20261109/regression-3/tests.process.json",
+      "sha256": "4212d9b883edbc2c85173d50305716f26e6dab258449e355c0cc25c2c1ffcaeb",
+      "rootExitCode": 0,
+      "created": 5,
+      "guarded": 5,
+      "job": 5,
+      "exited": 5,
+      "processTreeStopped": true
+    }
+  },
+  "previousRuns": [
+    {
+      "run": "red-1",
+      "tests": {
+        "total": 22,
+        "passed": 1,
+        "failed": 21,
+        "notExecuted": 0
+      },
+      "passed": false,
+      "trxSha256": "24a3f3e5fdbf2a696e16be08ef21b9dcb5083f64b584eb8e1cd42aece8ebcdbb"
+    },
+    {
+      "run": "red-2",
+      "tests": {
+        "total": 32,
+        "passed": 2,
+        "failed": 30,
+        "notExecuted": 0
+      },
+      "passed": false,
+      "trxSha256": "b0ba7f1bcdd56bd8316cb0359f4d3344b16e8b2bad28e1f63bfe8c5c04140509"
+    },
+    {
+      "run": "green-2",
+      "tests": {
+        "total": 32,
+        "passed": 32,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      "passed": true,
+      "trxSha256": "0af1b38187434aae352919f8336cda1d5ce15dcd33cada833ba094386135f33b"
+    },
+    {
+      "run": "regression-1",
+      "tests": {
+        "total": 202,
+        "passed": 190,
+        "failed": 12,
+        "notExecuted": 0
+      },
+      "passed": false,
+      "trxSha256": "9555e063864a9242eb6636d74f4067a5f091840ac37f662bd85be5070450ec5f"
+    },
+    {
+      "run": "regression-2",
+      "tests": {
+        "total": 197,
+        "passed": 196,
+        "failed": 1,
+        "notExecuted": 0
+      },
+      "passed": false,
+      "trxSha256": "e465f096bde7033d8a57345d83c15fe65390df81dde47219dbeb734006f8318b"
+    }
+  ],
+  "excludedFailedAdditionalTests": [
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.FreshAttemptsBindSelectedHistoryAndPreserveArchivedEvidenceAfterSourceRemoval",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.CancellationAndTimeoutAreQueryableWhileParserCooperates(timeout: False)",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.DisabledWorkerLeavesQueuedRunsObservablyPending",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.CancellationAndTimeoutAreQueryableWhileParserCooperates(timeout: True)",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.NonCooperativeParserKeepsCapturesAliveAfterCancellationBecomesTerminal",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.VersionChangeIsQueryableAndRequiresANewRun",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.HostShutdownLeavesRecoverableLeaseAndRestartUsesFreshSources",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.RegistryRestrictsServerPathsAndFailedUploadCleansOnlyItsOwnedBytes",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    },
+    {
+      "name": "RATools.Tests.PackageValidation.PackageValidationServiceTests.InputChangedIsTerminalAndCannotReuseARegistrationForDifferentBytes",
+      "outcome": "Failed",
+      "reason": "Fixture retention directory move denied by native guard; cleanup may mask body outcome. Retained as failed, excluded from final selected run."
+    }
+  ],
+  "limitations": [
+    "197 selected cases are not a full repository suite or the complete PackageValidationServiceTests group.",
+    "No current-run PostgreSQL or external business validator execution.",
+    "Legacy package building without typed regional metadata still maps six-digit application number to applicant id; FDA47-2044 now reports the defect and Formal stays blocked.",
+    "History uses its archived catalog and this revalidation run selection date, not an inferred historical FDA receipt date.",
+    "QA07-05-R/V, 03-F and 04-P remain open."
+  ]
+}

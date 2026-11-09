@@ -21,7 +21,16 @@ def verify_package_rule_catalog() -> None:
     assert len(sources) == len(catalog["sources"])
     for source in sources.values():
         assert source["url"].startswith("https://") and source["version"]
-        if source["kind"] == "RegulatorySpecification":
+        if source["id"] == "fda-validation-criteria-4.7":
+            inventory = json.loads((ROOT / "reference/publisher/fda/4.7/criteria-inventory.json").read_text(encoding="utf-8"))
+            snapshot = json.loads((ROOT / "reference/publisher/official-sources/2026-11-09/source-snapshot.json").read_text(encoding="utf-8"))
+            original = next(item for item in snapshot["sources"] if item["id"] == "fda-criteria")
+            assert source["kind"] == "RegulatorySpecification" and source["verificationStatus"] == "Verified"
+            assert source["version"] == inventory["version"] == "4.7"
+            assert source["url"] == original["requestedUrl"]
+            assert source["sha256"] == inventory["source"]["sha256"] == original["sha256"]
+            assert hashlib.sha256((ROOT / original["repositoryPath"]).read_bytes()).hexdigest() == source["sha256"]
+        elif source["kind"] == "RegulatorySpecification":
             original = originals[source["id"]]
             for field in ("url", "version", "sha256"):
                 assert source[field] == original[field], (source["id"], field)

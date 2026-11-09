@@ -82,7 +82,9 @@ public sealed partial class UsRegionalXmlWriter : IUsRegionalXmlWriter
                             new XElement("email", metadata.Email))))),
             new XElement("application-set",
                 new XElement("application",
-                    new XAttribute("application-containing-files", package.Module1Leaves.Count > 0 ? "true" : "false"),
+                    // FDA M1 specification 2.6, section III.B: a single application
+                    // owns the submission folder regardless of the number of M1 leaves.
+                    new XAttribute("application-containing-files", "true"),
                     new XElement("application-information",
                         new XElement("application-number",
                             new XAttribute("application-type", metadata.ApplicationType),
