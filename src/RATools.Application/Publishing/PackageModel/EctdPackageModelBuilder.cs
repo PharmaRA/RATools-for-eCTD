@@ -88,7 +88,7 @@ public sealed class EctdPackageModelBuilder(
             metadata?.ApplicantName ?? application.SponsorName,
             metadata?.FormType);
         var usRegionalMetadata = new EctdUsRegionalMetadata(
-            application.ApplicationNumber,
+            regional?.Content?.Us?.ApplicantIdentifier ?? string.Empty,
             sequenceMetadata.ApplicantName,
             sequenceMetadata.Description,
             metadata?.ApplicantContactName ?? string.Empty,

@@ -23,6 +23,9 @@ internal static class RegionalMetadataValidation
         if (content.Us is { } us)
         {
             foreach (var (value, path) in new[] { (us.ApplicationIdentifier, "applicationIdentifier"), (us.ApplicationType, "applicationType"), (us.ApplicantName, "applicantName"), (us.ApplicantIdentifier, "applicantIdentifier"), (us.SubmissionIdentifier, "submissionIdentifier"), (us.SubmissionType, "submissionType"), (us.SubmissionSubtype, "submissionSubtype"), (us.Description, "description") }) Required(value, "us." + path, issues);
+            if (!string.IsNullOrWhiteSpace(us.ApplicantIdentifier) &&
+                (us.ApplicantIdentifier.Length != 9 || us.ApplicantIdentifier.Any(value => value is < '0' or > '9')))
+                issues.Add(new("FDA47-2044", "us.applicantIdentifier", "申请人／公司编号必须为9位数字；请填写独立编号，不能用申请号代替。原值已保留，未补零或推断。"));
             Contacts(us.Contacts, issues);
             for (var index = 0; index < nodes.Count; index++) UsContext(nodes[index].Country, nodes[index].Language, nodes[index].ProductInformationType, nodes[index].FormType, sections[nodes[index].NodeInstanceId], $"nodeContexts[{index}]", issues);
             for (var index = 0; index < documents.Count; index++) UsContext(documents[index].Country, documents[index].Language, documents[index].ProductInformationType, documents[index].FormType, sections[documents[index].PlacementId], $"documentContexts[{index}]", issues);

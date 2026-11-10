@@ -50,7 +50,7 @@ public sealed class UsRegionalXmlWriterTests
         Assert.Contains("<applicant-contact-name applicant-contact-type=\"regulatory\">Jane Regulatory</applicant-contact-name>", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<telephone telephone-number-type=\"office\">301-555-0100</telephone>", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<email>jane.regulatory@example.test</email>", result.XmlContent, StringComparison.Ordinal);
-        Assert.Contains("<application application-containing-files=\"false\">", result.XmlContent, StringComparison.Ordinal);
+        Assert.Contains("<application application-containing-files=\"true\">", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<application-number application-type=\"anda\">ANDA123456</application-number>", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<submission-id submission-type=\"original-application\">0001</submission-id>", result.XmlContent, StringComparison.Ordinal);
         Assert.Contains("<sequence-number submission-sub-type=\"initial\">0001</sequence-number>", result.XmlContent, StringComparison.Ordinal);

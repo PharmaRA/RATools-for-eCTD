@@ -48,7 +48,10 @@ internal static class RegionalMetadataSchema
                 Collection("phones", true, Text("id", true), Text("number", true), Enum("type", us, "telephone", "telephone-number-type", true)),
                 Collection("emails", true, Text("id", true), Text("value", true)));
             shared = [Text("applicationIdentifier", true), Enum("applicationType", us, "application-number", "application-type", true), Text("applicantName", true), contacts];
-            sequence = [Object("us", [.. shared, Text("applicantIdentifier", true) with { Source = Source(us, "admin/applicant-info/id"), BusinessEvidence = "Explicit applicant business identifier; no internal application identity is inferred." },
+            sequence = [Object("us", [.. shared, Text("applicantIdentifier", true) with { Label = "申请人／公司编号（9位数字）",
+                Source = snapshot.Resources.Any(resource => resource.Key == "official-fda-criteria" && resource.Sha256 == "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c")
+                    ? Source("official-fda-criteria", "FDA Validation Criteria 4.7, p. 53, error 2044; admin/applicant-info/id") : Source(us, "admin/applicant-info/id"),
+                BusinessEvidence = "填写独立的9位申请人／公司编号，保留前导零；六位申请号不能代替此编号。缺失或格式不正确时可保存草稿，发布前须补正。" },
                 Text("submissionIdentifier", true) with { Source = Source(us, "admin/application-set/application/submission-information/submission-id"), BusinessEvidence = "Explicit submission business identifier; no sequence number is inferred." },
                 Enum("submissionType", us, "submission-id", "submission-type", true), Enum("submissionSubtype", us, "sequence-number", "submission-sub-type", true),
                 Enum("formType", us, "form", "form-type"), Text("description", true)])];

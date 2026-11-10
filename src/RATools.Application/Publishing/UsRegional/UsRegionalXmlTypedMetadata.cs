@@ -19,6 +19,8 @@ public sealed partial class UsRegionalXmlWriter
             (us.ApplicationIdentifier, "applicationIdentifier"), (us.ApplicationType, "applicationType"), (us.ApplicantName, "applicantName"),
             (us.SubmissionType, "submissionType"), (us.SubmissionSubtype, "submissionSubtype"), (us.Description, "description") })
             Require(package, "us." + field, value);
+        if (us.ApplicantIdentifier!.Length != 9 || us.ApplicantIdentifier.Any(value => value is < '0' or > '9'))
+            throw MetadataError(package, "us.applicantIdentifier", "requires an explicit nine-digit applicant/company identifier (FDA 2044); correct the regional metadata without substituting the application number");
         if (us.Contacts.Count == 0) throw MetadataError(package, "us.contacts", "requires one or more explicit contacts");
         for (var index = 0; index < us.Contacts.Count; index++)
         {
@@ -92,7 +94,7 @@ public sealed partial class UsRegionalXmlWriter
                     new XElement("applicant-contact-name", new XAttribute("applicant-contact-type", contact.Type!), contact.Name),
                     new XElement("telephones", contact.Phones.Select(phone => new XElement("telephone", new XAttribute("telephone-number-type", phone.Type!), phone.Number))),
                     new XElement("emails", contact.Emails.Select(email => new XElement("email", email.Value))))))),
-            new XElement("application-set", new XElement("application", new XAttribute("application-containing-files", package.Module1Leaves.Count > 0 ? "true" : "false"),
+            new XElement("application-set", new XElement("application", new XAttribute("application-containing-files", "true"),
                 new XElement("application-information", new XElement("application-number", new XAttribute("application-type", us.ApplicationType!), us.ApplicationIdentifier)),
                 new XElement("submission-information", new XElement("submission-id", new XAttribute("submission-type", us.SubmissionType!), us.SubmissionIdentifier),
                     new XElement("sequence-number", new XAttribute("submission-sub-type", us.SubmissionSubtype!), package.SequenceNumber)))));

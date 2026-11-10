@@ -2,6 +2,8 @@
 
 2026-11-09起，按用户确认直接采用已核实的FDA《eCTD Validation Criteria》4.7全文作为开发基准。旧版差异对比不作为前置。目标是官方要求、当前实现、实际测试和适用范围逐条对应；历史来源、快照和报告保留各自身份。
 
+2026-11-10续验：独立公司编号输入/保存/发布绑定已修复，旧构建器不再拿申请号代替；typed单申请文件归属修复。此前九项服务测试的禁删回收阻塞已解决，实际9/9通过；连同直接依赖共350/350通过。见[公司编号与服务回收验收](QA-07-APPLICANT-AND-RETENTION.md)。下文首批197项及其失败记录保留原时点证据。
+
 ## 完整来源清单
 
 [147条正文规则清单](fda/4.7/criteria-inventory.json)逐条记录官方编号、页码、Group、Description、Severity、US DTD Version、Effective Date、Problem、Corrective Action和Guidance Source。权威输入为[官方PDF](official-sources/2026-11-09/fda-criteria.pdf)，SHA-256 `2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c`，74页；已有禁删提取文本SHA-256 `aa04331e1c92083d145316c0dcafeaeb9f43a0628cdb7625d93c12e4140ee6ae`。

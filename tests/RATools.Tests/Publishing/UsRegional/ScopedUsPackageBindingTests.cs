@@ -105,7 +105,7 @@ public sealed class ScopedUsPackageBindingTests
         var snapshot = await fixture.Snapshots.GetAsync(fixture.Revision.StandardsSnapshotId);
         var parsed = RegionalImportParser.Parse(Encoding.UTF8.GetBytes(xml.XmlContent), false, "0001", snapshot);
         var content = JsonSerializer.SerializeToElement(parsed.Content.Us);
-        Assert.Equal("applicant-business-id", content.GetProperty("ApplicantIdentifier").GetString());
+        Assert.Equal("001234567", content.GetProperty("ApplicantIdentifier").GetString());
         Assert.Equal("submission-business-id", content.GetProperty("SubmissionIdentifier").GetString());
         Assert.Equal("999888", parsed.Content.Us!.ApplicationIdentifier);
         Assert.Equal(2, parsed.Content.Us.Contacts.Count);
@@ -132,7 +132,7 @@ public sealed class ScopedUsPackageBindingTests
         var contentJson = JsonNode.Parse(JsonSerializer.Serialize(new RegionalMetadataContent(1, "US", Us: new("999888", "typed-application-type", "typed-company",
             [new(Guid.NewGuid(), "First Contact", "regulatory", [new(Guid.NewGuid(), "555-0101", "office")], [new(Guid.NewGuid(), "first@example.test")])],
             "typed-submission", "typed-subtype", "sequence-form", "typed-description"))))!;
-        contentJson["Us"]!["ApplicantIdentifier"] = "applicant-business-id";
+        contentJson["Us"]!["ApplicantIdentifier"] = "001234567";
         contentJson["Us"]!["SubmissionIdentifier"] = "submission-business-id";
         var content = JsonSerializer.Deserialize<RegionalMetadataContent>(contentJson.ToJsonString())!;
         if (incomplete) content = content with { Us = content.Us! with { ApplicantName = null } };

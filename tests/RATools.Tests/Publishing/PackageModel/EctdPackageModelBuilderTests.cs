@@ -191,7 +191,7 @@ public sealed class EctdPackageModelBuilderTests
         Assert.Equal("Initial sequence", package.Sequence.Description);
         Assert.Equal("Acme Pharma", package.Sequence.ApplicantName);
         Assert.Null(package.Sequence.FormType);
-        Assert.Equal("ANDA123456", package.UsRegional.ApplicantId);
+        Assert.Empty(package.UsRegional.ApplicantId);
         Assert.Equal("Acme Pharma", package.UsRegional.CompanyName);
         Assert.Equal("Initial sequence", package.UsRegional.SubmissionDescription);
         Assert.Equal(string.Empty, package.UsRegional.ApplicantContactName);

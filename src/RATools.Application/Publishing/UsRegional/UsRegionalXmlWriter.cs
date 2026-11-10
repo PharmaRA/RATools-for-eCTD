@@ -195,7 +195,9 @@ public sealed partial class UsRegionalXmlWriter : IUsRegionalXmlWriter
     {
         if (package.RegionalMetadata is not null) { ValidateTypedMetadata(package); return; }
         var metadata = package.UsRegional;
-        Require(package, nameof(metadata.ApplicantId), metadata.ApplicantId);
+        if (string.IsNullOrWhiteSpace(metadata.ApplicantId))
+            throw new UsRegionalXmlMetadataException(package.ApplicationId, package.SequenceNumber, "us.applicantIdentifier",
+                "requires an explicit applicant/company identifier in regional metadata; the application number cannot substitute for it");
         Require(package, nameof(metadata.CompanyName), metadata.CompanyName);
         Require(package, nameof(metadata.SubmissionDescription), metadata.SubmissionDescription);
         Require(package, nameof(metadata.ApplicantContactName), metadata.ApplicantContactName);

@@ -25,7 +25,7 @@ public sealed class ScopedUsRegionalWriterTests
     public void TypedMetadataUsesExplicitBusinessIdentifiersAndAllOrderedContacts()
     {
         var xml = new UsRegionalXmlWriter().Write(Package()).Document;
-        Assert.Equal("applicant-business-id", xml.Descendants("id").Single().Value);
+        Assert.Equal("001234567", xml.Descendants("id").Single().Value);
         Assert.Equal("999888", xml.Descendants("application-number").Single().Value);
         Assert.Equal("submission-business-id", xml.Descendants("submission-id").Single().Value);
         Assert.Equal("typed-company", xml.Descendants("company-name").Single().Value);
@@ -211,7 +211,7 @@ public sealed class ScopedUsRegionalWriterTests
             new(1, "US", Us: new("999888", "typed-application-type", "typed-company", contacts, "typed-submission-type", "typed-subtype", "sequence-form", "typed-description")),
             null, nodes ?? [], documents ?? [], null, null, [], [], null, null, DateTime.UtcNow);
         var regional = JsonNode.Parse(JsonSerializer.Serialize(revision))!.AsObject();
-        regional["Content"]!["Us"]!["ApplicantIdentifier"] = "applicant-business-id";
+        regional["Content"]!["Us"]!["ApplicantIdentifier"] = "001234567";
         regional["Content"]!["Us"]!["SubmissionIdentifier"] = "submission-business-id";
         change?.Invoke(regional);
         // Recompute the immutable revision through its public factory when the optional fields are supported.

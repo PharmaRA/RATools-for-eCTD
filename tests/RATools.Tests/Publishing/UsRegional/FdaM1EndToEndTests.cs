@@ -55,7 +55,7 @@ public sealed class FdaM1EndToEndTests
         var path = $"/api/applications/{imported.ApplicationId}/sequences/0000/publishing-metadata";
         var dto = (await client.GetFromJsonAsync<SequencePublishingMetadataDto>(path))!;
         Assert.Equal("source-applicant", dto.Regional!.Content!.Us!.ApplicantIdentifier);
-        var updated = dto.Regional.Content with { Us = dto.Regional.Content.Us with { ApplicantIdentifier = "http-applicant-id", SubmissionIdentifier = "http-submission-id" } };
+        var updated = dto.Regional.Content with { Us = dto.Regional.Content.Us with { ApplicantIdentifier = "001234567", SubmissionIdentifier = "http-submission-id" } };
         using var saved = await client.PutAsJsonAsync(path, new UpdateSequencePublishingMetadataRequest(dto.ApplicationType, dto.SubmissionType, dto.SubmissionSubtype,
             dto.SequenceDescription, dto.ApplicantName, dto.FormType, dto.ApplicantContactName, dto.ApplicantContactType, dto.Telephone, dto.TelephoneNumberType, dto.Email,
             dto.WorkspaceRevision, new(dto.Regional.StandardsSnapshotId, updated, dto.Regional.NodeContexts, dto.Regional.DocumentContexts)));
@@ -64,13 +64,13 @@ public sealed class FdaM1EndToEndTests
         var builder = Builder(apps, docs, placements, nodes, revisions, imports, metadata, snapshots, fixture);
         var package = await builder.BuildAsync(new(imported.ApplicationId, "0000"));
         Assert.Equal(committed.Regional!.Id, package.RegionalMetadata!.Id); Assert.Equal(2, package.WorkspaceRevision);
-        await VerifyOutputAndReimportAsync(package, snapshots, "http-applicant-id", "http-submission-id");
+        await VerifyOutputAndReimportAsync(package, snapshots, "001234567", "http-submission-id");
     }
 
     [RequiresPostgresFact]
     public async Task NewPostgresConnectionBuildsTheImportedTypedRevisionAndPreservesAllFormContexts()
     {
-        var fixture = await CreateAsync(); var appId = Guid.Empty; var headId = Guid.Empty;
+        var fixture = await CreateAsync(validApplicant: true); var appId = Guid.Empty; var headId = Guid.Empty;
         await using (var db = Context())
         {
             var apps = new EfCoreApplicationRepository(db); var docs = new EfCoreDocumentRepository(db); var placements = new EfCoreDocumentPlacementRepository(db);
@@ -87,7 +87,7 @@ public sealed class FdaM1EndToEndTests
             readMetadata, readSnapshots, fixture).BuildAsync(new(appId, "0000"));
         Assert.Equal(headId, package.RegionalMetadata!.Id); Assert.Equal(1, package.WorkspaceRevision);
         Assert.Equal(2, package.Module1Leaves.Count); Assert.Single(package.Module1Leaves.Select(item => item.DocumentId).Distinct());
-        await VerifyOutputAndReimportAsync(package, readSnapshots, "source-applicant", "source-submission");
+        await VerifyOutputAndReimportAsync(package, readSnapshots, "009876543", "source-submission");
     }
 
     private static EctdPackageModelBuilder Builder(IApplicationRepository apps, IDocumentRepository docs, IDocumentPlacementRepository placements,
@@ -131,7 +131,7 @@ public sealed class FdaM1EndToEndTests
         Assert.Equal(original.Digest,package.RegionalMetadata!.Digest);
     }
     private static RAToolsDbContext Context() => new(new DbContextOptionsBuilder<RAToolsDbContext>().UseNpgsql(Environment.GetEnvironmentVariable("RATOOLS_TEST_POSTGRES") ?? throw new InvalidOperationException("Dedicated PostgreSQL required.")).Options);
-    private static async Task<ImportAcceptanceFixture> CreateAsync()
+    private static async Task<ImportAcceptanceFixture> CreateAsync(bool validApplicant = false)
     {
         var root=Path.GetFullPath(".artifacts/p606-independent/source-"+Guid.NewGuid().ToString("N"));var region=Path.Combine(root,"0000/m1/us");Directory.CreateDirectory(region);
         // Independently hand-written synthetic US3.3 shape, not an external FDA submission.
@@ -144,7 +144,7 @@ public sealed class FdaM1EndToEndTests
             <m1-regional><m1-1-forms><form form-type="356h"><leaf ID="source-form-a" operation="new" xml:lang="fr" xlink:href="shared.txt"><title>First form</title></leaf></form><form form-type="1571"><leaf ID="source-form-b" operation="new" xml:lang="de" xlink:href="shared.txt"><title>Second form</title></leaf></form></m1-1-forms></m1-regional>
             </fda-regional:fda-regional>
             """;
-        var bytes=Encoding.UTF8.GetBytes(xml);await File.WriteAllBytesAsync(Path.Combine(region,"us-regional.xml"),bytes);
+        var bytes=Encoding.UTF8.GetBytes(validApplicant ? xml.Replace("source-applicant", "009876543", StringComparison.Ordinal) : xml);await File.WriteAllBytesAsync(Path.Combine(region,"us-regional.xml"),bytes);
         await File.WriteAllTextAsync(Path.Combine(root,"0000/index.xml"),"<ectd:ectd xmlns:ectd=\"http://www.ich.org/ectd\" dtd-version=\"3.2\"/>");
         await File.WriteAllTextAsync(Path.Combine(region,"shared.txt"),"Shared source for two explicit forms.");return new(root,bytes);
     }

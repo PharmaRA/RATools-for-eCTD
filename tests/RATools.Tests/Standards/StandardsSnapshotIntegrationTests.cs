@@ -22,6 +22,9 @@ using RATools.Domain.Ctd;
 using RATools.Domain.Finalization;
 using RATools.Domain.PackageValidation;
 using RATools.Domain.Standards;
+using RATools.Domain.RegionalMetadata;
+using RATools.Application.RegionalMetadata;
+using RATools.Application.Workspaces;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.PackageValidation;
 
@@ -409,11 +412,8 @@ public sealed class StandardsSnapshotIntegrationTests
         var queued = await validation.Service.EnqueueAsync(new(validation.Input.Id, PackageValidationCatalog.UsProfile,
             PackageValidationMode.Development, "custom-imported-regional-path", StandardsSnapshotId: snapshot.Id));
         var (run, report) = await validation.CompleteAsync(queued.Run);
-        // This legacy builder maps the six-digit application number to applicant id.
-        // Preserve its exact bytes and expose the new official defect; only typed
-        // regional metadata can supply a distinct applicant identifier.
-        Assert.Equal("FDA47-2044", Assert.Single(report.Coverage.SelectMany(rule => rule.Findings),
-            finding => finding.CheckStatus == CheckStatus.Fail).RuleId);
+        Assert.DoesNotContain(report.Coverage.SelectMany(rule => rule.Findings), finding => finding.CheckStatus == CheckStatus.Fail);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2044").CheckStatus);
         Assert.Equal(CheckStatus.Pass, Assert.Single(report.Coverage, rule => rule.RuleId == "FDA47-2036").CheckStatus);
         Assert.False(report.IsReadyForFinalization);
         fixture.Provider.RefuseReads = true;
@@ -459,7 +459,7 @@ public sealed class StandardsSnapshotIntegrationTests
             var package = new EctdSequencePackage(app.Id, "000001", "0001", SnapshotFixture.Template, "3.2.2", "3.3", profile.BackboneXml!,
                 new("000001", "Synthetic Sponsor", "US", SnapshotFixture.Template, "nda"),
                 new("0001", "original-application", "application", "Snapshot integration", "Synthetic Sponsor", null),
-                new(customRegionalPath is null ? "123456789" : "000001", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "regulatory", "5550100", "business",
+                new("123456789", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "regulatory", "5550100", "business",
                     "synthetic@example.test", "nda", "original-application", "application", null), [], [], [], Nodes: []);
             if (customRegionalPath is not null) package = package with { BackboneXml = package.BackboneXml with
             { Regional = package.BackboneXml.Regional with { RelativePath = customRegionalPath, DtdSystemId = "../../../util/dtd/us-regional-v3-3.dtd" } } };
@@ -476,9 +476,21 @@ public sealed class StandardsSnapshotIntegrationTests
                 await imports.SaveAsync(new(app, new CtdNodeGraph(app.Id, IchSectionDefinitions.Current), [], [], [],
                     regional.Select(file => new ImportedBackbone("0001", file.RelativePath, file.Content))
                         .Append(new("0001", "index.xml", index.XmlContent)).ToArray()));
+                var standards = await snapshots.Service.CaptureAsync(SnapshotFixture.Template);
+                var metadata = new InMemoryRegionalMetadataStore();
+                var transaction = new InMemoryPersistenceTransaction();
+                var regionalService = new RegionalMetadataService(metadata, apps, nodes, placements, snapshots.Service,
+                    new WorkspaceMutationCoordinator(revisions, transaction), revisions, transaction);
+                await regionalService.SaveSequenceAsync(app.Id, "0001", await revisions.GetRevisionAsync(app.Id, "0001"), standards.Id,
+                    new(1, "US", Us: new("000001", "nda", "Synthetic Sponsor",
+                        [new(Guid.NewGuid(), "Test Contact", "regulatory", [new(Guid.NewGuid(), "5550100", "business")], [new(Guid.NewGuid(), "synthetic@example.test")])],
+                        "original-application", "application", null, "Snapshot integration", "123456789", "0001")));
                 builder = new EctdPackageModelBuilder(apps, placements, documents, snapshots.Provider,
-                    new DocumentStorageBoundary(new RetainedPaths(snapshots.Root)), nodes, revisions, imports);
+                    new DocumentStorageBoundary(new RetainedPaths(snapshots.Root)), nodes, revisions, imports,
+                    regionalMetadataStore: metadata, standardsSnapshots: snapshots.Service);
                 package = await builder.BuildAsync(new(app.Id, "0001"));
+                regional = Registry().Resolve("US").WriteRegionalBackbones(package);
+                index = new IchIndexXmlWriter().Write(EctdBackboneComposition.AttachRegionalFiles(package, regional));
             }
             var directory = Path.Combine(snapshots.Root, "delivery", "0001"); Directory.CreateDirectory(directory);
             foreach (var file in regional.Append(new("index.xml", index.XmlContent)))
