@@ -923,10 +923,17 @@
       "correctiveAction": "Resubmit your application specifying a valid application type. Certain application types in the attribute file are used only for cross-referenced applications, and it's noted in the attribute file. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "DTDs; The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-1496"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "reference/publisher/fda/4.7/m1-attribute-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3; bound selection date on or after 2013-04-30. Active official application codes; primary fdaat1..6, cross-reference additionally 7/9/10; fdaat8 is FDA-only. Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force."
       }
     },
     {
@@ -1721,10 +1728,17 @@
       "correctiveAction": "Resubmit the submission and ensure all required attribute values are provided. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2012"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "reference/publisher/fda/4.7/m1-attribute-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. All 16 required DTD element/attribute pairs on present elements; optional/FIXED defaults and conditional supplement rule 2041 remain separate. Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force."
       }
     },
     {
@@ -1740,10 +1754,17 @@
       "correctiveAction": "Resubmit the submission and ensure all provided M1 attributes are valid. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2013"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "reference/publisher/fda/4.7/m1-attribute-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. Ten official dictionary snapshots plus 11 DTD enum/fixed declarations. Exact CDATA codes and current captured active status; no historical receipt-state reconstruction. Free text is not an enumeration. Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force."
       }
     },
     {
@@ -1778,10 +1799,17 @@
       "correctiveAction": "Resubmit the submission using a valid submission-sub-type. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2022"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "reference/publisher/fda/4.7/m1-attribute-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. M1 2.6 Tables 2 and 4; all 11 submission types and seven subtypes within each identifiable application. Known subtype conflicts survive incomplete application inputs. Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force."
       }
     },
     {
@@ -1942,10 +1970,17 @@
       "correctiveAction": "Resubmit the submission using a valid submission-type. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2034"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "reference/publisher/fda/4.7/m1-attribute-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. M1 2.6 Tables 2 and 4; all 11 submission types and six primary application types, independent of subtype completeness. Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force."
       }
     },
     {

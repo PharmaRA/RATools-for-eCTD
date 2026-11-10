@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from test_publisher_reference_contract import ROOT, canonical_json, unique_object
@@ -37,7 +39,8 @@ def verify_package_rule_catalog() -> None:
             assert source["verificationStatus"] == original["retrievalStatus"]
         else:
             project_sources = {"ratools-publisher-contract-v1": "reference/publisher/contracts-v1.json",
-                               "ratools-package-xml-assets-v1": "reference/publisher/package-xml-assets-v1.json"}
+                               "ratools-package-xml-assets-v1": "reference/publisher/package-xml-assets-v1.json",
+                               "ratools-fda-m1-attributes-v1": "reference/publisher/fda/4.7/m1-attribute-policy.json"}
             assert source["sha256"] == hashlib.sha256((ROOT / project_sources[source["id"]]).read_bytes()).hexdigest()
 
     xml_assets = json.loads((ROOT / "reference/publisher/package-xml-assets-v1.json").read_text(encoding="utf-8"))
@@ -70,6 +73,40 @@ def verify_package_rule_catalog() -> None:
                     assert resolved == cases_path and fragment in case_ids, reference
     for profile in profiles:
         assert any(profile in rule["profileSnapshotIds"] for rule in rules.values())
+    policy = json.loads((ROOT / "reference/publisher/fda/4.7/m1-attribute-policy.json").read_text(encoding="utf-8"))
+    assert policy["schemaVersion"] == 1 and policy["algorithm"] == "fda-m1-attributes-v1"
+    assert policy["classification"] == "ProjectDerivedEvidence"
+    originals = {item["id"]: item for item in json.loads((ROOT / "reference/publisher/official-sources/2026-11-09/source-snapshot.json").read_text(encoding="utf-8"))["sources"]}
+    dtd_path = ROOT / "reference/dtd/us-regional-v3-3.dtd"
+    dtd = dtd_path.read_text(encoding="utf-8")
+    declarations = {}
+    for element, block in re.findall(r"<!ATTLIST\s+(\S+)\s+([^>]+)>", dtd):
+        for name, kind, presence, fixed in re.findall(r'(?m)^\s*(\S+)\s+(CDATA|ID|\([^\r\n)]+\))\s+(#REQUIRED|#IMPLIED|#FIXED\s+"([^"]+)")', block):
+            declarations[element, name] = (kind, presence, fixed)
+    required = {(element, name) for (element, name), (_, presence, _) in declarations.items() if presence == "#REQUIRED"}
+    assert len(required) == 16
+    assert required == {(item["element"], item["attribute"]) for item in policy["requiredAttributes"]}
+    allowed = {}
+    for pair, (kind, presence, fixed) in declarations.items():
+        if kind.startswith("("):
+            allowed[pair] = [value.strip() for value in kind[1:-1].split("|")]
+        elif presence.startswith("#FIXED"):
+            allowed[pair] = [fixed]
+    assert len(allowed) == 11
+    assert allowed == {(item["element"], item["attribute"]): item["values"] for item in policy["allowedAttributes"]}
+    assert len(policy["dictionaries"]) == 10 and len(policy["combinations"]) == 11
+    for source in policy["sources"] + policy["dictionaries"]:
+        if source["key"] == "xml-us-dtd":
+            source_path = dtd_path
+        else:
+            original = originals[source["key"].removeprefix("official-")]
+            assert source["sha256"] == original["sha256"]
+            source_path = ROOT / original["repositoryPath"]
+        assert hashlib.sha256(source_path.read_bytes()).hexdigest() == source["sha256"]
+        if "attribute" in source:
+            assert set(source["elements"]) == {element for element, name in declarations if name == source["attribute"]}
+            root = ET.parse(source_path).getroot()
+            assert root.tag == source["root"] and root.attrib["version-number"] == source["version"]
     assert rules["US-CRITERIA-INVENTORY"]["requiredForReadiness"]
     assert rules["EU-CRITERIA-INVENTORY"]["requiredForReadiness"]
     assert rules["FILE-NAMING"]["authorityRuleId"] is None

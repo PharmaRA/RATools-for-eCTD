@@ -452,15 +452,15 @@ public sealed class StandardsSnapshotIntegrationTests
         {
             var app = new SubmissionApplication("000001", "US", "Synthetic Sponsor", snapshots.Root, SnapshotFixture.Template);
             app.CreateSequence("0001", "original", "Snapshot integration").RevisePublishingMetadata(SequencePublishingMetadata.Create(
-                "nda", "original-application", "application", "Snapshot integration", "Synthetic Sponsor", null,
-                "Test Contact", "regulatory", "5550100", "business", "synthetic@example.test"));
+                "fdaat1", "fdast1", "fdasst3", "Snapshot integration", "Synthetic Sponsor", null,
+                "Test Contact", "fdaact1", "5550100", "fdatnt1", "synthetic@example.test"));
             var apps = new InMemoryApplicationRepository();
             var profile = snapshots.Provider.GetProfile(SnapshotFixture.Template);
             var package = new EctdSequencePackage(app.Id, "000001", "0001", SnapshotFixture.Template, "3.2.2", "3.3", profile.BackboneXml!,
-                new("000001", "Synthetic Sponsor", "US", SnapshotFixture.Template, "nda"),
-                new("0001", "original-application", "application", "Snapshot integration", "Synthetic Sponsor", null),
-                new("123456789", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "regulatory", "5550100", "business",
-                    "synthetic@example.test", "nda", "original-application", "application", null), [], [], [], Nodes: []);
+                new("000001", "Synthetic Sponsor", "US", SnapshotFixture.Template, "fdaat1"),
+                new("0001", "fdast1", "fdasst3", "Snapshot integration", "Synthetic Sponsor", null),
+                new("123456789", "Synthetic Sponsor", "Snapshot integration", "Test Contact", "fdaact1", "5550100", "fdatnt1",
+                    "synthetic@example.test", "fdaat1", "fdast1", "fdasst3", null), [], [], [], Nodes: []);
             if (customRegionalPath is not null) package = package with { BackboneXml = package.BackboneXml with
             { Regional = package.BackboneXml.Regional with { RelativePath = customRegionalPath, DtdSystemId = "../../../util/dtd/us-regional-v3-3.dtd" } } };
             var regional = Registry().Resolve("US").WriteRegionalBackbones(package);
@@ -482,9 +482,9 @@ public sealed class StandardsSnapshotIntegrationTests
                 var regionalService = new RegionalMetadataService(metadata, apps, nodes, placements, snapshots.Service,
                     new WorkspaceMutationCoordinator(revisions, transaction), revisions, transaction);
                 await regionalService.SaveSequenceAsync(app.Id, "0001", await revisions.GetRevisionAsync(app.Id, "0001"), standards.Id,
-                    new(1, "US", Us: new("000001", "nda", "Synthetic Sponsor",
-                        [new(Guid.NewGuid(), "Test Contact", "regulatory", [new(Guid.NewGuid(), "5550100", "business")], [new(Guid.NewGuid(), "synthetic@example.test")])],
-                        "original-application", "application", null, "Snapshot integration", "123456789", "0001")));
+                    new(1, "US", Us: new("000001", "fdaat1", "Synthetic Sponsor",
+                        [new(Guid.NewGuid(), "Test Contact", "fdaact1", [new(Guid.NewGuid(), "5550100", "fdatnt1")], [new(Guid.NewGuid(), "synthetic@example.test")])],
+                        "fdast1", "fdasst3", null, "Snapshot integration", "123456789", "0001")));
                 builder = new EctdPackageModelBuilder(apps, placements, documents, snapshots.Provider,
                     new DocumentStorageBoundary(new RetainedPaths(snapshots.Root)), nodes, revisions, imports,
                     regionalMetadataStore: metadata, standardsSnapshots: snapshots.Service);

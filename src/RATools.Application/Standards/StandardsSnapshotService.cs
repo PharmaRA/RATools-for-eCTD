@@ -117,6 +117,7 @@ public sealed class StandardsSnapshotService(IStandardsSnapshotStore store, ISta
     private static IEnumerable<Resource> EmbeddedStandardsResources()
     {
         foreach (var resource in new[] { new Resource("rules", "RuleMapping", "reference/publisher/package-rules-v1.json", "RATools.PackageValidationCatalog", "application/json"),
+            new Resource("fda-m1-attribute-policy", "RuleMapping", "reference/publisher/fda/4.7/m1-attribute-policy.json", "RATools.FdaM1AttributePolicy", "application/json"),
             new Resource("xml-manifest", "XmlAssetManifest", "reference/publisher/package-xml-assets-v1.json", "RATools.PackageXmlAssetManifest", "application/json"),
             new Resource("node-schema", "NodeSchema", "reference/publisher/ich-3.2.2-nodes.json", "RATools.IchNodeSchema", "application/json"),
             new Resource("node-paths", "NodeSchema", "reference/publisher/ich-3.2.2-node-paths.json", "RATools.IchNodePaths", "application/json"),

@@ -1,6 +1,6 @@
 # QA-07 固定关闭清单
 
-状态日期：2026-11-09。依据为[质量计划中的原始五条要求](../../docs/plans/quality-improvement.md#qa-07联合回归与资格验收)。最新进展：**QA07-05-S已关闭**，31份官方原件已绑定生产快照，Windows标准定向回归85/85，Linux本机真实PostgreSQL原五项5/5，迁移31／重复0、归档复读与Formal拒绝门禁通过。两组分别计量；详见[来源绑定记录](QA-07-SOURCE-BINDING.md)和[固定验收回执](official-sources/2026-11-09-production/verification.json)。先前超时/OOM保留为历史失败；任务2GiB swap仍启用，环境未恢复到操作前状态。
+状态日期：2026-11-10。依据为[质量计划中的原始五条要求](../../docs/plans/quality-improvement.md#qa-07联合回归与资格验收)。最新进展：**QA07-05-S已关闭**，31份官方原件已绑定生产快照，Windows标准定向回归85/85，Linux本机真实PostgreSQL原五项5/5，迁移31／重复0、归档复读与Formal拒绝门禁通过。两组分别计量；详见[来源绑定记录](QA-07-SOURCE-BINDING.md)和[固定验收回执](official-sources/2026-11-09-production/verification.json)。先前超时/OOM保留为历史失败；任务2GiB swap仍启用，环境未恢复到操作前状态。
 
 **当前结论：原始五项中，2项按已声明范围关闭，2项部分完成，1项未完成。QA-07 总项保持开放。** 后端基线的1824/1824是跨运行去重覆盖；浏览器检查、资源探针和还原步骤单独计量，不加入这个总数。
 
@@ -24,7 +24,7 @@
 | QA07-03-F Formal实现与链路 | [ReleaseCapturePlanner](../../src/RATools.Application/Finalization/ReleaseCapturePlanner.cs)在有snapshot的Formal分支无条件追加`RegionalBusinessContextUnconfirmed`；[FinalizationService](../../src/RATools.Application/Finalization/FinalizationService.cs)要求Formal、ready及manifest绑定ZIP。仅补外部文件不会自动打开成功路径。 | 持久化区域上下文与验证结果一致性检查的实现/回归；有资格的快照/样例；真实API+Chromium的Formal捕获→ZIP核对→交付登记→回执登记→重启复读；缺失、过期、上下文或ZIP不匹配的拒绝证据。 | 资格满足后原业务入口成功，数据库与不可变ZIP/回执一致；无资格与Development仍拒绝交付。禁止直接删门禁、手动把Unverified改Verified或伪造实际提交回执。受控验收记录必须标明测试渠道。 |
 | QA07-04-P Linux Python | [PdfContentProcess](../../src/RATools.Infrastructure/DocumentProcessing/PdfContentProcess.cs)拒绝非Windows；[PythonPdfContentEngine](../../src/RATools.Infrastructure/DocumentProcessing/PythonPdfContentEngine.cs)返回`CONTENT_HOST_RESOURCE_ENFORCEMENT_NOT_QUALIFIED`。这是未实现/未资格能力，不是测试失败或零成本平台切换。 | Linux内容宿主实现及独立资源/禁删保护；固定Python/PyMuPDF/qpdf及所需模型；真实内容处理与原业务断言，内存/CPU/取消/异常及整棵进程树停止证据。 | Linux真实执行、不跳过、不走拒绝早退；业务输出和资源约束均通过。若只交付Windows内容能力，须另有明确范围修订记录；本次整理未批准或假定该豁免。 |
 
-执行顺序：05-S已关闭；按用户确认，QA07-05-R直接以已核实FDA4.7全文建立原子规则与适用范围映射，不以旧版差异对比为前置。当前147条来源清单中已实施13条，134条完整覆盖待评估；独立公司编号与原九项服务测试回收修复完成，最新378项选定回归通过，见[FDA4.7实施记录](QA-07-FDA47-RULES.md)。同时落实05-V的实际工具/规则包输入。QA07-04-P是独立工程工作；QA07-03-F的上下文实现可先修复并验证拒绝路径，正式成功验收须待R/V资格条件满足。每项只以本表通过条件关闭，不以“环境已就绪”代替业务验收。
+执行顺序：05-S已关闭；按用户确认，QA07-05-R直接以已核实FDA4.7全文建立原子规则与适用范围映射，不以旧版差异对比为前置。当前147条来源清单中已实施18条，129条完整覆盖待评估；本批新增M1十字典、16组必填属性与11行提交组合，最新479项选定回归通过（前378+新101），见[FDA4.7属性验收](QA-07-FDA47-ATTRIBUTES.md)。同时落实05-V的实际工具/规则包输入。QA07-04-P是独立工程工作；QA07-03-F的上下文实现可先修复并验证拒绝路径，正式成功验收须待R/V资格条件满足。每项只以本表通过条件关闭，不以“环境已就绪”代替业务验收。
 
 ## 3. 更广工程声明及已解决的前置
 

@@ -51,6 +51,14 @@
       "url": "https://www.fda.gov/media/87056/download",
       "sha256": "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c",
       "verificationStatus": "Verified"
+    },
+    {
+      "id": "ratools-fda-m1-attributes-v1",
+      "kind": "ProjectPolicy",
+      "version": "fda-m1-attributes-v1",
+      "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/fda/4.7/m1-attribute-policy.json",
+      "sha256": "b4ed79e15ac4fe37e32496495c34fa209001adbb16bc784f16d1a25f0d513ed9",
+      "verificationStatus": "Verified"
     }
   ],
   "profiles": [
@@ -1933,6 +1941,166 @@
         "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
         "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
         "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1496",
+      "authorityRuleId": "1496",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 23, error 1496; official severity High; effective 2013-04-30",
+      "title": "Application type is invalid",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2013-04-30. Active official application codes; primary fdaat1..6, cross-reference additionally 7/9/10; fdaat8 is FDA-only.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+        "reference/publisher/fda/4.7/m1-attribute-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2012",
+      "authorityRuleId": "2012",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 44, error 2012; official severity High; effective 2015-06-15",
+      "title": "A required attribute value in M1 is missing",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. All 16 required DTD element/attribute pairs on present elements; optional/FIXED defaults and conditional supplement rule 2041 remain separate.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+        "reference/publisher/fda/4.7/m1-attribute-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2013",
+      "authorityRuleId": "2013",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 45, error 2013; official severity High; effective 2015-06-15",
+      "title": "Invalid M1 attribute value",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. Ten official dictionary snapshots plus 11 DTD enum/fixed declarations. Exact CDATA codes and current captured active status; no historical receipt-state reconstruction. Free text is not an enumeration.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+        "reference/publisher/fda/4.7/m1-attribute-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2022",
+      "authorityRuleId": "2022",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 46, error 2022; official severity High; effective 2015-06-15",
+      "title": "Submission-sub-type is invalid for submission-type",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. M1 2.6 Tables 2 and 4; all 11 submission types and seven subtypes within each identifiable application. Known subtype conflicts survive incomplete application inputs.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+        "reference/publisher/fda/4.7/m1-attribute-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2034",
+      "authorityRuleId": "2034",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 49, error 2034; official severity High; effective 2015-06-15",
+      "title": "Submission-type is invalid for application-type",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. M1 2.6 Tables 2 and 4; all 11 submission types and six primary application types, independent of subtype completeness.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires captured project-derived fda-m1-attributes-v1 policy and its pinned official source bytes. Missing or unsupported resources yield NotEvaluated. DTD prerequisites and Formal qualification gates remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+        "reference/publisher/fda/4.7/m1-attribute-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
       ],
       "externalComparisonEvidence": []
     }

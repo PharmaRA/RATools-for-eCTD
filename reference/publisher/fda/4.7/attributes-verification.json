@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "task": "QA07-05-R FDA 4.7 M1 official dictionary, required attribute and combination rules",
+  "verifiedUtc": "2026-11-10T03:48:42.8288553Z",
+  "passed": true,
+  "newAuthorityRules": [
+    "1496",
+    "2012",
+    "2013",
+    "2022",
+    "2034"
+  ],
+  "scope": "Exact captured ten official dictionary snapshots, sixteen DTD required pairs, eleven DTD enum/fixed declarations and eleven M1 Table 2/4 combination rows. Not historical dictionary-state reconstruction or full regional qualification.",
+  "inventory": {
+    "sha256": "349b6bfaf2fe7bbadba53b3cfb40965626535fb6f59f28674bedb4297d9d16ab",
+    "total": 147,
+    "implemented": 18,
+    "notAssessed": 129
+  },
+  "policy": {
+    "path": "reference/publisher/fda/4.7/m1-attribute-policy.json",
+    "sha256": "b4ed79e15ac4fe37e32496495c34fa209001adbb16bc784f16d1a25f0d513ed9",
+    "classification": "ProjectDerivedEvidence",
+    "algorithm": "fda-m1-attributes-v1"
+  },
+  "catalog": {
+    "total": 61,
+    "canonicalSha256": "b0bc927f62fc6f34edb1063534eb0650bd5a71ce9677b7ef2db67ca8975cfdf6",
+    "previousRulesUnchanged": 56,
+    "checkLogSha256": "8d80cfc00d520bebd7c7652571a9d715b3f34ffd10752973f58c92ca777dc7c6",
+    "guard": {
+      "path": ".artifacts/local-check/fda47-attributes-20261110/catalog-2.process.json",
+      "sha256": "da11297753bb6c18b6d9dfce4f584158ea991b610a21f400db57f123d5229f12",
+      "exitCode": 0,
+      "guarded": 2,
+      "job": 2,
+      "assignedBeforeResume": true,
+      "treeStopped": true,
+      "forcedTreeStop": true,
+      "retainedMoves": 0
+    }
+  },
+  "sourceBindings": [
+    {
+      "path": "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+      "sha256": "9a10db9abb9dcc5e03f949ff5aba57994e97b8871f4ebd79fa53f0c66c189c9d"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+      "sha256": "6ec85f5d2596b54d764368465ba2d53068305bdea9a801b3b331d58eeb326f5d"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+      "sha256": "7d6c770d7937cd20cc7314bec9cd30415b9f0f31d81cd192c8e3e6bdfd36ff10"
+    },
+    {
+      "path": "src/RATools.Application/PackageValidation/PackageStandardsContext.cs",
+      "sha256": "85da91e94a75b8233de3ad3540b367e856eba08f447774adb7208a0c9dde65ee"
+    },
+    {
+      "path": "src/RATools.Application/Standards/StandardsSnapshotService.cs",
+      "sha256": "f5fda1aacbf53e3e004b1653d167a5ea5e3d3e866df3cbf57bad3e055a25ba42"
+    },
+    {
+      "path": "src/RATools.Application/RATools.Application.csproj",
+      "sha256": "c76f472e314737ade573c6ee0dd82e1089bb76b25181ccf375cae7b1e0326514"
+    },
+    {
+      "path": "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs",
+      "sha256": "20a7b29e03c599792956641826464a39f07480dd6442b8e6afb416f2a677e428"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/RegionalActivationAcceptanceTests.cs",
+      "sha256": "b3eda7cd9261d2433b8a5bb40ec9634fe5c29915c57c594865ddc63ef9644f1d"
+    },
+    {
+      "path": "tests/RATools.Tests/Standards/StandardsSnapshotIntegrationTests.cs",
+      "sha256": "cf083e1757b47a8ac36d21a20e09c97652a5ddc0c123518725b80aaab8c66aab"
+    },
+    {
+      "path": "reference/publisher/fda/4.7/m1-attribute-policy.json",
+      "sha256": "b4ed79e15ac4fe37e32496495c34fa209001adbb16bc784f16d1a25f0d513ed9"
+    },
+    {
+      "path": "reference/publisher/package-rules-v1.json",
+      "sha256": "eee8078844fadf6d2078e3852c638ce100b7df719b11344fc8813fe513093a42"
+    }
+  ],
+  "build": {
+    "summarySha256": "45311d80cbf60544659f5f4c81c3a3b6a4b6793fd3a7ad721db729699aaf62cf",
+    "sourceManifestSha256": "65366f936b0412b772519b101ae51324f88b833dc031b73f93a9d8c231b3d0ac",
+    "testAssemblySha256": "94849fcc76b86a7188fccbcfb18996530ac39d74eb1863c2036741d3f5475bd5",
+    "exitCode": 0,
+    "guard": {
+      "path": ".artifacts/local-check/fda47-attributes-20261110/green-3/build.process.json",
+      "sha256": "d095d892a742a3892fc26fde63c073aaabc4b9fbaf6e2f03254808662249132b",
+      "exitCode": 0,
+      "guarded": 26,
+      "job": 26,
+      "assignedBeforeResume": true,
+      "treeStopped": true,
+      "forcedTreeStop": true,
+      "retainedMoves": 0,
+      "nonzeroChildExits": [
+        {
+          "image": "dotnet.exe",
+          "exitCode": 1
+        },
+        {
+          "image": "dotnet.exe",
+          "exitCode": 1
+        },
+        {
+          "image": "conhost.exe",
+          "exitCode": 1
+        }
+      ],
+      "retainedMoveRelations": []
+    }
+  },
+  "tests": {
+    "path": ".artifacts/local-check/fda47-attributes-20261110/green-3/results/selected.trx",
+    "sha256": "a2a0c3938bb7871f6a8386e71fdbd0cd8d88ca4ac7d0affb83562bb2adf190b7",
+    "total": 479,
+    "passed": 479,
+    "failed": 0,
+    "skipped": 0,
+    "previousTestNamesRetained": 378,
+    "newTests": 101,
+    "guard": {
+      "path": ".artifacts/local-check/fda47-attributes-20261110/green-3/tests.process.json",
+      "sha256": "714d7a49856517322861756b35481aeb5b101e1e4e0d747f478bdee31c8ba851",
+      "exitCode": 0,
+      "guarded": 5,
+      "job": 5,
+      "assignedBeforeResume": true,
+      "treeStopped": true,
+      "forcedTreeStop": true,
+      "retainedMoves": 32,
+      "nonzeroChildExits": [
+        {
+          "image": "conhost.exe",
+          "exitCode": 1
+        }
+      ],
+      "retainedMoveRelations": [
+        {
+          "relation": "package-capture-retention",
+          "count": 19
+        },
+        {
+          "relation": "package-fixture-retention",
+          "count": 10
+        },
+        {
+          "relation": "package-missing-input-retention",
+          "count": 2
+        },
+        {
+          "relation": "package-upload-retention",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "redRuns": [
+    {
+      "label": "red-1",
+      "counts": {
+        "total": 48,
+        "passed": 0,
+        "failed": 48,
+        "notExecuted": 0
+      },
+      "summarySha256": "414fe31a7069996d6cd350bf8f520cb464476b43d078a86671bda337e6182db6"
+    },
+    {
+      "label": "green-2",
+      "counts": {
+        "total": 94,
+        "passed": 81,
+        "failed": 13,
+        "notExecuted": 0
+      },
+      "summarySha256": "4cdcf85e4a823f9c1b9a7759d33ab8054616543e5207e50f2390577af4e9e79c"
+    },
+    {
+      "label": "review-red",
+      "counts": {
+        "total": 478,
+        "passed": 469,
+        "failed": 9,
+        "notExecuted": 0
+      },
+      "summarySha256": "4e28ef2a20a0e18ec3bdbf7e216eeeb2953211554b60c060a1b4fc9c70a0f205"
+    },
+    {
+      "label": "dispatch-red",
+      "counts": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1,
+        "notExecuted": 0
+      },
+      "summarySha256": "3dfbd212eaa4541d9a89ff77fe7eb1c829cb74407131bb2834d72974808ea14e"
+    }
+  ],
+  "review": {
+    "code": "PASS after two independently reproduced P2 fixes",
+    "finalEvidence": "PASS: independent read-only verification of source/manifest/DLL/TRX identities, 378 retained plus 101 new tests, catalog/inventory/source mappings, qualified guard/retention events and documentation links.",
+    "verifiedUtc": "2026-11-10T04:08:40.2051290Z"
+  },
+  "limitations": [
+    "Selected Windows cached-build regression, not whole repository suite or fresh restore.",
+    "No new PostgreSQL, real browser or external validator qualification.",
+    "QA07-05-R/V, QA07-03-F and QA07-04-P remain open.",
+    "No UI dictionary picker or automatic conversion of existing aliases; validation reports exact supplied XML values."
+  ]
+}

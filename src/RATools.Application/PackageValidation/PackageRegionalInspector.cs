@@ -6,7 +6,7 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v4";
+    public const string RegionalEngineVersion = "package-regional-inspector-v5";
     private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
@@ -48,6 +48,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
                         continue;
                     }
                     if (sequenceContext.SelectionDate < Fda47RegionalRules.EffectiveFrom(rule)) continue;
+                    if (Fda47RegionalRules.UsesAttributePolicy(rule) && sequenceContext.FdaM1Policy is null)
+                    {
+                        Add(rule, CheckStatus.NotEvaluated, "FDA_M1_SOURCES_UNBOUND", "M1 attribute checks require the supported captured policy and official source bytes.", new(sequence, sequence + "/" + regionalProfile.DefaultRelativePath));
+                        continue;
+                    }
                 }
                 applicable[rule.InternalRuleId] = true;
                 if (documents.Length == 0)
@@ -64,7 +69,7 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
                         Add(rule, CheckStatus.NotEvaluated, "REGIONAL_PARSE_INCOMPLETE", "Incomplete bounded XML parsing cannot establish regional business coverage.", new(sequence, document.LogicalPath));
                         continue;
                     }
-                    var run = new DocumentInspection(inputs, lifecycle, document, rule, sequenceContext.Assets, Add);
+                    var run = new DocumentInspection(inputs, lifecycle, document, rule, sequenceContext, Add);
                     run.Inspect();
                     if (document.DtdStatus != CheckStatus.Pass)
                         Add(rule, CheckStatus.NotEvaluated, "REGIONAL_DTD_PREREQUISITE", "Observed business defects are retained; DTD-invalid input cannot establish complete coverage.", new(sequence, document.LogicalPath));
@@ -93,8 +98,9 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
     }
 
     private sealed class DocumentInspection(PackageInputSet inputs, PackageLifecycleInspection lifecycle, ParsedBackbone document,
-        ValidationRuleDescriptor rule, PackageXmlAssets assets, Action<ValidationRuleDescriptor, CheckStatus, string, string, ValidationLocation, string?> add)
+        ValidationRuleDescriptor rule, PackageStandardsContext context, Action<ValidationRuleDescriptor, CheckStatus, string, string, ValidationLocation, string?> add)
     {
+        private readonly PackageXmlAssets assets = context.Assets;
         private readonly Dictionary<string, ParsedXmlElement> _elements = document.Elements.ToDictionary(item => item.NodePath, StringComparer.Ordinal);
         private ValidationLocation Location => document.Elements[0].Location;
         private void Issue(CheckStatus status, string code, string message, ParsedXmlElement? element = null, string? actual = null, string? field = null) =>
@@ -112,8 +118,12 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         }
         private void InspectUs()
         {
-            static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? element.Attribute(field[1..]) : element.Text;
-            if (Fda47RegionalRules.IsOfficial(rule))
+            static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? FdaM1AttributePolicy.Attribute(element, field[1..]) : element.Text;
+            if (Fda47RegionalRules.UsesAttributePolicy(rule))
+                context.FdaM1Policy!.Inspect(document, rule.AuthorityRuleId!, (element, field, message) =>
+                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
+                    (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
+            else if (Fda47RegionalRules.IsOfficial(rule))
                 Fda47RegionalRules.Inspect(document, rule, (element, field, message) =>
                     Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
                     (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));

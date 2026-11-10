@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "fda-m1-attributes-v1",
+  "classification": "ProjectDerivedEvidence",
+  "scope": "FDA M1 2.6 Tables 2 and 4; exact selected dictionary snapshot statuses, not historical receipt reconstruction.",
+  "sourceNotes": [
+    "M1 specification p.8 example has fdaat1 with trailing space; exact XML dictionary codes govern CDATA comparisons.",
+    "Conditional supplement-effective-date requirements (2041) and form location (2045) are separate."
+  ],
+  "sources": [
+    {
+      "key": "official-fda-m1-specification",
+      "sha256": "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2"
+    },
+    {
+      "key": "xml-us-dtd",
+      "sha256": "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec"
+    }
+  ],
+  "dictionaries": [
+    {
+      "key": "official-fda-application-types",
+      "sha256": "c20bac558d306e72138597f3192df0463c355f97baa2be7002932024da25f93b",
+      "root": "application-type",
+      "version": "1.1",
+      "elements": [
+        "application-number",
+        "cross-reference-application-number"
+      ],
+      "attribute": "application-type"
+    },
+    {
+      "key": "official-fda-submission-types",
+      "sha256": "9606d4375c9c584779a239da1e7104ff7a0588356795698d492562dffcc71fa5",
+      "root": "submission-type",
+      "version": "1.3",
+      "elements": [
+        "submission-id"
+      ],
+      "attribute": "submission-type"
+    },
+    {
+      "key": "official-fda-submission-subtypes",
+      "sha256": "1ef337700e99f49eec2ed3aca980d999558abe7156289757a091d562340e31f9",
+      "root": "submission-sub-type",
+      "version": "1.1",
+      "elements": [
+        "sequence-number"
+      ],
+      "attribute": "submission-sub-type"
+    },
+    {
+      "key": "official-fda-applicant-contact-types",
+      "sha256": "4c320f78c2b43f76eaec2e5c661a581497824f925fc9db73fc2b37c5338e2764",
+      "root": "applicant-contact-type",
+      "version": "1.2",
+      "elements": [
+        "applicant-contact-name"
+      ],
+      "attribute": "applicant-contact-type"
+    },
+    {
+      "key": "official-fda-telephone-types",
+      "sha256": "c00023d895135fdd18abcb826dd160accf0f48f58d0f93d5e82ea5af8a0b6da0",
+      "root": "telephone-number-type",
+      "version": "1.1",
+      "elements": [
+        "telephone"
+      ],
+      "attribute": "telephone-number-type"
+    },
+    {
+      "key": "official-fda-supplement-effective-types",
+      "sha256": "a49f319ba0a6ac86415c8deea2805d1e41a2616f712daf29835a06815483ddb7",
+      "root": "supplement-effective-date-type",
+      "version": "1.1",
+      "elements": [
+        "submission-id"
+      ],
+      "attribute": "supplement-effective-date-type"
+    },
+    {
+      "key": "official-fda-form-types",
+      "sha256": "bc7f39a1f94224eb295b806fecd2078d36e19e416cdffaacf37bd3321d9c165e",
+      "root": "form-type",
+      "version": "1.4",
+      "elements": [
+        "form"
+      ],
+      "attribute": "form-type"
+    },
+    {
+      "key": "official-fda-promotional-audience-types",
+      "sha256": "acef2a4f5dcdb51600fd7d02b72ac439369f087c1a56d74e1ba2392cff087405",
+      "root": "promotional-material-audience-type",
+      "version": "1.1",
+      "elements": [
+        "m1-15-promotional-material"
+      ],
+      "attribute": "promotional-material-audience-type"
+    },
+    {
+      "key": "official-fda-promotional-doc-types",
+      "sha256": "b7849e2ff54b639831f7eea2de53784d80c059dd6389d9a22c2836a967386efc",
+      "root": "promotional-material-doc-type",
+      "version": "1.2",
+      "elements": [
+        "m1-15-2-materials"
+      ],
+      "attribute": "promotional-material-doc-type"
+    },
+    {
+      "key": "official-fda-promotional-material-types",
+      "sha256": "f7a86519c09427037c979fafbce1510c33c1cd76a5548a305791ff46acde1683",
+      "root": "promotional-material-type",
+      "version": "1.3",
+      "elements": [
+        "m1-15-2-1-material"
+      ],
+      "attribute": "promotional-material-type"
+    }
+  ],
+  "requiredAttributes": [
+    {
+      "element": "leaf",
+      "attribute": "ID"
+    },
+    {
+      "element": "leaf",
+      "attribute": "operation"
+    },
+    {
+      "element": "xref",
+      "attribute": "xlink:title"
+    },
+    {
+      "element": "xref",
+      "attribute": "xlink:href"
+    },
+    {
+      "element": "applicant-contact-name",
+      "attribute": "applicant-contact-type"
+    },
+    {
+      "element": "telephone",
+      "attribute": "telephone-number-type"
+    },
+    {
+      "element": "application",
+      "attribute": "application-containing-files"
+    },
+    {
+      "element": "application-number",
+      "attribute": "application-type"
+    },
+    {
+      "element": "cross-reference-application-number",
+      "attribute": "application-type"
+    },
+    {
+      "element": "submission-id",
+      "attribute": "submission-type"
+    },
+    {
+      "element": "sequence-number",
+      "attribute": "submission-sub-type"
+    },
+    {
+      "element": "form",
+      "attribute": "form-type"
+    },
+    {
+      "element": "m1-15-promotional-material",
+      "attribute": "promotional-material-audience-type"
+    },
+    {
+      "element": "m1-15-2-materials",
+      "attribute": "promotional-material-doc-type"
+    },
+    {
+      "element": "m1-15-2-1-material",
+      "attribute": "promotional-material-type"
+    },
+    {
+      "element": "m1-15-2-1-material",
+      "attribute": "material-id"
+    }
+  ],
+  "allowedAttributes": [
+    {
+      "element": "fda-regional:fda-regional",
+      "attribute": "xmlns:fda-regional",
+      "values": [
+        "http://www.ich.org/fda"
+      ]
+    },
+    {
+      "element": "fda-regional:fda-regional",
+      "attribute": "xmlns:xlink",
+      "values": [
+        "http://www.w3c.org/1999/xlink"
+      ]
+    },
+    {
+      "element": "fda-regional:fda-regional",
+      "attribute": "dtd-version",
+      "values": [
+        "3.3"
+      ]
+    },
+    {
+      "element": "leaf",
+      "attribute": "operation",
+      "values": [
+        "delete",
+        "new",
+        "append",
+        "replace"
+      ]
+    },
+    {
+      "element": "leaf",
+      "attribute": "xlink:type",
+      "values": [
+        "simple"
+      ]
+    },
+    {
+      "element": "leaf",
+      "attribute": "xlink:show",
+      "values": [
+        "embed",
+        "none",
+        "other",
+        "new",
+        "replace"
+      ]
+    },
+    {
+      "element": "leaf",
+      "attribute": "xlink:actuate",
+      "values": [
+        "onLoad",
+        "none",
+        "other",
+        "onRequest"
+      ]
+    },
+    {
+      "element": "xref",
+      "attribute": "xlink:type",
+      "values": [
+        "simple"
+      ]
+    },
+    {
+      "element": "xref",
+      "attribute": "xlink:show",
+      "values": [
+        "embed",
+        "none",
+        "other",
+        "new",
+        "replace"
+      ]
+    },
+    {
+      "element": "xref",
+      "attribute": "xlink:actuate",
+      "values": [
+        "onLoad",
+        "none",
+        "other",
+        "onRequest"
+      ]
+    },
+    {
+      "element": "application",
+      "attribute": "application-containing-files",
+      "values": [
+        "false",
+        "true"
+      ]
+    }
+  ],
+  "primaryApplicationTypes": [
+    "fdaat1",
+    "fdaat2",
+    "fdaat3",
+    "fdaat4",
+    "fdaat5",
+    "fdaat6"
+  ],
+  "crossReferenceApplicationTypes": [
+    "fdaat1",
+    "fdaat2",
+    "fdaat3",
+    "fdaat4",
+    "fdaat5",
+    "fdaat6",
+    "fdaat7",
+    "fdaat9",
+    "fdaat10"
+  ],
+  "combinations": [
+    {
+      "submissionType": "fdast1",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3",
+        "fdaat4",
+        "fdaat5",
+        "fdaat6"
+      ],
+      "submissionSubtypes": [
+        "fdasst2",
+        "fdasst3",
+        "fdasst4",
+        "fdasst5"
+      ]
+    },
+    {
+      "submissionType": "fdast2",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst2",
+        "fdasst3",
+        "fdasst4",
+        "fdasst5"
+      ]
+    },
+    {
+      "submissionType": "fdast3",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst2",
+        "fdasst3",
+        "fdasst4",
+        "fdasst5"
+      ]
+    },
+    {
+      "submissionType": "fdast4",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst2",
+        "fdasst3",
+        "fdasst4",
+        "fdasst5"
+      ]
+    },
+    {
+      "submissionType": "fdast5",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3",
+        "fdaat4",
+        "fdaat5"
+      ],
+      "submissionSubtypes": [
+        "fdasst4",
+        "fdasst6"
+      ]
+    },
+    {
+      "submissionType": "fdast6",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3",
+        "fdaat4",
+        "fdaat5"
+      ],
+      "submissionSubtypes": [
+        "fdasst4",
+        "fdasst7"
+      ]
+    },
+    {
+      "submissionType": "fdast7",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst1",
+        "fdasst4"
+      ]
+    },
+    {
+      "submissionType": "fdast8",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3",
+        "fdaat6"
+      ],
+      "submissionSubtypes": [
+        "fdasst1",
+        "fdasst4",
+        "fdasst5"
+      ]
+    },
+    {
+      "submissionType": "fdast9",
+      "applicationTypes": [
+        "fdaat4"
+      ],
+      "submissionSubtypes": [
+        "fdasst4",
+        "fdasst6"
+      ]
+    },
+    {
+      "submissionType": "fdast10",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst4",
+        "fdasst6"
+      ]
+    },
+    {
+      "submissionType": "fdast11",
+      "applicationTypes": [
+        "fdaat1",
+        "fdaat2",
+        "fdaat3"
+      ],
+      "submissionSubtypes": [
+        "fdasst3",
+        "fdasst4",
+        "fdasst5"
+      ]
+    }
+  ]
+}
