@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "catalogVersion": "package-rules-v1",
   "purpose": "Development inventory and fail-closed coverage contract. This is not a complete FDA/EU regulatory criteria inventory or a declaration of formal readiness.",
-  "reviewedOn": "2026-11-09",
+  "reviewedOn": "2026-11-10",
   "sources": [
     {
       "id": "ich-ectd-3.2.2",
@@ -1809,6 +1809,130 @@
         "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
         "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
         "tests/RATools.Tests/PackageValidation/Fda47RegionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1454",
+      "authorityRuleId": "1454",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 20, error 1454; official severity Low; effective 2013-04-30",
+      "title": "Company name is missing",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2013-04-30. Explicit company-name in applicant-info; missing element or blank text is a defect.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2023",
+      "authorityRuleId": "2023",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 46, error 2023; official severity High; effective 2015-06-15",
+      "title": "All grouped submission submission-sub-type values must be the same",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. Same regional XML application-set only; compare all applications using exact ordinal attributes. A single application has no grouped conflict. Missing values yield NotEvaluated, while any observed conflict remains Fail. Does not establish controlled-vocabulary or cross-sequence regulatory-activity qualification.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2031",
+      "authorityRuleId": "2031",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 48, error 2031; official severity High; effective 2015-06-15",
+      "title": "All grouped submission application-type values must be the same",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. Same regional XML application-set only; compare all applications using exact ordinal attributes. A single application has no grouped conflict. Missing values yield NotEvaluated, while any observed conflict remains Fail. Does not establish controlled-vocabulary or cross-sequence regulatory-activity qualification.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2032",
+      "authorityRuleId": "2032",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 48, error 2032; official severity High; effective 2015-06-15",
+      "title": "All grouped submission submission-type values must be the same",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3; bound selection date on or after 2015-06-15. Same regional XML application-set only; compare all applications using exact ordinal attributes. A single application has no grouped conflict. Missing values yield NotEvaluated, while any observed conflict remains Fail. Does not establish controlled-vocabulary or cross-sequence regulatory-activity qualification.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Bounded atomic FDA check with explicit source identity and date gating. Severity maps High/Error, Medium/Warning, Low/Info; all failures remain project readiness blockers. This does not qualify all FDA rules or predict agency receipt.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47GroupedRulesTests.cs"
       ],
       "externalComparisonEvidence": []
     }

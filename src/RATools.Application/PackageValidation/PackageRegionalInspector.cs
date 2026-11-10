@@ -6,7 +6,7 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v3";
+    public const string RegionalEngineVersion = "package-regional-inspector-v4";
     private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
@@ -112,9 +112,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         }
         private void InspectUs()
         {
+            static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? element.Attribute(field[1..]) : element.Text;
             if (Fda47RegionalRules.IsOfficial(rule))
                 Fda47RegionalRules.Inspect(document, rule, (element, field, message) =>
-                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, element.Text, field));
+                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
+                    (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
             else if (rule.InternalRuleId == "US-ADMIN-METADATA")
             {
                 var admin = Child(document.Elements[0], "admin"); var applicant = Child(admin, "applicant-info");

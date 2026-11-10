@@ -6,10 +6,11 @@ namespace RATools.Application.PackageValidation;
 internal static class Fda47RegionalRules
 {
     internal static readonly string[] Ids = ["FDA47-2035", "FDA47-2036", "FDA47-2037", "FDA47-2038", "FDA47-2042",
-        "FDA47-2044", "FDA47-3036", "FDA47-3050", "FDA47-3065"];
+        "FDA47-2044", "FDA47-3036", "FDA47-3050", "FDA47-3065", "FDA47-1454", "FDA47-2023", "FDA47-2031", "FDA47-2032"];
 
     internal static bool IsOfficial(ValidationRuleDescriptor rule) => Ids.Contains(rule.InternalRuleId, StringComparer.Ordinal);
-    internal static DateOnly EffectiveFrom(ValidationRuleDescriptor rule) => rule.AuthorityRuleId is "3036" or "3050" ? new(2008, 3, 10) : new(2015, 6, 15);
+    internal static DateOnly EffectiveFrom(ValidationRuleDescriptor rule) => rule.AuthorityRuleId switch
+    { "3036" or "3050" => new(2008, 3, 10), "1454" => new(2013, 4, 30), _ => new(2015, 6, 15) };
 
     internal static bool HasPinnedSource(ValidationRuleDescriptor rule, ValidationRuleCatalog catalog) =>
         rule.AuthorityRuleId == rule.InternalRuleId[6..] && rule.RuleVersion == "4.7.1" &&
@@ -18,7 +19,7 @@ internal static class Fda47RegionalRules
         source.Sha256 == "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c";
 
     internal static void Inspect(ParsedBackbone document, ValidationRuleDescriptor rule,
-        Action<ParsedXmlElement, string, string> fail)
+        Action<ParsedXmlElement, string, string> fail, Action<ParsedXmlElement, string, string> incomplete)
     {
         var elements = document.Elements.ToDictionary(element => element.NodePath, StringComparer.Ordinal);
         IEnumerable<ParsedXmlElement> Children(ParsedXmlElement parent, string name) =>
@@ -30,6 +31,44 @@ internal static class Fda47RegionalRules
             .SelectMany(set => Children(set, "application")).ToArray();
         var information = applications.SelectMany(application => Children(application, "application-information")).ToArray();
         var submissions = applications.SelectMany(application => Children(application, "submission-information")).ToArray();
+        if (rule.AuthorityRuleId == "1454")
+        {
+            if (applicants.Length == 0) fail(document.Elements[0], "company-name", "FDA 1454: company name is missing.");
+            foreach (var applicant in applicants)
+            {
+                var names = Children(applicant, "company-name").ToArray();
+                if (names.Length == 0) fail(applicant, "company-name", "FDA 1454: company name is missing.");
+                foreach (var name in names.Where(name => string.IsNullOrWhiteSpace(name.Text)))
+                    fail(name, "company-name", "FDA 1454: company name is missing.");
+            }
+            return;
+        }
+        if (rule.AuthorityRuleId is "2023" or "2031" or "2032")
+        {
+            var attribute = rule.AuthorityRuleId switch { "2023" => "submission-sub-type", "2031" => "application-type", _ => "submission-type" };
+            var parentName = rule.AuthorityRuleId == "2031" ? "application-information" : "submission-information";
+            var elementName = rule.AuthorityRuleId switch { "2023" => "sequence-number", "2031" => "application-number", _ => "submission-id" };
+            string? first = null;
+            foreach (var application in applications)
+            {
+                var groupedValues = Children(application, parentName).SelectMany(parent => Children(parent, elementName)).ToArray();
+                if (groupedValues.Length != 1)
+                {
+                    incomplete(application, "@" + attribute, "FDA " + rule.AuthorityRuleId + ": incomplete or ambiguous application metadata cannot establish grouped consistency.");
+                    continue;
+                }
+                foreach (var element in groupedValues)
+                {
+                    var value = element.Attribute(attribute);
+                    if (string.IsNullOrWhiteSpace(value))
+                        incomplete(element, "@" + attribute, "FDA " + rule.AuthorityRuleId + ": a missing grouped value cannot establish consistency.");
+                    else if (first is null) first = value;
+                    else if (!string.Equals(first, value, StringComparison.Ordinal))
+                        fail(element, "@" + attribute, "FDA " + rule.AuthorityRuleId + ": grouped applications declare different " + attribute + " values.");
+                }
+            }
+            return;
+        }
         IEnumerable<ParsedXmlElement> values = rule.AuthorityRuleId switch
         {
             "2035" => applicants.SelectMany(applicant => Children(applicant, "submission-description")),
