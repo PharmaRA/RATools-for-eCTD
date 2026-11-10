@@ -9,7 +9,10 @@ $build=Get-Content -LiteralPath (Join-Path $Evidence 'build.json') -Raw | Conver
 $guard=Join-Path $PSScriptRoot 'NativeNoDelete.cs';$probe=Join-Path $Evidence 'GuardProbe.dll'
 if((Get-FileHash -LiteralPath $guard -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.guardSourceSha256 -or (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.assemblySha256){throw 'Guard/source build identity changed'}
 if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'RetainedMovePolicy.cs') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $build.retainedMovePolicySha256){throw 'Move policy identity changed'}
-Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'),(Join-Path $PSScriptRoot 'RetainedMovePolicy.cs'),(Join-Path $PSScriptRoot 'RetainedMoveTests.cs'))
+$inputs=Get-Content -LiteralPath (Join-Path $Evidence 'qualification-inputs.json') -Raw|ConvertFrom-Json -AsHashtable
+foreach($entry in $inputs.GetEnumerator()){if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $entry.Key)).Hash.ToLowerInvariant() -ne $entry.Value){throw 'Qualification source identity changed'}}
+if($inputs.Count -ne 8){throw 'Qualification input inventory incomplete'}
+Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'),(Join-Path $PSScriptRoot 'RetainedMovePolicy.cs'),(Join-Path $PSScriptRoot 'RetainedMoveTests.cs'),(Join-Path $PSScriptRoot 'FixtureRetentionTests.cs'))
 if([GuardPolicyTests]::Run() -ne 25){throw 'Policy preflight failed'}
 $dotnet=Join-Path $repo '.artifacts/tools/dotnet-8.0.423/dotnet.exe'
 $summary=@{passed=$false;steps=@();scope='Windows x64 guarded compiler and synthetic permission/process probes, not remaining19 native acceptance'}
@@ -21,6 +24,7 @@ try {
     @{name='after-patch';mode='parent';timeout=30;fault='after-patch';expected=1;guarded=1},
     @{name='timeout';mode='wait';timeout=4;fault='none';expected=124;guarded=1},
     @{name='retained-move';mode='move';timeout=30;fault='none';expected=0;guarded=1;move=$true},
+    @{name='fixture-retention';mode='fixture';timeout=60;fault='none';expected=0;guarded=1;fixture=$true},
     @{name='cli-initialization';mode='cli';timeout=30;fault='none';expected=0;guarded=1;cli=$true}
  )) {
     $run=Join-Path $Evidence $case.name
@@ -28,6 +32,7 @@ try {
     New-Item -ItemType Directory -Path $run | Out-Null
     $probeRoot=$run;$moveRoot=$null;$cliRoot=$null;$cliExe=$null;$cliSha=$null
     if($case.move){$moveRoot=Join-Path $run 'fixtures';New-Item -ItemType Directory -Path $moveRoot | Out-Null;$probeRoot=$moveRoot}
+    if($case.fixture){$moveRoot=Join-Path $run 'fixtures';New-Item -ItemType Directory -Path $moveRoot | Out-Null;$probeRoot=$moveRoot}
     if($case.cli){$cliRoot=Join-Path $run 'fixtures';New-Item -ItemType Directory -Path $cliRoot | Out-Null;$probeRoot=$cliRoot;$cliExe=$dotnet;$cliSha=(Get-FileHash -LiteralPath $dotnet -Algorithm SHA256).Hash.ToLowerInvariant()}
     $receipt=Join-Path $run 'process.json';$log=Join-Path $run 'probe.log'
     $code=[NativeNoDelete]::Run($dotnet,@($probe,$case.mode,$probeRoot),$repo,$log,$receipt,$case.timeout,$case.fault,$moveRoot,$cliRoot,$cliExe,$cliSha)
@@ -51,11 +56,20 @@ try {
       if($row.passed -ne $true -or $row.rejectionAndPassthroughChecks -ne 17){throw 'Move probe did not complete existing guard assertions'}
     }
     if($case.cli){$decisions=@($result.events | Where-Object kind -eq 'move-decision');if(@($decisions | Where-Object allowed -eq $true).Count -ne 5 -or @($decisions | Where-Object allowed -eq $false).Count -lt 1){throw 'CLI initialization permission/refusal evidence incomplete'}}
+    if($case.fixture){
+      $decisions=@($result.events|Where-Object kind -eq 'move-decision');$accepted=@($decisions|Where-Object allowed -eq $true)
+      $expected=@('package-capture-retention','package-upload-retention','package-missing-input-retention','package-fixture-retention')
+      if($accepted.Count -ne 4 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -eq 'unsupported-class-or-length'}).Count -ne 2 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -ne 'unsupported-class-or-length'}).Count -ne 3 -or (@($accepted.relation|Sort-Object)-join ',') -ne (@($expected|Sort-Object)-join ',')){throw 'Fixture retention decisions incomplete'}
+      $row=Get-Content -LiteralPath $log -Raw|ConvertFrom-Json;if(-not $row.passed -or $row.rejectionAndPassthroughChecks -ne 17){throw 'Fixture retention probe failed'}
+    }
     if($case.name -in @('before-patch','after-patch','timeout') -and $result.forcedTreeStop -ne $true){throw 'Fault cleanup did not terminate its owned process'}
     $summary.steps+=@{name=$case.name;expectedExit=$case.expected;exitCode=$code;guarded=$result.guardedProcesses;jobProcesses=$result.totalJobProcesses;stopped=$result.processTreeStopped}
  }
  $summary.retainedMovePathChecks=[RetainedMoveTests]::Run((Join-Path $Evidence 'move-path-checks'))
  if($summary.retainedMovePathChecks -ne 14){throw 'Move path checks incomplete'}
+ $summary.fixtureRetentionPathChecks=[FixtureRetentionTests]::Run((Join-Path $Evidence 'fixture-path-checks'))
+ if($summary.fixtureRetentionPathChecks -ne 18){throw 'Fixture retention path checks incomplete'}
+ $summary.qualificationInputsSha256=(Get-FileHash -LiteralPath (Join-Path $Evidence 'qualification-inputs.json')).Hash.ToLowerInvariant()
  $summary.passed=$true
 } finally {
  $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $Evidence 'verification.json')

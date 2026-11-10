@@ -75,6 +75,26 @@ public static class GuardProbe
                 try{File.Move(refused,Path.Combine(root,"wrong.pdf"));throw new InvalidOperationException("Unexpected promotion accepted");}catch(UnauthorizedAccessException){}
                 Need(File.ReadAllText(refused)=="refused-retained"&&!File.Exists(Path.Combine(root,"wrong.pdf")),"Rejected move changed bytes");
             }
+            if(args[0]=="fixture"){
+                string G()=>Guid.NewGuid().ToString("N");
+                string fixture=Path.Combine(root,G()),recycle=Path.Combine(root,"_recycle");Directory.CreateDirectory(fixture);Directory.CreateDirectory(recycle);
+                string captures=Path.Combine(fixture,"validation","captures"),capture=Path.Combine(captures,"input-"+G());Directory.CreateDirectory(capture);Directory.CreateDirectory(Path.Combine(captures,"_recycle"));
+                string payload=G();File.WriteAllText(Path.Combine(capture,payload),"capture-retained");
+                string captured=Path.Combine(captures,"_recycle",Path.GetFileName(capture)+"-"+G());Directory.Move(capture,captured);Need(!Directory.Exists(capture)&&File.ReadAllText(Path.Combine(captured,payload))=="capture-retained","Capture retention changed bytes");
+                string inputs=Path.Combine(fixture,"validation","inputs"),upload=Path.Combine(inputs,G());Directory.CreateDirectory(upload);Directory.CreateDirectory(Path.Combine(inputs,"_recycle"));File.WriteAllText(Path.Combine(upload,"package.zip"),"upload-retained");
+                string uploaded=Path.Combine(inputs,"_recycle",Path.GetFileName(upload)+"-"+G());Directory.Move(upload,uploaded);Need(!Directory.Exists(upload)&&File.ReadAllText(Path.Combine(uploaded,"package.zip"))=="upload-retained","Upload retention changed bytes");
+                string source=Path.Combine(fixture,"source","0000","index.xml");Directory.CreateDirectory(Path.GetDirectoryName(source));File.WriteAllText(source,"source-retained");
+                string collision=Path.Combine(recycle,G()+"-index.xml");File.WriteAllText(collision,"existing-retained");
+                foreach(string rejected in new[]{collision,Path.Combine(root,"unknown.xml"),Path.Combine(Path.GetDirectoryName(root),G()+"-index.xml")}){
+                    try{File.Move(source,rejected,true);throw new InvalidOperationException("Unexpected fixture rename accepted");}catch(UnauthorizedAccessException){}
+                    Need(File.ReadAllText(source)=="source-retained","Rejected fixture move changed source");
+                }
+                Need(File.ReadAllText(collision)=="existing-retained","Replacement changed target");
+                string fileTarget=Path.Combine(recycle,G()+"-index.xml");File.Move(source,fileTarget);Need(!File.Exists(source)&&File.ReadAllText(fileTarget)=="source-retained","Missing-file retention changed bytes");
+                string ownedTarget=Path.Combine(recycle,G()+"-"+Path.GetFileName(fixture));Directory.Move(fixture,ownedTarget);
+                Need(!Directory.Exists(fixture)&&File.ReadAllText(Path.Combine(ownedTarget,Path.GetRelativePath(fixture,Path.Combine(captured,payload))))=="capture-retained"&&
+                    File.ReadAllText(Path.Combine(ownedTarget,Path.GetRelativePath(fixture,Path.Combine(uploaded,"package.zip"))))=="upload-retained","Fixture retention changed descendants");
+            }
             if(args[0]=="cli"){
                 string config=Path.Combine(root,"profile",".config","instabox","ssh");Directory.CreateDirectory(config);
                 string configSource=Path.Combine(config,".id_ed25519.tmp-123456"),configTarget=Path.Combine(config,"id_ed25519");

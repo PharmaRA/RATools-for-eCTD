@@ -25,10 +25,10 @@ public static class RetainedMovePolicy
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
     static void Need(bool ok){if(!ok)throw new Win32Exception(Marshal.GetLastWin32Error());}
     static bool Same(string a,string b)=>string.Equals(a,b,StringComparison.OrdinalIgnoreCase);
-    static bool Exists(string path){uint attr=GetFileAttributesW(path);if(attr!=uint.MaxValue)return true;int error=Marshal.GetLastWin32Error();if(error==2||error==3)return false;throw new Win32Exception(error);}
+    static bool Exists(string path){uint attr=GetFileAttributesW(@"\\?\"+path);if(attr!=uint.MaxValue)return true;int error=Marshal.GetLastWin32Error();if(error==2||error==3)return false;throw new Win32Exception(error);}
     static void PlainAncestors(string path){for(string p=path;p!=null;p=Path.GetDirectoryName(p)){if(!Exists(p))continue;if((File.GetAttributes(p)&FileAttributes.ReparsePoint)!=0)throw new IOException("Reparse ancestor refused");}}
     static FileIdentity Identity(string path){
-        IntPtr handle=CreateFileW(path,0x80,7,IntPtr.Zero,3,0x02200000,IntPtr.Zero);if(handle==new IntPtr(-1))throw new Win32Exception(Marshal.GetLastWin32Error());
+        IntPtr handle=CreateFileW(@"\\?\"+path,0x80,7,IntPtr.Zero,3,0x02200000,IntPtr.Zero);if(handle==new IntPtr(-1))throw new Win32Exception(Marshal.GetLastWin32Error());
         try{Need(GetFileInformationByHandle(handle,out var id));if((id.attributes&0x400)!=0||id.links!=1)throw new IOException("Link or multiple names refused");return id;}finally{CloseHandle(handle);}
     }
     static string Local(string path){
@@ -49,6 +49,7 @@ public static class RetainedMovePolicy
         if(!Exists(source)||Exists(destination)||!Directory.Exists(Path.GetDirectoryName(destination)))throw new IOException("Source/target existence precondition failed");
         var identity=Identity(source);var parent=Identity(Path.GetDirectoryName(destination));
         if(identity.volume!=parent.volume)throw new IOException("Cross-volume move refused");
+        if(!cliInitialization){string fixture=FixtureRelation(root,source,destination,identity);if(fixture!=null)return fixture;}
         if((identity.attributes&0x10)==0){
             string ssh=Path.Combine(root,"profile",".config","instabox","ssh");
             string configName=Path.GetFileName(destination);
@@ -68,6 +69,41 @@ public static class RetainedMovePolicy
         var files=Directory.GetFileSystemEntries(source);if(files.Length!=1)throw new IOException("Assembly promotion requires exactly one file");
         PlainAncestors(files[0]);var child=Identity(files[0]);if((child.attributes&0x10)!=0)throw new IOException("Nested assembly directory refused");
         return "assembly-source-promotion";
+    }
+    static bool GuidPart(string value)=>Regex.IsMatch(value,@"^[0-9a-f]{32}$",RegexOptions.CultureInvariant);
+    static void InspectTree(string source,uint volume,string shape){
+        var pending=new System.Collections.Generic.Stack<(string path,int depth)>();pending.Push((source,0));int count=0;
+        while(pending.Count>0){var item=pending.Pop();if(++count>10000||item.depth>32)throw new IOException("Retention tree budget exceeded");
+            PlainAncestors(item.path);var id=Identity(item.path);if(id.volume!=volume)throw new IOException("Retention tree crosses volume");
+            if((id.attributes&0x10)==0)continue;
+            foreach(string entry in Directory.EnumerateFileSystemEntries(item.path)){
+                if(shape!="tree"){
+                    PlainAncestors(entry);var child=Identity(entry);
+                    if((child.attributes&0x10)!=0||child.volume!=volume)throw new IOException("Flat retention contents required");
+                    string name=Path.GetFileName(entry);
+                    if(shape=="capture"?!GuidPart(name):name!="package.zip")throw new IOException("Unexpected retention file name");
+                }
+                pending.Push((entry,item.depth+1));
+                if(pending.Count+count>10000)throw new IOException("Retention tree budget exceeded");
+            }
+        }
+    }
+    static string FixtureRelation(string root,string source,string destination,FileIdentity identity){
+        string[] s=Path.GetRelativePath(root,source).Split('\\'),d=Path.GetRelativePath(root,destination).Split('\\');
+        if(s.Length==0||!GuidPart(s[0]))return null;
+        bool directory=(identity.attributes&0x10)!=0;
+        if(directory&&s.Length==1&&d.Length==2&&d[0]=="_recycle"&&d[1].Length==65&&GuidPart(d[1].Substring(0,32))&&d[1].Substring(32)=="-"+s[0]){
+            InspectTree(source,identity.volume,"tree");return "package-fixture-retention";
+        }
+        if(directory&&s.Length==4&&s[1]=="validation"&&d.Length==5&&d[0]==s[0]&&d[1]==s[1]&&d[2]==s[2]&&d[3]=="_recycle"&&
+            d[4].StartsWith(s[3]+"-",StringComparison.Ordinal)&&GuidPart(d[4].Substring(s[3].Length+1))){
+            if(s[2]=="captures"&&s[3].StartsWith("input-",StringComparison.Ordinal)&&GuidPart(s[3].Substring(6))){InspectTree(source,identity.volume,"capture");return "package-capture-retention";}
+            if(s[2]=="inputs"&&GuidPart(s[3])){InspectTree(source,identity.volume,"upload");return "package-upload-retention";}
+        }
+        if(!directory&&s.Length==4&&s[1]=="source"&&(s[2]=="0000"||s[2]=="0001")&&s[3]=="index.xml"&&
+            d.Length==2&&d[0]=="_recycle"&&d[1].Length==42&&GuidPart(d[1].Substring(0,32))&&d[1].Substring(32)=="-index.xml")
+            return "package-missing-input-retention";
+        return null;
     }
     static byte[] Read(IntPtr process,long address,int count){var data=new byte[count];Need(ReadProcessMemory(process,new IntPtr(address),data,(UIntPtr)(uint)count,out var n));if(n.ToUInt64()!=(ulong)count)throw new IOException("Incomplete rename request read");return data;}
     public static object Decide(IntPtr process,uint pid,long creation,uint threadId,string root,IntPtr trap,IntPtr original,bool cliMode=false,bool cliCaller=false){

@@ -4,7 +4,20 @@ namespace RATools.Tests.PackageValidation;
 // trees, so a missing-file scenario cannot accidentally add a package input.
 internal static class RetainedPackageTestFiles
 {
-    private static string Parent => Path.GetFullPath(Path.Combine(PackageRuleCatalogTests.Root, ".artifacts", "package-regression"));
+    private static readonly Lazy<string> BoundParent = new(ResolveParent);
+    private static string Parent => BoundParent.Value;
+    private static string ResolveParent()
+    {
+        var configured = Environment.GetEnvironmentVariable("RATOOLS_TEST_RETENTION_ROOT");
+        if (configured is null) return Path.GetFullPath(Path.Combine(PackageRuleCatalogTests.Root, ".artifacts", "package-regression"));
+        var allowed = Path.GetFullPath(Path.Combine(PackageRuleCatalogTests.Root, ".artifacts", "local-check")) + Path.DirectorySeparatorChar;
+        if (string.IsNullOrWhiteSpace(configured) || !Path.IsPathFullyQualified(configured) ||
+            !string.Equals(configured, Path.GetFullPath(configured), Comparison) || !configured.StartsWith(allowed, Comparison))
+            throw new InvalidOperationException("The retention fixture root must be an explicit canonical task path under local-check.");
+        EnsureNoLinks(configured);
+        if (!Directory.Exists(configured)) throw new InvalidOperationException("The runner must create the owned retention root before tests start.");
+        return configured;
+    }
     private static StringComparison Comparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     // Audited fixtures may move/recycle their own files. Keep them outside the
