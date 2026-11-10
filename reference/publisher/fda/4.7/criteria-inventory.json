@@ -2088,10 +2088,17 @@
       "correctiveAction": "Include a supplement-effective-date-type in the first submission to a new supplement.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2041"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1ConditionalPolicy.cs",
+          "reference/publisher/fda/4.7/m1-conditional-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3, bound selection date on or after 2015-06-15. M1 2.6 Tables 2/3: efficacy, CMC, labeling and REMS supplements with application subtype require an explicit nonblank effective-date type. Each application is evaluated independently; unknown or ambiguous applicability remains NotEvaluated. Presence only; dictionary validity belongs to 2013. Windows selected acceptance is recorded in conditional-verification.json; no external or Formal qualification."
       }
     },
     {
@@ -2172,10 +2179,17 @@
       "correctiveAction": "Reference the form in the m1-1-forms section and not in submission-information in the admin section of the us- regional.xml.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2045"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaM1ConditionalPolicy.cs",
+          "reference/publisher/fda/4.7/m1-conditional-policy.json",
+          "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+          "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+        ],
+        "note": "US M1 DTD 3.3, bound selection date on or after 2015-06-15. M1 2.6 Table 10: forms directly under administrative submission-information allow only Form FDA 1571 and Form FDA 356h. Missing form types remain NotEvaluated; this does not claim all M1 placement or patent form rules. Windows selected acceptance is recorded in conditional-verification.json; no external or Formal qualification."
       }
     },
     {

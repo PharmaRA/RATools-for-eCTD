@@ -10,6 +10,7 @@
     <EmbeddedResource Include="..\..\reference\publisher\ich-3.2.2-node-paths.json" LogicalName="RATools.IchNodePaths" />
     <EmbeddedResource Include="..\..\reference\publisher\package-rules-v1.json" LogicalName="RATools.PackageValidationCatalog" />
     <EmbeddedResource Include="..\..\reference\publisher\fda\4.7\m1-attribute-policy.json" LogicalName="RATools.FdaM1AttributePolicy" />
+    <EmbeddedResource Include="..\..\reference\publisher\fda\4.7\m1-conditional-policy.json" LogicalName="RATools.FdaM1ConditionalPolicy" />
     <EmbeddedResource Include="..\..\reference\publisher\package-xml-assets-v1.json" LogicalName="RATools.PackageXmlAssetManifest" />
     <EmbeddedResource Include="..\..\reference\dtd\ich-ectd-3-2.dtd" LogicalName="RATools.PackageXml.ich-dtd" />
     <EmbeddedResource Include="..\..\reference\dtd\us-regional-v3-3.dtd" LogicalName="RATools.PackageXml.us-dtd" />

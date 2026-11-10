@@ -24,7 +24,7 @@
 | QA07-03-F Formal实现与链路 | [ReleaseCapturePlanner](../../src/RATools.Application/Finalization/ReleaseCapturePlanner.cs)在有snapshot的Formal分支无条件追加`RegionalBusinessContextUnconfirmed`；[FinalizationService](../../src/RATools.Application/Finalization/FinalizationService.cs)要求Formal、ready及manifest绑定ZIP。仅补外部文件不会自动打开成功路径。 | 持久化区域上下文与验证结果一致性检查的实现/回归；有资格的快照/样例；真实API+Chromium的Formal捕获→ZIP核对→交付登记→回执登记→重启复读；缺失、过期、上下文或ZIP不匹配的拒绝证据。 | 资格满足后原业务入口成功，数据库与不可变ZIP/回执一致；无资格与Development仍拒绝交付。禁止直接删门禁、手动把Unverified改Verified或伪造实际提交回执。受控验收记录必须标明测试渠道。 |
 | QA07-04-P Linux Python | [PdfContentProcess](../../src/RATools.Infrastructure/DocumentProcessing/PdfContentProcess.cs)拒绝非Windows；[PythonPdfContentEngine](../../src/RATools.Infrastructure/DocumentProcessing/PythonPdfContentEngine.cs)返回`CONTENT_HOST_RESOURCE_ENFORCEMENT_NOT_QUALIFIED`。这是未实现/未资格能力，不是测试失败或零成本平台切换。 | Linux内容宿主实现及独立资源/禁删保护；固定Python/PyMuPDF/qpdf及所需模型；真实内容处理与原业务断言，内存/CPU/取消/异常及整棵进程树停止证据。 | Linux真实执行、不跳过、不走拒绝早退；业务输出和资源约束均通过。若只交付Windows内容能力，须另有明确范围修订记录；本次整理未批准或假定该豁免。 |
 
-执行顺序：05-S已关闭；按用户确认，QA07-05-R直接以已核实FDA4.7全文建立原子规则与适用范围映射，不以旧版差异对比为前置。当前147条来源清单中已实施18条，129条完整覆盖待评估；本批新增M1十字典、16组必填属性与11行提交组合，最新479项选定回归通过（前378+新101），见[FDA4.7属性验收](QA-07-FDA47-ATTRIBUTES.md)。同时落实05-V的实际工具/规则包输入。QA07-04-P是独立工程工作；QA07-03-F的上下文实现可先修复并验证拒绝路径，正式成功验收须待R/V资格条件满足。每项只以本表通过条件关闭，不以“环境已就绪”代替业务验收。
+执行顺序：05-S已关闭；05-R继续依据已核实FDA4.7全文逐条实施。当前147条中20条已实施、127条完整覆盖待评估；最新2041／2045和补充生效类型输入链路通过543项选定回归、前端19项及最终只读复审，见[本批验收](QA-07-FDA47-CONDITIONAL-RULES.md)。用户确认目前无可用外部验证器，[对照准备](QA-07-EXTERNAL-COMPARISON-PREPARATION.md)不代替05-V实际执行。04-P仍为独立工程工作；03-F上下文实现可先推进，正式成功验收仍依赖R/V资格条件。本表关闭条件保持不变。
 
 ## 3. 更广工程声明及已解决的前置
 

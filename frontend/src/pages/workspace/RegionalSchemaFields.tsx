@@ -29,7 +29,9 @@ export function RegionalSchemaFields({ fields, value, disabled, nodes, placement
       return condition.values.includes(String(external ?? regionalValueAt(value, target) ?? ''))
     }
     const applicable = conditions.filter(condition => condition.effect === 'visible').every(matches)
+    const allRequired = conditions.filter(condition => condition.effect === 'required-all')
     const required = field.required || conditions.some(condition => condition.effect === 'required' && matches(condition))
+      || (allRequired.length > 0 && allRequired.every(matches))
     const changed = [...editedPaths].some(edited => name === edited || name.startsWith(edited + '.') || name.startsWith(edited + '['))
     const origin = provenance.find(item => item.fieldPath === name)
     const source = field.source

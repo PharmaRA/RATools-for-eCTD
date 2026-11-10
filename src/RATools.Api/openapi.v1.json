@@ -14259,6 +14259,10 @@
           "submissionIdentifier": {
             "type": "string",
             "nullable": true
+          },
+          "supplementEffectiveDateType": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

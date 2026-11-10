@@ -21,6 +21,13 @@ public sealed partial class UsRegionalXmlWriter
             Require(package, "us." + field, value);
         if (us.ApplicantIdentifier!.Length != 9 || us.ApplicantIdentifier.Any(value => value is < '0' or > '9'))
             throw MetadataError(package, "us.applicantIdentifier", "requires an explicit nine-digit applicant/company identifier (FDA 2044); correct the regional metadata without substituting the application number");
+        var supplementApplication = (us.SubmissionType is "fdast2" or "fdast3" or "fdast4" or "fdast11") && us.SubmissionSubtype == "fdasst3";
+        if (supplementApplication)
+            Require(package, "us.supplementEffectiveDateType", us.SupplementEffectiveDateType);
+        if (us.SupplementEffectiveDateType is not null and not ("fdasedt1" or "fdasedt2" or "fdasedt3"))
+            throw MetadataError(package, "us.supplementEffectiveDateType", "requires an explicit supported official code; correct the saved draft without guessing or trimming the value");
+        if (us.SupplementEffectiveDateType is not null && !supplementApplication)
+            throw MetadataError(package, "us.supplementEffectiveDateType", "cannot emit a supplement effective date outside a supported supplement with application subtype; explicitly clear the retained value or correct the submission metadata");
         if (us.Contacts.Count == 0) throw MetadataError(package, "us.contacts", "requires one or more explicit contacts");
         for (var index = 0; index < us.Contacts.Count; index++)
         {
@@ -96,7 +103,8 @@ public sealed partial class UsRegionalXmlWriter
                     new XElement("emails", contact.Emails.Select(email => new XElement("email", email.Value))))))),
             new XElement("application-set", new XElement("application", new XAttribute("application-containing-files", "true"),
                 new XElement("application-information", new XElement("application-number", new XAttribute("application-type", us.ApplicationType!), us.ApplicationIdentifier)),
-                new XElement("submission-information", new XElement("submission-id", new XAttribute("submission-type", us.SubmissionType!), us.SubmissionIdentifier),
+                new XElement("submission-information", new XElement("submission-id", new XAttribute("submission-type", us.SubmissionType!),
+                    us.SupplementEffectiveDateType is null ? null : new XAttribute("supplement-effective-date-type", us.SupplementEffectiveDateType), us.SubmissionIdentifier),
                     new XElement("sequence-number", new XAttribute("submission-sub-type", us.SubmissionSubtype!), package.SequenceNumber)))));
     }
 

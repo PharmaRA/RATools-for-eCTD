@@ -6,7 +6,7 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v5";
+    public const string RegionalEngineVersion = "package-regional-inspector-v6";
     private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
@@ -48,6 +48,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
                         continue;
                     }
                     if (sequenceContext.SelectionDate < Fda47RegionalRules.EffectiveFrom(rule)) continue;
+                    if (Fda47RegionalRules.UsesConditionalPolicy(rule) && sequenceContext.FdaM1ConditionalPolicy is null)
+                    {
+                        Add(rule, CheckStatus.NotEvaluated, "FDA_M1_CONDITIONAL_SOURCES_UNBOUND", "Conditional M1 checks require the supported captured policy and official source bytes.", new(sequence, sequence + "/" + regionalProfile.DefaultRelativePath));
+                        continue;
+                    }
                     if (Fda47RegionalRules.UsesAttributePolicy(rule) && sequenceContext.FdaM1Policy is null)
                     {
                         Add(rule, CheckStatus.NotEvaluated, "FDA_M1_SOURCES_UNBOUND", "M1 attribute checks require the supported captured policy and official source bytes.", new(sequence, sequence + "/" + regionalProfile.DefaultRelativePath));
@@ -119,7 +124,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         private void InspectUs()
         {
             static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? FdaM1AttributePolicy.Attribute(element, field[1..]) : element.Text;
-            if (Fda47RegionalRules.UsesAttributePolicy(rule))
+            if (Fda47RegionalRules.UsesConditionalPolicy(rule))
+                context.FdaM1ConditionalPolicy!.Inspect(document, rule.AuthorityRuleId!, (element, field, message) =>
+                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
+                    (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
+            else if (Fda47RegionalRules.UsesAttributePolicy(rule))
                 context.FdaM1Policy!.Inspect(document, rule.AuthorityRuleId!, (element, field, message) =>
                     Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
                     (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));

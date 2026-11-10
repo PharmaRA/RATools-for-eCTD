@@ -40,7 +40,8 @@ def verify_package_rule_catalog() -> None:
         else:
             project_sources = {"ratools-publisher-contract-v1": "reference/publisher/contracts-v1.json",
                                "ratools-package-xml-assets-v1": "reference/publisher/package-xml-assets-v1.json",
-                               "ratools-fda-m1-attributes-v1": "reference/publisher/fda/4.7/m1-attribute-policy.json"}
+                               "ratools-fda-m1-attributes-v1": "reference/publisher/fda/4.7/m1-attribute-policy.json",
+                               "ratools-fda-m1-conditional-v1": "reference/publisher/fda/4.7/m1-conditional-policy.json"}
             assert source["sha256"] == hashlib.sha256((ROOT / project_sources[source["id"]]).read_bytes()).hexdigest()
 
     xml_assets = json.loads((ROOT / "reference/publisher/package-xml-assets-v1.json").read_text(encoding="utf-8"))

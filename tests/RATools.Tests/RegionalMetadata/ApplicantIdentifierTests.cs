@@ -92,11 +92,11 @@ public sealed class ApplicantIdentifierTests
         Assert.Equal("009876543", new UsRegionalXmlWriter().Write(await rig.Builder().BuildAsync(new(rig.App.Id, "0001"))).Document.Descendants("id").Single().Value);
     }
 
-    private static RegionalMetadataContent Content(string? applicant) => new(1, "US", Us: new("000001", "nda", "Synthetic Applicant",
+    internal static RegionalMetadataContent Content(string? applicant) => new(1, "US", Us: new("000001", "nda", "Synthetic Applicant",
         [new(Guid.NewGuid(), "Contact", "regulatory", [new(Guid.NewGuid(), "5550100", "business")], [new(Guid.NewGuid(), "synthetic@example.test")])],
         "original-application", "application", null, "Synthetic submission", applicant, "0001"));
 
-    private sealed class Rig
+    internal sealed class Rig
     {
         public required SubmissionApplication App { get; init; }
         public required InMemoryApplicationRepository Apps { get; init; }

@@ -72,6 +72,23 @@ it('makes finalized fields and collection operations read-only', () => {
   expect(document.querySelector<HTMLButtonElement>('button[aria-label="新增 names"]')!.disabled).toBe(true)
 })
 
+it('requires a supplement value only when all declared conditions match and retains it after switching', () => {
+  render([field('us', 'object', { fields: [field('submissionType'), field('submissionSubtype'), field('supplementEffectiveDateType', 'enum', {
+    options: ['fdasedt1', 'fdasedt2', 'fdasedt3'], conditions: [
+      { fieldPath: 'us.submissionType', values: ['fdast2', 'fdast3', 'fdast4', 'fdast11'], description: 'Supplement', effect: 'required-all' },
+      { fieldPath: 'us.submissionSubtype', values: ['fdasst3'], description: 'Application', effect: 'required-all' },
+    ],
+  })] })], { us: { submissionType: 'fdast4', submissionSubtype: 'fdasst4', supplementEffectiveDateType: 'fdasedt2' } })
+  const input = () => document.querySelector<HTMLInputElement>('input[aria-label="us.supplementEffectiveDateType"]')!
+  expect(input().getAttribute('aria-required')).toBe('false')
+  edit('us.submissionSubtype', 'fdasst3')
+  expect(input().getAttribute('aria-required')).toBe('true')
+  edit('us.submissionType', 'fdast1')
+  expect(input().getAttribute('aria-required')).toBe('false')
+  expect(input().value).toBe('fdasedt2')
+  expect(latest.us).toEqual({ submissionType: 'fdast1', submissionSubtype: 'fdasst3', supplementEffectiveDateType: 'fdasedt2' })
+})
+
 it('keeps related-sequence input visible for response when an initial-unit condition is guidance', () => {
   render([field('submissionUnit'), field('relatedSequences', 'collection', { identityField: 'id', fields: [field('sequenceNumber')],
     conditions: [{ fieldPath: 'submissionUnit', values: ['initial', 'reformat'], description: 'Initial uses current; response uses earlier', effect: 'guidance' }] })],

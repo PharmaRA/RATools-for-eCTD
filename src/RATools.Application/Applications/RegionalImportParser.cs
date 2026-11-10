@@ -77,7 +77,7 @@ public static class RegionalImportParser
             }
             content = new(1, "US", Us: new(Scalar(number), Attr(number, "application-type"), Value(applicant, "company-name"), contacts,
                 Attr(One(submission, "submission-id"), "submission-type"), Attr(sequence, "submission-sub-type"), Attr(One(submission, "form"), "form-type"), Value(applicant, "submission-description"),
-                Value(applicant, "id"), Value(submission, "submission-id")));
+                Value(applicant, "id"), Value(submission, "submission-id"), Attr(One(submission, "submission-id"), "supplement-effective-date-type")));
             foreach (var value in root.Descendants().Where(value => value.Name.LocalName == "cross-reference-application-number"))
                 diagnostics.Add(new("RegionalUnmappedValue", Path(value), "This value has no typed regional field and remains in the hash-bound original XML."));
         }
@@ -151,7 +151,6 @@ public static class RegionalImportParser
                 if (!attributes.TryGetValue(element.Name.LocalName, out var names) || !names.Contains(name))
                     diagnostics.Add(new("RegionalUnknownAttribute", Path(element) + "/@" + name, "Unknown regional attribute remains in the original XML evidence."));
                 else if (!isEu && (element.Name.LocalName, name) is
-                    ("submission-id", "supplement-effective-date-type") or
                     ("application", "application-containing-files") or
                     ("m1-15-promotional-material", "promotional-material-audience-type") or
                     ("m1-15-2-materials", "promotional-material-doc-type") or

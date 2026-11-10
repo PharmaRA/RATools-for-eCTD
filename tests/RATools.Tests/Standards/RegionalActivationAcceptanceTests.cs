@@ -176,7 +176,7 @@ public sealed class RegionalActivationAcceptanceTests
         var current = PackageDeliveryInspector.VersionFor("independent-pdf-v1");
         Assert.NotEqual(old, current);
         Assert.StartsWith("package-delivery-v4;", current, StringComparison.Ordinal);
-        Assert.Contains("package-regional-inspector-v5", current, StringComparison.Ordinal);
+        Assert.Contains("package-regional-inspector-v6", current, StringComparison.Ordinal);
     }
 
     private static string Sha(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using RATools.Domain.Standards;
+using RATools.Application.PackageValidation;
 
 namespace RATools.Application.RegionalMetadata;
 
@@ -44,6 +45,11 @@ internal static class RegionalMetadataSchema
         if (region == "US")
         {
             const string us = "xml-us-dtd";
+            var conditional = FdaM1ConditionalPolicy.FromSnapshot(snapshot);
+            RegionalFieldDescriptor Official(string key, string attribute, string resource, string element, bool required = false) => conditional is null
+                ? Enum(key, us, element, attribute, required)
+                : new(key, key, "enum", required, conditional.Values(attribute), [], Conditions: [], Source: Source(resource, element + "/@" + attribute),
+                    BusinessEvidence: "选项来自所选标准快照的官方有效码值；原有非标准值保留供修正。完整区域资格另行验收。" );
             var contacts = Collection("contacts", true, Text("id", true), Text("name", true), Enum("type", us, "applicant-contact-name", "applicant-contact-type", true),
                 Collection("phones", true, Text("id", true), Text("number", true), Enum("type", us, "telephone", "telephone-number-type", true)),
                 Collection("emails", true, Text("id", true), Text("value", true)));
@@ -53,10 +59,18 @@ internal static class RegionalMetadataSchema
                     ? Source("official-fda-criteria", "FDA Validation Criteria 4.7, p. 53, error 2044; admin/applicant-info/id") : Source(us, "admin/applicant-info/id"),
                 BusinessEvidence = "填写独立的9位申请人／公司编号，保留前导零；六位申请号不能代替此编号。缺失或格式不正确时可保存草稿，发布前须补正。" },
                 Text("submissionIdentifier", true) with { Source = Source(us, "admin/application-set/application/submission-information/submission-id"), BusinessEvidence = "Explicit submission business identifier; no sequence number is inferred." },
-                Enum("submissionType", us, "submission-id", "submission-type", true), Enum("submissionSubtype", us, "sequence-number", "submission-sub-type", true),
-                Enum("formType", us, "form", "form-type"), Text("description", true)])];
+                Official("submissionType", "submission-type", "official-fda-submission-types", "submission-id", true),
+                Official("submissionSubtype", "submission-sub-type", "official-fda-submission-subtypes", "sequence-number", true),
+                Official("supplementEffectiveDateType", "supplement-effective-date-type", "official-fda-supplement-effective-types", "submission-id") with {
+                    Label = "补充申请生效类型",
+                    Conditions = conditional is null ? [] : [
+                        new("us.submissionType", conditional.SupplementSubmissionTypes, "效力、CMC、标签或REMS补充申请", "required-all"),
+                        new("us.submissionSubtype", ["fdasst3"], "与application子类型同时满足时必填；变更类型保留原值供修正。", "required-all")],
+                    BusinessEvidence = conditional is null ? "选定快照未提供已绑定的条件策略；不能确认官方码值和适用条件。" : "fdasedt1：PAS；fdasedt2：CBE-0；fdasedt3：CBE-30。请选择明确适用的生效类型，不根据序列号推断。" },
+                Official("formType", "form-type", "official-fda-form-types", "form") with { Label = "M1表单类型",
+                    BusinessEvidence = "此字段供M1表单文档使用。行政区submission-information中的表单仅允许FDA 1571（fdaft1）和356h（fdaft2）；其他表单应放在其指定的M1位置。" }, Text("description", true)])];
             shared = [Object("us", shared)];
-            context = [Text("country"), Text("language"), Text("productInformationType"), Enum("formType", us, "form", "form-type")];
+            context = [Text("country"), Text("language"), Text("productInformationType"), Official("formType", "form-type", "official-fda-form-types", "form")];
         }
         else
         {

@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "task": "QA07-05-R FDA 2041/2045 and supplement input",
+  "verifiedUtc": "2026-11-10T16:45:55.669952+00:00",
+  "passed": true,
+  "scope": "Selected Windows cached MSBuild/VSTest, React/jsdom, TestServer OpenAPI, static contracts and provenance",
+  "candidate": ".artifacts/local-check/fda47-conditional-20261110/green-3",
+  "newAuthorityRules": [
+    "2041",
+    "2045"
+  ],
+  "inventory": {
+    "officialRules": 147,
+    "implemented": 20,
+    "remainingCompleteCoverageNotAssessed": 127
+  },
+  "catalog": {
+    "rules": 63,
+    "previous61DefinitionsUnchanged": true,
+    "canonicalSha256": "fc6dd0cfafbd37af7fcc0e3856ead2ca568e6d2284313a736e7c0221e4bc07fc"
+  },
+  "tests": {
+    "total": 543,
+    "passed": 543,
+    "failed": 0,
+    "notExecuted": 0,
+    "original479NameMultisetPreserved": true,
+    "newCases": 64,
+    "baselineTrxSha256": "a2a0c3938bb7871f6a8386e71fdbd0cd8d88ca4ac7d0affb83562bb2adf190b7",
+    "trxSha256": "30d17f7ed102ccb35bf181c23142d59780398d62e89a7b814f1a7972268af120"
+  },
+  "build": {
+    "sourceManifestSha256": "87973e9c84f6b7b7d2e40ebae154c2bedd717369e54f0d53bea42d53e4d26f28",
+    "matchedDeliveryInputs": 18,
+    "steps": [
+      {
+        "exitCode": 0,
+        "project": "Api",
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.Api\\RATools.Api.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-conditional-20261110\\green-3\\build\\Build.props\""
+      },
+      {
+        "exitCode": 0,
+        "project": "DatabaseMigrator",
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\src\\RATools.DatabaseMigrator\\RATools.DatabaseMigrator.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-conditional-20261110\\green-3\\build\\Build.props\""
+      },
+      {
+        "exitCode": 0,
+        "project": "Tests",
+        "command": "build \"C:\\Repositories\\RATools-for-eCTD\\tests\\RATools.Tests\\RATools.Tests.csproj\" --no-restore --configuration Release --nologo --verbosity minimal -warnaserror -maxcpucount:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DirectoryBuildPropsPath=\"C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-conditional-20261110\\green-3\\build\\Build.props\""
+      }
+    ]
+  },
+  "ui": {
+    "passed": true,
+    "scope": "Selected React/jsdom tests; not live browser/API qualification",
+    "total": 19,
+    "passedTests": 19,
+    "failedTests": 0,
+    "skipped": 0
+  },
+  "processes": {
+    "green-3/build.process.json": {
+      "sha256": "cba47a2cec21afa9b92b7576791abafbeced665b856a8ae4c003307e2863acbb",
+      "exitCode": 0,
+      "guardedProcesses": 26,
+      "totalJobProcesses": 26,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "green-3/tests.process.json": {
+      "sha256": "53fb06d4ee8de2270cd850fbef69ffe0c641f51078c21c02e97fe4923ef39492",
+      "exitCode": 0,
+      "guardedProcesses": 5,
+      "totalJobProcesses": 5,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "ui-green-1/process.json": {
+      "sha256": "a646c7bc34da7d8dc48bc0f99bd7319717d7d107f058fd495e9a19ac4d8286d1",
+      "exitCode": 0,
+      "guardedProcesses": 7,
+      "totalJobProcesses": 7,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "static-types-2/process.json": {
+      "sha256": "f489b992183392fc01adf5214ca69fb3fee307b196459f710971e354ba9ced7f",
+      "exitCode": 0,
+      "guardedProcesses": 2,
+      "totalJobProcesses": 2,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "static-lint-2/process.json": {
+      "sha256": "4af2e935852c02cdf1ccfcdebe0f14c47eafb1499c6fc19977a9ecc208422367",
+      "exitCode": 0,
+      "guardedProcesses": 2,
+      "totalJobProcesses": 2,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "static-contracts-2/process.json": {
+      "sha256": "162185bac2c21db03cd9dda5c4b76a351d229d385d8de028c60f76390cbd8a16",
+      "exitCode": 0,
+      "guardedProcesses": 2,
+      "totalJobProcesses": 2,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    },
+    "static-catalog-2/process.json": {
+      "sha256": "bf71c30f3d57de05e92e867b0ce3263c3b72544fc33b94ab8c22945cde54e746",
+      "exitCode": 0,
+      "guardedProcesses": 2,
+      "totalJobProcesses": 2,
+      "assignedBeforeResume": true,
+      "processTreeStopped": true
+    }
+  },
+  "deliveryInputs": {
+    "src/RATools.Domain/RegionalMetadata/RegionalMetadataContent.cs": "61ec79be887117f40361225c07dd81f30555a39c0a6e60d09b05df4a2027ee88",
+    "src/RATools.Application/Applications/RegionalImportParser.cs": "7e972a2992e409e9b394728996bd4a07e63a992a8eb01f2898e745419fe45cae",
+    "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs": "cbe02846b77fec46c4eb70740a748a39b36edc53e1e0281c0ca07b974013a815",
+    "src/RATools.Application/PackageValidation/FdaM1ConditionalPolicy.cs": "0a0274bdbd6cc67142e43997ef64d462b335664c21da125cbb59b0fcb3844a7a",
+    "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs": "5360121083f26863076ddec5fb52658b0a90a8bb6a9ea5b4216fa1c28f2ce335",
+    "src/RATools.Application/PackageValidation/PackageStandardsContext.cs": "7eb93be1dde5d0a5dfafb3a41809dad827ffe026eb28bab3125e473c8af536a8",
+    "src/RATools.Application/Publishing/UsRegional/UsRegionalXmlTypedMetadata.cs": "fd49b3d306a6b5d0b1b3eaa672b1bfcb5e13c2edf7515fd9fcdd758dc538c38f",
+    "src/RATools.Application/RegionalMetadata/RegionalMetadataSchema.cs": "93daa7c2edb7e3080c89ded2881cbcf2fb48112c1bf1160de0acad23dd061586",
+    "src/RATools.Application/RegionalMetadata/RegionalMetadataValidation.cs": "abc9a96301ac1f65721e9ac46325685ca5b0d429db6c108b18e73aa80b7d7ed9",
+    "src/RATools.Application/Standards/StandardsSnapshotService.cs": "3d380120038e96dfaa60861265425163c93f5a6b8e94f7c1033bcd81fd09bd83",
+    "src/RATools.Application/RATools.Application.csproj": "4436c643191fb39e8f68c9653a4f99bec94a5357a6ac67efe06586bd68e5cfc8",
+    "src/RATools.Api/openapi.v1.json": "48234252c4d5ca1d6cfb783bedd6e46f4b4ad0b9be56f527052c48a99fa201e4",
+    "reference/publisher/package-rules-v1.json": "4d51efb545ca3ee1e6096742b1a6d89ef87f9b8a0c7bc797750e436f0fda0daa",
+    "reference/publisher/fda/4.7/m1-conditional-policy.json": "a3af8c7479c18843992ecdfe6b02a31c4ab437655f443fdd5099039ac2b40673",
+    "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs": "99ffde92d2171d051a0e7aa40f6d83fe4f29a92b68d58bc6365738a27a4c4496",
+    "tests/RATools.Tests/RegionalMetadata/Fda47ConditionalMetadataTests.cs": "997d434af51135c495566e14622636422100aab14299ae6d07910ba57a012a29",
+    "tests/RATools.Tests/RegionalMetadata/ApplicantIdentifierTests.cs": "79f6d33379aa6f1471458837090314ecc08eed8dcc8ab2d194e6b2c395d1ab5c",
+    "tests/RATools.Tests/Standards/RegionalActivationAcceptanceTests.cs": "16bcdedd149f2f099940066aff62d41747f3aedcf4188415800d9570ddfe6c68",
+    "frontend/src/api/generated/types.gen.ts": "283c775388d4e19511baa93707d9d717ab5a752ea5cde326a21747446dc46e6c",
+    "frontend/src/pages/workspace/RegionalSchemaFields.tsx": "c26894be7de4268caf223d73d4470c3668ea54df353053bafc5af349e600908c",
+    "frontend/src/pages/workspace/RegionalSchemaFields.test.tsx": "73ce028afe7dd66bde76e7eab08fbf219492597a781376f509ef9edf4d400449",
+    "scripts/tests/test_package_rule_catalog.py": "8f76b25c08791c2607bc0f3d4b97a2e0e074c3e862f879f4807c98fa7f7ac42a",
+    "reference/publisher/fda/4.7/criteria-inventory.json": "fcaf82863c2e5f17f48fb20feda5878ca034c93a7e6b6e7b90034071b8bf955f",
+    "reference/publisher/package-rules-v1.sha256": "078d6921a028d6196b2065e9d2673b2829018fc64c8b0ed5fbf27a77f80f3d1c"
+  },
+  "redRuns": {
+    "red-1": "479 passed / 32 missing-rule failures",
+    "inputs-red-1": "CA1861 build failure; no tests",
+    "inputs-red-2": "2 passed / 11 missing input behavior failures",
+    "ui-red-1": "18 passed / 1 combined-condition failure",
+    "review-red-1": "13 passed / 4 applicability transition failures"
+  },
+  "superseded": {
+    "green-1": "524 passed / 1 old engine assertion failure",
+    "green-2": "539 passed, superseded after applicability review finding"
+  },
+  "review": {
+    "status": "passed-final-readonly-review",
+    "fixedFinding": "Retained effective date after switching to inapplicable or unknown submission context",
+    "reviewer": "/root/conditional_rule_review",
+    "evidence": "Final code and green-3 receipts reviewed; prior applicability-transition P2 reproduced with four failing cases and closed."
+  },
+  "limitations": [
+    "No new PostgreSQL or live browser qualification",
+    "No external validator installed; preparation only",
+    "Formal success and Linux Python remain open",
+    "20/147 implemented is not complete FDA qualification",
+    "2045 does not implement complete administrative form authoring or all M1 placement rules"
+  ],
+  "metadataNote": "Official inventory retains its pre-task CRLF convention; only implementation records for 2041/2045 changed. This inventory is not a compiled build input."
+}

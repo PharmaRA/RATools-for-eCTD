@@ -7,7 +7,9 @@ internal static class Fda47RegionalRules
 {
     internal static readonly string[] Ids = ["FDA47-2035", "FDA47-2036", "FDA47-2037", "FDA47-2038", "FDA47-2042",
         "FDA47-2044", "FDA47-3036", "FDA47-3050", "FDA47-3065", "FDA47-1454", "FDA47-2023", "FDA47-2031", "FDA47-2032",
-        "FDA47-1496", "FDA47-2012", "FDA47-2013", "FDA47-2022", "FDA47-2034"];
+        "FDA47-1496", "FDA47-2012", "FDA47-2013", "FDA47-2022", "FDA47-2034", "FDA47-2041", "FDA47-2045"];
+
+    internal static bool UsesConditionalPolicy(ValidationRuleDescriptor rule) => IsOfficial(rule) && rule.AuthorityRuleId is ("2041" or "2045");
 
     internal static bool UsesAttributePolicy(ValidationRuleDescriptor rule) => IsOfficial(rule) && rule.AuthorityRuleId is ("1496" or "2012" or "2013" or "2022" or "2034");
 

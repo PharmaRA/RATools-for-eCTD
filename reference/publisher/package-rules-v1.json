@@ -59,6 +59,14 @@
       "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/fda/4.7/m1-attribute-policy.json",
       "sha256": "b4ed79e15ac4fe37e32496495c34fa209001adbb16bc784f16d1a25f0d513ed9",
       "verificationStatus": "Verified"
+    },
+    {
+      "id": "ratools-fda-m1-conditional-v1",
+      "kind": "ProjectPolicy",
+      "version": "fda-m1-conditional-v1",
+      "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/fda/4.7/m1-conditional-policy.json",
+      "sha256": "a3af8c7479c18843992ecdfe6b02a31c4ab437655f443fdd5099039ac2b40673",
+      "verificationStatus": "Verified"
     }
   ],
   "profiles": [
@@ -2101,6 +2109,70 @@
         "reference/publisher/fda/4.7/m1-attribute-policy.json",
         "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
         "tests/RATools.Tests/PackageValidation/Fda47AttributeRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2041",
+      "authorityRuleId": "2041",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 52, error 2041; official severity Medium; effective 2015-06-15",
+      "title": "Supplement-effective-date-type attribute value is missing",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3, bound selection date on or after 2015-06-15. M1 2.6 Tables 2/3: efficacy, CMC, labeling and REMS supplements with application subtype require an explicit nonblank effective-date type. Each application is evaluated independently; unknown or ambiguous applicability remains NotEvaluated. Presence only; dictionary validity belongs to 2013.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires archived fda-m1-conditional-v1 policy, exact catalog source authorization and pinned official bytes. Missing resources yield NotEvaluated. DTD prerequisites and Formal qualification remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1ConditionalPolicy.cs",
+        "reference/publisher/fda/4.7/m1-conditional-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2045",
+      "authorityRuleId": "2045",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA eCTD Validation Criteria 4.7, p. 53, error 2045; official severity Medium; effective 2015-06-15",
+      "title": "Invalid form type for eCTD location",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "US M1 DTD 3.3, bound selection date on or after 2015-06-15. M1 2.6 Table 10: forms directly under administrative submission-information allow only Form FDA 1571 and Form FDA 356h. Missing form types remain NotEvaluated; this does not claim all M1 placement or patent form rules.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires archived fda-m1-conditional-v1 policy, exact catalog source authorization and pinned official bytes. Missing resources yield NotEvaluated. DTD prerequisites and Formal qualification remain in force.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaM1ConditionalPolicy.cs",
+        "reference/publisher/fda/4.7/m1-conditional-policy.json",
+        "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
+        "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
       ],
       "externalComparisonEvidence": []
     }

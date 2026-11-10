@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RATools.Domain.RegionalMetadata;
 using RATools.Domain.Standards;
+using RATools.Application.PackageValidation;
 
 namespace RATools.Application.RegionalMetadata;
 
@@ -27,6 +28,21 @@ internal static class RegionalMetadataValidation
                 (us.ApplicantIdentifier.Length != 9 || us.ApplicantIdentifier.Any(value => value is < '0' or > '9')))
                 issues.Add(new("FDA47-2044", "us.applicantIdentifier", "申请人／公司编号必须为9位数字；请填写独立编号，不能用申请号代替。原值已保留，未补零或推断。"));
             Contacts(us.Contacts, issues);
+            var conditional = FdaM1ConditionalPolicy.FromSnapshot(snapshot);
+            if (conditional is not null)
+            {
+                var requiresEffectiveType = conditional.RequiresEffectiveType(us.SubmissionType, us.SubmissionSubtype);
+                if (requiresEffectiveType == true && string.IsNullOrWhiteSpace(us.SupplementEffectiveDateType))
+                    issues.Add(new("FDA47-2041", "us.supplementEffectiveDateType", "首次提交补充申请（application子类型）须填写补充生效类型。原值已保留，发布前请补正。"));
+                if (us.SupplementEffectiveDateType is { } effective && !conditional.Values("supplement-effective-date-type").Contains(effective, StringComparer.Ordinal))
+                    issues.Add(new("FDA47-2013", "us.supplementEffectiveDateType", "请选择当前标准快照中的官方码值：fdasedt1、fdasedt2或fdasedt3；不转换展示名称或空白。"));
+                else if (us.SupplementEffectiveDateType is not null && requiresEffectiveType == false)
+                    issues.Add(new("SupplementEffectiveTypeNotApplicable", "us.supplementEffectiveDateType", "当前提交类型／子类型不适用补充生效类型。原值已保留；请明确清空或修正提交类型后再发布。"));
+                else if (us.SupplementEffectiveDateType is not null && requiresEffectiveType is null)
+                    issues.Add(new("SupplementApplicabilityUnverified", "us.supplementEffectiveDateType", "无法确认当前提交类型／子类型是否适用补充生效类型。原值已保留；请补正官方码值后再发布。"));
+            }
+            else if (us.SupplementEffectiveDateType is not null)
+                issues.Add(new("VocabularyUnverified", "us.supplementEffectiveDateType", "选定快照缺少已绑定的补充生效类型策略或来源，无法确认此字段；原值已保留。"));
             for (var index = 0; index < nodes.Count; index++) UsContext(nodes[index].Country, nodes[index].Language, nodes[index].ProductInformationType, nodes[index].FormType, sections[nodes[index].NodeInstanceId], $"nodeContexts[{index}]", issues);
             for (var index = 0; index < documents.Count; index++) UsContext(documents[index].Country, documents[index].Language, documents[index].ProductInformationType, documents[index].FormType, sections[documents[index].PlacementId], $"documentContexts[{index}]", issues);
         }

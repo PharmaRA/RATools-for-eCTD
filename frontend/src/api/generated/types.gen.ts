@@ -1819,6 +1819,7 @@ export type UsRegionalMetadata = {
     description: string | null;
     applicantIdentifier?: string | null;
     submissionIdentifier?: string | null;
+    supplementEffectiveDateType?: string | null;
 };
 
 export type ValidateSequenceRequestBody = {
