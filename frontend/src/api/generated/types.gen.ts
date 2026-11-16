@@ -1318,6 +1318,7 @@ export type RegionalFieldConditionDto = {
     values: Array<string>;
     description: string;
     effect: string;
+    options?: Array<string> | null;
 };
 
 export type RegionalFieldDescriptor = {

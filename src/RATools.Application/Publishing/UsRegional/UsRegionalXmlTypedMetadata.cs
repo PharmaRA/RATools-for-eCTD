@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using RATools.Application.Publishing.PackageModel;
 using RATools.Domain.RegionalMetadata;
+using RATools.Application.PackageValidation;
 
 namespace RATools.Application.Publishing.UsRegional;
 
@@ -28,6 +29,8 @@ public sealed partial class UsRegionalXmlWriter
             throw MetadataError(package, "us.supplementEffectiveDateType", "requires an explicit supported official code; correct the saved draft without guessing or trimming the value");
         if (us.SupplementEffectiveDateType is not null && !supplementApplication)
             throw MetadataError(package, "us.supplementEffectiveDateType", "cannot emit a supplement effective date outside a supported supplement with application subtype; explicitly clear the retained value or correct the submission metadata");
+        if (us.SupplementEffectiveDateType is not null && !FdaSupplementCombinations.WriterPolicy.Allows(us.SubmissionType!, us.SupplementEffectiveDateType))
+            throw MetadataError(package, "us.supplementEffectiveDateType", "effective date type is incompatible with this supplement according to M1 Tables 2/3");
         if (us.Contacts.Count == 0) throw MetadataError(package, "us.contacts", "requires one or more explicit contacts");
         for (var index = 0; index < us.Contacts.Count; index++)
         {

@@ -46,6 +46,7 @@ internal static class RegionalMetadataSchema
         {
             const string us = "xml-us-dtd";
             var conditional = FdaM1ConditionalPolicy.FromSnapshot(snapshot);
+            var combinations = FdaSupplementCombinations.FromSnapshot(snapshot);
             RegionalFieldDescriptor Official(string key, string attribute, string resource, string element, bool required = false) => conditional is null
                 ? Enum(key, us, element, attribute, required)
                 : new(key, key, "enum", required, conditional.Values(attribute), [], Conditions: [], Source: Source(resource, element + "/@" + attribute),
@@ -65,7 +66,8 @@ internal static class RegionalMetadataSchema
                     Label = "补充申请生效类型",
                     Conditions = conditional is null ? [] : [
                         new("us.submissionType", conditional.SupplementSubmissionTypes, "效力、CMC、标签或REMS补充申请", "required-all"),
-                        new("us.submissionSubtype", ["fdasst3"], "与application子类型同时满足时必填；变更类型保留原值供修正。", "required-all")],
+                        new("us.submissionSubtype", ["fdasst3"], "与application子类型同时满足时必填；变更类型保留原值供修正。", "required-all"),
+                        .. combinations?.Types.Select(type => new RegionalFieldConditionDto("us.submissionType", [type], "按补充申请类型选择允许的生效类型。", "options", combinations.ForType(type))) ?? []],
                     BusinessEvidence = conditional is null ? "选定快照未提供已绑定的条件策略；不能确认官方码值和适用条件。" : "fdasedt1：PAS；fdasedt2：CBE-0；fdasedt3：CBE-30。请选择明确适用的生效类型，不根据序列号推断。" },
                 Official("formType", "form-type", "official-fda-form-types", "form") with { Label = "M1表单类型",
                     BusinessEvidence = "此字段供M1表单文档使用。行政区submission-information中的表单仅允许FDA 1571（fdaft1）和356h（fdaft2）；其他表单应放在其指定的M1位置。" }, Text("description", true)])];

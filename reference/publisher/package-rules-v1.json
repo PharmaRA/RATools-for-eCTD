@@ -67,6 +67,14 @@
       "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/fda/4.7/m1-conditional-policy.json",
       "sha256": "a3af8c7479c18843992ecdfe6b02a31c4ab437655f443fdd5099039ac2b40673",
       "verificationStatus": "Verified"
+    },
+    {
+      "id": "ratools-fda-supplement-combinations-v1",
+      "kind": "ProjectPolicy",
+      "version": "fda-supplement-combinations-v1",
+      "url": "https://github.com/PharmaRA/RATools-for-eCTD/blob/master/reference/publisher/fda/4.7/supplement-combinations-v1.json",
+      "sha256": "00584abd2b605d54e2dc6fc71595f989b2736cf965598eb421cc394dbf25e063",
+      "verificationStatus": "Verified"
     }
   ],
   "profiles": [
@@ -2173,6 +2181,36 @@
         "reference/publisher/fda/4.7/m1-conditional-policy.json",
         "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs",
         "tests/RATools.Tests/PackageValidation/Fda47ConditionalRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "US-SUPPLEMENT-EFFECTIVE-COMBINATION",
+      "authorityRuleId": null,
+      "sourceId": "ratools-fda-supplement-combinations-v1",
+      "sourceSection": "M1 2.6 Tables 2/3, PDF pages 11/12; project mapping, no FDA error-number attribution",
+      "title": "Supplement effective type combination",
+      "category": "RegionalBusiness",
+      "ruleVersion": "1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Bound US M1 supplement/application inputs and exact archived combination policy; selection date from 2015-06-15",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Each application evaluated independently; missing/ambiguous or unauthorized mapping is NotEvaluated; old catalogs do not gain this project rule",
+      "positiveFixtures": [
+        "tests/RATools.Tests/RegionalMetadata/FdaSupplementCombinationTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/RegionalMetadata/FdaSupplementCombinationTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaSupplementCombinations.cs",
+        "reference/publisher/fda/4.7/supplement-combinations-v1.json"
       ],
       "externalComparisonEvidence": []
     }

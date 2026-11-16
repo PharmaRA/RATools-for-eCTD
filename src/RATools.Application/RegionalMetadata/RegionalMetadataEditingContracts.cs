@@ -5,7 +5,8 @@ namespace RATools.Application.RegionalMetadata;
 public sealed record RegionalMetadataUpdate(string StandardsSnapshotId, RegionalMetadataContent Content,
     IReadOnlyList<RegionalNodeContext>? NodeContexts = null, IReadOnlyList<RegionalDocumentContext>? DocumentContexts = null);
 public sealed record RegionalSourceReferenceDto(string ResourceKey, string Sha256, string SourceUri, string Locator);
-public sealed record RegionalFieldConditionDto(string FieldPath, IReadOnlyList<string> Values, string Description, string Effect = "guidance");
+public sealed record RegionalFieldConditionDto(string FieldPath, IReadOnlyList<string> Values, string Description, string Effect = "guidance",
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Options = null);
 public sealed record RegionalFieldDescriptor(string Key, string Label, string Kind, bool Required, IReadOnlyList<string> Options,
     IReadOnlyList<RegionalFieldDescriptor> Fields, string? IdentityField = null, IReadOnlyList<RegionalFieldConditionDto>? Conditions = null,
     RegionalSourceReferenceDto? Source = null, string? BusinessEvidence = null);

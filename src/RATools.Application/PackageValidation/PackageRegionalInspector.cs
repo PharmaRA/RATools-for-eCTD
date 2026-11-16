@@ -6,8 +6,8 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v6";
-    private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", .. Fda47RegionalRules.Ids];
+    public const string RegionalEngineVersion = "package-regional-inspector-v7";
+    private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", FdaSupplementCombinations.RuleId, .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
     public PackageRegionalInspection Inspect(PackageInputSet inputs, PackageLifecycleInspection lifecycle, CancellationToken cancellationToken = default)
@@ -40,6 +40,13 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
             foreach (var rule in scoped)
             {
                 observed[rule.InternalRuleId] = true;
+                if (rule.InternalRuleId == FdaSupplementCombinations.RuleId && (!FdaSupplementCombinations.Supports(rule) ||
+                    sequenceContext.SupplementCombinations is null || sequenceContext.FdaM1ConditionalPolicy is null || sequenceContext.SelectionDate is null))
+                {
+                    Add(rule, CheckStatus.NotEvaluated, "SUPPLEMENT_COMBINATION_UNBOUND", "Supplement combinations require the exact captured mapping, sources, rule and selection date.", new(sequence, sequence + "/" + regionalProfile.DefaultRelativePath));
+                    continue;
+                }
+                if (rule.InternalRuleId == FdaSupplementCombinations.RuleId && sequenceContext.SelectionDate < new DateOnly(2015, 6, 15)) continue;
                 if (Fda47RegionalRules.IsOfficial(rule))
                 {
                     if (!Fda47RegionalRules.HasPinnedSource(rule, sequenceContext.Catalog) || sequenceContext.SelectionDate is null)
@@ -124,7 +131,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         private void InspectUs()
         {
             static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? FdaM1AttributePolicy.Attribute(element, field[1..]) : element.Text;
-            if (Fda47RegionalRules.UsesConditionalPolicy(rule))
+            if (rule.InternalRuleId == FdaSupplementCombinations.RuleId)
+                context.SupplementCombinations!.Inspect(document, context.FdaM1ConditionalPolicy!, (element, field, message) =>
+                    Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
+                    (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
+            else if (Fda47RegionalRules.UsesConditionalPolicy(rule))
                 context.FdaM1ConditionalPolicy!.Inspect(document, rule.AuthorityRuleId!, (element, field, message) =>
                     Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
                     (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));

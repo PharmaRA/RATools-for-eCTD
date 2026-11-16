@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "fda-supplement-combinations-v1",
+  "classification": "ProjectDerivedEvidence",
+  "source": { "key": "official-fda-m1-specification", "sha256": "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2", "locator": "M1 2.6 Tables 2 and 3, PDF pages 11 and 12" },
+  "combinations": [
+    { "submissionType": "fdast2", "effectiveTypes": ["fdasedt1"] },
+    { "submissionType": "fdast3", "effectiveTypes": ["fdasedt1", "fdasedt2", "fdasedt3"] },
+    { "submissionType": "fdast4", "effectiveTypes": ["fdasedt1", "fdasedt2"] },
+    { "submissionType": "fdast11", "effectiveTypes": ["fdasedt1", "fdasedt3"] }
+  ]
+}

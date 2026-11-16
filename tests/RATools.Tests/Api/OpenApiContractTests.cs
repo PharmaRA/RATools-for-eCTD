@@ -36,6 +36,9 @@ public sealed class OpenApiContractTests(WebApplicationFactory<Program> factory)
             Path.Combine(AppContext.BaseDirectory, "openapi.v1.json"));
 
         var runtimeDocument = JsonNode.Parse(runtimeJson);
+        var conditionSchema = runtimeDocument!["components"]!["schemas"]!["RegionalFieldConditionDto"];
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(snapshotJson)!["components"]!["schemas"]!["RegionalFieldConditionDto"], conditionSchema),
+            "RegionalFieldConditionDto runtime schema: " + conditionSchema?.ToJsonString());
         Assert.True(
             JsonNode.DeepEquals(JsonNode.Parse(snapshotJson), runtimeDocument),
             "The runtime OpenAPI document differs from openapi.v1.json. Run `cd frontend && npm run api:generate`.");

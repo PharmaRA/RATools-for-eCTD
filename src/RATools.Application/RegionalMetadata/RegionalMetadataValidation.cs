@@ -40,6 +40,13 @@ internal static class RegionalMetadataValidation
                     issues.Add(new("SupplementEffectiveTypeNotApplicable", "us.supplementEffectiveDateType", "当前提交类型／子类型不适用补充生效类型。原值已保留；请明确清空或修正提交类型后再发布。"));
                 else if (us.SupplementEffectiveDateType is not null && requiresEffectiveType is null)
                     issues.Add(new("SupplementApplicabilityUnverified", "us.supplementEffectiveDateType", "无法确认当前提交类型／子类型是否适用补充生效类型。原值已保留；请补正官方码值后再发布。"));
+                else if (us.SupplementEffectiveDateType is not null && requiresEffectiveType == true)
+                {
+                    var combinations = FdaSupplementCombinations.FromSnapshot(snapshot);
+                    if (combinations is null) issues.Add(new("SupplementCombinationUnverified", "us.supplementEffectiveDateType", "选定快照缺少已绑定的组合依据；原值保留供核实。"));
+                    else if (!combinations.Allows(us.SubmissionType!, us.SupplementEffectiveDateType))
+                        issues.Add(new("SupplementEffectiveTypeCombinationInvalid", "us.supplementEffectiveDateType", "此生效类型不适用于当前补充申请类型；请按所选规范修正，原值已保留。"));
+                }
             }
             else if (us.SupplementEffectiveDateType is not null)
                 issues.Add(new("VocabularyUnverified", "us.supplementEffectiveDateType", "选定快照缺少已绑定的补充生效类型策略或来源，无法确认此字段；原值已保留。"));

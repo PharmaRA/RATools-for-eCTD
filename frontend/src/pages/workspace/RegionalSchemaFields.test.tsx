@@ -41,6 +41,23 @@ it('takes controlled values from the supplied schema while retaining an unsuppor
   edit('country', 'fr'); expect(latest.country).toBe('fr')
 })
 
+it('filters dependent options from schema conditions without discarding a previous value', () => {
+  render([field('us', 'object', { fields: [field('submissionType'), field('effective', 'enum', {
+    options: ['pas', 'cbe0', 'cbe30'], conditions: [
+      { fieldPath: 'us.submissionType', values: ['efficacy'], description: 'Efficacy', effect: 'options', ...{ options: ['pas'] } },
+      { fieldPath: 'us.submissionType', values: ['labeling'], description: 'Labeling', effect: 'options', ...{ options: ['pas', 'cbe0'] } },
+    ],
+  })] })], { us: { submissionType: 'labeling', effective: 'cbe0' } })
+  const options = () => Array.from(document.querySelectorAll('datalist option')).map(item => item.getAttribute('value'))
+  expect(options()).toEqual(['pas', 'cbe0'])
+  edit('us.submissionType', 'efficacy')
+  expect(options()).toEqual(['pas'])
+  expect(latest.us).toEqual({ submissionType: 'efficacy', effective: 'cbe0' })
+  expect(document.body.textContent).toContain('当前组合不支持此值')
+  edit('us.submissionType', 'unknown')
+  expect(options()).toEqual([])
+})
+
 it('keeps a conditionally hidden value when the controlling procedure changes', () => {
   render([field('procedure'), field('submissionMode', 'text', { conditions: [{ fieldPath: 'procedure', values: ['centralised'], description: 'Centralised only', effect: 'visible' }] })],
     { procedure: 'centralised', submissionMode: 'grouping' })

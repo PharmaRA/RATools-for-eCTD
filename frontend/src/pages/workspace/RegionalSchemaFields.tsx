@@ -35,6 +35,9 @@ export function RegionalSchemaFields({ fields, value, disabled, nodes, placement
     const changed = [...editedPaths].some(edited => name === edited || name.startsWith(edited + '.') || name.startsWith(edited + '['))
     const origin = provenance.find(item => item.fieldPath === name)
     const source = field.source
+    const optionConditions = conditions.filter(condition => condition.effect === 'options')
+    const options = optionConditions.length === 0 ? field.options : field.options.filter(option =>
+      optionConditions.some(condition => matches(condition) && condition.options?.includes(option)))
     if (!applicable) return <div key={field.key} id={id} tabIndex={-1} data-field-path={name} className="my-2 text-sm">
       <strong>{field.label}</strong>：当前条件不适用；值已保留：{current === undefined || current === null ? '空' : typeof current === 'object' ? JSON.stringify(current) : String(current)}
       <span className="block text-gray-500">{conditions.map(item => item.description).join('；')}</span>
@@ -85,7 +88,9 @@ export function RegionalSchemaFields({ fields, value, disabled, nodes, placement
       <input id={id} aria-label={name} aria-required={required} disabled={disabled} className="block w-full border border-gray-300 p-1 rounded"
         value={typeof current === 'string' || typeof current === 'number' ? current : ''} list={field.kind === 'enum' ? `${id}-options` : undefined}
         onChange={event => onChange(path, event.target.value === '' ? null : event.target.value)} />
-      {field.kind === 'enum' && <datalist id={`${id}-options`}>{field.options.map(option => <option key={option} value={option} />)}</datalist>}
+      {field.kind === 'enum' && <datalist id={`${id}-options`}>{options.map(option => <option key={option} value={option} />)}</datalist>}
+      {optionConditions.length > 0 && typeof current === 'string' && current !== '' && !options.includes(current)
+        && <small role="status">当前组合不支持此值，已保留，请明确修正。</small>}
       <small className="block text-gray-500">{changed ? '人工修改，保存后记录来源' : origin ? `来源：${origin.origin} · ${origin.status}${origin.sourceRevisionId ? ` · ${origin.sourceRevisionId}` : ''}` : '待填写 / 尚无来源记录'}</small>
       {source && <small className="block text-gray-500" title={`${source.sha256} · ${source.sourceUri}`}>规范来源：{source.resourceKey} · {source.locator}</small>}
       {field.businessEvidence && <small className="block text-gray-500">{field.businessEvidence}</small>}
