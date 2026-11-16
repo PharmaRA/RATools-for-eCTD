@@ -319,6 +319,27 @@ public sealed class PackageInputReader : IPackageInputReader
         }
     }
 
+    private static PackageSourceLayout? CaptureLayout(PackageInputSelection selection, PackageSourceKind kind, PackageSequenceCandidate candidate)
+    {
+        if (!selection.CaptureSourceLayout) return null;
+        var parts = candidate.RootRelativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var sequence = parts.Length > 0 ? parts[^1] : kind == PackageSourceKind.Directory ? new DirectoryInfo(selection.Path).Name : null;
+        var application = parts.Length > 1 ? parts[^2] : kind != PackageSourceKind.Directory ? null :
+            parts.Length == 1 ? new DirectoryInfo(selection.Path).Name : new DirectoryInfo(Path.TrimEndingDirectorySeparator(selection.Path)).Parent?.Name;
+        static bool Digits(string? value, int count) => value?.Length == count && value.All(character => character is >= '0' and <= '9');
+        // Only observed numeric directory names have a qualified comparison meaning here.
+        // Never substitute the explicit selection number or an application database identity.
+        application = Digits(application, 6) ? application : null;
+        sequence = Digits(sequence, 4) ? sequence : null;
+        return application is null && sequence is null ? null : new(application, sequence);
+    }
+    private static string CaptureDigest(PackageInputSelection selection, PackageSourceKind kind, PackageSequenceCandidate candidate,
+        PackageInputManifest manifest, string? archiveSha256)
+    {
+        var layout = CaptureLayout(selection, kind, candidate);
+        return manifest.CaptureDigest(archiveSha256, layout);
+    }
+
     private sealed class CapturedInput(PackageInputSelection selection, PackageSourceKind kind, PackageSequenceCandidate candidate,
         PackageInputManifest manifest, Inventory inventory, PackageReadLimits limits, string owned, string captureParent, TimeProvider timeProvider) : ICapturedPackageInput
     {
@@ -327,10 +348,8 @@ public sealed class PackageInputReader : IPackageInputReader
         public PackageSourceKind SourceKind => kind;
         public PackageInputManifest Manifest => manifest;
         public string? ArchiveSha256 => inventory.ArchiveSha256;
-        public string InputDigest { get; } = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
-        {
-            schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256 = inventory.ArchiveSha256
-        }));
+        public PackageSourceLayout? SourceLayout { get; } = CaptureLayout(selection, kind, candidate);
+        public string InputDigest { get; } = CaptureDigest(selection, kind, candidate, manifest, inventory.ArchiveSha256);
         public PackageReadLimits Limits => limits;
 
         public Stream OpenRead(string logicalPath)
@@ -372,7 +391,8 @@ public sealed class PackageInputReader : IPackageInputReader
             try
             {
                 var current = await ScanAsync(selection.Path, kind, limits, null, cancellationToken).ConfigureAwait(false);
-                if (CreateManifest(selection.ApplicationId, candidate, current).Digest != manifest.Digest || current.ArchiveSha256 != inventory.ArchiveSha256)
+                if (CreateManifest(selection.ApplicationId, candidate, current).Digest != manifest.Digest || current.ArchiveSha256 != inventory.ArchiveSha256 ||
+                    CaptureLayout(selection, kind, candidate) != SourceLayout)
                     throw new PackageInputChangedException(selection.SourceId);
                 var captured = new Inventory(limits, kind);
                 foreach (var (relative, path) in inventory.CapturedPaths)

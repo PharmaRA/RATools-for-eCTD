@@ -6,7 +6,7 @@ namespace RATools.Application.PackageValidation;
 // Trial policies over bounded parser facts; complete regulatory qualification is separate.
 public sealed class PackageRegionalInspector(PackageStandardsContext? standards = null)
 {
-    public const string RegionalEngineVersion = "package-regional-inspector-v7";
+    public const string RegionalEngineVersion = "package-regional-inspector-v8";
     private static readonly string[] UsIds = ["US-ADMIN-METADATA", "US-FORM-ATTRIBUTES", "US-SUBMISSION-SCOPE", FdaSupplementCombinations.RuleId, .. Fda47RegionalRules.Ids];
     private static readonly string[] EuIds = ["EU-ENVELOPE-METADATA", "EU-PI-CONTEXT", "EU-RELATED-SEQUENCE"];
 
@@ -131,7 +131,11 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
         private void InspectUs()
         {
             static string? Actual(ParsedXmlElement element, string field) => field.StartsWith('@') ? FdaM1AttributePolicy.Attribute(element, field[1..]) : element.Text;
-            if (rule.InternalRuleId == FdaSupplementCombinations.RuleId)
+            if (FdaIdentityRules.Applies(rule))
+                FdaIdentityRules.Inspect(document, rule.AuthorityRuleId!, inputs.Sequences.GetValueOrDefault(Location.SequenceNumber!)?.SourceLayout,
+                    (element, field, message) => Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
+                    (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
+            else if (rule.InternalRuleId == FdaSupplementCombinations.RuleId)
                 context.SupplementCombinations!.Inspect(document, context.FdaM1ConditionalPolicy!, (element, field, message) =>
                     Issue(CheckStatus.Fail, rule.InternalRuleId, message, element, Actual(element, field), field),
                     (element, field, message) => Issue(CheckStatus.NotEvaluated, rule.InternalRuleId, message, element, Actual(element, field), field));
@@ -171,7 +175,8 @@ public sealed class PackageRegionalInspector(PackageStandardsContext? standards 
                     var submission = Child(application, "submission-information"); var id = Child(submission, "submission-id"); var sequence = Child(submission, "sequence-number");
                     Required(id, "submission-id"); Required(id, "@submission-type", "submission-type");
                     Required(sequence, "sequence-number"); Required(sequence, "@submission-sub-type", "submission-sub-type");
-                    if (sequence is not null && sequence.Text != Location.SequenceNumber) Issue(CheckStatus.Fail, "US_SEQUENCE_MISMATCH", "Administrative sequence must identify the actual selected sequence.", sequence, sequence.Text);
+                    if (application.Attribute("application-containing-files") == "true" && sequence is not null && sequence.Text != Location.SequenceNumber)
+                        Issue(CheckStatus.Fail, "US_SEQUENCE_MISMATCH", "File-owning administrative sequence must identify the actual selected sequence.", sequence, sequence.Text);
                 }
             }
             else if (rule.InternalRuleId == "US-FORM-ATTRIBUTES")

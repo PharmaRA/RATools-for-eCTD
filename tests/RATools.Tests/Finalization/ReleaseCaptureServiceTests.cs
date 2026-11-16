@@ -175,6 +175,9 @@ public sealed class ReleaseCaptureServiceTests
     [InlineData("application")]
     [InlineData("capture")]
     [InlineData("run")]
+    [InlineData("layout")]
+    [InlineData("layout-version")]
+    [InlineData("layout-invalid")]
     public async Task AnArchivedInputThatNoLongerMatchesItsSealedIdentityIsRefused(string mutation)
     {
         var fixture = new Fixture();
@@ -230,19 +233,20 @@ public sealed class ReleaseCaptureServiceTests
             var limits = new PackageReadLimits();
             var manifest = new PackageInputManifest(ApplicationId, "0001", PayloadFiles().Select(file =>
                 new PackageInputFile(file.RelativePath["payload/".Length..], file.Length, file.Sha256, file.Md5)), [], [], []);
-            var inputDigest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
-            {
-                schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256 = (string?)null
-            }));
+            var layout = mutation?.StartsWith("layout", StringComparison.Ordinal) == true ? new PackageSourceLayout("123456", "0001") : null;
+            var inputDigest = manifest.CaptureDigest(null, layout);
             var manifestJson = JsonSerializer.SerializeToNode(manifest, SerializerOptions)!.AsObject();
             manifestJson["capture"] = JsonSerializer.SerializeToNode(new
             {
-                schemaVersion = 1, inputDigest, archiveSha256 = (string?)null,
-                sourceKind = PackageSourceKind.Directory, limitsDigest = limits.Digest()
+                schemaVersion = layout is null ? 1 : 2, inputDigest, archiveSha256 = (string?)null,
+                sourceKind = PackageSourceKind.Directory, sourceLayout = layout, limitsDigest = limits.Digest()
             }, SerializerOptions);
             if (mutation == "inventory") manifestJson["files"]![0]!["length"] = 1234L;
             if (mutation == "application") manifestJson["applicationId"] = Guid.NewGuid().ToString("D");
             if (mutation == "capture") manifestJson["capture"]!["inputDigest"] = new string('a', 64);
+            if (mutation == "layout") manifestJson["capture"]!["sourceLayout"]!["applicationDirectoryName"] = "654321";
+            if (mutation == "layout-version") manifestJson["capture"]!["schemaVersion"] = 1;
+            if (mutation == "layout-invalid") manifestJson["capture"]!["sourceLayout"]!["applicationDirectoryName"] = "invalid";
             Guid? comparisonId = null;
             string? comparisonDigest = null;
             if (withComparison)

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "task": "FDA next batch item 3",
+  "verifiedUtc": "2026-11-17T01:44:36.866245+08:00",
+  "passed": true,
+  "candidate": ".artifacts/local-check/fda47-next-20261117/item3-final",
+  "tests": {
+    "total": 657,
+    "passed": 657,
+    "failed": 0,
+    "notExecuted": 0
+  },
+  "sourceManifestSha256": "d37814832235a09b049b88dc87b77091403c0f776a9a1490d1c756df8e07a0db",
+  "trxSha256": "01f58137a6f437d0fbec3cf6d8df385e773ad0130d87a2db46031f8d3b8fb930",
+  "matchedBuildInputs": 15,
+  "deliveryInputs": {
+    "reference/publisher/QA-07-NEXT-THREE-ITEMS.md": "72e54653de5696e58ff4f524cfe8c8a9e25ec3ae864bb33e5bbe76a4ea3756e5",
+    "reference/publisher/fda/4.7/criteria-inventory.json": "98c2bf1ad25cc36651055274cdc1992698d260dbf569cc0313d4d61174e17ef5",
+    "reference/publisher/package-rules-v1.json": "f7ee1520ab59522a25c5718b36e87e6770a45c279877eeff655d71f54567891b",
+    "reference/publisher/package-rules-v1.sha256": "b58abfaac8da8df0fdd244f6776f43675020459ae74545ed0f068dfec89886f9",
+    "src/RATools.Application/Finalization/ReleaseCaptureService.cs": "4582cbcaafa45ee61a4616ccc0938d870166aad25e6b08001e1928ddb3ec554f",
+    "src/RATools.Application/PackageValidation/Fda47RegionalRules.cs": "42f6432dcc8a960bf95277a91cba7cd449802aacefff6477864da264f4e361a7",
+    "src/RATools.Application/PackageValidation/IPackageInputReader.cs": "4a8cbbdb277c0d23d8d60b2943f7af0ff3f62396a3cecac1a24c1befe033c5f5",
+    "src/RATools.Application/PackageValidation/PackageRegionalInspector.cs": "54802c0c093abc89cfba8540042459dd3d16eb38cf43698f7a1280dec626f9db",
+    "src/RATools.Application/PackageValidation/PackageValidationService.cs": "94551ebd87c408d586997286afb95f86250c83210441e6b4b560edc369377332",
+    "src/RATools.Domain/PackageValidation/PackageInputManifest.cs": "58b1d2eba0ed51d9f766a2692e170fbbffd2eb4216d679f84ddf9878fd50f914",
+    "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs": "deebd64cfbf3ad070266c94661763304cb19b60d0d72635546aea9565f64db23",
+    "src/RATools.Infrastructure/PackageValidation/PackageValidationInputRegistry.cs": "885da5d1fcb3be97e705b3600176b4cdff81e3c9d353adedcbe0cc2b3344a5fe",
+    "tests/RATools.Tests/Finalization/ReleaseCaptureServiceTests.cs": "b695dcea3fe414434be02a1651bc3cca1ad6d812634bbab38d399ea6d77215f0",
+    "tests/RATools.Tests/PackageValidation/PackageInputReaderTests.cs": "ed1e920672ab6a62768a79567782ef683a10e9e5babb9582f586543df844a499",
+    "tests/RATools.Tests/PackageValidation/PackageRegionalInspectionTests.cs": "964f1789e18ae244d51f422737ccece3c2ac6a6143f999a8b8035a40f931d40e",
+    "tests/RATools.Tests/Standards/RegionalActivationAcceptanceTests.cs": "9f856c88bbd6d90721aa1303a992eb8c7847ad633d6055ad5de64dad3ab2938a",
+    "src/RATools.Application/PackageValidation/FdaIdentityRules.cs": "0600506aeae636543ece9a5f674c86b97cd4a6d1fe838db4a118f20b339b6bb6",
+    "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs": "2103f256c387856de458049ecf61ce44121dea081c65e2fd5268dafff3e0a762"
+  },
+  "processes": {
+    "build.process.json": {
+      "sha256": "c8ac2d471d795a1fcf58c841d5b7e8393f85db26954a0b849902d515ee0f6833",
+      "exitCode": 0,
+      "guardedProcesses": 26,
+      "processTreeStopped": true
+    },
+    "tests.process.json": {
+      "sha256": "14518791bf8e4a036db58e62007baefb5a43eca155b02891ec3154adb2e7dc1e",
+      "exitCode": 0,
+      "guardedProcesses": 5,
+      "processTreeStopped": true
+    }
+  },
+  "command": "pwsh -NoProfile -File scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\fda47-next-20261117\\item3-final -QualifiedGuard C:\\Repositories\\RATools-for-eCTD\\.artifacts\\local-check\\service-retention-20261110\\qualification-2 -Filter \"(FullyQualifiedName~FdaIdentityRulesTests|FullyQualifiedName~ReleaseCaptureServiceTests|FullyQualifiedName~PackageInputReaderTests|FullyQualifiedName~RATools.Tests.Api.OpenApiContractTests|FullyQualifiedName~RATools.Tests.PackageValidation.Fda47ConditionalRulesTests|FullyQualifiedName~RATools.Tests.PackageValidation.Fda47AttributeRulesTests|FullyQualifiedName~RATools.Tests.PackageValidation.Fda47GroupedRulesTests|FullyQualifiedName~RATools.Tests.RegionalMetadata|FullyQualifiedName~RATools.Tests.Publishing.UsRegional.ScopedUs|FullyQualifiedName~RATools.Tests.Publishing.UsRegional.UsRegionalXmlWriterTests|FullyQualifiedName~RATools.Tests.Publishing.PackageModel.EctdPackageModelBuilderTests|FullyQualifiedName~RATools.Tests.Standards|FullyQualifiedName~ActualHttpSaveOfExplicitIdentifiersReachesDistinctFormXmlAndFullReimport|FullyQualifiedName~RATools.Tests.PackageValidation.PackageValidationServiceTests|FullyQualifiedName~RATools.Tests.PackageValidation.Fda47RegionalRulesTests|FullyQualifiedName~RATools.Tests.PackageValidation.PackageRegionalInspectionTests|FullyQualifiedName~RATools.Tests.PackageValidation.PackageRuleCatalogTests)&FullyQualifiedName!~Postgres&FullyQualifiedName!~ActiveFlagAndVerifiedScopeCannotBypassMissingEvidenceAfterNewDatabaseConnection&FullyQualifiedName!~EmptyDirectoriesAndUnselectedTopLevelFilesParticipateInDigest&FullyQualifiedName!~DirectoryAndAncestorLinksCannotReadExternalFiles\"",
+  "scope": "Selected Windows actual MSBuild and VSTest with qualified no-delete guard; not full-suite, PostgreSQL, Linux, live browser or Formal qualification",
+  "review": "PASS final read-only source and evidence review"
+}

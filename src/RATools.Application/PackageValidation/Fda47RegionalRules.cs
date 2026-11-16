@@ -7,7 +7,7 @@ internal static class Fda47RegionalRules
 {
     internal static readonly string[] Ids = ["FDA47-2035", "FDA47-2036", "FDA47-2037", "FDA47-2038", "FDA47-2042",
         "FDA47-2044", "FDA47-3036", "FDA47-3050", "FDA47-3065", "FDA47-1454", "FDA47-2023", "FDA47-2031", "FDA47-2032",
-        "FDA47-1496", "FDA47-2012", "FDA47-2013", "FDA47-2022", "FDA47-2034", "FDA47-2041", "FDA47-2045"];
+        "FDA47-1496", "FDA47-2012", "FDA47-2013", "FDA47-2022", "FDA47-2034", "FDA47-2041", "FDA47-2045", "FDA47-1519", "FDA47-1714", "FDA47-2033"];
 
     internal static bool UsesConditionalPolicy(ValidationRuleDescriptor rule) => IsOfficial(rule) && rule.AuthorityRuleId is ("2041" or "2045");
 
@@ -15,7 +15,7 @@ internal static class Fda47RegionalRules
 
     internal static bool IsOfficial(ValidationRuleDescriptor rule) => Ids.Contains(rule.InternalRuleId, StringComparer.Ordinal);
     internal static DateOnly EffectiveFrom(ValidationRuleDescriptor rule) => rule.AuthorityRuleId switch
-    { "3036" or "3050" => new(2008, 3, 10), "1454" or "1496" => new(2013, 4, 30), _ => new(2015, 6, 15) };
+    { "3036" or "3050" or "1519" or "1714" => new(2008, 3, 10), "1454" or "1496" => new(2013, 4, 30), _ => new(2015, 6, 15) };
 
     internal static bool HasPinnedSource(ValidationRuleDescriptor rule, ValidationRuleCatalog catalog) =>
         rule.AuthorityRuleId == rule.InternalRuleId[6..] && rule.RuleVersion == "4.7.1" &&

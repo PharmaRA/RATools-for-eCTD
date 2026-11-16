@@ -3,7 +3,18 @@ using RATools.Domain.PackageValidation;
 namespace RATools.Application.PackageValidation;
 
 public sealed record PackageInputSelection(Guid ApplicationId, string SourceId, string Path,
-    string? SequenceNumber = null, string? RootRelativePath = null);
+    string? SequenceNumber = null, string? RootRelativePath = null, bool CaptureSourceLayout = true)
+{
+    public static PackageInputSelection FromRegistered(RegisteredPackageInput input)
+    {
+        using var json = System.Text.Json.JsonDocument.Parse(input.ManifestJson);
+        var version = json.RootElement.TryGetProperty("capture", out var capture) && capture.TryGetProperty("schemaVersion", out var value) ? value.GetInt32() : 1;
+        if (version is not (1 or 2)) throw new InvalidDataException("Unsupported input capture metadata version.");
+        if (version == 1 && capture.ValueKind == System.Text.Json.JsonValueKind.Object && capture.TryGetProperty("sourceLayout", out var layout) && layout.ValueKind != System.Text.Json.JsonValueKind.Null)
+            throw new InvalidDataException("Legacy input metadata cannot authorize unbound directory facts.");
+        return new(input.ApplicationId, input.Id.ToString("D"), input.SourcePath, input.SequenceNumber, input.RootRelativePath, version == 2);
+    }
+}
 
 public interface IPackageInputReader
 {
@@ -16,6 +27,7 @@ public interface ICapturedPackageInput : IAsyncDisposable
     PackageSourceKind SourceKind { get; }
     PackageInputManifest Manifest { get; }
     string? ArchiveSha256 { get; }
+    PackageSourceLayout? SourceLayout => null;
     string InputDigest { get; }
     PackageReadLimits Limits { get; }
     Stream OpenRead(string logicalPath);

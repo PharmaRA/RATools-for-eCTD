@@ -6,6 +6,7 @@ namespace RATools.Domain.PackageValidation;
 public sealed record PackageInputFile(string LogicalPath, long Length, string Sha256, string Md5);
 public sealed record PackageInputDirectory(string LogicalPath, bool IsEmpty);
 public sealed record PackageSequenceCandidate(string SequenceNumber, string RootRelativePath);
+public sealed record PackageSourceLayout(string? ApplicationDirectoryName, string? SequenceDirectoryName);
 public enum PackageSourceKind { Directory, Zip }
 public enum HistorySourceKind { ImportedExternal, LegacyWorkspace, Finalized }
 public enum HistoryTrustStatus { Unverified, LegacyUnverified, VerifiedForScope, Rejected }
@@ -40,6 +41,17 @@ public sealed class PackageInputManifest
     public IReadOnlyList<PackageInputFile> AdditionalFiles { get; }
     public IReadOnlyList<PackageInputDirectory> AdditionalDirectories { get; }
     public string Digest { get; }
+
+    public string CaptureDigest(string? archiveSha256, PackageSourceLayout? layout = null)
+    {
+        static bool Digits(string? value, int count) => value is null || value.Length == count && value.All(character => character is >= '0' and <= '9');
+        if (layout is not null && (!Digits(layout.ApplicationDirectoryName, 6) || !Digits(layout.SequenceDirectoryName, 4) ||
+            layout.ApplicationDirectoryName is null && layout.SequenceDirectoryName is null))
+            throw new InvalidDataException("Captured layout must contain observed numeric directory facts.");
+        return layout is null ? CanonicalJson.Digest(JsonSerializer.SerializeToElement(new { schemaVersion = 1, manifestDigest = Digest, archiveSha256 })) :
+            CanonicalJson.Digest(JsonSerializer.SerializeToElement(new { schemaVersion = 2, manifestDigest = Digest, archiveSha256,
+                sourceLayout = new { applicationDirectoryName = layout.ApplicationDirectoryName, sequenceDirectoryName = layout.SequenceDirectoryName } }));
+    }
 
     private static object WireFile(PackageInputFile file) => new { logicalPath = file.LogicalPath, length = file.Length, sha256 = file.Sha256, md5 = file.Md5 };
     private static object WireDirectory(PackageInputDirectory directory) => new { logicalPath = directory.LogicalPath, isEmpty = directory.IsEmpty };

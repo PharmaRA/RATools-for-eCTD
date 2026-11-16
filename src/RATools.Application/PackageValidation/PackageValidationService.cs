@@ -126,8 +126,7 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
                 ICapturedPackageInput captured;
                 try
                 {
-                    captured = await reader.ReadAsync(new(input.ApplicationId, input.Id.ToString("D"), input.SourcePath,
-                        input.SequenceNumber, input.RootRelativePath), input.Limits, cancellationToken).ConfigureAwait(false);
+                    captured = await reader.ReadAsync(PackageInputSelection.FromRegistered(input), input.Limits, cancellationToken).ConfigureAwait(false);
                 }
                 catch (IOException exception) when (exception is not PackageInputException { RuleId: "INPUT-LIMITS" })
                 { throw new PackageInputChangedException(input.Id.ToString("D")); }

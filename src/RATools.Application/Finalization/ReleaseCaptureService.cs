@@ -150,13 +150,17 @@ public sealed class ReleaseCaptureService(
             ReadDirectories(root.GetProperty("additionalDirectories")));
         var capture = root.GetProperty("capture");
         var archiveSha256 = capture.GetProperty("archiveSha256").GetString();
-        var digest = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
-        {
-            schemaVersion = 1, manifestDigest = manifest.Digest, archiveSha256
-        }));
+        var captureVersion = capture.GetProperty("schemaVersion").GetInt32();
+        var layout = capture.TryGetProperty("sourceLayout", out var layoutValue) && layoutValue.ValueKind != JsonValueKind.Null
+            ? layoutValue.Deserialize<PackageSourceLayout>(BindingJsonOptions) : null;
+        if (captureVersion is not (1 or 2) || captureVersion == 1 && layout is not null)
+            throw new FinalizationNotAuthorizedException("Unsupported archived capture version or unbound directory evidence.");
+        string digest;
+        try { digest = manifest.CaptureDigest(archiveSha256, layout); }
+        catch (InvalidDataException) { throw new FinalizationNotAuthorizedException("The archived directory facts are invalid."); }
         if (input.ApplicationId != run.ApplicationId || input.SequenceNumber != run.SequenceNumber ||
             manifest.ApplicationId != input.ApplicationId || manifest.SequenceNumber != input.SequenceNumber ||
-            root.GetProperty("digest").GetString() != manifest.Digest || capture.GetProperty("schemaVersion").GetInt32() != 1 ||
+            root.GetProperty("digest").GetString() != manifest.Digest ||
             capture.GetProperty("sourceKind").Deserialize<PackageSourceKind>(BindingJsonOptions) != input.SourceKind ||
             capture.GetProperty("limitsDigest").GetString() != input.Limits.Digest() || input.Limits.Digest() != run.Binding.ResourceLimitsDigest ||
             capture.GetProperty("inputDigest").GetString() != digest || input.InputDigest != digest ||

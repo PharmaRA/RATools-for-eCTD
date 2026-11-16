@@ -2213,6 +2213,99 @@
         "reference/publisher/fda/4.7/supplement-combinations-v1.json"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1519",
+      "authorityRuleId": "1519",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 24, error 1519; effective 2008-03-10",
+      "title": "Application number does not match the folder name",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Compare the single file-owning application number to an observed six-digit application directory; missing or unsupported directory naming is NotEvaluated. No prefix stripping or database identity substitution.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Exact pinned FDA source and bound date required. Source layout is input-digest bound for new captures; legacy captures remain readable without fabricating evidence. DTD and full regional qualification remain separate.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaIdentityRules.cs",
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1714",
+      "authorityRuleId": "1714",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 28, error 1714; effective 2008-03-10",
+      "title": "Sequence number does not match the folder name",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Compare the single file-owning XML sequence to the observed four-digit source directory; an explicitly selected root-only ZIP is not physical directory evidence.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Exact pinned FDA source and bound date required. Source layout is input-digest bound for new captures; legacy captures remain readable without fabricating evidence. DTD and full regional qualification remain separate.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaIdentityRules.cs",
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2033",
+      "authorityRuleId": "2033",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 49, error 2033; effective 2015-06-15",
+      "title": "Different sequence numbers are referenced for the same application number",
+      "category": "RegionalBusiness",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Within a grouped M1, the same primary application type and six-digit number must use the same four-digit sequence across regulatory activities; ambiguous identities are NotEvaluated.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Exact pinned FDA source and bound date required. Source layout is input-digest bound for new captures; legacy captures remain readable without fabricating evidence. DTD and full regional qualification remain separate.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaIdentityRules.cs",
+        "src/RATools.Infrastructure/PackageValidation/PackageInputReader.cs",
+        "tests/RATools.Tests/PackageValidation/FdaIdentityRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }

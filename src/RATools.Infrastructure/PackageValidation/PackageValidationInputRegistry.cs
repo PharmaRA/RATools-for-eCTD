@@ -121,8 +121,7 @@ public sealed class PackageValidationInputRegistry(IPackageValidationStore store
         ICapturedPackageInput capture;
         try
         {
-            capture = await reader.ReadAsync(new(input.ApplicationId, input.Id.ToString("D"), input.SourcePath,
-                input.SequenceNumber, input.RootRelativePath), input.Limits, cancellationToken).ConfigureAwait(false);
+            capture = await reader.ReadAsync(PackageInputSelection.FromRegistered(input), input.Limits, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException exception) when (exception is not PackageInputException { RuleId: "INPUT-LIMITS" })
         { throw new PackageInputChangedException(input.Id.ToString("D")); }
@@ -146,7 +145,7 @@ public sealed class PackageValidationInputRegistry(IPackageValidationStore store
         var manifest = System.Text.Json.JsonSerializer.SerializeToNode(captured.Manifest, PackageValidationJson.Options)!.AsObject();
         manifest["capture"] = System.Text.Json.JsonSerializer.SerializeToNode(new
         {
-            schemaVersion = 1, captured.InputDigest, captured.ArchiveSha256, captured.SourceKind, limitsDigest = limits.Digest()
+            schemaVersion = 2, captured.InputDigest, captured.ArchiveSha256, captured.SourceKind, captured.SourceLayout, limitsDigest = limits.Digest()
         }, PackageValidationJson.Options);
         var input = new RegisteredPackageInput(id, request.ApplicationId, captured.Manifest.SequenceNumber,
             request.Path, request.RootRelativePath, captured.SourceKind, captured.InputDigest,

@@ -396,7 +396,7 @@ public sealed class PackageInputReaderTests
     private sealed class TestTree : IDisposable
     {
         public string Root { get; } = RetainedPackageTestFiles.Create();
-        public string Capture => Path.Combine(Root, "capture");
+        public string Capture => Path.Combine(Root, "validation", "captures");
         public TestTree() => Directory.CreateDirectory(Root);
         public string Sequence()
         {

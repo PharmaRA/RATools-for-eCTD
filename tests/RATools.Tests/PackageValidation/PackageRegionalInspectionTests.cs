@@ -316,7 +316,7 @@ public sealed class PackageRegionalInspectionTests
         <m1-eu><m1-0-cover><specific country="de"/></m1-0-cover><m1-3-pi><m1-3-1-spc-label-pl><pi-doc country="de" xml:lang="de" type="spc"/></m1-3-1-spc-label-pl></m1-3-pi></m1-eu></eu:eu-backbone>
         """;
 
-    private sealed class MemoryInput : ICapturedPackageInput
+    internal sealed class MemoryInput : ICapturedPackageInput
     {
         private readonly Dictionary<string, byte[]> _files = new(StringComparer.Ordinal);
         public MemoryInput(Guid app, string sequence, string? regional, string profile, bool invalidPdf = false)
