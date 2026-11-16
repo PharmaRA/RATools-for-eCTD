@@ -79,6 +79,15 @@ internal sealed class FdaM1AttributePolicy
         if (name.StartsWith("xmlns:", StringComparison.Ordinal)) return element.Attribute(name[6..], "http://www.w3.org/2000/xmlns/");
         return element.Attribute(name, "");
     }
+    internal static FdaM1AttributePolicy? FromSnapshot(StandardsProfileSnapshot snapshot)
+    {
+        var rules = snapshot.Resources.SingleOrDefault(resource => resource.Key == "rules");
+        if (rules is null) return null;
+        using var stream = new MemoryStream(rules.ReadBytes());
+        return FromSnapshot(snapshot, PackageValidationCatalog.Load(stream));
+    }
+    internal IReadOnlyList<string> InputValues(string attribute) => _dictionaries.Single(item => item.Attribute == attribute).Active
+        .Where(value => attribute != "application-type" || _primary.Contains(value)).Order(StringComparer.Ordinal).ToArray();
     private static bool Is(ParsedXmlElement element, string name) => name == "fda-regional:fda-regional"
         ? element.LocalName == "fda-regional" && element.NamespaceUri == "http://www.ich.org/fda"
         : element.LocalName == name && element.NamespaceUri.Length == 0;

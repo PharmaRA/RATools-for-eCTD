@@ -11,7 +11,7 @@ internal static class RegionalMetadataValidation
     internal static IReadOnlyList<RegionalMetadataDiagnostic> Defaults(RegionalApplicationDefaultsContent content, StandardsProfileSnapshot snapshot)
     {
         var issues = new List<RegionalMetadataDiagnostic>();
-        if (content.Us is { } us) { Required(us.ApplicationIdentifier, "us.applicationIdentifier", issues); Required(us.ApplicationType, "us.applicationType", issues); Required(us.ApplicantName, "us.applicantName", issues); Contacts(us.Contacts, issues); }
+        if (content.Us is { } us) { Required(us.ApplicationIdentifier, "us.applicationIdentifier", issues); Required(us.ApplicationType, "us.applicationType", issues); Required(us.ApplicantName, "us.applicantName", issues); Contacts(us.Contacts, issues); InputDictionaries(us.ApplicationType, us.Contacts, snapshot, issues); }
         if (content.Eu is { } eu) { Required(eu.Applicant, "eu.applicant", issues); TextList(eu.InventedNames, "eu.inventedNames", true, issues); TextList(eu.ProcedureTrackingNumbers, "eu.procedureTrackingNumbers", true, issues); TextList(eu.Inns, "eu.inns", false, issues); }
         issues.Add(new("RegionalQualificationPending", "standardsSnapshotId", "Captured regional metadata remains a draft until source, mapping, writer, rule and comparison qualifications are complete."));
         snapshot.Verify(); return issues;
@@ -28,6 +28,7 @@ internal static class RegionalMetadataValidation
                 (us.ApplicantIdentifier.Length != 9 || us.ApplicantIdentifier.Any(value => value is < '0' or > '9')))
                 issues.Add(new("FDA47-2044", "us.applicantIdentifier", "申请人／公司编号必须为9位数字；请填写独立编号，不能用申请号代替。原值已保留，未补零或推断。"));
             Contacts(us.Contacts, issues);
+            InputDictionaries(us.ApplicationType, us.Contacts, snapshot, issues);
             var conditional = FdaM1ConditionalPolicy.FromSnapshot(snapshot);
             if (conditional is not null)
             {
@@ -83,6 +84,24 @@ internal static class RegionalMetadataValidation
         }
         issues.Add(new("RegionalQualificationPending", "standardsSnapshotId", "Structured metadata alone does not activate a formally qualified regional profile."));
         return issues;
+    }
+    private static void InputDictionaries(string? applicationType, IReadOnlyList<RegionalContact> contacts, StandardsProfileSnapshot snapshot, List<RegionalMetadataDiagnostic> issues)
+    {
+        var policy = FdaM1AttributePolicy.FromSnapshot(snapshot);
+        void Check(string? value, string attribute, string path)
+        {
+            if (value is null) return;
+            if (policy is null) issues.Add(new("VocabularyUnverified", path, "选定快照缺少已绑定的官方字典，无法确认码值；原输入已保留。"));
+            else if (!policy.InputValues(attribute).Contains(value, StringComparer.Ordinal))
+                issues.Add(new("OfficialDictionaryValueInvalid", path, "输入不在所选官方字典的允许码值中；原值保留供修正，不转换名称、大小写或空白。"));
+        }
+        Check(applicationType, "application-type", "us.applicationType");
+        for (var index = 0; index < contacts.Count; index++)
+        {
+            Check(contacts[index].Type, "applicant-contact-type", $"us.contacts[{index}].type");
+            for (var phone = 0; phone < contacts[index].Phones.Count; phone++)
+                Check(contacts[index].Phones[phone].Type, "telephone-number-type", $"us.contacts[{index}].phones[{phone}].type");
+        }
     }
     private static void UsContext(string? country, string? language, string? productInformationType, string? formType, string section, string path, List<RegionalMetadataDiagnostic> issues)
     {

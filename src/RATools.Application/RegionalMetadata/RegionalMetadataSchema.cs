@@ -47,14 +47,19 @@ internal static class RegionalMetadataSchema
             const string us = "xml-us-dtd";
             var conditional = FdaM1ConditionalPolicy.FromSnapshot(snapshot);
             var combinations = FdaSupplementCombinations.FromSnapshot(snapshot);
+            var attributePolicy = FdaM1AttributePolicy.FromSnapshot(snapshot);
+            RegionalFieldDescriptor InputDictionary(string key, string attribute, string resource, string element) => attributePolicy is null
+                ? Text(key, true, "选定快照缺少已绑定的官方字典，无法确认码值；保留原输入供核实。")
+                : new(key, key, "enum", true, attributePolicy.InputValues(attribute), [], Conditions: [], Source: Source(resource, element + "/@" + attribute),
+                    BusinessEvidence: "选项为所选快照的官方有效码值；名称、大小写和尾空格不自动转换。" );
             RegionalFieldDescriptor Official(string key, string attribute, string resource, string element, bool required = false) => conditional is null
                 ? Enum(key, us, element, attribute, required)
                 : new(key, key, "enum", required, conditional.Values(attribute), [], Conditions: [], Source: Source(resource, element + "/@" + attribute),
                     BusinessEvidence: "选项来自所选标准快照的官方有效码值；原有非标准值保留供修正。完整区域资格另行验收。" );
-            var contacts = Collection("contacts", true, Text("id", true), Text("name", true), Enum("type", us, "applicant-contact-name", "applicant-contact-type", true),
-                Collection("phones", true, Text("id", true), Text("number", true), Enum("type", us, "telephone", "telephone-number-type", true)),
+            var contacts = Collection("contacts", true, Text("id", true), Text("name", true), InputDictionary("type", "applicant-contact-type", "official-fda-applicant-contact-types", "applicant-contact-name"),
+                Collection("phones", true, Text("id", true), Text("number", true), InputDictionary("type", "telephone-number-type", "official-fda-telephone-types", "telephone")),
                 Collection("emails", true, Text("id", true), Text("value", true)));
-            shared = [Text("applicationIdentifier", true), Enum("applicationType", us, "application-number", "application-type", true), Text("applicantName", true), contacts];
+            shared = [Text("applicationIdentifier", true), InputDictionary("applicationType", "application-type", "official-fda-application-types", "application-number"), Text("applicantName", true), contacts];
             sequence = [Object("us", [.. shared, Text("applicantIdentifier", true) with { Label = "申请人／公司编号（9位数字）",
                 Source = snapshot.Resources.Any(resource => resource.Key == "official-fda-criteria" && resource.Sha256 == "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c")
                     ? Source("official-fda-criteria", "FDA Validation Criteria 4.7, p. 53, error 2044; admin/applicant-info/id") : Source(us, "admin/applicant-info/id"),

@@ -107,7 +107,7 @@ public sealed class RegionalMetadataEditingTests
         Assert.Equal("id", envelope.IdentityField); Assert.Equal("RegionalQualificationPending", schema.QualificationStatus);
         var us = await Rig.CreateAsync(us: true); var usSchema = await us.Service.GetSchemaAsync(us.App.Id, us.SnapshotId);
         var applicationType = usSchema.SequenceFields.Single(field => field.Key == "us").Fields.Single(field => field.Key == "applicationType");
-        Assert.Equal("text", applicationType.Kind); Assert.Empty(applicationType.Options); Assert.NotNull(applicationType.BusinessEvidence);
+        Assert.Equal("enum", applicationType.Kind); Assert.Contains("fdaat1", applicationType.Options); Assert.NotNull(applicationType.BusinessEvidence);
         Assert.Equal("application-number/@application-type", applicationType.Source!.Locator);
     }
 
