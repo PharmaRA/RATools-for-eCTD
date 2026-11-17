@@ -30,7 +30,9 @@
 
 **Chromium短路径修复**：原profile位于深层任务目录，Unix socket超长。改为在`/data/home/ratools-browser-`前缀下用mkdtemp独占创建短profile，日志记录完整保留路径，无删除。统一命令最终`20261117T154702-7afa3f9230404239889860397546564d`、源码包SHA256 `ee30723fce8569ec60060d45ca3d628a25d68ca5eba5af11ce288e837054b034`：CLI/远端exit0、category=passed，13个步骤均exit0，真实API/InMemory与Chromium共8项业务检查通过、errors=[]。原生ZIP下载69920字节，SHA256 `4f7e06865d554e1bc1a132049b868395aae638573ee7da32a91ca4c6bd6228fa`与快照清单一致，开发快照/拒绝正式交付/新草稿与旧快照复读均通过；独立ZIP/PDF检查3/3。最终只读review PASS，无阻断项。
 
-DEV-01下一原子项：复用当前真实Linux API/浏览器宿主，补外部ZIP目标/历史根选择、显式profile、真实findings第二页与定位、源文件和完整报告原生下载字节核对、独立停用worker实例的Pending取消；保留所有输入及下载。区域表单新增字典/组合的浏览器保存复读仍须独立覆盖，不能将当前8项记作DEV-01全部完成。
+**DEV-01外部ZIP浏览器验收**：统一命令`pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test -Target linux -Scope backend-browser -RemoteRoot /data/home/ratools-remote -WaitMinutes 1`最终证据`20261117T161014-bd041731f0b94d108fa868f17996368c`，源码包SHA256 `87188a495d520dee7b4e66e34546cd5597259c01acccc6086d58a11b66756191`；exit0/passed，13项业务检查通过（本项新增5项），errors=[]。UI上传双根外部ZIP、选择目标0001与Unverified历史0000及显式ICH profile，真实worker完成；107条实际问题，第二页逐行与API一致，定位显示原始文本。Chromium按本次新GUID完成原生下载：源文件30字节/报告73192字节，逐字节与原始fixture/API归档匹配；报告SHA256 `475cecb1a09be510a962fb08c1c87508c073e99ef0d763f3b68d2d16f4e3bce1`。另一个禁用worker的API进程通过UI取消Pending，复读Cancelled/attempt0/reportAvailable=false，原ZIP摘要不变；不声称此步骤证明InMemory重启持久化或运行中取消。首次两个候选因新增模块未在脚手架显式同步清单而失败（`20261117T160100-d503c107647045c7a750c7bb0850e7f7`、`20261117T160613-2cb3aa0408b946ae872536a1135a3885`），最终将验收内联到既有同步入口，原模块移入本次backups回收目录，无删除、未改已有PowerShell修改。最终只读review PASS，无阻断项。
+
+DEV-01下一原子项：区域表单新增字典/组合的真实浏览器保存复读、XML生成与独立验包；当前13项不能记作DEV-01全部完成。
 
 **浏览器区域夹具更新**：使用schema返回的精确snapshot，显式填写九位公司ID、提交ID、已归档官方代码及稳定联系人/电话/邮箱ID，经混合元数据接口保存后逐字段和再次GET核对。首候选`20261117T153425-018eb33431ab40dc8eb8c3c7e8ba89ea`因期望空可选字段在响应保留而失败；依据Domain的WhenWritingNull约定去掉夹具中的空字段。最终`20261117T153856-eaa39d57abbd4721bce2b895b7f4d3cf`、源码包SHA256 `68ca419c8bcf602908de5ba0da6b2eca2d6b2b36e69c682b44a3f3a07c4f9b95`：前置构建/探测exit0，实际缺失字段/保存复读/PDF装配/writer ZIP与独立校验4项通过。整体仍exit1/browser-test-failed，Chromium明确报`Socket path too long`，尚未开始UI步骤；作为下一项修复。区域夹具最终只读review PASS，无阻断项。
 

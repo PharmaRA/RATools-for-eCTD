@@ -2,8 +2,172 @@
 import assert from 'node:assert/strict'
 import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir, mkdtemp } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolve, basename } from 'node:path'
 import { startProcess, fetchDeadline as fetch } from './browser-process.mjs'
+
+const externalFixturePython = String.raw`"""Deterministic external ZIP for real UI validation; retain every fixture byte."""
+import hashlib
+import json
+from pathlib import Path
+import sys
+import zipfile
+
+workspace = Path(sys.argv[1])
+archive = workspace / 'external-browser.zip'
+source_path = '0001/m2/UPPER0.txt'
+source_text = 'Independent browser fixture 0\n'
+
+
+def xml(sequence, count):
+    leaves = []
+    for index in range(count):
+        content = f'Independent browser fixture {index}\n'.encode()
+        digest = hashlib.md5(content).hexdigest()
+        leaves.append(f'<leaf ID="leaf-{sequence}-{index}" operation="new" checksum="{digest}" '
+                      f'checksum-type="md5" xlink:href="m2/UPPER{index}.txt"><title>External text {index}</title></leaf>')
+    return ('<?xml version="1.0"?>\n<!DOCTYPE ectd SYSTEM "util/dtd/ich-ectd-3-2.dtd">\n'
+            '<ectd xmlns:xlink="http://www.w3c.org/1999/xlink" dtd-version="3.2">'
+            '<m2-common-technical-document-summaries><m2-2-introduction>' + ''.join(leaves) +
+            '</m2-2-introduction></m2-common-technical-document-summaries></ectd>').encode()
+
+
+with zipfile.ZipFile(archive, 'x', compression=zipfile.ZIP_STORED) as output:
+    for sequence, count in [('0000', 1), ('0001', 30)]:
+        index_xml = xml(sequence, count)
+        output.writestr(f'bundle/{sequence}/index.xml', index_xml)
+        output.writestr(f'bundle/{sequence}/index-md5.txt', hashlib.md5(index_xml).hexdigest() + '\n')
+        for index in range(count):
+            output.writestr(f'bundle/{sequence}/m2/UPPER{index}.txt', f'Independent browser fixture {index}\n')
+
+fixture = {'archive': str(archive), 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
+           'sourcePath': source_path, 'sourceText': source_text}
+Path(sys.argv[2]).write_text(json.dumps(fixture, indent=2), encoding='utf-8')
+`
+
+async function exerciseExternalInputs({ root, results, workspace, profile, base, send, evaluate, request, requestBytes,
+  until, stop, stopApi, startApi, downloadEvents, passed, facts }) {
+  const generation = startProcess('/usr/bin/python3', ['-c', externalFixturePython,
+    workspace, `${results}/external-browser-fixture.json`], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let generationLog = ''
+  generation.process.stdout.on('data', data => { generationLog += data })
+  generation.process.stderr.on('data', data => { generationLog += data })
+  try {
+    await generation.ready
+    await until(() => generation.process.exitCode !== null || generation.process.signalCode !== null, 'external ZIP fixture created')
+    assert.equal(generation.process.exitCode, 0, generationLog)
+  } finally { await stop(generation.process) }
+  const fixture = JSON.parse(await readFile(`${results}/external-browser-fixture.json`, 'utf8'))
+  const external = facts.externalInputs = { fixture, downloads: [] }
+  const wait = expression => until(() => evaluate(expression), expression)
+  const click = async label => {
+    const button = `[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===${JSON.stringify(label)}&&!e.disabled)`
+    await wait(`!!(${button})`); await evaluate(`(${button}).click()`)
+  }
+  const choose = async (selector, label) => {
+    const input = `(()=>{const e=document.querySelector(${JSON.stringify(selector)});return e.matches('input')?e:e.querySelector('input[role="combobox"]')})()`
+    const box = await evaluate(`(()=>{const e=${input};e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`)
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...box })
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...box })
+    const dropdown = `document.getElementById((${input}).getAttribute('aria-controls'))?.closest('.ant-select-dropdown')`
+    await wait(`(${input}).getAttribute('aria-expanded')==='true'&&[...((${dropdown})?.querySelectorAll('.ant-select-item-option')||[])].some(e=>e.textContent.trim()===${JSON.stringify(label)})`)
+    await evaluate(`[...(${dropdown}).querySelectorAll('.ant-select-item-option')].find(e=>e.textContent.trim()===${JSON.stringify(label)}).click()`)
+    await wait(`document.querySelector(${JSON.stringify(selector)}).closest('.ant-select').textContent.includes(${JSON.stringify(label)})`)
+  }
+  const register = async (role, sequence) => {
+    await click(role); await wait(`!!document.querySelector('#validation-zip')`)
+    const document = await send('DOM.getDocument')
+    const node = await send('DOM.querySelector', { nodeId: document.root.nodeId, selector: '#validation-zip' })
+    await send('DOM.setFileInputFiles', { nodeId: node.nodeId, files: [fixture.archive] })
+    await click('登记并选择'); await wait(`!!document.querySelector('#validation-root')`)
+    await choose('#validation-root', `${sequence} / bundle/${sequence}`)
+    await click('登记并选择'); await wait(`!document.querySelector('#validation-zip')`)
+  }
+  const nativeDownload = async (label, fileName, expected) => {
+    assert.equal(basename(fileName), fileName)
+    const before = downloadEvents.length
+    await click(label)
+    let begun
+    await until(() => {
+      begun = downloadEvents.slice(before).find(event => event.method === 'Browser.downloadWillBegin' && event.suggestedFilename === fileName)
+      return !!begun
+    }, `native download started: ${fileName}`)
+    await until(() => downloadEvents.slice(before).some(event => event.guid === begun.guid && event.state === 'completed'), `native download completed: ${fileName}`)
+    const bytes = await readFile(`${profile}/downloads/${fileName}`)
+    assert.deepEqual(bytes, expected, `Native download bytes differ: ${fileName}`)
+    external.downloads.push({ fileName, guid: begun.guid, length: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') })
+    return bytes
+  }
+  const applicationsBefore = (await request('/api/applications')).map(app => app.id).sort()
+  await send('Page.navigate', { url: `${base}/package-validations` })
+  await wait(`!!document.querySelector('#validation-application')`)
+  external.applicationId = await evaluate(`document.querySelector('#validation-application').value`)
+  assert.ok(!applicationsBefore.includes(external.applicationId))
+  await register('选择目标输入', '0001')
+  await register('添加历史序列', '0000')
+  const selectedProfile = 'ich-3.2.2-development-v1'
+  await choose('#validation-profile', selectedProfile)
+  await choose('[aria-label="历史 0000 规则范围"]', selectedProfile)
+  await click('开始独立校验')
+  await wait(`document.body.innerText.includes('运行完成（不等于通过）')&&document.body.innerText.includes('共 ')`)
+  const runId = await evaluate(`new URL(location.href).searchParams.get('run')`)
+  const run = await request(`/api/package-validations/${runId}`), binding = await request(`/api/package-validations/${runId}/evidence`)
+  assert.equal(run.status, 'Completed'); assert.equal(binding.history.length, 1)
+  assert.equal(binding.historyBaseline.entries[0].trustStatus, 'Unverified')
+  assert.equal(binding.history[0].profileSnapshotId, selectedProfile); assert.equal(run.binding.profileSnapshotId, selectedProfile)
+  assert.deepEqual((await request('/api/applications')).map(app => app.id).sort(), applicationsBefore)
+  external.run = run; external.history = binding.history
+  passed.push('external ZIP UI selects target/history roots and explicit profiles; real worker completes without creating a business application')
+  const first = await request(`/api/package-validations/${runId}/findings?offset=0&limit=20`)
+  assert.ok(first.totalCount > 20, 'External fixture must exercise actual findings pagination')
+  const verifyPage = async (page, data) => {
+    const expected = data.items.map(item => ({ code: item.code, path: item.location.logicalPath || item.location.nodePath || '规则级问题' }))
+    await wait(`(()=>{const table=[...document.querySelectorAll('.ant-table-wrapper')].find(e=>e.innerText.includes('查看定位'));if(!table||table.querySelector('.ant-spin-spinning')||table.querySelector('.ant-pagination-item-active')?.textContent!==${JSON.stringify(String(page))})return false;const rows=[...table.querySelectorAll('tbody tr.ant-table-row')];const expected=${JSON.stringify(expected)};return rows.length===expected.length&&expected.every((item,index)=>rows[index].innerText.includes(item.code)&&rows[index].innerText.includes(item.path))})()`)
+  }
+  await verifyPage(1, first)
+  await evaluate(`[...document.querySelectorAll('.ant-table-wrapper')].find(e=>e.innerText.includes('查看定位')).querySelector('.ant-pagination-next button').click()`)
+  const second = await request(`/api/package-validations/${runId}/findings?offset=20&limit=20`)
+  await verifyPage(2, second)
+  external.findings = first.totalCount
+  passed.push('external findings second UI page matches archived API rows')
+  await evaluate(`[...document.querySelectorAll('.ant-table-wrapper')].find(e=>e.innerText.includes('查看定位')).querySelector('.ant-pagination-prev button').click()`)
+  let found = false
+  for (let page = 1; page <= Math.ceil(first.totalCount / 20); page++) {
+    const data = page === 1 ? first : page === 2 ? second : await request(`/api/package-validations/${runId}/findings?offset=${(page - 1) * 20}&limit=20`)
+    await verifyPage(page, data)
+    found = await evaluate(`[...document.querySelectorAll('tr')].some(e=>e.innerText.includes(${JSON.stringify(fixture.sourcePath)})&&e.innerText.includes('查看定位'))`)
+    if (found) break
+    if (page < Math.ceil(first.totalCount / 20)) await evaluate(`[...document.querySelectorAll('.ant-table-wrapper')].find(e=>e.innerText.includes('查看定位')).querySelector('.ant-pagination-next button').click()`)
+  }
+  assert.ok(found, 'Known delivered source must have a visible finding')
+  await evaluate(`[...document.querySelectorAll('tr')].find(e=>e.innerText.includes(${JSON.stringify(fixture.sourcePath)})&&e.innerText.includes('查看定位')).querySelector('button').click()`)
+  await wait(`document.querySelector('[data-testid="validation-source-text"]')?.textContent.includes('Independent browser fixture 0')`)
+  await nativeDownload('下载定位文件原始字节', 'UPPER0.txt', Buffer.from(fixture.sourceText))
+  await evaluate(`document.querySelector('.ant-drawer-close').click()`)
+  passed.push('external finding displays exact source text and native source download completes with original bytes')
+  const expectedReport = await requestBytes(`/api/package-validations/${runId}/report`)
+  const reportName = `validation-${runId}-report.json`
+  const reportBytes = await nativeDownload('下载完整报告 JSON', reportName, expectedReport)
+  assert.equal(JSON.parse(reportBytes.toString('utf8')).isReadyForFinalization, false)
+  await writeFile(`${results}/external-browser-report.json`, reportBytes)
+  passed.push('external full report native download completes and matches archived report; Development remains not ready')
+  await stopApi(); await startApi(true)
+  await send('Page.navigate', { url: `${base}/package-validations` })
+  await wait(`!!document.querySelector('#validation-application')`)
+  await register('选择目标输入', '0001'); await choose('#validation-profile', selectedProfile)
+  await click('开始独立校验')
+  await wait(`[...document.querySelectorAll('button')].some(e=>e.textContent.trim()==='请求取消')`)
+  const cancelId = await evaluate(`new URL(location.href).searchParams.get('run')`)
+  const beforeCancel = await request(`/api/package-validations/${cancelId}`)
+  assert.equal(beforeCancel.status, 'Pending'); assert.equal(beforeCancel.attemptCount, 0)
+  await click('请求取消')
+  await wait(`document.body.innerText.includes('已取消')&&![...document.querySelectorAll('button')].some(e=>e.textContent.trim()==='请求取消')`)
+  external.cancelled = await request(`/api/package-validations/${cancelId}`)
+  assert.equal(external.cancelled.status, 'Cancelled'); assert.equal(external.cancelled.attemptCount, 0)
+  assert.equal(external.cancelled.reportAvailable, false)
+  assert.equal(await evaluate(`[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='下载完整报告 JSON').disabled`), true)
+  assert.equal(createHash('sha256').update(await readFile(fixture.archive)).digest('hex'), fixture.sha256)
+  passed.push('external UI cancels Pending run in worker-disabled API; no report is fabricated and original ZIP is unchanged')
+}
 
 const root = resolve('..'), results = resolve('../results'), backend = resolve('../backend')
 const sdk = '/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423'
@@ -57,9 +221,9 @@ const migrate = async label => {
   }
   finally { await stop(child.process); await writeFile(`${results}/${label}.log`, log.replaceAll(apiKey, '[task-credential-redacted]')) }
 }
-const startApi = async () => {
+const startApi = async (disableWorker = false) => {
   const child = startProcess(`${sdk}/dotnet`, [`${backend}/RATools.Api.dll`, '--contentRoot', backend, '--webroot', resolve('dist')],
-    { env: { ...env, ...(base ? { ASPNETCORE_URLS: base } : {}) }, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
+    { env: { ...env, PackageValidation__Enabled: disableWorker ? 'false' : 'true', ...(base ? { ASPNETCORE_URLS: base } : {}) }, cwd: backend, stdio: ['ignore', 'pipe', 'pipe'] })
   api = child.process
   api.stdout.on('data', data => { apiLog += data }); api.stderr.on('data', data => { apiLog += data })
   await child.ready
@@ -238,6 +402,12 @@ try {
     facts.restart = { previousApiPid: previousPid, apiPid: api.pid, databaseRestarted: true, manifestUnchanged: true, workspaceUnchanged: true }
     passed.push('actual API and PostgreSQL stop/restart retain migrated workspace, validation and immutable snapshot in browser')
   }
+  await exerciseExternalInputs({ root, results, workspace, profile, base, send, evaluate, request, until, stop,
+    requestBytes: async path => {
+      const response = await fetch(base + path, { headers: { 'X-RA-Tools-Api-Key': apiKey } })
+      assert.equal(response.status, 200, path)
+      return Buffer.from(await response.arrayBuffer())
+    }, stopApi: () => stop(api), startApi, downloadEvents, passed, facts })
   assert.deepEqual(errors, [])
 } catch (error) {
   failure = error; errors.push(String(error))
