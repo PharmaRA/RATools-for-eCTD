@@ -97,9 +97,13 @@ public sealed partial class PublishOutputVerifier
                 try
                 {
                     using var archive = ZipFile.OpenRead(packagePath);
-                    zipEntries = archive.Entries
-                        .Select(x => x.FullName.Replace('\\', '/'))
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var expectedFiles = outputFiles.Where(file => !IsSamePath(file.Path, packagePath))
+                        .ToDictionary(file => file.RelativePath, file => file.Path, StringComparer.Ordinal);
+                    var expectedDirectories = Directory.EnumerateDirectories(resolvedOutputDirectory, "*", SearchOption.AllDirectories)
+                        .Select(path => Path.GetRelativePath(resolvedOutputDirectory, path).Replace('\\', '/'))
+                        .ToHashSet(StringComparer.Ordinal);
+                    zipEntries = VerifyZipEntries(archive, expectedFiles, expectedDirectories, findings,
+                        ref mismatchedArtifactsCount, cancellationToken);
                 }
                 catch (InvalidDataException)
                 {
@@ -209,6 +213,78 @@ public sealed partial class PublishOutputVerifier
     }
 
     private sealed record BackboneFileInfo(string Path, string RelativePath, string Directory);
+
+    private static HashSet<string> VerifyZipEntries(ZipArchive archive, Dictionary<string, string> expectedFiles,
+        HashSet<string> expectedDirectories, List<PublishIntegrityFindingDto> findings, ref int mismatches,
+        CancellationToken cancellationToken)
+    {
+        var files = new HashSet<string>(StringComparer.Ordinal);
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var diskBuffer = new byte[81920];
+        var zipBuffer = new byte[81920];
+        foreach (var entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var directory = entry.FullName.EndsWith('/');
+            var path = directory ? entry.FullName[..^1] : entry.FullName;
+            if (path.Contains('\\') || path.Contains(':') || path.Split('/').Any(part => part is "" or "." or ".."))
+            {
+                findings.Add(new("Error", "InvalidZipEntryPath", entry.FullName, "The zip member path is not a canonical relative delivery path."));
+                mismatches++;
+                continue;
+            }
+            if (!identities.Add(path))
+            {
+                findings.Add(new("Error", "DuplicateZipEntry", entry.FullName, "The zip repeats a member identity or contains a case/file-directory conflict."));
+                mismatches++;
+                continue;
+            }
+            if (directory)
+            {
+                if (!expectedDirectories.Contains(path) || entry.Length != 0)
+                {
+                    findings.Add(new("Error", "UnexpectedZipEntry", entry.FullName, "The zip directory is absent from the delivery or contains file content."));
+                    mismatches++;
+                }
+                continue;
+            }
+            files.Add(path);
+            if (!expectedFiles.TryGetValue(path, out var diskPath))
+            {
+                findings.Add(new("Error", "UnexpectedZipEntry", path, "The zip contains a file absent from the delivery inventory."));
+                mismatches++;
+                continue;
+            }
+            using var disk = File.OpenRead(diskPath);
+            using var zipped = entry.Open();
+            if (entry.Length != disk.Length || !SameBytes(disk, zipped, diskBuffer, zipBuffer, cancellationToken))
+            {
+                findings.Add(new("Error", "ZipContentMismatch", path, "The zip member length or bytes differ from the delivered file."));
+                mismatches++;
+            }
+        }
+        return files;
+    }
+
+    private static bool SameBytes(Stream disk, Stream zipped, byte[] diskBuffer, byte[] zipBuffer, CancellationToken cancellationToken)
+    {
+        int count;
+        while ((count = disk.Read(diskBuffer)) > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var read = 0;
+            while (read < count)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var next = zipped.Read(zipBuffer, read, count - read);
+                if (next == 0) return false;
+                read += next;
+            }
+            if (!diskBuffer.AsSpan(0, count).SequenceEqual(zipBuffer.AsSpan(0, count))) return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return zipped.ReadByte() == -1;
+    }
 
     private sealed record BackboneLeafReference(string Href, string? Checksum, string? ChecksumType);
 

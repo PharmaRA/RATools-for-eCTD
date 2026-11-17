@@ -6,8 +6,8 @@
 
 | 顺序 | 任务 | 问题/交付 | 状态 | 验证/review/提交 |
 | --- | --- | --- | --- | --- |
-| 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 验证及最终只读review PASS | 36/36；本项独立提交，详见下方 |
-| 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 待复现 | — |
+| 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 已提交 `6c18fb3` | 36/36；最终只读review PASS |
+| 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 验证及最终只读review PASS | 27/27，关联45/45含前27；本项独立提交 |
 | 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 待复现 | — |
 | 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 待复现 | — |
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 待复现 | — |
@@ -39,3 +39,13 @@
 - review首轮发现提前阻断会多计3个错误，已限定verifiedIntegrity并补断言；最终只读review PASS，四个交付输入摘要与最终TRX/进程回执核对通过。runner范围说明从71改79仅修正文案，不改变本次测试程序集。
 
 基线失败：`MultiInstanceRoundTripTests`两项缺`us.applicantIdentifier`；`PublishJobServiceRealEctdIntegrationTests`一项在既有成功断言失败，完整日志保留，尚未确认其根因。这些在CR-01产品改动前已失败，不计本项通过范围；进入DEV-01前须处理或说明实际适用范围，不能声称原发布组全绿。
+
+## CR-02 ZIP成员与交付字节一致性
+
+实际ZIP成员采用精确相对路径核对交付文件，拒绝重复、大小写/文件目录冲突、额外成员和非规范路径；长度及有限缓冲逐字节比较含末尾EOF检查，循环响应取消。正常父目录条目可省略，已有空目录保持原Warning语义。
+
+- 红灯：`.artifacts/local-check/review-20261117/cr02-red/`，原18项通过、新9项在IsConsistent断言预期失败，VSTest退出1、脚本退出0，summary.passed=false。
+- 实际命令：`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence <上述候选绝对路径> -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~PublishOutputVerifierTests'`。
+- 首个green因CA1859编译失败，未执行测试；具体参数类型已修正。最终`cr02-green2/`构建三项退出0、零警告/错误，原生守卫测试**27/27、0失败/0跳过、退出0**。
+- 同构建`cr02-green2/integration/`实际VSTest完整命令/进程回执/TRX记录**45/45、0失败/0跳过、退出0**，包括27项验证器、10项服务、8项报告兼容/路径/取消。计数重叠不相加，完整发布组未重跑。
+- 最终source-manifest SHA256 `7f2517c9ac327d61dd7897e80ba2216c9680626281995947442e0d414dfb52b1`；六个关联交付输入核对一致。静态及最终证据review PASS。范围为Windows选定文件/服务测试，不声明PG、浏览器、Linux或Formal资格。

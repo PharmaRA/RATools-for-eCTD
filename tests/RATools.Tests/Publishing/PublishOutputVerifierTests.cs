@@ -6,6 +6,52 @@ namespace RATools.Tests.Publishing;
 
 public sealed class PublishOutputVerifierTests
 {
+    [Theory]
+    [InlineData("same-length-content", "ZipContentMismatch")]
+    [InlineData("different-length-content", "ZipContentMismatch")]
+    [InlineData("duplicate", "DuplicateZipEntry")]
+    [InlineData("case-collision", "DuplicateZipEntry")]
+    [InlineData("extra", "UnexpectedZipEntry")]
+    [InlineData("extra-directory", "UnexpectedZipEntry")]
+    [InlineData("traversal", "InvalidZipEntryPath")]
+    [InlineData("backslash", "InvalidZipEntryPath")]
+    [InlineData("case-only", "UnexpectedZipEntry")]
+    public async Task ZipMustMatchDeliveredNamesAndBytes(string variant, string finding)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var output = Path.Combine(root, "output");
+            Directory.CreateDirectory(output);
+            var index = Path.Combine(output, "index.xml");
+            await File.WriteAllTextAsync(index, BackboneXml("leaf.txt"));
+            await File.WriteAllTextAsync(Path.Combine(output, "leaf.txt"), "leaf");
+            var zip = Path.Combine(root, "package.zip");
+            using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create))
+            {
+                archive.CreateEntryFromFile(index, "index.xml");
+                WriteEntry(archive, variant == "case-only" ? "LEAF.TXT" : "leaf.txt",
+                    variant == "same-length-content" ? "evil" : variant == "different-length-content" ? "different" : "leaf");
+                if (variant == "duplicate") WriteEntry(archive, "leaf.txt", "leaf");
+                if (variant == "case-collision") WriteEntry(archive, "LEAF.TXT", "leaf");
+                if (variant == "extra") WriteEntry(archive, "extra.txt", "extra");
+                if (variant == "extra-directory") archive.CreateEntry("extra/");
+                if (variant == "traversal") WriteEntry(archive, "../outside.txt", "outside");
+                if (variant == "backslash") WriteEntry(archive, "m1\\outside.txt", "outside");
+            }
+            var result = await new PublishOutputVerifier().VerifyBeforeReportAsync(index, zip);
+            Assert.False(result.Summary.IsConsistent);
+            Assert.Contains(result.Evidence.Findings, item => item.Type == finding && item.Severity == "Error");
+        }
+        finally { RetainIfExists(root); }
+    }
+
+    private static void WriteEntry(ZipArchive archive, string path, string content)
+    {
+        using var writer = new StreamWriter(archive.CreateEntry(path).Open());
+        writer.Write(content);
+    }
+
     [Fact]
     public async Task VerifyAsync_ReturnsArtifactEvidenceAndNoFindings_WhenOutputIsComplete()
     {
