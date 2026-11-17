@@ -16,6 +16,11 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
     public SectionDefinitionSet NodeSchema { get; } = nodeSchema;
     public string? SnapshotId { get; } = snapshotId;
     public DateOnly? SelectionDate { get; } = selectionDate;
+    private StandardsProfileSnapshot? _snapshot;
+    internal bool HasArchivedOfficialSource(ValidationRuleSource source) => _snapshot is not null &&
+        _snapshot.Descriptor.Provenance.Any(item => item.SourceUrl == source.Url && item.Version == source.Version &&
+            item.VerificationStatus == "Verified" && item.Sha256 == source.Sha256 && item.AcquiredOn is not null && item.VerifiedOn is not null) &&
+        _snapshot.Resources.Any(item => item.Category == "OfficialSource" && item.Sha256 == source.Sha256 && item.Length > 0);
     private Lazy<FdaM1AttributePolicy?> _fdaM1Policy = new(() => null);
     internal FdaM1AttributePolicy? FdaM1Policy => _fdaM1Policy.Value;
     private Lazy<FdaM1ConditionalPolicy?> _fdaM1ConditionalPolicy = new(() => null);
@@ -43,7 +48,7 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
                 throw new InvalidDataException("The archived provider and XML inspection assets do not describe the same standard bytes; this snapshot remains readable but cannot authorize a new inspection or capture.");
         }
         return new(catalog, assets, IchSectionDefinitions.Load(schema), snapshot.Id, history, selectionDate)
-        { _fdaM1Policy = new(() => FdaM1AttributePolicy.FromSnapshot(snapshot, catalog)),
+        { _snapshot = snapshot, _fdaM1Policy = new(() => FdaM1AttributePolicy.FromSnapshot(snapshot, catalog)),
             _fdaM1ConditionalPolicy = new(() => PackageValidation.FdaM1ConditionalPolicy.FromSnapshot(snapshot, catalog)),
             _supplementCombinations = new(() => FdaSupplementCombinations.FromSnapshot(snapshot)) };
     }

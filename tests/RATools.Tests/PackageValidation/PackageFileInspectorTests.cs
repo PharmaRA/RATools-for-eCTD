@@ -200,7 +200,7 @@ public sealed class PackageFileInspectorTests
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Copy(file, target);
             }
-            _reader = new(Path.Combine(_root, "captures"));
+            _reader = new(Path.Combine(_root, "validation", "captures"));
         }
         public string PathOf(string relative) => Path.Combine(_root, "source", relative);
         public void RetainMissingFile(string path) => RetainedPackageTestFiles.RetainFile(_root, path);

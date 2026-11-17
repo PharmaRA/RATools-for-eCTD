@@ -13,7 +13,7 @@
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 已提交 `05d3beb` | 15/15；最终review PASS |
 | 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 已提交 `cc48aaa` | 9/9；最终review PASS |
 | 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 前置路由/夹具修复中 | 已确认生产RegionalEctdRuleSetProvider缺4.7路由；另恢复测试typed store/snapshot连接、显式9位编号及副本摘要 |
-| 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 待逐批执行 | 23/147已实施为基线，124条完整覆盖待评估 |
+| 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 首批1221/1298验证及最终review PASS | 79/79；25/147已实施，122条完整覆盖待评估；首批独立提交 |
 | 9 | DEV-03 / 03-F | Formal持久上下文、入队与捕获双层绑定 | 待实现 | 正式资格依赖05-R/V |
 | 10 | DEV-04 / 05-V | 固定版本外部验证器真实对照 | 依赖待就绪 | 既有记录无可用外部验证器；不得以准备文档替代执行 |
 | 11 | DEV-05 / 04-P | Linux Python内容与资源宿主 | 待实现 | 现有非Windows拒绝不算执行验收 |
@@ -96,3 +96,15 @@ Reader失败回收的异常写入主异常Data[CaptureRetentionFailure]，保留
 前置最终验证：`pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild-publishing`，证据`.artifacts/local-check/20261117T110648-95c94f4cd1f44c65a2db19bad8e396ba/`，Api/Migrator/Tests三构建退出0、零警告/错误；发布组**88/88、0失败/0跳过、退出0**，原三项基线失败关闭。同构建`dev01-prerequisite/`补充provider4项及节点四序列发布1项，**5/5、退出0**；完整实际命令/进程/TRX保留。4.7 provider直接红灯在`20261117T105753-16b4db4be6874c71b110d7c6e8e47954/provider-red/`为3通过/1预期失败。
 
 最终源码清单摘要`7c7452648199cf95cfe58e4854793bec2b7be1f4ed6ec181bd8a3b8b22c5730b`。静态及最终证据review PASS，七交付输入匹配，原共享XML和业务断言未削弱。早期85/88的失败分别保留在104525、104910、105347、105753候选，说明了显式编号、修订、引用摘要、归档快照和4.7路由的实际依赖，不算最终通过数。
+
+前置提交`727e079`。随后实际运行`pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test -Target linux -Scope backend-browser -RemoteRoot /tmp/ratools-remote -WaitMinutes 1`，证据`.artifacts/remote-check/20261117T111212-5a8a69799e884dce869243329b339d3a/`。job-result.json记录job47c8f820 exited、exitCode1、oomKilled=false；结果下载又报`remote transport/CLI exit 1; no local fallback`，本机进程退出1。已保留run.json/source-manifest/source.zip/job-result，未取得测试报告、通过计数或错误日志切片，不能确定远端失败根因。依调度约束停止本次远程步骤，不切换平台代替验收；继续可独立进行的DEV-02。
+
+## DEV-02 文件名规则首批（验证中）
+
+本批只新增FDA1221文件名最多64字符及1298缺扩展名，针对目标序列实际捕获清单；来源/选择日期/旧catalog不自动升级。12项缺规则红灯已确认。初实现44项通过；补充17项规则测试并加入旧文件检查回归后49/77，28项因旧夹具captures布局不符合原生回收许可而失败，不算业务失败。review发现1298官方Medium误映射Info，已改Warning并补断言；另外补归档原件缺失和共享finding预算的复现，尚待绿灯与最终review，不宣称规则已验收。
+
+review修复结果：1298为Warning、1221为Info；源必须同时有归档Verified provenance和匹配的OfficialSource原件。完整性有效但缺原件的快照、MaxXmlFindings=2用例均先红后修复；两条官方规则与原文件检查共享总预算，保留终态诊断位置。引擎提升为package-file-inspector-v3，旧排队请求不会混用。旧文件检查夹具只将captures移到已有资格的validation/captures，原断言保持。
+
+最终证据`.artifacts/local-check/review-20261117/dev02-filenames-final2/`三构建退出0、零警告/错误；原生守卫76/79，剩3项旧缺文件模拟的RetainFile被拒绝，该候选不算通过。同一程序集在`retained-final/`用既有BrowserJob、输出ACL及已审阅移动回收夹具执行，**79/79、0失败/0跳过、退出0**；实际命令/进程回执/TRX/摘要完整保留。源码清单SHA256 `3262221acec4ae5e7d942dd16e75cca4c94233ff234c4fdf6feba2333b2f861c`，八交付输入核对匹配。
+
+`python -B scripts/tests/test_package_rule_catalog.py`退出0，69条目录通过，canonical SHA256 `bc6be41e132d4a95aa5c58ef60887fc412119384ba6a1fb6c6d59637cf1c3ff4`。静态及最终证据复审PASS，八交付输入摘要匹配。当前25/147，122条完整覆盖待评估；不代表全部FDA、外部或Formal资格。

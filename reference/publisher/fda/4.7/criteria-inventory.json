@@ -406,10 +406,15 @@
       "correctiveAction": "Modify your SOPs to ensure files names do not exceed the maximum length (64 characters) per the eCTD Specification.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-1221"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaFileNameRules.cs",
+          "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+        ],
+        "note": "Captured target-sequence filenames including extensions; independent of XML parsing. Historical inputs are not reclassified by this current rule. Exact archived FDA source and bound selection date required. Selected regression and review tracked separately; no Formal/external qualification."
       }
     },
     {
@@ -501,10 +506,15 @@
       "correctiveAction": "Resubmit a replacement leaf element in a later submission referencing the original leaf using the operation attribute of \"Replace.\"",
       "guidanceSource": "General good practice to ensure reviewability.",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-1298"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaFileNameRules.cs",
+          "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+        ],
+        "note": "Captured target-sequence filenames including extensions; independent of XML parsing. Historical inputs are not reclassified by this current rule. Exact archived FDA source and bound selection date required. Selected regression and review tracked separately; no Formal/external qualification."
       }
     },
     {

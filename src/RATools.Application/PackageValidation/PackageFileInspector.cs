@@ -25,6 +25,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
         try
         {
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
+            run.CheckOfficialFileNames();
             await run.CheckFilesAsync().ConfigureAwait(false);
             run.Compare();
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -49,15 +50,19 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
     {
         private readonly List<ValidationFinding> _findings = [];
         private readonly List<PackageFileReference> _references = [];
+        private IReadOnlyList<RuleCheckResult>? _officialFileNames;
         private readonly Dictionary<string, PackageInputFile> _files = input.Packages.Sequences.Values
             .SelectMany(capture => capture.Manifest.Files).ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
         public bool Incomplete { get; set; }
+
+        public void CheckOfficialFileNames() => _officialFileNames = FdaFileNameRules.Inspect(input.Packages.Target,
+            lifecycle.ProfileSnapshotId, context, cancellationToken).ToArray();
 
         private void Add(string rule, CheckStatus status, string code, string message, ValidationLocation location,
             string? expected = null, string? actual = null, ValidationSeverity? severity = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_findings.Count >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new FileInspectionLimitException();
+            if (_findings.Count + (_officialFileNames?.Sum(check => check.Findings.Count) ?? 0) >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new FileInspectionLimitException();
             _findings.Add(new(rule, status, severity ?? (status == CheckStatus.Fail ? ValidationSeverity.Error : ValidationSeverity.Warning),
                 code, message, location, expected, actual));
         }
@@ -335,7 +340,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 }
                 return new RuleCheckResult(rule, status, reason, findings);
             });
-            return new(input, lifecycle, _references, checks);
+            var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
+                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298")
+                .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
+            return new(input, lifecycle, _references, checks.Concat(official));
         }
 
         private static bool IsMd5(string? value) => value is { Length: 32 } && value.All(Uri.IsHexDigit);
