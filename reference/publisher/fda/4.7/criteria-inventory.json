@@ -26,10 +26,15 @@
       "correctiveAction": "Resubmit with us-regional.xml file",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1, ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-2"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaRegionalFilePresence.cs",
+          "tests/RATools.Tests/PackageValidation/FdaRegionalFilePresenceTests.cs"
+        ],
+        "note": "Exact target-sequence m1/us/us-regional.xml file presence. Historical, surrounding, wrong-case and wrong-path files or directories do not satisfy this check; XML content validity is assessed separately. Selected regression and review tracked separately."
       }
     },
     {

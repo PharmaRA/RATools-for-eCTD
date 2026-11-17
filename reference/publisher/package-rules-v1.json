@@ -2516,6 +2516,36 @@
         "tests/RATools.Tests/PackageValidation/FdaEmptyDirectoryRulesTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-2",
+      "authorityRuleId": "2",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 4, error 2; effective 2017-04-02",
+      "title": "eCTD submission missing us-regional.xml file",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Exact target-sequence m1/us/us-regional.xml file presence. Historical, surrounding, wrong-case and wrong-path files or directories do not satisfy this check; XML content validity is assessed separately.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Official High maps to Error. Exact archived original/provenance and explicit selection date required. Reads the reverified captured target inventory and shares the file-stage finding budget.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaRegionalFilePresenceTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaRegionalFilePresenceTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaRegionalFilePresence.cs",
+        "tests/RATools.Tests/PackageValidation/FdaRegionalFilePresenceTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }
