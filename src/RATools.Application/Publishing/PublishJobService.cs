@@ -117,7 +117,9 @@ public sealed class PublishJobService(
         CreatePublishJobRequest request,
         PipelineResult result,
         long elapsedMilliseconds,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PublishIntegrityVerificationDto? verifiedIntegrity = null,
+        bool deferHistory = false)
     {
         var jobDto = result.Job.ToDto();
         var issueSummary = PublishValidationIssueReportSummary.Create(result.ValidationReport.Issues);
@@ -148,18 +150,19 @@ public sealed class PublishJobService(
 
         report = report with { ArtifactSummary = await artifactResolver.BuildArtifactSummaryAsync(jobDto, cancellationToken) };
 
-        var integrityVerification = await publishOutputVerifier.VerifyBeforeReportAsync(jobDto.OutputPath, jobDto.PackagePath, cancellationToken);
+        var integrityVerification = verifiedIntegrity ?? await publishOutputVerifier.VerifyBeforeReportAsync(jobDto.OutputPath, jobDto.PackagePath, cancellationToken);
         report = report with
         {
             IntegritySummary = integrityVerification.Summary,
-            IntegrityEvidence = integrityVerification.Evidence
+            IntegrityEvidence = integrityVerification.Evidence,
+            ErrorCount = report.ErrorCount + (verifiedIntegrity?.Evidence.Findings.Count(finding => finding.Severity == "Error") ?? 0)
         };
 
-        if (!string.IsNullOrWhiteSpace(report.ReportPath) && !string.IsNullOrWhiteSpace(jobDto.PackagePath))
+        if (!string.IsNullOrWhiteSpace(report.ReportPath))
         {
             await reportStore.WriteAsync(report, cancellationToken);
         }
-        if (result.Job.Status != PublishJobStatus.Completed)
+        if (!deferHistory && result.Job.Status != PublishJobStatus.Completed)
             await PersistHistorySummaryAsync(result.Job, PublishJobHistorySummaryBuilder.Create(report, false, false));
 
         return report;
@@ -442,22 +445,32 @@ public sealed class PublishJobService(
             var candidate = PublishJob.Rehydrate(job.Id, job.ApplicationId, job.SequenceNumber, PublishJobStatus.Running,
                 null, null, job.CreatedUtc, null, null, job.IdempotencyKey, job.AttemptCount,
                 job.NextAttemptUtc, packageValidationRunId: job.PackageValidationRunId);
-            candidate.MarkCompleted(generated.FilePath, generated.PackagePath);
-            var prepared = new PipelineResult(candidate, validationReport, publishReadiness, "Publish completed successfully.", reportPath);
-            var report = await BuildAndPersistReportAsync(request, prepared, stopwatch.ElapsedMilliseconds, cancellationToken);
+            var integrity = await publishOutputVerifier.VerifyBeforeReportAsync(generated.FilePath, generated.PackagePath, cancellationToken);
+            var succeeded = integrity.Summary.IsConsistent;
+            var message = succeeded ? "Publish completed successfully." : "Publish output integrity failed: " +
+                string.Join(" | ", integrity.Evidence.Findings.Where(finding => finding.Severity == "Error")
+                    .Select(finding => $"{finding.Type}: {finding.Message}"));
+            if (succeeded) candidate.MarkCompleted(generated.FilePath, generated.PackagePath);
+            else candidate.MarkFailed(message, generated.FilePath);
+            var prepared = new PipelineResult(candidate, validationReport, publishReadiness, message, reportPath);
+            var report = await BuildAndPersistReportAsync(request, prepared, stopwatch.ElapsedMilliseconds, cancellationToken, integrity, deferHistory: true);
             cancellationToken.ThrowIfCancellationRequested();
 
-            job.MarkCompleted(generated.FilePath, generated.PackagePath, candidate.CompletedUtc);
-            PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
+            if (succeeded)
+            {
+                job.MarkCompleted(generated.FilePath, generated.PackagePath, candidate.CompletedUtc);
+                PublishPipelineLog.Completed(logger, job.Id, generated.FilePath, generated.PackagePath);
+            }
+            else job.MarkFailed(message, generated.FilePath, candidate.CompletedUtc);
             await PersistTerminalStateAsync(job, lease);
             await PersistHistorySummaryAsync(job, PublishJobHistorySummaryBuilder.Create(report, true, true));
             await TryWriteTerminalAuditAsync(
                 entityType: "PublishJob",
                 entityId: job.Id.ToString(),
-                action: "Completed",
-                details: $"Profile={validationReport.ValidationProfile}; Output: {generated.FilePath}; Package: {generated.PackagePath}");
+                action: succeeded ? "Completed" : "Failed",
+                details: $"Profile={validationReport.ValidationProfile}; {message}; Output: {generated.FilePath}; Package: {generated.PackagePath}");
 
-            return new(job, validationReport, publishReadiness, "Publish completed successfully.", reportPath, report);
+            return new(job, validationReport, publishReadiness, message, reportPath, report);
         }
         catch (Exception exception)
         {

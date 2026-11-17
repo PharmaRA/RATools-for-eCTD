@@ -6,7 +6,7 @@
 
 | 顺序 | 任务 | 问题/交付 | 状态 | 验证/review/提交 |
 | --- | --- | --- | --- | --- |
-| 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 待复现 | — |
+| 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 验证及最终只读review PASS | 36/36；本项独立提交，详见下方 |
 | 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 待复现 | — |
 | 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 待复现 | — |
 | 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 待复现 | — |
@@ -24,4 +24,18 @@
 - QA07-01/02和05-S维持已声明关闭范围；03-F、04-P、05-R/V保持开放，依据[原关闭清单](QA-07-CLOSURE-CHECKLIST.md)。
 - 历史657/657是选定Windows回归，不是本轮运行，也不是完整资格。新验证按候选分别记录，不累加重叠用例。
 - 既有`scripts/remote-check.ps1`修改及未跟踪备份保留，不纳入任务提交。
-- 文档入口修改前备份：`backups/review-followup-20261117-085843/`。本轮尚未修改产品代码或运行测试。
+- 文档入口修改前备份：`backups/review-followup-20261117-085843/`；各修复备份按CR编号归档。
+
+## CR-01 发布完整性失败终态
+
+实现：生成后先验证实际产物，完整性错误构建Failed候选并保留原始findings；报告写入并复读后才以旧lease/token落终态，再写历史摘要。Failed保留OutputPath定位报告、PackagePath为空，报告API可读失败报告而包下载继续拒绝。Warning保持成功。只对实际生成后的检查累加错误数，发布前阻断不增加伪造产物错误。
+
+验证记录（Windows本机、真实文件、InMemory持久化，不代表PG/浏览器/全套）：
+
+- 初始原生守卫候选`review-20261117/cr01-red`及`cr01-red-valid`各1/10通过，原因是守卫未许可报告pending晋升，回收站调用被拒绝；均为环境失败，不记业务红灯，保留原件。
+- 有效红灯命令：`pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild-publishing`。证据`.artifacts/local-check/20261117T092517-67d03d5e5df54a2ca5ada78f408e212d/`，构建三项退出0，VSTest退出1，70/79、0跳过。六项新增错误产物用例在Succeeded断言失败；三个旧集成失败单列如下。
+- 最终构建同命令：`.artifacts/local-check/20261117T093310-342630f533a24b6fa8d1e3a7ccbecbe9/`，Api/Migrator/Tests退出0且零警告/错误。原发布组76/79、VSTest退出1，仍仅三项基线失败。四个产品/测试改动文件逐一匹配该构建source-manifest。
+- 同构建最终定向运行：子目录`cr01-final/`保留完整实际VSTest命令、TRX、process.json与summary.json；服务10项、验证器18项、报告兼容/路径/取消8项，共**36/36、0失败/0跳过、退出0**。源码清单SHA256 `9035c8dda595819c5d07b209e3002910229added59e4a97a053f8c53aed45d19`。
+- review首轮发现提前阻断会多计3个错误，已限定verifiedIntegrity并补断言；最终只读review PASS，四个交付输入摘要与最终TRX/进程回执核对通过。runner范围说明从71改79仅修正文案，不改变本次测试程序集。
+
+基线失败：`MultiInstanceRoundTripTests`两项缺`us.applicantIdentifier`；`PublishJobServiceRealEctdIntegrationTests`一项在既有成功断言失败，完整日志保留，尚未确认其根因。这些在CR-01产品改动前已失败，不计本项通过范围；进入DEV-01前须处理或说明实际适用范围，不能声称原发布组全绿。

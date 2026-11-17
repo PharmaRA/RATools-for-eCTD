@@ -177,9 +177,10 @@ public sealed class PublishJob : Entity
         ClearLease();
     }
 
-    public void MarkFailed(string failureReason)
+    public void MarkFailed(string failureReason, string? outputPath = null, DateTime? completedUtc = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(failureReason);
+        if (outputPath is not null) ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
         if (Status is PublishJobStatus.Completed or PublishJobStatus.Failed)
         {
@@ -188,8 +189,9 @@ public sealed class PublishJob : Entity
 
         Status = PublishJobStatus.Failed;
         FailureReason = failureReason.Trim();
+        if (outputPath is not null) OutputPath = outputPath.Trim();
         PackagePath = null;
-        CompletedUtc = DateTime.UtcNow;
+        CompletedUtc = completedUtc ?? DateTime.UtcNow;
         ClearLease();
     }
 

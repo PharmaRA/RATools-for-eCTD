@@ -21,14 +21,14 @@ public sealed class PublishReportStore(IPublishArtifactStore artifactStore)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (job.Status != PublishJobStatus.Completed)
+        if (job.Status is not (PublishJobStatus.Completed or PublishJobStatus.Failed))
         {
             throw new PublishJobNotReadyException($"Publish job {job.Id} is in status '{job.Status}' and does not have a final report yet.");
         }
 
         if (string.IsNullOrWhiteSpace(job.OutputPath))
         {
-            throw new PublishJobReportUnavailableException($"Publish job {job.Id} completed without an output path.");
+            throw new PublishJobReportUnavailableException($"Publish job {job.Id} has no output path for an archived report.");
         }
 
         // Archived reports outlive the _jobs work directories removed by retention.

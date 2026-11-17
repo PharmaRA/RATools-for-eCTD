@@ -20,6 +20,66 @@ namespace RATools.Tests.Publishing;
 
 public sealed class PublishJobServiceEvidenceTests
 {
+    [Theory]
+    [InlineData("InvalidZip", false)]
+    [InlineData("MissingZipEntry", false)]
+    [InlineData("ChecksumMismatch", false)]
+    [InlineData("OrphanFile", false)]
+    [InlineData("InvalidZip", true)]
+    [InlineData("MissingZipEntry", true)]
+    [InlineData("ChecksumMismatch", true)]
+    [InlineData("OrphanFile", true)]
+    public async Task IntegrityResultControlsTerminalReportAndArtifactAccess(string finding, bool claimed)
+    {
+        var root = RetainedPackageTestFiles.Create();
+        try
+        {
+            var repository = new InMemoryPublishJobRepository();
+            var artifacts = new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy());
+            var reports = new PublishReportStore(artifacts);
+            var service = new PublishJobService(repository, new EvidenceBackboneService(root, finding),
+                new PassingValidationService(), new PassingPublishReadinessService(), new NoopAuditLogService(),
+                new PublishArtifactResolver(artifacts), reports, new PublishOutputVerifier(), new FakePublishJobQueue(),
+                NullLogger<PublishJobService>.Instance);
+            var request = new CreatePublishJobRequest(Guid.NewGuid(), "0001");
+            PublishExecutionReportDto report;
+            if (claimed)
+            {
+                await service.EnqueueExecutionAsync(request);
+                var lease = await repository.TryClaimNextAsync("integrity-test", DateTime.UtcNow, TimeSpan.FromMinutes(5), 3);
+                Assert.NotNull(lease);
+                report = await service.ExecuteClaimedAsync(lease);
+            }
+            else report = await service.ExecuteAsync(request);
+
+            var succeeds = finding == "OrphanFile";
+            var status = succeeds ? PublishJobStatus.Completed : PublishJobStatus.Failed;
+            Assert.Equal(succeeds, report.Succeeded);
+            Assert.Equal(succeeds, report.IntegritySummary!.IsConsistent);
+            Assert.Equal(status.ToString(), report.PublishJob.Status);
+            Assert.Contains(report.IntegrityEvidence!.Findings, item => item.Type == finding);
+            Assert.Equal(report.IntegrityEvidence.Findings.Count(item => item.Severity == "Error"), report.ErrorCount);
+            var persisted = await repository.GetAsync(report.PublishJob.Id);
+            Assert.NotNull(persisted);
+            Assert.Equal(status, persisted.Status);
+            Assert.Null(persisted.LeaseToken);
+            var restored = await reports.ReadAsync(persisted);
+            Assert.Equal(succeeds, restored.Succeeded);
+            Assert.Equal(status.ToString(), restored.PublishJob.Status);
+            Assert.Contains(restored.IntegrityEvidence!.Findings, item => item.Type == finding);
+            var history = await repository.QueryHistoryAsync(new PublishJobHistoryQuery(request.ApplicationId, null, null, null, null, 1, 20));
+            Assert.True(history.HistorySummaries![persisted.Id].ReportReadable);
+            Assert.True(history.HistorySummaries[persisted.Id].ReportAvailable);
+            if (!succeeds)
+            {
+                Assert.Contains(finding, persisted.FailureReason);
+                Assert.Null(persisted.PackagePath);
+                await Assert.ThrowsAsync<PublishJobNotReadyException>(() => service.GetArtifactDownloadAsync(persisted.Id, "package"));
+            }
+        }
+        finally { RetainedPackageTestFiles.RetainDirectory(root); }
+    }
+
     [Fact]
     public async Task ExecuteAsync_StoresIntegrityEvidenceInExecutionReport()
     {
@@ -111,6 +171,7 @@ public sealed class PublishJobServiceEvidenceTests
             Assert.NotNull(report.PublishReadiness);
             Assert.False(report.PublishReadiness!.IsReady);
             Assert.Contains(report.PublishReadiness.Findings, x => x.Code == "US_REGIONAL_METADATA_MISSING");
+            Assert.Equal(0, report.ErrorCount);
 
             var history = await repository.QueryHistoryAsync(
                 new PublishJobHistoryQuery(applicationId, null, null, null, null, 1, 20));
@@ -205,7 +266,7 @@ public sealed class PublishJobServiceEvidenceTests
         }
     }
 
-    private sealed class EvidenceBackboneService(string root) : IBackboneService
+    private sealed class EvidenceBackboneService(string root, string? finding = null) : IBackboneService
     {
         public async Task<GeneratedBackboneDto> GenerateAsync(GenerateBackboneRequest request, CancellationToken cancellationToken = default)
         {
@@ -226,10 +287,17 @@ public sealed class PublishJobServiceEvidenceTests
                 </ectd:ectd>
                 """;
 
+            if (finding == "ChecksumMismatch") xml = xml.Replace("xlink:href=\"leaf.txt\"", "xlink:href=\"leaf.txt\" checksum-type=\"md5\" checksum=\"00000000000000000000000000000000\"", StringComparison.Ordinal);
             await File.WriteAllTextAsync(backbonePath, xml, cancellationToken);
-            await File.WriteAllTextAsync(reportPath, "{}", cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(outputDir, "leaf.txt"), "leaf", cancellationToken);
-            System.IO.Compression.ZipFile.CreateFromDirectory(outputDir, packagePath, System.IO.Compression.CompressionLevel.Optimal, includeBaseDirectory: false);
+            if (finding == "OrphanFile") await File.WriteAllTextAsync(Path.Combine(outputDir, "orphan.txt"), "orphan", cancellationToken);
+            if (finding == "InvalidZip") await File.WriteAllTextAsync(packagePath, "invalid zip", cancellationToken);
+            else if (finding == "MissingZipEntry")
+            {
+                using var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create);
+                archive.CreateEntryFromFile(backbonePath, "index.xml");
+            }
+            else ZipFile.CreateFromDirectory(outputDir, packagePath, CompressionLevel.Optimal, includeBaseDirectory: false);
 
             return new GeneratedBackboneDto(request.ApplicationId, request.SequenceNumber, "index.xml", backbonePath, reportPath, packagePath, xml);
         }
