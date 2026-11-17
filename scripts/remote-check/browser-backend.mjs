@@ -85,12 +85,25 @@ try {
   facts.before = await request(`${seq}/workspace`)
   facts.missingMetadata = await request('/api/backbone/generate', { applicationId: id, sequenceNumber: '0000' }, 400)
   assert.equal(facts.missingMetadata.code, 'US_REGIONAL_METADATA_MISSING')
-  assert.equal(facts.missingMetadata.fieldPath, 'ApplicantContactName')
+  assert.equal(facts.missingMetadata.fieldPath, 'us.applicantIdentifier')
   passed.push('missing US metadata reports a client error with its exact field')
-  await request(`${seq}/publishing-metadata`, { expectedRevision: facts.before.workspaceRevision, applicationType: 'ind',
+  const schema = await request(`/api/applications/${id}/regional-metadata/schema`)
+  assert.equal(schema.regionKey, 'US'); assert.ok(schema.standardsSnapshotId)
+  const regional = { standardsSnapshotId: schema.standardsSnapshotId, content: { schemaVersion: 1, regionKey: 'US', eu: null,
+    us: { applicationIdentifier: '987654', applicationType: 'fdaat3', applicantName: 'Synthetic QA07',
+      applicantIdentifier: '001234567', submissionIdentifier: '0000', submissionType: 'fdast1', submissionSubtype: 'fdasst3',
+      formType: null, description: 'Synthetic Development evidence',
+      contacts: [{ id: randomUUID(), name: 'Synthetic contact', type: 'fdaact1',
+        phones: [{ id: randomUUID(), number: '0000000000', type: 'fdatnt1' }],
+        emails: [{ id: randomUUID(), value: 'qa07@example.invalid' }] }] } } }
+  facts.metadata = await request(`${seq}/publishing-metadata`, { expectedRevision: facts.before.workspaceRevision, applicationType: 'ind',
     submissionType: 'original-application', submissionSubtype: 'application', sequenceDescription: 'Synthetic Development evidence',
     applicantName: 'Synthetic QA07', applicantContactName: 'Synthetic contact', applicantContactType: 'regulatory',
-    telephone: '0000000000', telephoneNumberType: 'business', email: 'qa07@example.invalid' }, undefined, 'PUT')
+    telephone: '0000000000', telephoneNumberType: 'business', email: 'qa07@example.invalid', regional }, undefined, 'PUT')
+  assert.equal(facts.metadata.regional.standardsSnapshotId, schema.standardsSnapshotId)
+  assert.deepEqual(facts.metadata.regional.content, regional.content)
+  assert.deepEqual((await request(`${seq}/publishing-metadata`)).regional, facts.metadata.regional)
+  passed.push('typed regional metadata preserves explicit identifiers, archived codes and exact snapshot across save/read')
   let tree = await request(`${seq}/nodes`)
   tree = await request(`${seq}/nodes`, { expectedRevision: tree.workspaceRevision, definitionKey: 'm2-common-technical-document-summaries', attributes: {} })
   const parent = tree.nodes.find(node => node.definitionKey === 'm2-common-technical-document-summaries')
