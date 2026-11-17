@@ -169,6 +169,93 @@ async function exerciseExternalInputs({ root, results, workspace, profile, base,
   passed.push('external UI cancels Pending run in worker-disabled API; no report is fabricated and original ZIP is unchanged')
 }
 
+async function exerciseRegionalForm({ id, base, send, evaluate, request, until, results, passed, facts, readBytes }) {
+  const sequence = `/api/applications/${id}/sequences/0000`
+  const before = await request(`${sequence}/publishing-metadata`)
+  const captured = facts.regionalForm = { beforeRevision: before.regional.id, standardsSnapshotId: before.regional.standardsSnapshotId }
+  const wait = expression => until(() => evaluate(expression), expression)
+  const panel = `document.querySelector('[aria-label="区域元数据编辑"]')`
+  const control = path => `${panel}.querySelector('input[aria-label=${JSON.stringify(path)}]')`
+  const click = async label => {
+    const button = `[...${panel}.querySelectorAll('button')].find(e=>e.textContent.trim()===${JSON.stringify(label)}&&!e.disabled)`
+    await wait(`!!(${button})`); await evaluate(`(${button}).click()`)
+  }
+  const input = async (path, value) => {
+    await wait(`!!(${control(path)})&&!(${control(path)}).disabled`)
+    await evaluate(`(()=>{const e=${control(path)};Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}))})()`)
+    await wait(`(${control(path)}).value===${JSON.stringify(value)}`)
+  }
+  const options = path => evaluate(`[...(${control(path)}).list.options].map(option=>option.value)`)
+  await send('Page.navigate', { url: `${base}/applications/${id}/sequences/0000/workspace` })
+  await wait(`!!(${panel})`); await click('读取区域元数据')
+  await wait(`!!(${control('us.applicationType')})`)
+  const applicationCodes = await options('us.applicationType')
+  assert.equal(applicationCodes.length, 6); assert.ok(applicationCodes.includes('fdaat1')); assert.ok(applicationCodes.includes('fdaat6'))
+  assert.ok(!applicationCodes.includes('fdaat8'))
+  assert.ok((await options('us.contacts[0].type')).includes('fdaact1'))
+  assert.ok(!(await options('us.contacts[0].type')).includes('regulatory'))
+  assert.ok((await options('us.contacts[0].phones[0].type')).includes('fdatnt1'))
+  await input('us.contacts[0].type', 'regulatory'); await input('us.contacts[0].phones[0].type', 'business')
+  await click('预检当前输入')
+  for (const path of ['us.contacts[0].type', 'us.contacts[0].phones[0].type']) {
+    await wait(`[...(document.querySelector('[aria-label="区域元数据预检"]')?.querySelectorAll('p button')||[])].some(e=>e.textContent===${JSON.stringify(path)})`)
+  }
+  assert.equal(await evaluate(`(${control('us.contacts[0].type')}).value`), 'regulatory')
+  assert.equal(await evaluate(`(${control('us.contacts[0].phones[0].type')}).value`), 'business')
+  passed.push('regional UI offers archived official dictionaries and preflight locates invalid aliases without discarding input')
+  await input('us.contacts[0].type', 'fdaact1'); await input('us.contacts[0].phones[0].type', 'fdatnt1')
+  await input('us.applicationType', 'fdaat1'); await input('us.submissionType', 'fdast3')
+  assert.deepEqual(await options('us.supplementEffectiveDateType'), ['fdasedt1', 'fdasedt2', 'fdasedt3'])
+  await input('us.supplementEffectiveDateType', 'fdasedt3')
+  await input('us.submissionType', 'fdast2')
+  assert.deepEqual(await options('us.supplementEffectiveDateType'), ['fdasedt1'])
+  assert.equal(await evaluate(`(${control('us.supplementEffectiveDateType')}).value`), 'fdasedt3')
+  await wait(`${panel}.querySelector('[data-field-path="us.supplementEffectiveDateType"]').textContent.includes('当前组合不支持此值，已保留')`)
+  const save = async () => { await click('保存区域草稿'); await wait(`${panel}.textContent.includes('区域草稿已保存。')`) }
+  await save()
+  const invalid = await request(`${sequence}/publishing-metadata`)
+  assert.equal(invalid.regional.content.us.submissionType, 'fdast2')
+  assert.equal(invalid.regional.content.us.supplementEffectiveDateType, 'fdasedt3')
+  assert.ok(invalid.regional.diagnostics.some(item => item.code === 'SupplementEffectiveTypeCombinationInvalid'))
+  const blocked = await request('/api/backbone/generate', { applicationId: id, sequenceNumber: '0000' }, 400)
+  assert.equal(blocked.fieldPath, 'us.supplementEffectiveDateType')
+  captured.invalidRevision = invalid.regional.id
+  passed.push('regional UI retains unsupported effective type after changing supplement kind; saved draft cannot generate XML')
+  await input('us.supplementEffectiveDateType', 'fdasedt1'); await save()
+  const saved = await request(`${sequence}/publishing-metadata`)
+  const expected = structuredClone(before.regional.content)
+  Object.assign(expected.us, { applicationType: 'fdaat1', submissionType: 'fdast2', supplementEffectiveDateType: 'fdasedt1' })
+  assert.deepEqual(saved.regional.content, expected, 'Unedited regional fields or collection identities changed')
+  assert.deepEqual(saved.regional.nodeContexts, before.regional.nodeContexts)
+  assert.deepEqual(saved.regional.documentContexts, before.regional.documentContexts)
+  for (const field of ['applicationType', 'submissionType', 'submissionSubtype', 'sequenceDescription', 'applicantName', 'formType',
+    'applicantContactName', 'applicantContactType', 'telephone', 'telephoneNumberType', 'email']) assert.deepEqual(saved[field], before[field])
+  assert.equal(saved.regional.standardsSnapshotId, before.regional.standardsSnapshotId)
+  assert.ok(saved.workspaceRevision > invalid.workspaceRevision)
+  await send('Page.reload'); await wait(`!!(${panel})`); await click('读取区域元数据')
+  await wait(`!!(${control('us.supplementEffectiveDateType')})&&(${control('us.supplementEffectiveDateType')}).value==='fdasedt1'`)
+  assert.deepEqual((await request(`${sequence}/publishing-metadata`)).regional, saved.regional)
+  captured.saved = saved.regional
+  passed.push('regional form save and browser reload preserve exact snapshot, identifiers, collections and every unedited field')
+  const generated = await request('/api/backbone/generate', { applicationId: id, sequenceNumber: '0000' })
+  const selected = await request('/api/package-validation-inputs', { applicationId: id, path: generated.packagePath, sequenceNumber: '0000' })
+  const regionalBytes = await readBytes(`/api/package-validation-inputs/${selected.id}/file?logicalPath=0000%2Fm1%2Fus%2Fus-regional.xml`)
+  const emitted = await evaluate(`(()=>{const xml=new DOMParser().parseFromString(${JSON.stringify(regionalBytes.toString('utf8'))},'application/xml');if(xml.querySelector('parsererror'))throw Error('Generated regional XML failed to parse');return{applicationType:xml.querySelector('application-number').getAttribute('application-type'),applicantIdentifier:xml.querySelector('applicant-info > id').textContent,submissionType:xml.querySelector('submission-id').getAttribute('submission-type'),effectiveType:xml.querySelector('submission-id').getAttribute('supplement-effective-date-type'),contactType:xml.querySelector('applicant-contact-name').getAttribute('applicant-contact-type'),phoneType:xml.querySelector('telephone').getAttribute('telephone-number-type')}})()`)
+  assert.deepEqual(emitted, { applicationType: 'fdaat1', applicantIdentifier: '001234567', submissionType: 'fdast2',
+    effectiveType: 'fdasedt1', contactType: 'fdaact1', phoneType: 'fdatnt1' })
+  await writeFile(`${results}/regional-form-output.xml`, regionalBytes)
+  let run = await request('/api/package-validations', { inputId: selected.id, profileSnapshotId: 'us-fda-3.2.2-m1-3.3-development-v1', mode: 'Development', idempotencyKey: randomUUID() })
+  await until(async () => { run = await request(`/api/package-validations/${run.id}`); return !['Pending', 'Running', 'Queued'].includes(run.status) }, 'regional UI output independent validation', 400)
+  assert.equal(run.status, 'Completed'); assert.equal(run.reportAvailable, true)
+  const reportBytes = await readBytes(`/api/package-validations/${run.id}/report`), report = JSON.parse(reportBytes.toString('utf8'))
+  const rules = ['FDA47-1496', 'FDA47-2013', 'US-SUPPLEMENT-EFFECTIVE-COMBINATION']
+  for (const rule of rules) assert.equal(report.coverage.find(item => item.ruleId === rule)?.checkStatus, 'Pass', rule)
+  assert.equal(report.isReadyForFinalization, false)
+  await writeFile(`${results}/regional-form-validation.json`, reportBytes)
+  captured.emitted = emitted; captured.run = run; captured.rules = rules
+  passed.push('regional browser edits emit exact official XML values and independent dictionary/combination rules pass in Development')
+}
+
 const root = resolve('..'), results = resolve('../results'), backend = resolve('../backend')
 const sdk = '/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423'
 // Chromium's singleton socket must fit Linux's Unix-domain socket path limit.
@@ -402,12 +489,15 @@ try {
     facts.restart = { previousApiPid: previousPid, apiPid: api.pid, databaseRestarted: true, manifestUnchanged: true, workspaceUnchanged: true }
     passed.push('actual API and PostgreSQL stop/restart retain migrated workspace, validation and immutable snapshot in browser')
   }
+  const readBytes = async path => {
+    const response = await fetch(base + path, { headers: { 'X-RA-Tools-Api-Key': apiKey } })
+    assert.equal(response.status, 200, path)
+    return Buffer.from(await response.arrayBuffer())
+  }
+  await exerciseRegionalForm({ id, base, send, evaluate, request, until, results, passed, facts, readBytes })
+  assert.deepEqual(await request(`/api/finalizations/${snapshot.id}/manifest`), manifest)
   await exerciseExternalInputs({ root, results, workspace, profile, base, send, evaluate, request, until, stop,
-    requestBytes: async path => {
-      const response = await fetch(base + path, { headers: { 'X-RA-Tools-Api-Key': apiKey } })
-      assert.equal(response.status, 200, path)
-      return Buffer.from(await response.arrayBuffer())
-    }, stopApi: () => stop(api), startApi, downloadEvents, passed, facts })
+    requestBytes: readBytes, stopApi: () => stop(api), startApi, downloadEvents, passed, facts })
   assert.deepEqual(errors, [])
 } catch (error) {
   failure = error; errors.push(String(error))
