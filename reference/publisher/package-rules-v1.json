@@ -2486,6 +2486,36 @@
         "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1322",
+      "authorityRuleId": "1322",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 15, error 1322; effective 2013-04-30",
+      "title": "Folder contains no files or sub folders",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Captured target-sequence directories containing neither files nor subfolders. Parent folders with child directories are not empty. Surrounding inputs are not silently adopted; directory findings have no downloadable file address.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Official Low maps to Info. Exact archived original/provenance and selection date required. Independent directory/ZIP capture binds the observed empty-directory inventory.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaEmptyDirectoryRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaEmptyDirectoryRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaEmptyDirectoryRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaEmptyDirectoryRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }

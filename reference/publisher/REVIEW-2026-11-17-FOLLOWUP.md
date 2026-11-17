@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+当前最新：FDA1322空目录检查121/121及最终review PASS，30/147已实施、117条完整覆盖待评估，内部74条。1204已提交`9972daa`；用户已明确批准两个已核验旧目录的跨盘回收例外，完整副本保留后移除限定/tmp源副本，最终容量回执待取回。
+
+## 续做 FDA1322
+
+从目标捕获清单检查既无文件也无子目录的目录；嵌套空树仅报告最末端空目录，目标外目录不并入当前规则，Finding.Files为空避免伪造下载地址。来源原件/provenance、选择日期、生效日、旧catalog/profile隔离与文件阶段总预算保持，file引擎v7。
+
+`continue-20261117/fda1322-red`15项3通过/12缺规则预期失败；最终`fda1322-final`**121/121、0失败/0跳过、构建和测试退出0**。实际runner命令、过滤器和TRX均在候选目录，source-manifest SHA256 `eb72ab95b35b14e8533a2efa3d94fa7d75482b0f0db6ccb8cbbd01ec402c42b5`；最终只读review PASS且六交付输入摘要匹配。`python -B scripts/tests/test_package_rule_catalog.py`退出0、74条，canonical SHA256 `2efe92b778322a54f574e82642720a7c23989f494fe04030479fe63133f6fb82`。Windows定向证据不等于完整官方或Formal资格。
+
 最新续做：FDA1034显式operation检查已完成，85/85定向回归及最终只读review PASS，当前28/147已实施、119条完整覆盖待评估，内部72条。远程浏览器原job日志已恢复，失败根因为磁盘空间耗尽，需容量恢复后再继续远程验收。
 
 ## 续做 FDA1034
@@ -21,6 +29,8 @@
 ## 远程空间清理（等待跨盘移除源副本授权）
 
 用户已要求清理远程Linux空间。只读盘点证据`.artifacts/remote-check/cleanup-20261117/`：/tmp总3.89GiB仅余32KiB，RATools任务约3.74GiB；/data剩15.1GiB。9个已知/tmp任务无活动进程引用。选定`20261107T141035-d23dcb21495e4449a8e8f07d0c83fb9d`与`20261107T140749-8ca3361ca680457398efb91f2e9893a1`两目录，均无符号/硬链接或特殊文件，共约1.05GiB。正在禁删守卫下复制到`/data/home/ratools-recycle/20261117-tmp-space-first-two/`并逐文件核验；原路径尚未移除。因A2硬闸，已单独询问是否允许跨盘回收时核验后移除这两个源副本；未答复不得执行该步骤。
+
+复制已完成：远程CLI与复制脚本退出0，无超时/OOM/截断；copyVerified=true、sourceRemoved=false。两任务分别32912/32913个文件，共65825个，逐文件内容SHA256及源身份/大小/修改时间检查通过。完整清单保存在目标copy-manifest.jsonl，SHA256 `69fd66a5e12b641dbd70891c7363859b42a98539c55580ab714012f34547cdda`，本地copy-verification.json保留回执。当前仅完成安全副本，未释放/tmp容量；等待明确授权后再重新核验源/目标/占用并执行限定移除。
 
 基线 `68826ec`。用户授权先保存审阅/计划，再按顺序实现，每项验证和只读review通过后独立commit。审查是核心链路限定静态阅读，不代表全仓审计或测试通过。
 
