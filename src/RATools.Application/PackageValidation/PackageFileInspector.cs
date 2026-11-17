@@ -55,8 +55,12 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             .SelectMany(capture => capture.Manifest.Files).ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
         public bool Incomplete { get; set; }
 
-        public void CheckOfficialFileNames() => _officialFileNames = FdaFileNameRules.Inspect(input.Packages.Target,
-            lifecycle.ProfileSnapshotId, context, cancellationToken).ToArray();
+        public void CheckOfficialFileNames()
+        {
+            var names = FdaFileNameRules.Inspect(input.Packages.Target, lifecycle.ProfileSnapshotId, context, cancellationToken).ToArray();
+            var remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - names.Sum(check => check.Findings.Count);
+            _officialFileNames = names.Concat(FdaLeafTitleRules.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken)).ToArray();
+        }
 
         private void Add(string rule, CheckStatus status, string code, string message, ValidationLocation location,
             string? expected = null, string? actual = null, ValidationSeverity? severity = null)
@@ -341,7 +345,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 return new RuleCheckResult(rule, status, reason, findings);
             });
             var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298")
+                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1276" or "FDA47-1289")
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official));
         }

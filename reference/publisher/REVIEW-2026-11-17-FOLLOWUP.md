@@ -13,7 +13,7 @@
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 已提交 `05d3beb` | 15/15；最终review PASS |
 | 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 已提交 `cc48aaa` | 9/9；最终review PASS |
 | 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 前置已提交 `727e079`；远程浏览器阻断 | 发布88/88及补充5/5；远程job退出1、结果下载传输退出1，未取得测试报告 |
-| 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 首批已提交 `41ef75f`，全项仍开放 | 79/79；25/147已实施，122条完整覆盖待评估；最终review PASS |
+| 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 文件名首批已提交 `41ef75f`，叶标题验证及最终review PASS | 文件名79/79，叶标题64/64；27/147已实施、120条待评估；全项仍开放 |
 | 9 | DEV-03 / 03-F | Formal持久上下文、入队与捕获双层绑定 | 待实现 | 正式资格依赖05-R/V |
 | 10 | DEV-04 / 05-V | 固定版本外部验证器真实对照 | 依赖待就绪 | 既有记录无可用外部验证器；不得以准备文档替代执行 |
 | 11 | DEV-05 / 04-P | Linux Python内容与资源宿主 | 待实现 | 现有非Windows拒绝不算执行验收 |
@@ -111,8 +111,16 @@ review修复结果：1298为Warning、1221为Info；源必须同时有归档Veri
 
 ## 当前断点与未完成项
 
+### DEV-02 叶标题批次
+
+首批文件名规则提交后继续1276首尾空格、1289缺失/空白标题：读取目标XML原始title元素，重复/复杂结构或未解析保持未评估，严重级别分别Info/Warning，共享文件阶段finding预算。初始测试重载歧义导致编译失败，修正后的`dev02-titles-red2`11项因无规则全部红灯；初实现`dev02-titles-green`62/62通过。
+
+review发现MaxBackbones限制可能未把区域XML加入Backbones，只看已读文档会误Pass；`dev02-titles-review-red`取得1通过/1预期失败。现要求XML-OFFLINE和XML-LIMITS整体完成，已知标题错误仍Fail优先。新engine为package-file-inspector-v4，不沿用上一候选绿灯作为最终验收。
+
+最终命令`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence C:/Repositories/RATools-for-eCTD/.artifacts/local-check/review-20261117/dev02-titles-final -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~PackageValidationServiceTests|FullyQualifiedName~FdaIdentityRulesTests'`：三构建退出0、零警告/错误，**64/64、0失败/0跳过、测试退出0**。来源清单摘要`891890d151990b09921f974472afda143c44805bbed3a2f26e02da99c34cc99b`；`python -B scripts/tests/test_package_rule_catalog.py`退出0，71规则、canonical摘要`be6093307242097cf5756f39981e663260885497b9e2b4af90b9eea384e9bb18`。静态及最终证据review PASS，六交付输入匹配最终回执。
+
 八项实现提交均完成相应验证和只读review：CR-01 `6c18fb3`、CR-02 `f13054f`、CR-03 `891c25d`、CR-04 `2ceb2c6`、CR-05 `05d3beb`、CR-06 `cc48aaa`、DEV-01前置 `727e079`、DEV-02首批 `41ef75f`。计划基线提交`d88c4bb`。上述测试数互有重叠，不能累加为完整套件。
 
-DEV-01下一步是恢复同一Linux任务的错误证据并处理实际根因；当前没有日志，不能认定编译、单测或浏览器哪个阶段失败，也不能切本机冒充原生下载完成。DEV-02后续叶标题1276/1289已只读查看固定inventory和原始ParsedXmlElement.Text，尚未修改或建立测试；需先明确缺失/空白/重复标题及XML未完整解析的结果语义，再按原子任务推进。DEV-03/04/05/06未开始，外部验证器当前无可用入口的既有依赖保持记录。
+DEV-01下一步是恢复同一Linux任务的错误证据并处理实际根因；当前没有日志，不能认定编译、单测或浏览器哪个阶段失败，也不能切本机冒充原生下载完成。DEV-02文件名与叶标题共四条已实现，剩余120条仍需逐项评估/实施；尚未开始下一规则批次。DEV-03/04/05/06未开始，外部验证器当前无可用入口的既有依赖保持记录。
 
 本次工作区仅保留任务前已有`scripts/remote-check.ps1`修改与其未跟踪备份；不读取备份、不将其提交。无本次仍运行的本地构建/测试；远程任务已记录exited1，未发销毁/关机指令。

@@ -2366,6 +2366,66 @@
         "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1276",
+      "authorityRuleId": "1276",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 13, error 1276; effective 2008-03-10",
+      "title": "Leaf element title leads or ends with a space",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Original target-sequence leaf title elements; leading/trailing ASCII space and missing/nonblank title checks. Duplicate/complex title structure, incomplete parsing or exhausted finding budget remain NotEvaluated. Historical inputs retain their own rules.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Exact archived official source and bound selection date required; no current-resource substitution or formal qualification.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaLeafTitleRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1289",
+      "authorityRuleId": "1289",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 13, error 1289; effective 2008-03-10",
+      "title": "Omitted leaf element title",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Original target-sequence leaf title elements; leading/trailing ASCII space and missing/nonblank title checks. Duplicate/complex title structure, incomplete parsing or exhausted finding budget remain NotEvaluated. Historical inputs retain their own rules.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Exact archived official source and bound selection date required; no current-resource substitution or formal qualification.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaLeafTitleRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaLeafTitleRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }
