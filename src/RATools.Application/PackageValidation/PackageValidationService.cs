@@ -116,6 +116,9 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
             }
         }
         var captures = new List<ICapturedPackageInput>();
+        Exception? primaryFailure = null;
+        AggregateException? retentionFailure = null;
+        ValidationReport completedReport;
         try
         {
             async Task<ICapturedPackageInput> Capture(RegisteredPackageInput input)
@@ -129,7 +132,7 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
                     captured = await reader.ReadAsync(PackageInputSelection.FromRegistered(input), input.Limits, cancellationToken).ConfigureAwait(false);
                 }
                 catch (IOException exception) when (exception is not PackageInputException { RuleId: "INPUT-LIMITS" })
-                { throw new PackageInputChangedException(input.Id.ToString("D")); }
+                { throw new PackageInputChangedException(input.Id.ToString("D"), exception); }
                 captures.Add(captured);
                 if (captured.InputDigest != input.InputDigest || captured.SourceKind != input.SourceKind)
                     throw new PackageInputChangedException(input.Id.ToString("D"));
@@ -154,13 +157,31 @@ public sealed class PackageValidationService(IPackageValidationStore store, IPac
             if (request.History.Any(item => item.StandardsSnapshotId is null)) standardsReasons = standardsReasons.Concat(["HistoryStandardsMissing: Legacy historical selection has no exact standards snapshot."]).ToArray();
             var report = result.CreateReport(run.Binding.ValidationMode, run.Binding, standardsReasons);
             if (report.Binding != run.Binding) throw new PackageValidationVersionChangedException();
-            return report;
+            completedReport = report;
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+            throw;
         }
         finally
         {
-            // Disposal only removes owned attempt captures; original and uploaded inputs remain.
-            foreach (var capture in captures) await capture.DisposeAsync().ConfigureAwait(false);
+            // Retain all owned attempt captures even if one fails; preserve the primary
+            // error so input-change and host-shutdown recovery keep their original meaning.
+            var failures = new List<Exception>();
+            foreach (var capture in captures)
+            {
+                try { await capture.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception exception) { failures.Add(exception); }
+            }
+            if (failures.Count > 0)
+            {
+                retentionFailure = new AggregateException("One or more package captures could not be retained.", failures);
+                if (primaryFailure is not null) primaryFailure.Data["CaptureRetentionFailure"] = retentionFailure;
+            }
         }
+        if (retentionFailure is not null) throw retentionFailure;
+        return completedReport;
     }
 
     private async Task<Selection> SelectAsync(Guid targetId, Guid? comparisonId, IReadOnlyList<PackageHistorySelection> history,

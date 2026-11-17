@@ -53,21 +53,29 @@ public sealed class PackageInputReader : IPackageInputReader
             await captured.VerifyUnchangedCoreAsync(deadline.Token).ConfigureAwait(false);
             return captured;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            RecycleOwnedCapture(owned, _captureParent);
-            throw new PackageInputException("INPUT-LIMITS", "INPUT_READ_TIMEOUT", "Package capture exceeded the configured elapsed-time limit.");
+            var failure = new PackageInputException("INPUT-LIMITS", "INPUT_READ_TIMEOUT", "Package capture exceeded the configured elapsed-time limit.", innerException: exception);
+            RetainAfterFailure(owned, _captureParent, failure);
+            throw failure;
         }
         catch (InvalidDataException exception)
         {
-            RecycleOwnedCapture(owned, _captureParent);
-            throw new PackageInputException(kind == PackageSourceKind.Zip ? "ZIP-PATHS" : "INPUT-STABLE", "INVALID_INPUT_DATA", exception.Message, innerException: exception);
+            var failure = new PackageInputException(kind == PackageSourceKind.Zip ? "ZIP-PATHS" : "INPUT-STABLE", "INVALID_INPUT_DATA", exception.Message, innerException: exception);
+            RetainAfterFailure(owned, _captureParent, failure);
+            throw failure;
         }
-        catch
+        catch (Exception exception)
         {
-            RecycleOwnedCapture(owned, _captureParent);
+            RetainAfterFailure(owned, _captureParent, exception);
             throw;
         }
+    }
+
+    private static void RetainAfterFailure(string owned, string captureParent, Exception failure)
+    {
+        try { RecycleOwnedCapture(owned, captureParent); }
+        catch (Exception retentionFailure) { failure.Data["CaptureRetentionFailure"] = retentionFailure; }
     }
 
     private static PackageSequenceCandidate SelectCandidate(PackageInputSelection selection, Inventory inventory)

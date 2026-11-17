@@ -11,6 +11,26 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class PackageInputReaderTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CaptureFailurePreservesPrimaryErrorWhenRecycleIsBlocked(bool cancelled)
+    {
+        using var tree = new TestTree();
+        var source = cancelled ? tree.Sequence() : Path.Combine(tree.Root, "invalid.zip");
+        if (!cancelled) await File.WriteAllTextAsync(source, "invalid zip");
+        Directory.CreateDirectory(tree.Capture);
+        await File.WriteAllTextAsync(Path.Combine(tree.Capture, "_recycle"), "block directory creation");
+        using var cancellation = new CancellationTokenSource();
+        if (cancelled) cancellation.Cancel();
+        var error = await Record.ExceptionAsync(() => new PackageInputReader(tree.Capture).ReadAsync(Select(source), new(), cancellation.Token));
+        if (cancelled) Assert.IsAssignableFrom<OperationCanceledException>(error);
+        else Assert.Equal("INVALID_INPUT_DATA", Assert.IsType<PackageInputException>(error).Code);
+        Assert.IsAssignableFrom<Exception>(error!.Data["CaptureRetentionFailure"]);
+        Assert.Single(Directory.GetDirectories(tree.Capture, "input-*"));
+        Assert.True(cancelled ? Directory.Exists(source) : File.Exists(source));
+    }
+
     private static readonly Guid ApplicationId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static string Fixture(string sequence = "") => Path.Combine(PackageRuleCatalogTests.Root, "tests/RATools.Tests/Fixtures/Publisher/sequences", sequence);
     private static PackageInputSelection Select(string path, string? sequence = null, string? root = null, string source = "external") => new(ApplicationId, source, path, sequence, root);

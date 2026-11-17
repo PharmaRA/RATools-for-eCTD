@@ -13,6 +13,52 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class PackageValidationServiceTests
 {
+    [Theory]
+    [InlineData("changed")]
+    [InlineData("cancelled")]
+    [InlineData("success")]
+    public async Task AllCapturesAreRetainedWithoutReplacingThePrimaryFailure(string scenario)
+    {
+        await using var fixture = new ServiceFixture(failRetention: true);
+        var zero = await fixture.Register("0000");
+        var one = await fixture.Register("0001");
+        var run = (await fixture.Service.EnqueueAsync(new(one.Id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development,
+            "retention", History: [new(zero.Id, PackageValidationCatalog.UsProfile)]))).Run;
+        Exception? primary = scenario == "changed" ? new PackageInputChangedException("test") :
+            scenario == "cancelled" ? new OperationCanceledException("test cancellation") : null;
+        var error = await Record.ExceptionAsync(() => fixture.Service.InspectAsync(run,
+            primary is null ? null : _ => Task.FromException(primary)));
+        Assert.Equal(2, fixture.FaultingReader!.DisposedCount);
+        if (primary is null) Assert.Equal(2, Assert.IsType<AggregateException>(error).InnerExceptions.Count);
+        else
+        {
+            Assert.Same(primary, error);
+            Assert.Equal(2, Assert.IsType<AggregateException>(primary.Data["CaptureRetentionFailure"]).InnerExceptions.Count);
+        }
+    }
+
+    [Fact]
+    public async Task HostShutdownRemainsRecoverableWhenCaptureRetentionFails()
+    {
+        var gate = new GateInspector();
+        await using var fixture = new ServiceFixture(gate, failRetention: true);
+        var input = await fixture.Register("0000");
+        var run = (await fixture.Service.EnqueueAsync(new(input.Id, PackageValidationCatalog.UsProfile, PackageValidationMode.Development, "retention-shutdown"))).Run;
+        var lease = (await fixture.Store.ClaimAsync("worker", DateTime.UtcNow, TimeSpan.FromSeconds(10)))!;
+        using var shutdown = new CancellationTokenSource();
+        var processing = fixture.Worker.ProcessAsync(lease, shutdown.Token);
+        try
+        {
+            await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            shutdown.Cancel();
+            await processing.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(1, fixture.FaultingReader!.DisposedCount);
+            Assert.Equal(ValidationRunStatus.Running, (await fixture.Store.GetRunAsync(run.Id))!.Status);
+            Assert.Null(await fixture.Store.GetReportJsonAsync(run.Id));
+        }
+        finally { shutdown.Cancel(); gate.Release.Set(); await processing; }
+    }
+
     [Fact]
     public async Task FreshAttemptsBindSelectedHistoryAndPreserveArchivedEvidenceAfterSourceRemoval()
     {
@@ -233,11 +279,12 @@ public sealed class PackageValidationServiceTests
         public PackageValidationInputRegistry Registry { get; }
         public PackageValidationService Service { get; }
         public PackageValidationBackgroundService Worker { get; }
+        public RetentionFaultReader? FaultingReader { get; }
         public string Storage => Files.ArchivePath("validation");
         private readonly ServiceProvider _provider;
         private readonly Guid _application = Guid.NewGuid();
 
-        public ServiceFixture(IPackagePdfInspector? pdf = null, TimeSpan? timeout = null, bool enabled = true)
+        public ServiceFixture(IPackagePdfInspector? pdf = null, TimeSpan? timeout = null, bool enabled = true, bool failRetention = false)
         {
             var options = Options.Create(new PackageValidationOptions { StorageRoot = Storage, Enabled = enabled,
                 HeartbeatInterval = TimeSpan.FromMilliseconds(25), LeaseDuration = TimeSpan.FromSeconds(10), ExecutionTimeout = timeout ?? TimeSpan.FromSeconds(30) });
@@ -245,11 +292,38 @@ public sealed class PackageValidationServiceTests
             var reader = new PackageInputReader(Path.Combine(Storage, "captures"));
             var inspector = new PackageDeliveryInspector(pdf ?? new PdfPigPackageInspector());
             Registry = new(Store, reader, policy, options);
-            Service = new(Store, reader, policy, inspector);
+            FaultingReader = failRetention ? new RetentionFaultReader(reader) : null;
+            Service = new(Store, (IPackageInputReader?)FaultingReader ?? reader, policy, inspector);
             _provider = new ServiceCollection().AddSingleton<IPackageValidationStore>(Store).AddSingleton(Service).BuildServiceProvider();
             Worker = new(_provider.GetRequiredService<IServiceScopeFactory>(), options, NullLogger<PackageValidationBackgroundService>.Instance);
         }
         public Task<PackageInputDto> Register(string sequence) => Registry.RegisterAsync(new(_application, Files.PathOf(sequence)));
         public async ValueTask DisposeAsync() { Worker.Dispose(); await _provider.DisposeAsync(); await Files.DisposeAsync(); }
+    }
+
+    private sealed class RetentionFaultReader(IPackageInputReader inner) : IPackageInputReader
+    {
+        public int DisposedCount { get; private set; }
+        public async Task<ICapturedPackageInput> ReadAsync(PackageInputSelection selection, PackageReadLimits limits, CancellationToken cancellationToken = default)
+            => new Capture(await inner.ReadAsync(selection, limits, cancellationToken), this);
+        private sealed class Capture(ICapturedPackageInput inner, RetentionFaultReader owner) : ICapturedPackageInput
+        {
+            public string SourceId => inner.SourceId;
+            public PackageSourceKind SourceKind => inner.SourceKind;
+            public PackageInputManifest Manifest => inner.Manifest;
+            public string? ArchiveSha256 => inner.ArchiveSha256;
+            public PackageSourceLayout? SourceLayout => inner.SourceLayout;
+            public string InputDigest => inner.InputDigest;
+            public PackageReadLimits Limits => inner.Limits;
+            public Stream OpenRead(string path) => inner.OpenRead(path);
+            public Stream OpenAdditionalRead(string path) => inner.OpenAdditionalRead(path);
+            public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => inner.VerifyUnchangedAsync(cancellationToken);
+            public async ValueTask DisposeAsync()
+            {
+                owner.DisposedCount++;
+                await inner.DisposeAsync();
+                throw new IOException("Injected retention failure");
+            }
+        }
     }
 }

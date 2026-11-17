@@ -50,5 +50,5 @@ public sealed class PackageSelectionRequiredException(IReadOnlyList<PackageSeque
     public IReadOnlyList<PackageSequenceCandidate> Candidates { get; } = candidates;
 }
 
-public sealed class PackageInputChangedException(string sourceId)
-    : PackageInputException("INPUT-STABLE", "INPUT_CHANGED", $"Input '{sourceId}' changed after capture; this run cannot authorize finalization.");
+public sealed class PackageInputChangedException(string sourceId, Exception? innerException = null)
+    : PackageInputException("INPUT-STABLE", "INPUT_CHANGED", $"Input '{sourceId}' changed after capture; this run cannot authorize finalization.", innerException: innerException);

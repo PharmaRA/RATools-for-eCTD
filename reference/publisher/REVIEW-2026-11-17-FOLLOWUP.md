@@ -9,8 +9,8 @@
 | 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 已提交 `6c18fb3` | 36/36；最终只读review PASS |
 | 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 已提交 `f13054f` | 27/27，关联45/45含前27；最终review PASS |
 | 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 已提交 `891c25d` | 5/5、tsc/lint退出0；只读review PASS |
-| 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 验证及最终只读review PASS | 30/30、tsc/lint退出0；本项独立提交 |
-| 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 待复现 | — |
+| 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 已提交 `2ceb2c6` | 30/30、tsc/lint退出0；最终review PASS |
+| 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 验证及最终review PASS | 15/15；本项独立提交 |
 | 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 待复现 | — |
 | 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 待执行 | — |
 | 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 待逐批执行 | 23/147已实施为基线，124条完整覆盖待评估 |
@@ -67,3 +67,13 @@
 - 最终命令`node ./scripts/local-check/review-workspace.mjs C:/Repositories/RATools-for-eCTD/.artifacts/local-check/cr04-final-20261117`：**30/30、0失败/0跳过、退出0**；含25个实际页面jsdom用例及5个hook用例。冲突保留、显式重载、再次保存、延迟期间禁用及完成后恢复均断言。
 - 同CR-03的TypeScript命令及ESLint检查SequenceWorkspacePage.tsx、其validation测试和LeafMetadataPanel.tsx，退出0。证据含源码hash；HTTP为模拟，非真实API/浏览器资格。
 - 最终只读review PASS，交付文件摘要与回执匹配；备份`backups/review-followup-20261117-085843/CR-04/`。
+
+## CR-05 主异常保留与逐项回收
+
+Reader失败回收的异常写入主异常Data[CaptureRetentionFailure]，保留取消/超时/非法输入分类。Service逐个回收所有捕获；有主异常时保留实例并附聚合回收诊断，无主异常则在finally之后抛聚合异常。InputChanged转换保留InnerException，诊断链不丢失。
+
+- 证据根`.artifacts/local-check/review-20261117/`。`cr05-red`新增6项全部预期失败：取消/非法ZIP被IOException覆盖；多捕获只回收首个；宿主关闭被登记Failed。
+- `cr05-green`因CA2219编译失败、未运行测试；已把正常完成时的聚合异常抛出移至finally之后。
+- 最终命令`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence C:/Repositories/RATools-for-eCTD/.artifacts/local-check/review-20261117/cr05-green2 -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~PackageValidationServiceTests|FullyQualifiedName~CaptureFailurePreservesPrimaryErrorWhenRecycleIsBlocked'`。
+- **15/15、0失败/0跳过、退出0**，三项目构建退出0，源码清单摘要`9315093b0d04d9c14cad7e0ccf79472463406fd39ac66df1922c4bb6a16eeb3e`。Reader两个用例实际制造_recycle文件障碍；Service wrapper在真实Dispose后注入失败，验证异常优先级/逐项回收/关闭恢复契约，不声称真实移动失败全链路。
+- 最终静态及证据review PASS，五个交付输入匹配最终构建。范围为Windows定向回归，未执行全部Reader链接/边界用例或PG/Linux资格。
