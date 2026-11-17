@@ -2456,6 +2456,36 @@
         "tests/RATools.Tests/PackageValidation/FdaLeafOperationRulesTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1204",
+      "authorityRuleId": "1204",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 11, error 1204; effective 2008-03-10",
+      "title": "File name contains invalid characters: tilde(~), forward slash(/), backslash(\\), colon(:), asterisk(*), question mark(?), single quote('), double quote(\") less than(<), greater than(>), pipe(|), or space( )",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Actual captured target-sequence filenames, without URI decoding, against the explicit FDA forbidden-character set. Nonportable names refused by input capture never produce a passing FDA result; their rejection remains an input prerequisite.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Official Low maps to Info. Explicit archived original/provenance and bound selection date required. Does not classify raw slash separators as filename characters or equate safe path capture with FDA acceptance.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaFileNameRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }

@@ -9,7 +9,7 @@ internal static class FdaFileNameRules
         PackageStandardsContext context, CancellationToken cancellationToken)
     {
         var remaining = target.Limits.MaxXmlFindings - 1;
-        foreach (var rule in context.Catalog.ForProfile(profile).Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298"))
+        foreach (var rule in context.Catalog.ForProfile(profile).Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204"))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sourceValid = rule.AuthorityRuleId == rule.InternalRuleId[6..] && rule.RuleVersion == "4.7.1" &&
@@ -22,7 +22,7 @@ internal static class FdaFileNameRules
                 yield return new(rule.InternalRuleId, CheckStatus.NotEvaluated, "Official filename checks require the exact archived source, supported rule and explicit selection date.");
                 continue;
             }
-            var effective = rule.AuthorityRuleId == "1221" ? new DateOnly(2008, 3, 10) : new DateOnly(2013, 4, 30);
+            var effective = rule.AuthorityRuleId == "1298" ? new DateOnly(2013, 4, 30) : new DateOnly(2008, 3, 10);
             if (context.SelectionDate < effective)
             {
                 yield return new(rule.InternalRuleId, CheckStatus.NotApplicable, "The selected date precedes the official effective date.");
@@ -35,12 +35,22 @@ internal static class FdaFileNameRules
                 cancellationToken.ThrowIfCancellationRequested();
                 var name = file.LogicalPath.Split('/')[^1];
                 var dot = name.LastIndexOf('.');
-                var invalid = rule.AuthorityRuleId == "1221" ? name.EnumerateRunes().Count() > 64 : dot <= 0 || dot == name.Length - 1;
+                var invalid = rule.AuthorityRuleId switch
+                {
+                    "1221" => name.EnumerateRunes().Count() > 64,
+                    "1204" => name.Any(character => character is '~' or '/' or '\\' or ':' or '*' or '?' or '\'' or '"' or '<' or '>' or '|' or ' '),
+                    _ => dot <= 0 || dot == name.Length - 1
+                };
                 if (!invalid) continue;
                 if (remaining == 0) { limited = true; break; }
                 remaining--;
                 findings.Add(new(rule.InternalRuleId, CheckStatus.Fail, rule.Severity, rule.InternalRuleId,
-                    rule.AuthorityRuleId == "1221" ? "The delivered filename exceeds 64 characters, including its extension." : "The delivered file has no filename extension.",
+                    rule.AuthorityRuleId switch
+                    {
+                        "1221" => "The delivered filename exceeds 64 characters, including its extension.",
+                        "1204" => "The delivered filename contains a character prohibited by FDA 1204.",
+                        _ => "The delivered file has no filename extension."
+                    },
                     new(target.Manifest.SequenceNumber, file.LogicalPath, Files: [new(target.SourceId, file.LogicalPath)]), Actual: name,
                     RecommendedAction: $"Review {rule.SourceId}, {rule.SourceSection}; full regional qualification remains pending."));
             }

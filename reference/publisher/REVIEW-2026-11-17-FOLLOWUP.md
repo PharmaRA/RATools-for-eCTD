@@ -4,11 +4,23 @@
 
 ## 续做 FDA1034
 
+1034已独立提交`f55c0d4`。
+
 检查目标ICH/US leaf的实际无命名空间operation：缺失/空白/默认来源失败，未知显式值未评估，不自动补new；归档原件/provenance和选择日期必须匹配，整体XML未完成/共享finding预算保留未评估，已知失败优先。file引擎同步v5。
 
 证据根`.artifacts/local-check/continue-20261117/`：`fda1034-red`18项中2通过、16因缺规则预期失败；初green82/82。新增区域leaf、低预算和内部DTD三例，首final84/85为测试误认为允许内部DTD，修正为XML-OFFLINE拒绝且1034未评估，没有放宽产品。最终`fda1034-final2`**85/85、0失败/0跳过、构建和测试退出0**；完整命令与源码摘要在summary.json，最终review核对六个交付输入一致。实际命令为`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence <候选绝对路径> -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~PackageValidationServiceTests|FullyQualifiedName~FdaIdentityRulesTests'`。
 
 `python -B scripts/tests/test_package_rule_catalog.py`退出0、72条，canonical摘要`6317237fb2a521af3058c95cb997e616a49c2fa3c8caeaf0470d357cae5c4449`。范围为Windows选定回归，不是完整官方/外部/Formal资格。内部DTD用例证明既有拒绝门禁，不宣称默认属性已动态验证。
+
+## 续做 FDA1204
+
+按官方明确字符集检查实际捕获文件名，不作URI解码；可捕获的空格、单引号、波浪号分别有目录/ZIP回归。操作系统非法字符由捕获前置拒绝，拒绝不是FDA finding，也不会产生通过结果。共享归档授权、日期、预算及旧catalog隔离保持，file引擎v6。
+
+`continue-20261117/fda1204-red`40项中27通过、13因缺规则预期失败；green106/106后review发现8个坏ZIP缺合法index导致异常类型断言可能假阳性，已补合法index并断言ZIP-PATHS、UNSAFE_ZIP_ENTRY及实际路径。最终`fda1204-final`**106/106、0失败/0跳过、构建和测试退出0**；同目录summary保存实际过滤器、构建/源码/测试摘要，源码清单摘要`f5027972b20a34327634a0a925e0c5e4aa26b2fe9899d09dd01c13593f64ab7b`。来源/原件/旧catalog/非US测试也覆盖新1204。目录脚本73条通过，canonical摘要`2fa882d773fcf37cab12eb48e7c8d29beeb42f6123af7936497a7268dba33bc3`；最终review PASS，六交付输入匹配最终回执。当前29/147已实施、118条完整覆盖待评估。
+
+## 远程空间清理（等待跨盘移除源副本授权）
+
+用户已要求清理远程Linux空间。只读盘点证据`.artifacts/remote-check/cleanup-20261117/`：/tmp总3.89GiB仅余32KiB，RATools任务约3.74GiB；/data剩15.1GiB。9个已知/tmp任务无活动进程引用。选定`20261107T141035-d23dcb21495e4449a8e8f07d0c83fb9d`与`20261107T140749-8ca3361ca680457398efb91f2e9893a1`两目录，均无符号/硬链接或特殊文件，共约1.05GiB。正在禁删守卫下复制到`/data/home/ratools-recycle/20261117-tmp-space-first-two/`并逐文件核验；原路径尚未移除。因A2硬闸，已单独询问是否允许跨盘回收时核验后移除这两个源副本；未答复不得执行该步骤。
 
 基线 `68826ec`。用户授权先保存审阅/计划，再按顺序实现，每项验证和只读review通过后独立commit。审查是核心链路限定静态阅读，不代表全仓审计或测试通过。
 

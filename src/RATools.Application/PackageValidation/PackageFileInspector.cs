@@ -348,7 +348,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 return new RuleCheckResult(rule, status, reason, findings);
             });
             var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1276" or "FDA47-1289" or FdaLeafOperationRules.RuleId)
+                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or FdaLeafOperationRules.RuleId)
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official));
         }

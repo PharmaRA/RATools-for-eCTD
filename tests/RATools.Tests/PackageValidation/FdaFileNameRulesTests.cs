@@ -10,6 +10,61 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class FdaFileNameRulesTests
 {
+    [Theory]
+    [InlineData("leaf file.pdf", CheckStatus.Fail, false)]
+    [InlineData("leaf'file.pdf", CheckStatus.Fail, false)]
+    [InlineData("leaf~file.pdf", CheckStatus.Fail, false)]
+    [InlineData("leaf-file.pdf", CheckStatus.Pass, false)]
+    [InlineData("leaf_file.pdf", CheckStatus.Pass, false)]
+    [InlineData("leaf%20file.pdf", CheckStatus.Pass, false)]
+    [InlineData("leaf file.pdf", CheckStatus.Fail, true)]
+    [InlineData("leaf'file.pdf", CheckStatus.Fail, true)]
+    [InlineData("leaf~file.pdf", CheckStatus.Fail, true)]
+    [InlineData("leaf-file.pdf", CheckStatus.Pass, true)]
+    public async Task OfficialForbiddenCharactersUseActualFilenameWithoutUriDecoding(string name, CheckStatus expected, bool zip)
+    {
+        var result = await Inspect(name, new(2026, 11, 17), zip: zip);
+        var check = Assert.Single(result.Checks, item => item.RuleId == "FDA47-1204");
+        Assert.Equal(expected, check.Status);
+        if (expected == CheckStatus.Fail)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal(ValidationSeverity.Info, finding.Severity);
+            Assert.Equal(name, finding.Actual);
+            Assert.Equal("0001/" + name, Assert.Single(finding.Location.Files!).LogicalPath);
+        }
+    }
+
+    [Theory]
+    [InlineData("bad:name.pdf")]
+    [InlineData("bad*name.pdf")]
+    [InlineData("bad?name.pdf")]
+    [InlineData("bad\"name.pdf")]
+    [InlineData("bad<name.pdf")]
+    [InlineData("bad>name.pdf")]
+    [InlineData("bad|name.pdf")]
+    [InlineData("bad\\name.pdf")]
+    public async Task NonportableZipNamesAreRejectedBeforeAnyFdaPass(string name)
+    {
+        var root = RetainedPackageTestFiles.Create();
+        try
+        {
+            var zip = Path.Combine(root, "bad.zip");
+            using (var archive = System.IO.Compression.ZipFile.Open(zip, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                using (var index = new StreamWriter(archive.CreateEntry("0001/index.xml").Open())) index.Write("<ectd />");
+                using var writer = new StreamWriter(archive.CreateEntry("0001/" + name).Open());
+                writer.Write("bytes");
+            }
+            var error = await Assert.ThrowsAsync<PackageInputException>(() => new PackageInputReader(Path.Combine(root, "validation/captures"))
+                .ReadAsync(new(Guid.NewGuid(), "bad-zip", zip, "0001"), new()));
+            Assert.Equal("ZIP-PATHS", error.RuleId);
+            Assert.Equal("UNSAFE_ZIP_ENTRY", error.Code);
+            Assert.Equal("0001/" + name, error.LogicalPath);
+        }
+        finally { RetainedPackageTestFiles.RetainDirectory(root); }
+    }
+
     private static readonly Lazy<Task<StandardsProfileSnapshot>> Snapshot = new(() =>
         new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2"));
 
@@ -49,8 +104,11 @@ public sealed class FdaFileNameRulesTests
     [InlineData("1298", "2013-04-30", CheckStatus.Fail)]
     [InlineData("1221", null, CheckStatus.NotEvaluated)]
     [InlineData("1298", null, CheckStatus.NotEvaluated)]
+    [InlineData("1204", "2008-03-09", CheckStatus.NotApplicable)]
+    [InlineData("1204", "2008-03-10", CheckStatus.Fail)]
+    [InlineData("1204", null, CheckStatus.NotEvaluated)]
     public async Task ExplicitSelectionDateGatesEachRule(string id, string? date, CheckStatus expected)
-        => Assert.Equal(expected, Assert.Single((await Inspect(new string('a', 65), date is null ? null : DateOnly.ParseExact(date, "yyyy-MM-dd"))).Checks,
+        => Assert.Equal(expected, Assert.Single((await Inspect(id == "1204" ? "bad~name.pdf" : new string('a', 65), date is null ? null : DateOnly.ParseExact(date, "yyyy-MM-dd"))).Checks,
             item => item.RuleId == "FDA47-" + id).Status);
 
     [Theory]
@@ -73,7 +131,8 @@ public sealed class FdaFileNameRulesTests
         var context = new PackageStandardsContext(changed, original.Assets, original.NodeSchema,
             mutation == "snapshot" ? null : original.SnapshotId, selectionDate: original.SelectionDate);
         var result = await Inspect(new string('a', 65), original.SelectionDate, context);
-        Assert.All(result.Checks.Where(item => item.RuleId is "FDA47-1221" or "FDA47-1298"), item => Assert.Equal(CheckStatus.NotEvaluated, item.Status));
+        foreach (var id in new[] { "FDA47-1221", "FDA47-1298", "FDA47-1204" })
+            Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == id).Status);
     }
 
     [Fact]
@@ -88,7 +147,7 @@ public sealed class FdaFileNameRulesTests
         var legacy = StandardsProfileSnapshot.Create(descriptor, snapshot.Resources.Where(item => item.Sha256 != digest), snapshot.AcquiredUtc);
         legacy.Verify();
         var result = await Inspect(new string('a', 65), new(2026, 11, 17), PackageStandardsContext.FromSnapshot(legacy, selectionDate: new(2026, 11, 17)));
-        foreach (var id in new[] { "FDA47-1221", "FDA47-1298" })
+        foreach (var id in new[] { "FDA47-1221", "FDA47-1298", "FDA47-1204" })
             Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == id).Status);
     }
 
@@ -106,14 +165,14 @@ public sealed class FdaFileNameRulesTests
         var original = PackageStandardsContext.FromSnapshot(await Snapshot.Value, selectionDate: new(2026, 11, 17));
         var catalog = original.Catalog;
         var legacy = new ValidationRuleCatalog(catalog.Version, catalog.Digest, catalog.Sources.Values, catalog.Profiles.Values,
-            catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1221" or "FDA47-1298")));
+            catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1221" or "FDA47-1298" or "FDA47-1204")));
         var context = new PackageStandardsContext(legacy, original.Assets, original.NodeSchema, original.SnapshotId, selectionDate: original.SelectionDate);
-        Assert.DoesNotContain((await Inspect("leaf", original.SelectionDate, context)).Checks, item => item.RuleId is "FDA47-1221" or "FDA47-1298");
-        Assert.DoesNotContain((await Inspect("leaf", original.SelectionDate, original, PackageValidationCatalog.IchProfile)).Checks, item => item.RuleId is "FDA47-1221" or "FDA47-1298");
+        Assert.DoesNotContain((await Inspect("leaf", original.SelectionDate, context)).Checks, item => item.RuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204");
+        Assert.DoesNotContain((await Inspect("leaf", original.SelectionDate, original, PackageValidationCatalog.IchProfile)).Checks, item => item.RuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204");
     }
 
     private static async Task<PackageDeliveryInspection> Inspect(string name, DateOnly? date,
-        PackageStandardsContext? context = null, string profile = PackageValidationCatalog.UsProfile, PackageReadLimits? limits = null)
+        PackageStandardsContext? context = null, string profile = PackageValidationCatalog.UsProfile, PackageReadLimits? limits = null, bool zip = false)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -122,6 +181,12 @@ public sealed class FdaFileNameRulesTests
             Directory.CreateDirectory(source);
             await File.WriteAllTextAsync(Path.Combine(source, "index.xml"), "<ectd />");
             await File.WriteAllTextAsync(Path.Combine(source, name), "synthetic bytes");
+            if (zip)
+            {
+                var archivePath = Path.Combine(root, "input.zip");
+                System.IO.Compression.ZipFile.CreateFromDirectory(source, archivePath);
+                source = archivePath;
+            }
             var app = Guid.NewGuid();
             await using var captured = await new PackageInputReader(Path.Combine(root, "validation", "captures"))
                 .ReadAsync(new(app, "filename-input", source, "0001"), limits ?? new());

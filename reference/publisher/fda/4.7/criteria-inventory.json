@@ -392,10 +392,15 @@
       "correctiveAction": "Modify your SOPs to ensure file names do not contain invalid characters.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-1204"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaFileNameRules.cs",
+          "tests/RATools.Tests/PackageValidation/FdaFileNameRulesTests.cs"
+        ],
+        "note": "Actual captured target-sequence filenames, without URI decoding, against the explicit FDA forbidden-character set. Nonportable names refused by input capture never produce a passing FDA result; their rejection remains an input prerequisite. Selected regression and review tracked separately."
       }
     },
     {
