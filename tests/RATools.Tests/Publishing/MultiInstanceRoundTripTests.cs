@@ -17,8 +17,9 @@ public sealed class MultiInstanceRoundTripTests
         // The importer currently selects application number from the workspace directory.
         // Keep that explicit identity constant across isolated imports of the same application.
         using var source = new NodeImportWorkspace(applicationNumber: "000001");
-        source.CopyPublisherFixture();
+        source.CopyPublisherFixture(currentPublishingMetadata: true);
         var imported = await source.ImportAsync();
+        Assert.True(imported.ImportedSequenceCount == 4, string.Join(" | ", imported.Issues.Select(issue => issue.Message)));
         using var restored = new NodeImportWorkspace(applicationNumber: "000001");
         var outputs = await NodePublishingTests.PublishFixtureAsync(source, restored.Root, imported.ApplicationId);
         var first = await InspectDeliveriesAsync(restored.Root, imported.ApplicationId, outputs);
@@ -40,8 +41,9 @@ public sealed class MultiInstanceRoundTripTests
     public async Task TamperedDeliveredReferenceFailsIndependentContextValidationAndCannotReimportAsAnAlphaReplacement()
     {
         using var source = new NodeImportWorkspace();
-        source.CopyPublisherFixture();
+        source.CopyPublisherFixture(currentPublishingMetadata: true);
         var imported = await source.ImportAsync();
+        Assert.True(imported.ImportedSequenceCount == 4, string.Join(" | ", imported.Issues.Select(issue => issue.Message)));
         using var delivered = new NodeImportWorkspace();
         await NodePublishingTests.PublishFixtureAsync(source, delivered.Root, imported.ApplicationId);
         var path = Path.Combine(delivered.Root, "0001/index.xml");

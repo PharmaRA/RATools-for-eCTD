@@ -8,6 +8,8 @@ using RATools.Domain.Documents;
 using RATools.Domain.Common;
 using RATools.Infrastructure.Persistence.EfCore;
 using RATools.Infrastructure.Persistence.InMemory;
+using RATools.Application.RegionalMetadata;
+using RATools.Application.Standards;
 
 namespace RATools.Tests.Applications;
 
@@ -21,6 +23,8 @@ internal sealed class NodeImportWorkspace : IDisposable
     public ICtdNodeRepository Nodes { get; }
     public IWorkspaceRevisionStore Revisions { get; }
     public IApplicationImportStore Store { get; }
+    public IRegionalMetadataStore RegionalMetadata { get; }
+    public StandardsSnapshotService Snapshots { get; } = ImportAcceptanceFixture.MemorySnapshots();
     public ApplicationImportBatch? Batch { get; private set; }
     public ApplicationImportService Service { get; }
 
@@ -35,15 +39,16 @@ internal sealed class NodeImportWorkspace : IDisposable
         Revisions = database is null ? new InMemoryWorkspaceRevisionStore(Applications) : new EfCoreWorkspaceRevisionStore(database);
         Nodes = database is null ? new InMemoryCtdNodeRepository(Revisions, Placements)
             : new EfCoreCtdNodeRepository(database);
-        Store = database is null ? new InMemoryApplicationImportStore(Applications, Documents, Placements, (InMemoryCtdNodeRepository)Nodes, new InMemoryRegionalMetadataStore())
-            : new EfCoreApplicationImportStore(database, Applications, Documents, Placements, new EfCoreRegionalMetadataStore(database));
-        Service = new(Applications, new CapturingStore(this), new AllowedPaths(), ImportAcceptanceFixture.MemorySnapshots());
+        RegionalMetadata = database is null ? new InMemoryRegionalMetadataStore() : new EfCoreRegionalMetadataStore(database);
+        Store = database is null ? new InMemoryApplicationImportStore(Applications, Documents, Placements, (InMemoryCtdNodeRepository)Nodes, RegionalMetadata)
+            : new EfCoreApplicationImportStore(database, Applications, Documents, Placements, RegionalMetadata);
+        Service = new(Applications, new CapturingStore(this), new AllowedPaths(), Snapshots);
     }
 
     public Task<ApplicationImportResultDto> ImportAsync(CancellationToken cancellationToken = default) =>
         Service.ImportAsync(new ImportApplicationRequest(Root, "us-fda-ectd-3.2.2", "Sponsor must not become a manufacturer"), cancellationToken);
 
-    public void CopyPublisherFixture()
+    public void CopyPublisherFixture(bool currentPublishingMetadata = false)
     {
         var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Publisher", "sequences");
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
@@ -51,7 +56,30 @@ internal sealed class NodeImportWorkspace : IDisposable
             var target = Path.Combine(Root, Path.GetRelativePath(source, file));
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target);
+            if (currentPublishingMetadata && Path.GetFileName(target) == "us-regional.xml")
+            {
+                var xml = XDocument.Load(target);
+                xml.Descendants("applicant-info").Single().Element("id")!.Value = "001234567";
+                foreach (var item in xml.Descendants("application-number")) item.SetAttributeValue("application-type", "fdaat3");
+                foreach (var item in xml.Descendants("submission-id")) item.SetAttributeValue("submission-type", "fdast1");
+                foreach (var item in xml.Descendants("sequence-number")) item.SetAttributeValue("submission-sub-type", "fdasst3");
+                foreach (var item in xml.Descendants("applicant-contact-name")) item.SetAttributeValue("applicant-contact-type", "fdaact1");
+                foreach (var item in xml.Descendants("telephone")) item.SetAttributeValue("telephone-number-type", "fdatnt1");
+                xml.Save(target);
+            }
         }
+        if (currentPublishingMetadata)
+            foreach (var sequence in new[] { "0000", "0001", "0002", "0003" })
+            {
+                var indexPath = Path.Combine(Root, sequence, "index.xml");
+                var index = XDocument.Load(indexPath);
+                var regional = Path.Combine(Root, sequence, "m1/us/us-regional.xml");
+                var digest = Convert.ToHexString(System.Security.Cryptography.MD5.HashData(File.ReadAllBytes(regional))).ToLowerInvariant();
+                foreach (var leaf in index.Descendants().Where(element => element.Attributes().Any(attribute => attribute.Name.LocalName == "href" && attribute.Value == "m1/us/us-regional.xml")))
+                    leaf.SetAttributeValue("checksum", digest);
+                index.Save(indexPath);
+                File.WriteAllText(Path.Combine(Root, sequence, "index-md5.txt"), Convert.ToHexString(System.Security.Cryptography.MD5.HashData(File.ReadAllBytes(indexPath))).ToLowerInvariant() + "\n");
+            }
     }
 
     public async Task WriteAsync(string number, params XElement[] sections)

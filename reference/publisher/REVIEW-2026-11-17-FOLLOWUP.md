@@ -11,8 +11,8 @@
 | 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 已提交 `891c25d` | 5/5、tsc/lint退出0；只读review PASS |
 | 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 已提交 `2ceb2c6` | 30/30、tsc/lint退出0；最终review PASS |
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 已提交 `05d3beb` | 15/15；最终review PASS |
-| 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 验证及最终review PASS | 9/9；本项独立提交 |
-| 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 待执行 | — |
+| 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 已提交 `cc48aaa` | 9/9；最终review PASS |
+| 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 前置路由/夹具修复中 | 已确认生产RegionalEctdRuleSetProvider缺4.7路由；另恢复测试typed store/snapshot连接、显式9位编号及副本摘要 |
 | 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 待逐批执行 | 23/147已实施为基线，124条完整覆盖待评估 |
 | 9 | DEV-03 / 03-F | Formal持久上下文、入队与捕获双层绑定 | 待实现 | 正式资格依赖05-R/V |
 | 10 | DEV-04 / 05-V | 固定版本外部验证器真实对照 | 依赖待就绪 | 既有记录无可用外部验证器；不得以准备文档替代执行 |
@@ -86,3 +86,13 @@ Reader失败回收的异常写入主异常Data[CaptureRetentionFailure]，保留
 - 首次绿灯7/9，产品已拒绝损坏，但测试误将InvalidDataException视为IOException子类；改为分别断言实际类型，产品无再改动。
 - 最终构建命令`pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild`；`.artifacts/local-check/20261117T103735-182c3e478d1641eeb52637f6e50e7398/`三项目退出0。`cr06-final/summary.json`保存实际VSTest命令，ReleaseCaptureTests全类**9/9、0失败/0跳过、退出0**，进程回执与TRX保留。
 - 源码清单摘要`2ad722f16b3b79bab0868acdcf8ab3379576882fb827d7f8466c05f63c3e015c`；两交付输入匹配。静态及最终证据review PASS。范围为Windows实际文件/回收，非敌对并发替换保证或跨平台资格。
+
+## DEV-01 前置状态
+
+三项旧发布集成失败在恢复真实依赖后逐层定位：导入夹具已有regional记录但builder未接入同一store/snapshot；合成XML公司编号只有6位，显式有效副本需9位及官方字典值，并同步index引用和index-md5；独立构造typed revision须非零且匹配workspace revision。随后真实发布返回4.7规则集缺失，已从Application DI确认生产RegionalEctdRuleSetProvider也仅注册4.5，属于实际产品路由缺口，不是单纯夹具问题。修复保持项目规则来源标记，不增加官方147条已实施计数，也不开放Formal。
+
+原本机input-browser记录已具备6项真实Chromium UI/Blob证据，但原生下载管理器完成未覆盖；本机ACL拒绝下载晋升。因此DEV-01不能仅重跑旧入口就宣称全链路关闭。后续使用统一Linux脚手架前需审查当前入口和直接运行依赖；用户既有remote-check.ps1修改不纳入本批提交。
+
+前置最终验证：`pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild-publishing`，证据`.artifacts/local-check/20261117T110648-95c94f4cd1f44c65a2db19bad8e396ba/`，Api/Migrator/Tests三构建退出0、零警告/错误；发布组**88/88、0失败/0跳过、退出0**，原三项基线失败关闭。同构建`dev01-prerequisite/`补充provider4项及节点四序列发布1项，**5/5、退出0**；完整实际命令/进程/TRX保留。4.7 provider直接红灯在`20261117T105753-16b4db4be6874c71b110d7c6e8e47954/provider-red/`为3通过/1预期失败。
+
+最终源码清单摘要`7c7452648199cf95cfe58e4854793bec2b7be1f4ed6ec181bd8a3b8b22c5730b`。静态及最终证据review PASS，七交付输入匹配，原共享XML和业务断言未削弱。早期85/88的失败分别保留在104525、104910、105347、105753候选，说明了显式编号、修订、引用摘要、归档快照和4.7路由的实际依赖，不算最终通过数。

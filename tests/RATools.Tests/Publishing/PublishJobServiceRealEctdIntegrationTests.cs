@@ -23,6 +23,7 @@ using RATools.Application.Validation.Requests;
 using RATools.Application.Validation.Rules;
 using RATools.Domain.Applications;
 using RATools.Domain.Documents;
+using RATools.Domain.RegionalMetadata;
 using RATools.Infrastructure.Persistence.InMemory;
 using RATools.Infrastructure.Publishing;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -71,10 +72,20 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
                 "US",
                 "Acme Pharma",
                 DateTime.UtcNow,
-                [SubmissionSequence.Rehydrate(sequenceNumber, "original-application", "Initial sequence", DateTime.UtcNow, metadata)],
+                [SubmissionSequence.Rehydrate(sequenceNumber, "original-application", "Initial sequence", DateTime.UtcNow, metadata, 1)],
                 Path.Combine(root, "workspace", applicationNumber),
                 EctdTemplateRegistry.DefaultTemplateKey);
             await applicationRepository.AddAsync(application);
+            var snapshots = new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider());
+            var snapshot = await snapshots.CaptureAsync(application.EctdTemplateKey);
+            var regionalMetadata = new InMemoryRegionalMetadataStore();
+            var content = new RegionalMetadataContent(1, "US", Us: new("123456", "fdaat2", "Acme Pharma",
+                [new(Guid.NewGuid(), "Jane Regulatory", "fdaact1", [new(Guid.NewGuid(), "5550100", "fdatnt1")],
+                    [new(Guid.NewGuid(), "jane.regulatory@example.test")])],
+                "fdast1", "fdasst3", null, "Initial sequence", "001234567", sequenceNumber));
+            var regional = RegionalMetadataRevision.Create(Guid.NewGuid(), applicationId, sequenceNumber, 1, 1, snapshot.Id,
+                content, null, [], [], null, null, [], [], null, null, DateTime.UtcNow);
+            await new InMemoryPersistenceTransaction().ExecuteAsync(ct => regionalMetadata.AppendAsync(regional, null, ct));
 
             var documentId = Guid.Parse("20000000-0000-0000-0000-000000000001");
             var placementId = Guid.Parse("30000000-0000-0000-0000-000000000001");
@@ -108,11 +119,11 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
                 placementRepository,
                 publishJobRepository,
                 root,
-                auditLogService);
+                auditLogService, regionalMetadata, snapshots);
 
             var report = await service.ExecuteAsync(new CreatePublishJobRequest(applicationId, sequenceNumber));
 
-            Assert.True(report.Succeeded);
+            Assert.True(report.Succeeded, report.PublishJob.FailureReason ?? report.Message);
             Assert.NotNull(report.IntegritySummary);
             Assert.True(report.IntegritySummary!.IsConsistent);
             Assert.NotNull(report.IntegrityEvidence);
@@ -196,7 +207,9 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
         IDocumentPlacementRepository placementRepository,
         IPublishJobRepository publishJobRepository,
         string root,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        InMemoryRegionalMetadataStore regionalMetadata,
+        StandardsSnapshotService snapshots)
     {
         var standardsProfileProvider = new FdaEctd322StandardsProfileProvider();
         var packageModelBuilder = PackageTestServices.Create(
@@ -204,7 +217,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             placementRepository,
             documentRepository,
             standardsProfileProvider,
-            PermissiveDocumentStorageBoundary.Instance);
+            PermissiveDocumentStorageBoundary.Instance, regionalMetadata: regionalMetadata, snapshots: snapshots);
         var regionalWriterRegistry = new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(new UsRegionalXmlWriter())]);
         var backboneService = new BackboneService(
             packageModelBuilder,
@@ -212,7 +225,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             regionalWriterRegistry,
             new EctdXmlValidator(),
             standardsProfileProvider,
-            new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root }), NullLogger<LocalBackboneFileWriter>.Instance));
+            new LocalBackboneFileWriter(Options.Create(new BackboneOutputOptions { RootPath = root }), NullLogger<LocalBackboneFileWriter>.Instance), snapshots);
         var validationService = new SequenceValidationService(
             applicationRepository,
             placementRepository,
@@ -228,7 +241,7 @@ public sealed class PublishJobServiceRealEctdIntegrationTests
             regionalWriterRegistry,
             new EctdXmlValidator(),
             standardsProfileProvider,
-            new EctdValidationEngine(new FdaEctdRuleSetProvider([new FileNamingConventionRule()])));
+            new EctdValidationEngine(new RegionalEctdRuleSetProvider([new FileNamingConventionRule()])));
         var artifactStore = new LocalPublishArtifactStore(new AllowAllWorkspacePathPolicy());
 
         return new PublishJobService(

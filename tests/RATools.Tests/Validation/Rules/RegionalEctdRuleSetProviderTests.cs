@@ -5,16 +5,18 @@ namespace RATools.Tests.Validation.Rules;
 
 public sealed class RegionalEctdRuleSetProviderTests
 {
-    [Fact]
-    public void GetRuleSet_ReturnsRulesForFda322Criteria45()
+    [Theory]
+    [InlineData("4.5")]
+    [InlineData("4.7")]
+    public void GetRuleSet_ReturnsRulesForFda322Criteria(string criteria)
     {
         var rule = new NoopRule();
         var provider = new RegionalEctdRuleSetProvider([rule]);
 
-        var ruleSet = provider.GetRuleSet(CreateProfile("us-fda-ectd-3.2.2", "4.5"));
+        var ruleSet = provider.GetRuleSet(CreateProfile("us-fda-ectd-3.2.2", criteria));
 
         Assert.Equal("us-fda-ectd-3.2.2", ruleSet.ProfileKey);
-        Assert.Equal("4.5", ruleSet.ValidationCriteriaVersion);
+        Assert.Equal(criteria, ruleSet.ValidationCriteriaVersion);
         Assert.Same(rule, Assert.Single(ruleSet.Rules));
     }
 

@@ -34,7 +34,7 @@ public sealed class NodePublishingTests
     public async Task FourSequenceDeliveryPreservesTheIndependentBusinessOracleAndReimports()
     {
         using var source = new NodeImportWorkspace();
-        source.CopyPublisherFixture();
+        source.CopyPublisherFixture(currentPublishingMetadata: true);
         var imported = await source.ImportAsync();
         using var restored = new NodeImportWorkspace();
         await PublishFixtureAsync(source, restored.Root, imported.ApplicationId);
@@ -47,7 +47,8 @@ public sealed class NodePublishingTests
 
     internal static EctdPackageModelBuilder Builder(NodeImportWorkspace source) => new(source.Applications, source.Placements,
         source.Documents, new FdaEctd322StandardsProfileProvider(), new DocumentStorageBoundary(new ConfiguredWorkspacePathPolicy(
-            Options.Create(new SecurityOptions { AllowedWorkspaceRoots = [source.Root] }))), source.Nodes, source.Revisions, source.Store);
+            Options.Create(new SecurityOptions { AllowedWorkspaceRoots = [source.Root] }))), source.Nodes, source.Revisions, source.Store,
+            regionalMetadataStore: source.RegionalMetadata, standardsSnapshots: source.Snapshots);
 
     internal static async Task<IReadOnlyDictionary<string, GeneratedBackboneDto>> PublishFixtureAsync(NodeImportWorkspace source, string restoredRoot, Guid applicationId)
     {
@@ -58,7 +59,7 @@ public sealed class NodePublishingTests
             new RegionalBackboneWriterRegistry([new UsRegionalBackboneWriter(new UsRegionalXmlWriter())]),
             new EctdXmlValidator(), profiles, new LocalBackboneFileWriter(
                 Options.Create(new BackboneOutputOptions { RootPath = Path.Combine(source.Root, "delivery-output"), RetainJobRuns = 0 }),
-                NullLogger<LocalBackboneFileWriter>.Instance));
+                NullLogger<LocalBackboneFileWriter>.Instance), source.Snapshots);
         var application = (await source.Applications.GetAsync(applicationId))!;
         foreach (var sequence in application.Sequences.OrderBy(sequence => sequence.SequenceNumber, StringComparer.Ordinal))
         {
