@@ -10,8 +10,8 @@
 | 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 已提交 `f13054f` | 27/27，关联45/45含前27；最终review PASS |
 | 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 已提交 `891c25d` | 5/5、tsc/lint退出0；只读review PASS |
 | 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 已提交 `2ceb2c6` | 30/30、tsc/lint退出0；最终review PASS |
-| 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 验证及最终review PASS | 15/15；本项独立提交 |
-| 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 待复现 | — |
+| 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 已提交 `05d3beb` | 15/15；最终review PASS |
+| 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 验证及最终review PASS | 9/9；本项独立提交 |
 | 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 待执行 | — |
 | 8 | DEV-02 / 05-R | 官方规则映射与逐批实现，区域pending范围 | 待逐批执行 | 23/147已实施为基线，124条完整覆盖待评估 |
 | 9 | DEV-03 / 03-F | Formal持久上下文、入队与捕获双层绑定 | 待实现 | 正式资格依赖05-R/V |
@@ -77,3 +77,12 @@ Reader失败回收的异常写入主异常Data[CaptureRetentionFailure]，保留
 - 最终命令`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence C:/Repositories/RATools-for-eCTD/.artifacts/local-check/review-20261117/cr05-green2 -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~PackageValidationServiceTests|FullyQualifiedName~CaptureFailurePreservesPrimaryErrorWhenRecycleIsBlocked'`。
 - **15/15、0失败/0跳过、退出0**，三项目构建退出0，源码清单摘要`9315093b0d04d9c14cad7e0ccf79472463406fd39ac66df1922c4bb6a16eeb3e`。Reader两个用例实际制造_recycle文件障碍；Service wrapper在真实Dispose后注入失败，验证异常优先级/逐项回收/关闭恢复契约，不声称真实移动失败全链路。
 - 最终静态及证据review PASS，五个交付输入匹配最终构建。范围为Windows定向回归，未执行全部Reader链接/边界用例或PG/Linux资格。
+
+## CR-06 已有定稿目录复用核验
+
+正常重复目录与并发赢家复用均在回收新staging前，对已有manifest全部成员重验路径、链接、长度、SHA256、MD5；含delivery ZIP。失败不覆盖已有目录，CommitAsync本身保留新staging；上层补偿仍可按既有流程回收它，不承诺永留原路径。
+
+- 红灯构建`.artifacts/local-check/20261117T103245-b1b00f416a8d48ec9907e0f4649b63b4/`，`cr06-red`三项均在“不抛异常”断言失败，退出1；样本为缺成员(移动保留)、等长改写及ZIP改写。
+- 首次绿灯7/9，产品已拒绝损坏，但测试误将InvalidDataException视为IOException子类；改为分别断言实际类型，产品无再改动。
+- 最终构建命令`pwsh -NoProfile -File ./scripts/local-check.ps1 -Task msbuild`；`.artifacts/local-check/20261117T103735-182c3e478d1641eeb52637f6e50e7398/`三项目退出0。`cr06-final/summary.json`保存实际VSTest命令，ReleaseCaptureTests全类**9/9、0失败/0跳过、退出0**，进程回执与TRX保留。
+- 源码清单摘要`2ad722f16b3b79bab0868acdcf8ab3379576882fb827d7f8466c05f63c3e015c`；两交付输入匹配。静态及最终证据review PASS。范围为Windows实际文件/回收，非敌对并发替换保证或跨平台资格。

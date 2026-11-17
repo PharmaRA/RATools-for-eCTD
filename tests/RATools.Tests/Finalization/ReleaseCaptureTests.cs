@@ -13,6 +13,31 @@ namespace RATools.Tests.Finalization;
 // measured hashes, deterministic manifests and content-addressed directories.
 public sealed class ReleaseCaptureTests : IAsyncDisposable
 {
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("changed")]
+    [InlineData("zip")]
+    public async Task CorruptedExistingReleaseCannotReplaceAValidNewCapture(string corruption)
+    {
+        var original = await CaptureOnceAsync();
+        var (staging, manifest) = await CaptureAsync();
+        Assert.Equal(original.ManifestDigest, manifest.Digest);
+        var member = Path.Combine(original.Directory, corruption == "zip" ? "delivery-package.zip" : "payload/0001/m2/file.pdf");
+        if (corruption == "missing") File.Move(member, Path.Combine(_root, "retained-original.pdf"));
+        else
+        {
+            var bytes = await File.ReadAllBytesAsync(member);
+            bytes[0] ^= 1;
+            await File.WriteAllBytesAsync(member, bytes);
+        }
+        if (corruption == "missing") await Assert.ThrowsAnyAsync<IOException>(() => _store.CommitAsync(staging, manifest.Digest));
+        else await Assert.ThrowsAsync<InvalidDataException>(() => _store.CommitAsync(staging, manifest.Digest));
+        Assert.True(Directory.Exists(staging.Directory));
+        Assert.Equal("stable content", await File.ReadAllTextAsync(Path.Combine(staging.Directory, "payload/0001/m2/file.pdf")));
+        Assert.True(File.Exists(Path.Combine(original.Directory, "manifest.json")));
+        if (corruption == "missing") Assert.True(File.Exists(Path.Combine(_root, "retained-original.pdf")));
+    }
+
     private readonly string _root = Path.Combine(RetainedPackageTestFiles.ScratchParent, "ratools-release-capture-" + Guid.NewGuid().ToString("N"));
     private readonly LocalReleaseCaptureStore _store;
     private readonly Guid _application = Guid.NewGuid();

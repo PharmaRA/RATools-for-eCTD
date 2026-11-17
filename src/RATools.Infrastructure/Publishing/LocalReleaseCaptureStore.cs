@@ -137,7 +137,7 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
 
     }
 
-    public Task<ReleaseCommitResult> CommitAsync(ReleaseCaptureStaging staging, string manifestDigest,
+    public async Task<ReleaseCommitResult> CommitAsync(ReleaseCaptureStaging staging, string manifestDigest,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(staging);
@@ -152,13 +152,14 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
         EnsureNoReparsePoints(ResolveApplicationRoot(staging.ApplicationId), destination);
         if (Directory.Exists(destination))
         {
-            // The directory name is the content identity: an existing directory already
-            // holds exactly these bytes and is never overwritten by a second capture.
+            // The directory name and manifest identify the expected content. Verify
+            // the existing bytes before discarding the newly completed staging copy.
             var existing = ReadStoredManifest(destination, staging.ApplicationId, staging.SequenceNumber, manifestDigest);
             if (!string.Equals(existing.Digest, manifestDigest, StringComparison.Ordinal))
                 throw new ReleaseCaptureConflictException(destination);
+            await VerifyStoredMembersAsync(destination, existing, cancellationToken).ConfigureAwait(false);
             TryRecycle(ResolveApplicationRoot(staging.ApplicationId), staging.Directory);
-            return Task.FromResult(new ReleaseCommitResult(destination, Created: false));
+            return new ReleaseCommitResult(destination, Created: false);
         }
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         try
@@ -173,10 +174,23 @@ public sealed class LocalReleaseCaptureStore(IOptions<BackboneOutputOptions> opt
             var winner = ReadStoredManifest(destination, staging.ApplicationId, staging.SequenceNumber, manifestDigest);
             if (!string.Equals(winner.Digest, manifestDigest, StringComparison.Ordinal))
                 throw new ReleaseCaptureConflictException(destination);
+            await VerifyStoredMembersAsync(destination, winner, cancellationToken).ConfigureAwait(false);
             TryRecycle(ResolveApplicationRoot(staging.ApplicationId), staging.Directory);
-            return Task.FromResult(new ReleaseCommitResult(destination, Created: false));
+            return new ReleaseCommitResult(destination, Created: false);
         }
-        return Task.FromResult(new ReleaseCommitResult(destination, Created: true));
+        return new ReleaseCommitResult(destination, Created: true);
+    }
+
+    private async Task VerifyStoredMembersAsync(string directory, ReleaseManifest manifest, CancellationToken cancellationToken)
+    {
+        foreach (var file in manifest.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var path = ResolveDescendantPath(directory, file.RelativePath, "Existing release member");
+            EnsureNoReparsePoints(ResolveApplicationRoot(manifest.ApplicationId), path);
+            await using var input = File.OpenRead(path);
+            await VerifyMemberAsync(input, file, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     // A staging path is data on a public record; it must still be a direct child of this
