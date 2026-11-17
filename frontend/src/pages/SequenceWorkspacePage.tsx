@@ -323,7 +323,7 @@ export const SequenceWorkspacePage = ({
     }
   }
 
-  const handleDirectDrop = async (file: File, targetNodeKey: string) => {
+  const handleDirectDrop = async (file: File, targetNodeKey: string, batchPosition: number) => {
     setLoading(true)
     message.loading({ content: `正在处理 ${file.name}...`, key: 'uploading' })
 
@@ -343,7 +343,7 @@ export const SequenceWorkspacePage = ({
         file,
         ctdSection: targetSection,
         nodeInstanceId,
-        sortOrder: Math.max(0, ...placements.filter(item => item.nodeInstanceId === nodeInstanceId).map(item => (item.sortOrder ?? 0) + 1)),
+        sortOrder: Math.max(0, ...placements.filter(item => item.nodeInstanceId === nodeInstanceId).map(item => (item.sortOrder ?? 0) + 1)) + batchPosition,
       })
       revisionRef.current = created?.workspaceRevision ?? undefined
 

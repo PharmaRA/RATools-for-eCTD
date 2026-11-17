@@ -18,7 +18,7 @@ type MessageApi = {
 type UseWorkspaceDragDropOptions = {
   placements: DocumentPlacementRecord[]
   movePlacement: (placementId: string, fromSection: string, toSection: string) => Promise<void>
-  uploadFile: (file: File, targetNodeKey: string) => Promise<void>
+  uploadFile: (file: File, targetNodeKey: string, batchPosition: number) => Promise<void>
   messageApi?: MessageApi
 }
 
@@ -101,8 +101,8 @@ export const useWorkspaceDragDrop = ({
       messageApi.error(`不支持的文件扩展名。允许：${ectdAllowedExtensionsHint}。已跳过：${invalidFiles.map((file) => file.name).join('、')}`)
     }
 
-    for (const file of validFiles) {
-      await uploadFile(file, targetNodeKey)
+    for (const [batchPosition, file] of validFiles.entries()) {
+      await uploadFile(file, targetNodeKey, batchPosition)
     }
   }, [messageApi, uploadFile])
 

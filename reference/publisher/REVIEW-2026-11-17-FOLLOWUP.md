@@ -7,8 +7,8 @@
 | 顺序 | 任务 | 问题/交付 | 状态 | 验证/review/提交 |
 | --- | --- | --- | --- | --- |
 | 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 已提交 `6c18fb3` | 36/36；最终只读review PASS |
-| 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 验证及最终只读review PASS | 27/27，关联45/45含前27；本项独立提交 |
-| 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 待复现 | — |
+| 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 已提交 `f13054f` | 27/27，关联45/45含前27；最终review PASS |
+| 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 验证及只读review PASS | 5/5、tsc/lint退出0；本项独立提交 |
 | 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 待复现 | — |
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 待复现 | — |
 | 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 待复现 | — |
@@ -49,3 +49,12 @@
 - 首个green因CA1859编译失败，未执行测试；具体参数类型已修正。最终`cr02-green2/`构建三项退出0、零警告/错误，原生守卫测试**27/27、0失败/0跳过、退出0**。
 - 同构建`cr02-green2/integration/`实际VSTest完整命令/进程回执/TRX记录**45/45、0失败/0跳过、退出0**，包括27项验证器、10项服务、8项报告兼容/路径/取消。计数重叠不相加，完整发布组未重跑。
 - 最终source-manifest SHA256 `7f2517c9ac327d61dd7897e80ba2216c9680626281995947442e0d414dfb52b1`；六个关联交付输入核对一致。静态及最终证据review PASS。范围为Windows选定文件/服务测试，不声明PG、浏览器、Linux或Formal资格。
+
+## CR-03 多文件批次排序
+
+有效文件逐个携带本批position，页面使用同一闭包的已有最大排序+1+position。异步刷新不更换运行中的批次回调，中间已处理失败留下空位，后续成功文件顺序保持。
+
+- `node ./scripts/local-check/review-workspace.mjs C:/Repositories/RATools-for-eCTD/.artifacts/local-check/cr03-red-20261117`：3通过/2预期失败、退出1；旧闭包实际得到[8,8]，期望[8,10]。
+- 同命令使用`cr03-green-20261117`：**5/5、0失败/0跳过、退出0**；限定真实hook和jsdom，hashes/tests.json/summary.json保留。测试中的8+position模拟页面排序，页面真实公式由静态review确认，未宣称实际页面/API执行。
+- frontend目录执行`node --import ../scripts/remote-check/no-delete.mjs node_modules/typescript/bin/tsc --project tsconfig.app.json --noEmit --incremental false`及同守卫下ESLint检查三个改动文件，均退出0。
+- 最终只读review PASS，限单批次顺序；真实浏览器仍为DEV-01。备份为`backups/review-followup-20261117-085843/CR-03/`。

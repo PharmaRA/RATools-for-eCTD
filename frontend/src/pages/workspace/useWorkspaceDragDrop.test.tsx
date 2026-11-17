@@ -42,6 +42,10 @@ const renderUseWorkspaceDragDrop = (options: Parameters<typeof useWorkspaceDragD
       })
       host.remove()
     },
+    rerender: (next: Parameters<typeof useWorkspaceDragDrop>[0]) => {
+      options = next
+      act(() => root.render(<Probe />))
+    },
   }
 }
 
@@ -111,11 +115,29 @@ describe('useWorkspaceDragDrop', () => {
     })
 
     expect(uploadFile).toHaveBeenCalledTimes(2)
-    expect(uploadFile).toHaveBeenNthCalledWith(1, files[0], '1.2')
-    expect(uploadFile).toHaveBeenNthCalledWith(2, files[1], '1.2')
+    expect(uploadFile).toHaveBeenNthCalledWith(1, files[0], '1.2', 0)
+    expect(uploadFile).toHaveBeenNthCalledWith(2, files[1], '1.2', 1)
     expect(messageApi.error).toHaveBeenCalledWith(expect.stringContaining('不支持的文件扩展名'))
     expect(messageApi.error).toHaveBeenCalledWith(expect.stringContaining('bad.exe'))
     hook.unmount()
+  })
+
+  it('keeps batch positions after an asynchronous refresh and a handled upload failure', async () => {
+    const files = ['one.pdf', 'two.pdf', 'three.pdf'].map(name => new File(['pdf'], name))
+    const saved: number[] = []
+    const refreshedUpload = vi.fn()
+    const uploadFile = vi.fn(async (file: File, _target: string, batchPosition = 0) => {
+      await Promise.resolve()
+      if (file.name !== 'two.pdf') saved.push(8 + batchPosition)
+      hook.rerender({ placements: [], movePlacement: vi.fn(), uploadFile: refreshedUpload })
+    })
+    const hook = renderUseWorkspaceDragDrop({ placements: [], movePlacement: vi.fn(), uploadFile })
+    try {
+      await act(async () => { await hook.current.dropFiles(files, 'node:target') })
+      expect(saved).toEqual([8, 10])
+      expect(uploadFile).toHaveBeenCalledTimes(3)
+      expect(refreshedUpload).not.toHaveBeenCalled()
+    } finally { hook.unmount() }
   })
 
   it('moves a keyboard-selected document to the next selected section', async () => {
