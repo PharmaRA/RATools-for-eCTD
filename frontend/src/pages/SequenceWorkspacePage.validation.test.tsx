@@ -229,6 +229,65 @@ describe('SequenceWorkspacePage validation-first publish workflow', () => {
     vi.unstubAllGlobals()
   })
 
+  it('preserves the local metadata draft after a save conflict until explicit reload', async () => {
+    stubWorkspaceFetch()
+    const originalFetch = globalThis.fetch
+    let serverTitle = 'Protocol Leaf'
+    let revision = 0
+    let attempts = 0
+    let refreshed = 0
+    let finishSave: (() => void) | undefined
+    const delayedSave = new Promise<void>(resolve => { finishSave = resolve })
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        attempts++
+        revision++
+        if (attempts === 1) {
+          serverTitle = 'Changed in another window'
+          return new Response(JSON.stringify({ message: 'Workspace revision conflict' }), { status: 409, headers: { 'Content-Type': 'application/json' } })
+        }
+        serverTitle = 'Confirmed server title'
+        await delayedSave
+        return new Response(null, { status: 204 })
+      }
+      const response = await originalFetch(url, init)
+      if (url.endsWith('/workspace')) {
+        const payload = await response.json()
+        payload.workspaceRevision = revision
+        payload.placements[0].title = serverTitle
+        payload.placements[0].operation = 'New'
+        if (revision > 0) refreshed++
+        return { ok: true, json: async () => payload }
+      }
+      return response
+    }))
+    const { unmount } = renderSequenceWorkspacePage({ appId: 'app-1', seqNumber: '0001', onBack: vi.fn() })
+    try {
+      await waitForCondition(() => Array.from(document.querySelectorAll('.ectd-tree-node'))
+        .some(item => item.textContent?.includes('protocol.pdf')), 'document tree')
+      clickAnyByText('protocol.pdf')
+      await flushPromises()
+      act(() => setInputValue(getInputByLabel('叶节点标题'), 'My unsaved title'))
+      clickByText('保存叶节点元数据')
+      await waitForCondition(() => attempts === 1, 'conflicting save request')
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+      await waitForCondition(() => refreshed > 0, 'conflicting workspace refresh')
+      expect(getInputByLabel('叶节点标题').value).toBe('My unsaved title')
+      expect(document.body.textContent).toContain('保留了本地输入')
+      clickByText('重新载入服务器内容')
+      await flushPromises()
+      expect(getInputByLabel('叶节点标题').value).toBe('Changed in another window')
+      act(() => setInputValue(getInputByLabel('叶节点标题'), 'Retry title'))
+      clickByText('保存叶节点元数据')
+      await waitForCondition(() => attempts === 2, 'pending successful save')
+      expect(getInputByLabel('叶节点标题').disabled).toBe(true)
+      await act(async () => { finishSave!() })
+      await waitForCondition(() => attempts === 2 && getInputByLabel('叶节点标题').value === 'Confirmed server title', 'successful save refresh')
+      expect(getInputByLabel('叶节点标题').disabled).toBe(false)
+      expect(document.body.textContent).not.toContain('保留了本地输入')
+    } finally { unmount() }
+  })
+
   it('validates the sequence before opening the publish modal', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) }))
 

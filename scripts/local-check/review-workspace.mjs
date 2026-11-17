@@ -12,8 +12,8 @@ const frontend = resolve(root, 'frontend')
 const evidence = resolve(process.argv[2])
 assert.ok(evidence.startsWith(resolve(root, '.artifacts/local-check') + sep))
 await mkdir(evidence, { recursive: false })
-const files = ['src/pages/workspace/useWorkspaceDragDrop.test.tsx']
-const inputs = ['src/pages/workspace/useWorkspaceDragDrop.ts', 'src/pages/SequenceWorkspacePage.tsx', ...files]
+const files = ['src/pages/workspace/useWorkspaceDragDrop.test.tsx', 'src/pages/SequenceWorkspacePage.validation.test.tsx']
+const inputs = ['src/pages/workspace/useWorkspaceDragDrop.ts', 'src/pages/SequenceWorkspacePage.tsx', 'src/pages/LeafMetadataPanel.tsx', ...files]
 const hashes = {}
 for (const path of inputs) hashes[path] = createHash('sha256').update(await readFile(resolve(frontend, path))).digest('hex')
 let context

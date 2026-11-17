@@ -82,7 +82,7 @@ export const LeafMetadataPanel = ({
         <p className="text-xs text-gray-500 m-0">Edit the metadata that will be emitted on this document's backbone leaf.</p>
       </div>
 
-      <Form form={form} layout="vertical" requiredMark={false}>
+      <Form form={form} layout="vertical" requiredMark={false} disabled={isSaving}>
         <Form.Item name="title" label="叶节点标题">
           <Input maxLength={255} placeholder="可选标题" />
         </Form.Item>

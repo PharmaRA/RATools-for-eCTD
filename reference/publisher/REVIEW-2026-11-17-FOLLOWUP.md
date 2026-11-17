@@ -8,8 +8,8 @@
 | --- | --- | --- | --- | --- |
 | 1 | CR-01 | PublishJobService忽略完整性错误并登记成功；让报告、终态、下载一致 | 已提交 `6c18fb3` | 36/36；最终只读review PASS |
 | 2 | CR-02 | PublishOutputVerifier仅比较ZIP名称；补成员内容与双向集合检查 | 已提交 `f13054f` | 27/27，关联45/45含前27；最终review PASS |
-| 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 验证及只读review PASS | 5/5、tsc/lint退出0；本项独立提交 |
-| 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 待复现 | — |
+| 3 | CR-03 | 多文件拖入复用旧placements导致排序号重复 | 已提交 `891c25d` | 5/5、tsc/lint退出0；只读review PASS |
+| 4 | CR-04 | 文档元数据保存冲突后的刷新覆盖未保存输入 | 验证及最终只读review PASS | 30/30、tsc/lint退出0；本项独立提交 |
 | 5 | CR-05 | 捕获回收异常覆盖主异常并中断后续回收 | 待复现 | — |
 | 6 | CR-06 | 条件性：同摘要定稿目录成员损坏后仍被复用 | 待复现 | — |
 | 7 | DEV-01 | 独立验包和新增字典/组合的真实业务链路 | 待执行 | — |
@@ -58,3 +58,12 @@
 - 同命令使用`cr03-green-20261117`：**5/5、0失败/0跳过、退出0**；限定真实hook和jsdom，hashes/tests.json/summary.json保留。测试中的8+position模拟页面排序，页面真实公式由静态review确认，未宣称实际页面/API执行。
 - frontend目录执行`node --import ../scripts/remote-check/no-delete.mjs node_modules/typescript/bin/tsc --project tsconfig.app.json --noEmit --incremental false`及同守卫下ESLint检查三个改动文件，均退出0。
 - 最终只读review PASS，限单批次顺序；真实浏览器仍为DEV-01。备份为`backups/review-followup-20261117-085843/CR-03/`。
+
+## CR-04 保存冲突的编辑缓冲
+
+保存开始按application/sequence/placement保护当前编辑缓冲，失败后刷新服务器基线但保留输入并显示明确重载入口；成功保存/切换选中项正常回填。最终review发现等待保存时仍可改输入，已将当前提交表单及映射/排序输入在保存期间禁用，避免成功响应覆盖等待期间新编辑。
+
+- 首轮`cr04-red-20261117`29/30失败于不适当的等待文字，未算业务复现；`cr04-red2-20261117`29/30，真实页面本地标题被409后的服务器标题替换，取得有效红灯。
+- 最终命令`node ./scripts/local-check/review-workspace.mjs C:/Repositories/RATools-for-eCTD/.artifacts/local-check/cr04-final-20261117`：**30/30、0失败/0跳过、退出0**；含25个实际页面jsdom用例及5个hook用例。冲突保留、显式重载、再次保存、延迟期间禁用及完成后恢复均断言。
+- 同CR-03的TypeScript命令及ESLint检查SequenceWorkspacePage.tsx、其validation测试和LeafMetadataPanel.tsx，退出0。证据含源码hash；HTTP为模拟，非真实API/浏览器资格。
+- 最终只读review PASS，交付文件摘要与回执匹配；备份`backups/review-followup-20261117-085843/CR-04/`。

@@ -97,6 +97,9 @@ export const SequenceWorkspacePage = ({
   const [savingRevisionPlacementId, setSavingRevisionPlacementId] = useState<string | null>(null)
 
   const [metadataForm] = Form.useForm()
+  const protectedMetadataDraft = useRef<string | null>(null)
+  const [metadataSaveFailure, setMetadataSaveFailure] = useState<string | null>(null)
+  const [metadataReload, setMetadataReload] = useState(0)
   const revisedPrefix = Form.useWatch('fileNamePrefix', metadataForm)
   const revisedOperation = Form.useWatch('operation', metadataForm)
   const revisedLifecycleTargetPlacementId = Form.useWatch('lifecycleTargetPlacementId', metadataForm)
@@ -187,9 +190,16 @@ export const SequenceWorkspacePage = ({
 
   useEffect(() => {
     if (!selectedNode || selectedNode.nodeType !== 'document' || !selectedPlacement || !selectedDocument) {
+      protectedMetadataDraft.current = null
+      setMetadataSaveFailure(null)
       metadataForm.resetFields()
       return
     }
+
+    const draftKey = `${appId}/${seqNumber}/${selectedPlacement.id}`
+    if (protectedMetadataDraft.current === draftKey) return
+    protectedMetadataDraft.current = null
+    setMetadataSaveFailure(null)
 
     metadataForm.setFieldsValue({
       title: selectedPlacement.title || '',
@@ -199,7 +209,7 @@ export const SequenceWorkspacePage = ({
     })
     setMappingTarget(selectedPlacement.nodeInstanceId ?? undefined)
     setLeafSortOrder(selectedPlacement.sortOrder ?? 0)
-  }, [metadataForm, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement, selectedDocument])
+  }, [appId, seqNumber, metadataForm, metadataReload, selectedDocumentNameParts.prefix, selectedNode, selectedPlacement, selectedDocument])
 
   useEffect(() => {
     if (!selectedTreeKey) {
@@ -297,6 +307,8 @@ export const SequenceWorkspacePage = ({
     const values = await metadataForm.validateFields()
     const normalizedPrefix = String(values.fileNamePrefix || '').trim()
     const operation = String(values.operation || selectedPlacement.operation || 'New')
+    const draftKey = `${appId}/${seqNumber}/${selectedPlacement.id}`
+    protectedMetadataDraft.current = draftKey
 
     setSavingRevisionPlacementId(selectedPlacement.id)
     setLoading(true)
@@ -312,9 +324,14 @@ export const SequenceWorkspacePage = ({
           ? null
           : values.lifecycleTargetPlacementId || null,
       })
+      if (protectedMetadataDraft.current === draftKey) {
+        protectedMetadataDraft.current = null
+        setMetadataSaveFailure(null)
+      }
       await refreshWorkspaceData()
       message.success('文件元数据修订已保存。')
     } catch (error) {
+      if (protectedMetadataDraft.current === draftKey) setMetadataSaveFailure(draftKey)
       message.error(`保存元数据修订失败：${getErrorMessage(error)}`)
       await refreshWorkspaceData()
     } finally {
@@ -493,13 +510,22 @@ export const SequenceWorkspacePage = ({
             <p>当前上下文：{nodeContext(nodeTree, selectedPlacement.nodeInstanceId) || '待映射'}</p>
             <p className="text-xs text-gray-500">历史目标仅限相同业务节点。将旧文件映射到具体节点后可设置生命周期。</p>
             <Space wrap>
-              <Select aria-label="文件目标业务节点" style={{ minWidth: 300 }} value={mappingTarget} onChange={setMappingTarget} options={nodeTree.nodes
+              <Select disabled={savingRevisionPlacementId === selectedPlacement.id} aria-label="文件目标业务节点" style={{ minWidth: 300 }} value={mappingTarget} onChange={setMappingTarget} options={nodeTree.nodes
                 .filter(node => node.allowsLeaves && node.metadataStatus === 'Complete')
                 .map(node => ({ value: node.nodeInstanceId, label: `${node.ctdSection.toUpperCase()} ${nodeContext(nodeTree, node.nodeInstanceId)}` }))} />
-              <InputNumber aria-label="文件排序位置" min={0} precision={0} value={leafSortOrder} onChange={value => setLeafSortOrder(value ?? 0)} />
+              <InputNumber disabled={savingRevisionPlacementId === selectedPlacement.id} aria-label="文件排序位置" min={0} precision={0} value={leafSortOrder} onChange={value => setLeafSortOrder(value ?? 0)} />
               <Button disabled={!mappingTarget || loading} onClick={() => void handleMovePlacement(selectedPlacement.id, selectedPlacement.ctdSection, `node:${mappingTarget}`, leafSortOrder)}>保存映射与排序</Button>
             </Space>
           </Card>}
+          {selectedPlacement && metadataSaveFailure === `${appId}/${seqNumber}/${selectedPlacement.id}` && (
+            <Alert type="warning" showIcon title="保存失败，已保留了本地输入"
+              description="工作区已刷新，请核对后重新保存；重新载入会放弃当前文档的本地输入。"
+              action={<Button disabled={loading} onClick={() => {
+                protectedMetadataDraft.current = null
+                setMetadataSaveFailure(null)
+                setMetadataReload(value => value + 1)
+              }}>重新载入服务器内容</Button>} />
+          )}
           <WorkspaceSelectionDetails
             nodeContexts={nodeTree ? Object.fromEntries(nodeTree.nodes.map(node => [node.nodeInstanceId, nodeContext(nodeTree, node.nodeInstanceId)])) : undefined}
             selectedNode={selectedNode}
