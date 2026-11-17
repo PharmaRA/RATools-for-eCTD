@@ -1,14 +1,16 @@
 // Real product API and production UI; synthetic one-page PDF, Development only.
 import assert from 'node:assert/strict'
 import { randomBytes, randomUUID, createHash } from 'node:crypto'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, mkdtemp } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { startProcess, fetchDeadline as fetch } from './browser-process.mjs'
 
 const root = resolve('..'), results = resolve('../results'), backend = resolve('../backend')
 const sdk = '/data/home/ratools-qa-76555a3-20261107/dotnet-8.0.423'
-const workspace = `${root}/browser-workspace`, profile = `${root}/browser-profile-${randomUUID().slice(0, 8)}`
-for (const path of [workspace, profile, `${profile}/tmp`, `${profile}/downloads`]) await mkdir(path)
+// Chromium's singleton socket must fit Linux's Unix-domain socket path limit.
+// Keep this exclusively created profile on /data and retain its exact path in evidence.
+const workspace = `${root}/browser-workspace`, profile = await mkdtemp('/data/home/ratools-browser-')
+for (const path of [workspace, `${profile}/tmp`, `${profile}/downloads`]) await mkdir(path)
 const apiKey = randomBytes(32).toString('hex') // Task-only auth, never persisted in evidence.
 const postgres = process.env.QA07_POSTGRES === 'true'
 const env = { ...process.env, DOTNET_ROOT: sdk, DOTNET_EnableDiagnostics: '0', DOTNET_NOLOGO: '1', DOTNET_CLI_TELEMETRY_OPTOUT: '1',

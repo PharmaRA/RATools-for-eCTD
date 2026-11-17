@@ -28,6 +28,10 @@
 
 ## 远程空间清理（已完成）与浏览器验证恢复
 
+**Chromium短路径修复**：原profile位于深层任务目录，Unix socket超长。改为在`/data/home/ratools-browser-`前缀下用mkdtemp独占创建短profile，日志记录完整保留路径，无删除。统一命令最终`20261117T154702-7afa3f9230404239889860397546564d`、源码包SHA256 `ee30723fce8569ec60060d45ca3d628a25d68ca5eba5af11ce288e837054b034`：CLI/远端exit0、category=passed，13个步骤均exit0，真实API/InMemory与Chromium共8项业务检查通过、errors=[]。原生ZIP下载69920字节，SHA256 `4f7e06865d554e1bc1a132049b868395aae638573ee7da32a91ca4c6bd6228fa`与快照清单一致，开发快照/拒绝正式交付/新草稿与旧快照复读均通过；独立ZIP/PDF检查3/3。最终只读review PASS，无阻断项。
+
+DEV-01下一原子项：复用当前真实Linux API/浏览器宿主，补外部ZIP目标/历史根选择、显式profile、真实findings第二页与定位、源文件和完整报告原生下载字节核对、独立停用worker实例的Pending取消；保留所有输入及下载。区域表单新增字典/组合的浏览器保存复读仍须独立覆盖，不能将当前8项记作DEV-01全部完成。
+
 **浏览器区域夹具更新**：使用schema返回的精确snapshot，显式填写九位公司ID、提交ID、已归档官方代码及稳定联系人/电话/邮箱ID，经混合元数据接口保存后逐字段和再次GET核对。首候选`20261117T153425-018eb33431ab40dc8eb8c3c7e8ba89ea`因期望空可选字段在响应保留而失败；依据Domain的WhenWritingNull约定去掉夹具中的空字段。最终`20261117T153856-eaa39d57abbd4721bce2b895b7f4d3cf`、源码包SHA256 `68ca419c8bcf602908de5ba0da6b2eca2d6b2b36e69c682b44a3f3a07c4f9b95`：前置构建/探测exit0，实际缺失字段/保存复读/PDF装配/writer ZIP与独立校验4项通过。整体仍exit1/browser-test-failed，Chromium明确报`Socket path too long`，尚未开始UI步骤；作为下一项修复。区域夹具最终只读review PASS，无阻断项。
 
 **Linux后端响应文件路径修复**：预算修复`b902f55`后的任务`20261117T151436-ce3e98c58a354f12a6cf2d3b0da8feb4`在应用层编译失败，CS2001显示嵌入资源PDF/XLSX的含空格文件名被拆分。`backend-build.py`逐参数使用`subprocess.list2cmdline`写入响应文件。相同统一命令再次执行，证据`20261117T151914-c6184e1bb050439f8604e72ddb893611`、源码包SHA256 `2d40d6e0d4a34ced9ca6f1ab5826a4777c28382715bda647a4f5f9784deb93cd`：前端全部exit0，后端四层显式csc编译exit0；资源/回收/进程探测exit0。该结论不等同MSBuild或完整测试资格。整体仍exit1/browser-test-failed，实际原因是浏览器旧夹具将缺失字段期望为`ApplicantContactName`，现接口返回`us.applicantIdentifier`；作为下一项修复。参数修复及最终Linux编译证据只读review PASS，无阻断项。
