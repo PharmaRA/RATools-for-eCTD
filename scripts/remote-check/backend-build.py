@@ -133,7 +133,9 @@ for path, tree in zip(projects, trees):
                 shutil.copyfile(file, dest)
     arguments += [str(using), *map(str, sources)]
     response = out / (name + '.rsp')
-    response.write_text('\n'.join(arguments))
+    # Roslyn response files tokenize whitespace even when each argument has its own line.
+    # Use command-line quoting for embedded resources and other paths containing spaces.
+    response.write_text('\n'.join(subprocess.list2cmdline([argument]) for argument in arguments))
     command = [str(sdk / 'dotnet'), str(sdk / f'sdk/{version}/Roslyn/bincore/csc.dll'), '@' + str(response)]
     with (results / (name + '.compile.log')).open('w') as log:
         result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
