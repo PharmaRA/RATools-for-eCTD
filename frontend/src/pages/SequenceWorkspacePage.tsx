@@ -29,7 +29,6 @@ import {
 } from './workspace/validationLocationResolver'
 import { WorkspaceSelectionDetails } from './workspace/WorkspaceSelectionDetails'
 import { WorkspaceTree } from './workspace/WorkspaceTree'
-import { InheritNodeStructure, NodePropertiesPanel } from './workspace/NodePropertiesPanel'
 import { nodeContext, treeAncestorKeys } from './workspace/nodeTree'
 import type { CtdNodeTreeDto } from '../api/generated'
 import { buildProcessingTargets } from './workspace/pdfProcessingTargets'
@@ -49,6 +48,10 @@ const ValidationSummaryPanel = lazy(() =>
   import('./workspace/ValidationSummaryPanel').then(module => ({ default: module.ValidationSummaryPanel })))
 const FinalizationPanel = lazy(() =>
   import('./workspace/FinalizationPanel').then(module => ({ default: module.FinalizationPanel })))
+const NodePropertiesPanel = lazy(() =>
+  import('./workspace/NodePropertiesPanel').then(module => ({ default: module.NodePropertiesPanel })))
+const InheritNodeStructure = lazy(() =>
+  import('./workspace/NodePropertiesPanel').then(module => ({ default: module.InheritNodeStructure })))
 
 const AssemblyPanelFallback = () => <Card size="small" title="批量装配（CSV 预览）"><span role="status">正在加载装配面板…</span></Card>
 
@@ -447,7 +450,9 @@ export const SequenceWorkspacePage = ({
       {documentsError && <Alert type="error" showIcon title="加载工作区文档失败" description={documentsError} />}
       {finalization?.isEditable !== false && <>
       <Space><Button disabled={loading} onClick={() => void refreshWorkspaceData()}>刷新工作区</Button>
-        {nodeTree && <InheritNodeStructure tree={nodeTree} disabled={loading} onChanged={handleNodesChanged} />}
+        {nodeTree && <Suspense fallback={<span role="status">正在加载节点操作…</span>}>
+          <InheritNodeStructure tree={nodeTree} disabled={loading} onChanged={handleNodesChanged} />
+        </Suspense>}
       </Space>
       {nodeTree?.diagnostics.length ? <Alert type="warning" showIcon title="导入或旧数据诊断" description={
         [...new Set(nodeTree.diagnostics.map(issue => issue.message))].join('；')
@@ -504,8 +509,9 @@ export const SequenceWorkspacePage = ({
         </Col>
 
         <Col span={12}>
-          {nodeTree && selectedNode?.nodeType === 'section' && selectedNode.definitionKey && <NodePropertiesPanel tree={nodeTree}
-            selected={selectedNode} disabled={loading || workspaceRevision === undefined} onChanged={handleNodesChanged} />}
+          {nodeTree && selectedNode?.nodeType === 'section' && selectedNode.definitionKey && <Suspense fallback={<span role="status">正在加载节点编辑…</span>}>
+            <NodePropertiesPanel tree={nodeTree} selected={selectedNode} disabled={loading || workspaceRevision === undefined} onChanged={handleNodesChanged} />
+          </Suspense>}
           {nodeTree && selectedPlacement && !selectedPlacement.ctdSection.startsWith('m1') && <Card title="文件的业务节点与排序" size="small" className="mb-3">
             <p>当前上下文：{nodeContext(nodeTree, selectedPlacement.nodeInstanceId) || '待映射'}</p>
             <p className="text-xs text-gray-500">历史目标仅限相同业务节点。将旧文件映射到具体节点后可设置生命周期。</p>

@@ -26,7 +26,15 @@
 
 `continue-20261117/fda1204-red`40项中27通过、13因缺规则预期失败；green106/106后review发现8个坏ZIP缺合法index导致异常类型断言可能假阳性，已补合法index并断言ZIP-PATHS、UNSAFE_ZIP_ENTRY及实际路径。最终`fda1204-final`**106/106、0失败/0跳过、构建和测试退出0**；同目录summary保存实际过滤器、构建/源码/测试摘要，源码清单摘要`f5027972b20a34327634a0a925e0c5e4aa26b2fe9899d09dd01c13593f64ab7b`。来源/原件/旧catalog/非US测试也覆盖新1204。目录脚本73条通过，canonical摘要`2fa882d773fcf37cab12eb48e7c8d29beeb42f6123af7936497a7268dba33bc3`；最终review PASS，六交付输入匹配最终回执。当前29/147已实施、118条完整覆盖待评估。
 
-## 远程空间清理（等待跨盘移除源副本授权）
+## 远程空间清理（已完成）与浏览器验证恢复
+
+**已完成**：用户明确批准此次限定例外后，重新逐文件核对源/目标摘要、文件集合、链接/挂载与活动进程，随后仅移除上述两个/tmp源副本。`recycle-completion.json`记录CLI/远端脚本退出0、complete=true，释放1,132,421,120字节，/tmp可用从32,768增至1,132,453,888字节；65825个文件完整副本仍保留在/data回收目录。未清理其他任务、未销毁/关机实例。后续远程构建统一使用`-RemoteRoot /data/home/ratools-remote`，不在回收目录执行。
+
+容量恢复后实际命令`pwsh -NoProfile -File ./scripts/remote-check.ps1 -Task test -Target linux -Scope backend-browser -RemoteRoot /data/home/ratools-remote -WaitMinutes 1`，证据`20261117T145043-4bdfac4e2df848099e6e21418347b40e`。任务exit1、category=build-failed，结果已完整下载；依赖、启动/取消辅助检查、TS及Vite均exit0，budget.log明确工作区chunk18.1KiB超过18KiB，尚未到后端/浏览器。
+
+针对实际预算失败，将已有NodePropertiesPanel/InheritNodeStructure按页面既有lazy/Suspense方式加载，参数和禁用条件保留，预算不提高。本机`workspace-budget-tests-20261117`30/30，TypeScript/限定ESLint均exit0；`workspace-budget-build-20261117`实际新产物32项预算通过，工作区gzip14311B；frontend-inputs.json绑定实际构建源码。最终只读review PASS，无阻断项；结论仅覆盖此次预算修复，远程真实浏览器流程仍需继续验证。
+
+以下为授权及复制过程的历史记录；当前完成状态以上述回执为准。
 
 用户已要求清理远程Linux空间。只读盘点证据`.artifacts/remote-check/cleanup-20261117/`：/tmp总3.89GiB仅余32KiB，RATools任务约3.74GiB；/data剩15.1GiB。9个已知/tmp任务无活动进程引用。选定`20261107T141035-d23dcb21495e4449a8e8f07d0c83fb9d`与`20261107T140749-8ca3361ca680457398efb91f2e9893a1`两目录，均无符号/硬链接或特殊文件，共约1.05GiB。正在禁删守卫下复制到`/data/home/ratools-recycle/20261117-tmp-space-first-two/`并逐文件核验；原路径尚未移除。因A2硬闸，已单独询问是否允许跨盘回收时核验后移除这两个源副本；未答复不得执行该步骤。
 
