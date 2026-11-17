@@ -140,10 +140,15 @@
       "correctiveAction": "If the operation attribute should not have been \"New,\" submit two new leaves. The first leaf should delete the leaf submitted without the operation attribute. The second should associate the file referenced by the first leaf to the leaf you had originally intended to modify.",
       "guidanceSource": "DTDs; ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": [
+          "FDA47-1034"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaLeafOperationRules.cs",
+          "tests/RATools.Tests/PackageValidation/FdaLeafOperationRulesTests.cs"
+        ],
+        "note": "Explicit operation presence in captured target ICH and US leaf elements; missing, blank or defaulted values fail. Unknown explicit values and incomplete parsing remain NotEvaluated; DTD and lifecycle validity are separate. Selected regression and review tracked separately."
       }
     },
     {

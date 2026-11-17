@@ -1,5 +1,15 @@
 # 2026-11-17 审阅后续执行账本
 
+最新续做：FDA1034显式operation检查已完成，85/85定向回归及最终只读review PASS，当前28/147已实施、119条完整覆盖待评估，内部72条。远程浏览器原job日志已恢复，失败根因为磁盘空间耗尽，需容量恢复后再继续远程验收。
+
+## 续做 FDA1034
+
+检查目标ICH/US leaf的实际无命名空间operation：缺失/空白/默认来源失败，未知显式值未评估，不自动补new；归档原件/provenance和选择日期必须匹配，整体XML未完成/共享finding预算保留未评估，已知失败优先。file引擎同步v5。
+
+证据根`.artifacts/local-check/continue-20261117/`：`fda1034-red`18项中2通过、16因缺规则预期失败；初green82/82。新增区域leaf、低预算和内部DTD三例，首final84/85为测试误认为允许内部DTD，修正为XML-OFFLINE拒绝且1034未评估，没有放宽产品。最终`fda1034-final2`**85/85、0失败/0跳过、构建和测试退出0**；完整命令与源码摘要在summary.json，最终review核对六个交付输入一致。实际命令为`pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence <候选绝对路径> -QualifiedGuard C:/Repositories/RATools-for-eCTD/.artifacts/local-check/service-retention-20261110/qualification-2 -Filter 'FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~PackageValidationServiceTests|FullyQualifiedName~FdaIdentityRulesTests'`。
+
+`python -B scripts/tests/test_package_rule_catalog.py`退出0、72条，canonical摘要`6317237fb2a521af3058c95cb997e616a49c2fa3c8caeaf0470d357cae5c4449`。范围为Windows选定回归，不是完整官方/外部/Formal资格。内部DTD用例证明既有拒绝门禁，不宣称默认属性已动态验证。
+
 基线 `68826ec`。用户授权先保存审阅/计划，再按顺序实现，每项验证和只读review通过后独立commit。审查是核心链路限定静态阅读，不代表全仓审计或测试通过。
 
 本地文档：[审阅报告](../../docs/reviews/2026-11-17-code-review.md)、[执行计划](../../docs/plans/review-followup-2026-11-17.md)、[文档入口](../../docs/README.md)。本文件受版本管理，以下表格保留可携带任务定义和结果；docs仍按原策略仅本地保存。
@@ -88,6 +98,8 @@ Reader失败回收的异常写入主异常Data[CaptureRetentionFailure]，保留
 - 源码清单摘要`2ad722f16b3b79bab0868acdcf8ab3379576882fb827d7f8466c05f63c3e015c`；两交付输入匹配。静态及最终证据review PASS。范围为Windows实际文件/回收，非敌对并发替换保证或跨平台资格。
 
 ## DEV-01 前置状态
+
+续做已恢复原job日志：`recovered-job-log.json`，jobs logs读取退出0，原job仍exited1。明确错误为`OSError: [Errno 28] No space left on device`，manager写回执也失败；再次Resume取回dependencies.log、manager-launch.json、summary.json、worker-error.log均为零字节。故本次为远程容量阻断，不能判产品测试失败；停止远程重跑且不自动清理远程历史。继续独立DEV-02，下一原子任务为FDA1034：检查显式operation缺失，区分DTD默认属性与源属性，保留选择日期、归档授权和解析覆盖边界。
 
 三项旧发布集成失败在恢复真实依赖后逐层定位：导入夹具已有regional记录但builder未接入同一store/snapshot；合成XML公司编号只有6位，显式有效副本需9位及官方字典值，并同步index引用和index-md5；独立构造typed revision须非零且匹配workspace revision。随后真实发布返回4.7规则集缺失，已从Application DI确认生产RegionalEctdRuleSetProvider也仅注册4.5，属于实际产品路由缺口，不是单纯夹具问题。修复保持项目规则来源标记，不增加官方147条已实施计数，也不开放Formal。
 
