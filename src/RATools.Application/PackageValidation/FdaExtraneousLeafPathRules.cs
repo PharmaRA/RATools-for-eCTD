@@ -9,7 +9,7 @@ internal static class FdaExtraneousLeafPathRules
     {
         var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
         var skippedRegional = xml is not null && HasSkippedRegional(target, xml, cancellationToken);
-        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is "FDA47-1051" or "FDA47-1068" or "FDA47-1136"))
+        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170"))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var authorized = rule.AuthorityRuleId == rule.InternalRuleId[6..] && rule.RuleVersion == "4.7.1" &&
@@ -30,8 +30,9 @@ internal static class FdaExtraneousLeafPathRules
                 !xml.Checks.Any(check => check.RuleId == "XML-OFFLINE" && check.Status == CheckStatus.Pass) ||
                 !xml.Checks.Any(check => check.RuleId == "XML-LIMITS" && check.Status == CheckStatus.Pass);
             var findings = new List<ValidationFinding>();
-            var missingContent = rule.InternalRuleId == "FDA47-1136";
-            var hrefRule = rule.InternalRuleId != "FDA47-1068";
+            var required = rule.InternalRuleId is "FDA47-1136" or "FDA47-1170";
+            var hrefRule = rule.InternalRuleId is "FDA47-1051" or "FDA47-1136";
+            var fieldName = hrefRule ? "xlink:href" : "modified-file";
             foreach (var document in xml?.Backbones ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -44,19 +45,20 @@ internal static class FdaExtraneousLeafPathRules
                     var operation = element.Attributes.GetValueOrDefault("operation");
                     if (operation is null || operation.IsDefault || operation.Value is not ("new" or "append" or "replace" or "delete"))
                     { incomplete = true; continue; }
-                    if (missingContent ? operation.Value == "delete" : operation.Value != (hrefRule ? "delete" : "new")) continue;
+                    var needsPath = hrefRule ? operation.Value != "delete" : operation.Value != "new";
+                    if (needsPath != required) continue;
                     var attribute = hrefRule ? element.Attributes.Values.FirstOrDefault(value =>
                         value.LocalName == "href" && value.NamespaceUri == "http://www.w3c.org/1999/xlink") : element.Attributes.GetValueOrDefault("modified-file");
-                    if (missingContent ? !string.IsNullOrWhiteSpace(attribute?.Value) : string.IsNullOrEmpty(attribute?.Value)) continue;
+                    if (required ? !string.IsNullOrWhiteSpace(attribute?.Value) : string.IsNullOrEmpty(attribute?.Value)) continue;
                     if (remaining <= 0) { incomplete = true; continue; }
                     remaining--;
-                    var location = leaf.Location with { FieldPath = "@" + (attribute?.Name ?? "xlink:href"),
+                    var location = leaf.Location with { FieldPath = "@" + (attribute?.Name ?? fieldName),
                         Line = attribute?.Line is > 0 ? attribute.Line : leaf.Location.Line,
                         Column = attribute?.Column is > 0 ? attribute.Column : leaf.Location.Column,
                         Files = [new(target.SourceId, document.LogicalPath)] };
                     findings.Add(new(rule.InternalRuleId, CheckStatus.Fail, rule.Severity, rule.InternalRuleId,
-                        missingContent ? "A content leaf does not supply its required file path." : hrefRule ? "A delete leaf supplies an extraneous content path." : "A new leaf supplies an extraneous modified-file path.",
-                        location, Actual: attribute?.Value, RecommendedAction: missingContent ? $"Review {rule.SourceId}, {rule.SourceSection}; provide the content file path." : $"Review {rule.SourceId}, {rule.SourceSection}; omit the path that this operation does not use."));
+                        required ? $"The {operation.Value} leaf requires a {fieldName} path." : $"The {operation.Value} leaf supplies an extraneous {fieldName} path.",
+                        location, Actual: attribute?.Value, RecommendedAction: required ? $"Provide the {fieldName} path specified by {rule.SourceSection}." : $"Omit the extraneous {fieldName} path identified by {rule.SourceSection}."));
                 }
             }
             yield return new(rule.InternalRuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,

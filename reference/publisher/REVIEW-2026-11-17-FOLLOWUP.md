@@ -1,6 +1,14 @@
 # 2026-11-17 审阅后续执行账本
 
-当前进度为 FDA 4.7 共 147 条中 35 条已实施，112 条完整覆盖待评估。内部目录有 79 条。FDA 1153 已完成。
+当前进度为 FDA 4.7 共 147 条中 36 条已实施，111 条完整覆盖待评估。内部目录有 80 条。FDA 1153 提交为 `5e43dc2`，其后完成 FDA 1170。
+
+**FDA 1170 缺少 modified-file 路径**。固定 FDA 4.7 第 11 页，Medium，2008-03-10 生效。目标序列叶显式执行 replace、append 或 delete 时须提供非空白的无命名空间 `modified-file`。new 允许省略。若路径有值且历史骨架中找不到对应叶，1170 通过，1153 报告缺失。文件引擎及服务绑定 v12。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1170-red` 共 18 项，2 项旧快照及 ICH 对照通过，16 项因缺少规则结果失败。`fda1170-final` 构建和测试均退出 0，239/239 通过，0 跳过。子代理只读审查通过。构建输入清单 SHA-256 为 `69028bba19849c8ac5ebb0225d2052e9c491a5f1ac93182da845bd545207b83b`。目录校验退出 0，80 条，摘要 `eb901f53fb0b7f91dcbd7134124fafd55b43c2803b711678cee48fec8d24acd6`。
+
+```powershell
+pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence .artifacts/local-check/continue-20261118/fda1170-final -QualifiedGuard .artifacts/local-check/continue-20261118/path-qualification -Filter '(FullyQualifiedName~FdaRequiredModifiedPathTests|FullyQualifiedName~FdaModifiedLeafTargetTests|FullyQualifiedName~FdaMissingLeafPathRulesTests|FullyQualifiedName~FdaExtraneousLeafPathRulesTests|FullyQualifiedName~FdaRegionalFilePresenceTests|FullyQualifiedName~FdaEmptyDirectoryRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~PackageFileInspectorTests|FullyQualifiedName~PackageValidationServiceTests)&FullyQualifiedName!~PhysicalDefectsAreLocatedIndependentlyOfWriterModels'
+```
 
 **FDA 1153 查找 modified-file 所指的叶**。固定 FDA 4.7 第 10 页，Medium，2008-03-10 生效。历史序列未选或引用的骨架未读完时返回 NotEvaluated。在所选序列中确认缺少骨架文件，或完整骨架中查不到所引叶的 eCTD `ID` 时报告 Fail。重复 ID 留待评估。已找到唯一目标叶时通过查找检查。查找结果只适用于选定的输入字节，诊断定位到发起引用的目标序列叶和 `@modified-file`。
 

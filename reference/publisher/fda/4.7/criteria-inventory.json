@@ -388,10 +388,10 @@
       "correctiveAction": "Resubmit the missing file path in a later submission referencing the original document using the operation attribute of \"Replace.\"",
       "guidanceSource": "ICH Q&A 36 #4; ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1170"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaExtraneousLeafPathRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredModifiedPathTests.cs"],
+        "note": "Explicit replace, append and delete target leaves require a nonblank modified-file attribute."
       }
     },
     {

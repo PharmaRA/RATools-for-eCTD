@@ -141,6 +141,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             leaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), href);
             leaf.SetAttributeValue("modified-file", modified);
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
+            if (variant == "modified-namespace") leaf.SetAttributeValue(XName.Get("modified-file", "urn:unrelated"), "index.xml#regional");
             if (variant == "alias") leaf.SetAttributeValue(XNamespace.Xmlns + "link", "http://www.w3c.org/1999/xlink");
             if (variant == "skipped-regional-known-failure")
                 leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
@@ -173,6 +174,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-duplicate") previousLeaf.AddAfterSelf(new XElement(previousLeaf));
                 if (variant == "history-1153-nonleaf") previousLeaf.Parent!.SetAttributeValue("ID", "section");
                 if (variant == "history-1153-xml-id") previousLeaf.SetAttributeValue(XNamespace.Xml + "id", "alias");
+                if (variant == "history-1170") previousLeaf.SetAttributeValue("operation", "replace");
                 previousXml.Save(previousIndex);
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
@@ -188,7 +190,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var catalog = context.Catalog;
                 context = new(new ValidationRuleCatalog(catalog.Version, catalog.Digest, catalog.Sources.Values, catalog.Profiles.Values,
-                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1153"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
+                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1153" or "FDA47-1170"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
             }
             var limits = new PackageReadLimits { MaxBackbones = variant is "unread" or "known-failure-unread" ? 1 : 100, MaxXmlFindings = variant == "budget" ? 2 : 10_000 };
             await using var capture = await new PackageInputReader(Path.Combine(root, "validation/captures"))
