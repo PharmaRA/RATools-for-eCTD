@@ -91,7 +91,8 @@ public sealed class ValidationReport
             supplied.TryGetValue(rule.InternalRuleId, out var check);
             var checkStatus = check?.Status ?? CheckStatus.NotEvaluated;
             var reason = check?.Reason ?? "The selected rule was not executed.";
-            if (checkStatus == CheckStatus.NotApplicable && rule.Applicability == RuleApplicability.Always)
+            var precedesEffectiveDate = binding.SelectionDate < rule.EffectiveFrom;
+            if (checkStatus == CheckStatus.NotApplicable && rule.Applicability == RuleApplicability.Always && !precedesEffectiveDate)
                 throw new ArgumentException($"Rule '{rule.InternalRuleId}' is always applicable in its selected profile.", nameof(results));
             if (check?.ManualEvidence is { } manual)
             {

@@ -1,6 +1,12 @@
 # 2026-11-17 审阅后续执行账本
 
-当前进度为 FDA 4.7 共 147 条中 36 条已实施，111 条完整覆盖待评估。内部目录有 80 条。FDA 1153 提交为 `5e43dc2`，其后完成 FDA 1170。
+当前 FDA 4.7 共 147 条，36 条已实施、1 条部分实施、110 条待评估。仍有 111 条待完整覆盖。内部目录有 81 条。FDA 1170 的提交为 `8219179`。
+
+**FDA 1238 文件大小（Partial）。** 固定 4.7 第 12 页规定 400 MB、Low、2008-03-10 生效。检查使用目标序列清单中的解压字节数。大于 419,430,400 B 且扩展名和文件头均匹配 PDF 时报告可定位的 Fail。400,000,001 至 419,430,400 B 的换算边界、其他大文件及数据集保留 NotEvaluated。组件通过时，报告按 Partial 转为 NotEvaluated 并阻止就绪。已知失败保留。补充来源为 FDA《Study Data Technical Conformance Guide》October 2026 第 20 页 §3.1.2，讨论超过 5 GB 的数据集拆分及未拆分版本。归档文件 SHA-256 `3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689`。数据集门槛尚待资格验证。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1238-red` 5 项中 4 项因缺少规则结果失败。只读初审发现生效日前无法建立报告，`fda1238-report-red` 3 项中 2 项因 FDA 1034 和 1298 抛错。当前目录为 14 条受日期限制的 Always 规则声明生效日，交付报告沿用检查日期。生效日当天错误的 NotApplicable 仍被拒绝。文件引擎及服务绑定 v13。
+
+本机以 `pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1` 运行，`-Evidence .artifacts/local-check/continue-20261118/fda1238-final2`，`-QualifiedGuard .artifacts/local-check/continue-20261118/path-qualification`，完整 `-Filter` 见该证据目录的 `summary.json`。最终 **314/314，0 跳过，构建与测试退出 0**，包括 20 项 1238 用例。源码清单摘要 `cd0b496feb4fee083e8df10327bf17cdb4cd9d98eb42f35fdad8f6b30404e91d`。`python -B scripts/tests/test_package_rule_catalog.py` 退出 0，目录摘要 `d0e6549e1d731eb77405d0b33ae533919c1679e6e43c686f36a49354bfb33479`。子代理复审 PASS。
 
 **FDA 1170 缺少 modified-file 路径**。固定 FDA 4.7 第 11 页，Medium，2008-03-10 生效。目标序列叶显式执行 replace、append 或 delete 时须提供非空白的无命名空间 `modified-file`。new 允许省略。若路径有值且历史骨架中找不到对应叶，1170 通过，1153 报告缺失。文件引擎及服务绑定 v12。
 

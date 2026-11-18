@@ -23,7 +23,8 @@ public sealed class ValidationRuleDescriptor
         string title, string category, string ruleVersion, IEnumerable<string> profileSnapshotIds, string applicableScope,
         RuleApplicability applicability, ValidationSeverity severity, bool requiredForReadiness, bool allowsManualClosure,
         ImplementationStatus implementationStatus, string implementationNote, IEnumerable<string> positiveFixtures,
-        IEnumerable<string> negativeFixtures, IEnumerable<string> componentEvidence, IEnumerable<string> externalComparisonEvidence)
+        IEnumerable<string> negativeFixtures, IEnumerable<string> componentEvidence, IEnumerable<string> externalComparisonEvidence,
+        DateOnly? effectiveFrom = null)
     {
         foreach (var value in new[] { internalRuleId, sourceId, sourceSection, title, category, ruleVersion, applicableScope, implementationNote })
             ArgumentException.ThrowIfNullOrWhiteSpace(value);
@@ -41,6 +42,7 @@ public sealed class ValidationRuleDescriptor
         if (ProfileSnapshotIds.Count == 0) throw new ArgumentException("A rule requires an explicit profile scope.", nameof(profileSnapshotIds));
         ApplicableScope = applicableScope;
         Applicability = applicability;
+        EffectiveFrom = effectiveFrom;
         Severity = severity;
         RequiredForReadiness = requiredForReadiness;
         AllowsManualClosure = allowsManualClosure;
@@ -66,6 +68,7 @@ public sealed class ValidationRuleDescriptor
     public IReadOnlyList<string> ProfileSnapshotIds { get; }
     public string ApplicableScope { get; }
     public RuleApplicability Applicability { get; }
+    public DateOnly? EffectiveFrom { get; }
     public ValidationSeverity Severity { get; }
     public bool RequiredForReadiness { get; }
     public bool AllowsManualClosure { get; }

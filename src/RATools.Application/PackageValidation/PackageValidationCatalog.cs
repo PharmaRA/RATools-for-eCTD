@@ -50,7 +50,7 @@ public static class PackageValidationCatalog
                 rule.SourceId, rule.SourceSection, rule.Title, rule.Category, rule.RuleVersion, rule.ProfileSnapshotIds,
                 rule.ApplicableScope, rule.Applicability, rule.Severity, rule.RequiredForReadiness, rule.AllowsManualClosure,
                 rule.ImplementationStatus, rule.ImplementationNote, rule.PositiveFixtures, rule.NegativeFixtures,
-                rule.ComponentEvidence, rule.ExternalComparisonEvidence)));
+                rule.ComponentEvidence, rule.ExternalComparisonEvidence, rule.EffectiveFrom)));
     }
 
     public static string SerializeReport(ValidationReport report) => JsonSerializer.Serialize(report, JsonOptions);
@@ -67,7 +67,8 @@ public static class PackageValidationCatalog
     {
         if (type.Type == typeof(CatalogFile) || type.Type == typeof(RuleFile) ||
             type.Type == typeof(ValidationRuleSource) || type.Type == typeof(ValidationProfileScope))
-            foreach (var property in type.Properties) property.IsRequired = true;
+            foreach (var property in type.Properties)
+                property.IsRequired = type.Type != typeof(RuleFile) || property.Name != "effectiveFrom";
     }
 
     private static ValidationRuleCatalog LoadEmbedded()
@@ -84,5 +85,5 @@ public static class PackageValidationCatalog
         string Title, string Category, string RuleVersion, string[] ProfileSnapshotIds, string ApplicableScope,
         RuleApplicability Applicability, ValidationSeverity Severity, bool RequiredForReadiness, bool AllowsManualClosure,
         ImplementationStatus ImplementationStatus, string ImplementationNote, string[] PositiveFixtures,
-        string[] NegativeFixtures, string[] ComponentEvidence, string[] ExternalComparisonEvidence);
+        string[] NegativeFixtures, string[] ComponentEvidence, string[] ExternalComparisonEvidence, DateOnly? EffectiveFrom = null);
 }

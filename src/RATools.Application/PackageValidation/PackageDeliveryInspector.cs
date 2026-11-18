@@ -6,7 +6,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 {
     public const string DeliveryEngineVersion = "package-delivery-v4";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
-    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v12;package-pdf-validator-v2;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v13;package-pdf-validator-v2;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
@@ -23,7 +23,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
             var regional = new PackageRegionalInspector(context).Inspect(input.Packages, lifecycle, linked.Token);
             var structure = InspectReachability(input, lifecycle, files, pdf, context, linked.Token);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
-            return new(input, lifecycle, files, pdf, structure, context.Catalog, regional);
+            return new(input, lifecycle, files, pdf, structure, context.Catalog, regional, context.SelectionDate, context.SnapshotId);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { throw new PackageInputException("INPUT-LIMITS", "DELIVERY_INSPECTION_TIMEOUT", "The complete delivery inspection exceeded its configured deadline."); }
@@ -82,10 +82,13 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 public sealed class PackageDeliveryInspection
 {
     private readonly ValidationRuleCatalog _catalog;
+    private readonly DateOnly? _selectionDate;
+    private readonly string? _standardsSnapshotId;
     private static readonly string[] CapturedRuleIds =
         ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS", "ZIP-LIMITS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
-        PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null, PackageRegionalInspection? regional = null)
+        PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null, PackageRegionalInspection? regional = null,
+        DateOnly? selectionDate = null, string? standardsSnapshotId = null)
     {
         InputDigest = input.InputDigest;
         Lifecycle = lifecycle;
@@ -93,6 +96,8 @@ public sealed class PackageDeliveryInspection
         Pdf = pdf;
         Regional = regional ?? new([]);
         _catalog = catalog ?? PackageValidationCatalog.Current;
+        _selectionDate = selectionDate;
+        _standardsSnapshotId = selectionDate.HasValue ? standardsSnapshotId : null;
         var scoped = _catalog.ForProfile(lifecycle.ProfileSnapshotId).Select(rule => rule.InternalRuleId).ToHashSet(StringComparer.Ordinal);
         // ZIP-only rules are explicitly NotApplicable when every selected source is a
         // directory; otherwise an absent observation would read as an unexplained gap.
@@ -125,5 +130,6 @@ public sealed class PackageDeliveryInspection
     public PackageRegionalInspection Regional { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
     public ValidationReport CreateReport(PackageValidationMode mode, ValidationBinding? exactBinding = null, IReadOnlyList<string>? standardsBlockingReasons = null) => ValidationReport.Create(_catalog,
-        exactBinding ?? new(InputDigest, HistoryManifestDigest, ProfileSnapshotId, RulesDigest, EngineVersion, mode, LimitsDigest), ValidationRunStatus.Completed, Checks).WithBlockingReasons(standardsBlockingReasons ?? []);
+        exactBinding ?? new(InputDigest, HistoryManifestDigest, ProfileSnapshotId, RulesDigest, EngineVersion, mode, LimitsDigest,
+            _standardsSnapshotId, _selectionDate), ValidationRunStatus.Completed, Checks).WithBlockingReasons(standardsBlockingReasons ?? []);
 }
