@@ -2770,6 +2770,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaUtilityFileRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaUtilityFileRule.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1111",
+      "authorityRuleId": "1111",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 8, error 1111",
+      "effectiveFrom": "2013-04-30",
+      "title": "More than one version of the us-regional.xml file exists",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "US regional backbone files and ICH M1 regional references in the captured target sequence.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Counts physical us-regional.xml files and regional references independently. Known duplicates are retained when the other observation is incomplete.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateRegionalRule.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
+      "externalComparisonEvidence": []
     }
   ]
 }

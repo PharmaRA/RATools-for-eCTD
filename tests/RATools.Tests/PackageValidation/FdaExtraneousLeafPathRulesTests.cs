@@ -157,6 +157,15 @@ public sealed class FdaExtraneousLeafPathRulesTests
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
             if (variant == "modified-namespace") leaf.SetAttributeValue(XName.Get("modified-file", "urn:unrelated"), "index.xml#regional");
             if (variant == "alias") leaf.SetAttributeValue(XNamespace.Xmlns + "link", "http://www.w3c.org/1999/xlink");
+            if (variant is "duplicate-region" or "delete-region" or "nested-region" or "self-region")
+            {
+                var other = new XElement(leaf);
+                other.SetAttributeValue("ID", "regional-2");
+                if (variant == "delete-region") other.SetAttributeValue("operation", "delete");
+                if (variant == "self-region") other.SetAttributeValue(xml.Root!.GetNamespaceOfPrefix("xlink")! + "href", "index.xml");
+                if (variant == "nested-region") xml.Root!.Add(new XElement("m2-common-technical-document-summaries", new XElement(leaf.Parent!.Name, other)));
+                else leaf.AddAfterSelf(other);
+            }
             if (variant == "skipped-regional-known-failure")
                 leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
             xml.Save(index);

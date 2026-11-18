@@ -274,10 +274,10 @@
       "correctiveAction": "Resubmit with only one us-regional.xml and only one reference to a regional file per submission sequence.",
       "guidanceSource": "General good practice to ensure reviewability.",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1111"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaDuplicateRegionalRule.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
+        "note": "Counts same-sequence files and M1 references independently and requires a complete target index for a passing observation."
       }
     },
     {

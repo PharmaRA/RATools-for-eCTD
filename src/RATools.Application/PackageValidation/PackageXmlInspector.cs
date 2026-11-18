@@ -44,7 +44,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, Packa
                     try { if (leaf.Href is not null) reference = PackageLogicalPath.ResolveReference(ich.LogicalPath, leaf.Href); }
                     catch (ArgumentException) { /* Report the original location and value below. */ }
                     if (reference?.LogicalPath is not { } path || reference.Query is not null || reference.Fragment is not null ||
-                        !path.StartsWith(input.Manifest.SequenceNumber + "/", StringComparison.Ordinal) || !path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+                        path == ich.LogicalPath || !path.StartsWith(input.Manifest.SequenceNumber + "/", StringComparison.Ordinal) || !path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
                     {
                         findings.Add(new(regionalProfile.RuleId, CheckStatus.Fail, ValidationSeverity.Error, "INVALID_REGIONAL_BACKBONE_REFERENCE",
                             "The regional backbone must resolve to an exact XML file in the selected sequence.", leaf.Location, Actual: leaf.Href));
