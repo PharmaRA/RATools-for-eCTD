@@ -232,6 +232,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null,
             }
             if (!files.Contains(path))
             {
+                item.TargetLeafLookup = CheckStatus.Fail;
                 Issue(item, "LIFECYCLE-TARGET", CheckStatus.Fail, "TARGET_XML_NOT_FOUND", "The exact target XML does not exist in the selected source.");
                 return;
             }
@@ -243,6 +244,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null,
             // Retain the specific ID defect even when DTD validation also found it.
             if (!document.IdIndex.TryGetValue(reference.Fragment, out var ids))
             {
+                item.TargetLeafLookup = CheckStatus.Fail;
                 Issue(item, "LIFECYCLE-TARGET", CheckStatus.Fail, "TARGET_LEAF_NOT_FOUND", "The target XML has no matching ID.");
                 return;
             }
@@ -253,15 +255,17 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null,
             }
             if (!ids[0].IsLeaf)
             {
+                item.TargetLeafLookup = CheckStatus.Fail;
                 Issue(item, "LIFECYCLE-TARGET", CheckStatus.Fail, "TARGET_IS_NOT_LEAF", "The referenced ID belongs to a non-leaf XML element.");
                 return;
             }
+            var target = document.Leaves.Single(leaf => leaf.NodePath == ids[0].NodePath);
+            item.TargetLeafLookup = target.Id == reference.Fragment ? CheckStatus.Pass : CheckStatus.Fail;
             if (document.DtdStatus != CheckStatus.Pass)
             {
                 Issue(item, "LIFECYCLE-TARGET", CheckStatus.NotEvaluated, "TARGET_XML_INVALID", "DTD-invalid XML cannot establish a valid lifecycle target.");
                 return;
             }
-            var target = document.Leaves.Single(leaf => leaf.NodePath == ids[0].NodePath);
             item.TargetLeaf = target;
             if (item.Document.ProfileSnapshotId != document.ProfileSnapshotId)
                 Issue(item, "LIFECYCLE-CONTEXT", CheckStatus.NotEvaluated, "TARGET_PROFILE_INCOMPATIBLE", "Cross-profile lifecycle context is not qualified.");
@@ -368,7 +372,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null,
                     : "See located observations; unresolved history and unsupported combinations remain incomplete.", findings);
             });
             return new(inputs, profile, Xml, _events.Select(item => new PackageLifecycleEvent(item.Leaf, item.Target,
-                item.ContentPath, item.Status, Array.AsReadOnly(item.Findings.ToArray()))), _states.Values, results, context.Catalog.Digest, context.Assets.Digest);
+                item.ContentPath, item.Status, Array.AsReadOnly(item.Findings.ToArray())) { TargetLeafLookup = item.TargetLeafLookup }), _states.Values, results, context.Catalog.Digest, context.Assets.Digest);
         }
 
         public sealed class Event(ParsedBackbone document, ParsedPackageLeaf leaf)
@@ -377,6 +381,7 @@ public sealed class PackageLifecycleInspector(TimeProvider? timeProvider = null,
             public ParsedPackageLeaf Leaf { get; } = leaf;
             public LeafAddress? Target { get; set; }
             public ParsedPackageLeaf? TargetLeaf { get; set; }
+            public CheckStatus TargetLeafLookup { get; set; } = CheckStatus.NotEvaluated;
             public string? ContentPath { get; set; }
             public List<ValidationFinding> Findings { get; } = [];
             public CheckStatus Status => Findings.Any(finding => finding.CheckStatus == CheckStatus.Fail) ? CheckStatus.Fail :

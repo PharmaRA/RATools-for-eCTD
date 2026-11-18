@@ -65,7 +65,7 @@ internal static class FdaExtraneousLeafPathRules
         }
     }
 
-    private static bool HasSkippedRegional(ICapturedPackageInput target, PackageXmlInspection xml, CancellationToken cancellationToken)
+    internal static bool HasSkippedRegional(ICapturedPackageInput target, PackageXmlInspection xml, CancellationToken cancellationToken)
     {
         var candidates = new HashSet<string>(StringComparer.Ordinal);
         foreach (var finding in xml.Checks.SelectMany(check => check.Findings))

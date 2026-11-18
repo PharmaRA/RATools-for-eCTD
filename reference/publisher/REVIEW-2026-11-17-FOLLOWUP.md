@@ -1,6 +1,16 @@
 # 2026-11-17 审阅后续执行账本
 
-当前进度为 FDA 4.7 共 147 条中 34 条已实施，113 条完整覆盖待评估。内部目录有 78 条。FDA 1051/1068 的单独提交为 `6e94bac`，其后完成 FDA 1136。
+当前进度为 FDA 4.7 共 147 条中 35 条已实施，112 条完整覆盖待评估。内部目录有 79 条。FDA 1153 已完成。
+
+**FDA 1153 查找 modified-file 所指的叶**。固定 FDA 4.7 第 10 页，Medium，2008-03-10 生效。历史序列未选或引用的骨架未读完时返回 NotEvaluated。在所选序列中确认缺少骨架文件，或完整骨架中查不到所引叶的 eCTD `ID` 时报告 Fail。重复 ID 留待评估。已找到唯一目标叶时通过查找检查。查找结果只适用于选定的输入字节，诊断定位到发起引用的目标序列叶和 `@modified-file`。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1153-red` 三项均在验证底层历史证据后因缺少官方结果失败。`fda1153-final` 通过 219/219。子代理指出 `xml:id` 别名可能命中 eCTD 叶，`fda1153-alias-red` 两项中一项复现错误，真实 `ID` 对照通过。收紧精确 ID 匹配后，`fda1153-final2` 构建和测试均退出 0，221/221 通过（含 23 项 1153），0 跳过。子代理只读复核通过。构建输入清单 SHA-256 `0c3342f8e3cff3580f895988fc36bf809ec1a4c52e76807a32cdca584b1cb755`。目录校验 `python -B scripts/tests/test_package_rule_catalog.py` 退出 0，摘要 `5e32a74a7b2c8872f5456fccc2d8b9b396e4b4dfd906ced36ab993300f1b40bb`。文件引擎及服务绑定 v11。
+
+```powershell
+pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence .artifacts/local-check/continue-20261118/fda1153-final2 -QualifiedGuard .artifacts/local-check/continue-20261118/path-qualification -Filter '(FullyQualifiedName~FdaModifiedLeafTargetTests|FullyQualifiedName~FdaMissingLeafPathRulesTests|FullyQualifiedName~FdaExtraneousLeafPathRulesTests|FullyQualifiedName~FdaRegionalFilePresenceTests|FullyQualifiedName~FdaEmptyDirectoryRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~PackageFileInspectorTests|FullyQualifiedName~PackageValidationServiceTests)&FullyQualifiedName!~PhysicalDefectsAreLocatedIndependentlyOfWriterModels'
+```
+
+FDA 1154 涉及分组提交中不同申请的历史成员。`PackageInputSet` 要求所选序列属于同一申请，现有输入缺少其他申请的原始提交和分组成员证据。1154 保留 NotAssessed。下一项 FDA 1170 检查需要修改既有叶的操作是否提供 modified-file。
 
 **FDA 1136 缺失内容路径**。固定 FDA 4.7 第 9 页，Medium，2008-03-10 生效。目标骨架上的显式 new、replace、append 叶缺少 XLink href 或值为空白时报告，并定位到该叶。delete 允许省略内容路径。文件是否存在和路径字符是否合法由各自规则检查。若区域引用带 fragment，实际交付的区域 XML 可能被跳过。文件引擎 v10 将这类包的路径检查保留为 NotEvaluated，已读骨架中有明确缺陷时报告 Fail。
 

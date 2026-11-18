@@ -2627,6 +2627,27 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaMissingLeafPathRulesTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaExtraneousLeafPathRules.cs", "tests/RATools.Tests/PackageValidation/FdaMissingLeafPathRulesTests.cs"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1153",
+      "authorityRuleId": "1153",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 10, error 1153, effective 2008-03-10",
+      "title": "Missing modified file",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Supplied modified-file references on target sequence leaves, resolved against the explicitly selected application sequences.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "An absent file in a selected sequence or a missing leaf in a completely read backbone establishes failure. Missing history, unread backbones and ambiguous references remain unevaluated. Lookup is relative to captured bytes.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaModifiedLeafTargetTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaModifiedLeafTargetTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaModifiedLeafTargetRule.cs", "src/RATools.Application/PackageValidation/PackageLifecycleInspector.cs"],
+      "externalComparisonEvidence": []
     }
   ]
 }

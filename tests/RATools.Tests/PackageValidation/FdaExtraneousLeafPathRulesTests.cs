@@ -170,7 +170,11 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 previousLeaf.SetAttributeValue("operation", variant == "history-1051" ? "delete" : "new");
                 if (variant == "history-1068") previousLeaf.SetAttributeValue("modified-file", "index.xml#old");
                 if (variant == "history-1136") previousLeaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), null);
+                if (variant == "history-1153-duplicate") previousLeaf.AddAfterSelf(new XElement(previousLeaf));
+                if (variant == "history-1153-nonleaf") previousLeaf.Parent!.SetAttributeValue("ID", "section");
+                if (variant == "history-1153-xml-id") previousLeaf.SetAttributeValue(XNamespace.Xml + "id", "alias");
                 previousXml.Save(previousIndex);
+                if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
             var snapshot = await Snapshot.Value;
             if (variant == "missing-source")
@@ -184,7 +188,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var catalog = context.Catalog;
                 context = new(new ValidationRuleCatalog(catalog.Version, catalog.Digest, catalog.Sources.Values, catalog.Profiles.Values,
-                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
+                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1153"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
             }
             var limits = new PackageReadLimits { MaxBackbones = variant is "unread" or "known-failure-unread" ? 1 : 100, MaxXmlFindings = variant == "budget" ? 2 : 10_000 };
             await using var capture = await new PackageInputReader(Path.Combine(root, "validation/captures"))

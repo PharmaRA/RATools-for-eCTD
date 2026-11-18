@@ -6,7 +6,10 @@ namespace RATools.Application.PackageValidation;
 public enum PackageLeafEffectiveness { Current, Replaced, Deleted, DeleteEvent, Unknown }
 
 public sealed record PackageLifecycleEvent(ParsedPackageLeaf Source, LeafAddress? Target,
-    string? TargetContentLogicalPath, CheckStatus Status, IReadOnlyList<ValidationFinding> Findings);
+    string? TargetContentLogicalPath, CheckStatus Status, IReadOnlyList<ValidationFinding> Findings)
+{
+    internal CheckStatus TargetLeafLookup { get; init; } = CheckStatus.NotEvaluated;
+}
 
 public sealed record PackageLeafState(LeafAddress Address, PackageLeafEffectiveness Effectiveness,
     bool IsRegionalReference);
