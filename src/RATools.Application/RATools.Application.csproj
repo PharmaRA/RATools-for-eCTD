@@ -60,6 +60,7 @@
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09\fda-us-stylesheet.zip" LogicalName="RATools.OfficialSources.fda-us-stylesheet" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ich-specification.pdf" LogicalName="RATools.OfficialSources.ich-specification" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-18\ich-ectd-v3.2-qa-v1.33.zip" LogicalName="RATools.OfficialSources.ich-ectd-qa" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-18\ich-ectd-main-dtd-md5.zip" LogicalName="RATools.OfficialSources.ich-ectd-dtd-md5" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ema-harmonised-guidance.pdf" LogicalName="RATools.OfficialSources.ema-harmonised-guidance" />
   </ItemGroup>
 </Project>

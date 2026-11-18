@@ -1,5 +1,7 @@
 # QA07-05-R：按 FDA 4.7 准则实施规则
 
+FDA 1130 部分实施。目标 ICH 主 DTD 的校验值与 ICH 发布的 MD5 不符时报告实际值和期望值。Windows 定向回归 408/408，其中 11 项直接针对 1130。子代理只读审查通过。38/147 已实施、5 条 Partial、104 条 NotAssessed。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
+
 FDA 1119 部分实施。目标序列缺少 ICH 主 DTD 时报告可定位的缺失。Windows 定向回归 397/397，其中 12 项针对 1119。子代理只读审查通过。38/147 已实施、4 条 Partial、105 条 NotAssessed。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
 
 FDA 1111 已实施。重复 US 区域文件和重复 M1 区域叶引用分别定位。Windows 定向回归 385/385，其中 14 项针对 1111。自引用经完整交付入口验证，子代理最终复审通过。38/147 已实施、3 条 Partial、106 条 NotAssessed。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)

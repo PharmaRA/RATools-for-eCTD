@@ -2814,6 +2814,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1130",
+      "authorityRuleId": "1130",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 9, error 1130. ICH Q&A 36 items 2, 6 and 8.",
+      "effectiveFrom": "2013-04-30",
+      "title": "Required file checksum value in the util folder must match the expected checksum",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Delivered main ICH DTD in the target sequence.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Compares the captured main DTD's MD5 with the published ICH checksum. Regional DTDs, stylesheets and conditional instance files require further assessment.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-main-dtd-md5.zip"],
+      "externalComparisonEvidence": []
     }
   ]
 }

@@ -17,6 +17,9 @@ internal sealed record BundledOfficialSources(
         "https://admin.ich.org/sites/default/files/inline-files/eCTD_v3.2_Q%26A_%26_Specification_Change_Request_Document_v1.33.zip",
         "6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb", "Verified");
     private static readonly DateOnly IchQaAcquiredOn = new(2026, 11, 18);
+    internal static readonly ValidationRuleSource IchDtdChecksum = new("ich-ectd-dtd-md5", RuleSourceKind.RegulatorySpecification, "3.2",
+        "https://admin.ich.org/sites/default/files/inline-files/ich-ectd-3-2_md5_0.zip",
+        "40f9a3f83d6ff5de7b4a46793ca2e1c4e9bab7df30b4ba2c79f8ffcf4b512224", "Verified");
 
     public static BundledOfficialSources? Capture(StandardsProfile profile, DateOnly captureDate)
     {
@@ -64,6 +67,10 @@ internal sealed record BundledOfficialSources(
                 "application/zip", IchQa.Id, IchQa.Sha256!);
             resources.Add(qa);
             provenance.Add(new(IchQa.Url, IchQa.Version, IchQaAcquiredOn, IchQaAcquiredOn, IchQa.VerificationStatus, qa.Sha256));
+            var checksum = ReadResource("official-ich-ectd-dtd-md5", "OfficialSource", "official-sources/ich-ectd-main-dtd-md5.zip",
+                "application/zip", IchDtdChecksum.Id, IchDtdChecksum.Sha256!);
+            resources.Add(checksum);
+            provenance.Add(new(IchDtdChecksum.Url, IchDtdChecksum.Version, IchQaAcquiredOn, IchQaAcquiredOn, IchDtdChecksum.VerificationStatus, checksum.Sha256));
         }
         return new(resources, provenance.OrderBy(source => source.SourceUrl, StringComparer.Ordinal).ToArray(),
             new("Sources", "Verified", "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.", binding.Sha256));

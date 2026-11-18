@@ -205,13 +205,14 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
             var snapshot = await Snapshot.Value;
-            if (variant is "missing-source" or "missing-format-source" or "missing-qa-source" or "missing-ich-spec")
+            if (variant is "missing-source" or "missing-format-source" or "missing-qa-source" or "missing-ich-spec" or "missing-dtd-checksum")
             {
                 var sha = variant switch
                 {
                     "missing-format-source" => "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b",
                     "missing-qa-source" => "6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb",
                     "missing-ich-spec" => "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0",
+                    "missing-dtd-checksum" => "40f9a3f83d6ff5de7b4a46793ca2e1c4e9bab7df30b4ba2c79f8ffcf4b512224",
                     _ => "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c"
                 };
                 snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != sha).ToArray() },

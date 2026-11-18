@@ -1,6 +1,10 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，38 条已实施、4 条部分实施、105 条待评估。仍有 109 条待完整覆盖。内部目录有 86 条。FDA 1111 的提交为 `f16724c`。
+当前 FDA 4.7 共 147 条，38 条已实施、5 条部分实施、104 条待评估。仍有 109 条待完整覆盖。内部目录有 87 条。FDA 1119 的提交为 `23ae7e1`。
+
+**FDA 1130 必需文件校验值（Partial）。** FDA 4.7 第 9 页规定 Low，2013-04-30 生效。文件引擎 v19 读取目标序列所交付 ICH 主 DTD 的 MD5，与 [ICH 发布的校验清单](https://admin.ich.org/sites/default/files/inline-files/ich-ectd-3-2_md5_0.zip) 中的 `1d6f631cc6b6357f0f4fe378e5f79a27` 比较。新采集的 FDA 快照绑定清单 ZIP 原件，SHA-256 为 `40f9a3f83d6ff5de7b4a46793ca2e1c4e9bab7df30b4ba2c79f8ffcf4b512224`。文件存在且摘要不同时，在 1130 发现项中给出目标文件、期望值和实际值。文件缺失时由 1119 报告缺失，1130 为 NotEvaluated。区域 DTD、样式表和 STF 等条件性支持文件的适用范围待核实。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1130-red` 11 项均因缺少规则结果失败。`scripts/local-check/native-no-delete/run-package-regression.ps1` 运行 `fda1130-final`，**408/408 通过，0 跳过，构建与测试退出 0**。其中 11 项直接针对 1130。完整筛选式和保护器路径见该目录 `summary.json`。源码清单摘要 `d10bbd3d7ffee5842a80bc97798b3e0fed55f80cc783977ed1f8bc30acf27b1c`。`python -B scripts/tests/test_package_rule_catalog.py` 退出 0，目录摘要 `b63222498d8cbfcc648a81fed3992d70329ecec47c16a92b679a3279607cc5d5`。子代理只读审查通过。
 
 **FDA 1119 缺少必需文件（Partial）。** 固定 4.7 第 9 页，Medium，2008-03-10 生效。ICH 3.2.2 附录 6 第 6-2 页要求每个序列交付 ICH 主骨架 DTD。文件引擎 v18 在目标清单精确检查 `util/dtd/ich-ectd-3-2.dtd`。仅历史序列或其他目录内有同名文件时仍报告目标缺失。内容校验由 1130 处理。区域支持文件、样式表及 STF 等条件性文件仍需适用性证据。
 
