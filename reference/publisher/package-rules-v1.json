@@ -2546,6 +2546,66 @@
         "tests/RATools.Tests/PackageValidation/FdaRegionalFilePresenceTests.cs"
       ],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1051",
+      "authorityRuleId": "1051",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 7, error 1051; effective 2008-03-10",
+      "title": "Extraneous leaf element path",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Nonempty xlink:href on an explicitly delete target leaf. Only target backbones are assessed; unknown or defaulted operations and incomplete XML cannot establish a pass.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Official Medium maps to Warning. Exact archived source and explicit selection date required. Path values remain undecoded and located in the owning backbone; known failures take precedence over incomplete coverage.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaExtraneousLeafPathRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1068",
+      "authorityRuleId": "1068",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 7, error 1068; effective 2008-03-10",
+      "title": "Extraneous modified leaf element path",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": [
+        "us-fda-3.2.2-m1-3.3-development-v1"
+      ],
+      "applicableScope": "Nonempty modified-file on an explicitly new target leaf. Only target backbones are assessed; unknown or defaulted operations and incomplete XML cannot establish a pass.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Official Medium maps to Warning. Exact archived source and explicit selection date required. Path values remain undecoded and located in the owning backbone; known failures take precedence over incomplete coverage.",
+      "positiveFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "negativeFixtures": [
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "componentEvidence": [
+        "src/RATools.Application/PackageValidation/FdaExtraneousLeafPathRules.cs",
+        "tests/RATools.Tests/PackageValidation/FdaExtraneousLeafPathRulesTests.cs"
+      ],
+      "externalComparisonEvidence": []
     }
   ]
 }

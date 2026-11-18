@@ -28,6 +28,16 @@
 
 ## 远程空间清理（已完成）与浏览器验证恢复
 
+**DEV-02 FDA 1051/1068（已完成）**：固定 FDA 4.7 PDF 第 7 页，两条均为 Medium，2008-03-10 生效。只检查目标序列已读完整的骨架：显式 delete 带非空 XLink href → 1051；显式 new 带非空无命名空间的 modified-file → 1068。解析器按 XML 原始限定名建键；1051 以命名空间 URI 和局部名匹配，位置保留实际前缀。未知、缺失和默认 operation 不猜测；保留历史隔离、共享预算和已知失败优先。文件引擎及运行绑定 v9；33/147 已实施，114 条完整覆盖仍待评估。
+
+失败复现 `continue-20261117/fda-path-red`：31 项中 29 项因缺少官方结果失败。Windows 终态证据在 `.artifacts/local-check/continue-20261118/fda-path-final/`：176/176 通过（本批 32 项），0 失败、0 未执行，build/test 均退出 0；构建输入清单 SHA-256 `a6504c20b3b7d9ca415ddb85e5c499c593574927e16be85b2360f6f09cdb174a`。原守卫资格目录缺失，使用固定 SDK 重新运行 `native-no-delete/build.ps1`、`verify.ps1`，资格回执在同级 `path-qualification/verification.json`。实际回归命令（仓库根目录）：
+
+```powershell
+pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence .artifacts/local-check/continue-20261118/fda-path-final -QualifiedGuard .artifacts/local-check/continue-20261118/path-qualification -Filter '(FullyQualifiedName~FdaExtraneousLeafPathRulesTests|FullyQualifiedName~FdaRegionalFilePresenceTests|FullyQualifiedName~FdaEmptyDirectoryRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~PackageFileInspectorTests|FullyQualifiedName~PackageValidationServiceTests)&FullyQualifiedName!~PhysicalDefectsAreLocatedIndependentlyOfWriterModels'
+```
+
+`python -B scripts/tests/test_package_rule_catalog.py` 退出 0，内部 77 条，canonical SHA-256 `6f3596f03f867708ea36eb20bdae8601b3f90f86f08599c9137d42acc779f8ae`。子代理只读审查 PASS，无阻断项。未覆盖旧 PhysicalDefects 组、全套验包或外部 FDA 资格；属性精确行列与两条规则争用最后一个预算名额未单独动态断言。
+
 **DEV-02 FDA 2（已完成）**：固定官方PDF第4页要求US 3.3提交包含us-regional.xml（High，2017-04-02生效）。新增目标序列`m1/us/us-regional.xml`存在性检查；不借用显式历史/外围同名文件，不把目录或错误路径当文件；保留固定来源/snapshot/profile/日期/共享finding预算门禁。存在性Pass不替代XML合法性，空/畸形文件由定位到该区域文件的XML检查失败。文件引擎及运行绑定同步为v8。inventory为31/147，116完整覆盖仍待评估；内部catalog75条，摘要`9759f1aba4be93b6b301122ccee13b689737979ee7367c8e30aeca5ac7dcd615`。
 
 证据`.artifacts/local-check/continue-20261117/fda2-*`：red为21项/2过19缺规则失败；首final为140项/136过4败（1预算样例未提前耗尽预算，改为FDA1204禁止字符；3旧物理缺失夹具被已资格化守卫拒绝文件回收移动，未改守卫或计入通过）。review另发现引擎VersionFor未同步，已修复并加版本一致性断言。final2/final3各144/144；后者已将空/畸形XML失败断言精确到区域文件，随后校正测试xlink命名空间，最终final4为144/144、0跳过、build/test均0、passed=true，源码manifest SHA256 `32ed93049ea7e74ccb2ab5b21796e83b7440e3fcaef94ea4eb60111766b35866`。实际命令为保留式`run-package-regression.ps1 -Evidence .../fda2-final4 -QualifiedGuard .../service-retention-20261110/qualification-2 -Filter '(FullyQualifiedName~FdaRegionalFilePresenceTests|FullyQualifiedName~FdaEmptyDirectoryRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~PackageFileInspectorTests|FullyQualifiedName~PackageValidationServiceTests)&FullyQualifiedName!~PhysicalDefectsAreLocatedIndependentlyOfWriterModels'`；包含23个FDA2用例及实际服务绑定，明确排除旧PhysicalDefects组，不声称该组或全套通过。catalog独立Python检查通过；最终只读review PASS，交付文件摘要匹配构建输入，无阻断项。
