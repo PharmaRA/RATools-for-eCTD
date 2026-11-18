@@ -2792,6 +2792,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateRegionalRule.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateRegionalRuleTests.cs"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1119",
+      "authorityRuleId": "1119",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 9, error 1119. ICH eCTD 3.2.2 Appendix 6 p. 6-2 and Q&A 36 items 2, 6 and 8.",
+      "effectiveFrom": "2008-03-10",
+      "title": "Missing required file",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Required ICH backbone DTD in the selected target sequence.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Checks the ICH backbone DTD delivery path. Regional support files, stylesheets and conditional instance files require separate applicability evidence.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
+      "externalComparisonEvidence": []
     }
   ]
 }

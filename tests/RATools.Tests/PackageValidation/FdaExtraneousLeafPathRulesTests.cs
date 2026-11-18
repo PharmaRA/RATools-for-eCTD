@@ -114,7 +114,8 @@ public sealed class FdaExtraneousLeafPathRulesTests
 
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
-        string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null)
+        string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null,
+        string? omittedTargetFile = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -124,6 +125,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             var source = Path.Combine(root, "source");
             foreach (var file in memory.Manifest.Files)
             {
+                if (file.LogicalPath == "0001/" + omittedTargetFile) continue;
                 var path = Path.Combine(source, file.LogicalPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 if (variant.StartsWith("skipped-regional", StringComparison.Ordinal) && file.LogicalPath == "0001/m1/us/us-regional.xml")
@@ -203,12 +205,13 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
             var snapshot = await Snapshot.Value;
-            if (variant is "missing-source" or "missing-format-source" or "missing-qa-source")
+            if (variant is "missing-source" or "missing-format-source" or "missing-qa-source" or "missing-ich-spec")
             {
                 var sha = variant switch
                 {
                     "missing-format-source" => "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b",
                     "missing-qa-source" => "6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb",
+                    "missing-ich-spec" => "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0",
                     _ => "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c"
                 };
                 snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != sha).ToArray() },
