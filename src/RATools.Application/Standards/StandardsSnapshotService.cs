@@ -60,7 +60,8 @@ public sealed class StandardsSnapshotService(IStandardsSnapshotStore store, ISta
             var resource = StandardsSnapshotResource.Create("provider-" + asset.Key, asset.Category, asset.LocalRelativePath, Media(asset.LocalRelativePath), bytes);
             if (resource.Sha256 != asset.Sha256) throw new InvalidDataException("The provider asset changed during capture."); resources.Add(resource);
         }
-        var officialSources = BundledOfficialSources.Capture(profile);
+        var capturedUtc = (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+        var officialSources = BundledOfficialSources.Capture(profile, DateOnly.FromDateTime(capturedUtc));
         if (officialSources is not null)
         {
             foreach (var resource in officialSources.Resources)
@@ -84,7 +85,7 @@ public sealed class StandardsSnapshotService(IStandardsSnapshotStore store, ISta
              new("Writer", "Unverified", "Regional writer scope requires the P6 evidence matrix."),
              new("Rules", "Unverified", "Pinned rule mappings do not establish regional qualification."),
              new("ExternalComparison", "Missing", "No independent regional comparison evidence activates this snapshot.")]);
-        return await store.AddAsync(StandardsProfileSnapshot.Create(descriptor, resources, (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime), cancellationToken).ConfigureAwait(false);
+        return await store.AddAsync(StandardsProfileSnapshot.Create(descriptor, resources, capturedUtc), cancellationToken).ConfigureAwait(false);
     }
     public async Task<StandardsProfileSnapshot> GetAsync(string id, CancellationToken cancellationToken = default)
     {

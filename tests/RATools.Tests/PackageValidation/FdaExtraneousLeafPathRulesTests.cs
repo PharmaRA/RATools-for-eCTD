@@ -114,7 +114,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
 
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
-        string? contentModule = null, string? capturedName = null)
+        string? contentModule = null, string? capturedName = null, string? regionalContentHref = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -146,7 +146,12 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 leaf.Parent!.Name = contentModule;
                 leaf.SetAttributeValue("checksum", new string('0', 32));
                 leaf.SetAttributeValue("checksum-type", "md5");
-                if (capturedName is not null) await File.WriteAllTextAsync(Path.Combine(source, "0001", capturedName), "captured content");
+            }
+            if (capturedName is not null)
+            {
+                var contentPath = Path.Combine(source, "0001", capturedName);
+                Directory.CreateDirectory(Path.GetDirectoryName(contentPath)!);
+                await File.WriteAllTextAsync(contentPath, "captured content");
             }
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
             if (variant == "modified-namespace") leaf.SetAttributeValue(XName.Get("modified-file", "urn:unrelated"), "index.xml#regional");
@@ -154,12 +159,13 @@ public sealed class FdaExtraneousLeafPathRulesTests
             if (variant == "skipped-regional-known-failure")
                 leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
             xml.Save(index);
-            if (variant == "regional")
+            if (variant == "regional" || regionalContentHref is not null)
             {
                 var path = Path.Combine(source, "0001/m1/us/us-regional.xml");
                 var regional = XDocument.Load(path, LoadOptions.PreserveWhitespace);
                 regional.Descendants("form").First().Add(new XElement("leaf", new XAttribute("ID", "form-leaf"), new XAttribute("operation", "new"),
-                    new XAttribute("modified-file", "../0000/us-regional.xml#old"), new XElement("title", "Form")));
+                    regionalContentHref is null ? new XAttribute("modified-file", "../0000/us-regional.xml#old") :
+                        new XAttribute((variant == "wrong-regional-href-namespace" ? XNamespace.Get("http://www.w3.org/1999/xlink") : regional.Root!.GetNamespaceOfPrefix("xlink")!) + "href", regionalContentHref), new XElement("title", "Form")));
                 regional.Save(path);
             }
             if (variant == "truncated") await File.WriteAllTextAsync(index, "<ectd>");
@@ -187,9 +193,14 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
             var snapshot = await Snapshot.Value;
-            if (variant is "missing-source" or "missing-format-source")
+            if (variant is "missing-source" or "missing-format-source" or "missing-qa-source")
             {
-                var sha = variant == "missing-format-source" ? "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b" : "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c";
+                var sha = variant switch
+                {
+                    "missing-format-source" => "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b",
+                    "missing-qa-source" => "6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb",
+                    _ => "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c"
+                };
                 snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != sha).ToArray() },
                     snapshot.Resources.Where(item => item.Sha256 != sha), snapshot.AcquiredUtc);
             }

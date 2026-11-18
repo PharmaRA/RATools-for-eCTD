@@ -1,6 +1,10 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，36 条已实施、2 条部分实施、109 条待评估。仍有 111 条待完整覆盖。内部目录有 82 条。FDA 1238 的提交为 `9a22d04`。
+当前 FDA 4.7 共 147 条，37 条已实施、2 条部分实施、108 条待评估。仍有 110 条待完整覆盖。内部目录有 83 条。FDA 1255 的提交为 `e3817b9`。
+
+**FDA 1306 缺少对应叶的文件。** 固定 4.7 第 14 页，High，2022-03-01 生效。ICH eCTD Q&A v1.33 工作表「Q&A No. 36」第 13 项将范围定为目标序列 m1 至 m5 中的文件，并排除名为 util 的子目录。引擎 v15 解析 ICH 与区域骨架叶的相对引用，按大小写精确比对捕获路径。区域入口被拒、骨架未读完整或快照缺少来源时返回 NotEvaluated。2026-11-18 起采集的 FDA 快照包含 ICH 原件及来源记录。归档 ZIP 共 563835 B，SHA-256 为 `6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb`。[ICH 发布页](https://admin.ich.org/page/ich-electronic-common-technical-document-ectd-v322-specification-and-related-files)
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1306-red` 的 14 项均因缺少规则结果失败。`fda1306-candidate` 339/341 通过，两个失败定位到夹具误写 US DTD 的 XLink 命名空间。改为读取区域骨架声明并保留错误命名空间反例后，`fda1306-final` 342/342 通过。只读初审发现区域入口被拒和 ICH 原件绑定两个缺口，`fda1306-review-red` 17 项中有 2 项复现。修复后使用 `scripts/local-check/native-no-delete/run-package-regression.ps1` 运行 `fda1306-final2`，包含全部 17 项 1306 用例与官方来源快照回归。**360/360 通过，0 跳过，构建与测试退出 0**。保护器和筛选式见该目录 `summary.json`。源码清单摘要 `3a6fa4a9e9185a087f65772e7b81517296f5198f00f08aafdcc38da40f82f78e`。独立目录检查退出 0，摘要 `bbd98aaa712ead0a1b00448256411feea690848f9d086a85a75d94fb8e8eca46`。子代理复审 PASS。
 
 **FDA 1255 章节中的文件扩展名（Partial）。** 固定 4.7 第 12 页规定 Medium，2008-03-10 生效。文件引擎 v14 按目标 ICH 骨架中叶的祖先节点确定 M2 至 M5 模块，并解析到目标清单中的实际文件。格式表采用 FDA v9.3 第 3–7 页，归档 SHA-256 `8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b`。2025-08-20 修订日前的历史格式版本、区域或更细章节、其余格式及业务用途保留待评估。报告保留明确的 Fail，组件通过时仍显示 Partial / NotEvaluated。
 

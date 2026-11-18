@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using RATools.Domain.PackageValidation;
 using RATools.Domain.Standards;
 
 namespace RATools.Application.Standards;
@@ -12,7 +13,12 @@ internal sealed record BundledOfficialSources(
     private const string BindingDigest = "627ec5b1fd05231a7d2524b8b48194f582c0d881e78b07dc24190e5c40f52f03";
     private const string ResourcePrefix = "RATools.OfficialSources.";
 
-    public static BundledOfficialSources? Capture(StandardsProfile profile)
+    internal static readonly ValidationRuleSource IchQa = new("ich-ectd-qa", RuleSourceKind.RegulatorySpecification, "1.33",
+        "https://admin.ich.org/sites/default/files/inline-files/eCTD_v3.2_Q%26A_%26_Specification_Change_Request_Document_v1.33.zip",
+        "6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb", "Verified");
+    private static readonly DateOnly IchQaAcquiredOn = new(2026, 11, 18);
+
+    public static BundledOfficialSources? Capture(StandardsProfile profile, DateOnly captureDate)
     {
         var binding = ReadResource("official-source-bindings", "Sources", "metadata/official-sources/bindings-2026-11-09.json",
             "application/json", "Bindings", BindingDigest);
@@ -51,6 +57,13 @@ internal sealed record BundledOfficialSources(
                 DateOnly.FromDateTime(DateTimeOffset.Parse(source.GetProperty("retrievedUtc").GetString()!, CultureInfo.InvariantCulture).UtcDateTime),
                 DateOnly.ParseExact(source.GetProperty("verifiedOn").GetString()!, "yyyy-MM-dd", CultureInfo.InvariantCulture),
                 "Verified", resource.Sha256));
+        }
+        if (captureDate >= IchQaAcquiredOn && selected.Any(item => item.GetProperty("id").GetString() == "fda-criteria"))
+        {
+            var qa = ReadResource("official-ich-ectd-qa", "OfficialSource", "official-sources/ich-ectd-qa-v1.33.zip",
+                "application/zip", IchQa.Id, IchQa.Sha256!);
+            resources.Add(qa);
+            provenance.Add(new(IchQa.Url, IchQa.Version, IchQaAcquiredOn, IchQaAcquiredOn, IchQa.VerificationStatus, qa.Sha256));
         }
         return new(resources, provenance.OrderBy(source => source.SourceUrl, StringComparer.Ordinal).ToArray(),
             new("Sources", "Verified", "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.", binding.Sha256));

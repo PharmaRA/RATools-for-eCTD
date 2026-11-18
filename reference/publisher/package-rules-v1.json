@@ -2726,6 +2726,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaFileExtensionRule.cs", "reference/publisher/official-sources/2026-11-09/fda-file-formats.pdf"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1306",
+      "authorityRuleId": "1306",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 14, error 1306. ICH eCTD v3.2 Q&A 36 item 13.",
+      "effectiveFrom": "2022-03-01",
+      "title": "No leaf element for file",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Captured target module folders m1 through m5 excluding nested util directories.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Resolves target ICH and regional leaf references to exact logical file paths after complete backbone capture.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaUnreferencedFileRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaUnreferencedFileRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaUnreferencedFileRule.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
+      "externalComparisonEvidence": []
     }
   ]
 }
