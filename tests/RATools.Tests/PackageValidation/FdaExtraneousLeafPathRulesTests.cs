@@ -113,7 +113,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
     }
 
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
-    private static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17")
+    internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17")
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -125,6 +125,13 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var path = Path.Combine(source, file.LogicalPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                if (variant.StartsWith("skipped-regional", StringComparison.Ordinal) && file.LogicalPath == "0001/m1/us/us-regional.xml")
+                {
+                    var alternate = Path.Combine(Path.GetDirectoryName(path)!, "alternate.xml");
+                    using (var original = memory.OpenRead(file.LogicalPath))
+                    using (var outputFile = File.Create(alternate)) original.CopyTo(outputFile);
+                    if (variant != "skipped-regional-with-default") continue;
+                }
                 using var input = memory.OpenRead(file.LogicalPath); using var output = File.Create(path); input.CopyTo(output);
             }
             var index = Path.Combine(source, "0001/index.xml");
@@ -135,6 +142,8 @@ public sealed class FdaExtraneousLeafPathRulesTests
             leaf.SetAttributeValue("modified-file", modified);
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
             if (variant == "alias") leaf.SetAttributeValue(XNamespace.Xmlns + "link", "http://www.w3c.org/1999/xlink");
+            if (variant == "skipped-regional-known-failure")
+                leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
             xml.Save(index);
             if (variant == "regional")
             {
@@ -160,6 +169,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 var previousLeaf = previousXml.Descendants("leaf").Single();
                 previousLeaf.SetAttributeValue("operation", variant == "history-1051" ? "delete" : "new");
                 if (variant == "history-1068") previousLeaf.SetAttributeValue("modified-file", "index.xml#old");
+                if (variant == "history-1136") previousLeaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), null);
                 previousXml.Save(previousIndex);
             }
             var snapshot = await Snapshot.Value;
@@ -174,7 +184,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var catalog = context.Catalog;
                 context = new(new ValidationRuleCatalog(catalog.Version, catalog.Digest, catalog.Sources.Values, catalog.Profiles.Values,
-                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
+                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
             }
             var limits = new PackageReadLimits { MaxBackbones = variant is "unread" or "known-failure-unread" ? 1 : 100, MaxXmlFindings = variant == "budget" ? 2 : 10_000 };
             await using var capture = await new PackageInputReader(Path.Combine(root, "validation/captures"))

@@ -1,6 +1,18 @@
 # 2026-11-17 审阅后续执行账本
 
-当前最新：FDA1322空目录检查121/121及最终review PASS，30/147已实施、117条完整覆盖待评估，内部74条。1204已提交`9972daa`；用户已明确批准两个已核验旧目录的跨盘回收例外，完整副本保留后移除限定/tmp源副本，最终容量回执待取回。
+当前进度为 FDA 4.7 共 147 条中 34 条已实施，113 条完整覆盖待评估。内部目录有 78 条。FDA 1051/1068 的单独提交为 `6e94bac`，其后完成 FDA 1136。
+
+**FDA 1136 缺失内容路径**。固定 FDA 4.7 第 9 页，Medium，2008-03-10 生效。目标骨架上的显式 new、replace、append 叶缺少 XLink href 或值为空白时报告，并定位到该叶。delete 允许省略内容路径。文件是否存在和路径字符是否合法由各自规则检查。若区域引用带 fragment，实际交付的区域 XML 可能被跳过。文件引擎 v10 将这类包的路径检查保留为 NotEvaluated，已读骨架中有明确缺陷时报告 Fail。
+
+本机证据根为 `.artifacts/local-check/continue-20261118/`。`fda1136-red` 构建成功，15 项均因缺少官方结果失败。`fda1136-final` 通过 195/195，随后只读审查发现区域骨架被跳过时的错误 Pass。`fda1136-skip-red` 三项中两项复现错误，另一项确认已知缺陷优先。`fda1136-final2` 因测试断言触发 CA1861 在构建阶段退出 1。修正后 `fda1136-final3` 构建、测试均退出 0，198/198 通过（含 22 项 1136 测试），0 跳过。子代理复核通过。最终构建输入清单 SHA-256 为 `b85ce0622c85c22068ca4e25cc6e7b279e9ee834bcb1c33b5c16497232bd198b`。目录独立校验退出 0，78 条，摘要 `b3be6059f9d65835f07c2b1d769b3634520843f9bbda4ca140c07d109c3ee8a0`。
+
+最终回归命令（仓库根目录）
+
+```powershell
+pwsh -NoProfile -File ./scripts/local-check/native-no-delete/run-package-regression.ps1 -Evidence .artifacts/local-check/continue-20261118/fda1136-final3 -QualifiedGuard .artifacts/local-check/continue-20261118/path-qualification -Filter '(FullyQualifiedName~FdaMissingLeafPathRulesTests|FullyQualifiedName~FdaExtraneousLeafPathRulesTests|FullyQualifiedName~FdaRegionalFilePresenceTests|FullyQualifiedName~FdaEmptyDirectoryRulesTests|FullyQualifiedName~FdaFileNameRulesTests|FullyQualifiedName~FdaLeafTitleRulesTests|FullyQualifiedName~FdaLeafOperationRulesTests|FullyQualifiedName~PackageFileInspectorTests|FullyQualifiedName~PackageValidationServiceTests)&FullyQualifiedName!~PhysicalDefectsAreLocatedIndependentlyOfWriterModels'
+```
+
+**DEV-02 路径规则评估**。FDA 第 7 页和 ICH 3.2.2 第 12 页给出 FDA 1085 的 230 字符上限，含文件名和扩展名。起算目录待确认。序列内路径长 230 字符时，加 `0001/` 后为 235。现有 `FILE-NAMING` 对含序列号的整个清单路径计数。FDA 1102 第 8 页列出反斜杠、冒号、星号、问号、小于号、大于号、竖线和空格。`%20` 和 fragment 的判定口径待确认。两条均保留 NotAssessed。下一项候选 FDA 1153 涉及 modified-file 所引叶的查找，评估时需区分基线未提供与已提供骨架中找不到叶。
 
 ## 续做 FDA1322
 

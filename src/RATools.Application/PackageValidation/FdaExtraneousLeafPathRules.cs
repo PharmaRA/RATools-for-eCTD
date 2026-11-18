@@ -7,7 +7,9 @@ internal static class FdaExtraneousLeafPathRules
     public static IEnumerable<RuleCheckResult> Inspect(ICapturedPackageInput target, PackageLifecycleInspection lifecycle,
         PackageStandardsContext context, int remaining, CancellationToken cancellationToken)
     {
-        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is "FDA47-1051" or "FDA47-1068"))
+        var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
+        var skippedRegional = xml is not null && HasSkippedRegional(target, xml, cancellationToken);
+        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is "FDA47-1051" or "FDA47-1068" or "FDA47-1136"))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var authorized = rule.AuthorityRuleId == rule.InternalRuleId[6..] && rule.RuleVersion == "4.7.1" &&
@@ -24,12 +26,12 @@ internal static class FdaExtraneousLeafPathRules
                 yield return new(rule.InternalRuleId, CheckStatus.NotApplicable, "The selected date precedes this FDA path rule's effective date.");
                 continue;
             }
-            var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
-            var incomplete = xml is null || xml.Backbones.Count == 0 ||
+            var incomplete = skippedRegional || xml is null || xml.Backbones.Count == 0 ||
                 !xml.Checks.Any(check => check.RuleId == "XML-OFFLINE" && check.Status == CheckStatus.Pass) ||
                 !xml.Checks.Any(check => check.RuleId == "XML-LIMITS" && check.Status == CheckStatus.Pass);
             var findings = new List<ValidationFinding>();
-            var hrefRule = rule.InternalRuleId == "FDA47-1051";
+            var missingContent = rule.InternalRuleId == "FDA47-1136";
+            var hrefRule = rule.InternalRuleId != "FDA47-1068";
             foreach (var document in xml?.Backbones ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -42,24 +44,43 @@ internal static class FdaExtraneousLeafPathRules
                     var operation = element.Attributes.GetValueOrDefault("operation");
                     if (operation is null || operation.IsDefault || operation.Value is not ("new" or "append" or "replace" or "delete"))
                     { incomplete = true; continue; }
-                    if (operation.Value != (hrefRule ? "delete" : "new")) continue;
+                    if (missingContent ? operation.Value == "delete" : operation.Value != (hrefRule ? "delete" : "new")) continue;
                     var attribute = hrefRule ? element.Attributes.Values.FirstOrDefault(value =>
                         value.LocalName == "href" && value.NamespaceUri == "http://www.w3c.org/1999/xlink") : element.Attributes.GetValueOrDefault("modified-file");
-                    if (attribute is null || attribute.Value.Length == 0) continue;
+                    if (missingContent ? !string.IsNullOrWhiteSpace(attribute?.Value) : string.IsNullOrEmpty(attribute?.Value)) continue;
                     if (remaining <= 0) { incomplete = true; continue; }
                     remaining--;
-                    var location = leaf.Location with { FieldPath = "@" + attribute.Name,
-                        Line = attribute.Line > 0 ? attribute.Line : leaf.Location.Line,
-                        Column = attribute.Column > 0 ? attribute.Column : leaf.Location.Column,
+                    var location = leaf.Location with { FieldPath = "@" + (attribute?.Name ?? "xlink:href"),
+                        Line = attribute?.Line is > 0 ? attribute.Line : leaf.Location.Line,
+                        Column = attribute?.Column is > 0 ? attribute.Column : leaf.Location.Column,
                         Files = [new(target.SourceId, document.LogicalPath)] };
                     findings.Add(new(rule.InternalRuleId, CheckStatus.Fail, rule.Severity, rule.InternalRuleId,
-                        hrefRule ? "A delete leaf supplies an extraneous content path." : "A new leaf supplies an extraneous modified-file path.",
-                        location, Actual: attribute.Value, RecommendedAction: $"Review {rule.SourceId}, {rule.SourceSection}; omit the path that this operation does not use."));
+                        missingContent ? "A content leaf does not supply its required file path." : hrefRule ? "A delete leaf supplies an extraneous content path." : "A new leaf supplies an extraneous modified-file path.",
+                        location, Actual: attribute?.Value, RecommendedAction: missingContent ? $"Review {rule.SourceId}, {rule.SourceSection}; provide the content file path." : $"Review {rule.SourceId}, {rule.SourceSection}; omit the path that this operation does not use."));
                 }
             }
             yield return new(rule.InternalRuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
                 incomplete ? "Some target leaf paths remain unevaluated due to incomplete XML, unknown operations or the shared finding budget." :
                     "Checked target backbone path values against explicitly supplied operations; reference validity and lifecycle targets are assessed separately.", findings);
         }
+    }
+
+    private static bool HasSkippedRegional(ICapturedPackageInput target, PackageXmlInspection xml, CancellationToken cancellationToken)
+    {
+        var candidates = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var finding in xml.Checks.SelectMany(check => check.Findings))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (finding.Code != "INVALID_REGIONAL_BACKBONE_REFERENCE" || finding.Location.LogicalPath is not { } source || finding.Actual is not { } value) continue;
+            try
+            {
+                var path = PackageLogicalPath.ResolveReference(source, value).LogicalPath;
+                if (path is not null && path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) candidates.Add(path);
+            }
+            catch (ArgumentException) { continue; }
+        }
+        if (candidates.Count == 0) return false;
+        candidates.ExceptWith(xml.Backbones.Select(document => document.LogicalPath));
+        return candidates.Count > 0 && target.Manifest.Files.Any(file => candidates.Contains(file.LogicalPath));
     }
 }
