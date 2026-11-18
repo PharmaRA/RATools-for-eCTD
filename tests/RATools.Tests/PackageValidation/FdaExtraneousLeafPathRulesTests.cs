@@ -114,7 +114,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
 
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
-        string? contentModule = null, string? capturedName = null, string? regionalContentHref = null)
+        string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -151,7 +151,8 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var contentPath = Path.Combine(source, "0001", capturedName);
                 Directory.CreateDirectory(Path.GetDirectoryName(contentPath)!);
-                await File.WriteAllTextAsync(contentPath, "captured content");
+                if (capturedBytes is null) await File.WriteAllTextAsync(contentPath, "captured content");
+                else await File.WriteAllBytesAsync(contentPath, capturedBytes);
             }
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
             if (variant == "modified-namespace") leaf.SetAttributeValue(XName.Get("modified-file", "urn:unrelated"), "index.xml#regional");

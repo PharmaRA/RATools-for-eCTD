@@ -1,6 +1,10 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，37 条已实施、2 条部分实施、108 条待评估。仍有 110 条待完整覆盖。内部目录有 83 条。FDA 1255 的提交为 `e3817b9`。
+当前 FDA 4.7 共 147 条，37 条已实施、3 条部分实施、107 条待评估。仍有 110 条待完整覆盖。内部目录有 84 条。FDA 1306 的提交为 `46b14d6`。
+
+**FDA 1314 工具目录中的多余文件（Partial）。** 固定 4.7 第 14 页，Medium，2008-03-10 生效。ICH Q&A 51 允许使用其他地区认可的支持文件。文件引擎 v16 识别目标序列 `util/` 下与已归档资产路径、SHA-256 同时匹配的文件。名称和八字节文件头都匹配 Finder 元数据时报告 Fail。其余用途待核实的文件产生可定位的 NotEvaluated。组件通过时报告仍显示 Partial / NotEvaluated。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1314-red` 的 11 项均因缺少规则结果失败。使用 `scripts/local-check/native-no-delete/run-package-regression.ps1` 运行 `fda1314-candidate`，**371/371 通过，0 跳过，构建与测试均退出 0**。筛选式和保护器路径见该目录 `summary.json`。源码清单摘要 `20bf311fae0a2437f68a1523bab7d1723055ef94700492bded325e20f0d1c71a`。`python -B scripts/tests/test_package_rule_catalog.py` 退出 0，目录摘要 `a634d6db04345fbb6754c7f354b92dfe289900e9cf06d4b5d4af13a730f9bc9b`。子代理只读审查通过。
 
 **FDA 1306 缺少对应叶的文件。** 固定 4.7 第 14 页，High，2022-03-01 生效。ICH eCTD Q&A v1.33 工作表「Q&A No. 36」第 13 项将范围定为目标序列 m1 至 m5 中的文件，并排除名为 util 的子目录。引擎 v15 解析 ICH 与区域骨架叶的相对引用，按大小写精确比对捕获路径。区域入口被拒、骨架未读完整或快照缺少来源时返回 NotEvaluated。2026-11-18 起采集的 FDA 快照包含 ICH 原件及来源记录。归档 ZIP 共 563835 B，SHA-256 为 `6c2fc32f3abea2d51c7a82e8d1f76b3228672dfd0968f1b9f912d43bb2454fdb`。[ICH 发布页](https://admin.ich.org/page/ich-electronic-common-technical-document-ectd-v322-specification-and-related-files)
 

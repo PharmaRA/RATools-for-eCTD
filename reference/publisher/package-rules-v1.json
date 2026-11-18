@@ -2748,6 +2748,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaUnreferencedFileRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaUnreferencedFileRule.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1314",
+      "authorityRuleId": "1314",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 14, error 1314. ICH eCTD Q&A 51.",
+      "effectiveFrom": "2008-03-10",
+      "title": "Non-required file exists",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Files in the selected target sequence's util folder.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Recognizes pinned utility paths and bytes, including other regional assets, and locates Finder metadata. Additional regional and miscellaneous file classifications require further assessment.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaUtilityFileRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaUtilityFileRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaUtilityFileRule.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
+      "externalComparisonEvidence": []
     }
   ]
 }
