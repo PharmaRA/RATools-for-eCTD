@@ -1,6 +1,10 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，36 条已实施、1 条部分实施、110 条待评估。仍有 111 条待完整覆盖。内部目录有 81 条。FDA 1170 的提交为 `8219179`。
+当前 FDA 4.7 共 147 条，36 条已实施、2 条部分实施、109 条待评估。仍有 111 条待完整覆盖。内部目录有 82 条。FDA 1238 的提交为 `9a22d04`。
+
+**FDA 1255 章节中的文件扩展名（Partial）。** 固定 4.7 第 12 页规定 Medium，2008-03-10 生效。文件引擎 v14 按目标 ICH 骨架中叶的祖先节点确定 M2 至 M5 模块，并解析到目标清单中的实际文件。格式表采用 FDA v9.3 第 3–7 页，归档 SHA-256 `8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b`。2025-08-20 修订日前的历史格式版本、区域或更细章节、其余格式及业务用途保留待评估。报告保留明确的 Fail，组件通过时仍显示 Partial / NotEvaluated。
+
+本机禁删脚本 `scripts/local-check/native-no-delete/run-package-regression.ps1` 的证据根为 `.artifacts/local-check/continue-20261118/`。`fda1255-red` 共 13 项因缺少规则结果失败。`fda1255-candidate` 共 **327/327 通过，0 跳过，构建和测试退出 0**。包括同名 `.txt` 在不同模块中的结果、`.sdf` 带片段的引用、缺少来源、日期或文件及报告状态。命令筛选式及保护器路径见该目录 `summary.json`。源码清单摘要 `4f69f622f25b54f93ce16f838adffac277a7e2a2f12dfa1e00c650aff1f90842`。独立目录检查 `python -B scripts/tests/test_package_rule_catalog.py` 退出 0，摘要 `67ed33acd60b4b9b2e48d40e66829a7fbce685967a6908a3c08f8dace7af218a`。子代理只读审查 PASS。
 
 **FDA 1238 文件大小（Partial）。** 固定 4.7 第 12 页规定 400 MB、Low、2008-03-10 生效。检查使用目标序列清单中的解压字节数。大于 419,430,400 B 且扩展名和文件头均匹配 PDF 时报告可定位的 Fail。400,000,001 至 419,430,400 B 的换算边界、其他大文件及数据集保留 NotEvaluated。组件通过时，报告按 Partial 转为 NotEvaluated 并阻止就绪。已知失败保留。补充来源为 FDA《Study Data Technical Conformance Guide》October 2026 第 20 页 §3.1.2，讨论超过 5 GB 的数据集拆分及未拆分版本。归档文件 SHA-256 `3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689`。数据集门槛尚待资格验证。
 

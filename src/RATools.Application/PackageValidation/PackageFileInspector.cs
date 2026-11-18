@@ -71,8 +71,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining -= paths.Sum(check => check.Findings.Count);
             var targets = FdaModifiedLeafTargetRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= targets.Sum(check => check.Findings.Count);
-            _officialFileNames = names.Concat(titles).Concat(operations).Concat(directories).Concat(regional).Concat(paths).Concat(targets)
-                .Concat(FdaFileSizeRule.Inspect(input.Packages.Target, lifecycle.ProfileSnapshotId, context, remaining, cancellationToken)).ToArray();
+            var sizes = FdaFileSizeRule.Inspect(input.Packages.Target, lifecycle.ProfileSnapshotId, context, remaining, cancellationToken).ToArray();
+            remaining -= sizes.Sum(check => check.Findings.Count);
+            _officialFileNames = names.Concat(titles).Concat(operations).Concat(directories).Concat(regional).Concat(paths).Concat(targets).Concat(sizes)
+                .Concat(FdaFileExtensionRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken)).ToArray();
         }
 
         private void Add(string rule, CheckStatus status, string code, string message, ValidationLocation location,
@@ -358,7 +360,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 return new RuleCheckResult(rule, status, reason, findings);
             });
             var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170" or FdaFileSizeRule.RuleId or FdaModifiedLeafTargetRule.RuleId or FdaLeafOperationRules.RuleId or FdaEmptyDirectoryRules.RuleId or FdaRegionalFilePresence.RuleId)
+                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170" or FdaFileSizeRule.RuleId or FdaFileExtensionRule.RuleId or FdaModifiedLeafTargetRule.RuleId or FdaLeafOperationRules.RuleId or FdaEmptyDirectoryRules.RuleId or FdaRegionalFilePresence.RuleId)
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official));
         }

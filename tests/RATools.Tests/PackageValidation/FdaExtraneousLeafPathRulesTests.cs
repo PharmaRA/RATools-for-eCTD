@@ -113,7 +113,8 @@ public sealed class FdaExtraneousLeafPathRulesTests
     }
 
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
-    internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17")
+    internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
+        string? contentModule = null, string? capturedName = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -140,6 +141,13 @@ public sealed class FdaExtraneousLeafPathRulesTests
             leaf.SetAttributeValue("operation", operation);
             leaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), href);
             leaf.SetAttributeValue("modified-file", modified);
+            if (contentModule is not null)
+            {
+                leaf.Parent!.Name = contentModule;
+                leaf.SetAttributeValue("checksum", new string('0', 32));
+                leaf.SetAttributeValue("checksum-type", "md5");
+                if (capturedName is not null) await File.WriteAllTextAsync(Path.Combine(source, "0001", capturedName), "captured content");
+            }
             if (variant == "namespace") leaf.SetAttributeValue(XName.Get("href", "urn:unrelated"), "m2/file.pdf");
             if (variant == "modified-namespace") leaf.SetAttributeValue(XName.Get("modified-file", "urn:unrelated"), "index.xml#regional");
             if (variant == "alias") leaf.SetAttributeValue(XNamespace.Xmlns + "link", "http://www.w3c.org/1999/xlink");
@@ -179,9 +187,9 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
             var snapshot = await Snapshot.Value;
-            if (variant == "missing-source")
+            if (variant is "missing-source" or "missing-format-source")
             {
-                const string sha = "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c";
+                var sha = variant == "missing-format-source" ? "8d5b4f2ef220c16324d83e44cc50595e087ccd44d1db42ebcca4084976abae6b" : "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c";
                 snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != sha).ToArray() },
                     snapshot.Resources.Where(item => item.Sha256 != sha), snapshot.AcquiredUtc);
             }
