@@ -1,5 +1,7 @@
 # QA07-05-R：按 FDA 4.7 准则实施规则
 
+FDA 1368部分实施。固定ICH章节schema及DTD绑定，检查完整标准章节祖先链中的显式多余属性，区域/叶/扩展/STF范围保持未评估。Windows定向回归554/554（19项1368），子代理静态及终态只读审查通过。39/147已实施、9条Partial、99条NotAssessed；内部目录92条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
+
 FDA 1357部分实施。固定ICH DTD及四类精确章节祖先链检查substance/manufacturer/indication的必需值，STF属性仍待资格化。Windows定向回归535/535（22项1357），子代理只读审查通过。39/147已实施、8条Partial、100条NotAssessed；内部目录91条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
 
 FDA 1344 部分实施。保留DTD规范化前的显式属性值，默认属性不作为显式输入；检查目标ICH/US骨架属性首尾空格，STF等范围仍待资格化。Windows定向回归513/513（26项1344、39项XML读取器），子代理只读审查通过。39/147已实施、7条Partial、101条NotAssessed；内部目录90条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)

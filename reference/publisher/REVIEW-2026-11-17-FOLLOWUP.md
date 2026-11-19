@@ -1,6 +1,12 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，39 条已实施、8 条部分实施、100 条待评估。仍有 108 条待完整覆盖。内部目录有 91 条。FDA 1344 的提交为 `9776e3e`。
+当前 FDA 4.7 共 147 条，39 条已实施、9 条部分实施、99 条待评估。仍有 108 条待完整覆盖。内部目录有 92 条。FDA 1344、1357 的提交分别为 `9776e3e`、`ec84d01`。
+
+**FDA 1368 多余属性（Partial）。** FDA 4.7 第17页，Low，2008-03-10生效。文件引擎及交付绑定v24检查目标ICH标准章节的显式属性；完整祖先链必须符合固定节点定义，属性QName必须在对应白名单中。命名空间声明和DTD默认属性不产生多余属性发现。固定XML资产清单摘要 `71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1` 绑定节点schema及ICH DTD；子代理静态比对159个标准章节的属性名集合与有效DTD ATTLIST，未发现差异。区域、叶、扩展节点和STF范围仍未资格化，Partial报告边界保持。
+
+证据根 `.artifacts/local-check/continue-20261118/`，执行本机禁删入口 `scripts/local-check/native-no-delete/run-package-regression.ps1`。`fda1368-red` 构建退出0，19项中1项ICH隔离通过、18项因缺少规则结果失败。`fda1368-candidate` **554/554通过，0失败/跳过，构建与测试退出0**，含19项1368及此前535项选定回归；完整筛选式和保护器路径见该目录 `summary.json`。源码清单摘要 `e8cf2d19dbc251a0797762ca5ea31390d726cf04c890431b7dcb5fb74fb96338`，6个交付输入匹配。独立目录92条通过，canonical摘要 `ea1244f160da0d5817208d016c15e465fe0a3212d8fa4aeb8ec6435d34423edb`。子代理静态及终态审查PASS。
+
+下一项1374已核对FDA第18页（Low，2008-03-10）和现有FILE-MD5逻辑：捕获清单已有真实文件MD5，通用检查区分FILE_CHECKSUM_MISMATCH、INVALID_FILE_CHECKSUM及缺文件证据。下一批先以失败用例区分摘要不符、格式/类型错误、文件缺失与历史未提供，再建立官方1374结果；尚未实现。1391的index-md5.txt格式是独立项，不并入1374。1362仍待STF解析证据。
 
 **FDA 1357 M2–M5必需属性（Partial）。** FDA 4.7 第16页，Medium，2008-03-10生效。固定ICH DTD SHA-256 `c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731` 授权四类目标ICH章节：M2.3.S/M3.2.S的substance、manufacturer，以及M2.7.3/M5.3.5的indication。文件引擎及交付绑定v23检查精确祖先链中的非空白值，缺失定位到属性/元素并报告Warning / Fail。错误命名空间、错误位置和区域骨架同名元素不归入该ICH范围；来源、日期、预算及未完成证据保持明确，已知失败优先。STF属性尚未解析，规则Partial，局部Pass在报告中降为NotEvaluated。
 

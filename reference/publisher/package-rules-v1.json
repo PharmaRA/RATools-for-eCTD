@@ -2924,6 +2924,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "reference/dtd/ich-ectd-3-2.dtd"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1368",
+      "authorityRuleId": "1368",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 17, error 1368; pinned ICH DTD standard heading declarations",
+      "effectiveFrom": "2008-03-10",
+      "title": "Extraneous attribute",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Explicit attributes on standard target ICH heading chains.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Checks explicit standard ICH heading attributes against the pinned schema and DTD. Namespace declarations and defaults are excluded. Regional, leaf, extension and STF scopes remain unqualified.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaExtraneousHeadingAttributeRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaExtraneousHeadingAttributeRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaExtraneousHeadingAttributeRule.cs", "reference/dtd/ich-ectd-3-2.dtd", "reference/publisher/ich-3.2.2-nodes.json"],
+      "externalComparisonEvidence": []
     }
   ]
 }
