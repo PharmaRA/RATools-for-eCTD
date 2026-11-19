@@ -668,7 +668,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1357"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs"],
-        "note": "Checks required values in four qualified ICH heading chains with pinned DTD evidence. STF attribute coverage remains unqualified."
+        "note": "Checks four qualified ICH heading chains and known STF category requirements bound to actual target section references. Duration applicability, regional variants and complete STF attribute qualification remain open; status stays Partial."
       }
     },
     {

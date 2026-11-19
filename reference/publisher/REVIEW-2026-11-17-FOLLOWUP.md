@@ -4,6 +4,10 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**FDA1357：STF必需分类增量，继续Partial。** 根据已归档STF规范2.6.1第5–7页，实际目标index叶引用和完整ICH章节祖先链决定分类：单次/重复剂量毒性需species及route-of-admin，长期致癌性需species，受控临床需type-of-control。仅完整且DTD有效的index/STF可支持缺失判断；不根据文件目录推断章节。支持node-extension中引用，同一STF被多章节引用取要求并集、重复引用不重复发现。缺或空白分类报Warning/Fail；重复分类或未知realm、未知归属保持未评估；重复剂量duration“if applicable”无证据不能强制判缺。默认命名空间有效，目标/历史隔离，原heading失败和一个STF的已知失败不被其他截断证据抹除，共享剩余finding预算。file/delivery分量v34，其他STF属性及区域/duration资格仍Partial。
+
+`fda1357-stf-red`24项10过14败。首candidate为71/84，其中13项因新夹具缺leaf checksum/checksum-type而index DTD Fail；修正夹具、增加正常index DTD Pass断言，没有放宽生产闸，candidate2为84/84。补多引用/真实历史/默认namespace/重复realm/混合失败/一项及零项预算后candidate3为92/92；子代理指出extension被直接引用掩盖，最终将single两条引用均置于extension，保留controlled直接引用。最终`fda1357-stf-final`三项目构建退出0，**190/190通过、0失败/跳过、测试退出0**，仅指定1357/STF/1344/目录/utility类，非全套。源码清单SHA`dde657024895a1e9eed114f15049a68c05b47204a73631b826ad439acbefa3ed`，6/6输入匹配；TRX SHA`32aa91438145b874bc9e33e9a76b5a25b9e71f87652a7e9c882ff74e906f0e04`原件/备份一致。目录99条独立校验通过，canonical`698be74bf2dace4aea796a7f82a8eead75d330df3b97df3235da1f78929f7ec1`。子代理限定增量审查PASS；五轮证据副本`backups/fda1357-stf-20261120/evidence/`，10个bin/obj已检查后送回收站，可恢复。下一条1362独立处理STF业务属性重复。
+
 **FDA1344：STF显式属性空格增量，继续Partial。** 目标STF元素纳入已有原始属性遍历，不改变原ICH/US骨架语义；DTD默认属性排除，缺ExplicitValue不能用规范化Value替代。字符引用空格和字面制表符归一化为空格时检查首尾U+0020，字符引用制表符、内部空格和空字符串不误报。STF发现/读取不完整及缺原始命名空间证据保持未评估；历史STF虽实际读取但不进入目标结果。定位保留目标SourceId、STF路径、节点/属性行列，LeafId为null。共享finding预算，已知骨架Fail不被STF未完成抹除。file/delivery分量v33；其他XML范围仍未资格，1344状态保持Partial。
 
 `fda1344-stf-red`构建退出0，19项10过9败；candidate为114/114。更新目录证据后`fda1344-stf-final`三项目构建退出0，**155/155通过、0失败/跳过、测试退出0**，仅指定1344/STF/utility/目录/1368类，非全套。源码清单SHA`24c61ff9c64177b05f3541d9735169d299d801a478b7ae1904b13c4fc01aeffc`，5/5输入匹配；TRX SHA`5d9a379f4d363946e52f251553f6cafa8b4d84160309470878a4243d43360a15`原件/备份一致。目录99条独立校验通过，canonical`8f95ad5825219dcd301aa504908d0665600ddf3d958b7e055b7829df40fc4261`。子代理限定增量静态审查PASS；证据副本`backups/fda1344-stf-20261120/evidence/`。三轮6个bin/obj已检查后送回收站，可恢复。

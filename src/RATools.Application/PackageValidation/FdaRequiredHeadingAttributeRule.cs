@@ -61,8 +61,11 @@ internal static class FdaRequiredHeadingAttributeRule
                 }
             }
         }
+        var stf = FdaStfRequiredCategoryRule.Inspect(target, xml, context, rule, remaining, cancellationToken);
+        findings.AddRange(stf.Findings);
+        incomplete |= stf.Status == CheckStatus.NotEvaluated;
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Checked required attributes in the four qualified ICH heading chains. STF attributes remain unqualified.", findings);
+            "Checked required attributes in the four qualified ICH heading chains. " + stf.Reason, findings);
     }
 
     private static string[] RequiredAttributes(ParsedXmlElement element, Dictionary<string, ParsedXmlElement> elements)
