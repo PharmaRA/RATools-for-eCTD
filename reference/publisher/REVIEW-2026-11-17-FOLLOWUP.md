@@ -8,7 +8,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，45 条已实施、11 条部分实施、91 条待评估。仍有 102 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，46 条已实施、11 条部分实施、90 条待评估。仍有 101 条待完整覆盖。内部目录有 101 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1442：index显式DTD版本，Implemented。** 1426已提交`c869848`。FDA第20页，Medium，2008-03-10生效。仅唯一目标index的已识别ICH根：缺无命名空间属性或IsDefault=true判Warning/Fail；显式3.2为Pass，无辅助ExplicitValue不等于遗漏。无根、错误/空版本被reader门禁拦截、歧义inspection/文档/根保持NE；不由诊断字符串猜遗漏。完整根属性已保留后，尾部损坏或regional未读不抹掉该根结论；历史隔离，共享finding预算，取消传播。file/delivery分量v38。新增规则内部NE/已知Fail快照；Finish只补启用且缺席的1442，覆盖前序规则已中断而1442尚未开始的窗口，不替换已有结果。
+
+`fda1442-red`23项1过22败，其中2项为公共夹具leaf缺必需checksum使DTD前提失败，未计业务红；在本项私有夹具补齐leaf属性后`red2`23项1过22败，全部为缺规则结果。candidate为283/283；随后定向补测前序1408 deadline，`review-red`2/2失败准确复现1442缺位。限定Finish修复后`fda1442-final`三项目构建退出0，**283/283通过、0失败/跳过、测试退出0**，仅十一类指定规则/属性/中断/目录回归，非全套。源码清单SHA`2a864f7c234b6894cd01f956e200fd458914bebbe14b73ee997e385eee23b267`，8/8交付输入匹配；TRX SHA`9772b8898f01bb44b2a57aed361fcd006b6fecea018f22d6ad928f83d2d5b646`原件/备份一致。目录101条独立校验通过，canonical`a477a890f337c2568d080417f0d3ffb26703bb13c80af576266d41f682ca8306`。子代理限定实现复审及终态核验PASS。证据副本`backups/fda1442-20261120/evidence/`；五轮十个bin/obj已检查后送回收站，可恢复。下一项1445按实际区域选择集合独立处理。
 
 **FDA1426：delete checksum固定范围收口，Implemented。** 1408已提交`618a542`。按序核对1425后保留index-md5遗漏官方编号归责依赖；未将通用INDEX-MD5错误视作1425映射完成。1426现有ICH/US leaf遍历覆盖明确delete场景，固定STF DTD无内部checksum/operation，撤回不存在的STF欠账。检测逻辑不变：非空含空白Fail，缺/空值不触发，未知操作NE；独立DTD缺属性诊断继续存在。报告Coverage先红后绿：`fda1426-completion-red`5项2过3败，失败均为应Pass而被Partial屏蔽。
 

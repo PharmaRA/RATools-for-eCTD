@@ -3102,6 +3102,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1442",
+      "authorityRuleId": "1442",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 20, error 1442; fixed ICH DTD root dtd-version declaration",
+      "effectiveFrom": "2008-03-10",
+      "title": "Omitted DTD version in index.xml",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Explicit dtd-version declaration on the target index.xml root.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Distinguishes explicit root attributes from DTD defaults. A retained complete root attribute set supports presence or omission even if later XML content fails. Missing or ambiguous root facts and unsupported explicit versions remain unevaluated; historical roots are excluded.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaIndexDtdVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaIndexDtdVersionEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaIndexDtdVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaIndexDtdVersionEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaIndexDtdVersionRule.cs", "reference/dtd/ich-ectd-3-2.dtd"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -817,10 +817,10 @@
       "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is specified in the index.xml file.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1442"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaIndexDtdVersionRule.cs", "tests/RATools.Tests/PackageValidation/FdaIndexDtdVersionRuleTests.cs"],
+        "note": "Checks the target index root explicit DTD version, distinguishing DTD defaults from supplied attributes. Complete retained root facts survive later XML errors; unavailable or ambiguous root facts remain unevaluated. Historical and regional roots are not target index declarations."
       }
     },
     {
