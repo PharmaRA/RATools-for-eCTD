@@ -3034,6 +3034,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredChecksumRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaLeafChecksumAttributeRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1426",
+      "authorityRuleId": "1426",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 19, error 1426; ICH specification 3.2.2 section 6-4",
+      "effectiveFrom": "2013-04-30",
+      "title": "Unexpected checksum value",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target ICH/US backbone leaves explicitly using delete.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Rejects any nonempty unqualified checksum on explicit delete, including whitespace. Missing/empty values do not trigger this rule; DTD completeness remains separate. Unsupported XML scopes remain unqualified.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDeleteChecksumRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDeleteChecksumRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaLeafChecksumAttributeRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
+      "externalComparisonEvidence": []
     }
   ]
 }

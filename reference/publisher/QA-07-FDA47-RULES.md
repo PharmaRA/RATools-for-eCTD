@@ -1,5 +1,7 @@
 # QA07-05-R：按 FDA 4.7 准则实施规则
 
+FDA1426部分实施。显式delete的非空checksum（含空白）报告Info，缺/空不触发本项，DTD独立；2013-04-30生效。最终730/730回归和限定只读审查通过，三规则预算、中断和默认属性边界均有证据。40/147已实施、13Partial、94NotAssessed；内部97条。1408/1425/1426仍不包含STF。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
+
 FDA1425部分实施。显式内容操作缺失/空白checksum报告Info，delete跳过；默认/未知operation未评估，历史坏叶隔离。最终698/698回归及限定只读审查通过。40/147已实施、12Partial、95NotAssessed；内部96条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
 
 FDA 1408部分实施。显式checksum-type接受不区分大小写的MD5，其余值报告Info；缺失类型未评估，判定独立于operation。668/668定向回归通过，含中断结果保留及快照测试，子代理增量复审通过。40/147已实施、11条Partial、96条NotAssessed；内部95条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
