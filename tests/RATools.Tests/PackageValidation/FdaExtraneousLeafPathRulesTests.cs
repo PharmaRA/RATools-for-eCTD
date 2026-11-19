@@ -115,7 +115,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
         string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null,
-        string? omittedTargetFile = null)
+        string? omittedTargetFile = null, Action<XDocument>? editRegional = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -171,6 +171,13 @@ public sealed class FdaExtraneousLeafPathRulesTests
             if (variant == "skipped-regional-known-failure")
                 leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
             xml.Save(index);
+            if (editRegional is not null)
+            {
+                var path = Path.Combine(source, "0001/m1/us/us-regional.xml");
+                var regional = XDocument.Load(path, LoadOptions.PreserveWhitespace);
+                editRegional(regional);
+                regional.Save(path);
+            }
             if (variant == "regional" || regionalContentHref is not null)
             {
                 var path = Path.Combine(source, "0001/m1/us/us-regional.xml");

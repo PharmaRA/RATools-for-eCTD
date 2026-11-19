@@ -1,6 +1,10 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，38 条已实施、5 条部分实施、104 条待评估。仍有 109 条待完整覆盖。内部目录有 87 条。FDA 1119 的提交为 `23ae7e1`。
+当前 FDA 4.7 共 147 条，38 条已实施、6 条部分实施、103 条待评估。仍有 109 条待完整覆盖。内部目录有 88 条。FDA 1130 的提交为 `45b7fe0`。
+
+**FDA 1038 申请表和附信操作（Partial）。** FDA 4.7 第 6 页规定 Low，2013-04-30 生效。文件引擎 v20 检查目标 US 区域骨架中申请表、行政申请表和附信位置的显式操作，支持中间 node-extension。append/delete 报告可定位的 Info / Fail；replace 因官方允许纠正错误文档的例外而保持 NotEvaluated。缺失、默认或未知操作、未读完整及预算限制也保留未评估。new 在组件中通过，报告仍按 Partial 降为 NotEvaluated，不视为完整资格。
+
+证据根 `.artifacts/local-check/continue-20261118/`。`fda1038-red` 的 12 项均因缺少规则结果失败。`scripts/local-check/native-no-delete/run-package-regression.ps1` 运行 `fda1038-candidate`，**420/420 通过，0 跳过，构建与测试退出 0**，其中 12 项直接针对 1038。完整筛选式和保护器路径见该目录 `summary.json`。源码清单摘要 `95f4f3a2b60a5d4b2a8a9bcdea731d6a9e8ca91c7441dad0e7462f93814d5ff5`。独立目录校验退出 0，目录摘要 `99118b0c7ed226f00461e248ee02d8f946fbea0588a02199f4649de7629a4da0`。子代理静态只读审查通过。下一项评估 FDA 1323 的叶引用文件存在性；既有路径和跨申请证据依赖继续保留。
 
 **FDA 1130 必需文件校验值（Partial）。** FDA 4.7 第 9 页规定 Low，2013-04-30 生效。文件引擎 v19 读取目标序列所交付 ICH 主 DTD 的 MD5，与 [ICH 发布的校验清单](https://admin.ich.org/sites/default/files/inline-files/ich-ectd-3-2_md5_0.zip) 中的 `1d6f631cc6b6357f0f4fe378e5f79a27` 比较。新采集的 FDA 快照绑定清单 ZIP 原件，SHA-256 为 `40f9a3f83d6ff5de7b4a46793ca2e1c4e9bab7df30b4ba2c79f8ffcf4b512224`。文件存在且摘要不同时，在 1130 发现项中给出目标文件、期望值和实际值。文件缺失时由 1119 报告缺失，1130 为 NotEvaluated。区域 DTD、样式表和 STF 等条件性支持文件的适用范围待核实。
 

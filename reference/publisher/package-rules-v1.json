@@ -2836,6 +2836,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-main-dtd-md5.zip"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1038",
+      "authorityRuleId": "1038",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 6, error 1038",
+      "effectiveFrom": "2013-04-30",
+      "title": "Application form and cover letter should be New",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Application form and cover letter leaves of the target US regional backbone.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Locates non-new operations on form and cover letter leaves. Replacements require evidence of the corrective-document exception.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaFormOperationRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFormOperationRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaFormOperationRule.cs", "reference/dtd/us-regional-v3-3.dtd"],
+      "externalComparisonEvidence": []
     }
   ]
 }
