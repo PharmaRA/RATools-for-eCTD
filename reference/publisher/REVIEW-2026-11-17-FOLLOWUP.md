@@ -1,12 +1,18 @@
 # 2026-11-17 审阅后续执行账本
 
+1426本批两轮四个build/bin、build/obj已核对终态、路径及链接后送入Windows回收站，可恢复；日志、TRX、源码清单与证据副本保留。
+
 1408本批两轮四个build/bin、build/obj已检查终态、路径及链接后送入Windows回收站，可恢复；原始证据及备份保留。
 
 1374本批三轮六个build/bin、build/obj已在终态、路径及链接检查后送入Windows回收站，可恢复；日志、TRX、源码清单及证据副本保留。
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，44 条已实施、12 条部分实施、91 条待评估。仍有 103 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，45 条已实施、11 条部分实施、91 条待评估。仍有 102 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1426：delete checksum固定范围收口，Implemented。** 1408已提交`618a542`。按序核对1425后保留index-md5遗漏官方编号归责依赖；未将通用INDEX-MD5错误视作1425映射完成。1426现有ICH/US leaf遍历覆盖明确delete场景，固定STF DTD无内部checksum/operation，撤回不存在的STF欠账。检测逻辑不变：非空含空白Fail，缺/空值不触发，未知操作NE；独立DTD缺属性诊断继续存在。报告Coverage先红后绿：`fda1426-completion-red`5项2过3败，失败均为应Pass而被Partial屏蔽。
+
+`fda1426-completion-final`三项目构建退出0，**218/218通过、0失败/跳过、测试退出0**，仅指定八类checksum/目录回归。源码清单SHA`10225af447448ea00731770337b898a37013622cda63eef6574a546818b74afe`，测试/catalog/直接依赖3/3匹配；inventory静态核对，sha文件独立验证。目录100条canonical`2a19e335a74f591bbd64947fd0eef56c10121a8d3918ed4162c58e58f43e17ec`。TRX SHA`b79b86347d61be9e41c1ee090d1f7139341854e3f73105231e43eacd1a726010`原件/备份一致；限定只读审查通过，证据副本`backups/fda1426-completion-20261120/evidence/`。Implemented不等于DTD或整包readiness通过。下一项1442，先区分显式根属性、DTD默认补值与未保存根事实。
 
 **FDA1408：固定支持范围收口，Implemented。** 1374已提交`7c9edc4`。ICH/US leaf的算法声明（含引用STF文件的leaf）已有完整遍历，固定STF DTD内无checksum-type，撤回旧泛化欠账；检测逻辑不变，OrdinalIgnoreCase且不trim，缺声明/未读骨架保留NE。新增报告Coverage四例先红后绿：`fda1408-completion-red`4项2过2败，失败为md5/MD5的Pass被Partial屏蔽。`fda1408-completion-final`三项目构建退出0，**214/214通过、0失败/跳过、测试退出0**，仅指定八类checksum/目录回归。源码清单SHA`d9245a9d1758835975c22bf83ec1a26cb4da25e159c04f7ec0c660376b850ed9`，测试/catalog/规则依赖3/3匹配；inventory静态核对，sha文件独立校验。目录100条canonical`9d88e6757c1c4e342fb09c2e35749354da86458491c686ce9c0e2372418133c9`。TRX SHA`1bc70d6dd9a5808a73325f38d2028e99783b1b22cc1cbc70ba54e7a5b3e64023`原件/备份一致；限定只读审查通过，证据副本`backups/fda1408-completion-20261120/evidence/`。只升级1408，不代表全profile或Formal readiness。
 

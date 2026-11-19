@@ -67,7 +67,19 @@ public sealed class FdaDeleteChecksumRuleTests
         Assert.Equal(CheckStatus.Pass, Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1425").Status);
         Assert.Equal(CheckStatus.Pass, Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1426").Status);
         Assert.Contains(result.Lifecycle.XmlInspections.SelectMany(item => item.Checks).SelectMany(item => item.Findings), item => item.Code == "DTD_VALIDATION_ERROR");
-        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == "FDA47-1426").CheckStatus);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == "FDA47-1426").CheckStatus);
+    }
+
+    [Theory]
+    [InlineData("delete", "", CheckStatus.Pass)]
+    [InlineData("delete", " ", CheckStatus.Fail)]
+    [InlineData("new", "abc", CheckStatus.Pass)]
+    [InlineData("unknown", "abc", CheckStatus.NotEvaluated)]
+    public async Task CompletedRuleRetainsActualCoverageStatus(string operation, string checksum, CheckStatus expected)
+    {
+        var result = await FdaChecksumTypeRuleTests.Inspect(operation: operation, checksum: checksum);
+        Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage,
+            item => item.RuleId == "FDA47-1426").CheckStatus);
     }
 
     [Fact]

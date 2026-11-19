@@ -798,10 +798,10 @@
       "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that the checksums are not specified for delete operations.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "Partial",
+        "status": "Implemented",
         "internalRuleIds": ["FDA47-1426"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaLeafChecksumAttributeRules.cs", "tests/RATools.Tests/PackageValidation/FdaDeleteChecksumRuleTests.cs"],
-        "note": "Checks nonempty target ICH/US delete checksums, including whitespace. Missing/empty is not a value; DTD completeness and unsupported XML scopes remain separate."
+        "note": "Checks nonempty target ICH/US delete checksums, including whitespace. Missing/empty values do not trigger this rule; DTD completeness remains separate. Fixed STF DTD has no internal checksum or operation attribute. Unknown operations and unread backbones remain unevaluated."
       }
     },
     {
