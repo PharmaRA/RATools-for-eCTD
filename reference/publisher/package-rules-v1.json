@@ -3146,6 +3146,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1476",
+      "authorityRuleId": "1476",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 21, error 1476; fixed ICH/US node-extension declarations",
+      "effectiveFrom": "2008-03-10",
+      "title": "Node-extension exists",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Unqualified node-extension elements in target ICH and selected US regional backbones.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Reports every retained target extension element, including nested and optional-ID extensions, independently of lifecycle identity. Known elements survive later read failures; incomplete XML selection cannot prove absence. Foreign namespaces and historical documents are excluded; fixed STF DTD has no node-extension element.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaNodeExtensionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaNodeExtensionEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaNodeExtensionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaNodeExtensionEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaNodeExtensionRule.cs", "reference/dtd/ich-ectd-3-2.dtd", "reference/dtd/us-regional-v3-3.dtd"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
