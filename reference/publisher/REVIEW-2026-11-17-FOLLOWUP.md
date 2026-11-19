@@ -1,8 +1,14 @@
 # 2026-11-17 审阅后续执行账本
 
+1374本批三轮六个build/bin、build/obj已在终态、路径及链接检查后送入Windows回收站，可恢复；日志、TRX、源码清单及证据副本保留。
+
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，42 条已实施、14 条部分实施、91 条待评估。仍有 105 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，43 条已实施、13 条部分实施、91 条待评估。仍有 104 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1374：算法名称一致性修复及范围收口，Implemented。** 原1408接受MD5/Md5而1374及通用FILE-MD5仅接受小写，已先复现再统一为OrdinalIgnoreCase，不trim、不接受其他算法。固定ICH/US DTD在leaf声明checksum/type/operation；STF doc-content无这些属性，STF文件自身由index叶摘要比较，不能继续保留无依据的“STF内部checksum未覆盖”欠账。显式历史、实际字节、index-md5、缺证据/非法声明/预算中断语义不变。file/delivery分量v37。只升级1374；1408/1426按序另项收口，1425的index-md5遗漏归责仍待核对，通用INDEX-MD5已有缺文件诊断不自动证明FDA编号映射。
+
+`fda1374-algorithm-red`11项5过6败；candidate为151/151。补报告Coverage的match Pass/mismatch Fail/missing NE三例并更新目录后，`fda1374-algorithm-final`三项目构建退出0，**211/211通过、0失败/跳过、测试退出0**；仅八个指定checksum/目录测试类，不是全套。源码清单SHA`eda396abd5c0c29049908c639c381bffb3f318e2ef0226f6bf17f5f8c9c36b8b`，五代码/测试加catalog共6/6输入匹配。sha256文件及inventory不在构建manifest中，分别由独立摘要校验与静态状态核对覆盖，不计8/8。TRX SHA`6b96e180ecf555c377ee10501f97fd1f8962b29605bf4eadd35f6b6f670620c8`原件/备份一致。目录100条独立校验通过，canonical`e920e7d43d4ab0d38ec6114e917034b8f8c16162bb312c1a0a189571ee151ba7`。子代理范围审查、修复审查及最终增量复审均通过。证据副本`backups/fda1374-completion-20261120/evidence/`。Implemented不是全profile readiness或监管资格。
 
 **FDA1368：STF多余分类增量，继续Partial。** 完整且DTD有效的目标index按实际叶引用建立STF允许分类并集，复用精确章节祖先检查并支持node-extension；不按物理目录判断章节。相关query/fragment等不确定引用使对应STF未评估，无法解析而不能定位的引用使整体允许集合未知，不能据不完整归属误报多余。已知ich分类不在允许集合时定位Info/Fail；duration/us仅重复剂量及长期致癌性示例范围可识别，其他duration、realm/未知分类保持未评估。历史引用不扩大目标集合，原heading失败及另一确定STF失败保留，共享剩余额度。file/delivery分量v36；区域、leaf、extension及其他STF属性范围仍Partial。
 

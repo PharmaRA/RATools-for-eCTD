@@ -48,7 +48,8 @@ internal static class FdaChecksumMatchRule
                 if (operation.Value == "delete") continue;
                 var checksum = element.Attributes.GetValueOrDefault("checksum");
                 var type = element.Attributes.GetValueOrDefault("checksum-type");
-                if (checksum is null || checksum.IsDefault || !IsMd5(checksum.Value) || type is not { IsDefault: false, Value: "md5" } || string.IsNullOrWhiteSpace(leaf.Href))
+                if (checksum is null || checksum.IsDefault || !IsMd5(checksum.Value) || type is not { IsDefault: false } ||
+                    !string.Equals(type.Value, "md5", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(leaf.Href))
                 { incomplete = true; continue; }
                 PackageReference reference;
                 try { reference = PackageLogicalPath.ResolveReference(document.LogicalPath, leaf.Href); }
@@ -81,7 +82,7 @@ internal static class FdaChecksumMatchRule
             catch (IOException) { incomplete = true; }
         }
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Compared valid MD5 declarations with captured bytes for target backbone leaves and index.xml. Missing comparison evidence and unsupported XML scopes remain unevaluated.", findings);
+            "Compared valid MD5 declarations with captured bytes for target ICH/US leaves (including referenced STF files) and index.xml. Missing comparison evidence remains unevaluated.", findings);
 
         void Compare(string declared, string actual, ValidationLocation location)
         {

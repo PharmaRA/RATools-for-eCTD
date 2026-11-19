@@ -9,6 +9,52 @@ namespace RATools.Tests.PackageValidation;
 public sealed class FdaChecksumMatchRuleTests
 {
     [Theory]
+    [InlineData("MD5", false, false)]
+    [InlineData("Md5", false, false)]
+    [InlineData("MD5", true, false)]
+    [InlineData("Md5", true, false)]
+    [InlineData("MD5", false, true)]
+    [InlineData("Md5", true, true)]
+    [InlineData("md5", false, true)]
+    [InlineData("md5", true, true)]
+    public async Task AcceptedAlgorithmNamesCompareActualBytesIncludingStf(string algorithm, bool mismatch, bool stf)
+    {
+        var result = await Inspect(mismatch ? "mismatch" : "match", algorithm: algorithm, stf: stf);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(result.Files.Checks, check => check.RuleId == "FDA47-1408").Status);
+        var check = Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1374");
+        Assert.Equal(mismatch ? CheckStatus.Fail : CheckStatus.Pass, check.Status);
+        Assert.DoesNotContain(result.Files.Checks.SelectMany(item => item.Findings), item => item.Code == "INVALID_FILE_CHECKSUM");
+        if (mismatch)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal(Md5(stf ? Encoding.UTF8.GetBytes(StfContent) : "content"u8.ToArray()), finding.Expected);
+            Assert.Contains(result.Files.Checks.SelectMany(item => item.Findings), item => item.Code == "FILE_CHECKSUM_MISMATCH");
+        }
+        if (stf)
+        {
+            var document = Assert.Single(Assert.Single(result.Lifecycle.XmlInspections).StudyTaggingFiles.Documents);
+            Assert.True(document.ReadComplete);
+            Assert.Equal(CheckStatus.Pass, document.DtdStatus);
+            Assert.DoesNotContain(document.Elements.SelectMany(element => element.Attributes.Values), attribute => attribute.Name is "checksum" or "checksum-type");
+        }
+    }
+
+    [Theory]
+    [InlineData(" MD5")]
+    [InlineData("MD5 ")]
+    [InlineData("sha256")]
+    public async Task AlgorithmComparisonDoesNotTrimOrAcceptAnotherAlgorithm(string algorithm)
+    {
+        var result = await Inspect("mismatch", algorithm: algorithm);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Files.Checks, check => check.RuleId == "FDA47-1408").Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Files.Checks, check => check.RuleId == "FDA47-1374").Status);
+        Assert.Contains(result.Files.Checks.SelectMany(item => item.Findings), item => item.Code == "INVALID_FILE_CHECKSUM");
+    }
+
+    private const string StfContent = "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'>" +
+        "<ectd:study xmlns:ectd='http://www.ich.org/ectd'><study-identifier><title>A</title><study-id>A</study-id></study-identifier><study-document/></ectd:study>";
+
+    [Theory]
     [InlineData("mismatch", CheckStatus.Fail, "FILE_CHECKSUM_MISMATCH")]
     [InlineData("match", CheckStatus.Pass, null)]
     [InlineData("upper", CheckStatus.Pass, null)]
@@ -100,11 +146,14 @@ public sealed class FdaChecksumMatchRuleTests
         Assert.Equal(new string('0', 32), finding.Actual);
     }
 
-    [Fact]
-    public async Task PartialCoverageDoesNotBecomeReadiness()
+    [Theory]
+    [InlineData("match", CheckStatus.Pass)]
+    [InlineData("mismatch", CheckStatus.Fail)]
+    [InlineData("missing", CheckStatus.NotEvaluated)]
+    public async Task CompletedRuleRetainsActualCoverageStatus(string scenario, CheckStatus expected)
     {
-        var result = await Inspect("match");
-        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage,
+        var result = await Inspect(scenario);
+        Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage,
             item => item.RuleId == "FDA47-1374").CheckStatus);
     }
 
@@ -112,20 +161,22 @@ public sealed class FdaChecksumMatchRuleTests
     public async Task IchProfileDoesNotAcquireFdaCoverage()
         => Assert.DoesNotContain((await Inspect("match", "ich-profile")).Checks, item => item.RuleId == "FDA47-1374");
 
-    private static Task<PackageDeliveryInspection> Inspect(string scenario, string variant = "valid", string? date = "2026-11-19")
+    private static Task<PackageDeliveryInspection> Inspect(string scenario, string variant = "valid", string? date = "2026-11-19",
+        string? algorithm = null, bool stf = false)
         => FdaExtraneousLeafPathRulesTests.Inspect("new", "m1/us/us-regional.xml", null,
             scenario is "history-present" or "history-mismatch" or "history-bad-leaf" or "history-file-missing" ? "history-1374" : variant, date,
             editSource: source =>
             {
                 if (variant == "truncated") return;
-                const string contentName = "m2/content.txt";
+                var contentName = stf ? "m4/study/stf-a.xml" : "m2/content.txt";
+                var content = stf ? Encoding.UTF8.GetBytes(StfContent) : "content"u8.ToArray();
                 var target = Path.Combine(source, "0001");
-                Write(Path.Combine(target, contentName), "content"u8.ToArray());
+                Write(Path.Combine(target, contentName), content);
                 if (scenario is "history-present" or "history-mismatch" or "history-bad-leaf") Write(Path.Combine(source, "0000", contentName), "historical content"u8.ToArray());
                 var indexPath = Path.Combine(target, "index.xml");
                 var xml = XDocument.Load(indexPath);
                 var leaf = xml.Descendants("leaf").Single();
-                leaf.Parent!.Name = "m2-common-technical-document-summaries";
+                leaf.Parent!.Name = stf ? "m4-nonclinical-study-reports" : "m2-common-technical-document-summaries";
                 var href = scenario switch
                 {
                     "missing" => "m2/absent.txt", "history-absent" or "history-present" or "history-mismatch" or "history-file-missing" => "../0000/m2/content.txt",
@@ -136,8 +187,8 @@ public sealed class FdaChecksumMatchRuleTests
                 leaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), href);
                 leaf.SetAttributeValue("checksum", scenario is "mismatch" or "history-mismatch" or "mixed" or "regional-reference" ? new string('0', 32) : scenario == "format" ? "wrong" :
                     scenario == "history-present" ? Md5("historical content"u8.ToArray()) :
-                    scenario == "upper" ? Md5("content"u8.ToArray()).ToUpperInvariant() : Md5("content"u8.ToArray()));
-                leaf.SetAttributeValue("checksum-type", scenario == "type" ? "sha256" : "md5");
+                    scenario == "upper" ? Md5(content).ToUpperInvariant() : Md5(content));
+                leaf.SetAttributeValue("checksum-type", algorithm ?? (scenario == "type" ? "sha256" : "md5"));
                 if (scenario == "regional-reference") leaf.Parent!.Name = "m1-administrative-information-and-prescribing-information";
                 if (scenario == "missing-checksum") leaf.SetAttributeValue("checksum", null);
                 if (scenario == "missing-operation") leaf.SetAttributeValue("operation", null);

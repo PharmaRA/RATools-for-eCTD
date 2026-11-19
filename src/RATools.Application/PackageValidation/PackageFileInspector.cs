@@ -168,7 +168,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                     }
                     var file = _files[reference!.LogicalPath!];
                     // Capture computed hashes from actual bytes and is rehashed before/after the check.
-                    if (leaf.ChecksumType != "md5" || !IsMd5(leaf.Checksum))
+                    if (!string.Equals(leaf.ChecksumType, "md5", StringComparison.OrdinalIgnoreCase) || !IsMd5(leaf.Checksum))
                         Add("FILE-MD5", CheckStatus.Fail, "INVALID_FILE_CHECKSUM", "Expected checksum-type md5 and a 32-digit hexadecimal checksum.",
                             leaf.Location with { FieldPath = "@checksum" }, "md5; 32 hexadecimal digits", leaf.ChecksumType + "; " + leaf.Checksum);
                     else if (!string.Equals(leaf.Checksum, file.Md5, StringComparison.OrdinalIgnoreCase))
