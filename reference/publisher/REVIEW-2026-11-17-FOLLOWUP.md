@@ -1,6 +1,14 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，39 条已实施、9 条部分实施、99 条待评估。仍有 108 条待完整覆盖。内部目录有 92 条。FDA 1344、1357 的提交分别为 `9776e3e`、`ec84d01`。
+当前 FDA 4.7 共 147 条，39 条已实施、10 条部分实施、98 条待评估。仍有 108 条待完整覆盖。内部目录有 93 条。FDA 1368 的提交为 `db5a57c`。
+
+**FDA 1374 实际MD5匹配（Partial）。** FDA 4.7第18页，Low，2008-03-10生效；ICH规范2-2、6-2要求各叶文件及index.xml校验值。文件引擎及交付绑定v25比较目标ICH/US叶的有效md5声明与捕获文件实际MD5，显式历史清单可提供被引用字节，但历史骨架的声明不报告为目标错误。目标index-md5.txt仅在32字节ASCII hex时与index.xml比较，不裁剪行尾。缺文件/历史、无效格式/类型、未知operation、未来/外部/query路径均保持NotEvaluated。声明大小写不影响摘要匹配；发现项保留Actual/Expected、源属性位置及文件。STF等未读取XML范围继续Partial。
+
+本机禁删入口 `scripts/local-check/native-no-delete/run-package-regression.ps1`，证据根 `.artifacts/local-check/continue-20261118/`。`fda1374-red` 构建退出0，31项中1项ICH隔离通过、30项缺规则失败。补充来源、不同历史字节、空query、operation及index编码边界后，`fda1374-candidate` 596/596通过。审查确认index读取超时会丢失此前叶失败，`fda1374-interruption-red` 4/5通过，唯一失败为Expected Fail / Actual NotEvaluated。修复为每次已知失败及时保存独立结果快照，保留原超时/显式取消控制流，并补首个失败定位和真实MD5断言。最终 `fda1374-final` **601/601通过，0失败/跳过，构建与测试退出0**（42项规则、5项异常/预算、554项既有回归）。完整筛选式及保护器路径见summary.json。源码清单摘要 `aec58c227bff8ea97121be6326366bf0d89aae3b0607d9d13a73971f2e6ad157`，8个交付输入匹配。目录93条校验通过，canonical摘要 `7642dade2dc4cd5f5102116dba32219c89cbd43e89e9f512d1188dfd8c6128ec`。子代理限定增量复审PASS。
+
+下一项1391独立检查index-md5.txt格式：恰好32个ASCII十六进制字节，尾部空格、LF/CRLF、BOM与非ASCII不接受；缺文件未评估，匹配值由1374负责。失败测试已准备，尚未实施。1362仍待STF解析证据。
+
+本批1374的red/candidate/interruption-red/final四个候选共8个build/bin、build/obj目录，确认进程树结束、路径在证据根内且无链接后送入Windows回收站，可恢复；日志、TRX、源码清单及夹具保留，没有永久删除。
 
 **FDA 1368 多余属性（Partial）。** FDA 4.7 第17页，Low，2008-03-10生效。文件引擎及交付绑定v24检查目标ICH标准章节的显式属性；完整祖先链必须符合固定节点定义，属性QName必须在对应白名单中。命名空间声明和DTD默认属性不产生多余属性发现。固定XML资产清单摘要 `71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1` 绑定节点schema及ICH DTD；子代理静态比对159个标准章节的属性名集合与有效DTD ATTLIST，未发现差异。区域、叶、扩展节点和STF范围仍未资格化，Partial报告边界保持。
 

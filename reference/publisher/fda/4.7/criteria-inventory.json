@@ -722,10 +722,10 @@
       "correctiveAction": "Corrective action is based on the underlying reason for the error. You should determine if the issue is simply a miscalculation or misapplication of a checksum; if so, no corrective action is necessary. If you determine that the incorrect file was submitted you should submit the corrected file in a future submissions with a leaf element referencing the original leaf with an operation attribute of \"Replace.\" If you believe that an error has occurred and that the file you have submitted may have become corrupt you should contact your appropriate Center representative.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-1374"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaChecksumMatchRule.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumMatchRuleTests.cs"],
+        "note": "Compares valid target backbone and index MD5 declarations with captured bytes. Missing or invalid comparison evidence and unsupported XML scopes remain unevaluated."
       }
     },
     {

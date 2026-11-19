@@ -116,7 +116,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
         string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null,
         string? omittedTargetFile = null, Action<XDocument>? editRegional = null, Action<XDocument>? editIndex = null,
-        Func<string, string>? editIndexText = null)
+        Func<string, string>? editIndexText = null, Action<string>? editSource = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -216,6 +216,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 previousXml.Save(previousIndex);
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
+            editSource?.Invoke(source);
             var snapshot = await Snapshot.Value;
             if (variant is "missing-source" or "missing-format-source" or "missing-qa-source" or "missing-ich-spec" or "missing-dtd-checksum")
             {
