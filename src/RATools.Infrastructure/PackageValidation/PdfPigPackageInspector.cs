@@ -8,7 +8,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-v1";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-v2";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -22,6 +22,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             if (document.NumberOfPages > limits.MaxPdfPages) throw new PdfInspectionLimitException("PDF page limit exceeded.");
             var navigation = new Navigation(document, limits, cancellationToken);
             navigation.Read();
+            var form = navigation.ReadForm();
             cancellationToken.ThrowIfCancellationRequested();
             var basics = PdfPigPdfInspector.InspectDocument(document, cancellationToken, inspectBookmarks: false) with
             {
@@ -30,7 +31,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             };
             cancellationToken.ThrowIfCancellationRequested();
             return new(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
-                navigation.DestinationsComplete, navigation.Reasons);
+                navigation.DestinationsComplete, navigation.Reasons, form);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -56,6 +57,8 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         private readonly HashSet<DictionaryToken> _outlines = new(ReferenceEqualityComparer.Instance);
         private int _objects;
         private bool _uriBase;
+
+        public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count).Read(document.Structure.Catalog.CatalogDictionary);
 
         public void Read()
         {
@@ -242,7 +245,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (++_objects > limits.MaxPdfObjects || depth > limits.MaxPdfDepth)
-                throw new PdfInspectionLimitException("PDF navigation object/depth limit exceeded.");
+                throw new PdfInspectionLimitException("PDF navigation/form object/depth limit exceeded.");
         }
 
         private IToken? Resolve(IToken? token)

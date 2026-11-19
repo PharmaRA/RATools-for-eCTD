@@ -18,7 +18,7 @@ public sealed class PackagePdfFacts
 {
     public PackagePdfFacts(PdfInspectionResult basics, IEnumerable<PdfNavigationLink> links,
         IEnumerable<PdfNamedDestination> destinations, bool navigationComplete, bool destinationsComplete,
-        IEnumerable<string>? incompleteReasons = null)
+        IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null)
     {
         Basics = basics with
         {
@@ -30,6 +30,7 @@ public sealed class PackagePdfFacts
         NavigationComplete = navigationComplete;
         DestinationsComplete = destinationsComplete;
         IncompleteReasons = Array.AsReadOnly((incompleteReasons ?? []).ToArray());
+        Form = form ?? PackagePdfFormFacts.Unknown;
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -37,6 +38,7 @@ public sealed class PackagePdfFacts
     public bool NavigationComplete { get; }
     public bool DestinationsComplete { get; }
     public IReadOnlyList<string> IncompleteReasons { get; }
+    public PackagePdfFormFacts Form { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

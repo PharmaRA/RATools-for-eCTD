@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-11-20",
+  "discoveryUrl": "https://www.fda.gov/about-fda/forms/new-and-updated-fda-forms",
+  "transport": "HTTPS through local 7890 proxy; default certificate validation",
+  "sources": [
+    {
+      "id": "fda-form-356h",
+      "requestedUrl": "https://www.fda.gov/media/72649/download",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-forms/fda-form-356h.pdf",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "bytes": 3865174,
+      "sha256": "2e6cbb433b8e65095500469440b2d6ffe8a6fc103a6f5eb82b5d6a3fcc67a1b6",
+      "pdfModificationDate": "D:20260504134955-04'00'",
+      "formTechnology": "AcroForm; no XFA entry",
+      "observedIdentityFields": ["db_nda_bla_nmbr", "db_appl_type_1", "db_appl_type_2", "db_appl_type_3"],
+      "note": "db_appl_type is a read-only calculated field; its value alone is not evidence of consistent visible selections. No runtime template mapping qualified yet."
+    },
+    {
+      "id": "fda-form-1571",
+      "requestedUrl": "https://www.fda.gov/media/123543/download",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-forms/fda-form-1571.pdf",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "bytes": 2152421,
+      "sha256": "1603aea6ed84bc237c7624dd6c978edfc25176e82749c86cfa1886ec96dc3de4",
+      "pdfModificationDate": "D:20260521123925-04'00'",
+      "formTechnology": "AcroForm; no XFA entry",
+      "observedIdentityFields": ["db_ind_id"],
+      "note": "db_list_IND_NDA_DMF_BLA_nmbrs identifies other applications and cannot substitute for db_ind_id. No runtime template mapping qualified yet."
+    }
+  ],
+  "coverage": "Source acquisition and generic PDF field-reader prerequisites only. FDA5 remains NotAssessed; FDA7 and all template mappings remain unqualified. The pinned FDA form-type dictionary has 11 entries; these two sources do not establish the full applicability set or historical template support."
+}

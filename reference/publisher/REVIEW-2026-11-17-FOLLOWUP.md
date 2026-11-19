@@ -1,8 +1,18 @@
 # 2026-11-17 审阅后续执行账本
 
-2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。当前先处理FDA3/4捕获前输入形态证据，尚未宣称新增规则完成。
+2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA5前置：有界AcroForm字段事实（不计规则完成）。** 新增只读字段事实，区分当前V和默认DV、缺失/空值、父子继承、PDF null、损坏/悬空引用、无表单、XFA存在但未解释。字段/间接引用和导航共用对象及深度预算、取消检查；不执行JavaScript、不合成外观、不用默认值替代填写值。缓存间接对象保证父子和循环身份一致；表单解析异常仅留下表单不完整原因，不伪造整份PDF不可读。父属性在子覆盖前验证；widget仅接受与父有效值同型等值的冗余，冲突/重复名称保持不完整。事实集合复制并只读封装；PDF inspector版本为`pdfpig-0.1.15/package-navigation-forms-v2`。
+
+归档官方356h/1571空白源及SHA，见[来源清单](official-sources/2026-11-20-forms/source-snapshot.json)。两个真实样本均通过完整字段树读取断言；356h的`db_appl_type`为只读合成值，不能单独作为一致选择证据；1571实际IND编号字段为`db_ind_id`，不能混用其他申请列表。固定表单字典共有11项，这两种来源不证明全部适用类型、历史模板、分组归属或号码规范化，**FDA5仍NotAssessed，FDA7未实施，统计不变**。
+
+本机禁删入口`run-package-regression.ps1`，资格仍为`remaining107-qualification`。`fda5-forms-red`构建退出0，19项9通过10失败；candidate为58/62，暴露同引用实例身份和异常隔离；candidate2为60/62，剩余官方样本页数widget重复属性；核对父子V/DV/Ff等值后candidate3为66/66。子代理提出null可选键及父属性被覆盖隐藏，`fda5-forms-review-red`5项1通过4失败。修复后`fda5-forms-final`三项目构建退出0，**74/74通过、0失败/跳过、测试退出0**，筛选仅PdfPigPackageFormTests/PdfPigPackageInspectorTests/PackagePdfValidatorTests，不是全套或监管资格。源码清单SHA`531bf1cfc8fc3a1b3bd8f4de63d87175d9ece8359965b7f0645ea8a020154c5c`，5/5交付输入匹配；TRX SHA`039dafa9c97ba9cce4d6d0987c1a9a08d091042b502c973667743360f5e54a08`，原件与备份一致。子代理限定增量静态复审PASS，未将业务规则或运行报告计入静态结论。六轮证据副本位于`backups/fda5-20261120/evidence/`。
+
+本批六轮共12个build/bin、build/obj在进程结束、绝对路径及无链接检查后送入Windows回收站，可恢复。首次回收受转换后的显式禁删ACE阻挡，确认目标仍在后仅解除指定目录的禁删ACE，再完成回收；未永久删除。证据和资格目录保留。
+
+下一步仍是FDA5：绑定目标regional XML实际leaf/form-type及祖先application信息，再按官方来源确定其他表单、分组和历史模板适用范围。现有PackageFileInspection引用契约尚未包含完整表单/申请绑定，不用文件名或普通文本猜测。FDA6及后续按固定队列继续。
 
 **FDA 3/4 捕获前输入形态。** FDA第4页，High，2016-05-31生效。新增认证API `POST /api/package-validation-inputs/preflight`，显式选择Directory、ZipContainer、SingleFile，要求applicationId、path、role、profileSnapshotId，可传精确standardsSnapshotId；拒绝省略role、数字枚举及rootRelativePath等未知字段。完整输入范围由请求path确定，不强造序列根。直接文件触发3，含一个文件的目录/ZIP不触发3；完整无文件容器触发4，零字节文件仍计为文件。损坏ZIP、限额、路径/链接拒绝、取消/超时、扫描变化保持原错误，不构造空包结论。
 
