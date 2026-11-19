@@ -66,11 +66,15 @@ public sealed class FdaChecksumTypeRuleTests
     public async Task IncompleteRegionalCoverageCannotPass()
         => Assert.Equal(CheckStatus.NotEvaluated, Assert.Single((await Inspect("md5", variant: "unread")).Files.Checks, item => item.RuleId == "FDA47-1408").Status);
 
-    [Fact]
-    public async Task PartialCoverageDoesNotBecomeReadiness()
+    [Theory]
+    [InlineData("md5", CheckStatus.Pass)]
+    [InlineData("MD5", CheckStatus.Pass)]
+    [InlineData("sha256", CheckStatus.Fail)]
+    [InlineData(null, CheckStatus.NotEvaluated)]
+    public async Task CompletedRuleRetainsActualCoverageStatus(string? type, CheckStatus expected)
     {
-        var result = await Inspect("md5");
-        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == "FDA47-1408").CheckStatus);
+        var result = await Inspect(type);
+        Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == "FDA47-1408").CheckStatus);
     }
 
     [Fact]

@@ -1,10 +1,14 @@
 # 2026-11-17 审阅后续执行账本
 
+1408本批两轮四个build/bin、build/obj已检查终态、路径及链接后送入Windows回收站，可恢复；原始证据及备份保留。
+
 1374本批三轮六个build/bin、build/obj已在终态、路径及链接检查后送入Windows回收站，可恢复；日志、TRX、源码清单及证据副本保留。
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，43 条已实施、13 条部分实施、91 条待评估。仍有 104 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，44 条已实施、12 条部分实施、91 条待评估。仍有 103 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1408：固定支持范围收口，Implemented。** 1374已提交`7c9edc4`。ICH/US leaf的算法声明（含引用STF文件的leaf）已有完整遍历，固定STF DTD内无checksum-type，撤回旧泛化欠账；检测逻辑不变，OrdinalIgnoreCase且不trim，缺声明/未读骨架保留NE。新增报告Coverage四例先红后绿：`fda1408-completion-red`4项2过2败，失败为md5/MD5的Pass被Partial屏蔽。`fda1408-completion-final`三项目构建退出0，**214/214通过、0失败/跳过、测试退出0**，仅指定八类checksum/目录回归。源码清单SHA`d9245a9d1758835975c22bf83ec1a26cb4da25e159c04f7ec0c660376b850ed9`，测试/catalog/规则依赖3/3匹配；inventory静态核对，sha文件独立校验。目录100条canonical`9d88e6757c1c4e342fb09c2e35749354da86458491c686ce9c0e2372418133c9`。TRX SHA`1bc70d6dd9a5808a73325f38d2028e99783b1b22cc1cbc70ba54e7a5b3e64023`原件/备份一致；限定只读审查通过，证据副本`backups/fda1408-completion-20261120/evidence/`。只升级1408，不代表全profile或Formal readiness。
 
 **FDA1374：算法名称一致性修复及范围收口，Implemented。** 原1408接受MD5/Md5而1374及通用FILE-MD5仅接受小写，已先复现再统一为OrdinalIgnoreCase，不trim、不接受其他算法。固定ICH/US DTD在leaf声明checksum/type/operation；STF doc-content无这些属性，STF文件自身由index叶摘要比较，不能继续保留无依据的“STF内部checksum未覆盖”欠账。显式历史、实际字节、index-md5、缺证据/非法声明/预算中断语义不变。file/delivery分量v37。只升级1374；1408/1426按序另项收口，1425的index-md5遗漏归责仍待核对，通用INDEX-MD5已有缺文件诊断不自动证明FDA编号映射。
 
