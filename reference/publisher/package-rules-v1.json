@@ -2902,6 +2902,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaAttributeWhitespaceRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1357",
+      "authorityRuleId": "1357",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 16, error 1357; pinned ICH DTD heading attribute declarations",
+      "effectiveFrom": "2008-03-10",
+      "title": "Required attribute value omitted in M2 - M5",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target ICH M2.3.S, M3.2.S, M2.7.3 and M5.3.5 heading attributes.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Checks required substance/manufacturer/indication values on exact ICH heading chains against the pinned DTD. STF attribute coverage remains unqualified.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "reference/dtd/ich-ectd-3-2.dtd"],
+      "externalComparisonEvidence": []
     }
   ]
 }
