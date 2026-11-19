@@ -3124,6 +3124,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1445",
+      "authorityRuleId": "1445",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 20, error 1445; fixed US M1 3.3 DTD root declaration",
+      "effectiveFrom": "2008-03-10",
+      "title": "Omitted DTD version in US regional XML",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Explicit dtd-version declarations on all target selected US regional roots.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks every selected regional root, including delivered default and referenced custom files. DTD defaults do not supply explicit versions. Known omissions survive other unread evidence; incomplete selection or unavailable roots cannot pass. Historical and unselected files are excluded.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalDtdVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaRegionalDtdVersionEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalDtdVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaRegionalDtdVersionEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegionalDtdVersionRule.cs", "reference/dtd/us-regional-v3-3.dtd"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

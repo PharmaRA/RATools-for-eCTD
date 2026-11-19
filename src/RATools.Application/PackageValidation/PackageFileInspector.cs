@@ -111,7 +111,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             // Retain an explicit incomplete result if the asynchronous checksum read times out.
             _officialFileNames = _officialFileNames.Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId is FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId or FdaIndexDtdVersionRule.RuleId)
+                .Where(rule => rule.InternalRuleId is FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId or FdaIndexDtdVersionRule.RuleId or FdaRegionalDtdVersionRule.RuleId)
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "The checksum inspection did not complete."))).ToArray();
             var checksum = await FdaChecksumMatchRule.InspectAsync(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum).ConfigureAwait(false);
             if (checksum is not null) RetainChecksum(checksum);
@@ -121,6 +121,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var indexVersion = FdaIndexDtdVersionRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (indexVersion is not null) RetainChecksum(indexVersion);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var regionalVersion = FdaRegionalDtdVersionRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (regionalVersion is not null) RetainChecksum(regionalVersion);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -420,6 +423,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaIndexDtdVersionRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaIndexDtdVersionRule.RuleId, CheckStatus.NotEvaluated,
                     "The target index version inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaRegionalDtdVersionRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaRegionalDtdVersionRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaRegionalDtdVersionRule.RuleId, CheckStatus.NotEvaluated,
+                    "The target regional version inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 
