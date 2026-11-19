@@ -64,8 +64,11 @@ internal static class FdaExtraneousHeadingAttributeRule
                 }
             }
         }
+        var stf = FdaStfExtraneousCategoryRule.Inspect(target, xml, context, rule, remaining, cancellationToken);
+        findings.AddRange(stf.Findings);
+        incomplete |= stf.Status == CheckStatus.NotEvaluated;
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Checked explicit attributes on qualified standard ICH heading chains. Regional, leaf, extension and STF attribute coverage remains unqualified.", findings);
+            "Checked explicit attributes on qualified standard ICH heading chains. " + stf.Reason + " Regional, leaf and extension attribute coverage remains unqualified.", findings);
     }
 
     private static bool HasQualifiedAncestors(ParsedXmlElement element, SectionDefinition definition,

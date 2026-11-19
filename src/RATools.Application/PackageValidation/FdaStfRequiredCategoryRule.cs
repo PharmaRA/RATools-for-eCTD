@@ -100,7 +100,7 @@ internal static class FdaStfRequiredCategoryRule
 
     private static bool Plain(ParsedXmlElement element, string name) => element.LocalName == name && element.NamespaceUri.Length == 0;
 
-    private static string? QualifiedHeading(ParsedPackageLeaf leaf, Dictionary<string, ParsedXmlElement> elements,
+    internal static string? QualifiedHeading(ParsedPackageLeaf leaf, Dictionary<string, ParsedXmlElement> elements,
         PackageStandardsContext context, CancellationToken token)
     {
         if (!elements.TryGetValue(leaf.NodePath, out var element) || element.ParentPath is not { } parent || !elements.TryGetValue(parent, out var heading)) return null;

@@ -4,6 +4,12 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、14 条部分实施、91 条待评估。仍有 105 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**FDA1368：STF多余分类增量，继续Partial。** 完整且DTD有效的目标index按实际叶引用建立STF允许分类并集，复用精确章节祖先检查并支持node-extension；不按物理目录判断章节。相关query/fragment等不确定引用使对应STF未评估，无法解析而不能定位的引用使整体允许集合未知，不能据不完整归属误报多余。已知ich分类不在允许集合时定位Info/Fail；duration/us仅重复剂量及长期致癌性示例范围可识别，其他duration、realm/未知分类保持未评估。历史引用不扩大目标集合，原heading失败及另一确定STF失败保留，共享剩余额度。file/delivery分量v36；区域、leaf、extension及其他STF属性范围仍Partial。
+
+`fda1368-stf-red`27项10过17败；candidate为104/104。补路径级uncertain与全局unresolved、实际有效历史不扩大target、heading失败保留、余额1/0后candidate2为111/111；子代理限定增量复审PASS。更新目录后`fda1368-stf-final`三项目构建退出0，**269/269通过、0失败/跳过、测试退出0**，仅指定1368/STF/1357/1362/1344/utility/目录类，非全套。源码清单SHA`7afd667ad34697d1dedf2b41c764a70411b5b909a43cc9be41f844773a88e7f7`，7/7输入匹配；TRX SHA`c24b3252b03421124e97d30d8f048bcefac44f586afcd6596f83ccdcdb27d404`原件/备份一致。目录100条独立校验通过，canonical`bc6663741aa7520a64b71067f5d3598091cae73e4a129180157cc40d99e1935a`。证据副本`backups/fda1368-stf-20261120/evidence/`；四轮8个bin/obj已检查后送回收站，可恢复。
+
+下一项1374：已确认1408接受MD5算法名称大小写变化，但1374与通用FILE-MD5仍只接受小写，需先复现再修复一致性。STF DTD的doc-content没有checksum/operation属性，引用的STF文件摘要由index叶承担；不能凭“STF未检查checksum”保留不存在的开发要求。对完整覆盖范围仍须核对真实声明位置。
+
 1362本批三轮6个build/bin、build/obj经进程、绝对路径及链接检查后送入Windows回收站，可恢复；日志、TRX、源码清单和证据副本保留。
 
 **FDA1362：STF已知category重复，Partial。** FDA第17页，Medium，2008-03-10生效。独立检查每份目标STF的唯一study-identifier下直接category：species/route-of-admin/type-of-control限ich，duration限us。从第二次及后续出现定位Warning/Fail，文本值相同或不同均不改变重复身份；每文档重置集合，不串历史。未知name/realm、截断、缺来源/日期保持未评估；file-tag/property不作为study category。共享剩余finding预算，已知重复优先于其他未完成证据。file/delivery分量v35；其他业务属性及区域变体未资格，规则从NotAssessed进入Partial，不减少待完整覆盖数。

@@ -706,7 +706,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1368"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaExtraneousHeadingAttributeRule.cs", "tests/RATools.Tests/PackageValidation/FdaExtraneousHeadingAttributeRuleTests.cs"],
-        "note": "Checks explicit standard ICH heading attributes against the pinned DTD/schema. Regional, leaf, extension and STF scopes remain unqualified."
+        "note": "Checks explicit standard ICH heading attributes and known STF categories against the union of actual qualified target section references. Unknown placement, realms and duration outside qualified examples remain unevaluated. Regional, leaf, extension and other STF attribute scopes remain unqualified; status stays Partial."
       }
     },
     {
