@@ -2968,6 +2968,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaChecksumMatchRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaChecksumMatchRule.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1391",
+      "authorityRuleId": "1391",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 18, error 1391",
+      "effectiveFrom": "2008-03-10",
+      "title": "Invalid checksum formatting in index-md5.txt",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target sequence index-md5.txt byte format.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires exactly 32 ASCII hexadecimal bytes, with no whitespace or encoding marker. Missing or unreadable target files remain unevaluated; checksum matching is separate.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaIndexChecksumFormatRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaIndexChecksumFormatRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaIndexChecksumFormatRule.cs"],
+      "externalComparisonEvidence": []
     }
   ]
 }

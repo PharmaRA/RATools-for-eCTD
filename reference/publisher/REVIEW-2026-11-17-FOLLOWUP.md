@@ -1,6 +1,16 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，39 条已实施、10 条部分实施、98 条待评估。仍有 108 条待完整覆盖。内部目录有 93 条。FDA 1368 的提交为 `db5a57c`。
+当前 FDA 4.7 共 147 条，40 条已实施、10 条部分实施、97 条待评估。仍有 107 条待完整覆盖。内部目录有 94 条。FDA 1374 的提交为 `0249ca5`。
+
+**FDA 1391 index-md5.txt格式。** FDA 4.7第18页，Low，2008-03-10生效。文件引擎及交付绑定v26要求目标index-md5.txt恰好32个ASCII十六进制字节；允许大小写，拒绝尾部空格、LF/CRLF、BOM、UTF-16及非ASCII字节。仅判断格式，不比较摘要值。捕获长度非32时直接判格式失败，32时最多读取33字节验证内容和EOF；缺文件、IO错误或流与捕获长度不一致保留NotEvaluated，用户取消传播。检查独立于XML是否已解析完整；不借用历史文件。1374与1391分别预置未完成结果，共享预算并按RuleId替换结果。
+
+本机禁删入口 `scripts/local-check/native-no-delete/run-package-regression.ps1`，证据根 `.artifacts/local-check/continue-20261118/`。`fda1391-red` 构建退出0，25项中1项ICH隔离通过、24项缺规则失败。首候选因旧资格build.json缺失而在构建前终止；未绕过禁删保护。补充XML未完成时的32字节读取、分段流、短流、额外字节、IO及取消后，`fda1391-candidate2` **637/637通过，0失败/跳过，构建与测试退出0**（36项1391、此前601项回归）。完整筛选式及保护器路径见summary.json。源码清单摘要 `70179103559266c41b91a18a55eda56c6cf6d016fd05ce665be3daddcb084d6b`，6个交付输入匹配。目录94条校验通过，canonical摘要 `9adbe9352c3bb13fe048f7d742a94b31e7aa070efcfe6bb9b5e424fc5da26fcf`。子代理限定静态审查PASS。
+
+**证据可用性与资格恢复。** 1391执行期间发现原path-qualification只剩fixture-retention，随后此前已读取的fda1374-final也只剩fixtures，原始回执缺失原因未查明；本轮明确回收目标仅为各候选build/bin、build/obj。1374的601项终态及摘要已于缺失前核验，不能再宣称其原路径回执仍可复读。使用现有build.ps1、verify.ps1在新目录 `path-qualification-20261119-r2` 重新资格化：8类进程探针均符合预期，14项移动路径、18项夹具回收检查通过；verification摘要 `001e8078e78223b0b0d39e4d812669dcba72913f3a9bced3732063ea5c57a829`。本次637项重新执行此前601项范围，未以旧结果替代。新资格三份回执及candidate2的构建/测试日志、进程回执、summary、TRX、源码清单复制至 `backups/fda1391-20261119/evidence/`；TRX两处摘要一致：`aa19d4fbd8a98062cd0c29c2a3790b9b8408d5dbfffe4fdafd398f8f2cc7e18a`。
+
+下一项1408（无效checksum-type）已核对FDA第19页，与1425缺失checksum、1426 delete多带checksum分别处理；1408/1425生效于2008-03-10，1426生效于2013-04-30。三项均尚未实施，后续继续先复现、定向回归、只读审查和独立提交。1362仍待STF解析。
+
+1391子代理终态复审确认637/637、退出码0及源码清单摘要，交付PASS。candidate2的build/bin和build/obj在进程、路径和链接检查后送入Windows回收站，可恢复；red部分回执也已缺失，其剩余build/bin保留待后续核对，未扩大清理。新资格目录和证据备份继续保留。
 
 **FDA 1374 实际MD5匹配（Partial）。** FDA 4.7第18页，Low，2008-03-10生效；ICH规范2-2、6-2要求各叶文件及index.xml校验值。文件引擎及交付绑定v25比较目标ICH/US叶的有效md5声明与捕获文件实际MD5，显式历史清单可提供被引用字节，但历史骨架的声明不报告为目标错误。目标index-md5.txt仅在32字节ASCII hex时与index.xml比较，不裁剪行尾。缺文件/历史、无效格式/类型、未知operation、未来/外部/query路径均保持NotEvaluated。声明大小写不影响摘要匹配；发现项保留Actual/Expected、源属性位置及文件。STF等未读取XML范围继续Partial。
 

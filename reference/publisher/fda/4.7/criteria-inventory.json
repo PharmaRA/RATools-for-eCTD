@@ -741,10 +741,10 @@
       "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure the proper MD5 checksum format is used.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1391"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaIndexChecksumFormatRule.cs", "tests/RATools.Tests/PackageValidation/FdaIndexChecksumFormatRuleTests.cs"],
+        "note": "Checks target index-md5.txt for exactly 32 ASCII hexadecimal bytes. Missing or unreadable files remain unevaluated; checksum matching is separate."
       }
     },
     {

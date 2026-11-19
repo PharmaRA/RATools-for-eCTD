@@ -96,13 +96,16 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             // Retain an explicit incomplete result if the asynchronous checksum read times out.
             _officialFileNames = _officialFileNames.Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId == FdaChecksumMatchRule.RuleId)
+                .Where(rule => rule.InternalRuleId is FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId)
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "The checksum inspection did not complete."))).ToArray();
             var checksum = await FdaChecksumMatchRule.InspectAsync(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum).ConfigureAwait(false);
             if (checksum is not null) RetainChecksum(checksum);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var indexFormat = await FdaIndexChecksumFormatRule.InspectAsync(input.Packages.Target, lifecycle.ProfileSnapshotId, context, remaining, cancellationToken).ConfigureAwait(false);
+            if (indexFormat is not null) RetainChecksum(indexFormat);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
-                .Where(check => check.RuleId != FdaChecksumMatchRule.RuleId).Append(result).ToArray();
+                .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
         }
 
         private void Add(string rule, CheckStatus status, string code, string message, ValidationLocation location,
@@ -388,7 +391,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 return new RuleCheckResult(rule, status, reason, findings);
             });
             var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
-                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170" or FdaFileSizeRule.RuleId or FdaFileExtensionRule.RuleId or FdaUnreferencedFileRule.RuleId or FdaUtilityFileRule.RuleId or FdaDuplicateRegionalRule.RuleId or FdaRequiredUtilityRules.PresenceRuleId or FdaRequiredUtilityRules.ChecksumRuleId or FdaFormOperationRule.RuleId or FdaMissingReferencedFileRule.RuleId or FdaAttributeWhitespaceRule.RuleId or FdaRequiredHeadingAttributeRule.RuleId or FdaExtraneousHeadingAttributeRule.RuleId or FdaChecksumMatchRule.RuleId or FdaModifiedLeafTargetRule.RuleId or FdaLeafOperationRules.RuleId or FdaEmptyDirectoryRules.RuleId or FdaRegionalFilePresence.RuleId)
+                .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170" or FdaFileSizeRule.RuleId or FdaFileExtensionRule.RuleId or FdaUnreferencedFileRule.RuleId or FdaUtilityFileRule.RuleId or FdaDuplicateRegionalRule.RuleId or FdaRequiredUtilityRules.PresenceRuleId or FdaRequiredUtilityRules.ChecksumRuleId or FdaFormOperationRule.RuleId or FdaMissingReferencedFileRule.RuleId or FdaAttributeWhitespaceRule.RuleId or FdaRequiredHeadingAttributeRule.RuleId or FdaExtraneousHeadingAttributeRule.RuleId or FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId or FdaModifiedLeafTargetRule.RuleId or FdaLeafOperationRules.RuleId or FdaEmptyDirectoryRules.RuleId or FdaRegionalFilePresence.RuleId)
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official));
         }
