@@ -20,6 +20,20 @@ internal sealed record BundledOfficialSources(
     internal static readonly ValidationRuleSource IchDtdChecksum = new("ich-ectd-dtd-md5", RuleSourceKind.RegulatorySpecification, "3.2",
         "https://admin.ich.org/sites/default/files/inline-files/ich-ectd-3-2_md5_0.zip",
         "40f9a3f83d6ff5de7b4a46793ca2e1c4e9bab7df30b4ba2c79f8ffcf4b512224", "Verified");
+    internal static readonly ValidationRuleSource StfSpecification = new("fda-stf-specification", RuleSourceKind.RegulatorySpecification, "2.6.1",
+        "https://www.fda.gov/media/159383/download?attachment", "63132c3751682193f6f13db125ee03583b740680851c0f0e6412561438b482da", "Verified");
+    internal static readonly ValidationRuleSource StfDtdChecksum = new("ich-stf-dtd-md5", RuleSourceKind.RegulatorySpecification, "2.2",
+        "https://admin.ich.org/sites/default/files/inline-files/ich-stf-v2-2_md5.zip", "6f617b2f643cc9d8150d7dbfc73d0c2e02c3d080fe80ab8e3da7cbfe6aad32b5", "Verified");
+    internal static readonly ValidationRuleSource StfStyleChecksum = new("ich-stf-style-md5", RuleSourceKind.RegulatorySpecification, "2.3",
+        "https://admin.ich.org/sites/default/files/inline-files/ich-stf-stylesheet-2-3-md5.zip", "bddd62ebe1941cc698a608878eb32fc73cab17dd15f62f3bd6e43c8a821e56fa", "Verified");
+    internal static readonly ValidationRuleSource StfPage = new("ich-stf-page", RuleSourceKind.RegulatorySpecification, "July 2024 / valid-values 6.0",
+        "https://admin.ich.org/api/v1/nodes?loadEntities%5B%5D=paragraph&alias=%2Fpage%2Fstudy-tagging-file-specification-and-related-files",
+        "e3f387d2833806f90158aa33aaa862a0efd72faf82f8543a1ad0696338423a51", "Verified");
+    internal static readonly ValidationRuleSource StfValues = new("ich-stf-valid-values", RuleSourceKind.RegulatorySpecification, "6.0",
+        "https://admin.ich.org/sites/default/files/inline-files/eCTD_v.3.2_Valid_Values_v6.0.zip",
+        "dd750e6c9f17aaf2797c553150c67ffeb483f5491fb2ed7df76e26b933037b80", "Verified");
+    // Source acquisition was 2026-11-20 Asia/Shanghai, still 2026-11-19 UTC.
+    private static readonly DateOnly StfSourcesAcquiredOn = new(2026, 11, 19);
 
     public static BundledOfficialSources? Capture(StandardsProfile profile, DateOnly captureDate)
     {
@@ -72,6 +86,20 @@ internal sealed record BundledOfficialSources(
             resources.Add(checksum);
             provenance.Add(new(IchDtdChecksum.Url, IchDtdChecksum.Version, IchQaAcquiredOn, IchQaAcquiredOn, IchDtdChecksum.VerificationStatus, checksum.Sha256));
         }
+        if (captureDate >= StfSourcesAcquiredOn && selected.Any(item => item.GetProperty("id").GetString() == "fda-criteria"))
+            foreach (var (source, path, media) in new[]
+            {
+                (StfSpecification, "fda-stf-specification.pdf", "application/pdf"),
+                (StfDtdChecksum, "ich-stf-v2-2-md5.zip", "application/zip"),
+                (StfStyleChecksum, "ich-stf-stylesheet-2-3-md5.zip", "application/zip"),
+                (StfPage, "ich-stf-page.json", "application/json"),
+                (StfValues, "valid-values-v6.zip", "application/zip")
+            })
+            {
+                var resource = ReadResource("official-" + source.Id, "OfficialSource", "official-sources/" + path, media, source.Id, source.Sha256!);
+                resources.Add(resource);
+                provenance.Add(new(source.Url, source.Version, StfSourcesAcquiredOn, StfSourcesAcquiredOn, source.VerificationStatus, resource.Sha256));
+            }
         return new(resources, provenance.OrderBy(source => source.SourceUrl, StringComparer.Ordinal).ToArray(),
             new("Sources", "Verified", "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.", binding.Sha256));
     }

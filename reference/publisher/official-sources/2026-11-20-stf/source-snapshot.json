@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "observedOn": "2026-11-20",
+  "acquiredOnUtc": "2026-11-19",
   "discoveryRepositoryPath": "reference/publisher/official-sources/2026-11-09/fda-standards.html",
   "transport": "HTTPS through local 7890 proxy; default certificate validation",
   "sources": [
@@ -39,5 +40,50 @@
       "sha256": "9131de4db31b5c74d6559e8e92f0aecb82bbd45f7783b8adfead826dbb943023"
     }
   ],
-  "coverage": "STF discovery and pinned parsing prerequisites only; no FDA rule is promoted by source acquisition. Computed MD5 is not an independently published checksum. STF applicability, regional value lists and business rules require separate evidence."
+  "additionalSources": [
+    {
+      "id": "ich-stf-dtd-md5", "version": "2.2",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/ich-stf-v2-2_md5.zip",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-v2-2-md5.zip",
+      "httpStatus": 200, "bytes": 182,
+      "sha256": "6f617b2f643cc9d8150d7dbfc73d0c2e02c3d080fe80ab8e3da7cbfe6aad32b5",
+      "publishedMd5": "0972c10a4dadf3df5d2f41b2026a4a5c", "matchesArchivedBytes": true
+    },
+    {
+      "id": "ich-stf-style-md5", "version": "2.3",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/ich-stf-stylesheet-2-3-md5.zip",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-stylesheet-2-3-md5.zip",
+      "httpStatus": 200, "bytes": 248,
+      "sha256": "bddd62ebe1941cc698a608878eb32fc73cab17dd15f62f3bd6e43c8a821e56fa",
+      "publishedMd5": "92bfeb4cb358a4af786317a0da2309c5", "matchesArchivedBytes": true
+    },
+    {
+      "id": "ich-stf-page", "version": "July 2024 / valid-values 6.0",
+      "requestedUrl": "https://admin.ich.org/api/v1/nodes?loadEntities%5B%5D=paragraph&alias=%2Fpage%2Fstudy-tagging-file-specification-and-related-files",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-page.json",
+      "httpStatus": 200, "bytes": 7097,
+      "sha256": "e3f387d2833806f90158aa33aaa862a0efd72faf82f8543a1ad0696338423a51",
+      "explicitVersion6Md5": "797b4110bddb6d3cb4ad3869ffccb53c"
+    },
+    {
+      "id": "ich-stf-valid-values", "version": "6.0",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/eCTD_v.3.2_Valid_Values_v6.0.zip",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/valid-values-v6.zip",
+      "httpStatus": 200, "bytes": 1747,
+      "sha256": "dd750e6c9f17aaf2797c553150c67ffeb483f5491fb2ed7df76e26b933037b80",
+      "entry": "eCTD_v.3.2_Valid_Values_v6.0/valid-values.xml", "entryBytes": 7803,
+      "entryMd5": "797b4110bddb6d3cb4ad3869ffccb53c", "matchesVersionedWebpage": true,
+      "fdaSupportBegins": "2025-02-18"
+    },
+    {
+      "id": "ich-stf-valid-values-md5-unmatched",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/valid-values-md5_0.zip",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/valid-values-md5.zip",
+      "httpStatus": 200, "bytes": 172,
+      "sha256": "5bd0f65449826448ae979bae3dfea679afa1345e26fdeb1832da7065e96ffe2f",
+      "containedMd5": "301aaeb6b0fac8873a668fb4cbade517",
+      "decision": "Archived conflict evidence only; not used as the version 6.0 checksum or embedded as an authorizing source."
+    }
+  ],
+  "coverage": "Conditional utility checks and STF parsing evidence; FDA1119/1130 remain Partial. Published DTD/style checksums match the originals. Version 6.0 values match the explicitly versioned webpage, not its mismatching linked checksum ZIP. Historical variants and creation-time ICH stylesheet remain unqualified."
 }

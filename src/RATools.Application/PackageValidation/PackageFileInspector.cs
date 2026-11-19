@@ -82,7 +82,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining -= utilities.Sum(check => check.Findings.Count);
             var duplicates = FdaDuplicateRegionalRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= duplicates.Sum(check => check.Findings.Count);
-            var requiredUtilities = FdaRequiredUtilityRules.Inspect(input.Packages.Target, lifecycle.ProfileSnapshotId, context, remaining, cancellationToken).ToArray();
+            var requiredUtilities = FdaRequiredUtilityRules.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= requiredUtilities.Sum(check => check.Findings.Count);
             var forms = FdaFormOperationRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= forms.Sum(check => check.Findings.Count);

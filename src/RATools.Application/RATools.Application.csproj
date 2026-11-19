@@ -63,6 +63,11 @@
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ich-specification.pdf" LogicalName="RATools.OfficialSources.ich-specification" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-18\ich-ectd-v3.2-qa-v1.33.zip" LogicalName="RATools.OfficialSources.ich-ectd-qa" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-18\ich-ectd-main-dtd-md5.zip" LogicalName="RATools.OfficialSources.ich-ectd-dtd-md5" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\fda-stf-specification.pdf" LogicalName="RATools.OfficialSources.fda-stf-specification" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-v2-2-md5.zip" LogicalName="RATools.OfficialSources.ich-stf-dtd-md5" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-stylesheet-2-3-md5.zip" LogicalName="RATools.OfficialSources.ich-stf-style-md5" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-page.json" LogicalName="RATools.OfficialSources.ich-stf-page" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\valid-values-v6.zip" LogicalName="RATools.OfficialSources.ich-stf-valid-values" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ema-harmonised-guidance.pdf" LogicalName="RATools.OfficialSources.ema-harmonised-guidance" />
   </ItemGroup>
 </Project>

@@ -4,6 +4,16 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**FDA1119/1130：STF条件性utility增量，继续Partial。** 在原ICH主DTD检查上聚合实际目标STF的DTD2.2、声明的本地样式和受支持样式所证明的valid-values依赖。1119定位缺失文件；1130比较有版本身份的DTD2.2/样式2.3发布MD5，标准2.3文件损坏Fail、精确2.3字节的别名可识别、未知旧版/别名保持NotEvaluated。valid-values仅认可精确6.0字节，其他版本/不明字节未评估，不冒称新版本损坏；日期、完整发现、来源及共享finding预算分别保留，独立已知失败不被其他缺证据覆盖。文件/交付分量v32。
+
+归档ICH STF官方内容API、valid-values6 ZIP及三份checksum ZIP：DTD MD5`0972c10a4dadf3df5d2f41b2026a4a5c`、样式MD5`92bfeb4cb358a4af786317a0da2309c5`与原件一致；网页明确发布的6.0 MD5`797b4110bddb6d3cb4ad3869ffccb53c`与6.0原件一致，但其链接checksum ZIP内容为`301aaeb6b0fac8873a668fb4cbade517`。后者只归档冲突证据，不用于授权；采用精确版本网页证据及FDA标准页6.0支持日期2025-02-18。五项新权威来源冻结至快照并校验原件SHA；获取时间本地11月20日对应UTC11月19日，Capture与provenance统一UTC，不混同规则/版本生效日期。样式2.3 checksum门控不早于2017-06-01。
+
+本机禁删回归`fda1119-1130-stf-red`15项2过13败；candidate为30/38，八项因UTC获取日期门控晚一天导致未评估。纠正实际UTC日期后review-red为15/17，剩两项准确复现未知样式误报2.3损坏；source-red为0/1，复现缺依赖来源仍报values缺失。修复后candidate2为104/104；更新目录Partial说明及摘要后final三项目构建退出0，**172/172通过、0失败/跳过、测试退出0**，仅指定utility/STF/1368/目录/快照/路径测试类，排除Postgres，不是全套。源码清单SHA`70af23a1a77b739e026e52f2c6f3f595d26936c36c6201dd4731958cdd79472f`，10/10输入匹配；TRX SHA`24406db44df30668b3e76cc8056545f5d1bf2840ddc414a084e2ff9e834d2e58`原件/备份一致。目录99条独立校验通过，canonical`826397cefcc901453ea3476f448ec5c490b54e08eb66d013e41f18356c5bb8a0`。子代理限定增量复审PASS；六轮证据副本`backups/fda1119-1130-20261120/evidence/`。
+
+本批六次构建的12个bin/obj经进程、路径及链接检查后送入Windows回收站，可恢复；回执/TRX/源码清单与官方来源继续保留。
+
+1119/1130仍缺编制时实际使用的ICH样式版本、历史/其他支持文件变体及未解析条件的完整资格；不能把本批局部Pass升为全规则Implemented。下一项1154需要跨申请历史，而现有HistoryBaselineManifest/PackageInputSet仅绑定单ApplicationId；此依赖保留，再按固定队列核对1238/1255/1314及1344的剩余范围。
+
 **STF共同前置：独立发现与固定DTD解析（不计规则完成）。** 为1119/1130条件性支持文件及后续STF规则补入`PackageXmlInspection.StudyTaggingFiles`，不混入ICH/US/EU Backbones或生命周期节点。仅US profile采用；受限扫描目标XML根及STF DOCTYPE，非stf命名的真实study仍识别；缺引用、STF命名错误根、声明与根冲突、损坏、内部DTD、未知/远程DTD和错误版本均不证明完整。Probe保留DOCTYPE证据、resolver=null，正式读取只用同一快照的固定DTD；省略显式xmlns及dtd-version的DTD默认属性仍可读取，原始显式值保持独立。旧快照无STF资产返回STF_ASSET_UNAVAILABLE，不借Current；声明资产但字节缺失由原快照完整性闸拒绝。Probe和正式reader共享节点/发现预算与取消；STF/骨架共享文档数限额，读取中取消传播。新XML引擎`package-xml-inspector-stf-v3`，交付v5。
 
 归档STF规范2.6.1、DTD2.2和样式2.3，来源清单见`official-sources/2026-11-20-stf/source-snapshot.json`。DTD解包字节SHA`e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f`；与样式一起进入快照资产。新manifest SHA`09f527b1a36fecda6a24bc58239ad7906f4d113346190ce2c9bc30425590f001`，仅增加两项，原ICH schema未变。1368原闸固定旧manifest导致19项6过13败，已复现后仅允许两个已核验摘要，保留历史兼容。规则目录仍99条，独立canonical校验`9fbfc91ab2c9b1f5e5d2301c1551a3593c75bd1f4346783f8c666be59b4a5917`通过。

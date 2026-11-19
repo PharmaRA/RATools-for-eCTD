@@ -296,7 +296,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1119"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
-        "note": "Checks presence of the required ICH backbone DTD in the target sequence. Regional utility and conditional instance requirements remain open."
+        "note": "Checks ICH main DTD and observed conditional STF DTD/declared stylesheet/qualified valid-values dependency. Creation-time ICH stylesheet and unresolved or historical utility variants remain open; status remains Partial."
       }
     },
     {
@@ -315,7 +315,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1130"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-main-dtd-md5.zip"],
-        "note": "Compares the delivered ICH main DTD with the ICH published MD5. Regional and conditional support file checksums remain open."
+        "note": "Checks published MD5 for ICH main DTD, identified STF DTD 2.2 and stylesheet 2.3, and recognizes valid-values 6.0 using the explicitly versioned official webpage checksum. Unknown variants and creation-time ICH stylesheet remain open; status remains Partial."
       }
     },
     {

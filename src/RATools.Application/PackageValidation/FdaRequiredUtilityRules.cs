@@ -13,16 +13,21 @@ internal static class FdaRequiredUtilityRules
         "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
         "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0", "Verified");
 
-    internal static IEnumerable<RuleCheckResult> Inspect(ICapturedPackageInput target, string profile, PackageStandardsContext context,
+    internal static IEnumerable<RuleCheckResult> Inspect(ICapturedPackageInput target, PackageLifecycleInspection lifecycle, PackageStandardsContext context,
         int remaining, CancellationToken cancellationToken)
     {
         var expectedPath = target.Manifest.SequenceNumber + "/" + MainDtdPath;
         var file = target.Manifest.Files.SingleOrDefault(item => item.LogicalPath == expectedPath);
-        foreach (var rule in context.Catalog.ForProfile(profile).Where(item => item.InternalRuleId is PresenceRuleId or ChecksumRuleId))
+        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(item => item.InternalRuleId is PresenceRuleId or ChecksumRuleId))
         {
             var check = Evaluate(rule, target, file, expectedPath, context, remaining, cancellationToken);
             remaining -= check.Findings.Count;
-            yield return check;
+            if (check.Status == CheckStatus.NotApplicable) { yield return check; continue; }
+            var conditional = FdaStfUtilityRules.Inspect(rule, target, lifecycle, context, remaining, cancellationToken);
+            remaining -= conditional.Findings.Count;
+            var status = check.Status == CheckStatus.Fail || conditional.Status == CheckStatus.Fail ? CheckStatus.Fail :
+                check.Status == CheckStatus.NotEvaluated || conditional.Status == CheckStatus.NotEvaluated ? CheckStatus.NotEvaluated : CheckStatus.Pass;
+            yield return new(rule.InternalRuleId, status, check.Reason + " " + conditional.Reason, check.Findings.Concat(conditional.Findings));
         }
     }
 
