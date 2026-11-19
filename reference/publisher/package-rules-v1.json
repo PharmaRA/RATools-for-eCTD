@@ -2858,6 +2858,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFormOperationRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaFormOperationRule.cs", "reference/dtd/us-regional-v3-3.dtd"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1323",
+      "authorityRuleId": "1323",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 15, error 1323. ICH Q&A 36 item 12.",
+      "effectiveFrom": "2022-03-01",
+      "title": "No file for leaf element",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target ICH and US regional backbone leaf file references within the explicitly captured sequence set.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks exact referenced file existence. Unavailable history and unresolved paths remain unevaluated; regional permission to reuse files across sequences is a separate check.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaMissingReferencedFileRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaMissingReferencedFileRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaMissingReferencedFileRule.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
+      "externalComparisonEvidence": []
     }
   ]
 }

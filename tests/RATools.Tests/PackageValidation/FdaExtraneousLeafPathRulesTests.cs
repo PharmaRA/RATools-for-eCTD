@@ -208,6 +208,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-nonleaf") previousLeaf.Parent!.SetAttributeValue("ID", "section");
                 if (variant == "history-1153-xml-id") previousLeaf.SetAttributeValue(XNamespace.Xml + "id", "alias");
                 if (variant == "history-1170") previousLeaf.SetAttributeValue("operation", "replace");
+                if (variant == "history-1323-missing") previousLeaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), "m2/absent.txt");
                 previousXml.Save(previousIndex);
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }

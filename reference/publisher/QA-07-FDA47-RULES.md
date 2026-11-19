@@ -1,5 +1,7 @@
 # QA07-05-R：按 FDA 4.7 准则实施规则
 
+FDA 1323 已实施。目标骨架的 href 按精确路径核对已捕获文件；未提供历史或未读完整保持未评估，历史坏叶不归入目标结果。Windows 最终定向回归 448/448，含 28 项 1323 用例；子代理实现及测试增量只读审查通过。39/147 已实施、6 条 Partial、102 条 NotAssessed；内部目录 89 条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
+
 FDA 1038 部分实施。申请表和附信的 append/delete 报告定位到 operation；replace 的例外条件保留未评估。Windows 定向回归 420/420，其中 12 项直接针对 1038。子代理静态只读审查通过。38/147 已实施、6 条 Partial、103 条 NotAssessed；内部目录 88 条。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
 
 FDA 1130 部分实施。目标 ICH 主 DTD 的校验值与 ICH 发布的 MD5 不符时报告实际值和期望值。Windows 定向回归 408/408，其中 11 项直接针对 1130。子代理只读审查通过。38/147 已实施、5 条 Partial、104 条 NotAssessed。[执行账本](REVIEW-2026-11-17-FOLLOWUP.md)
