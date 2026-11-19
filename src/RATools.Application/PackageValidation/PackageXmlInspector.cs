@@ -18,6 +18,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, Packa
         var findings = new XmlInspectionFindings(input.Limits);
         var documents = new List<ParsedBackbone>();
         var interrupted = false;
+        var stf = PackageStfInspection.Unknown;
         try
         {
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -63,6 +64,8 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, Packa
                     }
                 }
             }
+            if (profileSnapshotId == PackageValidationCatalog.UsProfile)
+                stf = await PackageStfInspector.InspectAsync(input, assets, documents, findings, linked.Token).ConfigureAwait(false);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
         }
         catch (XmlInspectionLimitException) { interrupted = true; }
@@ -94,7 +97,7 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, Packa
             }
             results.Add(new(ruleId, status, reason, observations));
         }
-        return new(input.InputDigest, profileSnapshotId, assets.Digest, input.Limits.Digest(), documents, results, context.Catalog.Digest);
+        return new(input.InputDigest, profileSnapshotId, assets.Digest, input.Limits.Digest(), documents, results, context.Catalog.Digest, stf);
 
         async Task<ParsedBackbone> Read(string path, PackageXmlBackboneProfile profile)
         {

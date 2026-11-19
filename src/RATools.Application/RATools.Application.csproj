@@ -13,6 +13,8 @@
     <EmbeddedResource Include="..\..\reference\publisher\fda\4.7\m1-conditional-policy.json" LogicalName="RATools.FdaM1ConditionalPolicy" />
     <EmbeddedResource Include="..\..\reference\publisher\fda\4.7\supplement-combinations-v1.json" LogicalName="RATools.FdaSupplementCombinations" />
     <EmbeddedResource Include="..\..\reference\publisher\package-xml-assets-v1.json" LogicalName="RATools.PackageXmlAssetManifest" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-v2-2.dtd" LogicalName="RATools.PackageXml.stf-dtd" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-stylesheet-2-3.xsl" LogicalName="RATools.PackageXml.stf-style" />
     <EmbeddedResource Include="..\..\reference\dtd\ich-ectd-3-2.dtd" LogicalName="RATools.PackageXml.ich-dtd" />
     <EmbeddedResource Include="..\..\reference\dtd\us-regional-v3-3.dtd" LogicalName="RATools.PackageXml.us-dtd" />
     <EmbeddedResource Include="..\..\reference\eu-m1\3.1.1\util\dtd\eu-regional.dtd" LogicalName="RATools.PackageXml.eu-dtd" />

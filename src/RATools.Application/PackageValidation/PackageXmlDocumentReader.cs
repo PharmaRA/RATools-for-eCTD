@@ -228,7 +228,7 @@ internal static class PackageXmlDocumentReader
         public void Dispose() => _reader?.Dispose();
     }
 
-    private sealed class CancellationInputStream(Stream inner, CancellationToken token) : Stream
+    internal sealed class CancellationInputStream(Stream inner, CancellationToken token) : Stream
     {
         public override bool CanRead => true;
         public override bool CanSeek => false;

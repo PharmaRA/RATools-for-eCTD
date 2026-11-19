@@ -4,6 +4,18 @@
   "resolutionPolicy": "Only these hash-verified embedded DTD assets may be resolved at their exact sequence-relative logical paths. Unknown or absolute external identifiers and nonempty internal subsets are rejected. Do not fetch network or package-provided DTD bytes. Regional business criteria qualification remains separate. Stylesheet assets are pinned separately for delivered-byte checks; they are never admitted to the DTD resolver or executed.",
   "assets": [
     {
+      "id": "stf-dtd",
+      "path": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-v2-2.dtd",
+      "logicalPath": "util/dtd/ich-stf-v2-2.dtd",
+      "sha256": "e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f"
+    },
+    {
+      "id": "stf-style",
+      "path": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-stylesheet-2-3.xsl",
+      "logicalPath": "util/style/ich-stf-stylesheet-2-3.xsl",
+      "sha256": "9131de4db31b5c74d6559e8e92f0aecb82bbd45f7783b8adfead826dbb943023"
+    },
+    {
       "id": "ich-dtd",
       "path": "reference/dtd/ich-ectd-3-2.dtd",
       "logicalPath": "util/dtd/ich-ectd-3-2.dtd",

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-11-20",
+  "discoveryRepositoryPath": "reference/publisher/official-sources/2026-11-09/fda-standards.html",
+  "transport": "HTTPS through local 7890 proxy; default certificate validation",
+  "sources": [
+    {
+      "id": "fda-stf-specification",
+      "version": "2.6.1",
+      "requestedUrl": "https://www.fda.gov/media/159383/download?attachment",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/fda-stf-specification.pdf",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "bytes": 114803,
+      "sha256": "63132c3751682193f6f13db125ee03583b740680851c0f0e6412561438b482da"
+    },
+    {
+      "id": "ich-stf-dtd",
+      "version": "2.2",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/ich-stf-v2-2_dtd_0.zip",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-v2-2-dtd.zip",
+      "httpStatus": 200,
+      "contentType": "application/zip",
+      "bytes": 1632,
+      "sha256": "dfc41602d8f398a8eb37dca7c5693cb243460f5efdd151f78e58b542bea4da06",
+      "extractedEntry": "ich-stf-v2-2.dtd",
+      "extractedBytes": 5024,
+      "extractedSha256": "e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f",
+      "computedMd5": "0972c10a4dadf3df5d2f41b2026a4a5c"
+    },
+    {
+      "id": "ich-stf-style",
+      "version": "2.3",
+      "requestedUrl": "https://admin.ich.org/sites/default/files/inline-files/ich-stf-stylesheet-2-3.xsl",
+      "repositoryPath": "reference/publisher/official-sources/2026-11-20-stf/ich-stf-stylesheet-2-3.xsl",
+      "httpStatus": 200,
+      "contentType": "application/xslt+xml",
+      "bytes": 5287,
+      "sha256": "9131de4db31b5c74d6559e8e92f0aecb82bbd45f7783b8adfead826dbb943023"
+    }
+  ],
+  "coverage": "STF discovery and pinned parsing prerequisites only; no FDA rule is promoted by source acquisition. Computed MD5 is not an independently published checksum. STF applicability, regional value lists and business rules require separate evidence."
+}

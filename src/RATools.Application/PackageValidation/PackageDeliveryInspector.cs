@@ -4,7 +4,7 @@ namespace RATools.Application.PackageValidation;
 
 public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
-    public const string DeliveryEngineVersion = "package-delivery-v4";
+    public const string DeliveryEngineVersion = "package-delivery-v5";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
     public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v31;package-pdf-validator-v2;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);

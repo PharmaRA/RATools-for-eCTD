@@ -4,6 +4,14 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**STF共同前置：独立发现与固定DTD解析（不计规则完成）。** 为1119/1130条件性支持文件及后续STF规则补入`PackageXmlInspection.StudyTaggingFiles`，不混入ICH/US/EU Backbones或生命周期节点。仅US profile采用；受限扫描目标XML根及STF DOCTYPE，非stf命名的真实study仍识别；缺引用、STF命名错误根、声明与根冲突、损坏、内部DTD、未知/远程DTD和错误版本均不证明完整。Probe保留DOCTYPE证据、resolver=null，正式读取只用同一快照的固定DTD；省略显式xmlns及dtd-version的DTD默认属性仍可读取，原始显式值保持独立。旧快照无STF资产返回STF_ASSET_UNAVAILABLE，不借Current；声明资产但字节缺失由原快照完整性闸拒绝。Probe和正式reader共享节点/发现预算与取消；STF/骨架共享文档数限额，读取中取消传播。新XML引擎`package-xml-inspector-stf-v3`，交付v5。
+
+归档STF规范2.6.1、DTD2.2和样式2.3，来源清单见`official-sources/2026-11-20-stf/source-snapshot.json`。DTD解包字节SHA`e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f`；与样式一起进入快照资产。新manifest SHA`09f527b1a36fecda6a24bc58239ad7906f4d113346190ce2c9bc30425590f001`，仅增加两项，原ICH schema未变。1368原闸固定旧manifest导致19项6过13败，已复现后仅允许两个已核验摘要，保留历史兼容。规则目录仍99条，独立canonical校验`9fbfc91ab2c9b1f5e5d2301c1551a3593c75bd1f4346783f8c666be59b4a5917`通过。
+
+`stf-foundation-red`11项1过10败；首candidate为95/98，三失败为既有CustomEncodedRegionalAddressUsesExactRelativeDtdResolution两例和MissingReferencedRegionalXmlFailsWhileUnselectedRegionalScopeRemainsUnevaluated一例的夹具移动权限，未改保护、未计通过。review-red两项均失败，复现DOCTYPE遗漏/默认xmlns漏读；修复后candidate2为151/151。补正式reader接续Probe预算的打开计数断言后，`stf-foundation-final`三项目构建退出0，**152/152通过、0失败/跳过、测试退出0**，筛选保留上述两个方法及Postgres排除，非全套。源码清单SHA`e30e44953794344a51a7fcbe1bdbea9f25febecf1390428017bae4938bcd8639`，11/11输入匹配；TRX SHA`09c726d30a0062b4f37cd3e59f0836fa6114f88dba1793ba45e10febfbb04fc0`原件/备份一致。子代理限定增量静态审查PASS。六轮回执副本`backups/stf-foundation-20261120/evidence/`；五次构建10个bin/obj检查后送回收站，可恢复。
+
+**前序依赖与当前执行点。** FDA5三项前置已提交03cffe5/0959517/05a7131，模板/附件识别和历史/登录生成表单资格仍未完成。FDA6缺强制格式适用/豁免证据；FDA7缺适当表单与申请/中心映射及可填写性资格；1038 replace例外仍需审核证据；1085已核230阈值，但路径起算口径未由本轮固定来源明确；1102尚需原始URI/path分量与百分号解码的规范绑定。以上保持原状态，未因评估或前置工作减少剩余数。当前继续1119/1130：M1规格2.6物理第47页17项明确US区域支持文件改网站引用，不能一律要求放util；STF规格第4页明确条件性DTD/style目录。已归档STF样式读取valid-values.xml，官方入口为`https://www.ich.org/page/study-tagging-file-specification-and-related-files`，尚需取得有效值原件及独立发布校验和/适用性证据。STF解析前置不证明这些规则完整覆盖。
+
 2026-11-20 XFA批次七轮共14个build/bin、build/obj已在进程、绝对路径及链接检查后送入Windows回收站，可恢复；仅解除这些目标的禁删ACE以允许回收。原始回执/日志/TRX、证据备份和官方样本保留。
 
 **FDA5前置：有界XFA packet/data读取（不计规则完成）。** 通过FDA forms页面脚本定位公开目录`https://www.fda.gov/datatables-json/fda-forms.json`，归档2252/2253/3674/3938/3988五份官方PDF，均为AcroForm Fields为空的XFA动态表单，不能以普通widget缺失判断无表单。七份归档源长度/SHA全部校验；五份XFA template解码摘要、官网版次、PDF修改时间和观察字段见来源清单，彼此不混同。3397实际返回用户费登录页，3792/3794目录指向登录生成系统，未认证访问；2567未见匹配目录行但不能据此认定不存在/不适用。

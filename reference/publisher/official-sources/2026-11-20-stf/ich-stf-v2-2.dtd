@@ -1,0 +1,104 @@
+<!-- ICH Study Tagging File (ich-stf.dtd) -->
+<!-- version 2-2  -->
+<!-- For every study in the eCTD backbone there should be an
+XML Study Tagging File that follows this DTD.
+If two studies are contained in the same element on the backbone,
+there should be an XML Study Tagging File for each.-->
+<!ELEMENT ectd:study (study-identifier, study-document)>
+<!ATTLIST ectd:study
+	xmlns:ectd CDATA #FIXED "http://www.ich.org/ectd"
+	xmlns:xlink CDATA #FIXED "http://www.w3.org/1999/xlink"
+	xml:lang CDATA #IMPLIED
+	dtd-version CDATA #FIXED "2.2"
+>
+<!ELEMENT study-identifier (title, study-id, category*)>
+<!-- =============================================================
+study-identifier
+       The following defines the study metadata that a review tool will use to
+       display/filter studies
+       title          	The full title of the report as on the title page of the report
+       study-id         The unambiguous code used by the sponsor to track the study.
+
+  ============================================================= -->
+<!--The following identifies the study by title and study-id alpha-numeric-->
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT study-id (#PCDATA)>
+<!-- =============================================================
+       The category element defines high level characteristics/parameters of the study
+       Each category has a content value and has the attributes: name and info-type.
+       The value in the info-type will allow a stylesheet to ignore or display the named
+       characteristic/parameter.
+
+	  name:         Identifies the characteristic/parameter class
+	  info-type:    Used to indicate related characteristics/parameters which can filter
+		               category for display or ignore
+	  [category]   The specific value for the named characteristic/parameter class
+  ============================================================= -->
+<!ELEMENT category (#PCDATA)>
+<!ATTLIST category
+	name CDATA #REQUIRED
+	info-type CDATA #REQUIRED
+>
+<!--  =============================================================
+ 	study-document
+ 	
+ 	This is a container for providing tagging information described as SINGLE or
+ 	MULTIPLE (to facilitate description only) tags per file.  SINGLE files are provided
+ 	using the doc-content container described below.  MULTIPLE tag files are provided
+ 	using the content-block container which includes the doc-content container as an
+ 	attribute.
+ 	
+     SINGLE tag file use doc-content described as:
+     	xlink:href:	Contains the reference to the leaf ID in eCTD backbone index.xml file 
+
+      	title:         	The full title of the study report as on the title page of the report
+                     	which will be displayed by the review tool
+
+      property:      An additional characteristic/parameter that may be required
+                     	regionally to further describe a file-tag with the following
+                     	attributes
+
+      	name:			Describes the additional characteristic/parameter which may be needed
+                     		regionally
+
+     	info-type:  	Attribute value is used to indicate related characteristics/parameters
+                     		which can be used to filter the name attribute for display or to ignore
+                     		the item if not required regionally
+
+      file-tag:		A container with name and info-type attributes.
+      	name:    	   	The list of valid values for the name is controlled by the ICH default
+                     		stylesheet and by regional schemas, guidance or stylesheets that may
+                     		be needed regionally.  The name attribute holds the specific tag to be
+                     		associated with the file.
+
+     	info-type:  	Attribute value is used to indicate related characteristics/parameters
+                     		which can be used to filter the name attribute for display or to ignore
+                     		the item if not required regionally
+
+     MULTIPLE tags per file use content-block describbed as:
+           block-title:  		Used by the stylesheet as a section header for related items.
+           property:			Same as described in SINGLE
+           file-tag: 			Same as described in SINGLE
+           doc-content  	Same as described in SINGLE
+           content-block 	Provides for a hierarchical submission of related meta data.
+
+ ============================================================= -->
+<!ELEMENT study-document ((doc-content | content-block)*)>
+<!ELEMENT doc-content (title?, property*, file-tag*)>
+<!ATTLIST doc-content
+	xlink:href CDATA #REQUIRED
+	xlink:type CDATA #FIXED "simple"
+	test CDATA #IMPLIED
+>
+<!ELEMENT content-block (block-title, property*, file-tag*, (doc-content | content-block)*)>
+<!ELEMENT block-title (#PCDATA)>
+<!ELEMENT file-tag (property*)>
+<!ATTLIST file-tag
+	name CDATA #REQUIRED
+	info-type CDATA #REQUIRED
+>
+<!ELEMENT property (#PCDATA)>
+<!ATTLIST property
+	name CDATA #REQUIRED
+	info-type CDATA #REQUIRED
+>

@@ -92,7 +92,7 @@ public sealed class ParsedBackbone
 public sealed class PackageXmlInspection
 {
     internal PackageXmlInspection(string inputDigest, string profileSnapshotId, string assetManifestDigest, string limitsDigest,
-        IEnumerable<ParsedBackbone> backbones, IEnumerable<RuleCheckResult> checks, string? rulesDigest = null)
+        IEnumerable<ParsedBackbone> backbones, IEnumerable<RuleCheckResult> checks, string? rulesDigest = null, PackageStfInspection? studyTaggingFiles = null)
     {
         InputDigest = inputDigest;
         ProfileSnapshotId = profileSnapshotId;
@@ -101,15 +101,17 @@ public sealed class PackageXmlInspection
         Backbones = Array.AsReadOnly(backbones.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
         RulesDigest = rulesDigest ?? PackageValidationCatalog.Current.Digest;
+        StudyTaggingFiles = studyTaggingFiles ?? PackageStfInspection.Unknown;
     }
 
     public string InputDigest { get; }
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-xml-inspector-v2";
+    public string EngineVersion { get; } = "package-xml-inspector-stf-v3";
     public string RulesDigest { get; }
     public string ProfileSnapshotId { get; }
     public string AssetManifestDigest { get; }
     public string LimitsDigest { get; }
     public IReadOnlyList<ParsedBackbone> Backbones { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
+    public PackageStfInspection StudyTaggingFiles { get; }
 }

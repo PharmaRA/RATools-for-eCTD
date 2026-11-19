@@ -26,7 +26,8 @@ internal static class FdaExtraneousHeadingAttributeRule
             yield return new(RuleId, CheckStatus.NotApplicable, "The selection precedes the effective date of FDA 1368.");
             yield break;
         }
-        if (context.Assets.Digest != "71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1" ||
+        if (context.Assets.Digest is not ("71246a025b0a8cbb97a57e7eca16919a50cbd69c7fa573936656529f6d3d50a1" or
+            "09f527b1a36fecda6a24bc58239ad7906f4d113346190ce2c9bc30425590f001") ||
             context.NodeSchema.Version != "ich-3.2.2-nodes-v1" ||
             context.NodeSchema.SourceSha256 != "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731")
         {
