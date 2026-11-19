@@ -115,7 +115,8 @@ public sealed class FdaExtraneousLeafPathRulesTests
     private static RuleCheckResult Check(PackageDeliveryInspection result, string rule) => Assert.Single(result.Checks, item => item.RuleId == rule);
     internal static async Task<PackageDeliveryInspection> Inspect(string? operation, string? href, string? modified, string variant = "valid", string? date = "2026-11-17",
         string? contentModule = null, string? capturedName = null, string? regionalContentHref = null, byte[]? capturedBytes = null,
-        string? omittedTargetFile = null, Action<XDocument>? editRegional = null)
+        string? omittedTargetFile = null, Action<XDocument>? editRegional = null, Action<XDocument>? editIndex = null,
+        Func<string, string>? editIndexText = null)
     {
         var root = RetainedPackageTestFiles.Create();
         try
@@ -170,7 +171,9 @@ public sealed class FdaExtraneousLeafPathRulesTests
             }
             if (variant == "skipped-regional-known-failure")
                 leaf.AddAfterSelf(new XElement("leaf", new XAttribute("ID", "known-missing"), new XAttribute("operation", "new"), new XElement("title", "Missing")));
+            editIndex?.Invoke(xml);
             xml.Save(index);
+            if (editIndexText is not null) await File.WriteAllTextAsync(index, editIndexText(await File.ReadAllTextAsync(index)));
             if (editRegional is not null)
             {
                 var path = Path.Combine(source, "0001/m1/us/us-regional.xml");
@@ -209,6 +212,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
                 if (variant == "history-1153-xml-id") previousLeaf.SetAttributeValue(XNamespace.Xml + "id", "alias");
                 if (variant == "history-1170") previousLeaf.SetAttributeValue("operation", "replace");
                 if (variant == "history-1323-missing") previousLeaf.SetAttributeValue(XName.Get("href", "http://www.w3c.org/1999/xlink"), "m2/absent.txt");
+                if (variant == "history-1344") previousLeaf.SetAttributeValue("ID", " regional ");
                 previousXml.Save(previousIndex);
                 if (variant == "history-1153-incomplete") await File.AppendAllTextAsync(previousIndex, "<broken");
             }
@@ -231,7 +235,7 @@ public sealed class FdaExtraneousLeafPathRulesTests
             {
                 var catalog = context.Catalog;
                 context = new(new ValidationRuleCatalog(catalog.Version, catalog.Digest, catalog.Sources.Values, catalog.Profiles.Values,
-                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1153" or "FDA47-1170"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
+                    catalog.Rules.Values.Where(rule => rule.InternalRuleId is not ("FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1153" or "FDA47-1170" or "FDA47-1344"))), context.Assets, context.NodeSchema, context.SnapshotId, selectionDate: context.SelectionDate);
             }
             var limits = new PackageReadLimits { MaxBackbones = variant is "unread" or "known-failure-unread" ? 1 : 100, MaxXmlFindings = variant == "budget" ? 2 : 10_000 };
             await using var capture = await new PackageInputReader(Path.Combine(root, "validation/captures"))

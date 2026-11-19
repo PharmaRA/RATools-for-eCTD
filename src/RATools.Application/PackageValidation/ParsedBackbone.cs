@@ -4,8 +4,9 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
+// ExplicitValue is XML-decoded, before DTD type normalization; null for defaults or unavailable evidence.
 public sealed record ParsedXmlAttributeValue(string Name, string LocalName, string NamespaceUri, string Value,
-    bool IsDefault, int Line, int Column);
+    bool IsDefault, int Line, int Column, string? ExplicitValue = null);
 
 public sealed class ParsedXmlElement
 {
@@ -104,7 +105,7 @@ public sealed class PackageXmlInspection
 
     public string InputDigest { get; }
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-xml-inspector-v1";
+    public string EngineVersion { get; } = "package-xml-inspector-v2";
     public string RulesDigest { get; }
     public string ProfileSnapshotId { get; }
     public string AssetManifestDigest { get; }

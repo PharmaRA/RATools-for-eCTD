@@ -73,6 +73,7 @@ internal static class PackageXmlDocumentReader
         {
             using var reader = XmlReader.Create(new CancellationInputStream(input.OpenRead(logicalPath), cancellationToken), settings,
                 PackageXmlResolver.DocumentUri(logicalPath).AbsoluteUri);
+            using var explicitAttributes = new ExplicitAttributeReader(input, logicalPath, cancellationToken);
             var lineInfo = (IXmlLineInfo)reader;
             while (await reader.ReadAsync().ConfigureAwait(false))
             {
@@ -116,10 +117,12 @@ internal static class PackageXmlDocumentReader
                     var node = new ElementBuilder(path, parent?.Path, reader.Name, reader.LocalName, reader.NamespaceURI,
                         location with { NodePath = path });
                     var elementDepth = reader.Depth + 1;
+                    var explicitValues = await explicitAttributes.ReadElementAsync(reader).ConfigureAwait(false);
                     while (reader.MoveToNextAttribute())
                     {
                         findings.CountNode(elementDepth, location with { NodePath = path, FieldPath = "@" + reader.Name });
-                        node.Attributes.Add(new(reader.Name, reader.LocalName, reader.NamespaceURI, reader.Value, reader.IsDefault, lineInfo.LineNumber, lineInfo.LinePosition));
+                        node.Attributes.Add(new(reader.Name, reader.LocalName, reader.NamespaceURI, reader.Value, reader.IsDefault, lineInfo.LineNumber, lineInfo.LinePosition,
+                            reader.IsDefault ? null : explicitValues?.GetValueOrDefault(reader.Name)));
                     }
                     reader.MoveToElement();
                     builders.Add(node);
@@ -179,6 +182,50 @@ internal static class PackageXmlDocumentReader
         public StringBuilder Text { get; } = new();
         public int NextOrdinal(string childName) => _ordinals[childName] = _ordinals.GetValueOrDefault(childName) + 1;
         public ParsedXmlElement Freeze() => new(Path, parentPath, name, localName, namespaceUri, Attributes, Children, Text.ToString(), location);
+    }
+
+    // A second, non-DTD reader preserves XML-decoded explicit values before tokenized
+    // attribute normalization. It follows the validated reader one element at a time.
+    // Failure only removes this supplementary evidence, never the validated values.
+    private sealed class ExplicitAttributeReader(ICapturedPackageInput input, string path, CancellationToken token) : IDisposable
+    {
+        private XmlReader? _reader;
+        private bool _unavailable;
+
+        public async Task<Dictionary<string, string>?> ReadElementAsync(XmlReader validated)
+        {
+            if (_unavailable) return null;
+            try
+            {
+                _reader ??= XmlReader.Create(new CancellationInputStream(input.OpenRead(path), token), new XmlReaderSettings
+                {
+                    Async = true, DtdProcessing = DtdProcessing.Ignore, XmlResolver = null, CloseInput = true,
+                    MaxCharactersInDocument = input.Limits.MaxXmlCharacters,
+                    MaxCharactersFromEntities = input.Limits.MaxXmlEntityCharacters
+                });
+                while (await _reader.ReadAsync().ConfigureAwait(false))
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (_reader.NodeType != XmlNodeType.Element) continue;
+                    if (_reader.Name != validated.Name || _reader.NamespaceURI != validated.NamespaceURI || _reader.Depth != validated.Depth)
+                    { _unavailable = true; return null; }
+                    var values = new Dictionary<string, string>(StringComparer.Ordinal);
+                    while (_reader.MoveToNextAttribute())
+                    {
+                        token.ThrowIfCancellationRequested();
+                        values.Add(_reader.Name, _reader.Value);
+                    }
+                    _reader.MoveToElement();
+                    return values;
+                }
+            }
+            catch (XmlException) { /* DTD-defined entities/namespaces have no raw evidence here. */ }
+            catch (IOException) { /* The primary reader retains the original read diagnostics. */ }
+            _unavailable = true;
+            return null;
+        }
+
+        public void Dispose() => _reader?.Dispose();
     }
 
     private sealed class CancellationInputStream(Stream inner, CancellationToken token) : Stream

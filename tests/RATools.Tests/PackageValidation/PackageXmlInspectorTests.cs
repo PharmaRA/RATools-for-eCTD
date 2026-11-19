@@ -431,7 +431,7 @@ public sealed class PackageXmlInspectorTests
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 File.Copy(file, destination);
             }
-            _reader = new PackageInputReader(Path.Combine(_root, "captures"));
+            _reader = new PackageInputReader(Path.Combine(_root, "validation/captures"));
         }
         public void Replace(string path, string old, string replacement)
         {
