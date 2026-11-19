@@ -2926,6 +2926,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1362",
+      "authorityRuleId": "1362",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 17, error 1362; STF specification 2.6.1 pp. 5-7",
+      "effectiveFrom": "2008-03-10",
+      "title": "An attribute appears multiple times in the stf.xml file",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Known study-identifier category declarations within each target STF document.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects repeated species, route-of-admin and type-of-control categories for realm ich and duration for realm us, without merging distinct STF documents. Unknown category/realm and other business-attribute scopes remain unqualified; file-tags and properties are not study categories.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfDuplicateCategoryRule.cs", "reference/publisher/official-sources/2026-11-20-stf/fda-stf-specification.pdf", "reference/publisher/official-sources/2026-11-20-stf/ich-stf-v2-2.dtd"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-1368",
       "authorityRuleId": "1368",
       "sourceId": "fda-validation-criteria-4.7",

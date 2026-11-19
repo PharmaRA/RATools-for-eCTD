@@ -684,10 +684,10 @@
       "correctiveAction": "Corrective action may be necessary. If corrective action is necessary, you will be contacted by FDA. Modify your SOPs to ensure that attributes are used as described in the eCTD Specification.",
       "guidanceSource": "DTDs; The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-1362"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfDuplicateCategoryRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
+        "note": "Checks duplicate known study-identifier categories per target STF, with realm-specific identity and no cross-document/history merging. Unknown categories/realms and other business-attribute scopes remain unqualified."
       }
     },
     {

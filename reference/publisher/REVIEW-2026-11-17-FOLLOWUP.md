@@ -2,7 +2,13 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，42 条已实施、14 条部分实施、91 条待评估。仍有 105 条待完整覆盖。内部目录有 100 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+1362本批三轮6个build/bin、build/obj经进程、绝对路径及链接检查后送入Windows回收站，可恢复；日志、TRX、源码清单和证据副本保留。
+
+**FDA1362：STF已知category重复，Partial。** FDA第17页，Medium，2008-03-10生效。独立检查每份目标STF的唯一study-identifier下直接category：species/route-of-admin/type-of-control限ich，duration限us。从第二次及后续出现定位Warning/Fail，文本值相同或不同均不改变重复身份；每文档重置集合，不串历史。未知name/realm、截断、缺来源/日期保持未评估；file-tag/property不作为study category。共享剩余finding预算，已知重复优先于其他未完成证据。file/delivery分量v35；其他业务属性及区域变体未资格，规则从NotAssessed进入Partial，不减少待完整覆盖数。
+
+`fda1362-red`构建退出0，23项全部因缺规则结果失败；candidate为96/96。只读审查要求补三次重复及本规则余额2/1/0、历史STF DTD Pass与实际重复节点前提，均已补齐并复审通过。`fda1362-final`三项目构建退出0，**216/216通过、0失败/跳过、测试退出0**，仅指定1362/1357/1344/STF/目录/utility类，非全套。源码清单SHA`3d6e53dd9bdcb0ae2e322b61ebaa2bfd0fe8f4e202fc4843a326fa2add4089c0`，6/6输入匹配；TRX SHA`fac9b5153e88ba11dc563f0ea6fc982e22eb53bdc7b99047a7714ed848b17bb6`原件/备份一致。目录100条，canonical`5243f7ca3f55f8d7018ae3f1a26d0b0c8adbad2c85ec2cdec4a7fd329e6db4f0`。证据副本`backups/fda1362-20261120/evidence/`。下一条1368的STF多余category按实际章节归属另项处理。
 
 **FDA1357：STF必需分类增量，继续Partial。** 根据已归档STF规范2.6.1第5–7页，实际目标index叶引用和完整ICH章节祖先链决定分类：单次/重复剂量毒性需species及route-of-admin，长期致癌性需species，受控临床需type-of-control。仅完整且DTD有效的index/STF可支持缺失判断；不根据文件目录推断章节。支持node-extension中引用，同一STF被多章节引用取要求并集、重复引用不重复发现。缺或空白分类报Warning/Fail；重复分类或未知realm、未知归属保持未评估；重复剂量duration“if applicable”无证据不能强制判缺。默认命名空间有效，目标/历史隔离，原heading失败和一个STF的已知失败不被其他截断证据抹除，共享剩余finding预算。file/delivery分量v34，其他STF属性及区域/duration资格仍Partial。
 
