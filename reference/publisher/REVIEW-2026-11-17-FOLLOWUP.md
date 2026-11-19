@@ -4,6 +4,12 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**FDA5前置：目标XML表单候选组及申请归属（不计规则完成）。** 固定FDA M1规格2.6物理第7/10/20页明确356h/1571位于对应申请的admin表单组、其他表单在M1，且一个form可有附件叶。因此新增`PackageFileInspection.Forms`保留候选组而不逐叶判为主表单：ApplicationAdmin精确绑定祖先application，SharedM1保留全部申请，不误选containing-files=true。保留原始编号文本、类型/containing-files属性事实、重复编号、空组、delete/无href和node-extension附件叶；通过SourceLogicalPath+NodePath与已有引用事实对应。只消费目标digest/profile唯一匹配的已解析XML，不重开文件；历史不串入，根/业务命名空间和祖先链必须匹配。DTD/读取不完整、缺/多regional、错位置、展开超过MaxXmlNodes均不能报清单完整；超限只发布此前完整组，取消传播。文件/交付绑定v31，目录99条及FDA5状态未改。
+
+`fda5-binding-red`因新测试CA1861编译失败，不计业务红；修正后`fda5-binding-red2`构建退出0，7项3通过4失败。candidate为51/51；子代理要求隔离命名空间变量、目标唯一性/多文档、精确展开预算及delete/无href测试，已补齐。`fda5-binding-final`三项目构建退出0，**135/135通过、0失败/跳过、测试退出0**，覆盖两个binding类、1038/路径规则类及三个PDF类；不是全套、业务FDA5匹配或监管资格。源码清单SHA`931d9011adb61bdb7810445b3230de3c8e2a6f3b3080e49a066e7bd5d34593b6`，7/7交付输入匹配；TRX SHA`ffa9bfd16f5f2989ea0570b40180ce7055d75739005d9c15957cf251c8249fb8`，原件与备份一致。限定增量只读审查PASS。四轮证据在`backups/fda5-binding-20261120/evidence/`；8个bin/obj已检查进程/路径/链接后送入Windows回收站，可恢复，证据继续保留。
+
+下一步FDA5仍需实际模板识别和字段映射、主表单与附件区分、历史模板和其他适用表单的官方来源/语义资格。官网forms目录有一次45秒零字节超时；356h/1571归档可用，不把目录暂时失败视作来源不存在，也不以这两种表单覆盖全部FDA5。
+
 **FDA5前置：有界AcroForm字段事实（不计规则完成）。** 新增只读字段事实，区分当前V和默认DV、缺失/空值、父子继承、PDF null、损坏/悬空引用、无表单、XFA存在但未解释。字段/间接引用和导航共用对象及深度预算、取消检查；不执行JavaScript、不合成外观、不用默认值替代填写值。缓存间接对象保证父子和循环身份一致；表单解析异常仅留下表单不完整原因，不伪造整份PDF不可读。父属性在子覆盖前验证；widget仅接受与父有效值同型等值的冗余，冲突/重复名称保持不完整。事实集合复制并只读封装；PDF inspector版本为`pdfpig-0.1.15/package-navigation-forms-v2`。
 
 归档官方356h/1571空白源及SHA，见[来源清单](official-sources/2026-11-20-forms/source-snapshot.json)。两个真实样本均通过完整字段树读取断言；356h的`db_appl_type`为只读合成值，不能单独作为一致选择证据；1571实际IND编号字段为`db_ind_id`，不能混用其他申请列表。固定表单字典共有11项，这两种来源不证明全部适用类型、历史模板、分组归属或号码规范化，**FDA5仍NotAssessed，FDA7未实施，统计不变**。

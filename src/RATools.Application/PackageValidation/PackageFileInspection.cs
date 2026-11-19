@@ -8,7 +8,7 @@ public sealed record PackageFileReference(string SourceLogicalPath, string Refer
 public sealed class PackageFileInspection
 {
     internal PackageFileInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle,
-        IEnumerable<PackageFileReference> references, IEnumerable<RuleCheckResult> checks)
+        IEnumerable<PackageFileReference> references, IEnumerable<RuleCheckResult> checks, PackageFormBindings? forms = null)
     {
         InputDigest = input.InputDigest;
         PrimaryInputDigest = input.Packages.Target.InputDigest;
@@ -18,11 +18,12 @@ public sealed class PackageFileInspection
         LimitsDigest = input.Packages.Target.Limits.Digest();
         References = Array.AsReadOnly(references.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        Forms = forms ?? PackageFormBindings.Unknown;
         RulesDigest = lifecycle.RulesDigest; AssetManifestDigest = lifecycle.AssetManifestDigest;
     }
 
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-file-inspector-v30";
+    public string EngineVersion { get; } = "package-file-inspector-v31";
     public string RulesDigest { get; }
     public string AssetManifestDigest { get; }
     public string InputDigest { get; }
@@ -32,5 +33,6 @@ public sealed class PackageFileInspection
     public string ProfileSnapshotId { get; }
     public string LimitsDigest { get; }
     public IReadOnlyList<PackageFileReference> References { get; }
+    public PackageFormBindings Forms { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
 }

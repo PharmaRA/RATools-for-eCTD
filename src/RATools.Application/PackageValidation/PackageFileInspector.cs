@@ -50,6 +50,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
     {
         private readonly List<ValidationFinding> _findings = [];
         private readonly List<PackageFileReference> _references = [];
+        private PackageFormBindings _forms = PackageFormBindings.Unknown;
         private IReadOnlyList<RuleCheckResult>? _officialFileNames;
         private readonly Dictionary<string, PackageInputFile> _files = input.Packages.Sequences.Values
             .SelectMany(capture => capture.Manifest.Files).ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
@@ -134,6 +135,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
 
         public async Task CheckFilesAsync()
         {
+            _forms = PackageFormBindingReader.Read(input.Packages.Target, lifecycle, cancellationToken);
             var documents = lifecycle.XmlInspections.SelectMany(xml => xml.Backbones).ToArray();
             if (lifecycle.XmlInspections.Count != input.Packages.Sequences.Count || documents.Any(document => !document.ReadComplete))
             {
@@ -407,7 +409,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 .Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is FdaLeafChecksumAttributeRules.TypeRuleId or FdaLeafChecksumAttributeRules.RequiredRuleId or FdaLeafChecksumAttributeRules.DeleteRuleId))
                 .Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId is "FDA47-3" or "FDA47-4"))
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
-            return new(input, lifecycle, _references, checks.Concat(official));
+            return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 
         private static bool IsMd5(string? value) => value is { Length: 32 } && value.All(Uri.IsHexDigit);
