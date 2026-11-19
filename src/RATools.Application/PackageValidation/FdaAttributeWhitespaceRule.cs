@@ -27,11 +27,16 @@ internal static class FdaAttributeWhitespaceRule
         }
         var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
         var incomplete = xml is null || xml.Backbones.Count == 0 ||
+            !xml.StudyTaggingFiles.InventoryComplete ||
             !xml.Checks.Any(check => check.RuleId == "XML-OFFLINE" && check.Status == CheckStatus.Pass) ||
             !xml.Checks.Any(check => check.RuleId == "XML-LIMITS" && check.Status == CheckStatus.Pass) ||
             xml.Checks.SelectMany(check => check.Findings).Any(finding => finding.Code == "INVALID_REGIONAL_BACKBONE_REFERENCE");
         var findings = new List<ValidationFinding>();
-        foreach (var document in xml?.Backbones ?? [])
+        var documents = (xml?.Backbones ?? []).Select(document => (document.LogicalPath, document.ReadComplete,
+                document.Elements, Leaves: (IEnumerable<ParsedPackageLeaf>)document.Leaves))
+            .Concat((xml?.StudyTaggingFiles.Documents ?? []).Select(document => (document.LogicalPath, document.ReadComplete,
+                document.Elements, Leaves: Enumerable.Empty<ParsedPackageLeaf>())));
+        foreach (var document in documents)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!document.ReadComplete) { incomplete = true; continue; }
@@ -53,6 +58,6 @@ internal static class FdaAttributeWhitespaceRule
             }
         }
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Checked explicit target backbone attributes before DTD type normalization. Default attributes are excluded; STF and other XML scopes remain unqualified.", findings);
+            "Checked explicit target backbone and discovered STF attributes before DTD type normalization. Default attributes are excluded; other XML scopes remain unqualified.", findings);
     }
 }

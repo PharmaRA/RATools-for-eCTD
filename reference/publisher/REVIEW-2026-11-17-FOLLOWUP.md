@@ -4,6 +4,12 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+**FDA1344：STF显式属性空格增量，继续Partial。** 目标STF元素纳入已有原始属性遍历，不改变原ICH/US骨架语义；DTD默认属性排除，缺ExplicitValue不能用规范化Value替代。字符引用空格和字面制表符归一化为空格时检查首尾U+0020，字符引用制表符、内部空格和空字符串不误报。STF发现/读取不完整及缺原始命名空间证据保持未评估；历史STF虽实际读取但不进入目标结果。定位保留目标SourceId、STF路径、节点/属性行列，LeafId为null。共享finding预算，已知骨架Fail不被STF未完成抹除。file/delivery分量v33；其他XML范围仍未资格，1344状态保持Partial。
+
+`fda1344-stf-red`构建退出0，19项10过9败；candidate为114/114。更新目录证据后`fda1344-stf-final`三项目构建退出0，**155/155通过、0失败/跳过、测试退出0**，仅指定1344/STF/utility/目录/1368类，非全套。源码清单SHA`24c61ff9c64177b05f3541d9735169d299d801a478b7ae1904b13c4fc01aeffc`，5/5输入匹配；TRX SHA`5d9a379f4d363946e52f251553f6cafa8b4d84160309470878a4243d43360a15`原件/备份一致。目录99条独立校验通过，canonical`8f95ad5825219dcd301aa504908d0665600ddf3d958b7e055b7829df40fc4261`。子代理限定增量静态审查PASS；证据副本`backups/fda1344-stf-20261120/evidence/`。三轮6个bin/obj已检查后送回收站，可恢复。
+
+按序核对1238/1255/1314后，原Partial缺口仍在：1238的400MB精确字节口径/数据集例外；1255的区域/细分章节/用途条件和历史格式版本；1314的未知utility用途。未强行修改既有已证实规则。下一项1357须按STF实际章节归属判断species/route-of-admin/type-of-control及duration适用性；1362另行处理category业务属性重复，不能把允许重复的file-tag混为一谈。
+
 **FDA1119/1130：STF条件性utility增量，继续Partial。** 在原ICH主DTD检查上聚合实际目标STF的DTD2.2、声明的本地样式和受支持样式所证明的valid-values依赖。1119定位缺失文件；1130比较有版本身份的DTD2.2/样式2.3发布MD5，标准2.3文件损坏Fail、精确2.3字节的别名可识别、未知旧版/别名保持NotEvaluated。valid-values仅认可精确6.0字节，其他版本/不明字节未评估，不冒称新版本损坏；日期、完整发现、来源及共享finding预算分别保留，独立已知失败不被其他缺证据覆盖。文件/交付分量v32。
 
 归档ICH STF官方内容API、valid-values6 ZIP及三份checksum ZIP：DTD MD5`0972c10a4dadf3df5d2f41b2026a4a5c`、样式MD5`92bfeb4cb358a4af786317a0da2309c5`与原件一致；网页明确发布的6.0 MD5`797b4110bddb6d3cb4ad3869ffccb53c`与6.0原件一致，但其链接checksum ZIP内容为`301aaeb6b0fac8873a668fb4cbade517`。后者只归档冲突证据，不用于授权；采用精确版本网页证据及FDA标准页6.0支持日期2025-02-18。五项新权威来源冻结至快照并校验原件SHA；获取时间本地11月20日对应UTC11月19日，Capture与provenance统一UTC，不混同规则/版本生效日期。样式2.3 checksum门控不早于2017-06-01。

@@ -649,7 +649,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1344"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaAttributeWhitespaceRule.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs"],
-        "note": "Checks explicit target backbone attribute values before DTD type normalization; defaults are excluded. STF and other XML scopes remain unqualified."
+        "note": "Checks explicit target backbone and discovered STF attribute values before DTD type normalization; defaults are excluded, incomplete or unavailable raw evidence cannot pass. Other XML scopes remain unqualified; status stays Partial."
       }
     },
     {
