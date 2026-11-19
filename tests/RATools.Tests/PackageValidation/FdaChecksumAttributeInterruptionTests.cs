@@ -33,7 +33,7 @@ public sealed class FdaChecksumAttributeInterruptionTests
         var (target, context, lifecycle) = await Fixture();
         var snapshots = new List<RuleCheckResult>();
         var result = Assert.Single(FdaLeafChecksumAttributeRules.Inspect(target, lifecycle, context, 2, CancellationToken.None,
-            check => { if (check.Status == CheckStatus.Fail) snapshots.Add(check); }));
+            check => { if (check.RuleId == "FDA47-1408" && check.Status == CheckStatus.Fail) snapshots.Add(check); }), check => check.RuleId == "FDA47-1408");
         Assert.Equal(2, result.Findings.Count);
         Assert.Equal(2, snapshots.Count);
         AssertFirstFailure(Assert.Single(snapshots[0].Findings));
@@ -54,6 +54,9 @@ public sealed class FdaChecksumAttributeInterruptionTests
         Assert.True(target.Triggered);
         Assert.Contains(files.Checks.SelectMany(item => item.Findings), item => item.Code == "FILE_INSPECTION_TIMEOUT");
         var check = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1408");
+        var pending = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1425");
+        Assert.Equal(CheckStatus.NotEvaluated, pending.Status);
+        Assert.Empty(pending.Findings);
         Assert.Equal(afterFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
         if (afterFailure) AssertFirstFailure(Assert.Single(check.Findings));
         else Assert.Empty(check.Findings);
@@ -66,7 +69,44 @@ public sealed class FdaChecksumAttributeInterruptionTests
         Assert.Equal("sha1", finding.Actual);
     }
 
-    private static async Task<(ICapturedPackageInput Target, PackageStandardsContext Context, PackageLifecycleInspection Lifecycle)> Fixture()
+    [Fact]
+    public async Task TwoRulesShareOneFindingBudget()
+    {
+        var (target, context, lifecycle) = await Fixture();
+        var checks = FdaLeafChecksumAttributeRules.Inspect(target, lifecycle, context, 3, CancellationToken.None).ToArray();
+        Assert.Equal(3, checks.Sum(item => item.Findings.Count));
+        Assert.Equal(2, Assert.Single(checks, item => item.RuleId == "FDA47-1408").Findings.Count);
+        Assert.Single(Assert.Single(checks, item => item.RuleId == "FDA47-1425").Findings);
+    }
+
+    [Fact]
+    public async Task StartingNextRuleDoesNotEraseEarlierFailure()
+    {
+        var (target, context, lifecycle) = await Fixture();
+        using var cancellation = new CancellationTokenSource();
+        var retained = new Dictionary<string, RuleCheckResult>();
+        Assert.ThrowsAny<OperationCanceledException>(() => FdaLeafChecksumAttributeRules.Inspect(target, lifecycle, context, 4, cancellation.Token, check =>
+        {
+            retained[check.RuleId] = check;
+            if (check.RuleId == "FDA47-1425") cancellation.Cancel();
+        }).ToArray());
+        Assert.Equal(CheckStatus.Fail, retained["FDA47-1408"].Status);
+        Assert.Equal(2, retained["FDA47-1408"].Findings.Count);
+        Assert.Equal(CheckStatus.NotEvaluated, retained["FDA47-1425"].Status);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task DefaultEvidenceDoesNotEstablishRequiredChecksum(bool defaultOperation, bool defaultChecksum)
+    {
+        var (target, context, lifecycle) = await Fixture(defaultOperation, defaultChecksum);
+        var check = Assert.Single(FdaLeafChecksumAttributeRules.Inspect(target, lifecycle, context, 4, CancellationToken.None), item => item.RuleId == "FDA47-1425");
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    private static async Task<(ICapturedPackageInput Target, PackageStandardsContext Context, PackageLifecycleInspection Lifecycle)> Fixture(bool defaultOperation = false, bool defaultChecksum = false)
     {
         var context = PackageStandardsContext.FromSnapshot(await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(),
             new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2"), selectionDate: new DateOnly(2026, 11, 19));
@@ -77,7 +117,13 @@ public sealed class FdaChecksumAttributeInterruptionTests
         {
             var path = "/leaf[" + (i + 1) + "]";
             var location = new ValidationLocation("0001", "0001/index.xml", LeafId: "leaf-" + i, NodePath: path, Line: i + 1, Column: 1);
-            elements.Add(new(path, null, "leaf", "leaf", "", [new("checksum-type", "checksum-type", "", "sha1", false, i + 1, 2)], [], "", location));
+            var attributes = new List<ParsedXmlAttributeValue>
+            {
+                new("checksum-type", "checksum-type", "", "sha1", false, i + 1, 2),
+                new("operation", "operation", "", "new", defaultOperation, i + 1, 3)
+            };
+            if (defaultChecksum) attributes.Add(new("checksum", "checksum", "", "abc", true, i + 1, 4));
+            elements.Add(new(path, null, "leaf", "leaf", "", attributes, [], "", location));
             leaves.Add(new(path, null, "leaf-" + i, null, "Title", "new", null, null, null, null, null, null, true, false, location));
         }
         var backbone = new ParsedBackbone("0001/index.xml", PackageValidationCatalog.UsProfile, BackboneKind.Ich, true, CheckStatus.Pass,

@@ -3012,6 +3012,28 @@
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaChecksumTypeRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaLeafChecksumAttributeRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
       "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-1425",
+      "authorityRuleId": "1425",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 19, error 1425; ICH specification 3.2.2 sections 6-4 and 6-10",
+      "effectiveFrom": "2008-03-10",
+      "title": "Omitted checksum value",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target ICH/US backbone leaves explicitly using new, append or replace.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires nonblank unqualified checksum values on content operations; delete is excluded. Unknown/default operations and unsupported XML scopes remain unevaluated; checksum format and matching are separate.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredChecksumRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredChecksumRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaLeafChecksumAttributeRules.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
+      "externalComparisonEvidence": []
     }
   ]
 }

@@ -5,6 +5,7 @@ namespace RATools.Application.PackageValidation;
 internal static class FdaLeafChecksumAttributeRules
 {
     internal const string TypeRuleId = "FDA47-1408";
+    internal const string RequiredRuleId = "FDA47-1425";
     private static readonly ValidationRuleSource IchSpecification = new("ich-specification", RuleSourceKind.RegulatorySpecification, "3.2.2",
         "https://admin.ich.org/sites/default/files/inline-files/eCTD_Specification_v3_2_2_0.pdf",
         "d8273833eac401ff3c094d782863b078110e33a7f358438d3f7a0dad277fc2b0", "Verified");
@@ -12,7 +13,8 @@ internal static class FdaLeafChecksumAttributeRules
     internal static IEnumerable<RuleCheckResult> Inspect(ICapturedPackageInput target, PackageLifecycleInspection lifecycle,
         PackageStandardsContext context, int remaining, CancellationToken cancellationToken, Action<RuleCheckResult>? retainProgress = null)
     {
-        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(item => item.InternalRuleId == TypeRuleId))
+        foreach (var rule in context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
+            .Where(item => item.InternalRuleId is TypeRuleId or RequiredRuleId).OrderBy(item => item.InternalRuleId, StringComparer.Ordinal))
         {
             retainProgress?.Invoke(new(rule.InternalRuleId, CheckStatus.NotEvaluated, "The checksum attribute inspection did not complete."));
             cancellationToken.ThrowIfCancellationRequested();
@@ -48,15 +50,29 @@ internal static class FdaLeafChecksumAttributeRules
                 foreach (var leaf in document.Leaves)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var attribute = elements[leaf.NodePath].Attributes.GetValueOrDefault("checksum-type");
-                    if (attribute is null || attribute.IsDefault) { incomplete = true; continue; }
-                    if (string.Equals(attribute.Value, "md5", StringComparison.OrdinalIgnoreCase)) continue;
+                    var element = elements[leaf.NodePath];
+                    var typeRule = rule.InternalRuleId == TypeRuleId;
+                    var field = typeRule ? "checksum-type" : "checksum";
+                    var attribute = element.Attributes.GetValueOrDefault(field);
+                    if (typeRule)
+                    {
+                        if (attribute is null || attribute.IsDefault) { incomplete = true; continue; }
+                        if (string.Equals(attribute.Value, "md5", StringComparison.OrdinalIgnoreCase)) continue;
+                    }
+                    else
+                    {
+                        var operation = element.Attributes.GetValueOrDefault("operation");
+                        if (operation is not { IsDefault: false, Value: "new" or "append" or "replace" or "delete" }) { incomplete = true; continue; }
+                        if (operation.Value == "delete") continue;
+                        if (attribute?.IsDefault == true) { incomplete = true; continue; }
+                        if (!string.IsNullOrWhiteSpace(attribute?.Value)) continue;
+                    }
                     if (remaining <= 0) { incomplete = true; continue; }
                     remaining--;
                     findings.Add(new(rule.InternalRuleId, CheckStatus.Fail, rule.Severity, rule.InternalRuleId,
-                        "The supplied checksum algorithm is not MD5.",
-                        leaf.Location with { FieldPath = "@checksum-type", Line = attribute.Line, Column = attribute.Column,
-                            Files = [new(target.SourceId, document.LogicalPath)] }, Expected: "MD5", Actual: attribute.Value,
+                        typeRule ? "The supplied checksum algorithm is not MD5." : "The content leaf omits a nonblank checksum value.",
+                        leaf.Location with { FieldPath = "@" + field, Line = attribute?.Line ?? leaf.Location.Line, Column = attribute?.Column ?? leaf.Location.Column,
+                            Files = [new(target.SourceId, document.LogicalPath)] }, Expected: typeRule ? "MD5" : "Nonblank checksum", Actual: attribute?.Value,
                         RecommendedAction: "Review the supplied checksum attribute against the ICH specification."));
                     retainProgress?.Invoke(new(rule.InternalRuleId, CheckStatus.Fail, "A checksum attribute failure is established; remaining leaves may be incomplete.", findings.ToArray()));
                 }
