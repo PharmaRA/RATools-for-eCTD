@@ -94,6 +94,12 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             _officialFileNames = names.Concat(titles).Concat(operations).Concat(directories).Concat(regional).Concat(paths).Concat(targets).Concat(sizes).Concat(extensions).Concat(unreferenced).Concat(utilities).Concat(duplicates).Concat(requiredUtilities)
                 .Concat(forms).Concat(missingFiles).Concat(whitespace).Concat(requiredHeadings).Concat(FdaExtraneousHeadingAttributeRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken)).ToArray();
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            _officialFileNames = _officialFileNames.Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
+                .Where(rule => rule.InternalRuleId == FdaLeafChecksumAttributeRules.TypeRuleId)
+                .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "The checksum attribute inspection did not complete."))).ToArray();
+            foreach (var result in FdaLeafChecksumAttributeRules.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum))
+                RetainChecksum(result);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             // Retain an explicit incomplete result if the asynchronous checksum read times out.
             _officialFileNames = _officialFileNames.Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
                 .Where(rule => rule.InternalRuleId is FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId)
@@ -392,6 +398,7 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             });
             var official = _officialFileNames ?? context.Catalog.ForProfile(lifecycle.ProfileSnapshotId)
                 .Where(rule => rule.InternalRuleId is "FDA47-1221" or "FDA47-1298" or "FDA47-1204" or "FDA47-1276" or "FDA47-1289" or "FDA47-1051" or "FDA47-1068" or "FDA47-1136" or "FDA47-1170" or FdaFileSizeRule.RuleId or FdaFileExtensionRule.RuleId or FdaUnreferencedFileRule.RuleId or FdaUtilityFileRule.RuleId or FdaDuplicateRegionalRule.RuleId or FdaRequiredUtilityRules.PresenceRuleId or FdaRequiredUtilityRules.ChecksumRuleId or FdaFormOperationRule.RuleId or FdaMissingReferencedFileRule.RuleId or FdaAttributeWhitespaceRule.RuleId or FdaRequiredHeadingAttributeRule.RuleId or FdaExtraneousHeadingAttributeRule.RuleId or FdaChecksumMatchRule.RuleId or FdaIndexChecksumFormatRule.RuleId or FdaModifiedLeafTargetRule.RuleId or FdaLeafOperationRules.RuleId or FdaEmptyDirectoryRules.RuleId or FdaRegionalFilePresence.RuleId)
+                .Concat(context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Where(rule => rule.InternalRuleId == FdaLeafChecksumAttributeRules.TypeRuleId))
                 .Select(rule => new RuleCheckResult(rule.InternalRuleId, CheckStatus.NotEvaluated, "Captured filename checks did not complete within the inspection limits.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official));
         }

@@ -1,6 +1,12 @@
 # 2026-11-17 审阅后续执行账本
 
-当前 FDA 4.7 共 147 条，40 条已实施、10 条部分实施、97 条待评估。仍有 107 条待完整覆盖。内部目录有 94 条。FDA 1374 的提交为 `0249ca5`。
+当前 FDA 4.7 共 147 条，40 条已实施、11 条部分实施、96 条待评估。仍有 107 条待完整覆盖。内部目录有 95 条。FDA 1391 的提交为 `893e186`。
+
+**FDA 1408 无效checksum-type（Partial）。** FDA第19页，Low，2008-03-10生效；ICH规范6-10以MD5为算法示例。目标ICH/US叶显式类型按OrdinalIgnoreCase接受MD5，不Trim；空字符串、空白及其他类型报告Info/Fail，缺失或默认属性保持NotEvaluated。此判定不依赖operation，delete或未知operation不能遮蔽已提供的无效算法。绑定FDA/ICH归档原件和选择日期，历史骨架不算目标缺陷，STF范围仍未覆盖。文件引擎与交付绑定v27。
+
+证据根 `.artifacts/local-check/continue-20261119-checksums/`，本机入口 `scripts/local-check/native-no-delete/run-package-regression.ps1`。`fda1408-red` 26项中1通过、25缺规则失败；`fda1408-final` 正常回归663/663通过。只读审查发现同步属性规则超时会遗漏规则结果与已知失败，新增中断契约红测 `fda1408-interruption-red` 0/2。修复为预置NE、规则进度回调和每次Fail的独立快照，保持取消传播；新增两个真实PackageFileInspector deadline用例和快照不变性断言。最终 `fda1408-final2` **668/668通过，0失败/跳过，构建与测试退出0**（26规则、5中断、637既有）。源码清单摘要 `e5b942a13e3a791574c614952f380b7a026786247bea5fd75ab8ed6eb55f2cfd`，7输入匹配。目录95条通过，canonical `fcbea53755db450ad065512f3b80da0aab42b9001fe52e9cee87e5869ec7c3d8`。子代理限定增量复审PASS。回执/TRX/源码清单另存 `backups/fda1408-20261119/evidence/`。
+
+本轮开始时上次qualification和1391原回执仍缺失，未冒用旧资格；使用既有build.ps1/verify.ps1在本轮 `qualification/` 重新资格化，8类进程探针、14移动路径、18夹具回收检查通过，verification SHA `baabbccf5724f335d8a108ab61067b8251d77f3a5403a6d63183fd0ecc636a0a`，三份资格回执亦已备份。下一步按顺序1425、1426，每项独立红测、实现、回归、审查和提交。
 
 **FDA 1391 index-md5.txt格式。** FDA 4.7第18页，Low，2008-03-10生效。文件引擎及交付绑定v26要求目标index-md5.txt恰好32个ASCII十六进制字节；允许大小写，拒绝尾部空格、LF/CRLF、BOM、UTF-16及非ASCII字节。仅判断格式，不比较摘要值。捕获长度非32时直接判格式失败，32时最多读取33字节验证内容和EOF；缺文件、IO错误或流与捕获长度不一致保留NotEvaluated，用户取消传播。检查独立于XML是否已解析完整；不借用历史文件。1374与1391分别预置未完成结果，共享预算并按RuleId替换结果。
 
