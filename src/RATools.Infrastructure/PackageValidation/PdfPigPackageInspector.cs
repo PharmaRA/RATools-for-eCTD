@@ -8,7 +8,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-v2";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-v3";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -58,7 +58,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         private int _objects;
         private bool _uriBase;
 
-        public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count).Read(document.Structure.Catalog.CatalogDictionary);
+        public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count, limits).Read(document.Structure.Catalog.CatalogDictionary);
 
         public void Read()
         {

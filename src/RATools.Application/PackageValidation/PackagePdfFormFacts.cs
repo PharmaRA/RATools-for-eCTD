@@ -22,12 +22,13 @@ public sealed class PackagePdfFormField
 }
 
 public sealed class PackagePdfFormFacts(bool? hasAcroForm, bool hasXfa, bool complete,
-    IEnumerable<PackagePdfFormField> fields, IEnumerable<string>? incompleteReasons = null)
+    IEnumerable<PackagePdfFormField> fields, IEnumerable<string>? incompleteReasons = null, PackageXfaFacts? xfa = null)
 {
     public bool? HasAcroForm { get; } = hasAcroForm;
     public bool HasXfa { get; } = hasXfa;
     public bool Complete { get; } = complete;
     public IReadOnlyList<PackagePdfFormField> Fields { get; } = Array.AsReadOnly(fields.ToArray());
     public IReadOnlyList<string> IncompleteReasons { get; } = Array.AsReadOnly((incompleteReasons ?? []).ToArray());
+    public PackageXfaFacts Xfa { get; } = xfa ?? PackageXfaFacts.Unknown;
     public static PackagePdfFormFacts Unknown { get; } = new(null, false, false, [], ["Form inspection was not completed."]);
 }

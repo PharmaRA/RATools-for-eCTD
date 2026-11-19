@@ -5,8 +5,8 @@ using UglyToad.PdfPig.Tokens;
 namespace RATools.Infrastructure.PackageValidation;
 
 // Uses the navigation reader's resolver and budget. No JavaScript, appearance synthesis,
-// default-value substitution or XFA interpretation is performed.
-internal sealed class PdfPigPackageFormReader(Func<IToken?, IToken?> tokenResolver, Action<int> count)
+// default-value substitution or XFA template/script interpretation is performed.
+internal sealed class PdfPigPackageFormReader(Func<IToken?, IToken?> tokenResolver, Action<int> count, PackageReadLimits limits)
 {
     private readonly List<PackagePdfFormField> _fields = [];
     private readonly List<string> _reasons = [];
@@ -36,11 +36,13 @@ internal sealed class PdfPigPackageFormReader(Func<IToken?, IToken?> tokenResolv
         if (raw is null or NullToken) return new(false, false, true, []);
         if (Resolve(raw) is not DictionaryToken form)
             return new(true, false, false, [], ["Invalid AcroForm dictionary."]);
-        var hasXfa = Entry(form, "XFA") is not null;
-        if (hasXfa) Unknown("XFA data is not inspected; AcroForm values alone are not authoritative.");
+        var xfaToken = Entry(form, "XFA");
+        var hasXfa = xfaToken is not null;
+        if (hasXfa) Unknown("XFA template/script semantics are not qualified; AcroForm values alone are not authoritative.");
         if (Entry(form, "Fields") is not ArrayToken roots) Unknown("Invalid or missing AcroForm Fields array.");
         else foreach (var root in roots.Data) ReadField(root, null, "", new(null, null, null, null), 0);
-        return new(true, hasXfa, _reasons.Count == 0, _fields, _reasons);
+        var xfa = xfaToken is null ? PackageXfaFacts.Unknown : new PdfPigPackageXfaReader(Resolve, count, limits).Read(xfaToken);
+        return new(true, hasXfa, _reasons.Count == 0, _fields, _reasons, xfa);
     }
 
     private sealed record Inherited(IToken? Type, IToken? Flags, IToken? Value, IToken? Default);

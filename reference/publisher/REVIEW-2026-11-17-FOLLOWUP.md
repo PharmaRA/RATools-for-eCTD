@@ -4,6 +4,14 @@
 
 当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
 
+2026-11-20 XFA批次七轮共14个build/bin、build/obj已在进程、绝对路径及链接检查后送入Windows回收站，可恢复；仅解除这些目标的禁删ACE以允许回收。原始回执/日志/TRX、证据备份和官方样本保留。
+
+**FDA5前置：有界XFA packet/data读取（不计规则完成）。** 通过FDA forms页面脚本定位公开目录`https://www.fda.gov/datatables-json/fda-forms.json`，归档2252/2253/3674/3938/3988五份官方PDF，均为AcroForm Fields为空的XFA动态表单，不能以普通widget缺失判断无表单。七份归档源长度/SHA全部校验；五份XFA template解码摘要、官网版次、PDF修改时间和观察字段见来源清单，彼此不混同。3397实际返回用户费登录页，3792/3794目录指向登录生成系统，未认证访问；2567未见匹配目录行但不能据此认定不存在/不适用。
+
+新增不可变`PackageXfaFacts`，读取packet数组或单一XDP流；保留解码SHA/字节数及含命名空间/同名序号的原始数据节点路径。缺datasets与存在空data分开；必须恰好一个template、一个datasets和其中一个data，重复/畸形保持不完整。支持无过滤器及受限Flate，累计展开字节、压缩比、XML节点/深度并共享PDF对象预算和取消；DTD/外部实体禁止，不执行脚本。XFA元数据解析失败独立计数，不能因原因去重而发布不可信packet；envelope验证首尾配对、根、唯一边界且拒绝注释/PI隐藏。ZLib同时验证头、精确消费位置和Adler-32，输入耗尽后仍被请求读取即拒绝，避免未设置最终块但校验和正确的截断流被误接受。PDF inspector版本`pdfpig-0.1.15/package-navigation-forms-xfa-v3`。**Xfa.ReadComplete仅表示物理数据读取，Form.Complete仍false；不证明模板识别、脚本计算、可填写性或FDA5匹配。**
+
+`fda5-xfa-red`构建退出0，18项8通过10失败。candidate为94/97，但构建期间新增测试导致源码清单不一致，仅作诊断、不作验收。固定源码`review-red`4项1通过3失败，复现悬空Filter/DecodeParms与损坏envelope；修复后candidate2为102/103，唯一截断ZLib尾仍被接受。加入尾校验/精确消费后candidate3为105/105；增量审查提出固定marker注释隐藏、重复悬空元数据、BFINAL=false但正确Adler，`review2-red`4项1通过3失败，均实证后修复。最终`fda5-xfa-final`三项目构建退出0，**170/170通过、0失败/跳过、测试退出0**（135相关基线+35XFA）；源码清单SHA`b5e21e9a9f8005a0035c45f9f3baf895db48da653e06ff49c26ca213ff8e950d`，6/6交付输入匹配；TRX SHA`8f257d1c4b206fce65ab83514cff24408c710eb75509f8f5347f7a3b4ea84941`，原件与备份一致。子代理限定增量只读复审PASS。七轮证据副本在`backups/fda5-xfa-20261120/evidence/`，不作全仓库或监管资格宣称。
+
 **FDA5前置：目标XML表单候选组及申请归属（不计规则完成）。** 固定FDA M1规格2.6物理第7/10/20页明确356h/1571位于对应申请的admin表单组、其他表单在M1，且一个form可有附件叶。因此新增`PackageFileInspection.Forms`保留候选组而不逐叶判为主表单：ApplicationAdmin精确绑定祖先application，SharedM1保留全部申请，不误选containing-files=true。保留原始编号文本、类型/containing-files属性事实、重复编号、空组、delete/无href和node-extension附件叶；通过SourceLogicalPath+NodePath与已有引用事实对应。只消费目标digest/profile唯一匹配的已解析XML，不重开文件；历史不串入，根/业务命名空间和祖先链必须匹配。DTD/读取不完整、缺/多regional、错位置、展开超过MaxXmlNodes均不能报清单完整；超限只发布此前完整组，取消传播。文件/交付绑定v31，目录99条及FDA5状态未改。
 
 `fda5-binding-red`因新测试CA1861编译失败，不计业务红；修正后`fda5-binding-red2`构建退出0，7项3通过4失败。candidate为51/51；子代理要求隔离命名空间变量、目标唯一性/多文档、精确展开预算及delete/无href测试，已补齐。`fda5-binding-final`三项目构建退出0，**135/135通过、0失败/跳过、测试退出0**，覆盖两个binding类、1038/路径规则类及三个PDF类；不是全套、业务FDA5匹配或监管资格。源码清单SHA`931d9011adb61bdb7810445b3230de3c8e2a6f3b3080e49a066e7bd5d34593b6`，7/7交付输入匹配；TRX SHA`ffa9bfd16f5f2989ea0570b40180ce7055d75739005d9c15957cf251c8249fb8`，原件与备份一致。限定增量只读审查PASS。四轮证据在`backups/fda5-binding-20261120/evidence/`；8个bin/obj已检查进程/路径/链接后送入Windows回收站，可恢复，证据继续保留。
