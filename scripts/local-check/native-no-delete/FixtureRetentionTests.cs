@@ -46,6 +46,13 @@ public static class FixtureRetentionTests
         Check(source,Path.Combine(Path.GetDirectoryName(root),G()+"-index.xml"),false);
         string already=Path.Combine(recycle,G()+"-old.txt");File.WriteAllText(already,"recycled");Check(already,Path.Combine(recycle,G()+"-old.txt"),false);
         if(File.ReadAllText(real)!="link-bytes"||File.ReadAllText(source)!="source-bytes"||File.ReadAllText(fileTarget)!="existing-target")throw new InvalidOperationException("Policy checks modified bytes");
+        string preflight=Path.Combine(fixture,"validation","preflight");Directory.CreateDirectory(preflight);
+        string digest=new string('a',64),pending=Path.Combine(preflight,digest+"."+G()+".pending"),published=Path.Combine(preflight,digest+".json");
+        File.WriteAllText(pending,"assessment");Check(pending,published,true);
+        Check(pending,Path.Combine(preflight,new string('b',64)+".json"),false);
+        Check(pending,Path.Combine(recycle,digest+".json"),false);
+        File.WriteAllText(published,"existing-evidence");Check(pending,published,false);
+        if(File.ReadAllText(pending)!="assessment"||File.ReadAllText(published)!="existing-evidence")throw new InvalidOperationException("Evidence policy changed bytes");
         return checks;
     }
 }

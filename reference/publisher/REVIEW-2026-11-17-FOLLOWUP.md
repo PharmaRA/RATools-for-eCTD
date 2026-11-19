@@ -2,7 +2,19 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。当前先处理FDA3/4捕获前输入形态证据，尚未宣称新增规则完成。
 
-当前 FDA 4.7 共 147 条，40 条已实施、13 条部分实施、94 条待评估。仍有 107 条待完整覆盖。内部目录有 97 条。FDA 1408、1425 的提交分别为 `15e6e65`、`5b01514`。
+当前 FDA 4.7 共 147 条，42 条已实施、13 条部分实施、92 条待评估。仍有 105 条待完整覆盖。内部目录有 99 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA 3/4 捕获前输入形态。** FDA第4页，High，2016-05-31生效。新增认证API `POST /api/package-validation-inputs/preflight`，显式选择Directory、ZipContainer、SingleFile，要求applicationId、path、role、profileSnapshotId，可传精确standardsSnapshotId；拒绝省略role、数字枚举及rootRelativePath等未知字段。完整输入范围由请求path确定，不强造序列根。直接文件触发3，含一个文件的目录/ZIP不触发3；完整无文件容器触发4，零字节文件仍计为文件。损坏ZIP、限额、路径/链接拒绝、取消/超时、扫描变化保持原错误，不构造空包结论。
+
+扫描复用原reader安全检查和限额，两次完整扫描的清单/文件摘要/空目录/归档摘要一致后才返回，最终摘要后再次检查取消；修正根目录重叠判断。预检绑定快照、FDA来源、当天选择日期、输入digest及限额，scope=InputShapeOnly且isReadyForFinalization=false。JSON完整写入唯一pending后不覆盖原子发布，ID为确切UTF-8字节SHA-256；`GET /api/package-validation-inputs/preflight/{id}`只读冻结内容、校验hash/schema、不创建目录、不重新扫描。并发同内容碰撞验证已有结果，不覆盖。正常已捕获包也纳入3/4，文件/交付v30。
+
+有效红测 `remaining107-red3` 33项中1通过32失败；早期CA1822、缺using、MSB3101缓存写入拒绝不计业务红灯。candidate3为38/40，review-red三项均失败，分别复现GET写目录、根路径重叠和HTTP枚举绑定；candidate4为43/44，唯一同摘要并发碰撞UnauthorizedAccessException，已加入仅在最终文件存在时的严格校验恢复。新增限定预检pending→JSON晋升许可，禁止覆盖/错名/跨目录/链接；`remaining107-qualification` 8类进程、14移动路径、22夹具路径检查通过，verification摘要 `9d26bc20d7321572a48f6cc7caf000d36a6beea0e9abcee5dbde1f20407fcf73`。
+
+本机入口 `scripts/local-check/native-no-delete/run-package-regression.ps1`。`remaining107-input-final` 三项目构建退出0，826项中824通过、2旧reader夹具失败：DirectoryAndAncestorLinksCannotReadExternalFiles在链接回收/夹具保留失败；EmptyDirectoriesAndUnselectedTopLevelFilesParticipateInDigest在ZIP移动保留失败，后续digest断言未执行。未放宽相关许可、未改测试；同程序集以 `-BuildFrom .artifacts/local-check/remaining107-input-final/build` 运行 `remaining107-input-final-selected`，**824/824通过，0失败/跳过，测试退出0**，包括本批44项和相关旧回归。筛选式含上述2项及既有3类排除，不能声称reader完整类或全仓库通过。源码清单摘要 `bdea53921a4bb3056a490738bbc78b7fce9bfba38f05d84492680ce2673cdaee`，14输入匹配；TRX摘要 `a8442c5eef7081b740ada7eaf4f520e25dfc9efa997c463f1768c180d39813c8`，源与备份一致。目录99条校验通过，canonical `1f6f272b4e4f056688ea46b89d9e838b6239fef2693e334f54398bd3b7b7d696`。子代理限定静态审查已收口。证据副本在 `backups/fda3-4-20261119/evidence/`。
+
+下一项FDA5表单申请类型/编号与us-regional.xml匹配：已确认当前PDF事实仅有基础属性和导航信息，缺少AcroForm/XFA字段事实及官方表单字段映射；先补对应读取与来源证据，再实现规则，不以普通文本猜测字段。FDA6及之后仍按固定队列顺序推进。
+
+子代理终态确认824/824及三项目构建退出0，限定交付PASS；复核时使用构建摘要备份，主线程收尾再次确认原build/summary.json仍可读取，不据此推断此前不可读原因。本批10个候选的20个build/bin、build/obj目录经进程终止、范围和链接核验后送入Windows回收站，可恢复；资格目录、原始回执及备份保留，没有永久删除。
 
 **FDA 1426 delete多带checksum（Partial）。** FDA第19页，Low，独立生效日2013-04-30；ICH规范6-4规定delete的checksum值为空。目标ICH/US叶显式delete带任何非空checksum（包括空格和制表符）报告Info/Fail；缺失与空字符串不触发本条，DTD要求仍单独报告。其他已知operation不触发，未知/缺失/默认operation及默认checksum证据保持未评估。固定规则顺序1408→1425→1426共享预算，三条均预置未完成结果并保存已知失败快照；文件引擎及交付绑定v29，STF范围仍Partial。
 

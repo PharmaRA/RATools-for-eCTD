@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddSingleton<IPackagePdfInspector, PdfPigPackageInspector>();
         services.AddSingleton<PackageDeliveryInspector>();
         services.AddScoped<PackageValidationInputRegistry>();
+        services.AddScoped<PackageInputPreflightService>();
         services.AddScoped<FinalizedHistoryResolver>();
         services.AddScoped(provider => new PackageValidationService(provider.GetRequiredService<IPackageValidationStore>(),
             provider.GetRequiredService<IPackageInputReader>(), provider.GetRequiredService<IWorkspacePathPolicy>(), provider.GetRequiredService<PackageDeliveryInspector>(),

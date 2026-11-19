@@ -92,6 +92,10 @@ public static class RetainedMovePolicy
         string[] s=Path.GetRelativePath(root,source).Split('\\'),d=Path.GetRelativePath(root,destination).Split('\\');
         if(s.Length==0||!GuidPart(s[0]))return null;
         bool directory=(identity.attributes&0x10)!=0;
+        if(!directory&&s.Length==4&&d.Length==4&&s[0]==d[0]&&s[1]=="validation"&&d[1]==s[1]&&s[2]=="preflight"&&d[2]==s[2]&&
+            Regex.IsMatch(d[3],@"^[0-9a-f]{64}\.json$",RegexOptions.CultureInvariant)&&
+            Regex.IsMatch(s[3],"^"+Regex.Escape(d[3].Substring(0,64))+@"\.[0-9a-f]{32}\.pending$",RegexOptions.CultureInvariant))
+            return "package-preflight-publication";
         if(directory&&s.Length==1&&d.Length==2&&d[0]=="_recycle"&&d[1].Length==65&&GuidPart(d[1].Substring(0,32))&&d[1].Substring(32)=="-"+s[0]){
             InspectTree(source,identity.volume,"tree");return "package-fixture-retention";
         }

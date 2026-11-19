@@ -58,8 +58,8 @@ try {
     if($case.cli){$decisions=@($result.events | Where-Object kind -eq 'move-decision');if(@($decisions | Where-Object allowed -eq $true).Count -ne 5 -or @($decisions | Where-Object allowed -eq $false).Count -lt 1){throw 'CLI initialization permission/refusal evidence incomplete'}}
     if($case.fixture){
       $decisions=@($result.events|Where-Object kind -eq 'move-decision');$accepted=@($decisions|Where-Object allowed -eq $true)
-      $expected=@('package-capture-retention','package-upload-retention','package-missing-input-retention','package-fixture-retention')
-      if($accepted.Count -ne 4 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -eq 'unsupported-class-or-length'}).Count -ne 2 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -ne 'unsupported-class-or-length'}).Count -ne 3 -or (@($accepted.relation|Sort-Object)-join ',') -ne (@($expected|Sort-Object)-join ',')){throw 'Fixture retention decisions incomplete'}
+      $expected=@('package-capture-retention','package-upload-retention','package-missing-input-retention','package-fixture-retention','package-preflight-publication')
+      if($accepted.Count -ne 5 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -eq 'unsupported-class-or-length'}).Count -ne 2 -or @($decisions|Where-Object {$_.allowed -eq $false -and $_.reason -ne 'unsupported-class-or-length'}).Count -ne 3 -or (@($accepted.relation|Sort-Object)-join ',') -ne (@($expected|Sort-Object)-join ',')){throw 'Fixture retention decisions incomplete'}
       $row=Get-Content -LiteralPath $log -Raw|ConvertFrom-Json;if(-not $row.passed -or $row.rejectionAndPassthroughChecks -ne 17){throw 'Fixture retention probe failed'}
     }
     if($case.name -in @('before-patch','after-patch','timeout') -and $result.forcedTreeStop -ne $true){throw 'Fault cleanup did not terminate its owned process'}
@@ -68,7 +68,7 @@ try {
  $summary.retainedMovePathChecks=[RetainedMoveTests]::Run((Join-Path $Evidence 'move-path-checks'))
  if($summary.retainedMovePathChecks -ne 14){throw 'Move path checks incomplete'}
  $summary.fixtureRetentionPathChecks=[FixtureRetentionTests]::Run((Join-Path $Evidence 'fixture-path-checks'))
- if($summary.fixtureRetentionPathChecks -ne 18){throw 'Fixture retention path checks incomplete'}
+ if($summary.fixtureRetentionPathChecks -ne 22){throw 'Fixture retention path checks incomplete'}
  $summary.qualificationInputsSha256=(Get-FileHash -LiteralPath (Join-Path $Evidence 'qualification-inputs.json')).Hash.ToLowerInvariant()
  $summary.passed=$true
 } finally {

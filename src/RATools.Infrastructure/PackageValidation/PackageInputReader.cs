@@ -72,6 +72,66 @@ public sealed class PackageInputReader : IPackageInputReader
         }
     }
 
+    public async Task<PackageInputShapeEvidence> InspectShapeAsync(PackageInputSelection selection, PackageInputRole role,
+        PackageReadLimits limits, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(limits);
+        limits.Validate();
+        if (!Enum.IsDefined(role)) throw new ArgumentOutOfRangeException(nameof(role));
+        if (selection.ApplicationId == Guid.Empty) throw new ArgumentException("Select an application identity.", nameof(selection));
+        ArgumentException.ThrowIfNullOrWhiteSpace(selection.SourceId);
+        if (selection.RootRelativePath is not null || selection.SequenceNumber is not null)
+            throw new ArgumentException("Shape assessment covers the entire selected input; sequence/root selectors are not accepted.", nameof(selection));
+        cancellationToken.ThrowIfCancellationRequested();
+        var source = Path.GetFullPath(selection.Path);
+        EnsureNoLinks(source);
+        if (IsWithin(_captureParent, source) || IsWithin(source, _captureParent))
+            throw new ArgumentException("Input and task capture storage must not overlap.", nameof(selection));
+        if (Directory.Exists(source) != (role == PackageInputRole.Directory))
+            throw new ArgumentException("The explicit input role does not match the selected filesystem object.", nameof(role));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(limits.MaxElapsedSeconds), _timeProvider);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        try
+        {
+            var first = await ScanShape().ConfigureAwait(false);
+            var observedUtc = _timeProvider.GetUtcNow();
+            var second = await ScanShape().ConfigureAwait(false);
+            var firstDigest = first.InputDigest;
+            var secondDigest = second.InputDigest;
+            deadline.Token.ThrowIfCancellationRequested();
+            if (firstDigest != secondDigest) throw new PackageInputChangedException(selection.SourceId);
+            return first with { ObservedUtc = observedUtc };
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        { throw new PackageInputException("INPUT-LIMITS", "INPUT_READ_TIMEOUT", "Input shape assessment exceeded the configured deadline.", innerException: exception); }
+        catch (InvalidDataException exception)
+        { throw new PackageInputException("ZIP-PATHS", "INVALID_INPUT_DATA", "The declared ZIP container could not be completely inspected.", innerException: exception); }
+
+        async Task<PackageInputShapeEvidence> ScanShape()
+        {
+            deadline.Token.ThrowIfCancellationRequested();
+            EnsureNoLinks(source);
+            if (Directory.Exists(source) != (role == PackageInputRole.Directory)) throw new PackageInputChangedException(selection.SourceId);
+            Inventory inventory;
+            if (role == PackageInputRole.SingleFile)
+            {
+                inventory = new(limits, PackageSourceKind.Directory);
+                // Do not expose a local filename or absolute path in direct-file evidence.
+                inventory.Register("submitted-file", false);
+                await using var input = OpenSource(source);
+                await inventory.CaptureFileAsync("submitted-file", input, input.Length, null, deadline.Token).ConfigureAwait(false);
+            }
+            else inventory = await ScanAsync(source, role == PackageInputRole.Directory ? PackageSourceKind.Directory : PackageSourceKind.Zip,
+                limits, null, deadline.Token).ConfigureAwait(false);
+            EnsureNoLinks(source);
+            deadline.Token.ThrowIfCancellationRequested();
+            return new(selection.ApplicationId, selection.SourceId, role,
+                Array.AsReadOnly(inventory.Files.Values.OrderBy(file => file.LogicalPath, StringComparer.Ordinal).ToArray()),
+                Array.AsReadOnly(inventory.Directories.Order(StringComparer.Ordinal).ToArray()), inventory.ArchiveSha256, limits.Digest());
+        }
+    }
+
     private static void RetainAfterFailure(string owned, string captureParent, Exception failure)
     {
         try { RecycleOwnedCapture(owned, captureParent); }
@@ -211,11 +271,12 @@ public sealed class PackageInputReader : IPackageInputReader
         }
     }
 
-    private static bool IsWithin(string path, string root)
+    internal static bool IsWithin(string path, string root)
     {
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        return string.Equals(Path.TrimEndingDirectorySeparator(path), Path.TrimEndingDirectorySeparator(root), comparison) ||
-            path.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, comparison);
+        var normalizedRoot = Path.TrimEndingDirectorySeparator(root);
+        var prefix = Path.EndsInDirectorySeparator(normalizedRoot) ? normalizedRoot : normalizedRoot + Path.DirectorySeparatorChar;
+        return string.Equals(Path.TrimEndingDirectorySeparator(path), normalizedRoot, comparison) || path.StartsWith(prefix, comparison);
     }
 
     private static PackageInputException Limit(string code, string message, string? path = null) => new("INPUT-LIMITS", code, message, path);

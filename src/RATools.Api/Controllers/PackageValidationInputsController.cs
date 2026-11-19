@@ -7,9 +7,27 @@ namespace RATools.Api.Controllers;
 
 [ApiController]
 [Route("api/package-validation-inputs")]
-public sealed class PackageValidationInputsController(PackageValidationInputRegistry registry, IPackageValidationStore store)
+public sealed class PackageValidationInputsController(PackageValidationInputRegistry registry, IPackageValidationStore store, PackageInputPreflightService preflight)
     : PackageValidationControllerBase
 {
+    [HttpPost("preflight")]
+    [ProducesResponseType(typeof(PackageInputPreflightReceipt), StatusCodes.Status201Created)]
+    public Task<IActionResult> Preflight([FromBody] PackageInputPreflightRequest request, CancellationToken cancellationToken) => RespondAsync(async () =>
+    {
+        var receipt = await preflight.InspectAsync(request, cancellationToken);
+        Response.Headers.CacheControl = "no-store";
+        return CreatedAtAction(nameof(GetPreflight), new { id = receipt.Id }, receipt);
+    });
+
+    [HttpGet("preflight/{id}")]
+    [ProducesResponseType(typeof(PackageInputPreflightReceipt), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetPreflight(string id, CancellationToken cancellationToken) => RespondAsync(async () =>
+    {
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return await preflight.GetAsync(id, cancellationToken) is { } receipt ? Ok(receipt) : NotFound();
+    });
+
     [HttpPost]
     [ProducesResponseType(typeof(PackageInputDto), StatusCodes.Status201Created)]
     public Task<IActionResult> Register([FromBody] RegisterPackageInputRequest request, CancellationToken cancellationToken) => RespondAsync(async () =>

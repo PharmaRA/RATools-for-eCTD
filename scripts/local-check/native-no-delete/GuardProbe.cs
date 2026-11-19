@@ -91,6 +91,9 @@ public static class GuardProbe
                 }
                 Need(File.ReadAllText(collision)=="existing-retained","Replacement changed target");
                 string fileTarget=Path.Combine(recycle,G()+"-index.xml");File.Move(source,fileTarget);Need(!File.Exists(source)&&File.ReadAllText(fileTarget)=="source-retained","Missing-file retention changed bytes");
+                string preflight=Path.Combine(fixture,"validation","preflight");Directory.CreateDirectory(preflight);
+                string digest=new string('a',64),pending=Path.Combine(preflight,digest+"."+G()+".pending"),published=Path.Combine(preflight,digest+".json");
+                File.WriteAllText(pending,"assessment");File.Move(pending,published);Need(!File.Exists(pending)&&File.ReadAllText(published)=="assessment","Preflight publication changed bytes");
                 string ownedTarget=Path.Combine(recycle,G()+"-"+Path.GetFileName(fixture));Directory.Move(fixture,ownedTarget);
                 Need(!Directory.Exists(fixture)&&File.ReadAllText(Path.Combine(ownedTarget,Path.GetRelativePath(fixture,Path.Combine(captured,payload))))=="capture-retained"&&
                     File.ReadAllText(Path.Combine(ownedTarget,Path.GetRelativePath(fixture,Path.Combine(uploaded,"package.zip"))))=="upload-retained","Fixture retention changed descendants");
