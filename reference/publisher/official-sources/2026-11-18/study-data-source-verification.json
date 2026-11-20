@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "fda-study-data-technical-guide",
+  "title": "Study Data Technical Conformance Guide",
+  "version": "October 2026",
+  "sourceUrl": "https://www.fda.gov/media/153632/download",
+  "archivedPath": "reference/publisher/official-sources/2026-11-18/fda-study-data-technical-conformance-guide.pdf",
+  "verifiedUtc": "2026-11-20T04:48:11.6861948+00:00",
+  "httpStatus": 200,
+  "bytes": 1399163,
+  "sha256": "3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689",
+  "matchesArchived": true,
+  "note": "Official response was downloaded in memory and matched the existing archive byte-for-byte by SHA-256. The archived PDF was not overwritten. Snapshot availability starts on this verification date; an earlier capture must not borrow the new provenance. Relevant FDA1734/1735 discussion is on physical PDF pages 77-82 and 100."
+}

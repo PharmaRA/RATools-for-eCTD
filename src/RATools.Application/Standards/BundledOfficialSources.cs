@@ -34,6 +34,10 @@ internal sealed record BundledOfficialSources(
         "dd750e6c9f17aaf2797c553150c67ffeb483f5491fb2ed7df76e26b933037b80", "Verified");
     // Source acquisition was 2026-11-20 Asia/Shanghai, still 2026-11-19 UTC.
     private static readonly DateOnly StfSourcesAcquiredOn = new(2026, 11, 19);
+    internal static readonly ValidationRuleSource StudyDataTechnicalGuide = new("fda-study-data-technical-guide", RuleSourceKind.RegulatorySpecification, "October 2026",
+        "https://www.fda.gov/media/153632/download", "3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689", "Verified");
+    // Reacquired from the official endpoint and matched to the existing archive on this date.
+    private static readonly DateOnly StudyDataGuideAcquiredOn = new(2026, 11, 20);
 
     public static BundledOfficialSources? Capture(StandardsProfile profile, DateOnly captureDate)
     {
@@ -100,6 +104,14 @@ internal sealed record BundledOfficialSources(
                 resources.Add(resource);
                 provenance.Add(new(source.Url, source.Version, StfSourcesAcquiredOn, StfSourcesAcquiredOn, source.VerificationStatus, resource.Sha256));
             }
+        if (captureDate >= StudyDataGuideAcquiredOn && selected.Any(item => item.GetProperty("id").GetString() == "fda-criteria"))
+        {
+            var source = StudyDataTechnicalGuide;
+            var resource = ReadResource("official-" + source.Id, "OfficialSource", "official-sources/fda-study-data-technical-conformance-guide.pdf",
+                "application/pdf", source.Id, source.Sha256!);
+            resources.Add(resource);
+            provenance.Add(new(source.Url, source.Version, StudyDataGuideAcquiredOn, StudyDataGuideAcquiredOn, source.VerificationStatus, resource.Sha256));
+        }
         return new(resources, provenance.OrderBy(source => source.SourceUrl, StringComparer.Ordinal).ToArray(),
             new("Sources", "Verified", "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.", binding.Sha256));
     }

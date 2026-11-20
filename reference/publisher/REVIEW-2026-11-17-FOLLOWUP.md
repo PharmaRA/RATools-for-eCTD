@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**1734/1735共享前置：冻结Study Data Technical Conformance Guide（不计规则完成）。** 1731已提交`df57ed2`。复用现有2026-11-18归档PDF，2026-11-20T04:48:11Z从官方`https://www.fda.gov/media/153632/download`经代理在内存重新获取，HTTP200、1,399,163字节、SHA`3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689`与原件一致，未覆盖归档；独立验证记录位于同目录study-data-source-verification.json。将October 2026版本、URL、摘要、获取/验证日期和原件纳入FDA标准快照，起始UTC日期2026-11-20，旧日期/EU不加入；旧快照只查自身原件，不借Current，重开无需当前provider。未改规则目录/引擎或Formal资格。
+
+`study-data-source-red`8项2过6败，缺新来源；candidate宽匹配意外包含4项PostgreSQL用例，78项74通过、4跳过、0失败，不能记78/78。最终final精确筛选来源新测试、官方来源、普通StandardsSnapshotTests及FdaAccumulativeStfRuleTests，**74/74、0失败/跳过，三构建及测试退出0，进程树停止**。源码清单SHA`43dbaea5c41808f65c61c9e335cf93b49e3aee3905e409c6ad38c09fa65886e3`，4/4输入绑定（来源加载器、csproj、新测试及既有PDF；核验JSON单独比对，不计入4）；TRX SHA`3fe1efdbd9d4ce9d3bb1ed5fcd37f91fc9cb4a7c742a1f4d63733683fcc8007d`原件/备份一致。静态review及最终证据限定核验PASS。证据副本`backups/study-data-source-20261120/evidence/`；三轮六个bin/obj均完整检查后移入回收站，可恢复。
+
+已直接核对guide物理第77–82、100页：1734–1736存在中心/申请类型/开始日期/报告或XPT触发条件，临床商业IND不应用该拒收条件，simplified TS允许特定NA表示。当前PackageDeliveryInput/Manifest只绑定捕获包及比较包；STF绑定提供owner/leaf与摘要，但不提供真实XPT表/TS记录或define标准身份。后续建立有界内容事实，再绑定目标XML申请类型及显式中心/商业属性，声明必须参与输入身份。不能由文件扩展名、文件时间、US区域或本地ApplicationId推断这些事实；不要求监管receipt。当前仍55 Implemented、11 Partial、81 NotAssessed，剩余92。
+
 **1731完成增量STF判定（限定静态审查与最终证据核验PASS）。** 沿实际目标owner的modified-file前驱链，以精确leaf地址和最近一次引用元数据识别未变历史内容重复；当前new/append/replace叶即使复用旧PDF仍为增量，identifier-only修订允许，不按study-id合并独立链。多owner归属冲突保留NE，各条明确链均重复可Fail；实际相关生命周期变更、缺历史、重复property键和不明确的跨层元数据语义保留NE。同层不同键property重排可比较，已知重复不被同份目标/前驱中的另一条坏引用遮蔽。绑定新增StructureComplete/TargetScopeComplete，保留原Complete语义；目标owner反向覆盖历史STF缺失及摘要拒绑定，预算截断不能成为Pass。文件引擎v47，中断保留唯一NE或已知Fail，旧目录不自动启用。
 
 验证过程完整保留在`.artifacts/local-check/fda1731-*/`及`backups/fda1731-rule-20261120/evidence/`：red 15项5过10败；candidate 87/87；boundaries-red仅编译失败（报告成员及日期provider），没有业务测试；boundaries-red2 28项24过4败，其中2项真实误判、2项删除夹具DTD前提失败；补checksum/type后delete-red 18项15过3败，确认标签A→B→A、多owner冲突和历史删除误判。scope-red 32项28过4败，目标/前驱坏引用遮蔽及property重排先红后修；其中unrelated-history夹具误将坏研究也放进目标，candidate2 135/136及owner-scope-red 21/23中的同项失败产品归因已撤回。修正夹具并修历史STF缺失漏scope后candidate3 138/138；review2-red 26项24过2败，再现new错误modified-file遮蔽和历史STF摘要拒绑定漏scope，均已修复且限定静态复审PASS。
