@@ -3476,6 +3476,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1789",
+      "authorityRuleId": "1789",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 35; STF specification v2.6.1 p. 4; pinned ICH section mapping",
+      "effectiveFrom": "2021-09-15",
+      "title": "Submitted study content must be referenced by an STF",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current non-delete content leaves under m4.2 or m5.3, excluding m5.3.6, checked by exact LeafAddress and actual standard heading instance.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires exact per-leaf STF references from an actual current owner in the same qualified heading/extension instance. Multiple STFs contribute a reference union; same-path leaves remain separate. Orphan STFs and historical references do not retarget current leaf events. Unrelated historical STF observations and complete invalid/other-address references do not hide proven uncovered leaves. Cross-instance or ambiguous study associations remain unqualified; local passes do not establish full coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfReferenceCoverageRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

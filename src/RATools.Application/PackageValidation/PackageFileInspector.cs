@@ -169,6 +169,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfSupportedVersion = FdaStfSupportedLeafVersionRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfSupportedVersion is not null) RetainChecksum(stfSupportedVersion);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var stfCoverage = FdaStfReferenceCoverageRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (stfCoverage is not null) RetainChecksum(stfCoverage);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -532,6 +535,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfSupportedLeafVersionRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfSupportedLeafVersionRule.RuleId, CheckStatus.NotEvaluated,
                     "The known STF 2.2 declaration inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStfReferenceCoverageRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfReferenceCoverageRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStfReferenceCoverageRule.RuleId, CheckStatus.NotEvaluated,
+                    "The study section STF reference inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

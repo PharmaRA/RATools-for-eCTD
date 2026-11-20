@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1789 研究章节逐叶STF引用覆盖（Partial交付，限定静态及终态核验PASS）。** 1782已提交`b139be1`，1786依赖保留。依据criteria物理35页和STF规范第4页，将固定CTD的m4.2及m5.3后代映射为研究章节，排除m5.3.6；4.3/5.2/5.4及模块根不自动产生义务。当前new/append/replace内容叶按完整LeafAddress检查，delete及实际STF自身排除，不按相同内容路径/摘要合并叶。有效当前owner的STF引用取并集，孤立STF不直接补覆盖；历史STF内部引用不重定位到当前新叶。精确同heading/extension实例可覆盖，跨实例关系NE。完整无关非法/旧地址引用不遮蔽已证明缺覆盖，真正未读/未知XML保持NE。目录Partial，组件Pass在coverage仍NE，文件引擎v55。
+
+`fda1789-red`仅CA1861测试编译失败，无业务测试。red2为48项8过40败，其中1项nested-reference夹具缺DTD必需block-title，不计业务红灯；修夹具后red3仍48项8过40败，全部前提通过。candidate六类251/251。只读审查发现兄弟node-extension折叠误Pass、无关历史坏根屏蔽当前Fail；review-red51项49过2败准确复现，另有当前相关历史context错配NE对照。关联键保留实际扩展实例，标准章节仍仅定适用性；先筛选当前相关STF再检查根。增量静态复审PASS，final九类 **359/359、0失败/跳过，三构建与测试退出0、进程树停止**：1789为51、1782为53、1765为59、1748为43、1752为43、checksum interruption16、binding56、inspection19、whitespace19。
+
+final源码清单SHA`b99bc232dd1f55c104d2880d2ed0e3c55c05902b0bba5f7d662ad777ab6bf238`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`4b59141911f77c777c540259901ce0de9365cbe35834d773e7aed4ba3d7bd8ad`原件/备份一致。目录118条canonical SHA`5348638e947bad18eb069fd4e8479f21a8890ccc90e07b18d7f1da71ad3fd7cb`独立通过。证据`.artifacts/local-check/fda1789-final/`及副本`backups/fda1789-20261120/evidence/final/`；六轮十二个bin/obj全部检查后送回收站可恢复，首轮仅保留构建证据；red2回收一度漏AclObject参数中止，修正后核对八份副本并完成，未物理删除。最终证据限定核验PASS，非全套或监管资格。
+
+跨章节/扩展实例的研究归属细则仍未资格化，1789保持Partial。统计59 Implemented、15 Partial、73 NotAssessed，待完整覆盖仍88，原107项完整完成仍19条。下一1799实际STF经精确叶引用另一STF，普通XML、未知历史、源/目标截断事实分开；自引用解释边界需单独保留，不凭“循环不好”新增监管处罚。
+
 **FDA1782 已确认STF 2.2引用的精确标记（Partial交付，限定静态及终态核验PASS）。** 1765已提交`9a64da2`。criteria物理34页明确2.2引用须exact `STF Version 2.2`，不能用旧spec的大小写示例放宽本条。先验证真实owner、精确STF引用、固定DTD/实际解析资产与有效根2.2，再按解码后的原值Ordinal比较；其他非空白值Error Fail，缺/空白交1748，合成default owner或未知根NE。默认根可用但1752仍独立Fail；1765可数值匹配而1782格式Fail。历史、多个owner、截断局部证据、重复观察与来源摘要保持限定，未借文件名或安装资产清单推导全部监管支持版本。目录Partial，组件Pass在报告仍NE；文件引擎v54。
 
 `fda1782-red`53项17过36败，XML前提全部通过。补正常/历史实际根2.2及已解析固定DTD前提后candidate四类171/171，正式静态PASS；final八类 **308/308、0失败/跳过，三构建与测试退出0、进程树停止**：1782为53、1765为59、1748为43、1752为43、checksum interruption16、STF binding56、inspection19、whitespace19。final源码清单SHA`544024b70c44997545ca17f1080701e8d8e0667b69fa4f337c0c0f80d9eafb1a`，7/7交付输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`62c5c125aa3bc46c852a13160117a524762c3e1aa84bece6462fee5257f01c7b`原件/备份一致。目录117条canonical SHA`8ecac4fd49ee0c6d335e376f565dfda31eb34440e6032520ae6a735c3d728964`独立通过。证据`.artifacts/local-check/fda1782-final/`及副本`backups/fda1782-20261120/evidence/final/`；三轮六个bin/obj完整检查后送回收站可恢复。最终限定核验PASS，不代表全套或监管资格。
