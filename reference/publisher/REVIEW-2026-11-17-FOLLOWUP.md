@@ -1,5 +1,7 @@
 # 2026-11-17 审阅后续执行账本
 
+1551/1553按序核对后保留NotAssessed：FDA第26页均High-CDER、2021-10-18生效，当前验证输入无与目标绑定的CDER/CBER中心事实。fdast8是促销大类，不等于Promotional2253(fdapmdt1)，fdapmdt2–6包含咨询/加速批准/电视广告预审；1551不能仅由fdast8触发，1553 Problem对fdast8表单限制又不能擅自缩为仅fdapmdt1。1551可观察1.14.6真实内容引用缺失，但存在leaf/lifecycle Current不证明产品most current labeling，仍缺产品关联/当前标签基线；1553现有form groups是XML声明候选，fdaft5不证明实际PDF主体身份，附件/delete不能按叶数判表单。需冻结中心/适用性与业务事实契约，不强造外部监管认证；不以metadata Pass冒充实体检查。限定只读规范/输入审查已完成，依赖留队不减少剩余95条；继续1554。
+
 1550本批两轮四个build/bin、build/obj已核对终态、路径及链接后送入Windows回收站，可恢复；日志、TRX、源码清单与证据副本保留。
 
 1544按序核对后保留NotAssessed：现HistoryBaselineManifest仅绑定显式较早序列/来源/digest/profile/trust，未标明相关前次公司名称状态。取max(selectedHistory)可能把遗漏中间已实际更名的远期旧名误作本次变化；需要按真实application-type/number关联、明确比较基线角色，不强造监管receipt或完整连续历史前置。company-name位于admin/applicant-info，不能只绑定文件拥有者或cross-reference身份。FDA第24页允许真实更名、无须因变化本身纠正，观察到差异不等于不当变化；若自动适用更名例外还需冻结声明/判定契约。依赖经限定只读审查核对，仍不计完成，继续1545。
@@ -20,7 +22,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，52 条已实施、11 条部分实施、84 条待评估。仍有 95 条待完整覆盖。内部目录有 107 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，53 条已实施、11 条部分实施、83 条待评估。仍有 94 条待完整覆盖。内部目录有 108 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1554：材料issue-date格式，Implemented。** 1550已提交`0deeccc`。FDA第27页及M1第21–22页，Low，2021-03-15生效。精确材料祖先链上的显式CDATA值先检查8位ASCII数字，再用InvariantCulture/DateTimeStyles.None精确yyyyMMdd公历解析；非BMP数字、空白、错误位数/分隔符及无效日历日期Fail。缺属性非格式错误，非2253已有日期仍检查格式，不加未来日期禁令或年份窗口。正式Value不依赖辅助ExplicitValue、不trim/二次解码，默认属性NE，尾部损坏保留已知非法值。双来源、预算/快照、取消及真实caller/前序deadline覆盖，file/delivery分量v45。
+
+`fda1554-red`40项1过39败，全部缺规则且日期/DTD前提成立。首candidate因新EvidenceTests缺一个右括号导致Tests编译CS1026，Api/Database退出0、Tests退出1、测试未执行；单字符修正不计业务红测。最终`fda1554-candidate2`三项目构建退出0，**717/717通过、0失败/跳过、测试退出0**，二十七类指定回归，非全套。源码清单SHA`53c2da56817a7efbb796e0c23f648443ec13de6c4050a02a2dd9cadd82304ad4`，8/8输入匹配；TRX SHA`70053c02fc8974e17e819b0f4c03a58454b5e022a8c75b593d61216d25d5d79d`原件/备份一致。目录108条canonical`03ae8299a865433a824dce940d021c681ae49790eb10bbff73b824fd941c92ad`独立校验通过；完整限定实现静态审查及终态核验PASS。证据副本`backups/fda1554-20261120/evidence/`；三轮六个bin/obj已送回收站，可恢复。下一1636核对接收/处理记录依赖，再1681材料日期必填。
 
 **FDA1550：material-id 30字符限制，Implemented。** 1545已提交`e90d873`。FDA第25页及M1规范第21–22页，Medium，2015-06-15生效。精确US根/m1-regional/m1-15-promotional-material/m1-15-2-materials/m1-15-2-1-material祖先链及双向子节点绑定；非默认无命名空间material-id正式CDATA Value可计数，辅助ExplicitValue缺失不阻止。沿用既有2035/2042的项目XML Unicode scalar约定，不trim/归一化，到31即确定超长；不声称FDA原文明示.NET Rune。缺/空属性不当超长，默认或断链事实NE；外来/错误章节排除，尾部损坏保留已知长值。FDA/M1双来源独立绑定，预算/快照/取消/真实及前序deadline覆盖，file/delivery分量v44。
 

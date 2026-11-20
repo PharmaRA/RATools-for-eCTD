@@ -54,3 +54,5 @@
 19. 1544已核对但缺相关前次公司名称比较基线角色，不能将最大显式历史等同相关前次状态；实际更名允许发生，不把差异直接写成不当变化。保留NotAssessed且不强加监管receipt，剩余97条。继续1545，固定submission-type fdast8与contact-type fdaact4映射已核实。
 20. 1545完成同regional/admin内促销触发与联系人姓名检查，最终621/621及限定业务/报告契约/终态审查PASS；两轮目录错误回归原样保留。统计51 Implemented、11 Partial、85 NotAssessed，待完整覆盖96；最初107条已完成11条。下一项1550，固定M1 material-id精确章节及30字符限制，沿用项目XML Unicode scalar计数，不trim或归一化。
 21. 1545已提交`e90d873`；1550完成精确材料章节material-id 30字符检查，665/665回归与限定只读审查PASS。统计52 Implemented、11 Partial、84 NotAssessed，待完整覆盖95；最初107条已完成12条。下一1551/1553先区分CDER、2253类型、表单metadata和当前产品标签事实，再1554。
+22. 1550已提交`0deeccc`；1551/1553按序核对后保留中心/2253适用性、当前产品标签及metadata/主体身份边界依赖，仍NotAssessed。剩余95条；继续1554，对实际提供的issue-date检查YYYYMMDD格式，不把非2253适用性或未来日期限制混入。
+23. 1554完成显式issue-date严格ASCII/YYYYMMDD公历检查，717/717回归及完整限定静态/终态审查PASS；首候选编译失败保留。统计53 Implemented、11 Partial、83 NotAssessed，待完整覆盖94；最初107条已完成13条。下一1636接收/处理记录依赖，再1681按父材料组fdapmdt1判断日期必填。

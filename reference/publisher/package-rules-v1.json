@@ -3256,6 +3256,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1554",
+      "authorityRuleId": "1554",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 27, error 1554; M1 specification 2.6 pp. 21-22",
+      "effectiveFrom": "2021-03-15",
+      "title": "Promotional Material Issue Date Format is incorrect",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Explicit issue-date attributes on the exact target US M1 promotional material heading chain.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires 8 ASCII digits and a valid Gregorian YYYYMMDD date using invariant exact parsing. XML-decoded CDATA values are not trimmed or decoded again. Missing attributes are not format failures; future dates and non-2253 delivery policy remain separate. Defaults and unavailable facts remain unevaluated; known failures survive later XML damage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaMaterialIssueDateRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaMaterialIssueDateEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaMaterialIssueDateRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaMaterialIssueDateEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaMaterialIssueDateRule.cs", "reference/publisher/official-sources/2026-11-09/fda-m1-specification.pdf"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

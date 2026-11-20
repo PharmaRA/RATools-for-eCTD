@@ -1138,10 +1138,10 @@
       "correctiveAction": "Resubmit following the date format YYYYMMDD",
       "guidanceSource": "Providing Regulatory Submissions in Electronic and Non- Electronic Format — Promotional Labeling and Advertising Materials for Human Prescription Drugs, Guidance for Industry",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1554"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaMaterialIssueDateRule.cs", "tests/RATools.Tests/PackageValidation/FdaMaterialIssueDateRuleTests.cs"],
+        "note": "Checks explicit target material issue-date as 8 ASCII digits and a valid Gregorian YYYYMMDD date. Missing attributes, future dates and non-2253 presence policy are not format errors. Uses formal CDATA values without trimming or repeated decoding; defaults/unavailable facts remain unevaluated."
       }
     },
     {
