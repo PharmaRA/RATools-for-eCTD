@@ -3520,6 +3520,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1816",
+      "authorityRuleId": "1816",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 36; STF specification v2.6.1 pp. 12-13",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF must relate to leaf elements",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual target STF files and qualified current-owner historical sources, evaluated individually for at least one leaf association.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "One resolved leaf establishes per-STF association even when other references are unknown or invalid. Complete definite-negative references can fail; empty STFs fail only with qualified all-new current owners and no modified-file evidence. Empty identifier-only revisions, mixed or unavailable revision context remain unqualified rather than falsely rejected. Local passes do not establish full coverage of the revision inheritance exception.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfLeafAssociationRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

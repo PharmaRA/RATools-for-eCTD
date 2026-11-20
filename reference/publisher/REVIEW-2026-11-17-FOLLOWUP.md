@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1816 STF至少一个叶关联（Partial交付，限定静态及终态核验PASS）。** 1799已提交`b4a72ed`。逐份目标STF及当前合格owner选择的历史STF检查存在性：至少一个Resolved即成立，其他未知/非法引用不取消本文件已有关联；self或另一STF的leaf仍是leaf，不混入1799。没有Resolved时，InvalidReference/LeafMissing/NotLeaf/FutureReference只在完整结构、完整读取及DTD合格时构成确定负集合；复合未知不推缺失。零引用还要求全部当前owner均合格new、派生与原始均无modified-file、原始operation显式非默认。空append/replace、混合owner及孤立空文件NE，避免误伤规范第12–13页identifier-only空修订；1731前驱链不被借作继承关联通过依据。文件引擎v57，目录Partial。
+
+`fda1816-red`41项14过27败，XML前提通过。预审补new带modified、混合owner、未知STF在前、三个复合未知状态及self实际Resolved前提，candidate五类200/200。正式静态审查PASS，final十二类 **487/487、0失败/跳过，三构建与测试退出0、进程树停止**：1816为47、1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、1731为36、checksum interruption16、binding56、inspection19、whitespace19。取消证据限回调前/后及前序中断，不额外声称本规则内部真实deadline资格。
+
+final源码清单SHA`3804889b977bc1b867f4bc56eee4f9364003d1a825f0bf19744a785e463fcc02`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`3689b2a742a26deb170ed03de96f1eb92ece6b36c8673d1931b53ed9124faffd`原件/备份一致。目录120条canonical SHA`4ded10337f4fb3af090a0ba3e5e368d29470e759f1eacea42978f8a5ca14c011`独立通过。证据`.artifacts/local-check/fda1816-final/`及副本`backups/fda1816-20261120/evidence/final/`；三轮六个bin/obj全部检查后送回收站可恢复。最终限定核验PASS，非全套或监管资格。统计59 Implemented、17 Partial、71 NotAssessed，待完整覆盖仍88，原107项完整完成仍19条。下一1833逐引用检查叶存在性，明确区分历史未提供、骨架未读完、完整骨架缺叶、唯一delete叶仍存在以及内容文件缺失。
+
 **FDA1799 STF间禁止引用（Partial交付，限定静态及终态核验PASS）。** 1789已提交`4b8d3c9`。目标实际STF含orphan均检查，历史源仅由当前合格owner选择；doc-content先解析精确叶，再相对该叶所属backbone解析内容href，保留历史源/目标的真实SourceId。唯一且摘要/context绑定的实际STF根确证另一文件，不按study-id或相同字节合并；源/目标尾坏不撤销已知违规。完整且范围内的XML负探测可证明非STF，未探测非XML不凭扩展名判非STF。self/alias同文件保持NE，规范解释与范围外内容身份仍未资格化，目录Partial；文件引擎v56。
 
 `fda1799-red`41项19过22败，真实XML前提通过。补直接历史leaf、普通XML负探测、两端ReadComplete前提后candidate四类165/165。静态审查发现派生Href冲突误Fail、坏父子链引用被排除后误Pass；review-red45项43过2败准确复现，坏链旁独立有效违规保持Fail对照通过。消费前核对原始显式w3c xlink href与派生值，累计StructureComplete未知但不跳过其他已保留引用，增量复审PASS。final十类 **404/404、0失败/跳过，三构建与测试退出0、进程树停止**：1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、checksum interruption16、binding56、inspection19、whitespace19。
