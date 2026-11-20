@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "sas-xport-v5-layout",
+  "title": "Record Layout of a SAS Version 5 or 6 Data Set in SAS Transport (Xport) Format",
+  "version": "3.0 October 2021",
+  "sourceUrl": "https://support.sas.com/techsup/technote/ts140.pdf",
+  "resolvedUrl": "https://www.sas.com/content/dam/sasdam/documents/20260302/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf",
+  "archivedPath": "reference/publisher/official-sources/2026-11-20-xpt/sas-xport-v5-layout.pdf",
+  "acquiredUtc": "2026-11-20T05:11:33.9709972+00:00",
+  "httpStatus": 200,
+  "bytes": 1038715,
+  "sha256": "c7c82e664651fdf7c74134b3536af2ba1c5c2834ca91ea427e886eea0b118ac3",
+  "scope": "Technical layout evidence for a bounded XPT v5 content reader, not FDA rule implementation or CDISC conformance qualification. Layout pages 3-7, numeric representation pages 11 and 21, encoding page 27."
+}
