@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**1731前置：冻结STF/owner/doc-content关联图（不计规则完成）。** 新增不可变PackageStfBindings及有界只读reader；逐capture核对digest/profile/rules/assets/limits及STF捕获路径/摘要，历史使用自己的context。先汇总所有选定序列owner再关联STF，保留多owner和跨序列指向旧STF的实际关联，不选首个。doc-content保留精确LeafAddress及Resolved/历史未提供/骨架未读/无leaf/歧义/非leaf等状态；解析到普通历史leaf不等价于其最终有效，生命周期与1731另判。父子成员/属性索引与展开共用MaxXmlNodes预算，HashSet避免重复线性扫描；取消传播，无文件重读。真实普通/深路径及content-block集成验证生产reader事实。
+
+`stf-binding-red`31项6过25败；首candidate188/188。只读审查发现跨序列owner遗漏、父子成员预算未计及未绑定原始leaf；`review-red`53项48过5败准确复现，修复后candidate2为193/193。新增真实reader集成后final195项193过2败，STF夹具错用了骨架w3c.org命名空间造成DTD前提失败；固定STF DTD实际xlink为w3.org。仅纠正STF夹具后`namespace-red`2/2在DTD通过后失败于关联，修复STF href读取并加错误骨架namespace反例；最终`stf-binding-final2`三项目构建退出0，**196/196通过、0失败/跳过、测试退出0**，五类指定回归。源码清单SHA`7f902dbfc81bbcfcf5d75c679d0a1e8547f6d8ad27984901a195da4b7c335efe`，3/3输入匹配；TRX SHA`ae4cc54923e0025c838336f1ef1aad34870733e6555a6b6fd453da69cc973240`原件/备份一致。限定静态复审及终态核验PASS；早先夹具静态误判已撤回。证据副本`backups/fda1731-20261120/evidence/`；七轮十四个bin/obj已完整检查后送回收站，可恢复。未接入业务结果、未改目录或引擎版本，1731仍NotAssessed，剩余93条。
+
+1697按序核对后保留NotAssessed：FDA第28页要求序列号未曾向同申请提交。现HistoryBaselineManifest仅允许目标之前序列，既不能包含目标序列的此前提交版本，也没有已提交状态/时间记录；本地唯一序列号、导入历史或Finalized不等于已提交账本。需绑定真实申请和目标序列的提交记录及状态解释，不用空历史证明从未提交。依赖留队不减少剩余93条；继续1731建立真实STF归属、前驱链及doc-content目标关联。
+
 1636按序核对后保留NotAssessed：FDA第27页要求被引用submission-id已被接收/处理。现HistoryBaselineManifest/PackageInputSet只提供显式较早输入及来源/摘要/验证绑定，Imported/VerifiedForScope/Finalized都不等价于接收或处理状态；缺少与真实申请、活动submission-id及状态时点绑定的记录契约，不能用“文件存在”或本地验证通过代替。该真实依赖留队，不减少剩余94条；继续1681日期值必填。
 
 1551/1553按序核对后保留NotAssessed：FDA第26页均High-CDER、2021-10-18生效，当前验证输入无与目标绑定的CDER/CBER中心事实。fdast8是促销大类，不等于Promotional2253(fdapmdt1)，fdapmdt2–6包含咨询/加速批准/电视广告预审；1551不能仅由fdast8触发，1553 Problem对fdast8表单限制又不能擅自缩为仅fdapmdt1。1551可观察1.14.6真实内容引用缺失，但存在leaf/lifecycle Current不证明产品most current labeling，仍缺产品关联/当前标签基线；1553现有form groups是XML声明候选，fdaft5不证明实际PDF主体身份，附件/delete不能按叶数判表单。需冻结中心/适用性与业务事实契约，不强造外部监管认证；不以metadata Pass冒充实体检查。限定只读规范/输入审查已完成，依赖留队不减少剩余95条；继续1554。
