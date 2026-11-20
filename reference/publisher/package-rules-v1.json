@@ -3300,6 +3300,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1731",
+      "authorityRuleId": "1731",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 29, error 1731; STF specification 2.6.1 pp. 4, 10, 12-16, 19-22",
+      "effectiveFrom": "2008-03-10",
+      "title": "Cumulative STF files are not allowed",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Target STF documents bound to actual ICH owner leaves and their explicitly selected predecessor chains.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Uses qualified target owners and their selected STF predecessor chains, exact leaf addresses and nearest-reference metadata. Current new/append/replace leaves remain incremental even when reusing old files; identifier-only updates are allowed. Conflicting owners, actual changes, unavailable history, ambiguous metadata and budget truncation remain unevaluated. Independent known failures survive unrelated missing references. Target owner coverage includes historical STF captures and rejected bindings.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaAccumulativeStfRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaAccumulativeStfRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaAccumulativeStfRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -1239,10 +1239,10 @@
       "correctiveAction": "Resubmit your submission ensuring that the STF files created follow the accumulative approach.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1731"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaAccumulativeStfRule.cs", "tests/RATools.Tests/PackageValidation/FdaAccumulativeStfRuleTests.cs", "tests/RATools.Tests/PackageValidation/PackageStfBindingReaderTests.cs"],
+        "note": "Qualified actual STF owner chains and nearest exact leaf-reference metadata distinguish cumulative unchanged history from current additions, reused PDF bytes and identifier corrections. Missing or rejected historical facts, conflicting ownership, genuine lifecycle changes and ambiguous metadata remain unevaluated rather than fabricated failures. Target-scope and local evidence completeness are separate."
       }
     },
     {

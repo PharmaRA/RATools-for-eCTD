@@ -227,6 +227,7 @@ public sealed class PackageStfBindingReaderTests
             if (result.Documents.Count == 1)
             {
                 Assert.False(result.Complete);
+                Assert.False(result.TargetScopeComplete);
                 Assert.Single(result.Documents[0].References);
                 partialFound = true;
                 break;
@@ -241,6 +242,7 @@ public sealed class PackageStfBindingReaderTests
         var fixture = Fixture("wide-parent", new() { MaxXmlNodes = 100 });
         var graph = PackageStfBindingReader.Read(fixture.Packages, fixture.Lifecycle, fixture.Context, default);
         Assert.False(graph.Complete);
+        Assert.False(graph.TargetScopeComplete);
         Assert.Empty(graph.Documents);
     }
 

@@ -14,6 +14,7 @@ internal static class PackageStfBindingReader
             lifecycle.AssetManifestDigest != context.Assets.Digest) return PackageStfBindings.Unknown;
         var remaining = packages.Target.Limits.MaxXmlNodes;
         var complete = true;
+        var targetScopeComplete = false;
         var result = new List<BoundStudyTaggingFile>();
         var sequences = new Dictionary<string, SequenceFacts>(StringComparer.Ordinal);
         try
@@ -33,6 +34,12 @@ internal static class PackageStfBindingReader
                 if (matches.Count != 1 || matches[0].RulesDigest != selectedContext.Catalog.Digest || matches[0].AssetManifestDigest != selectedContext.Assets.Digest ||
                     matches[0].LimitsDigest != capture.Limits.Digest()) { complete = false; continue; }
                 var observation = matches[0];
+                if (number == packages.Target.Manifest.SequenceNumber)
+                    targetScopeComplete = observation.StudyTaggingFiles.InventoryComplete &&
+                        observation.Checks.Any(check => check.RuleId == "XML-OFFLINE" && check.Status == CheckStatus.Pass) &&
+                        observation.Checks.Any(check => check.RuleId == "XML-LIMITS" && check.Status == CheckStatus.Pass) &&
+                        observation.Backbones.Count(document => document.Kind == BackboneKind.Ich && document.LogicalPath == number + "/index.xml" &&
+                            document.ReadComplete && document.DtdStatus == CheckStatus.Pass) == 1;
                 var files = new Dictionary<string, PackageInputFile>(StringComparer.Ordinal);
                 foreach (var file in capture.Manifest.Files) { Tick(); if (!files.TryAdd(file.LogicalPath, file)) complete = false; }
                 var backbones = new Dictionary<string, List<BackboneFacts>>(StringComparer.Ordinal);
@@ -97,6 +104,7 @@ internal static class PackageStfBindingReader
                             }
                     }
             }
+            var discoveredStfPaths = new HashSet<string>(StringComparer.Ordinal);
             foreach (var (number, facts) in sequences)
             {
                 Tick();
@@ -105,10 +113,11 @@ internal static class PackageStfBindingReader
                 foreach (var document in facts.Xml.StudyTaggingFiles.Documents)
                 {
                     Tick();
-                    if (!stfPaths.Add(document.LogicalPath)) { scopeComplete = false; continue; }
+                    discoveredStfPaths.Add(document.LogicalPath);
+                    if (!stfPaths.Add(document.LogicalPath)) { scopeComplete = false; if (number == packages.Target.Manifest.SequenceNumber) targetScopeComplete = false; continue; }
                     if (!document.LogicalPath.StartsWith(number + "/", StringComparison.Ordinal) ||
                         !facts.Files.TryGetValue(document.LogicalPath, out var file) || file.Sha256 != document.CapturedSha256)
-                    { scopeComplete = false; continue; }
+                    { scopeComplete = false; if (number == packages.Target.Manifest.SequenceNumber) targetScopeComplete = false; continue; }
                     var elements = new Dictionary<string, ParsedXmlElement>(StringComparer.Ordinal);
                     var children = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
                     var localComplete = document.ReadComplete && document.DtdStatus == CheckStatus.Pass;
@@ -122,13 +131,14 @@ internal static class PackageStfBindingReader
                         foreach (var attribute in element.Attributes.Values) { Tick(); _ = attribute; }
                     }
                     var candidates = owners.GetValueOrDefault(document.LogicalPath) ?? [];
+                    var structureComplete = localComplete;
                     localComplete &= candidates.Count > 0 && candidates.All(owner => owner.Qualified);
                     var references = new List<StfDocumentReference>();
                     foreach (var element in document.Elements)
                     {
                         Tick();
                         if (!Plain(element, "doc-content")) continue;
-                        if (!InStudyDocument(element, elements, children)) { localComplete = false; continue; }
+                        if (!InStudyDocument(element, elements, children)) { localComplete = false; structureComplete = false; continue; }
                         var href = Explicit(element, "href", "http://www.w3.org/1999/xlink");
                         var reference = Resolve(number, document.LogicalPath, element, href);
                         references.Add(reference);
@@ -138,15 +148,34 @@ internal static class PackageStfBindingReader
                     foreach (var owner in candidates) { Tick(); _ = owner; }
                     foreach (var reference in references) { Tick(); _ = reference; }
                     result.Add(new(facts.Capture.SourceId, facts.Capture.InputDigest, number == packages.Target.Manifest.SequenceNumber,
-                        document, localComplete, candidates, references));
+                        document, localComplete, candidates, references, structureComplete));
                     scopeComplete &= localComplete;
                 }
                 complete &= scopeComplete;
             }
+            // Discovery scans each capture locally. A target leaf may instead point into a selected
+            // historical capture (or absent history); account for those owners even without a bound STF.
+            var boundPaths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var document in result) { Tick(); boundPaths.Add(document.Document.LogicalPath); }
+            foreach (var (path, candidates) in owners)
+            {
+                Tick();
+                if (!path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) continue;
+                var hasTargetOwner = false;
+                foreach (var owner in candidates)
+                {
+                    Tick();
+                    if (owner.Leaf.Address?.SequenceNumber == packages.Target.Manifest.SequenceNumber) hasTargetOwner = true;
+                }
+                if (!hasTargetOwner || boundPaths.Contains(path)) continue;
+                var sequence = path.Split('/')[0];
+                if (discoveredStfPaths.Contains(path) || !sequences.TryGetValue(sequence, out var facts) || !facts.Files.ContainsKey(path) ||
+                    !facts.Xml.StudyTaggingFiles.InventoryComplete) targetScopeComplete = false;
+            }
         }
-        catch (BindingLimitException) { complete = false; }
+        catch (BindingLimitException) { complete = false; targetScopeComplete = false; }
         token.ThrowIfCancellationRequested();
-        return new(complete, result);
+        return new(complete, result, targetScopeComplete);
 
         void Tick()
         {
