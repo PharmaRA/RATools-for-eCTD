@@ -84,6 +84,9 @@ public sealed class FdaChecksumAttributeInterruptionTests
         var pendingIssueDates = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1554");
         Assert.Equal(CheckStatus.NotEvaluated, pendingIssueDates.Status);
         Assert.Empty(pendingIssueDates.Findings);
+        var pendingRequiredDates = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1681");
+        Assert.Equal(CheckStatus.NotEvaluated, pendingRequiredDates.Status);
+        Assert.Empty(pendingRequiredDates.Findings);
         Assert.Equal(afterFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
         if (afterFailure) AssertFirstFailure(Assert.Single(check.Findings));
         else Assert.Empty(check.Findings);

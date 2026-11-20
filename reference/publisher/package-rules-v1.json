@@ -3278,6 +3278,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1681",
+      "authorityRuleId": "1681",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 28, error 1681; M1 specification 2.6 pp. 21-22; captured promotional document types",
+      "effectiveFrom": "2015-06-15",
+      "title": "Issue-date attribute value is missing",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each target US promotional material whose own parent group explicitly declares active fdapmdt1.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Requires nonblank explicit issue-date per Promotional 2253 material. Exact parent type and captured dictionary determine applicability; other active types and complete empty groups create no obligation. Date format is separate. Defaults, unknown types and incomplete selection remain unevaluated; known omissions survive later XML failure.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredMaterialIssueDateRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredMaterialIssueDateEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredMaterialIssueDateRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredMaterialIssueDateEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredMaterialIssueDateRule.cs", "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

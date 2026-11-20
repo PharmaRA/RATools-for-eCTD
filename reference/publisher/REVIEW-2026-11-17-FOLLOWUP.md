@@ -1,5 +1,7 @@
 # 2026-11-17 审阅后续执行账本
 
+1636按序核对后保留NotAssessed：FDA第27页要求被引用submission-id已被接收/处理。现HistoryBaselineManifest/PackageInputSet只提供显式较早输入及来源/摘要/验证绑定，Imported/VerifiedForScope/Finalized都不等价于接收或处理状态；缺少与真实申请、活动submission-id及状态时点绑定的记录契约，不能用“文件存在”或本地验证通过代替。该真实依赖留队，不减少剩余94条；继续1681日期值必填。
+
 1551/1553按序核对后保留NotAssessed：FDA第26页均High-CDER、2021-10-18生效，当前验证输入无与目标绑定的CDER/CBER中心事实。fdast8是促销大类，不等于Promotional2253(fdapmdt1)，fdapmdt2–6包含咨询/加速批准/电视广告预审；1551不能仅由fdast8触发，1553 Problem对fdast8表单限制又不能擅自缩为仅fdapmdt1。1551可观察1.14.6真实内容引用缺失，但存在leaf/lifecycle Current不证明产品most current labeling，仍缺产品关联/当前标签基线；1553现有form groups是XML声明候选，fdaft5不证明实际PDF主体身份，附件/delete不能按叶数判表单。需冻结中心/适用性与业务事实契约，不强造外部监管认证；不以metadata Pass冒充实体检查。限定只读规范/输入审查已完成，依赖留队不减少剩余95条；继续1554。
 
 1550本批两轮四个build/bin、build/obj已核对终态、路径及链接后送入Windows回收站，可恢复；日志、TRX、源码清单与证据副本保留。
@@ -22,7 +24,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，53 条已实施、11 条部分实施、83 条待评估。仍有 94 条待完整覆盖。内部目录有 108 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，54 条已实施、11 条部分实施、82 条待评估。仍有 93 条待完整覆盖。内部目录有 109 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1681：2253材料日期值必填，Implemented。** 1554已提交`5f83415`。FDA第28页，Medium，2015-06-15生效。按每个材料的精确直接父组及归档active字典判断fdapmdt1，缺/空白issue-date为Warning/Fail；其他active类型及完整空组NA，未知/缺失/默认类型NE。正式CDATA Value可用，不依赖辅助原值；非空非法日期由1554处理。不同组不串类型，未知组在前不抹后续已知遗漏，同组第二材料精确定位；已保留起始标签的缺属性可在尾部破损后保留Fail。预算0/1/2、默认日期、祖先异常、不可变快照、取消及真实caller/前序deadline覆盖；file/delivery分量v46，RegionalBackbonePresent与报告NA契约一致。
+
+`fda1681-red`39项1过38败，全部缺规则。最终`fda1681-candidate`三项目构建退出0，**771/771通过、0失败/跳过、测试退出0**，二十九类指定回归，非全套。源码清单SHA`97a43d64e22f2aefd604c1dbd8c3d433bc6a0103eb97130a8fe72a55ba0fb187`，8/8输入匹配；TRX SHA`e4b78afb70a3871864fbf3936c29d474d8e721e33f588dc93462b01785c93b9f`原件/备份一致。目录109条canonical`cf47f92a31ac2529b4cc332a2a6777289c7a9fab19291e8b4dfa0b8e0fdb0b24`独立校验通过；限定静态与终态核验PASS。证据副本`backups/fda1681-20261120/evidence/`。两轮四个bin/obj均已送回收站可恢复；red清理的根链接检查误用Get-Item -Recurse报错后仍继续，不能记为完整链接核验通过，子项检查及回收已执行；candidate清理使用遇错即停且根/子项检查均完成。原始证据保留。下一1697核对已提交序列记录依赖，再1731真实STF生命周期/内容引用关联。
 
 **FDA1554：材料issue-date格式，Implemented。** 1550已提交`0deeccc`。FDA第27页及M1第21–22页，Low，2021-03-15生效。精确材料祖先链上的显式CDATA值先检查8位ASCII数字，再用InvariantCulture/DateTimeStyles.None精确yyyyMMdd公历解析；非BMP数字、空白、错误位数/分隔符及无效日历日期Fail。缺属性非格式错误，非2253已有日期仍检查格式，不加未来日期禁令或年份窗口。正式Value不依赖辅助ExplicitValue、不trim/二次解码，默认属性NE，尾部损坏保留已知非法值。双来源、预算/快照、取消及真实caller/前序deadline覆盖，file/delivery分量v45。
 

@@ -1176,10 +1176,10 @@
       "correctiveAction": "Ensure that an issue date is provided for each promotional material in future 2253 submissions.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1681"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredMaterialIssueDateRule.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredMaterialIssueDateRuleTests.cs"],
+        "note": "Checks nonblank issue-date on each exact target material under its own explicit fdapmdt1 parent group. Unknown/default types or values remain unevaluated; nonblank invalid dates belong to format checks. Complete empty groups create no material obligation."
       }
     },
     {
