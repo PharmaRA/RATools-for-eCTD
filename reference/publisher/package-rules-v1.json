@@ -3410,6 +3410,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1752",
+      "authorityRuleId": "1752",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 33; STF specification v2.6.1 pp. 12, 15",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF XML root must explicitly declare its DTD version",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual target STF XML files, including unreferenced files, and selected historical STF content referenced by qualified current owners.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks the explicit no-namespace dtd-version on each frozen STF root. The pinned DTD default does not substitute for an explicit declaration. Retained root omissions survive later body/index damage, while incomplete discovery cannot pass; historical-only documents are not target findings. Unsupported or unreadable roots remain unevaluated, not inferred omissions. Owner attributes and version agreement are separate rules.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDtdVersionRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDtdVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfDtdVersionRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
