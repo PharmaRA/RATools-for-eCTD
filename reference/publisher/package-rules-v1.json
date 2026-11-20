@@ -3454,6 +3454,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1782",
+      "authorityRuleId": "1782",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 34, error 1782 corrective action; STF specification v2.6.1",
+      "effectiveFrom": "2008-03-10",
+      "title": "Supported STF version declaration in owner leaf",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual target owners referencing established STF 2.2 content, including selected historical files; other version support branches remain unqualified.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Enforces the exact decoded marker STF Version 2.2 for references to actual, pinned STF 2.2 files. Other nonblank values fail this known branch; missing declarations belong to 1748. Default root versions remain usable evidence without closing 1752. Other actual STF versions and date-specific support or retirement policy lack a complete archived official support list, so local passes do not establish full coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfSupportedLeafVersionRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfSupportedLeafVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfSupportedLeafVersionRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

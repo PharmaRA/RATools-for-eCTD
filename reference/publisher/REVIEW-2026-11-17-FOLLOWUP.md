@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1782 已确认STF 2.2引用的精确标记（Partial交付，限定静态及终态核验PASS）。** 1765已提交`9a64da2`。criteria物理34页明确2.2引用须exact `STF Version 2.2`，不能用旧spec的大小写示例放宽本条。先验证真实owner、精确STF引用、固定DTD/实际解析资产与有效根2.2，再按解码后的原值Ordinal比较；其他非空白值Error Fail，缺/空白交1748，合成default owner或未知根NE。默认根可用但1752仍独立Fail；1765可数值匹配而1782格式Fail。历史、多个owner、截断局部证据、重复观察与来源摘要保持限定，未借文件名或安装资产清单推导全部监管支持版本。目录Partial，组件Pass在报告仍NE；文件引擎v54。
+
+`fda1782-red`53项17过36败，XML前提全部通过。补正常/历史实际根2.2及已解析固定DTD前提后candidate四类171/171，正式静态PASS；final八类 **308/308、0失败/跳过，三构建与测试退出0、进程树停止**：1782为53、1765为59、1748为43、1752为43、checksum interruption16、STF binding56、inspection19、whitespace19。final源码清单SHA`544024b70c44997545ca17f1080701e8d8e0667b69fa4f337c0c0f80d9eafb1a`，7/7交付输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`62c5c125aa3bc46c852a13160117a524762c3e1aa84bece6462fee5257f01c7b`原件/备份一致。目录117条canonical SHA`8ecac4fd49ee0c6d335e376f565dfda31eb34440e6032520ae6a735c3d728964`独立通过。证据`.artifacts/local-check/fda1782-final/`及副本`backups/fda1782-20261120/evidence/final/`；三轮六个bin/obj完整检查后送回收站可恢复。最终限定核验PASS，不代表全套或监管资格。
+
+其他实际版本及按日期适用的支持/退出政策仍缺完整官方依据，1782保持Partial；统计59 Implemented、14 Partial、74 NotAssessed，待完整覆盖仍88，原107项完整完成仍19条。按序核对1786（criteria物理35页）：仅确认项目固定2.2 profile不构成FDA排他支持政策；非2.2在reader保存根前被拒，缺独立可靠声明事实。保留NotAssessed两项依赖：明确官方支持/排除政策，以及profile拒绝前的安全版本声明观察；不解析diagnostic Actual替代接口，不新增仅有正例的规则包装完成。下一1789逐实际研究章节内容叶检查STF精确引用，例外4.3/5.2/5.4/5.3.6，不以同目录存在STF代替覆盖。
+
 **FDA1765 STF owner与根版本对应（Implemented，限定静态及终态核验PASS）。** 1752已提交`875d738`。实际目标owner逐个关联精确STF根，支持当前owner引用已选历史STF，历史owner声明不参与；index尾部损坏时直接使用完整保留起始标签，不放松通用生命周期资格。官方spec示例stf version/STF version与criteria 1782的STF Version三种前缀均解释为版本号，保守单数字x.y，不trim、不再次解码、不数值归一化；未知语法/缺属性NE，遗漏归1748，格式支持归1782。根必须有对应序列固定DTD摘要、实际ResolvedAssets和保留有效值2.2；默认根可比较但1752仍报显式遗漏。同路径重复/冲突观察拒判，已知局部不匹配不被其他未知候选或后续正文损坏撤销，匹配但范围未完整不Pass。文件引擎v53。
 
 `fda1765-red`55项28过27败，真实XML前提通过。测试预审后补真实缺STF资产快照、默认根缺DTD解析证据、重复与冲突根观察、实际字符引用解码及stf-tail前提，candidate四类161/161。限定静态审查PASS后final七类 **255/255、0失败/跳过，三构建与测试退出0、进程树停止**：1765为59、1748为43、1752为43、checksum interruption16、STF binding56、inspection19、whitespace19。取消覆盖规则回调前/后与前序中断兜底，不额外声称1765内部真实caller deadline资格。
