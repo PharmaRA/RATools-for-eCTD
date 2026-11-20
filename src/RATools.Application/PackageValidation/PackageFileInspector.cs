@@ -130,6 +130,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var extensionTitles = FdaNodeExtensionTitleRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (extensionTitles is not null) RetainChecksum(extensionTitles);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var titleSpaces = FdaNodeExtensionTitleSpaceRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (titleSpaces is not null) RetainChecksum(titleSpaces);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -441,6 +444,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaNodeExtensionTitleRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaNodeExtensionTitleRule.RuleId, CheckStatus.NotEvaluated,
                     "The target node-extension title inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaNodeExtensionTitleSpaceRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaNodeExtensionTitleSpaceRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaNodeExtensionTitleSpaceRule.RuleId, CheckStatus.NotEvaluated,
+                    "The target title space inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

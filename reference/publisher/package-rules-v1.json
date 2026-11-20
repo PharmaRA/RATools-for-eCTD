@@ -3190,6 +3190,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1482",
+      "authorityRuleId": "1482",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 22, error 1482",
+      "effectiveFrom": "2008-03-10",
+      "title": "Node-extension title leads or ends with a space",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Boundary U+0020 characters on direct target ICH/US node-extension titles.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Uses exact XML-decoded text without trimming or repeated decoding. Only direct unqualified titles without element children supply text. Incomplete documents preserve a known leading space but cannot establish the final trailing character; foreign namespaces and history are excluded.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaNodeExtensionTitleSpaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaNodeExtensionTitleSpaceEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaNodeExtensionTitleSpaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaNodeExtensionTitleSpaceEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaNodeExtensionTitleSpaceRule.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

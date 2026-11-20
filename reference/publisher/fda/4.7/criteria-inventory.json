@@ -954,10 +954,10 @@
       "correctiveAction": "No corrective action is necessary. Modify your SOPs to ensure that node extensions are not used in future submissions. The use of node extensions is strongly discouraged.",
       "guidanceSource": "General good practice to ensure reviewability.",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1482"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaNodeExtensionTitleSpaceRule.cs", "tests/RATools.Tests/PackageValidation/FdaNodeExtensionTitleSpaceRuleTests.cs"],
+        "note": "Checks exact U+0020 boundaries on direct simple target ICH/US extension titles. XML-decoded text is not trimmed or decoded again; incomplete text preserves reliable leading failures but does not prove final trailing characters."
       }
     },
     {
