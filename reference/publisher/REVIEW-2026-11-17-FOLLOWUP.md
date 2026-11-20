@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**1734–1738共享前置：真实STF→leaf→捕获文件→XPT→TS关联（不计规则完成）。** TS参数前置已提交`6101bd9`。新增PackageStudyDataInspector按目标实际owner选择STF，保留文档/多owner/逐引用边界，不按study-id合并。扩展名或实际doc-content/content-block的dataset file-tag只发现候选，真实格式/TS身份仍由有界内容读取决定；严格解析叶内容路径，区分缺叶/缺历史/缺文件/未来引用/不可读/变化/未选择。按内容路径缓存避免重复读取同文件，共享字节/行/单元格和关联工作量预算；结果选择摘要包含输入/基线/规则/资产/限额/编码。前后包稳定性核验，不重新打开冻结XML；包变化、不可验证或work中断清空未终验部分内容。
+
+`study-data-binding-red`15项1过14败，真实ICH/STF DTD前提通过；candidate六类156/156。只读review发现零引用STF绕过文档资格检查、work中断跳过最终Verify仍保留局部内容；review-red18项16过2败准确复现，空STF反例是冻结DTD失败状态的消费层测试，不冒充真实损坏XML解析；wide-work先确认binding完整和DataReads>0。移至引用循环外累计文档资格、work中断直接清空后限定静态复审PASS。最终final **159/159、0失败/跳过，三构建和测试退出0、进程树停止**，组成binding18/TS25/capture23/XPT49/source8/1731为36。3/3新增交付输入匹配manifest SHA`60e926b0b1337e0597968e16f9678b38fe4c4c297f084aa64fa7f91215f7744e`；TRX SHA`e88103fc50a9275f5a9b97842cc4f83b0f40e4ad67c034060fe9543e3b46694b`原件/备份一致。最终证据限定核验PASS；备份`backups/study-data-binding-20261120/evidence/`，四轮8个bin/obj完整检查后送回收站可恢复。
+
+该前置未接入官方规则结果，Complete仅表示本次候选关联及支持范围的读取完成，不表示CDISC合规、研究适用或监管接受。仍需define身份、中心/商业属性、申请类型及study开始日期分支；当前55 Implemented、11 Partial、81 NotAssessed，剩余92。下一按1734/1735固定顺序补适用性和业务失败用例，不以内容前置代替规则完成。
+
 **1734–1738共享前置：TS参数行事实提取（不计规则完成）。** 捕获绑定已提交`03b7743`。从已绑定且结构读完的XPT事实识别TS member，按名称识别字符型STUDYID/TSPARMCD/TSVAL，TSVALNF可选；保留原字段名、原值、Original行、Index/Offset/Certain及Min/Max行数。完整TS可额外列/多行，SPREFID是参数行，不被当作必需独立列；不解析日期、不自动填NA、不判断简化TS适用性。可选列缺失null、存在空字符串和不可解码分开，必需三列解码总状态与整行含TSVALNF解码状态分开；无关EXTRA不可解码不污染必需字段。重复折叠字段、错误类型、矛盾行形状拒判，预算按可能行上界计，不截成伪完整结果。
 
 `trial-summary-red`13项1过12败，真实XPT前提通过；candidate仅Api CA1512分析器构建失败，无测试；改ThrowIfNegative后candidate2五类129/129。限定review发现可选TSVALNF不可解码错误拉低RequiredValuesDecoded，新增12项字段/行边界后review-red25项24过1败准确复现；拆分requiredDecoded与rowDecoded后限定静态复审PASS。最终final **141/141、0失败/跳过，三构建与测试退出0、進程树停止**，组成TS25/capture23/XPT49/source8/1731为36。2/2新增输入匹配manifest SHA`1f43a338c74dac5ce92e9ac4818548f1c137fd0ca1f35dba5f70d0354ef737e4`；TRX SHA`d5b98d397ad5685f5df782b46a8eb245c8c56c5941b0c82dfd86bf1ef1c93337`原件/备份一致。最终证据限定核验PASS；备份`backups/trial-summary-20261120/evidence/`，五轮10个bin/obj完整检查后送回收站可恢复。
