@@ -1505,10 +1505,10 @@
       "correctiveAction": "In a future submission, you should include an STF that includes references to existing leaf elements. Modify your SOPs to ensure that all STFs submitted reference leaf elements.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1833"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfReferencedLeafRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferencedLeafRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Checks each reference against complete, context-bound original ID elements, ID index and derived leaf facts. Consistent missing or non-leaf targets fail; unavailable history and contradictory evidence remain unevaluated. Existing delete or subsequently inactive leaves and missing physical content do not become nonexistent leaf findings. Final selected Windows regression 533/533 and bounded read-only review passed."
       }
     },
     {

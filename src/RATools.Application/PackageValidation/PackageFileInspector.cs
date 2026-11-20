@@ -178,6 +178,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfLeafAssociation = FdaStfLeafAssociationRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfLeafAssociation is not null) RetainChecksum(stfLeafAssociation);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var stfReferencedLeaf = FdaStfReferencedLeafRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (stfReferencedLeaf is not null) RetainChecksum(stfReferencedLeaf);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -553,6 +556,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfLeafAssociationRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfLeafAssociationRule.RuleId, CheckStatus.NotEvaluated,
                     "The STF leaf association inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStfReferencedLeafRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfReferencedLeafRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStfReferencedLeafRule.RuleId, CheckStatus.NotEvaluated,
+                    "The STF referenced leaf existence inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

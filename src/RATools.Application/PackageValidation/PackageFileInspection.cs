@@ -23,7 +23,7 @@ public sealed class PackageFileInspection
     }
 
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-file-inspector-v57";
+    public string EngineVersion { get; } = "package-file-inspector-v58";
     public string RulesDigest { get; }
     public string AssetManifestDigest { get; }
     public string InputDigest { get; }

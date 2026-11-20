@@ -3542,6 +3542,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1833",
+      "authorityRuleId": "1833",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 37, error 1833",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF references must identify existing leaf elements",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each retained doc-content reference in actual target STF files and qualified current-owner historical STF sources.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks target leaf existence using complete context-bound backbone original elements, ID index and derived leaf facts. Consistent missing IDs and non-leaf targets fail; unavailable history, incomplete or contradictory facts remain unevaluated. Existing delete or subsequently inactive leaves and missing physical content do not become nonexistent leaf findings. Known local failures survive source tail damage and other unknown references.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferencedLeafRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferencedLeafRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfReferencedLeafRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

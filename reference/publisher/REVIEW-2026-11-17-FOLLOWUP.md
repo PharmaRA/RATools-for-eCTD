@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1833 STF引用叶存在性（Implemented，限定静态及终态核验PASS）。** 1816已提交`b0433c3`。逐引用核对完整且context绑定的目标backbone：原始ID元素、IdIndex与派生leaf三方一致才判存在或缺失；全空为缺叶，唯一非leaf目标为Fail，原始/摘要矛盾与重复身份NE。缺历史、骨架未读完、无效URI和未来引用不冒充缺叶。唯一delete leaf仍存在，历史叶后来确实Deleted或物理内容文件缺失不改变元素存在性。源尾损坏或坏引用链仅保留未知，其他已确定缺叶Fail不被吞掉。文件引擎v58。
+
+`fda1833-red`43项17过26败，XML前提通过。预审补实际历史Deleted状态、坏链旁已知缺叶、原始叶存在但两份摘要缺失保护。candidate五类209项208过1败是历史删除夹具非空checksum导致生命周期Unknown，未计业务失败；仅修delete checksum为空并保留Deleted断言后candidate2为209/209。生产专项复审发现原始同ID重复时Any内层比较未计费，改为歧义先NE、后续常数时间路径比较并补duplicate-original-id保护；这是静态预算修复，不声称耗时复现或性能资格。最后阻断关闭、正式静态PASS后final十三类 **533/533、0失败/跳过，三构建与测试退出0、进程树停止**：1833为46、1816为47、1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、1731为36、checksum interruption16、binding56、inspection19、whitespace19。
+
+final源码清单SHA`9564e9928bba6285da7bf399ff467ae66d91581278cdb1c721425c8ad5f8edbe`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`f30442c5a75532152d64aada46cb3dd3808f3264e000b666cfc6b71fc0051541`原件/备份一致。目录121条canonical SHA`72aa8071e7d247e9b5b2eea6be928ad8be2e938ad6343d452d8b612815f062c9`独立通过。证据`.artifacts/local-check/fda1833-final/`及副本`backups/fda1833-20261120/evidence/final/`；四轮八个bin/obj全部检查后送回收站可恢复。最终限定核验PASS，非全套或监管资格。统计60 Implemented、17 Partial、70 NotAssessed，待完整覆盖87，原107项完整完成20条。下一1850比较当前append与直接前驱STF的完整StudyID原文，不按study-id搜对象，不重开更早历史边的错误。
+
 **FDA1816 STF至少一个叶关联（Partial交付，限定静态及终态核验PASS）。** 1799已提交`b4a72ed`。逐份目标STF及当前合格owner选择的历史STF检查存在性：至少一个Resolved即成立，其他未知/非法引用不取消本文件已有关联；self或另一STF的leaf仍是leaf，不混入1799。没有Resolved时，InvalidReference/LeafMissing/NotLeaf/FutureReference只在完整结构、完整读取及DTD合格时构成确定负集合；复合未知不推缺失。零引用还要求全部当前owner均合格new、派生与原始均无modified-file、原始operation显式非默认。空append/replace、混合owner及孤立空文件NE，避免误伤规范第12–13页identifier-only空修订；1731前驱链不被借作继承关联通过依据。文件引擎v57，目录Partial。
 
 `fda1816-red`41项14过27败，XML前提通过。预审补new带modified、混合owner、未知STF在前、三个复合未知状态及self实际Resolved前提，candidate五类200/200。正式静态审查PASS，final十二类 **487/487、0失败/跳过，三构建与测试退出0、进程树停止**：1816为47、1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、1731为36、checksum interruption16、binding56、inspection19、whitespace19。取消证据限回调前/后及前序中断，不额外声称本规则内部真实deadline资格。

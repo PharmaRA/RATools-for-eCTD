@@ -77,3 +77,4 @@
 42. 1782已提交`b139be1`；1789完成确定同章节/扩展实例的逐叶引用覆盖，跨实例归属仍Partial。审查发现扩展折叠及无关历史污染，分别先红后修；final九类359/359、7输入绑定、目录校验及静态复审/终态核验PASS。统计59 Implemented、15 Partial、73 NotAssessed，待完整覆盖仍88、原107完整完成仍19条。下一1799实际STF引用另一STF，再1816；自引用解释边界与未知身份不得混成确定Fail。
 43. 1789已提交`4b8d3c9`；1799覆盖实际STF经精确叶指向另一STF，self/alias与未探测内容身份仍Partial。Href事实冲突和坏引用链误判先红后修；final十类404/404、7输入绑定、目录校验及静态复审/终态核验PASS。统计59 Implemented、16 Partial、72 NotAssessed，待完整覆盖仍88、原107完整完成仍19条。下一1816关联存在性，保留identifier-only空修订例外，再1833。
 44. 1799已提交`b4a72ed`；1816交付逐STF至少一个叶关联检查，确定负证据与复合未知分开，空identifier-only修订继承仍Partial。final十二类487/487、7输入绑定、目录校验及静态复审/终态核验PASS。统计59 Implemented、17 Partial、71 NotAssessed，待完整覆盖仍88、原107完整完成仍19条。下一1833逐引用叶存在性，再1850；不把失效leaf或缺物理内容文件写成leaf不存在。
+45. 1816已提交`b0433c3`；1833完成逐引用叶存在性，三方事实一致性、实际Deleted历史叶、delete叶及缺物理内容边界均覆盖。夹具checksum问题如实保留，静态预算缺口关闭；final十三类533/533、7输入绑定、目录校验及静态复审/终态核验PASS。统计60 Implemented、17 Partial、70 NotAssessed，待完整覆盖87、原107完整完成20条。下一1850当前append与直接前驱StudyID精确匹配，再1867。
