@@ -3366,6 +3366,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1738",
+      "authorityRuleId": "1738",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 32; Study Data Technical Conformance Guide October 2026 p. 51",
+      "effectiveFrom": "2023-03-16",
+      "title": "STF study identity must match the referenced trial summary",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each actual target-owned Module 4/5 STF and its referenced ts.xpt, including qualified selected historical content and optional STF sections.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Compares each qualified target-owned STF study-id with each associated TS using exact STUDYID or SPREFID parameter values from definite rows. Field-level unknowns and possible rows block a mismatch only when they could supply a match. Multiple TS files and studies are assessed independently; qualified selected historical content is supported. Missing or unreadable evidence remains unevaluated, and missing TS obligations belong to separate rules.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStudyIdMatchRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStudyIdMatchRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStudyIdMatchRule.cs", "src/RATools.Application/PackageValidation/PackageStudyDataInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

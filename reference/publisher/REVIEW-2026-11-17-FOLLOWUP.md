@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1738研究标识对应检查（Implemented，限定静态及终态核验PASS）。** 1737已按Partial提交`315fd9a`。对每个实际目标owner的M4/M5 STF及其关联ts.xpt，读取唯一直接study-id原文，使用确定行的STUDYID或TSPARMCD=SPREFID的TSVAL作Ordinal精确OR匹配；不trim、不折叠值大小写、不再次XML解码。字段级未知只在仍可能匹配时阻止Fail，确定匹配不被无关参数/可选TSVALNF不可解码或其他多值撤销；可能全空白尾行不影响非空身份，只有可能行匹配不能Pass。多个TS及多个研究独立判断，已知Fail优先，重复同TS引用不重复报错。显式历史TS及当前new叶复用旧字节均支持并保留真实SourceId；可选STF章节不豁免，不引入1734的中心/IND/NA/历史重交门槛。缺TS无比较对象为NA，缺文件/未知引用/结构或编码不明为NE。文件引擎v50，回调快照和中断兜底保持唯一结果。
+
+`fda1738-red`52项16过36败，失败均规则/回调/报告断言，真实XML前提通过；candidate三类93项92过1败仅因候选目录暂Partial而报告NE，非核心匹配失败。新增8项保护后review-red60项58过2败：一项同样的临时报告状态，一项明确范围外owner被不合格STF结构污染；该反例是冻结事实消费层测试，已先断言范围完整及owner合格，不冒充损坏XML解析后inventory仍完整。拆开owner范围资格与范围内STF结构检查，补第二份回调快照直接断言后限定静态复审PASS，目录升级Implemented。最终final十类 **331/331、0失败/跳过，三构建及测试退出0、进程树停止**；组成1738为60、1737为40、1734为56、study-data18、TS25、capture23、XPT49、source8、1731为36、checksum interruption16。
+
+final源码清单SHA`03646162dfc733c4b47b4bf57e8b12bb64b3f4c082905d2bca31d53c14286b2a`，7/7构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`7925024a5ad605896047fd7fa5e6e2750bb0f531553c4d6a5be309ccebfca077`原件/备份一致。目录113条canonical SHA`18856ddff4802c39741c1d20fbb9c731953c6535df7ff7fd7e756914aa8a26b8`独立校验通过。证据副本`backups/fda1738-20261120/evidence/`；四轮8个bin/obj均完整检查后送回收站可恢复。最终证据限定核验PASS；当前56 Implemented、13 Partial、78 NotAssessed，待完整覆盖91，原107项完整完成16条。下一1748检查实际STF owner叶的version，1752另查STF根dtd-version，不能混用属性键；不代表全套或监管资格通过。
+
 **FDA1737同研究重复new数据集检查（Partial，限定静态及终态核验PASS）。** 对实际M4/M5 STF内可确认的XPT dataset，以完整LeafAddress去重引用，再比较解析后basename与唯一直接leaf/title原文的组合；项目使用Ordinal，不trim、不大小写折叠、不按文件摘要或内容路径合并叶事件。两个当前不同new叶共用同一文件仍判重复；同一叶被多次引用只计一次。实际存在STF的可选章节不自动豁免，M3不适用；replace/append不构成两个new，但测试不证明其历史生命周期有效。确定重复优先Fail，其他未知引用不抹掉；多STF研究身份、历史生命周期累计及非XPT格式仍保留Partial。组件Pass在报告覆盖为NE，启用但未执行的中断结果补唯一NE；文件引擎v49。
 
 `fda1737-red`35项7过28败，真实DTD前提通过；candidate四类125/125。只读review发现当前new叶引用历史XPT时finding.Files错用目标SourceId，location-red37项36过1败准确复现两个历史文件错绑；比较桶保存首个XPT来源，后续使用当前XPT来源，分别覆盖both/first/second历史内容位置，另补全部非new的组件/报告NA。candidate2为56/56，限定静态复审PASS。最终final九类 **271/271、0失败/跳过，三构建及测试退出0、进程树停止**；组成1737为40、1734为56、study-data18、TS25、capture23、XPT49、source8、1731为36、checksum interruption16。

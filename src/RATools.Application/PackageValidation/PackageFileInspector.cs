@@ -154,6 +154,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var duplicateDatasets = await FdaDuplicateStudyDatasetRule.InspectAsync(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum).ConfigureAwait(false);
             if (duplicateDatasets is not null) RetainChecksum(duplicateDatasets);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var studyIdentity = await FdaStudyIdMatchRule.InspectAsync(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum).ConfigureAwait(false);
+            if (studyIdentity is not null) RetainChecksum(studyIdentity);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -497,6 +500,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaDuplicateStudyDatasetRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaDuplicateStudyDatasetRule.RuleId, CheckStatus.NotEvaluated,
                     "The duplicate study dataset inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStudyIdMatchRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStudyIdMatchRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStudyIdMatchRule.RuleId, CheckStatus.NotEvaluated,
+                    "The study identity inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

@@ -69,3 +69,4 @@
 34. FDA1734已实现明确NDA/ANDA/BLA与共同中心日期分支的报告/XPT触发及真实TS/SSD供应检查，仍Partial；中心过渡期、IND商业属性、NA资格和历史叶供应依赖保留。三类误判先红后修，最终八类231/231、10输入绑定、目录校验及静态复审/终态证据核验PASS。统计55 Implemented、12 Partial、80 NotAssessed，剩余仍92；下一1735，不将组件Pass写成完整覆盖。
 35. 1734已提交`12bf9cd`；1735/1736按序核对后保留NotAssessed：真实标准化模型及对应define身份/映射事实尚缺，XPT可解析或file-tag/文件名不能替代；中心/商业IND等适用声明亦未绑定。依赖留队、不减92。继续1737真实dataset重复new检查，跨序列研究身份及历史更新边界需明确。
 36. 1737当前同STF内不同new数据集叶判重及历史内容定位已实现，仍Partial；跨STF研究身份、历史生命周期计数及非XPT范围未闭合。定位缺陷先红后修，最终九类271/271、7输入绑定、目录校验及静态复审/终态核验PASS。统计55 Implemented、13 Partial、79 NotAssessed，剩余仍92；下一1738。
+37. 1737已提交`315fd9a`；1738完成逐STF/TS的STUDYID或SPREFID精确匹配，支持字段级未知、多值/多研究/多TS、可能尾行及历史捕获。范围污染先红后修，final331/331、7输入绑定、目录校验及静态复审/终态核验PASS。目录Implemented，统计56 Implemented、13 Partial、78 NotAssessed，待完整覆盖91，原107项完整完成16条。下一1748 owner叶version，1752根dtd-version另行处理。
