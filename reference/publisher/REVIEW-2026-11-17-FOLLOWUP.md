@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1748 STF owner叶版本存在性（Implemented，限定静态及终态核验PASS）。** 上项1738已提交`b629c6c`。逐个实际目标owner检查无命名空间的显式非空version；new/append/replace、多个owner及当前owner引用已选历史STF均覆盖，文件定位保留实际SourceId。STF根dtd-version、内容叶属性不能代替owner属性；非空任意值仅满足存在性，版本一致性留1765。default事实矛盾为NE，显式CDATA无辅助原值仍可用。冻结捕获/context/hash、唯一ID、完整起始标签及双向父子链验证局部遗漏，不重新打开XML、不放宽通用lifecycle/binding资格。尾部损坏不撤销已知Fail；未完整发现范围阻止Pass。
+
+`fda1748-red`37项11过26败，XML前提通过；green53项51过2败：index-tail上游有意不生成Leaves/IdIndex，改为独立消费保留Elements；`<other/>`已明确非STF，撤回其NE预期为NA，并新增声明STF但根错误的NE对照。green2为114/114，其误拼绑定类筛选未产生覆盖，不计绑定测试。审查后补五项未知候选/父子断链/ID歧义/STF摘要/上下文失配保护，最终final六类 **213/213、0失败/跳过，三构建与测试退出0、进程树停止**：1748为43、checksum interruption16、STF binding56、STF inspection19、1738为60、STF whitespace19。限定静态复审及终态核验PASS。
+
+final源码清单SHA`5b66ceb091cb34b6b6eb89a0b3225e64cb66e78eedc30b04549e39bebbd9bce9`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`bf7049bfc07d7c0a205d455800ff083813b39e615808ae0833a891970ea90e6b`原件/备份一致。目录114条canonical SHA`ed047f84dd056093a5c331233da0076269e7f9249de739c0103104c541c84eaa`校验通过。证据`.artifacts/local-check/fda1748-final/`及副本`backups/fda1748-20261120/evidence/final/`；四轮八个bin/obj完整检查后送回收站可恢复。当前57 Implemented、13 Partial、77 NotAssessed，待完整覆盖90，原107项完整完成17条；下一1752根dtd-version。仅Windows选定回归，不代表全套、外部工具或监管资格。
+
 **FDA1738研究标识对应检查（Implemented，限定静态及终态核验PASS）。** 1737已按Partial提交`315fd9a`。对每个实际目标owner的M4/M5 STF及其关联ts.xpt，读取唯一直接study-id原文，使用确定行的STUDYID或TSPARMCD=SPREFID的TSVAL作Ordinal精确OR匹配；不trim、不折叠值大小写、不再次XML解码。字段级未知只在仍可能匹配时阻止Fail，确定匹配不被无关参数/可选TSVALNF不可解码或其他多值撤销；可能全空白尾行不影响非空身份，只有可能行匹配不能Pass。多个TS及多个研究独立判断，已知Fail优先，重复同TS引用不重复报错。显式历史TS及当前new叶复用旧字节均支持并保留真实SourceId；可选STF章节不豁免，不引入1734的中心/IND/NA/历史重交门槛。缺TS无比较对象为NA，缺文件/未知引用/结构或编码不明为NE。文件引擎v50，回调快照和中断兜底保持唯一结果。
 
 `fda1738-red`52项16过36败，失败均规则/回调/报告断言，真实XML前提通过；candidate三类93项92过1败仅因候选目录暂Partial而报告NE，非核心匹配失败。新增8项保护后review-red60项58过2败：一项同样的临时报告状态，一项明确范围外owner被不合格STF结构污染；该反例是冻结事实消费层测试，已先断言范围完整及owner合格，不冒充损坏XML解析后inventory仍完整。拆开owner范围资格与范围内STF结构检查，补第二份回调快照直接断言后限定静态复审PASS，目录升级Implemented。最终final十类 **331/331、0失败/跳过，三构建及测试退出0、进程树停止**；组成1738为60、1737为40、1734为56、study-data18、TS25、capture23、XPT49、source8、1731为36、checksum interruption16。

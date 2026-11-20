@@ -1353,10 +1353,10 @@
       "correctiveAction": "No corrective action is necessary unless FDA notifies you that it is unable to process your submission. Modify your SOPs to ensure that the DTD version is in the leaf element.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1748"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfLeafVersionRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfLeafVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Checks each actual target STF owner leaf's explicit nonblank version, including selected historical STF content. Complete retained start-tag facts establish local omissions despite later index/STF damage, while incomplete discovery cannot pass. Root dtd-version and version agreement remain separate rules. Final selected Windows regression 213/213 and bounded read-only review passed."
       }
     },
     {

@@ -70,3 +70,4 @@
 35. 1734已提交`12bf9cd`；1735/1736按序核对后保留NotAssessed：真实标准化模型及对应define身份/映射事实尚缺，XPT可解析或file-tag/文件名不能替代；中心/商业IND等适用声明亦未绑定。依赖留队、不减92。继续1737真实dataset重复new检查，跨序列研究身份及历史更新边界需明确。
 36. 1737当前同STF内不同new数据集叶判重及历史内容定位已实现，仍Partial；跨STF研究身份、历史生命周期计数及非XPT范围未闭合。定位缺陷先红后修，最终九类271/271、7输入绑定、目录校验及静态复审/终态核验PASS。统计55 Implemented、13 Partial、79 NotAssessed，剩余仍92；下一1738。
 37. 1737已提交`315fd9a`；1738完成逐STF/TS的STUDYID或SPREFID精确匹配，支持字段级未知、多值/多研究/多TS、可能尾行及历史捕获。范围污染先红后修，final331/331、7输入绑定、目录校验及静态复审/终态核验PASS。目录Implemented，统计56 Implemented、13 Partial、78 NotAssessed，待完整覆盖91，原107项完整完成16条。下一1748 owner叶version，1752根dtd-version另行处理。
+38. 1738已提交`b629c6c`；1748完成实际目标STF owner叶的显式非空version检查。index尾部损坏导致lifecycle叶索引缺失先红后修，直接使用冻结完整起始标签与实际STF根，未放松通用资格；明确非STF根的错误用例前提撤回并补未知身份对照。final六类213/213、7输入绑定、目录校验及静态复审/终态核验PASS。统计57 Implemented、13 Partial、77 NotAssessed，待完整覆盖90，原107项完整完成17条。下一1752根dtd-version，再1765版本对应关系。

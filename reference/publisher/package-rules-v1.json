@@ -3388,6 +3388,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1748",
+      "authorityRuleId": "1748",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 33; STF specification v2.6.1 pp. 12, 15",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF owner leaf must specify the DTD version",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each actual target STF owner leaf, including owners referencing selected historical STF content.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks explicit nonblank no-namespace version on each actual target STF owner leaf. Retained local omissions survive later index or STF body failures; incomplete owner discovery cannot pass. Root dtd-version and content-leaf attributes do not substitute for the owner attribute. Exact version agreement is a separate rule.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafVersionRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafVersionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfLeafVersionRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
