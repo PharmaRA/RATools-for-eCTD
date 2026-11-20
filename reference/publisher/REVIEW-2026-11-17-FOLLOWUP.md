@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**1734–1738共享前置：TS参数行事实提取（不计规则完成）。** 捕获绑定已提交`03b7743`。从已绑定且结构读完的XPT事实识别TS member，按名称识别字符型STUDYID/TSPARMCD/TSVAL，TSVALNF可选；保留原字段名、原值、Original行、Index/Offset/Certain及Min/Max行数。完整TS可额外列/多行，SPREFID是参数行，不被当作必需独立列；不解析日期、不自动填NA、不判断简化TS适用性。可选列缺失null、存在空字符串和不可解码分开，必需三列解码总状态与整行含TSVALNF解码状态分开；无关EXTRA不可解码不污染必需字段。重复折叠字段、错误类型、矛盾行形状拒判，预算按可能行上界计，不截成伪完整结果。
+
+`trial-summary-red`13项1过12败，真实XPT前提通过；candidate仅Api CA1512分析器构建失败，无测试；改ThrowIfNegative后candidate2五类129/129。限定review发现可选TSVALNF不可解码错误拉低RequiredValuesDecoded，新增12项字段/行边界后review-red25项24过1败准确复现；拆分requiredDecoded与rowDecoded后限定静态复审PASS。最终final **141/141、0失败/跳过，三构建与测试退出0、進程树停止**，组成TS25/capture23/XPT49/source8/1731为36。2/2新增输入匹配manifest SHA`1f43a338c74dac5ce92e9ac4818548f1c137fd0ca1f35dba5f70d0354ef737e4`；TRX SHA`d5b98d397ad5685f5df782b46a8eb245c8c56c5941b0c82dfd86bf1ef1c93337`原件/备份一致。最终证据限定核验PASS；备份`backups/trial-summary-20261120/evidence/`，五轮10个bin/obj完整检查后送回收站可恢复。
+
+本项仍未接入STF逐研究归属、define标准身份或中心/商业属性/研究日期业务判断，也不扩大底层XPT格式资格。当前55 Implemented、11 Partial、81 NotAssessed，剩余92；下一把实际STF→leaf→捕获文件→TS参数链绑定，保留多研究/多owner及历史缺失边界。
+
 **1734–1738共享前置：明确捕获文件到XPT事实绑定（不计规则完成）。** XPT reader已提交`205f22c`。新增PackageCapturedXptReader，显式capture/path，不按扩展名判断数据身份；结果选择摘要包含来源、输入/manifest摘要、路径、编码、两层限额及reader版本。分配前检查清单唯一性和长度限额，精确读取清单字节并探测EOF，解析同一字节摘要；前后VerifyUnchanged并重比来源/input/manifest/limits身份。Missing、OutsideSelection、InputChanged、Unavailable与LimitExceeded分开，外层Read保留内层Invalid/Unsupported/解析超限，不把它们当空TS。无效来源不发布Content；内部超时返回Unavailable，外部取消在所有结果出口优先传播。
 
 `captured-xpt-red`16项1过15败；candidate四类109/109。只读review发现取消与IO/多余字节竞争时会被吞掉：review-red仅测试编译失败CS9107，没有业务测试；修正夹具为base.Length后review-red2为23项21过2败，准确复现两竞争路径，四种身份变动和7字节分块读取对照通过。统一Result出口检查外部token后限定静态复审PASS。最终final **116/116、0失败/跳过，三构建及测试退出0、进程树停止**，组成capture23/XPT49/source8/1731为36；2/2新增交付输入匹配manifest。源码清单SHA`d1cc0ed4bc86f0e8de4d0dfab449eb1debdc94a7d08250d08714ad70a2571d47`，TRX SHA`f9e6dbe85c290a9c32073ffb0cd2d26ab129813c127ca347da479696573d1ba6`原件/备份一致。最终证据限定核验PASS，备份`backups/captured-xpt-20261120/evidence/`；五轮10个bin/obj均完整检查后送回收站可恢复。
