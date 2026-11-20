@@ -133,6 +133,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var titleSpaces = FdaNodeExtensionTitleSpaceRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (titleSpaces is not null) RetainChecksum(titleSpaces);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var promotionalContact = FdaPromotionalContactRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (promotionalContact is not null) RetainChecksum(promotionalContact);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -448,6 +451,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaNodeExtensionTitleSpaceRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaNodeExtensionTitleSpaceRule.RuleId, CheckStatus.NotEvaluated,
                     "The target title space inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaPromotionalContactRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaPromotionalContactRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaPromotionalContactRule.RuleId, CheckStatus.NotEvaluated,
+                    "The target promotional contact inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

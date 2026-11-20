@@ -1062,10 +1062,10 @@
       "correctiveAction": "Ensure that a promotional labeling and advertising regulatory contact is provided for all future promotional labeling and advertising submissions.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-1545"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaPromotionalContactRule.cs", "tests/RATools.Tests/PackageValidation/FdaPromotionalContactRuleTests.cs"],
+        "note": "Checks a nonblank fdaact4 contact name in the same target regional admin whenever a structurally clear fdast8 application is present. Captured code policies authorize the mapping; unknown or ambiguous inputs remain unevaluated, and history/other documents do not supply the contact."
       }
     },
     {

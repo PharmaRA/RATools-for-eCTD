@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+1544按序核对后保留NotAssessed：现HistoryBaselineManifest仅绑定显式较早序列/来源/digest/profile/trust，未标明相关前次公司名称状态。取max(selectedHistory)可能把遗漏中间已实际更名的远期旧名误作本次变化；需要按真实application-type/number关联、明确比较基线角色，不强造监管receipt或完整连续历史前置。company-name位于admin/applicant-info，不能只绑定文件拥有者或cross-reference身份。FDA第24页允许真实更名、无须因变化本身纠正，观察到差异不等于不当变化；若自动适用更名例外还需冻结声明/判定契约。依赖经限定只读审查核对，仍不计完成，继续1545。
+
+1500按序核对后保留NotAssessed：FDA第23页明确titles/keywords限512characters，ICH物理108页仅直接说明leaf/title的“1024bytes(512characters) proposed maximum”；不能把该字节数当UTF-8硬闸或默认.NET UTF-16长度当官方字符定义。ICH/US leaf/title及整个CDATA keywords属性有直接候选依据，非leaf扩展/STF标题适用范围、Unicode scalar/组合序列计数解释及全部空白/复杂文字保真仍需资格依据。已保留文本若明确超长应保留失败、未读完整且未超长不能Pass；不能泛扫所有title名称或按关键词分词消除长度。子代理限定来源/模型审查已完成，依赖留队不减少剩余97条，继续1544。
+
 1476本批三轮六个build/bin、build/obj已核对终态、路径和链接后送入Windows回收站，可恢复；原始证据及备份保留。
 
 1459/1463按序核对后保留NotAssessed：归档FDA标准页SHA`a49d976c29bfd8ceaf6f53a10f0c8dcd3eebf90295f15b63a87b76757ac57bcd`列ICH DTD3.2支持始于2003-11-01、US DTD3.3始于2015-06-15；requirement日期不是其他版本支持终止日期，空support-end也非穷尽接受清单。缺历史/表外版本退出政策与版本身份冲突解释；reader在profile拒绝前未独立保留根声明，不能解析diagnostic.Actual推断FDA不支持。子代理限定规范/事实审查已核验；不把PROFILE-VERSION不匹配或只覆盖正例包装为这两条Implemented/Partial。依赖留队，继续下一独立项1476。
@@ -14,7 +18,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，50 条已实施、11 条部分实施、86 条待评估。仍有 97 条待完整覆盖。内部目录有 105 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，51 条已实施、11 条部分实施、85 条待评估。仍有 96 条待完整覆盖。内部目录有 106 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1545：促销监管联系人，Implemented。** FDA第25页，Medium，2015-06-15生效。复用归档M1策略和active字典fdast8/fdaact4，同一目标regional唯一admin内任一结构明确的促销application触发非空白联系姓名要求，不只检查文件owner。全部已知非促销NA；未知提交/联系人代码或歧义标量/容器NE；已知trigger和match不被先后顺序或未知兄弟抹除。缺姓名/空白姓名不满足，电话/email完整性独立。其他regional/历史联系人不能供应本文件；完整文档确定缺失Fail优先于其他未知范围。预算、默认属性、取消、真实caller及前序deadline覆盖；file/delivery分量v43。
+
+`fda1545-red`38项1过37败，全部缺规则。首candidate621项10过611败为新增目录错误枚举Conditional导致整体反序列化异常；改Always后candidate2为537过84败，均报告契约禁止Always在生效后返回业务NA。直接核对枚举与ValidationReport后改已有RegionalBackbonePresent：报告不会自动将缺regional变NA，检测逻辑继续返回NE。最终`fda1545-candidate3`三项目构建退出0，**621/621通过、0失败/跳过、测试退出0**，仅指定二十三类规则/M1/属性/中断/目录回归，非全套。源码清单SHA`11c7fdede6e8839b3348ed128e0144072304ca0015672d52f46e324ce17a50a3`，8/8输入匹配；TRX SHA`c42a8cfd7e5e4eaa629c1cd10cbf828d854aced7b60a0d77bb2b3240d6c3511b`原件/备份一致。目录106条canonical`4f8e5056cba081988b91143238753ac62d3ce801b6ae617f15a3b181d268a8b4`独立校验通过；限定业务/报告契约复审及终态核验PASS，早先两次错误兼容性结论已撤回。证据副本`backups/fda1545-20261120/evidence/`；四轮八个bin/obj已送回收站，可恢复。下一项1550按现有XML Unicode scalar约定检查material-id的30字符限制。
 
 **FDA1482：扩展标题首尾U+0020，Implemented。** 1478已提交`2e32e80`。FDA第22页，Low，2008-03-10生效。目标ICH/US精确extension的直接title按路径/父关系绑定，仅无元素子内容的标题提供文字。比较XML解码后的首尾U+0020，不trim、不通用空白判定、不二次实体解码；tab/newline/NBSP、内部空格和空字符串不误报，字符引用/CDATA实际Text断言覆盖。仅叶标题有空格、外命名空间及历史不纳入。未完整文档只保留已可靠读取的首空格Fail，当前尾字符不能证明最终尾部，未确定范围保持NE。预算0/1/2、独立快照、不可用子节点/复杂文字、取消及真实caller/前序deadline覆盖；file/delivery分量v42。
 

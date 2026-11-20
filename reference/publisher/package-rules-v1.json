@@ -3212,6 +3212,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1545",
+      "authorityRuleId": "1545",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 25, error 1545; US M1 specification pp. 6 and 45; captured submission/contact dictionaries",
+      "effectiveFrom": "2015-06-15",
+      "title": "Promotional labeling and advertising regulatory contact is missing",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Contact names in each target US regional admin with a confirmed fdast8 submission.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Uses the captured M1 policy and active codes fdast8/fdaact4. Any structurally unambiguous promotional application triggers a nonblank contact-name requirement in the same admin. Known triggers/matches survive unknown siblings; unknown codes, ambiguous or unread structures remain unevaluated. Phone/email completeness is separate; other regional/history contacts cannot satisfy the target.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPromotionalContactRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaPromotionalContactEvidenceTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPromotionalContactRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaPromotionalContactEvidenceTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPromotionalContactRule.cs", "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
