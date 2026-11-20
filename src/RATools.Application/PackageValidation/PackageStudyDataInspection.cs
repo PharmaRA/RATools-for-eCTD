@@ -15,9 +15,13 @@ internal sealed class StudyDataDocument(BoundStudyTaggingFile stf, IEnumerable<S
 }
 
 // Candidate selection is not evidence of standardized datasets or FDA applicability.
-internal sealed class PackageStudyDataInspection(string selectionDigest, bool complete, IEnumerable<StudyDataDocument> documents)
+internal sealed class PackageStudyDataInspection(string selectionDigest, bool complete, IEnumerable<StudyDataDocument> documents,
+    bool scopeComplete = false)
 {
     internal string SelectionDigest { get; } = selectionDigest;
     internal bool Complete { get; } = complete;
+    // Target discovery and association traversal finished and the package was reverified.
+    // A known candidate's unavailable content does not make unrelated rule scope unknown.
+    internal bool ScopeComplete { get; } = scopeComplete;
     internal IReadOnlyList<StudyDataDocument> Documents { get; } = Array.AsReadOnly(documents.ToArray());
 }

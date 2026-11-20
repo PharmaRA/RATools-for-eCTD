@@ -16,6 +16,7 @@ public sealed class PackageStudyDataInspectorTests
         var fixture = await Fixture(scenario);
         var result = await Inspect(fixture);
         Assert.True(result.Complete);
+        Assert.True(result.ScopeComplete);
         var document = Assert.Single(result.Documents);
         Assert.Single(document.Stf.Owners);
         var reference = Assert.Single(document.References);
@@ -45,6 +46,7 @@ public sealed class PackageStudyDataInspectorTests
         Assert.Equal(expected, reference.Status.ToString());
         Assert.Null(reference.TrialSummary);
         Assert.Null(reference.Xpt);
+        Assert.True(result.ScopeComplete);
         if (scenario != "not-candidate") Assert.False(result.Complete);
     }
 
@@ -57,6 +59,7 @@ public sealed class PackageStudyDataInspectorTests
         Assert.Equal(XptReadStatus.Unsupported, reference.Xpt!.Content!.Status);
         Assert.Equal(TrialSummaryStatus.Unavailable, reference.TrialSummary!.Status);
         Assert.False(result.Complete);
+        Assert.True(result.ScopeComplete);
     }
 
     [Fact]
@@ -90,6 +93,7 @@ public sealed class PackageStudyDataInspectorTests
     {
         var result = await Inspect(await Fixture("changed-after"));
         Assert.False(result.Complete);
+        Assert.False(result.ScopeComplete);
         Assert.Empty(result.Documents);
     }
 
@@ -135,6 +139,7 @@ public sealed class PackageStudyDataInspectorTests
         var result = await Inspect(fixture);
         Assert.True(fixture.Target.DataReads > 0, "Work must reach real data before interruption.");
         Assert.False(result.Complete);
+        Assert.False(result.ScopeComplete);
         Assert.Empty(result.Documents); // Work interruption must not leak earlier facts without final qualification.
     }
 

@@ -3322,6 +3322,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1734",
+      "authorityRuleId": "1734",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 29; Study Data Technical Conformance Guide October 2026 pp. 64-68, 87-88",
+      "effectiveFrom": "2021-09-15",
+      "title": "A trial summary dataset with study start date information is required",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual STF studies in the listed M4/M5 sections and their captured content, with explicit primary application type and selection date.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Checks known NDA/ANDA/BLA and common center-date branches using actual report or XPT triggers and associated TS parameter facts. Missing TS or absent start-date information can fail; unreadable/ambiguous facts do not. Center-specific transition branches, commercial IND status, NA applicability and historical TS supply remain unqualified. Partial pass is not readiness evidence.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaTrialSummaryRequirementRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaTrialSummaryRequirementRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaTrialSummaryRequirementRule.cs", "src/RATools.Application/PackageValidation/PackageStudyDataInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

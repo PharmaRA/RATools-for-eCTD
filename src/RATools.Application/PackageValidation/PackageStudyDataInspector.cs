@@ -25,6 +25,7 @@ internal static class PackageStudyDataInspector
         }));
         var documents = new List<StudyDataDocument>();
         var complete = true;
+        var scopeComplete = false;
         var remainingBytes = limits.MaxBytes;
         var remainingRows = limits.MaxRows;
         var remainingCells = limits.MaxCells;
@@ -37,6 +38,7 @@ internal static class PackageStudyDataInspector
             await packages.VerifyUnchangedAsync(token).ConfigureAwait(false);
             var graph = PackageStfBindingReader.Read(packages, lifecycle, context, token);
             complete = graph.TargetScopeComplete;
+            scopeComplete = graph.TargetScopeComplete;
             var cache = new Dictionary<string, (StudyDataReferenceStatus Status, CapturedXptFacts? Xpt, PackageTrialSummaryFacts? Ts)>(StringComparer.Ordinal);
             foreach (var document in graph.Documents)
             {
@@ -119,12 +121,12 @@ internal static class PackageStudyDataInspector
         catch (StudyDataLimitException) { return Result(false, []); }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
         { return Result(false, []); }
-        return Result(complete, documents);
+        return Result(complete, documents, scopeComplete);
 
-        PackageStudyDataInspection Result(bool finished, IEnumerable<StudyDataDocument> results)
+        PackageStudyDataInspection Result(bool finished, IEnumerable<StudyDataDocument> results, bool scopeFinished = false)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return new(selectionDigest, finished, results);
+            return new(selectionDigest, finished, results, scopeFinished);
         }
         void Tick()
         {

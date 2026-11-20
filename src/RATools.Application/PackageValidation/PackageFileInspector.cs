@@ -148,6 +148,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var accumulative = FdaAccumulativeStfRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (accumulative is not null) RetainChecksum(accumulative);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var trialSummary = await FdaTrialSummaryRequirementRule.InspectAsync(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum).ConfigureAwait(false);
+            if (trialSummary is not null) RetainChecksum(trialSummary);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -483,6 +486,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaAccumulativeStfRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaAccumulativeStfRule.RuleId, CheckStatus.NotEvaluated,
                     "The accumulative STF inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaTrialSummaryRequirementRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaTrialSummaryRequirementRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaTrialSummaryRequirementRule.RuleId, CheckStatus.NotEvaluated,
+                    "The trial-summary requirement inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 
