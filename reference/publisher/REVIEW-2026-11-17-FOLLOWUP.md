@@ -1,5 +1,7 @@
 # 2026-11-17 审阅后续执行账本
 
+1550本批两轮四个build/bin、build/obj已核对终态、路径及链接后送入Windows回收站，可恢复；日志、TRX、源码清单与证据副本保留。
+
 1544按序核对后保留NotAssessed：现HistoryBaselineManifest仅绑定显式较早序列/来源/digest/profile/trust，未标明相关前次公司名称状态。取max(selectedHistory)可能把遗漏中间已实际更名的远期旧名误作本次变化；需要按真实application-type/number关联、明确比较基线角色，不强造监管receipt或完整连续历史前置。company-name位于admin/applicant-info，不能只绑定文件拥有者或cross-reference身份。FDA第24页允许真实更名、无须因变化本身纠正，观察到差异不等于不当变化；若自动适用更名例外还需冻结声明/判定契约。依赖经限定只读审查核对，仍不计完成，继续1545。
 
 1500按序核对后保留NotAssessed：FDA第23页明确titles/keywords限512characters，ICH物理108页仅直接说明leaf/title的“1024bytes(512characters) proposed maximum”；不能把该字节数当UTF-8硬闸或默认.NET UTF-16长度当官方字符定义。ICH/US leaf/title及整个CDATA keywords属性有直接候选依据，非leaf扩展/STF标题适用范围、Unicode scalar/组合序列计数解释及全部空白/复杂文字保真仍需资格依据。已保留文本若明确超长应保留失败、未读完整且未超长不能Pass；不能泛扫所有title名称或按关键词分词消除长度。子代理限定来源/模型审查已完成，依赖留队不减少剩余97条，继续1544。
@@ -18,7 +20,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，51 条已实施、11 条部分实施、85 条待评估。仍有 96 条待完整覆盖。内部目录有 106 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，52 条已实施、11 条部分实施、84 条待评估。仍有 95 条待完整覆盖。内部目录有 107 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1550：material-id 30字符限制，Implemented。** 1545已提交`e90d873`。FDA第25页及M1规范第21–22页，Medium，2015-06-15生效。精确US根/m1-regional/m1-15-promotional-material/m1-15-2-materials/m1-15-2-1-material祖先链及双向子节点绑定；非默认无命名空间material-id正式CDATA Value可计数，辅助ExplicitValue缺失不阻止。沿用既有2035/2042的项目XML Unicode scalar约定，不trim/归一化，到31即确定超长；不声称FDA原文明示.NET Rune。缺/空属性不当超长，默认或断链事实NE；外来/错误章节排除，尾部损坏保留已知长值。FDA/M1双来源独立绑定，预算/快照/取消/真实及前序deadline覆盖，file/delivery分量v44。
+
+`fda1550-red`32项1过31败，全部缺规则且计数/DTD前提成立。最终采用`fda1550-candidate`三项目构建退出0，**665/665通过、0失败/跳过、测试退出0**，二十五类指定规则/M1/属性/中断/目录回归，非全套；本条44项含于总数。源码清单SHA`21a4933b410dcb4943000f99c6588b36a9ea293ef77541dc941b9c50929732ce`，8/8输入匹配；TRX SHA`9edcae96fa606e55b5e7c3ef03c3e0857a8815eaace3ca57b5ea7fb970207598`原件/备份一致。目录107条canonical`47bb012cc026436872fd68a8f7406d4918274b2301ab65485e8fc6b09f2de786`独立校验通过；限定只读实现和终态核验PASS。历史用例确认已读长属性不串入目标，但未断言历史index/regional全DTD有效，不扩大证据结论。证据副本`backups/fda1550-20261120/evidence/`。下一按序1551/1553核对中心/2253及标签事实，再1554日期格式。
 
 **FDA1545：促销监管联系人，Implemented。** FDA第25页，Medium，2015-06-15生效。复用归档M1策略和active字典fdast8/fdaact4，同一目标regional唯一admin内任一结构明确的促销application触发非空白联系姓名要求，不只检查文件owner。全部已知非促销NA；未知提交/联系人代码或歧义标量/容器NE；已知trigger和match不被先后顺序或未知兄弟抹除。缺姓名/空白姓名不满足，电话/email完整性独立。其他regional/历史联系人不能供应本文件；完整文档确定缺失Fail优先于其他未知范围。预算、默认属性、取消、真实caller及前序deadline覆盖；file/delivery分量v43。
 
