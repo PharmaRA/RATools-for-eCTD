@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1765 STF owner与根版本对应（Implemented，限定静态及终态核验PASS）。** 1752已提交`875d738`。实际目标owner逐个关联精确STF根，支持当前owner引用已选历史STF，历史owner声明不参与；index尾部损坏时直接使用完整保留起始标签，不放松通用生命周期资格。官方spec示例stf version/STF version与criteria 1782的STF Version三种前缀均解释为版本号，保守单数字x.y，不trim、不再次解码、不数值归一化；未知语法/缺属性NE，遗漏归1748，格式支持归1782。根必须有对应序列固定DTD摘要、实际ResolvedAssets和保留有效值2.2；默认根可比较但1752仍报显式遗漏。同路径重复/冲突观察拒判，已知局部不匹配不被其他未知候选或后续正文损坏撤销，匹配但范围未完整不Pass。文件引擎v53。
+
+`fda1765-red`55项28过27败，真实XML前提通过。测试预审后补真实缺STF资产快照、默认根缺DTD解析证据、重复与冲突根观察、实际字符引用解码及stf-tail前提，candidate四类161/161。限定静态审查PASS后final七类 **255/255、0失败/跳过，三构建与测试退出0、进程树停止**：1765为59、1748为43、1752为43、checksum interruption16、STF binding56、inspection19、whitespace19。取消覆盖规则回调前/后与前序中断兜底，不额外声称1765内部真实caller deadline资格。
+
+final源码清单SHA`e49de8aefce832c14fae4f8b837e71ab7b9058e28641fe3e2a1542fbd162f1ea`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`d9f06e680d993f791e1f72c39aa542c262d4c692b3b8c5fe54c75e139f28c8ec`原件/备份一致。目录116条canonical SHA`b8d8357c816af90814629fcd010921e8d50e5a18bfb49e766a0fcfd8e3aef6fb`独立校验通过。证据`.artifacts/local-check/fda1765-final/`与副本`backups/fda1765-20261120/evidence/final/`；三轮六个bin/obj完整检查后送回收站可恢复。最终证据限定核验PASS；当前59 Implemented、13 Partial、75 NotAssessed，待完整覆盖88，原107项完整完成19条。下一1782可先实现实际2.2引用的exact标记，其他版本支持清单缺证据时保留Partial，不算完整完成；再1786根支持版本。非全套或监管资格。
+
 **FDA1752 STF根版本显式声明（Implemented，限定静态及终态核验PASS）。** 1748已提交`4439f48`。检查当前实际STF文件（含无owner文件）及当前合格owner明确关联的已选历史STF；历史全库不重报，历史范围沿用项目关联合同，不宣称规范另有历史重检条文。固定DTD的dtd-version为CDATA #FIXED 2.2，IsDefault不能代替显式提供；字符引用解码后的2.2、无辅助原值的显式CDATA可用。完整根属性缺键或默认值为Fail，无可信根/不支持版本为NE，不将非空错误版本归罪为遗漏。独立STF未知、index或STF尾部损坏不撤销已知遗漏；完整范围未建立不Pass。实际doc-content历史引用未知不污染根属性存在性；1752与1748独立输出，文件引擎v52。
 
 `fda1752-red`40项17过23败，真实XML前提全部通过。审查补合成同路径冲突根事实、历史owner带fragment及显式根配未知历史内容对照，review-red59项58过1败准确复现binding保留首份导致误Fail。根判定前按InputDigest+LogicalPath确认唯一观察，循环纳入work/cancel，不改通用binding。增量静态复审PASS。最终final六类 **196/196、0失败/跳过，三构建与测试退出0、进程树停止**：1752为43、1748为43、checksum interruption16、STF binding56、inspection19、whitespace19。

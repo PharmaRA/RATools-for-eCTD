@@ -163,6 +163,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfDtdVersion = FdaStfDtdVersionRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfDtdVersion is not null) RetainChecksum(stfDtdVersion);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var stfVersionMatch = FdaStfVersionMatchRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (stfVersionMatch is not null) RetainChecksum(stfVersionMatch);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -518,6 +521,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfDtdVersionRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfDtdVersionRule.RuleId, CheckStatus.NotEvaluated,
                     "The STF root version inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStfVersionMatchRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfVersionMatchRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStfVersionMatchRule.RuleId, CheckStatus.NotEvaluated,
+                    "The STF version comparison was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

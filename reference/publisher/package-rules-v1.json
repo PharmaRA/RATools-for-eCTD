@@ -3432,6 +3432,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1765",
+      "authorityRuleId": "1765",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 34; STF specification v2.6.1 pp. 4-5, 12, 15",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF owner and XML DTD versions must agree",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each actual target STF owner paired with its precisely referenced frozen STF root, including selected historical content.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Compares interpreted owner version tokens with the observed effective STF DTD version. The three archived declaration spellings are recognized for comparison, without approving their format under 1782. Actual pinned DTD defaults may be compared while 1752 still reports omitted explicit declarations. Unknown syntax/profile facts, missing roots and ambiguous observations remain unevaluated; known local mismatches survive later parse failures.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfVersionMatchRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfVersionMatchRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfVersionMatchRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
