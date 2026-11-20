@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**1734–1738共享前置：明确捕获文件到XPT事实绑定（不计规则完成）。** XPT reader已提交`205f22c`。新增PackageCapturedXptReader，显式capture/path，不按扩展名判断数据身份；结果选择摘要包含来源、输入/manifest摘要、路径、编码、两层限额及reader版本。分配前检查清单唯一性和长度限额，精确读取清单字节并探测EOF，解析同一字节摘要；前后VerifyUnchanged并重比来源/input/manifest/limits身份。Missing、OutsideSelection、InputChanged、Unavailable与LimitExceeded分开，外层Read保留内层Invalid/Unsupported/解析超限，不把它们当空TS。无效来源不发布Content；内部超时返回Unavailable，外部取消在所有结果出口优先传播。
+
+`captured-xpt-red`16项1过15败；candidate四类109/109。只读review发现取消与IO/多余字节竞争时会被吞掉：review-red仅测试编译失败CS9107，没有业务测试；修正夹具为base.Length后review-red2为23项21过2败，准确复现两竞争路径，四种身份变动和7字节分块读取对照通过。统一Result出口检查外部token后限定静态复审PASS。最终final **116/116、0失败/跳过，三构建及测试退出0、进程树停止**，组成capture23/XPT49/source8/1731为36；2/2新增交付输入匹配manifest。源码清单SHA`d1cc0ed4bc86f0e8de4d0dfab449eb1debdc94a7d08250d08714ad70a2571d47`，TRX SHA`f9e6dbe85c290a9c32073ffb0cd2d26ab129813c127ca347da479696573d1ba6`原件/备份一致。最终证据限定核验PASS，备份`backups/captured-xpt-20261120/evidence/`；五轮10个bin/obj均完整检查后送回收站可恢复。
+
+尚未把捕获读取器接入FDA规则，也未建立TS字段业务映射、define标准身份或中心/商业属性声明；内部计时超时未独立触发验证，执行中取消已在流读取及错误竞争层确定性验证，但不替代纯内存parser的运行时取消资格。当前55 Implemented、11 Partial、81 NotAssessed，剩余92；下一TS字段/行证据提取及STF研究归属绑定。
+
 **1734–1738共享前置：有界XPT v5内容事实（不计规则完成）。** 来源冻结已提交`c9a8c71`。依据FDA guide明确引用的SAS TS-140归档布局（2026-11-20-xpt/sas-xport-v5-layout.pdf，1,038,715字节，SHA`c7c82e664651fdf7c74134b3536af2ba1c5c2834ca91ea427e886eea0b118ac3`，3.0 October2021）新增纯内存reader及不可变事实。输入先复制，对同一副本核对SHA再解析；单member、80字节块、136/140 NAMESTR、变量类型/位置/重叠/限额、IBM数值及特殊缺值、ASCII或显式严格UTF8均独立记录。保存RawHex、变量描述偏移和行偏移，不从扩展名或文件时间推断业务。StructureComplete、ValuesComplete及Min/MaxPossibleRows分开；尾部0–79字节合法填充造成的全空白行歧义保留Certain标记，不用TrimEnd猜行数。两个控制头构成的第二member候选保持Unsupported/不完整，单个header样式字符值仍可读。未接入包读取/TS业务提取/1734–1738规则，也未嵌入SAS原件到标准快照。
 
 `xpt-reader-red`27项全败，但初合成夹具日期头81字节的问题随后发现，不能把桩失败当作布局夹具有效证明；candidate27项9过18败。日期纠正为16字符并增加头长断言后candidate2为31/31。限定review发现固定header控制字段未核验、第二member截断被当普通行；review-red41项33过8败准确复现。SAS明确允许NAMESTR数量空格补齐，count-red1/1失败后修复；完整80字节头校验、可行边界上的两控制头判断及前导空格数字处理后candidate3为42/42，限定静态复审PASS。最终补短IBM数值、UTF8跨块/字段截断、输入/结果冻结及限额等值保护，final筛选XPT/source/1731三类，**93/93、0失败/跳过，三构建与测试退出0、进程树停止**。其中XPT49、来源8、1731为36项；测试数量不代表全SAS格式或CDISC资格。
