@@ -14,7 +14,11 @@
 
 2026-11-19新增授权：继续按顺序补齐所有剩余107条，基线HEAD `6d6ab4c`，顺序与完成条件见[固定执行队列](FDA47-REMAINING-107.md)。此前“后续未指定新规则不在交付内”仅描述当时三项交付范围，本次已扩展。FDA3/4已完成，当前继续FDA5及其直接前置能力。
 
-当前 FDA 4.7 共 147 条，48 条已实施、11 条部分实施、88 条待评估。仍有 99 条待完整覆盖。内部目录有 103 条。剩余107条执行队列基线提交为 `14c08fa`。
+当前 FDA 4.7 共 147 条，49 条已实施、11 条部分实施、87 条待评估。仍有 98 条待完整覆盖。内部目录有 104 条。剩余107条执行队列基线提交为 `14c08fa`。
+
+**FDA1478：node-extension直接title存在性，Implemented。** 1476已提交`604e4a3`。FDA第22页，Medium，2008-03-10生效。完整目标ICH/US文档中，精确无命名空间extension的Children按NodePath/ParentPath绑定，缺直接无命名空间title判Warning/Fail；叶或嵌套title、外命名空间title不替代。空/空白title仍存在，迟到或重复title不报本条缺失，DTD错误独立。未完整文档在现有无元素闭合事实模型下保持NE，不以暂时缺失推最终缺失；其他完整文档已知Fail保留。默认外命名空间extension本身排除。预算0/1/2、独立快照、缺child/错父/重复节点事实、取消和前序/内部deadline均覆盖；file/delivery分量v41。
+
+`fda1478-red`29项1过28败，全部缺规则且直接子元素/DTD前提通过。最终采用`fda1478-candidate`三项目构建退出0，**397/397通过、0失败/跳过、测试退出0**，十七类指定规则/属性/中断/目录回归，非全套。源码清单SHA`e334d9ca9e0dc7fb5be52dd44b76c86f0c40b1187310904a230a6b66aac3e66d`，8/8输入匹配；TRX SHA`c27e2755239ddb891e855342ed2f418896f21b6feb97d3fc498c5b707cbea768`原件/备份一致。目录104条canonical`83b42f1c9c65f288fcaadfc59478ca3cc16374ba7555904fe97791ab1f4197f6`独立校验通过；限定静态审查与终态核验PASS。证据副本`backups/fda1478-20261120/evidence/`；两轮四个bin/obj已检查后送回收站，可恢复。下一项1482检查真实标题文字首尾U+0020，不trim、不二次实体解码。
 
 **FDA1476：node-extension存在性，Implemented。** FDA第21页，Medium，2008-03-10生效。遍历目标ICH及实际选中US骨架的精确无命名空间Elements，不依赖仅ICH生成的Nodes、ID或生命周期身份。嵌套及合法无ID扩展均定位Warning/Fail；ICH/US尾部损坏不抹已保留节点。完整性仅控制无扩展时是否可Pass，缺来源/日期、歧义或未绑定输入、未读范围保持NE；历史与外命名空间同名不混入。固定STF DTD无此元素，不制造额外范围欠账。共用预算0/1/2、不可变失败快照、显式取消、真实caller deadline前/后及前序1408中断唯一NE覆盖；file/delivery分量v40。
 
