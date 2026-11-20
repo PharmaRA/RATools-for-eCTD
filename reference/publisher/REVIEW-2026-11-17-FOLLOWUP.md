@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1799 STF间禁止引用（Partial交付，限定静态及终态核验PASS）。** 1789已提交`4b8d3c9`。目标实际STF含orphan均检查，历史源仅由当前合格owner选择；doc-content先解析精确叶，再相对该叶所属backbone解析内容href，保留历史源/目标的真实SourceId。唯一且摘要/context绑定的实际STF根确证另一文件，不按study-id或相同字节合并；源/目标尾坏不撤销已知违规。完整且范围内的XML负探测可证明非STF，未探测非XML不凭扩展名判非STF。self/alias同文件保持NE，规范解释与范围外内容身份仍未资格化，目录Partial；文件引擎v56。
+
+`fda1799-red`41项19过22败，真实XML前提通过。补直接历史leaf、普通XML负探测、两端ReadComplete前提后candidate四类165/165。静态审查发现派生Href冲突误Fail、坏父子链引用被排除后误Pass；review-red45项43过2败准确复现，坏链旁独立有效违规保持Fail对照通过。消费前核对原始显式w3c xlink href与派生值，累计StructureComplete未知但不跳过其他已保留引用，增量复审PASS。final十类 **404/404、0失败/跳过，三构建与测试退出0、进程树停止**：1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、checksum interruption16、binding56、inspection19、whitespace19。
+
+final源码清单SHA`2c0ecf42db303c03ce99269e29691ddb0c0276b81bc75334321ac205da95e94a`，7/7交付构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`c106553d8010330dfae79f32b118dc50f8e08c1ab6ffe7babf89439ea5be2c06`原件/备份一致。目录119条canonical SHA`4fe595203a7baccbe73adcd2799109e266b4e890bd9fa9845ad4f119210bb5d9`独立通过。证据`.artifacts/local-check/fda1799-final/`及副本`backups/fda1799-20261120/evidence/final/`；四轮八个bin/obj全部检查后送回收站可恢复。最终证据限定核验PASS，非全套或监管资格。统计59 Implemented、16 Partial、72 NotAssessed，待完整覆盖仍88，原107项完整完成仍19条。下一1816至少一个leaf关联，必须区分规范允许的identifier-only空修订，不能一律按0 doc-content处罚。
+
 **FDA1789 研究章节逐叶STF引用覆盖（Partial交付，限定静态及终态核验PASS）。** 1782已提交`b139be1`，1786依赖保留。依据criteria物理35页和STF规范第4页，将固定CTD的m4.2及m5.3后代映射为研究章节，排除m5.3.6；4.3/5.2/5.4及模块根不自动产生义务。当前new/append/replace内容叶按完整LeafAddress检查，delete及实际STF自身排除，不按相同内容路径/摘要合并叶。有效当前owner的STF引用取并集，孤立STF不直接补覆盖；历史STF内部引用不重定位到当前新叶。精确同heading/extension实例可覆盖，跨实例关系NE。完整无关非法/旧地址引用不遮蔽已证明缺覆盖，真正未读/未知XML保持NE。目录Partial，组件Pass在coverage仍NE，文件引擎v55。
 
 `fda1789-red`仅CA1861测试编译失败，无业务测试。red2为48项8过40败，其中1项nested-reference夹具缺DTD必需block-title，不计业务红灯；修夹具后red3仍48项8过40败，全部前提通过。candidate六类251/251。只读审查发现兄弟node-extension折叠误Pass、无关历史坏根屏蔽当前Fail；review-red51项49过2败准确复现，另有当前相关历史context错配NE对照。关联键保留实际扩展实例，标准章节仍仅定适用性；先筛选当前相关STF再检查根。增量静态复审PASS，final九类 **359/359、0失败/跳过，三构建与测试退出0、进程树停止**：1789为51、1782为53、1765为59、1748为43、1752为43、checksum interruption16、binding56、inspection19、whitespace19。

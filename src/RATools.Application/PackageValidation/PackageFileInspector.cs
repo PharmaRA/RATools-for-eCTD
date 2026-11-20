@@ -172,6 +172,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfCoverage = FdaStfReferenceCoverageRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfCoverage is not null) RetainChecksum(stfCoverage);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var stfCrossReferences = FdaStfCrossReferenceRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (stfCrossReferences is not null) RetainChecksum(stfCrossReferences);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -539,6 +542,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfReferenceCoverageRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfReferenceCoverageRule.RuleId, CheckStatus.NotEvaluated,
                     "The study section STF reference inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStfCrossReferenceRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfCrossReferenceRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStfCrossReferenceRule.RuleId, CheckStatus.NotEvaluated,
+                    "The STF cross-reference inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

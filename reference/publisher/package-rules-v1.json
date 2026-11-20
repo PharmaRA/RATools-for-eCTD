@@ -3498,6 +3498,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1799",
+      "authorityRuleId": "1799",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 36, error 1799",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF must not reference another STF",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual target STF files including orphan sources, and qualified current-owner selected historical STF sources.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Resolves each STF doc-content through its exact backbone leaf to the leaf's actual content capture and verifies another STF by unique frozen root identity. Known violations survive source/target tail damage and unrelated unknown references. Complete in-scope XML discovery can establish non-STF content; extensions alone cannot. Self-reference interpretation and content identity outside completed discovery remain unqualified, so local passes do not establish full coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfCrossReferenceRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfCrossReferenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfCrossReferenceRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
