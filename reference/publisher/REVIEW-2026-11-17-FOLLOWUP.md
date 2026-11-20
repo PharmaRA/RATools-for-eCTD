@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1737同研究重复new数据集检查（Partial，限定静态及终态核验PASS）。** 对实际M4/M5 STF内可确认的XPT dataset，以完整LeafAddress去重引用，再比较解析后basename与唯一直接leaf/title原文的组合；项目使用Ordinal，不trim、不大小写折叠、不按文件摘要或内容路径合并叶事件。两个当前不同new叶共用同一文件仍判重复；同一叶被多次引用只计一次。实际存在STF的可选章节不自动豁免，M3不适用；replace/append不构成两个new，但测试不证明其历史生命周期有效。确定重复优先Fail，其他未知引用不抹掉；多STF研究身份、历史生命周期累计及非XPT格式仍保留Partial。组件Pass在报告覆盖为NE，启用但未执行的中断结果补唯一NE；文件引擎v49。
+
+`fda1737-red`35项7过28败，真实DTD前提通过；candidate四类125/125。只读review发现当前new叶引用历史XPT时finding.Files错用目标SourceId，location-red37项36过1败准确复现两个历史文件错绑；比较桶保存首个XPT来源，后续使用当前XPT来源，分别覆盖both/first/second历史内容位置，另补全部非new的组件/报告NA。candidate2为56/56，限定静态复审PASS。最终final九类 **271/271、0失败/跳过，三构建及测试退出0、进程树停止**；组成1737为40、1734为56、study-data18、TS25、capture23、XPT49、source8、1731为36、checksum interruption16。
+
+final源码清单SHA`e7f1247cbd4bf74ac9d5bbc663b48241f4fcee1b4865887eae040e0235a496bb`，7/7构建输入匹配（4生产、2测试、catalog；库存和.sha256不计入7）；TRX SHA`d65b9a78f049846eb92eece9d321a2f70f2c026b95786539ca85b630407f4e50`原件/备份一致。目录112条canonical SHA`972d20148be4e3ab2425b16572950071eec48549cb6ff8269bf066486fbf3e00`独立校验通过。证据副本`backups/fda1737-20261120/evidence/`；五轮10个bin/obj均完整检查后送回收站可恢复。最终证据限定核验PASS；当前55 Implemented、13 Partial、79 NotAssessed，剩余仍92，原107项完整完成仍15条。下一1738精确匹配STF study-id与关联TS的STUDYID/SPREFID，不因本批局部通过改写为完整覆盖。
+
+1734已按Partial提交`12bf9cd`。按序核对1735/1736（criteria物理30–31页、study-data guide物理23/30/33页）：现有XPT读取仅证明transport结构及字段，不能独立证明SEND/SDTM/ADaM模型；尚无define内容身份及与实际dataset对应关系的冻结事实。待校验的STF file-tag不能反过来自证标准化身份，也不能仅凭dm.xpt/adsl.xpt/define.xml文件名授权标签或必需数据集结论。中心/商业IND/简化TS适用性声明仍缺绑定输入。两条保持NotAssessed、依赖留队，未减少剩余92条；继续1737已可确认的真实数据集重复new用例，跨序列同研究范围需另辨，不以当前序列局部通过宣称全覆盖。
+
 **FDA1734试验摘要供应检查（Partial交付，限定静态及终态核验PASS）。** 真实数据关联前置已提交`0359e15`。直接核对criteria物理第29页及study-data guide第100页图像，使用精确M4/M5章节及其后代；只采用唯一显式file-owning主申请的NDA/ANDA/BLA，M5自2021-09-15、M4共同中心分支自2023-03-16。M4实际报告文件的规定tag或实际XPT触发，M5仅非TS实际XPT触发；不按物理目录决定CTD章节，不以TS自身循环触发。检查当前关联ts.xpt的真实TS身份及临床SSTDTC/非临床STSTDTC信息；缺TS、确定非TS或完整TS缺信息可Fail。格式未知、真正IO失败、非法日期、NA资格不明、IND商业属性、中心过渡期和直接历史TS叶供应保持NE。当前new叶复用已选历史TS字节与直接引用旧葉不同，已有独立测试。目录明确Partial，组件Pass在报告覆盖仍NE；文件引擎v48，回调及Finish保留中断结果。
 
 `fda1734-red`仅测试CA1826编译失败，无业务测试；修夹具后red2为36项9过27败，真实XML前提通过。candidate三类70/70。review-red53项49过4败，准确复现非TS缺文件遮蔽缺TS、范围外内容污染（独立范围外及双研究两例）、已确定SSD被空白可能尾行遮蔽。新增ScopeComplete区分范围遍历/最终包核验与内容可读，未知供应只由真正可能的TS引用引入，可能全空白尾行不取消确定SSD；candidate2为87/87，限定增量静态复审PASS。再补三项历史TS/当前新叶复用旧字节与范围标记保护后final **231/231、0失败/跳过，三构建及测试退出0、进程树停止**，八类定向回归：1734为56、study-data18、TS25、capture23、XPT49、source8、1731为36、checksum interruption16；非全套或监管资格。

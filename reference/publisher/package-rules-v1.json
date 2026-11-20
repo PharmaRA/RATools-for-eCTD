@@ -3344,6 +3344,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1737",
+      "authorityRuleId": "1737",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 32; Study Data Technical Conformance Guide October 2026 pp. 51-52",
+      "effectiveFrom": "2023-03-16",
+      "title": "Duplicate new datasets for a study",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Datasets referenced by actual study tagging files in Module 4 or 5, including optional STF sections.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects distinct current new XPT dataset leaves within a qualified STF using exact decoded basename and original direct leaf title; repeated references are deduplicated by LeafAddress, not content path. Known duplicate failures survive unrelated unknown references. Cross-STF study identity, historical lifecycle counting and other dataset formats remain unqualified; local passes do not establish readiness.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateStudyDatasetRule.cs", "src/RATools.Application/PackageValidation/PackageStudyDataInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
