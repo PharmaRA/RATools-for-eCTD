@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1884 STF文件名（Partial，限定代码及终态审查PASS）。** 1867已提交`a3cf031`。固定FDA PDF第38页/STF规范第4–5页给出完整`stf-<study-id>.xml`，本项按完整文件名Ordinal比较，扩展名可与1867重叠，不缩窄为仅主体合规。实际根和捕获身份确认后，错误`stf-`前缀可独立Fail；前缀正确时必须完整读取、DTD通过、StudyID唯一且正反向父子关系一致，再使用未trim/未折叠大小写的解码原文。缺ID/坏尾不能拿文本前缀比较。当前未引用文件及合格当前owner指向历史内容均覆盖，重复/矛盾身份NE，已知Fail不被其他未知覆盖。alphanumeric字符准入解释未资格化，不自造ASCII正则；因此Partial，组件匹配Pass在报告覆盖中仍NE。文件引擎v61。
+
+`fda1884-red-20261121`47项16过31败、build0/test1；当时缺类型占位NE的通过不记为保护实现证据。测试静态复核后补目标/历史文档数量路径、原始href、history-only无owner、坏尾/缺根/缺ID与解码文本前提，直接调用实际类型。candidate六类277/277，限定代码审查PASS；最终`fda1884-final-20261121`十六类 **719/719、0失败/跳过**，1884为47。三个构建目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true；子进程仍有退出1，不声称全部自然退出或全部为0。
+
+7/7交付输入绑定（4生产、2测试、catalog，库存及.sha256不计入7），manifest SHA`4cee16712770bee6afd09170e9a409930eb23086132f85c58945afb422d5c60e`，TRX SHA`5ffd52543eaa7992160197264a290b54229b99e2fe2bc2c231e1942718bc2c2e`；目录124条canonical SHA`ed2f149644f2e37fb4d96d0a2718d12a4f636876a494c2c1d178aa3336b79c99`独立通过。限定终态/七输入审查PASS。八份final证据备份`backups/fda1884-20261121/evidence/final/`摘要一致，本项三轮bin/obj已送回收站可恢复，日志/TRX与资格工具保留。库存62 Implemented、18 Partial、67 NotAssessed，待完整覆盖仍85、原107完整完成仍22；下一1901模块/标题位置，再1918。不是全套或监管资格。
+
 **FDA1867 STF扩展名（Implemented，限定代码及终态审查PASS）。** 1850已独立提交`02af5db`。固定FDA PDF第38页与STF规范第4页要求`.xml`；本条仅精确检查扩展名，文件名前缀/StudyID命名留给1884。修复发现器只选.xml造成的循环前提：非util/非backbone文件先做4KiB有界字节前缀探测，跨文件open/read计入独立MaxXmlNodes工作预算，XML-like再从原始字节起点进入既有安全解析器。支持UTF8/16/32、大小端、BOM/无BOM及短读；确定普通内容不污染inventory，读取失败/截断编码/空白超预算保留未知。仅唯一绑定且根确认的当前STF（含未引用）或合格当前owner所指历史STF入选；坏尾不抹掉已知错误扩展Fail，缺历史/矛盾身份NE。XML引擎stf-v4，文件引擎v60。
 
 发现red24项7过17败，green49/49；只读审查发现JPEG头误NE与短EOF宽编码误排除，review-red六项2过4败后修复，后续发现55/55。规则首轮仅CA1068测试辅助签名编译失败，未记业务红灯；修正后rule-red2共93项68过25败（发现55/55、规则38项13过25败，占位NE通过不冒充保护验证），实际生产接入后candidate五类222/222。审查再以四项0/4复现历史hash/profile失配误NA、当前owner派生冲突污染及派生delete隐藏历史引用，修复后green227/227并补历史坏尾Fail；最后以原始operation默认/缺失/未知三项0/3复现当前独立身份污染，收窄为仅已确认当前路径豁免owner资格，增量代码审查PASS。

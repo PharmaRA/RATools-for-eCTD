@@ -3608,6 +3608,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1884",
+      "authorityRuleId": "1884",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 38, error 1884; STF specification v2.6.1 pp. 4-5",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF filenames must follow their study identity",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Identified target STFs, including unreferenced files, and qualified current-owner references to historical STF content.",
+      "applicability": "Always",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects incorrect stf- prefixes and compares the complete filename with stf- plus a unique complete decoded study-id plus .xml using Ordinal equality. No trimming, case folding or character replacement. Study-id alphanumeric character admissibility remains unqualified; component matches do not establish complete coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfFileNameRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfFileNameRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfFileNameRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
