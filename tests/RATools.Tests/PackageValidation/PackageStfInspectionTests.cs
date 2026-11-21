@@ -41,6 +41,153 @@ public sealed class PackageStfInspectionTests
     }
 
     [Theory]
+    [InlineData("stf-a.txt", true)]
+    [InlineData("study.pdf", true)]
+    [InlineData("study", true)]
+    [InlineData("study.xml.bak", true)]
+    [InlineData("study.txt", false)]
+    [InlineData("study.XML", false)]
+    public async Task Fda1867DiscoveryDoesNotAssumeTheExtensionBeingValidated(string name, bool referenced)
+    {
+        var path = "0001/m4/study/" + name;
+        var input = new Input(path, Stf, referenced: referenced);
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.True(result.StudyTaggingFiles.InventoryComplete);
+        var document = Assert.Single(result.StudyTaggingFiles.Documents);
+        Assert.Equal(path, document.LogicalPath);
+        Assert.True(document.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, document.DtdStatus);
+    }
+
+    [Theory]
+    [InlineData("utf8", true)]
+    [InlineData("utf16le", true)]
+    [InlineData("utf16be", true)]
+    [InlineData("utf32le", true)]
+    [InlineData("utf32be", true)]
+    [InlineData("utf16le", false)]
+    [InlineData("utf16be", false)]
+    [InlineData("utf32le", false)]
+    [InlineData("utf32be", false)]
+    public async Task Fda1867DiscoveryUsesContentAcrossXmlEncodings(string encodingName, bool bom)
+    {
+        Encoding encoding = encodingName switch
+        {
+            "utf8" => new UTF8Encoding(bom),
+            "utf16le" => new UnicodeEncoding(false, bom),
+            "utf16be" => new UnicodeEncoding(true, bom),
+            "utf32le" => new UTF32Encoding(false, bom),
+            _ => new UTF32Encoding(true, bom)
+        };
+        var xml = Stf[Stf.IndexOf("<!DOCTYPE", StringComparison.Ordinal)..];
+        // A no-BOM wide encoding starts with '<' so the standard XML autodetector can identify it.
+        if (bom || encodingName == "utf8") xml = " \r\n\t" + xml;
+        var bytes = encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray();
+        var input = new Input("0001/m4/study/study.bin", xml, content: bytes);
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        var document = Assert.Single(result.StudyTaggingFiles.Documents);
+        Assert.True(document.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, document.DtdStatus);
+        Assert.True(result.StudyTaggingFiles.InventoryComplete);
+    }
+
+    [Theory]
+    [InlineData("report.pdf", "%PDF-1.4 ordinary")]
+    [InlineData("stf-a.pdf", "%PDF-1.4 ordinary")]
+    [InlineData("data.xpt", "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!")]
+    [InlineData("ordinary.txt", "ordinary text")]
+    [InlineData("ordinary.bin", "")]
+    [InlineData("metadata.txt", "<metadata/>")]
+    public async Task Fda1867DiscoveryDoesNotPromoteOrdinaryContent(string name, string content)
+    {
+        var result = await new PackageXmlInspector().InspectAsync(new Input("0001/m4/study/" + name, content), PackageValidationCatalog.UsProfile);
+        Assert.True(result.StudyTaggingFiles.InventoryComplete);
+        Assert.Empty(result.StudyTaggingFiles.Documents);
+    }
+
+    [Theory]
+    [InlineData("<ectd:study xmlns:ectd='http://www.ich.org/ectd'")]
+    [InlineData("   ")]
+    public async Task Fda1867XmlLikeOrUnresolvedContentCannotProveEmptyInventory(string content)
+    {
+        var input = new Input("0001/m4/study/study.bin", content);
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.False(result.StudyTaggingFiles.InventoryComplete);
+    }
+
+    [Fact]
+    public async Task Fda1867NonXmlExtensionStillPropagatesReadCancellation()
+    {
+        var input = new Input("0001/m4/study/study.bin", Stf);
+        using var cancel = new CancellationTokenSource();
+        input.CancelOnStfRead = cancel;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile, cancel.Token));
+    }
+
+    [Theory]
+    [InlineData("utf8")]
+    [InlineData("utf16")]
+    [InlineData("utf32")]
+    public async Task Fda1867ShortReadsDoNotSplitEncodingEvidence(string kind)
+    {
+        Encoding encoding = kind switch { "utf16" => new UnicodeEncoding(true, true), "utf32" => new UTF32Encoding(false, true), _ => new UTF8Encoding(true) };
+        var xml = " \t" + Stf[Stf.IndexOf("<!DOCTYPE", StringComparison.Ordinal)..];
+        var input = new Input("0001/m4/study/study.bin", xml, content: encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray()) { ShortReads = true };
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(result.StudyTaggingFiles.Documents).DtdStatus);
+        Assert.True(result.StudyTaggingFiles.InventoryComplete);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Fda1867PrefixLimitsAndReadFailuresRetainUnknown(bool unreadable)
+    {
+        var input = new Input("0001/m4/study/study.bin", new string(' ', 4096) + Stf) { FailRead = unreadable };
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.False(result.StudyTaggingFiles.InventoryComplete);
+        Assert.Empty(result.StudyTaggingFiles.Documents);
+        Assert.Contains(result.StudyTaggingFiles.Findings, finding => finding.Code == "STF_PREFIX_UNRESOLVED");
+    }
+
+    [Fact]
+    public async Task Fda1867PrefixReadsShareOneDiscoveryWorkBudget()
+    {
+        var input = new Input("0001/m4/study/study.bin", new string(' ', 4096));
+        var baseline = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        var limited = new Input("0001/m4/study/study.bin", new string(' ', 4096), new() { MaxXmlNodes = 2 });
+        var result = await PackageStfInspector.InspectAsync(limited, PackageXmlAssets.Current, baseline.Backbones, new(limited.Limits), default);
+        Assert.False(result.InventoryComplete);
+        Assert.Contains(result.Findings, finding => finding.Code == "STF_PREFIX_WORK_LIMIT");
+    }
+
+    [Theory]
+    [InlineData("FFD8FFE000104A46494600", true)]
+    [InlineData("EF010203", true)]
+    [InlineData("20003C", false)]
+    [InlineData("2000", false)]
+    [InlineData("EFBB", false)]
+    public async Task Fda1867BinarySignaturesAndTruncatedWidePrefixesStayDistinct(string hex, bool complete)
+    {
+        var input = new Input("0001/m4/study/content.bin", "bytes", content: Convert.FromHexString(hex));
+        var result = await new PackageXmlInspector().InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(complete, result.StudyTaggingFiles.InventoryComplete);
+        Assert.Empty(result.StudyTaggingFiles.Documents);
+    }
+
+    [Fact]
+    public async Task Fda1867PrefixBudgetIsNotResetForEachOrdinaryFile()
+    {
+        var baselineInput = new Input("0001/m4/study/a.bin", "%PDF-1.4");
+        var baseline = await new PackageXmlInspector().InspectAsync(baselineInput, PackageValidationCatalog.UsProfile);
+        // Each file requires two units (open/read); three units cannot cover both.
+        var limited = new Input("0001/m4/study/a.bin", "%PDF-1.4", new() { MaxXmlNodes = 3 }, secondContent: "%PDF-1.4");
+        var result = await PackageStfInspector.InspectAsync(limited, PackageXmlAssets.Current, baseline.Backbones, new(limited.Limits), default);
+        Assert.False(result.InventoryComplete);
+        Assert.Contains(result.Findings, finding => finding.Code == "STF_PREFIX_WORK_LIMIT");
+    }
+
+    [Theory]
     [InlineData("other-root")]
     [InlineData("truncated")]
     [InlineData("internal-entity")]
@@ -205,7 +352,9 @@ public sealed class PackageStfInspectionTests
         private readonly string _stfPath;
         public int StfOpenCount { get; private set; }
         public CancellationTokenSource? CancelOnStfRead { get; set; }
-        public Input(string stfPath, string? xml, PackageReadLimits? limits = null, bool referenced = true)
+        public bool ShortReads { get; set; }
+        public bool FailRead { get; set; }
+        public Input(string stfPath, string? xml, PackageReadLimits? limits = null, bool referenced = true, byte[]? content = null, string? secondContent = null)
         {
             _stfPath = stfPath;
             var id = Guid.NewGuid();
@@ -216,7 +365,8 @@ public sealed class PackageStfInspectionTests
             var relative = stfPath[5..];
             if (referenced) index = index.Insert(closing, "<m4-nonclinical-study-reports><m4-3-literature-references><leaf ID=\"stf\" operation=\"new\" xlink:href=\"" + relative + "\"><title>Study</title></leaf></m4-3-literature-references></m4-nonclinical-study-reports>");
             _files["0001/index.xml"] = Encoding.UTF8.GetBytes(index);
-            if (xml is not null) _files[stfPath] = Encoding.UTF8.GetBytes(xml);
+            if (xml is not null) _files[stfPath] = content ?? Encoding.UTF8.GetBytes(xml);
+            if (secondContent is not null) _files["0001/m4/study/b.bin"] = Encoding.UTF8.GetBytes(secondContent);
             Limits = limits ?? new();
             Manifest = new(id, "0001", _files.Select(pair => new PackageInputFile(pair.Key, pair.Value.Length,
                 Convert.ToHexString(SHA256.HashData(pair.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(pair.Value)).ToLowerInvariant())), [], [], []);
@@ -232,6 +382,8 @@ public sealed class PackageStfInspectionTests
         {
             if (!_files.TryGetValue(logicalPath, out var bytes)) throw new FileNotFoundException(logicalPath);
             if (logicalPath == _stfPath) StfOpenCount++;
+            if (logicalPath == _stfPath && FailRead) throw new IOException("Synthetic unreadable content.");
+            if (logicalPath == _stfPath && ShortReads) return new ShortStream(bytes);
             return logicalPath == _stfPath && CancelOnStfRead is { } cancel ? new CancellingStream(bytes, cancel) : new MemoryStream(bytes, writable: false);
         }
         public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
@@ -244,5 +396,13 @@ public sealed class PackageStfInspectionTests
         { cancel.Cancel(); return base.ReadAsync(buffer, cancellationToken); }
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         { cancel.Cancel(); return base.ReadAsync(buffer, offset, count, cancellationToken); }
+    }
+
+    private sealed class ShortStream(byte[] bytes) : MemoryStream(bytes, writable: false)
+    {
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => base.ReadAsync(buffer[..Math.Min(1, buffer.Length)], cancellationToken);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => base.ReadAsync(buffer, offset, Math.Min(1, count), cancellationToken);
     }
 }

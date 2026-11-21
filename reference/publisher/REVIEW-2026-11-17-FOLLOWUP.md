@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1867 STF扩展名（Implemented，限定代码及终态审查PASS）。** 1850已独立提交`02af5db`。固定FDA PDF第38页与STF规范第4页要求`.xml`；本条仅精确检查扩展名，文件名前缀/StudyID命名留给1884。修复发现器只选.xml造成的循环前提：非util/非backbone文件先做4KiB有界字节前缀探测，跨文件open/read计入独立MaxXmlNodes工作预算，XML-like再从原始字节起点进入既有安全解析器。支持UTF8/16/32、大小端、BOM/无BOM及短读；确定普通内容不污染inventory，读取失败/截断编码/空白超预算保留未知。仅唯一绑定且根确认的当前STF（含未引用）或合格当前owner所指历史STF入选；坏尾不抹掉已知错误扩展Fail，缺历史/矛盾身份NE。XML引擎stf-v4，文件引擎v60。
+
+发现red24项7过17败，green49/49；只读审查发现JPEG头误NE与短EOF宽编码误排除，review-red六项2过4败后修复，后续发现55/55。规则首轮仅CA1068测试辅助签名编译失败，未记业务红灯；修正后rule-red2共93项68过25败（发现55/55、规则38项13过25败，占位NE通过不冒充保护验证），实际生产接入后candidate五类222/222。审查再以四项0/4复现历史hash/profile失配误NA、当前owner派生冲突污染及派生delete隐藏历史引用，修复后green227/227并补历史坏尾Fail；最后以原始operation默认/缺失/未知三项0/3复现当前独立身份污染，收窄为仅已确认当前路径豁免owner资格，增量代码审查PASS。
+
+最终`fda1867-final-20261121`十五类 **672/672、0失败/跳过**（1867为46、发现55、其余沿用1850最终范围），Api/DatabaseMigrator/Tests构建目标和测试主进程退出0，build/test树stopped=true。外层forcedTreeStop=true，存在子进程退出1，不声称所有子进程自然退出或全为0。10/10交付输入匹配（6生产、3测试、catalog；库存及.sha256另核），manifest SHA`dfad4ab08454c9fdf46d9d8e1027b0017f2e2648afb9f36ec33ef9ed6587c99a`，TRX SHA`40468b6584ea157629d1ccb251761615dfb9f5dbd02892d462f7bc0504f09c8b`。目录123条canonical SHA`b36a57b468540db688a970da58fcac707c974a7fd3476c7c656bdb4e638814fd`独立通过。代码、发现增量及终态/十输入只读审查PASS，证据副本`backups/fda1867-20261121/evidence/`，构建bin/obj按精确路径送回收站可恢复，不删除证据或复用资格工具。库存62 Implemented、17 Partial、68 NotAssessed，剩85，原107完整完成22条。下一1884，再1901；非全套或监管资格。
+
 **FDA1850 STF追加StudyID连续性（Implemented，限定增量与终态审查PASS）。** 环境恢复及禁删保护器新资格已独立提交`ece29db`。仅比较实际当前append owner与其显式modified-file指定的直接前驱STF，完整且唯一的解码StudyID按Ordinal精确比较，不trim或忽略大小写，不按StudyID搜对象。前驱自身为append/replace或更早历史缺失不改写当前边；历史内容、多owner分别判断。new/replace/delete不适用，缺失/歧义/截断/矛盾事实NE，identifier-only空正文不豁免ID变化。文件引擎v59。
 
 原始red50项24过26败、candidate208/208为此前证据。恢复后首轮因NETSDK1064未执行测试，不能记业务红灯；缓存恢复后的`fda1850-review-red2-20261121`两项0过2败，复现反向StudyID节点遗漏误Pass和派生delete掩盖原始append误NA。增加正反向子节点一致性及原始操作检查后，green五类210/210。增量审查发现已知普通XML的操作冲突污染STF范围，`fda1850-scope-red-20261121`一项0过1败；修复仅在完整发现、精确显式href、唯一文件且已知非STF时排除，未知身份继续NE。三个阻断均先红后修、增量复审PASS。

@@ -15,6 +15,7 @@ internal static class PackageStfInspector
         var start = findings.Items.Count;
         var documents = new List<ParsedStudyTaggingFile>();
         var complete = backbones.Count > 0 && backbones.All(document => document.ReadComplete);
+        var prefixWork = input.Limits.MaxXmlNodes;
         try
         {
             if (!assets.Assets.TryGetValue("stf-dtd", out var dtd) || dtd.Sha256 != "e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f" ||
@@ -26,8 +27,8 @@ internal static class PackageStfInspector
             var known = backbones.Select(document => document.LogicalPath).ToHashSet(StringComparer.Ordinal);
             var prefix = input.Manifest.SequenceNumber + "/";
             var files = input.Manifest.Files.ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
-            var candidates = files.Keys.Where(path => !known.Contains(path) && !path.StartsWith(prefix + "util/", StringComparison.Ordinal) &&
-                path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)).ToHashSet(StringComparer.Ordinal);
+            var candidates = files.Keys.Where(path => path.StartsWith(prefix, StringComparison.Ordinal) &&
+                !known.Contains(path) && !path.StartsWith(prefix + "util/", StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
             foreach (var backbone in backbones)
                 foreach (var leaf in backbone.Leaves.Where(leaf => leaf.Operation != "delete" && leaf.Href is not null))
                 {
@@ -50,12 +51,20 @@ internal static class PackageStfInspector
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!files.TryGetValue(path, out var file))
                 { Issue("STF_CANDIDATE_MISSING", "A referenced XML candidate is absent from the target sequence.", path); continue; }
+                var xmlExtension = path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+                if (!xmlExtension)
+                {
+                    var prefixRole = await XmlPrefixAsync(input, path, SpendPrefixWork, cancellationToken).ConfigureAwait(false);
+                    if (prefixRole == false) continue;
+                    if (prefixRole is null)
+                    { Issue("STF_PREFIX_UNRESOLVED", "A bounded content prefix could not establish or exclude XML content.", path); continue; }
+                }
                 var named = path.Split('/')[^1].StartsWith("stf-", StringComparison.OrdinalIgnoreCase);
                 var role = await ProbeAsync(input, path, findings, cancellationToken).ConfigureAwait(false);
                 if (role is null) { complete = false; continue; }
                 if (!role.Value)
                 {
-                    if (named) Issue("STF_CANDIDATE_ROOT_MISMATCH", "An STF-named candidate does not have a study root or declaration.", path);
+                    if (named && xmlExtension) Issue("STF_CANDIDATE_ROOT_MISMATCH", "An STF-named candidate does not have a study root or declaration.", path);
                     continue;
                 }
                 if (backbones.Count + documents.Count >= input.Limits.MaxBackbones)
@@ -82,6 +91,71 @@ internal static class PackageStfInspector
         }
         PackageStfInspection Finish() => new(complete && !findings.Truncated && !findings.StructureLimitReached,
             documents, findings.Items.Skip(start));
+        void SpendPrefixWork()
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (prefixWork-- > 0) return;
+            Issue("STF_PREFIX_WORK_LIMIT", "Content discovery exhausted its shared prefix work budget.", null);
+            throw new XmlInspectionLimitException("STF prefix work limit exceeded.");
+        }
+    }
+
+    // A prefix is only a candidate discriminator. The XML reader always reopens
+    // the original bytes; this routine cannot repair malformed XML or assert an STF role.
+    private static async Task<bool?> XmlPrefixAsync(ICapturedPackageInput input, string path, Action spend, CancellationToken token)
+    {
+        const int maxPrefix = 4096;
+        var bytes = new byte[maxPrefix];
+        var length = 0;
+        try
+        {
+            spend();
+            using var stream = input.OpenRead(path);
+            while (length < maxPrefix)
+            {
+                spend();
+                var read = await stream.ReadAsync(bytes.AsMemory(length, Math.Min(256, maxPrefix - length)), token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                length += read;
+                if (length < 4 && read != 0) continue; // Short reads are not EOF.
+                var result = Classify(bytes, length, read == 0);
+                if (result.HasValue || read == 0) return result;
+            }
+        }
+        catch (IOException) { return null; }
+        return null;
+
+        static bool? Classify(byte[] bytes, int length, bool eof)
+        {
+            if (length == 0) return eof ? false : null;
+            var width = 1;
+            var bigEndian = false;
+            var start = 0;
+            if (length >= 4 && bytes[0] == 0xff && bytes[1] == 0xfe && bytes[2] == 0 && bytes[3] == 0) { width = 4; start = 4; }
+            else if (length >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0xfe && bytes[3] == 0xff) { width = 4; bigEndian = true; start = 4; }
+            else if (length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe) { width = 2; start = 2; }
+            else if (length >= 2 && bytes[0] == 0xfe && bytes[1] == 0xff) { width = 2; bigEndian = true; start = 2; }
+            else if (length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf) start = 3;
+            else if (length >= 4 && bytes[1] == 0 && bytes[2] == 0 && bytes[3] == 0) width = 4;
+            else if (length >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0) { width = 4; bigEndian = true; }
+            else if (length >= 4 && bytes[1] == 0 && bytes[3] == 0) width = 2;
+            else if (length >= 4 && bytes[0] == 0 && bytes[2] == 0) { width = 2; bigEndian = true; }
+            // Incomplete/unsupported encoding signatures must not become negative XML evidence.
+            else if (Partial([0xff, 0xfe, 0, 0]) || Partial([0, 0, 0xfe, 0xff]) || Partial([0xfe, 0xff]) || Partial([0xef, 0xbb, 0xbf]) ||
+                length < 4 && (bytes[0] == 0 || length >= 2 && bytes[1] == 0 && bytes[0] is 0x09 or 0x0a or 0x0d or 0x20 or 0x3c) ||
+                length >= 4 && bytes[0] == 0x4c && bytes[1] == 0x6f && bytes[2] == 0xa7 && bytes[3] == 0x94) return null;
+            for (var offset = start; offset + width <= length; offset += width)
+            {
+                uint value = 0;
+                for (var part = 0; part < width; part++)
+                    value |= (uint)bytes[offset + part] << (8 * (bigEndian ? width - part - 1 : part));
+                if (value is 0x20 or 0x09 or 0x0a or 0x0d) continue;
+                return value == '<';
+            }
+            return null;
+
+            bool Partial(byte[] signature) => length < signature.Length && bytes.AsSpan(0, length).SequenceEqual(signature.AsSpan(0, length));
+        }
     }
 
     private static async Task<bool?> ProbeAsync(ICapturedPackageInput input, string path, XmlInspectionFindings findings, CancellationToken token)
