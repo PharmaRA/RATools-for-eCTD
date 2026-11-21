@@ -14,6 +14,7 @@ foreach($entry in $inputs.GetEnumerator()){if((Get-FileHash -LiteralPath (Join-P
 if($inputs.Count -ne 8){throw 'Qualification input inventory incomplete'}
 Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'),(Join-Path $PSScriptRoot 'RetainedMovePolicy.cs'),(Join-Path $PSScriptRoot 'RetainedMoveTests.cs'),(Join-Path $PSScriptRoot 'FixtureRetentionTests.cs'))
 if([GuardPolicyTests]::Run() -ne 25){throw 'Policy preflight failed'}
+if([GuardPolicyTests]::RunLoaderBreakpointChecks() -ne 7){throw 'Loader breakpoint preflight failed'}
 $dotnet=Join-Path $repo '.artifacts/tools/dotnet-8.0.423/dotnet.exe'
 $summary=@{passed=$false;steps=@();scope='Windows x64 guarded compiler and synthetic permission/process probes, not remaining19 native acceptance'}
 try {
@@ -69,6 +70,7 @@ try {
  if($summary.retainedMovePathChecks -ne 14){throw 'Move path checks incomplete'}
  $summary.fixtureRetentionPathChecks=[FixtureRetentionTests]::Run((Join-Path $Evidence 'fixture-path-checks'))
  if($summary.fixtureRetentionPathChecks -ne 22){throw 'Fixture retention path checks incomplete'}
+ $summary.loaderBreakpointIdentityChecks=7
  $summary.qualificationInputsSha256=(Get-FileHash -LiteralPath (Join-Path $Evidence 'qualification-inputs.json')).Hash.ToLowerInvariant()
  $summary.passed=$true
 } finally {

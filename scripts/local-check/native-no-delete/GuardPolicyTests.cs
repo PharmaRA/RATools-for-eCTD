@@ -24,6 +24,20 @@ public static class GuardPolicyTests
         return Marshal.GetDelegateForFunctionPointer<T>(page);
     }
     static void Equal(int expected,int actual,string name){if(expected!=actual)throw new Exception(name+": expected "+expected.ToString("x8")+", actual "+actual.ToString("x8"));}
+    public static int RunLoaderBreakpointChecks(){
+        int checks=0;
+        byte[] current=Convert.FromHexString("E8DBD1FCFF85C0780A807C2440007503CCEB004883C438C3");
+        byte[] old=Convert.FromHexString("E877B9FCFF85C0780A807C2440007503CCEB004883C438C3");
+        void Check(bool expected,long offset,byte[] local,byte[] remote){if(NativeNoDelete.MatchesLoaderBreakpoint(offset,local,remote)!=expected)throw new Exception("Loader breakpoint identity mismatch");checks++;}
+        Check(true,854112,current,current);
+        Check(false,872116,current,current);
+        Check(false,854112,old,current);
+        Check(false,854112,current,old);
+        Check(false,854112,old,old);
+        Check(false,854112,new byte[0],current);
+        Check(false,854112,current,new byte[0]);
+        return checks;
+    }
     public static int Run(){
         int checks=0;var create=Code<CreateName>("NtCreateFile");
         Equal(Denied,create(out _,0,IntPtr.Zero,IntPtr.Zero,IntPtr.Zero,0,0,2,0x1000,IntPtr.Zero,0),"create-options argument9");checks++;

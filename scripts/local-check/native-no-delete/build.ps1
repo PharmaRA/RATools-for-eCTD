@@ -26,6 +26,7 @@ try {
  if(Test-Path -LiteralPath $assembly){throw 'Existing build output refused'}
  Add-Type -Path @($guard,(Join-Path $PSScriptRoot 'GuardPolicyTests.cs'),(Join-Path $PSScriptRoot 'RetainedMovePolicy.cs'),(Join-Path $PSScriptRoot 'RetainedMoveTests.cs'))
  if([GuardPolicyTests]::Run() -ne 25){throw 'Policy ABI preflight failed'}
+ if([GuardPolicyTests]::RunLoaderBreakpointChecks() -ne 7){throw 'Loader breakpoint preflight failed'}
  $compiler=Join-Path $sdk 'sdk/8.0.423/Roslyn/bincore/csc.dll'
  $args=@('/nologo','/target:exe','/langversion:12','/warnaserror+','/nullable:disable',('/out:'+$assembly))
  $args+=@(Get-ChildItem -LiteralPath (Join-Path $sdk 'packs/Microsoft.NETCore.App.Ref/8.0.29/ref/net8.0') -Filter '*.dll' -File | ForEach-Object {'/r:'+$_.FullName})

@@ -1,5 +1,17 @@
 # 2026-11-17 审阅后续执行账本
 
+**2026-11-21 本机工具链与禁删保护器重新资格（基础设施，不计FDA规则完成）。** 用户自行安装后，确认PowerShell 7.6.10 x64与Python 3.13.17 x86可运行；仅为任务进程补PATH，未改全局安装。Python只用于标准库目录/摘要校验，不属于x64受保护子进程资格。固定SDK仍8.0.423。首次新资格目录`remaining107-qualification-20261121`在加载器断点拒绝，退出1、受控进程树已停止；非业务测试。当前x64 ntdll 10.0.19041.4842 SHA`36b1a62e4bf6bf7d68458fff6e8a33b39f6527ec6a46e55ecdd12cde83894c8d`，实际加载器断点854112不同于旧872116。最初32位Python读System32被重定向所得字节已撤回，后以Sysnative文件及64位进程内存核对一致。
+
+仅更新严格断点偏移/窗口匹配，仍核对固定本地窗口与远端字节，不放宽未知断点、删除或受限移动策略。v2完整资格通过后，审查建议补两端相同旧窗口仍拒绝的测试，v3重新构建/验证通过：25 ABI、7断点身份、14移动路径、22夹具路径检查，8组进程探针均预期退出且stopped=true。新资格`.artifacts/local-check/remaining107-qualification-20261121-v3/`，verification SHA`064e7c61769c7a3b8c167619c4f1864d50be41b91708244adee4766316c52e49`，8项输入清单SHA`493805236d35150d34e4d59667d47168998a3d3b73bea5ccbe2fd34b9de2d9d5`；实际探针DLL与回执一致，限定安全静态/终态审查PASS。旧资格及失败证据保留，备份`backups/toolchain-requalification-20261121/before/`。
+
+随后1850审查红测首轮`fda1850-review-red-20261121`因NETSDK1064缺NuGet缓存而停止，API构建退出1、树停止，尚未运行测试。六份既有project.assets.json共99个包目录缺失；从官方NuGet下载固定版本，经SDK PackageArchiveReader的签名感知内容哈希与原清单99/99匹配后恢复缓存，未改还原图或升级依赖。原始签名ZIP SHA512与内容哈希不同不能混用；重复packageIcon.png经字节摘要相同后仅保留一份。恢复证据`.artifacts/local-check/nuget-cache-recovery-20261121/`，summary passed=true/count99。当前恢复原1850流程，新资格不代表FDA规则通过，库存仍60/17/70、剩87。
+
+**2026-11-21 FDA1850续做断点（未验收、未提交）。** 当前HEAD仍为`f77acd5`，库存仍60 Implemented、17 Partial、70 NotAssessed，待完整覆盖87。1850既有candidate为208/208、build/test退出0且进程树停止；本轮修改测试前核对7/7交付输入仍匹配该候选manifest。旧代理不可恢复（not_found），新只读代理Banach完成限定生产审查，提出两项阻断：StudyId仅枚举正向Children而遗漏ParentPath指向同一父节点的额外身份元素，可能误Pass；派生Operation=delete在binding先被过滤，可能绕过原始append属性一致性核对而误NA。
+
+已新增`UnlistedReverseStudyIdCannotEstablishUniqueIdentity`和`DerivedDeleteCannotHideAnExplicitAppendOwner`，均要求NE且无finding，并锁定相应矛盾事实；增量只读审查确认测试构造准确。两项均为静态反例，尚未编译或执行，不记为已复现红灯。生产代码本轮保持不变；既有catalog候选标记不代表库存已验收。
+
+本机测试入口发生环境阻断：当前shell为Windows PowerShell，pwsh未在PATH、已查常规/便携位置或安装登记中找到；Python仅有不可运行的WindowsApps别名（版本探测退出1）。现有保护器源码及RetainedMovePolicy摘要仍与资格一致，但当前System32/ntdll.dll摘要与`.artifacts/local-check/remaining107-qualification/build.json`记录不一致，不能沿用旧资格。未改用无保护dotnet、未切换远程平台、未安装工具或覆盖资格记录。已检查既有`native-no-delete/build.ps1`和`verify.ps1`的资格入口；恢复本机PowerShell 7/Python后须在新证据目录重新完成保护器构建/资格验证，再跑新增红灯、修复两项根因、定向final、只读复审、台账及单独提交，最后继续1867。需用户确认恢复工具链与重新资格的执行方向。
+
 **FDA1833 STF引用叶存在性（Implemented，限定静态及终态核验PASS）。** 1816已提交`b0433c3`。逐引用核对完整且context绑定的目标backbone：原始ID元素、IdIndex与派生leaf三方一致才判存在或缺失；全空为缺叶，唯一非leaf目标为Fail，原始/摘要矛盾与重复身份NE。缺历史、骨架未读完、无效URI和未来引用不冒充缺叶。唯一delete leaf仍存在，历史叶后来确实Deleted或物理内容文件缺失不改变元素存在性。源尾损坏或坏引用链仅保留未知，其他已确定缺叶Fail不被吞掉。文件引擎v58。
 
 `fda1833-red`43项17过26败，XML前提通过。预审补实际历史Deleted状态、坏链旁已知缺叶、原始叶存在但两份摘要缺失保护。candidate五类209项208过1败是历史删除夹具非空checksum导致生命周期Unknown，未计业务失败；仅修delete checksum为空并保留Deleted断言后candidate2为209/209。生产专项复审发现原始同ID重复时Any内层比较未计费，改为歧义先NE、后续常数时间路径比较并补duplicate-original-id保护；这是静态预算修复，不声称耗时复现或性能资格。最后阻断关闭、正式静态PASS后final十三类 **533/533、0失败/跳过，三构建与测试退出0、进程树停止**：1833为46、1816为47、1799为45、1789为51、1782为53、1765为59、1748为43、1752为43、1731为36、checksum interruption16、binding56、inspection19、whitespace19。

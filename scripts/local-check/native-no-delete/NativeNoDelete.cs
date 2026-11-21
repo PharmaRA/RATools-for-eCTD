@@ -57,8 +57,13 @@ public static class NativeNoDelete
     static readonly byte[] StubTemplate=Convert.FromHexString("4C8BD1B800000000F604250803FE7F0175030F05C3CD2EC3");
     // Verified loader breakpoint for this qualification host; unknown layouts
     // fail closed instead of swallowing arbitrary application breakpoints.
-    const long LoaderBreakpointOffset=872116;
-    static readonly byte[] LoaderBreakpointWindow=Convert.FromHexString("E877B9FCFF85C0780A807C2440007503CCEB004883C438C3");
+    // Windows x64 ntdll 10.0.19041.4842, SHA256
+    // 36b1a62e4bf6bf7d68458fff6e8a33b39f6527ec6a46e55ecdd12cde83894c8d.
+    const long LoaderBreakpointOffset=854112;
+    static readonly byte[] LoaderBreakpointWindow=Convert.FromHexString("E8DBD1FCFF85C0780A807C2440007503CCEB004883C438C3");
+    public static bool MatchesLoaderBreakpoint(long offset,byte[] localWindow,byte[] remoteWindow) =>
+        offset==LoaderBreakpointOffset && localWindow!=null && remoteWindow!=null &&
+        localWindow.SequenceEqual(LoaderBreakpointWindow) && remoteWindow.SequenceEqual(localWindow);
     static void Need(bool value) { if(!value)throw new Win32Exception(Marshal.GetLastWin32Error()); }
     static byte[] Read(IntPtr process,IntPtr at,int size) { var b=new byte[size]; Need(ReadProcessMemory(process,at,b,(UIntPtr)(uint)size,out var n)); if(n.ToUInt64()!=(ulong)size)throw new IOException("Short remote read"); return b; }
     static void Write(IntPtr process,IntPtr at,byte[] b) { Need(WriteProcessMemory(process,at,b,(UIntPtr)(uint)b.Length,out var n)); if(n.ToUInt64()!=(ulong)b.Length)throw new IOException("Short remote write"); }
@@ -219,7 +224,7 @@ public static class NativeNoDelete
                         bool knownBreak=address.ToInt64()==child.ntdll.ToInt64()+breakOffset;
                         if(address.ToInt64()==child.ntdll.ToInt64()+LoaderBreakpointOffset){
                             byte[] localWindow=new byte[LoaderBreakpointWindow.Length];Marshal.Copy(new IntPtr(GetModuleHandleW("ntdll.dll").ToInt64()+LoaderBreakpointOffset-16),localWindow,0,localWindow.Length);
-                            knownBreak=localWindow.SequenceEqual(LoaderBreakpointWindow)&&Read(child.handle,new IntPtr(address.ToInt64()-16),localWindow.Length).SequenceEqual(localWindow);
+                            knownBreak=MatchesLoaderBreakpoint(address.ToInt64()-child.ntdll.ToInt64(),localWindow,Read(child.handle,new IntPtr(address.ToInt64()-16),localWindow.Length));
                         }
                         if(code==0x80000003&&first==1&&!child.initialBreakpoint){
                             if(!child.patched||!knownBreak)throw new InvalidOperationException("Unqualified initial debugger breakpoint");
