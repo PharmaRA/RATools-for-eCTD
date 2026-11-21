@@ -123,6 +123,9 @@ public sealed class FdaChecksumAttributeInterruptionTests
         var pendingStfReferencedLeaf = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1833");
         Assert.Equal(CheckStatus.NotEvaluated, pendingStfReferencedLeaf.Status);
         Assert.Empty(pendingStfReferencedLeaf.Findings);
+        var pendingStfStudyContinuity = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1850");
+        Assert.Equal(CheckStatus.NotEvaluated, pendingStfStudyContinuity.Status);
+        Assert.Empty(pendingStfStudyContinuity.Findings);
         Assert.Equal(afterFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
         if (afterFailure) AssertFirstFailure(Assert.Single(check.Findings));
         else Assert.Empty(check.Findings);

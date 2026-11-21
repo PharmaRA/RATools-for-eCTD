@@ -3564,6 +3564,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1850",
+      "authorityRuleId": "1850",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 37, error 1850; STF specification v2.6.1 pp. 12-13",
+      "effectiveFrom": "2008-03-10",
+      "title": "Appended STF study identity must remain constant",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Each actual current STF append owner and its precise direct modified-file predecessor, including selected historical STF content.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Compares unique complete decoded study-id texts using Ordinal equality on each explicit current append edge. Direct predecessors may themselves be append or replace; unavailable earlier ancestors do not redefine the pair. Historical content and multiple owner edges remain distinct. Missing, ambiguous, truncated or contradictory evidence remains unevaluated; identifier-only empty bodies do not exempt changed IDs.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfStudyIdContinuityRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfStudyIdContinuityRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfStudyIdContinuityRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

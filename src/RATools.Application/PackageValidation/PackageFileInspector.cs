@@ -181,6 +181,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfReferencedLeaf = FdaStfReferencedLeafRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfReferencedLeaf is not null) RetainChecksum(stfReferencedLeaf);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var stfStudyContinuity = FdaStfStudyIdContinuityRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (stfStudyContinuity is not null) RetainChecksum(stfStudyContinuity);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -560,6 +563,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfReferencedLeafRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfReferencedLeafRule.RuleId, CheckStatus.NotEvaluated,
                     "The STF referenced leaf existence inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaStfStudyIdContinuityRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfStudyIdContinuityRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaStfStudyIdContinuityRule.RuleId, CheckStatus.NotEvaluated,
+                    "The STF study identity continuity inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

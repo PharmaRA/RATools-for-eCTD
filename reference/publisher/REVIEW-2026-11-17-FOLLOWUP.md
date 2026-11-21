@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1850 STF追加StudyID连续性（Implemented，限定增量与终态审查PASS）。** 环境恢复及禁删保护器新资格已独立提交`ece29db`。仅比较实际当前append owner与其显式modified-file指定的直接前驱STF，完整且唯一的解码StudyID按Ordinal精确比较，不trim或忽略大小写，不按StudyID搜对象。前驱自身为append/replace或更早历史缺失不改写当前边；历史内容、多owner分别判断。new/replace/delete不适用，缺失/歧义/截断/矛盾事实NE，identifier-only空正文不豁免ID变化。文件引擎v59。
+
+原始red50项24过26败、candidate208/208为此前证据。恢复后首轮因NETSDK1064未执行测试，不能记业务红灯；缓存恢复后的`fda1850-review-red2-20261121`两项0过2败，复现反向StudyID节点遗漏误Pass和派生delete掩盖原始append误NA。增加正反向子节点一致性及原始操作检查后，green五类210/210。增量审查发现已知普通XML的操作冲突污染STF范围，`fda1850-scope-red-20261121`一项0过1败；修复仅在完整发现、精确显式href、唯一文件且已知非STF时排除，未知身份继续NE。三个阻断均先红后修、增量复审PASS。
+
+最终`fda1850-final-20261121`十四类 **590/590、0失败/跳过**（1850为57，其他十三类沿用1833最终533项）；Api/DatabaseMigrator/Tests构建及测试主进程退出0，build/test树均stopped=true。外层forcedTreeStop=true，不声称全部子进程自然退出。源码清单SHA`5d56db80f01bb1bb39427ec1abd9aa11f5d16b51e9423a58df038300152ab6bb`，7/7交付输入匹配（4生产、2测试、catalog，库存及.sha256不计入7）；TRX SHA`106302c31d098ba7a06efd099013bbf2bc097178ae5817dd8f7129a8449d418a`。目录122条canonical SHA`9c2020658822cec22f5848eebd398c921fdef825bec3ff5bfe2858146f15dc6e`独立校验通过。八份final证据副本`backups/fda1850-20261121/evidence/final/`逐一摘要一致；本轮红/绿/final构建bin/obj已送回收站，可恢复，v3资格工具保留复用。限定代码、回归终态与七输入只读审查PASS，不代表全套或监管资格。库存61 Implemented、17 Partial、69 NotAssessed，待完整覆盖86，原107项完整完成21条；下一1867，再1884。
+
 **2026-11-21 本机工具链与禁删保护器重新资格（基础设施，不计FDA规则完成）。** 用户自行安装后，确认PowerShell 7.6.10 x64与Python 3.13.17 x86可运行；仅为任务进程补PATH，未改全局安装。Python只用于标准库目录/摘要校验，不属于x64受保护子进程资格。固定SDK仍8.0.423。首次新资格目录`remaining107-qualification-20261121`在加载器断点拒绝，退出1、受控进程树已停止；非业务测试。当前x64 ntdll 10.0.19041.4842 SHA`36b1a62e4bf6bf7d68458fff6e8a33b39f6527ec6a46e55ecdd12cde83894c8d`，实际加载器断点854112不同于旧872116。最初32位Python读System32被重定向所得字节已撤回，后以Sysnative文件及64位进程内存核对一致。
 
 仅更新严格断点偏移/窗口匹配，仍核对固定本地窗口与远端字节，不放宽未知断点、删除或受限移动策略。v2完整资格通过后，审查建议补两端相同旧窗口仍拒绝的测试，v3重新构建/验证通过：25 ABI、7断点身份、14移动路径、22夹具路径检查，8组进程探针均预期退出且stopped=true。新资格`.artifacts/local-check/remaining107-qualification-20261121-v3/`，verification SHA`064e7c61769c7a3b8c167619c4f1864d50be41b91708244adee4766316c52e49`，8项输入清单SHA`493805236d35150d34e4d59667d47168998a3d3b73bea5ccbe2fd34b9de2d9d5`；实际探针DLL与回执一致，限定安全静态/终态审查PASS。旧资格及失败证据保留，备份`backups/toolchain-requalification-20261121/before/`。
