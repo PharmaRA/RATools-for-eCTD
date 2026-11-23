@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2021 监管活动subtype历史重复依赖（未实现，保持NotAssessed）。** 2003已提交`f781801`。固定FDA PDF45要求application/original/report/correspondence各subtype在同一监管活动仅一次，不是将四种subtype合并计一次。限定只读核对确认baseline绑定显式选择的历史字节，来源可为ImportedExternal、LegacyWorkspace或Finalized，不能统称全部仅本地历史；但已读类型没有先前实际提交发生见证。VerifiedForScope、Finalized或Formal验证绑定的是验证/定稿事实，不能替代实际提交。
+
+最小确定Fail依赖是一条可信、绑定申请/序列/内容且证明先前发生的实际提交见证，不要求先有全历史，也不另设FDA accepted前提。当前与历史需在各自同一application实例内唯一提取申请身份、submission-id、受限subtype，按各自捕获字典解释；submission-type作为活动元数据一致性核对，不凭本地Guid/同subtype判同活动、不跨application拼接，现有FirstOrDefault提取不能直接证明唯一身份。仅在准备Pass时另需历史覆盖证据。未增加人工可信声明或业务实现/测试，inventory保持空ruleIDs/evidence及NotAssessed；库存64/25/58、待完整83、原107完整24。2021留队，继续2024，再2025；固定PDF47确认2024/2025/2026均2027-01-16生效，后续须显式区分生效前后日期。
+
 **FDA2003 区域DTD/样式引用位置（Partial，限定代码及终态审查PASS）。** 2002已提交`e460098`。固定FDA PDF44及M1规范v2.6物理页4/47明确要求网站地址而非本地util路径；当前离线resolver拒绝官网地址不等于监管违规。本项绑定criteria/M1来源、当前capture/context、唯一文档与实际3.3根，只对已保留的可解析本地相对DTD/stylesheet位置Fail。坏尾可使用已保留DTD声明，清空PI不证明样式遗漏。2015-06-15前NA；2015-06-15至2025-03-30为NE；2025-03-31起适用本次固定v2.6解释。其他URI、官网解析、声明/PI不可得及样式版本身份未资格，仍Partial且不输出整条Pass。未改parser或离线策略，文件引擎v70。
 
 red三十项18过12败，失败均接入/状态/取消断言，XML前提通过；补坏尾唯一doctype/system、DTD/样式各自finding、网络路径/file URI反例、Partial报告及预取消后candidate七类244/244。独立DTD/style分支是显式合成冻结观察消费测试，不称官网真实解析成功；真实官网DTD受阻用例仍有本地样式PI，但该PI未进入冻结事实，不据此判错。限定代码审查PASS。
