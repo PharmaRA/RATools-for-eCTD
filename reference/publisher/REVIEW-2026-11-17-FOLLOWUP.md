@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2024 当前序列与指定父活动类型比较（Partial，限定代码及终态审查PASS）。** 2021依赖记录已提交`ba06b57`。固定FDA PDF47明确2027-01-16生效，之前日期NA、缺日期NE；M1规范物理页14–15明确当前submission-id指定首次父序列。本项限定单一明确application，完整双向且全图连根的区域结构；父P自指、当前C指P且P<C、XML申请号/类型一致，双方active submission-type值获固定字典资格后比较。类型不参与父匹配键，不因不同类型错分活动；只需指定父P，不要求全部历史。新增ExplicitHistoryForSequence只取显式映射，原ForSequence未改，父snapshot ID与映射缺失分别NE。分组、自建活动、全活动历史与监管端父版本仍未资格，保持Partial；文件引擎v71。
+
+red二十八项18过10败，失败均状态/接入/取消断言，XML前提通过；补无父context映射对照、NDA夹具及具体父子字段、坏尾前提、结构冲突、Partial报告和预取消后candidate九类380/380，限定代码审查PASS。当前日期NA不算类型比较验证；未来生效日有明确相等/不等对照，组件Pass在Partial报告保留NE。
+
+最终`fda2024-final-20261123`九类 **380/380、0失败/跳过**，2024为35。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部子进程自然退出或全0。8/8输入匹配（5生产、2测试、catalog；库存及.sha256另核），manifest SHA`5006a069abeac9511a2f400d91ff4ba6a8742a703b4ef000909ef23807693a77`，TRX SHA`d3678d3140089a6b7c60afa1c652be14af45db995eec7019e5a0584dc5888f7a`；目录134条canonical SHA`01a330519b394469d6b094fbea46b0dad13d0799ab410513f55e88e50048cd0a`独立通过。限定终态/八输入审查PASS，三轮证据副本`backups/fda2024-20261123/evidence/`摘要一致，bin/obj已回收可恢复。库存64 Implemented、26 Partial、57 NotAssessed，待完整覆盖仍83、原107完整24。下一2025启动新活动的sequence/submission-id等值，不将所有presubmission/application视为起点，再2026。非全项目或监管资格。
+
 **FDA2021 监管活动subtype历史重复依赖（未实现，保持NotAssessed）。** 2003已提交`f781801`。固定FDA PDF45要求application/original/report/correspondence各subtype在同一监管活动仅一次，不是将四种subtype合并计一次。限定只读核对确认baseline绑定显式选择的历史字节，来源可为ImportedExternal、LegacyWorkspace或Finalized，不能统称全部仅本地历史；但已读类型没有先前实际提交发生见证。VerifiedForScope、Finalized或Formal验证绑定的是验证/定稿事实，不能替代实际提交。
 
 最小确定Fail依赖是一条可信、绑定申请/序列/内容且证明先前发生的实际提交见证，不要求先有全历史，也不另设FDA accepted前提。当前与历史需在各自同一application实例内唯一提取申请身份、submission-id、受限subtype，按各自捕获字典解释；submission-type作为活动元数据一致性核对，不凭本地Guid/同subtype判同活动、不跨application拼接，现有FirstOrDefault提取不能直接证明唯一身份。仅在准备Pass时另需历史覆盖证据。未增加人工可信声明或业务实现/测试，inventory保持空ruleIDs/evidence及NotAssessed；库存64/25/58、待完整83、原107完整24。2021留队，继续2024，再2025；固定PDF47确认2024/2025/2026均2027-01-16生效，后续须显式区分生效前后日期。

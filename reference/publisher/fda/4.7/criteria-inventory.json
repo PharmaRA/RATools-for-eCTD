@@ -1980,10 +1980,15 @@
       "correctiveAction": "Resubmit the submission with a submission type that matches the parent regulatory activity type.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-2024"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaRegulatoryActivityTypeRule.cs",
+          "src/RATools.Application/PackageValidation/PackageStandardsContext.cs",
+          "tests/RATools.Tests/PackageValidation/FdaRegulatoryActivityTypeRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Compares the current single unambiguous XML application with its explicitly selected self-identifying parent sequence, using bound captures, explicit historical standards context, complete connected structure and qualified active submission-type codes. Type is not part of the parent match key. Effective only from 2027-01-16; missing/conflicting parent facts remain unknown. Grouped applications, self-start scope, complete activity history and regulatory-received parent version remain unqualified. Final selected Windows regression 380/380, including 35 FDA2024 cases, and bounded code/evidence review passed."
       }
     },
     {

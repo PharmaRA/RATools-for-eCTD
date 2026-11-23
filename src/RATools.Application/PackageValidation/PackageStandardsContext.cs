@@ -28,6 +28,7 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
     private Lazy<FdaSupplementCombinations?> _supplementCombinations = new(() => null);
     internal FdaSupplementCombinations? SupplementCombinations => _supplementCombinations.Value;
     public PackageStandardsContext ForSequence(string sequence) => history?.GetValueOrDefault(sequence) ?? this;
+    internal PackageStandardsContext? ExplicitHistoryForSequence(string sequence) => history?.GetValueOrDefault(sequence);
     public static PackageStandardsContext Current => new(PackageValidationCatalog.Current, PackageXmlAssets.Current, IchSectionDefinitions.Current);
     public static PackageStandardsContext FromSnapshot(StandardsProfileSnapshot snapshot, IReadOnlyDictionary<string, PackageStandardsContext>? history = null, DateOnly? selectionDate = null)
     {

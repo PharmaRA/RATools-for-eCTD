@@ -3828,6 +3828,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-2024",
+      "authorityRuleId": "2024",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 47 error 2024; captured M1 specification v2.6 pp. 12-13",
+      "effectiveFrom": "2027-01-16",
+      "title": "Submission type must match the parent regulatory activity",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Single unambiguous XML application in the current sequence compared with its explicitly selected self-identifying parent sequence.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Compares qualified active submission-type codes after exact capture/context/tree/application and declared-parent binding. Type is not part of the parent match key. Missing or conflicting parent evidence remains unknown; only the specified parent is required, not all history. Grouped applications, self-start scope, full activity history and regulatory-received parent version qualification remain incomplete. Current-date checks before 2027-01-16 are not applicable.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegulatoryActivityTypeRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegulatoryActivityTypeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegulatoryActivityTypeRule.cs", "src/RATools.Application/PackageValidation/PackageStandardsContext.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
