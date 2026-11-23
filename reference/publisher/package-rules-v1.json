@@ -3894,6 +3894,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-3001",
+      "authorityRuleId": "3001",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 53 error 3001; STF v2.6.1 research/document distinction and fixed STF DTD",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF doc-content must not include a title element",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Actual current STF files and exact historical STF files referenced by qualified current non-delete ICH owners.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks direct no-namespace title element presence per complete, identity-bound, root-connected doc-content, including empty/whitespace titles. Study titles, leaf titles and block-title are not included. Current unreferenced STF files are inspected independently; history is selected by exact qualified current owners without extension filtering. Missing/ambiguous discovery or owner facts remain unevaluated and do not erase independently established failures.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDocContentTitleRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDocContentTitleRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfDocContentTitleRule.cs", "src/RATools.Application/PackageValidation/PackageStfInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

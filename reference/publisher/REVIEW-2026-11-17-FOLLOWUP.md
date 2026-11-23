@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA3001 STF文档标题禁用（Implemented，限定代码及终态审查PASS）。** 2043依赖记录已提交`4b7025d`。固定FDA PDF53禁止doc-content/title，空元素/空白也算included；DTD允许title不代表业务合格。当前实际STF独立检查，历史文件仅按当前完整且地址/raw/schema一致的非delete ICH owner精确选入，不按扩展名过滤。冻结树须唯一、双向且全图连根，逐实际doc-content检查直接无namespace title，每容器一finding，不按相同href合并，不混研究/leaf/block标题。缺输入或身份冲突NE，不抹掉独立Fail；文件引擎v74，未改共享发现器或绑定器。
+
+red三十一项9过22败，均状态/接入/取消断言，XML前提通过；补mixed定位、历史路径及owner前提、hash/结构/owner冲突和完整报告后candidate十类480/480。只读审查发现当前缺失非.xml目标被发现器排除、规则直接跳过而假NA/Pass；review-red三项1过2败准确复现，并验证独立违规仍Fail。仅补当前引用目标唯一捕获文件检查，缺失/歧义记未知，增量审查PASS；Implemented不等于缺输入也能判定。
+
+最终`fda3001-final-20261124`十类 **483/483、0失败/跳过**，3001为51。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，子进程仍有退出1，不称全部自然退出或全0。7/7输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`496522b3426c3924783a7a64ee8e59280691e43f3cb3a778a26767f9406a72e3`，TRX SHA`ed2a1ef64d761f48ddbd30e1b33f36e758f801b69666ae05fa7b4c5079b72590`；目录137条canonical SHA`7427248871d07a0dc8c29a31a9572e56250b09143be7f44d996370e6d1f84e90`独立通过。限定代码/终态/七输入审查PASS，四轮证据副本`backups/fda3001-20261124/evidence/`摘要一致，bin/obj已回收可恢复。库存65 Implemented、28 Partial、54 NotAssessed，待完整覆盖82、原107完整完成25。下一3015同级property/file-tag顺序，明确倒序可导致DTD Fail，不能先要求DTD Pass；再3029。非全项目或监管资格。
+
 **FDA2043 公司ID变化依赖（未实现，保持NotAssessed）。** 2026已提交`91e92f2`。固定FDA PDF52为Low，比较admin/applicant-info/id与同一申请此前提交值，不是submission-id、leaf ID或company-name。原文明确无需纠正，所有权变化时ID可以改变；不得将差异直接转成必须恢复旧ID或阻止提交。限定已读模型只绑定显式历史capture与本地验证/定稿，没有实际提交或所有权变化见证；ImportedExternal也不自动证明提交发生，未声称全仓不存在相关能力。
 
 可做的所选文件差异组件尚未交付，不能据此记Partial。监管层准确依赖为：双方同一实际申请内唯一公司ID身份、绑定申请/序列/内容的可信先前实际提交见证，以及所有权例外和信息性结果语义。单条可信见证足以证明与该次先前提交不同，不要求全历史、不另设FDA accepted；若只记录客观差异也不必先证明没有例外。缺所有权资料不能反推无所有权变化，company-name变化亦不能代替所有权事实。未新增业务规则/测试，inventory保持NotAssessed、空ruleIDs/evidence；库存64/28/55，待完整83、原107完整24。2043留队，继续3001的doc-content/title直接元素禁用，再3015。
