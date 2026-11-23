@@ -3674,6 +3674,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1935",
+      "authorityRuleId": "1935",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 40, error 1935; pinned STF DTD doc-content declaration",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF doc-content must not contain multiple file-tags",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete identified target STFs and qualified current-owner references to historical STF content, checked per doc-content occurrence.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Counts direct file-tag elements per complete, bidirectionally consistent doc-content. Two or more produce one located failure even when attributes are identical; ancestor tags, siblings and shared hrefs are not combined. Missing tags and value validity are separate rules. Incomplete or contradictory captured identity/structure remains unevaluated.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfMultipleFileTagsRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfMultipleFileTagsRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfMultipleFileTagsRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

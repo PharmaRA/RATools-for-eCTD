@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1935 doc-content多个标签（Implemented，限定代码及终态审查PASS）。** 1918已提交`0683c62`。固定FDA PDF40要求每个doc-content仅一个标签，DTD允许file-tag*不代表业务数量合格。本项逐完整读取、DTD合格、唯一身份且双向树一致的doc-content统计直接file-tag：超过1个生成1条位置finding，相同属性仍计多个；父块标签不并计，兄弟文档/相同href不合并。零标签不触多标签违规（1918另管），无doc-content为NA，坏尾/矛盾事实NE。文件引擎v64；输入证据不足NE不等同开发Partial。
+
+red45项18过27败，失败均业务/回调/报告断言，XML前提通过；补错父关系、历史hash/profile、入口取消和端到端低工作预算后candidate九类423/423。只读审查发现通用Qualified未约束当前owner地址四字段与内部backbone profile，review-red五项0过5败后新增1935私有CurrentOwnerQualified供主选择/raw补查共用，以实际当前backbone定位并核对地址、profile、原始ID/operation/href；未改共享binding或既有规则。当前STF独立入选不受owner资格污染，增量代码审查PASS。
+
+最终`fda1935-final-20261123`十九类 **870/870、0失败/跳过**，1935为55。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，存在子进程退出1，不声称全部自然退出/全0。7/7交付输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`e4d104e410dce35aa0a8a269fcd762eab636e44b5c6cfe719ff13d741e291bdc`，TRX SHA`4a5e99b3d663accf59788f9384cb1658d6facf332f91d5da5526a097287bd605`；目录127条canonical SHA`6423c3e708cbb0dc6a5164daf77c28216529803659a3cd0f5d69948a167e008d`独立通过。限定代码/终态/七输入审查PASS，证据副本`backups/fda1935-20261123/evidence/`摘要一致，四轮bin/obj均送回收站可恢复。库存63 Implemented、20 Partial、64 NotAssessed，待完整覆盖84，原107完整完成23条；下一1953研究标题与当前owner叶标题比较，再1969。非全项目或监管资格。
+
 **FDA1918 doc-content标签遗漏（Partial，限定代码及终态审查PASS）。** 1901已提交`85bde18`。固定FDA PDF39/STF规范7明确doc-content标签要求；DTD允许doc与content-block各自file-tag*，样式表分别显示，未找到父块标签可替代文档标签的明确规范，因此不猜测继承。完整读取、DTD合格、唯一捕获身份与双向父子关系一致后逐doc-content检查：有直接标签不报遗漏；无直接标签且任一祖先块有标签保留NE；无直接及祖先标签才Fail。兄弟标签不互补，同href按元素位置独立检查；坏尾/身份矛盾不能证明遗漏。标签值与多标签限制另条处理。文件引擎v63，目录Partial。
 
 red41项18过23败，失败均业务/回调/报告断言，XML前提通过；占位NE通过不作实现证据。只读测试审查后补直接及父块同时有标签、有效标签单一树矛盾、反向缺元素、direct hash/context、精确finding位置、坏尾节点、来源移除与入口取消。工作预算与finding预算分开：低work测试仅证明端到端受限，规则内部Tick为静态证据，不冒充独立循环资格。candidate八类371项363过8败，1918自身48/48，八败均空STF返回NA与目录Always冲突；仅将1918改为LifecycleOperationsPresent，补空STF报告与非.xml缺历史raw补查反例，报告引擎和既有规则未改。
