@@ -3806,6 +3806,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-2003",
+      "authorityRuleId": "2003",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 44 error 2003; captured M1 specification v2.6 pp. 2 and 45",
+      "effectiveFrom": "2015-06-15",
+      "title": "Regional DTD and stylesheet must use approved resource locations",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Bound current US regional declarations and retained stylesheet instructions under captured M1 v2.6 from 2025-03-31.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects source-prohibited local relative DTD and stylesheet locations. Resolver rejection does not prove regulatory invalidity. Current v2.6 interpretation is not backdated; other URI forms, historical applicability, unavailable declarations/PI, official-URL parsing and stylesheet version identity remain unqualified. No whole-rule Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegionalResourceLocationRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -1837,10 +1837,14 @@
       "correctiveAction": "Resubmit your submission that contains a us-regional.xml that references the valid, correct versions of the DTD and stylesheet. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-2003"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaRegionalResourceLocationRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Detects local relative DTD/stylesheet locations prohibited by captured M1 specification v2.6, with precise current input/root/observation binding and applicability from 2025-03-31. Official URL resolver rejection is not regulatory failure; missing PI after interrupted parsing is not proof of omission. Other URI forms, historical applicability, unavailable declarations, official-URL parsing and stylesheet version identity remain unqualified; no whole-rule Pass. Final selected Windows regression 244/244, including 36 FDA2003 cases, and bounded code/evidence review passed."
       }
     },
     {
