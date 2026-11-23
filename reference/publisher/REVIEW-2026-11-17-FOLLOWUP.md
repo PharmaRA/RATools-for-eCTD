@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1953 STF研究标题与叶标题匹配（Implemented，限定代码及终态审查PASS）。** 1935已提交`e5d90d2`。固定FDA PDF40/STF规范5及DTD支持研究study-identifier/title与实际引用STF的叶title比较，不使用doc-content/title或study-id搜索。逐当前原始非delete owner核对地址四字段、profile、ID/href/operation与派生事实、双向树及到唯一ICH根的连通性，STF内容完整且唯一后比较解码标题原文。Ordinal、不trim/casefold为明确实现口径，不称FDA明文算法；空/同空白相等只表示未发现不一致，不证明标题质量。历史内容只与当前owner比较，多owner分别定位，坏尾/冲突NE。Low映射Info，2013-04-30生效，文件引擎v65。
+
+red46项19过27败，失败均业务/回调/报告断言，XML前提通过。补单一父子矛盾、相等标题下冻结冲突、地址四字段、NA报告等后candidate十类485项484过1败：1953未引用报告暴露1901目录Always/NA冲突。仅对直接依赖1901增加无owner报告例并将其目录适用性改LifecycleOperationsPresent，生产逻辑未改、未重开初审。只读审查另发现raw/derived owner同时脱根可误Pass/Fail，review-red五项2过3败复现两脱根和1901报告错误；修复唯一合法ICH根及有界父链连通性，补相等/不等标题自环NE，增量审查PASS。
+
+最终`fda1953-final-20261123`二十类 **932/932、0失败/跳过**，1953为61、1901为47。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不声称全部自然退出。8/8交付输入绑定（4生产、3测试含1901报告回归、catalog，库存及.sha256另核），manifest SHA`d0891c86e459ec107309b64a1e31d66a18d6a567878be1e32d844e10787ec297`，TRX SHA`b5e8324a40615b168af488d2b090225d6a3eb83ad5367b117b217cd0bc9456b1`；目录128条canonical SHA`b1166a16960316b619364792a7a2b6fa9084fc812245909843ab581387bad5e6`独立通过。限定代码/终态/八输入审查PASS，证据副本`backups/fda1953-20261123/evidence/`摘要一致，四轮bin/obj回收可恢复。库存64 Implemented、20 Partial、63 NotAssessed，待完整覆盖83、原107完整完成24条；下一1969无效STF XML，再1981。1969须区分缺StudyID/空结构/明确语法错误与身份未知、限额、离线、I/O失败，不能把DtdStatus Fail统一当1969违规。非全项目或监管资格。
+
 **FDA1935 doc-content多个标签（Implemented，限定代码及终态审查PASS）。** 1918已提交`0683c62`。固定FDA PDF40要求每个doc-content仅一个标签，DTD允许file-tag*不代表业务数量合格。本项逐完整读取、DTD合格、唯一身份且双向树一致的doc-content统计直接file-tag：超过1个生成1条位置finding，相同属性仍计多个；父块标签不并计，兄弟文档/相同href不合并。零标签不触多标签违规（1918另管），无doc-content为NA，坏尾/矛盾事实NE。文件引擎v64；输入证据不足NE不等同开发Partial。
 
 red45项18过27败，失败均业务/回调/报告断言，XML前提通过；补错父关系、历史hash/profile、入口取消和端到端低工作预算后candidate九类423/423。只读审查发现通用Qualified未约束当前owner地址四字段与内部backbone profile，review-red五项0过5败后新增1935私有CurrentOwnerQualified供主选择/raw补查共用，以实际当前backbone定位并核对地址、profile、原始ID/operation/href；未改共享binding或既有规则。当前STF独立入选不受owner资格污染，增量代码审查PASS。

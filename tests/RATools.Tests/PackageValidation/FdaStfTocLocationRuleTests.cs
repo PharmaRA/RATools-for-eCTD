@@ -194,11 +194,12 @@ public sealed class FdaStfTocLocationRuleTests
     }
 
     [Theory]
-    [InlineData("m2", CheckStatus.Fail)]
-    [InlineData("m4", CheckStatus.NotEvaluated)]
-    public async Task DeliveryAndPartialReportExposeModuleBoundary(string module, CheckStatus expected)
+    [InlineData("m2", "valid", CheckStatus.Fail)]
+    [InlineData("m4", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m2", "unreferenced", CheckStatus.NotApplicable)]
+    public async Task DeliveryAndPartialReportExposeModuleBoundary(string module, string scenario, CheckStatus expected)
     {
-        var fixture = await Fixture(module);
+        var fixture = await Fixture(module, scenario);
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         foreach (var capture in fixture.Packages.Sequences.Values.Cast<Capture>()) capture.Armed = false;
         var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
