@@ -1744,10 +1744,16 @@
       "correctiveAction": "In a new submission sequence, resubmit the STF file which includes the corrected study title (it is not necessary to resubmit files or regenerate leaves). Ensure that your Study ID is identical to what you previously submitted.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": [
+          "FDA47-1985"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaStfStudyTitlePresenceRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaStfStudyTitlePresenceRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Detects absent research title elements from complete unique, bidirectionally consistent and root-connected STF structure, including qualified current references to historical content. Document titles do not substitute; missing required title can be proved despite its resulting DTD failure. Empty/whitespace content and ambiguous duplicate identities remain unqualified. Final selected Windows regression 1032/1032 and bounded code/evidence review passed."
       }
     },
     {

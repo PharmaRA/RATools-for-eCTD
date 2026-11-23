@@ -3740,6 +3740,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1985",
+      "authorityRuleId": "1985",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 42, error 1985; STF specification v2.6.1 study-identifier title",
+      "effectiveFrom": "2013-04-30",
+      "title": "STF study title must be present",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete identified target STF files and qualified current-owner references to historical STF content.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects absent research title elements from complete unique, bidirectionally consistent and root-connected structure, without borrowing doc-content titles. A missing required element can be established despite the resulting DTD error; generic DTD failure alone is not evidence of omission. Empty/whitespace title content and ambiguous duplicate identities remain unqualified; partial reads or conflicting identities remain unevaluated.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfStudyTitlePresenceRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfStudyTitlePresenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfStudyTitlePresenceRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

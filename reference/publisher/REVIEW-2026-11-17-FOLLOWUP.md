@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1985 STF研究标题遗漏（Partial，限定代码及终态审查PASS）。** 1981依赖记录已提交`7aa5c45`，未计实现。固定FDA PDF42/STF规范及DTD要求研究title；本项在完整、唯一、双向且全图连根的冻结结构中检测缺study-identifier/title，doc-content/title不补足研究标题。缺标题本身可导致DTD Fail，故确定遗漏不要求DTD Pass，也不以泛DTD错误证明缺标题。存在唯一非空标题且DTD合格可给组件Pass；empty/space和重复身份保留NE/Partial，不宣称空白内容已有规范资格。当前未引用STF及精确合格当前owner所指历史内容分别覆盖，地址/profile/派生delete矛盾保持NE。文件引擎v67。
+
+red39项21过18败，失败均业务/回调/报告断言，XML前提通过。测试审查后补具体标题结构/文本、坏尾保留节点、missing hash/context、历史地址四字段、两文件finding定位、零finding额度/入口取消及Partial报告。candidate首次仅Tests编译CA1861失败（Api/Migrator退出0），未运行业务测试；固定数组断言等价改为Assert.Collection后candidate2十二类590/590，代码及断言增量审查PASS。
+
+最终`fda1985-final-20261123`二十二类 **1032/1032、0失败/跳过**，1985为47。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部自然退出。7/7交付输入匹配（4生产、2测试、catalog，库存及.sha256另核），manifest SHA`7beac9085d9afcb22b26a03984e40e06992c56ef0cf51a8700dad6a7e5429b3c`，TRX SHA`c01bd87f4a4775dec39f645792d6247aae43a0d19042f43e084afa4796375d1f`；目录130条canonical SHA`121f2fa1b309dd4dd81f3e580201e81246ec8b093a0fadf707a9b54346ff8981`独立通过。限定代码/终态/七输入审查PASS，证据副本`backups/fda1985-20261123/evidence/`摘要一致，四轮bin/obj（含构建失败）已回收可恢复。库存64 Implemented、22 Partial、61 NotAssessed，待完整覆盖仍83、原107完整完成仍24。下一1990跨章节引用同一STF，再2001；不同标准SectionPath的确定违规与node-extension/重复实例的section解释须分开，未声称已核对Q&A60正文。非全项目或监管资格。
+
 **FDA1981 缺失STF身份依赖（未实现，保持NotAssessed）。** 1969已提交`52e7f6e`。固定FDA PDF41要求同时证明leaf引用的是STF及目标无法定位。限定只读核对发现：现有STF身份来自实际可读DOCTYPE/根；缺失目标只产生STF_CANDIDATE_MISSING/NE，不生成可绑定文档。叶名stf-*.xml、version、相同旧历史名称/StudyID均无本次固定来源支持的独立角色证明，历史capture未提供也不证明历史文件实际缺失；残留解析与manifest缺失属矛盾事实。不能把通用FILE-HREF缺失直接重标1981 Fail。
 
 最小依赖为独立于目标存在性的可信预期STF角色事实（来源/可信条件/适用范围明确，并绑定application、sequence、当前owner、精确逻辑路径及本次输入），或固定规范明确规定可声明STF角色的leaf标记。当前未补造发布清单/人工角色或扩大授权，仅记录依赖并继续下一独立条目。无业务红绿测试、无规则目录项、无完成统计增加；库存仍64 Implemented、21 Partial、62 NotAssessed，剩83、原107完整24。下一1985研究标题遗漏，再1990；1981保留在待完整覆盖队列。
