@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2043 公司ID变化依赖（未实现，保持NotAssessed）。** 2026已提交`91e92f2`。固定FDA PDF52为Low，比较admin/applicant-info/id与同一申请此前提交值，不是submission-id、leaf ID或company-name。原文明确无需纠正，所有权变化时ID可以改变；不得将差异直接转成必须恢复旧ID或阻止提交。限定已读模型只绑定显式历史capture与本地验证/定稿，没有实际提交或所有权变化见证；ImportedExternal也不自动证明提交发生，未声称全仓不存在相关能力。
+
+可做的所选文件差异组件尚未交付，不能据此记Partial。监管层准确依赖为：双方同一实际申请内唯一公司ID身份、绑定申请/序列/内容的可信先前实际提交见证，以及所有权例外和信息性结果语义。单条可信见证足以证明与该次先前提交不同，不要求全历史、不另设FDA accepted；若只记录客观差异也不必先证明没有例外。缺所有权资料不能反推无所有权变化，company-name变化亦不能代替所有权事实。未新增业务规则/测试，inventory保持NotAssessed、空ruleIDs/evidence；库存64/28/55，待完整83、原107完整24。2043留队，继续3001的doc-content/title直接元素禁用，再3015。
+
 **FDA2026 合法后续提交的父活动自引用（Partial，限定代码及终态审查PASS）。** 2025已提交`92e0127`。固定FDA PDF47与M1 Table4支持正向识别合法amendment/resubmission，不将2025起点白名单取反。本项绑定当前capture/context、唯一完整区域XML、双向连根结构及单明确application，三代码active且允许组合合格后比较四位ASCII标识。自引用Fail、较早ID局部Pass但不证明父存在/身份/版本、未来ID或其他subtype NE；无需历史输入。2027-01-16前NA、缺日期NE，Medium映射Warning。分组及完整父引用资格仍Partial；文件引擎v73。
 
 red三十一项18过13败，失败均状态/接入/取消断言，XML前提通过；按审查将空ID与缺元素拆开，锁定非法Annual Report/Resubmission的两代码active但组合不合法，补结构/摘要冲突、Partial报告及预取消。candidate十一类473/473，限定代码审查PASS；不把合成结构冲突称真实XML复现，也不把局部Pass写成父活动存在证明。
