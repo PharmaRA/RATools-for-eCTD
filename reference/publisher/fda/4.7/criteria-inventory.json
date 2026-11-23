@@ -2004,10 +2004,15 @@
       "correctiveAction": "Resubmit the submission where the eCTD sequence number matches the submission-id for the new regulatory activity.",
       "guidanceSource": "The eCTD Backbone Files Specification for Module 1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-2025"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaActivityStartSequenceRule.cs",
+          "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs",
+          "tests/RATools.Tests/PackageValidation/FdaActivityStartSequenceRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Checks exact four-digit sequence/submission-id equality for seven source-derived start combinations after current capture/context, complete connected single-application structure, active codes and captured allowed-combination qualification. No history is required. Presubmission-capable starts and grouped applications remain unqualified; equality alone does not prove a start. Valid amendment/resubmission is outside this start check. Effective from 2027-01-16. Final selected Windows regression 432/432, including 52 FDA2025 cases, and bounded code/evidence review passed."
       }
     },
     {

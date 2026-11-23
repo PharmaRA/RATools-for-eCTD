@@ -88,6 +88,9 @@ internal sealed class FdaM1AttributePolicy
     }
     internal IReadOnlyList<string> InputValues(string attribute) => _dictionaries.Single(item => item.Attribute == attribute).Active
         .Where(value => attribute != "application-type" || _primary.Contains(value)).Order(StringComparer.Ordinal).ToArray();
+    internal bool AllowsCombination(string applicationType, string submissionType, string subtype) =>
+        _primary.Contains(applicationType) && _combinations.TryGetValue(submissionType, out var combination) &&
+        combination.Applications.Contains(applicationType, StringComparer.Ordinal) && combination.Subtypes.Contains(subtype, StringComparer.Ordinal);
     private static bool Is(ParsedXmlElement element, string name) => name == "fda-regional:fda-regional"
         ? element.LocalName == "fda-regional" && element.NamespaceUri == "http://www.ich.org/fda"
         : element.LocalName == name && element.NamespaceUri.Length == 0;

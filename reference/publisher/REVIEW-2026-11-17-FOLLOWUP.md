@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2025 确定活动起点的序列等值（Partial，限定代码及终态审查PASS）。** 2024已提交`1265abb`。固定FDA PDF47于2027-01-16生效；结合M1 v2.6 Table2/4与活动章节，明确记录七组起点为项目推导而非字典自带标志：Annual/IND Safety/Periodic Safety的Report、PMR/PMC与Promotional的Original、Product Correspondence的Correspondence、REMS的Application。先核对当前capture/context、单明确application、完整双向连根结构、三代码active及捕获允许组合，再比较原始四位ASCII标识。仅新增AllowsCombination查询，原属性检查不改。无历史也能比较；合法amendment/resubmission在本起点规则NA，fdast1–4的presubmission/application首次身份未知NE，不以等值反证起点。分组及其余起点资格仍Partial；文件引擎v72。
+
+red四十二项18过24败，失败均状态/接入/取消断言，XML前提通过。复现官方0002/0001 presubmission和0003/0001 application反例，另补短ID3对0003、冻结结构/绑定冲突、Partial的Pass/Fail/NA报告及预取消；candidate十类432/432，限定代码审查PASS。合成结构冲突仅验证消费者，不冒称真实XML解析复现。
+
+最终`fda2025-final-20261123`十类 **432/432、0失败/跳过**，2025为52。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，子进程仍有退出1，不称全部自然退出或全0。8/8输入匹配（5生产、2测试、catalog；库存及.sha256另核），manifest SHA`bac336332861e3dc8e55d156226dd07f176d60eb22d51df59ed9a661c406bb1a`，TRX SHA`1804531993fdb6f6f1742cc58bfcda3a79af2099aa164650f5e2a25b1b7c1e44`；目录135条canonical SHA`15fd1e67c7d0f16ced1d083f6559783e5bddb11b09f9b089c0427c0a4b444e76`独立通过。限定终态/八输入审查PASS，三轮证据副本`backups/fda2025-20261123/evidence/`摘要一致，bin/obj已回收可恢复。库存64 Implemented、27 Partial、56 NotAssessed，待完整覆盖仍83、原107完整24。下一2026合法后续subtype自引用检查，起点未知不能反转为非起点，较早ID不证明父存在；再2043。非全项目或监管资格。
+
 **FDA2024 当前序列与指定父活动类型比较（Partial，限定代码及终态审查PASS）。** 2021依赖记录已提交`ba06b57`。固定FDA PDF47明确2027-01-16生效，之前日期NA、缺日期NE；M1规范物理页14–15明确当前submission-id指定首次父序列。本项限定单一明确application，完整双向且全图连根的区域结构；父P自指、当前C指P且P<C、XML申请号/类型一致，双方active submission-type值获固定字典资格后比较。类型不参与父匹配键，不因不同类型错分活动；只需指定父P，不要求全部历史。新增ExplicitHistoryForSequence只取显式映射，原ForSequence未改，父snapshot ID与映射缺失分别NE。分组、自建活动、全活动历史与监管端父版本仍未资格，保持Partial；文件引擎v71。
 
 red二十八项18过10败，失败均状态/接入/取消断言，XML前提通过；补无父context映射对照、NDA夹具及具体父子字段、坏尾前提、结构冲突、Partial报告和预取消后candidate九类380/380，限定代码审查PASS。当前日期NA不算类型比较验证；未来生效日有明确相等/不等对照，组件Pass在Partial报告保留NE。

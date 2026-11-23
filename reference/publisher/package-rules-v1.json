@@ -3850,6 +3850,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-2025",
+      "authorityRuleId": "2025",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 47 error 2025; project-derived start classification from captured M1 v2.6 Tables 2/4 and section III.B.3",
+      "effectiveFrom": "2027-01-16",
+      "title": "A new regulatory activity must use its sequence number as submission-id",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Single unambiguous current XML application with a captured-policy-qualified start combination.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Compares exact four-digit sequence/submission-id for Report with annual/IND safety/periodic safety report, Original with PMR/PMC or promotional material, Correspondence with product correspondence, and Application with REMS supplement. This is a project-derived applicability mapping from captured sources, not a dictionary start flag. Valid follow-ups are not applicable; presubmission-capable activity starts and grouped applications remain unqualified. Equality does not itself prove an activity start; no history is required for the qualified current-input subset.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaActivityStartSequenceRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaActivityStartSequenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaActivityStartSequenceRule.cs", "src/RATools.Application/PackageValidation/FdaM1AttributePolicy.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
