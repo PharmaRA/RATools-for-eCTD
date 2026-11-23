@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2001 历史DTD版本比较依赖（未实现，保持NotAssessed）。** 1990已提交`aef84ef`。固定FDA PDF43要求同一application先前提交引用更高、较新DTD后不得回退，不是DTD文件遗漏规则，也不另设FDA accepted/received前提。限定依赖核对尚未获得可直接实现确定回退Fail的已资格版本组合：需当前与历史实际DTD声明/捕获内容身份、固定来源支持的版本顺序，以及绑定同application、发生事实、内容摘要和版本的可信先前提交见证。单条可信较高版本先前提交即可证明Fail，不要求先有全历史；Pass另需历史覆盖证明或可信的此前最高版本事实。
+
+空baseline不等于首次提交；所选baseline仅允许较小sequence，不能表达同sequence重报先后。VerifiedForScope/Finalized仅为本地验证/定稿，不证明实际提交或覆盖完整性；ForSequence缺映射回退当前context也不证明历史真实版本。现有1445仅已完成3.3范围，不据此断言全仓历史profile只有3.3。不补造版本排序或历史发生事实；无业务实现/红绿回归、无新增规则目录项，库存仍64 Implemented、23 Partial、60 NotAssessed，待完整覆盖83、原107完整24。2001留队，继续2002的DTD及属性文件符合性，再2003。
+
 **FDA1990 同一STF跨章节引用（Partial，限定代码及终态审查PASS）。** 1985已提交`1b00b41`。固定FDA PDF42的问题正文限定同一STF在多个section被引用，不把标题中的“more than once”扩写为所有重复引用。按精确解析路径与所属capture身份归组，当前raw owner核对地址、ID、operation/href及实际schema祖先链，再比较标准SectionPath；等价href合并，同hash/StudyID不同路径不合并。不同标准章节产生每文件一条Fail，同一实际实例可给局部Pass，同SectionPath不同heading/extension实例NE；当前引用历史STF按当前位置比较，旧历史owner不计。已有Fail不被未知引用抹掉。Q&A60正文未独立资格（仅两份指定来源清单未命中，不称全仓不存在），保留Partial；文件引擎v68。
 
 red39项15过24败，失败均业务/回调/报告断言，XML前提通过；补各场景STF数量/路径、历史capture及Partial报告、零finding额度/预取消后candidate十三类631/631，限定代码审查PASS。最终`fda1990-final-20261123`二十三类 **1073/1073、0失败/跳过**，1990为41。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，子进程仍有退出1，不称全部自然退出或全0。
