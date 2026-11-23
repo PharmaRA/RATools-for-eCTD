@@ -139,11 +139,12 @@ public sealed class FdaStfFileNameRuleTests
     }
 
     [Theory]
-    [InlineData("stf-A.xml", CheckStatus.Pass, CheckStatus.NotEvaluated)]
-    [InlineData("wrong.xml", CheckStatus.Fail, CheckStatus.Fail)]
-    public async Task DeliveryAndReportDoNotOverclaimUnqualifiedCharacterPolicy(string name, CheckStatus raw, CheckStatus coverage)
+    [InlineData("stf-A.xml", "valid", CheckStatus.Pass, CheckStatus.NotEvaluated)]
+    [InlineData("wrong.xml", "valid", CheckStatus.Fail, CheckStatus.Fail)]
+    [InlineData("ordinary.pdf", "ordinary", CheckStatus.NotApplicable, CheckStatus.NotApplicable)]
+    public async Task DeliveryAndReportDoNotOverclaimUnqualifiedCharacterPolicy(string name, string scenario, CheckStatus raw, CheckStatus coverage)
     {
-        var fixture = await Fixture(name, "A");
+        var fixture = await Fixture(name, "A", scenario);
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         foreach (var capture in fixture.Packages.Sequences.Values.Cast<Capture>()) capture.Armed = false;
         var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);

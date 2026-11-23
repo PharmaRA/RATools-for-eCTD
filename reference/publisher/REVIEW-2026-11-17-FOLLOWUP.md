@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1969 STF XML有效性（Partial，限定代码及终态审查PASS）。** 1953已提交`8f1d0c2`。固定FDA PDF41列出缺StudyID、无子节点或XML无法加载。仅在唯一捕获身份、实际STF根、双向且全部连根的冻结树成立后，使用精确路径/序列、STF-DTD、Fail状态的XML_NOT_WELL_FORMED/DTD_VALIDATION_ERROR，或完整结构中确定缺StudyID/空根产生Fail。无诊断的完整结构反例独立覆盖；不靠DtdStatus汇总或英文错误文本推断。quota/offline/I/O/身份未知保持NE，合成诊断只验证消费分类，不称真实限额/I/O复现。声明无根身份、发现阶段原因细分、空白ID含义及解析超时前观察保留仍未资格，保留Partial，未修改parser。文件引擎v66。
+
+red46项25过21败，失败均业务/回调/报告断言，XML前提通过；candidate十一类540项539过1败，ordinary报告暴露1867的Always/NA契约，直接核对1884同类契约并限定补报告例。审查发现脱离唯一根的ID自环可误证缺ID；review-red七项4过3败复现自环及两报告场景后，Tree增加有界DFS全图连根验证，1867/1884仅目录适用性改LifecycleOperationsPresent，旧规则生产未改、未重开初审。增量静态审查PASS。
+
+最终`fda1969-final-20261123`二十一类 **985/985、0失败/跳过**，1969为51，1867/1884分别47/48。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，仍有子进程退出1，不称全部自然退出或全0。9/9交付输入绑定（4生产、4测试含两直接依赖报告回归、catalog；库存及.sha256另核），manifest SHA`618cff97a75321a1c98fecb3108f91082b231ba5cf407c58d3bb19c2c380a3dc`，TRX SHA`db77a015143822924ace6a0e7f9da4a8fd18450506dbc78370c8b64813c1ac5c`；目录129条canonical SHA`725fb8311acfa2d50683ec60f0daf09bd3ad653aa2e22a180d7190c49083d8ec`独立通过。限定代码/终态/九输入审查PASS，证据副本`backups/fda1969-20261123/evidence/`摘要一致，四轮bin/obj已回收可恢复。库存64 Implemented、21 Partial、62 NotAssessed，待完整覆盖仍83、原107完整完成仍24。下一1981缺失STF身份依赖核对，再1985研究标题遗漏；非全项目或监管资格。
+
 **FDA1953 STF研究标题与叶标题匹配（Implemented，限定代码及终态审查PASS）。** 1935已提交`e5d90d2`。固定FDA PDF40/STF规范5及DTD支持研究study-identifier/title与实际引用STF的叶title比较，不使用doc-content/title或study-id搜索。逐当前原始非delete owner核对地址四字段、profile、ID/href/operation与派生事实、双向树及到唯一ICH根的连通性，STF内容完整且唯一后比较解码标题原文。Ordinal、不trim/casefold为明确实现口径，不称FDA明文算法；空/同空白相等只表示未发现不一致，不证明标题质量。历史内容只与当前owner比较，多owner分别定位，坏尾/冲突NE。Low映射Info，2013-04-30生效，文件引擎v65。
 
 red46项19过27败，失败均业务/回调/报告断言，XML前提通过。补单一父子矛盾、相等标题下冻结冲突、地址四字段、NA报告等后candidate十类485项484过1败：1953未引用报告暴露1901目录Always/NA冲突。仅对直接依赖1901增加无owner报告例并将其目录适用性改LifecycleOperationsPresent，生产逻辑未改、未重开初审。只读审查另发现raw/derived owner同时脱根可误Pass/Fail，review-red五项2过3败复现两脱根和1901报告错误；修复唯一合法ICH根及有界父链连通性，补相等/不等标题自环NE，增量审查PASS。

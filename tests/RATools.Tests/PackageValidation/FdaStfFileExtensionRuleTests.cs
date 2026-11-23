@@ -189,11 +189,12 @@ public sealed class FdaStfFileExtensionRuleTests
     }
 
     [Theory]
-    [InlineData("other.xml", CheckStatus.Pass)]
-    [InlineData("other.txt", CheckStatus.Fail)]
-    public async Task DeliveryAndReportExposeExtensionCheck(string name, CheckStatus expected)
+    [InlineData("other.xml", "valid", CheckStatus.Pass)]
+    [InlineData("other.txt", "valid", CheckStatus.Fail)]
+    [InlineData("ordinary.pdf", "ordinary", CheckStatus.NotApplicable)]
+    public async Task DeliveryAndReportExposeExtensionCheck(string name, string scenario, CheckStatus expected)
     {
-        var fixture = await Fixture(name);
+        var fixture = await Fixture(name, scenario);
         foreach (var capture in fixture.Packages.Sequences.Values.Cast<Capture>()) capture.Armed = false;
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
         Assert.Equal(expected, Assert.Single(delivery.Files.Checks, check => check.RuleId == RuleId).Status);
