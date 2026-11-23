@@ -1600,10 +1600,16 @@
       "correctiveAction": "In a future submission, place the STF under the correct module and heading element. Modify your SOPs to ensure that STFs are included only in Modules 4 and 5.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": [
+          "FDA47-1901"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaStfTocLocationRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaStfTocLocationRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Detects confirmed current STF owners outside modules 4/5 using original/derived leaf agreement, exact captured content identity and schema-bound ancestry. Historical content is checked at its current owner, not its old placement. Internal backbone profile conflicts and missing evidence remain unevaluated; unrelated orphan discovery does not pollute excluded owner scope. Specific allowed headings within modules 4/5 and regional STF identification remain unqualified. Final selected Windows regression 765/765 and bounded code/evidence review passed."
       }
     },
     {

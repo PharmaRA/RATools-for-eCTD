@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1901 STF目录位置（Partial，限定代码及终态审查PASS）。** 1884已提交`811b170`。2026-11-23续做确认PowerShell7.6.10及Python3.15.2 x64可用（旧Python313-32入口已失效），v3保护器ntdll/source/8输入仍匹配，未改全局环境或重新使用失效路径。固定FDA PDF39/STF规范4支持模块4/5之外的确定违规；模块内具体允许标题未建立完整资格，不借1789 Required当1901 Allowed。本项从当前原始leaf出发，先核对raw/derived operation并排除一致delete，非删除owner再核对ID、href及地址；精确绑定当前/历史STF文件hash、profile和唯一根，以实际祖先链及当前schema章节定位，物理目录/旧历史位置不代替当前TOC。M4/5标题未资格、M1被区域解析占用及区域内部身份缺口NE；孤立STF不自动违规。文件引擎v62。
+
+red42项22过20败（19业务/接入失败，1项index-tail夹具误要求派生叶，后按实际空Leaves修正）；候选七类319/319。只读审查提出内部backbone profile失配仍报Fail、未引用STF全局inventory污染NA两项，review-red八项6过2败后分别补owner/排除目标profile检查、移除无条件全局inventory门禁。green323项322过1败是超时夹具第二次Verify在1901之前触发，撤回该时点假设；测试改为观察实际进入1901后再于后续Verify触发超时，生产未改，增量审查通过。最终`fda1901-final-20261123`十七类 **765/765、0失败/跳过**，1901为46，低工作预算NE及1901 Fail经文件层超时保留均通过。
+
+三个Build目标及顶层build/test退出0，processTreeStopped=true、forcedTreeStop=true，仍有子进程退出1，不声称全部自然退出或全0。7/7交付输入匹配（4生产、2测试、catalog；库存及.sha256不计7），manifest SHA`c4d45926ae02697bfe51a4c2733d2972e70eb739b1dacd6159a41430b4d9c35f`，TRX SHA`1551b32139b0e5f0df2ee627cf07dd8ab6b3b09a7bc24940bf7292dd5733a905`；目录125条canonical SHA`c6fcbb211c07d83bfb73bd843c728d0658c860512284bcc8168daaca0cd02cc5`独立通过。限定代码/终态/七输入审查PASS；证据副本`backups/fda1901-20261123/evidence/`，五轮bin/obj均送回收站可恢复，日志/TRX/资格工具保留。库存62 Implemented、19 Partial、66 NotAssessed，待完整覆盖仍85、原107完整完成仍22；下一1918，再1935。1918父content-block标签继承尚无明确来源，须与直接标签缺失分别判断。非全套或监管资格。
+
 **FDA1884 STF文件名（Partial，限定代码及终态审查PASS）。** 1867已提交`a3cf031`。固定FDA PDF第38页/STF规范第4–5页给出完整`stf-<study-id>.xml`，本项按完整文件名Ordinal比较，扩展名可与1867重叠，不缩窄为仅主体合规。实际根和捕获身份确认后，错误`stf-`前缀可独立Fail；前缀正确时必须完整读取、DTD通过、StudyID唯一且正反向父子关系一致，再使用未trim/未折叠大小写的解码原文。缺ID/坏尾不能拿文本前缀比较。当前未引用文件及合格当前owner指向历史内容均覆盖，重复/矛盾身份NE，已知Fail不被其他未知覆盖。alphanumeric字符准入解释未资格化，不自造ASCII正则；因此Partial，组件匹配Pass在报告覆盖中仍NE。文件引擎v61。
 
 `fda1884-red-20261121`47项16过31败、build0/test1；当时缺类型占位NE的通过不记为保护实现证据。测试静态复核后补目标/历史文档数量路径、原始href、history-only无owner、坏尾/缺根/缺ID与解码文本前提，直接调用实际类型。candidate六类277/277，限定代码审查PASS；最终`fda1884-final-20261121`十六类 **719/719、0失败/跳过**，1884为47。三个构建目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true；子进程仍有退出1，不声称全部自然退出或全部为0。
