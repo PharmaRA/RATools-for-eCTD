@@ -150,11 +150,8 @@ public sealed class PackageXmlInspectorTests
     [InlineData("deep#name.xml", "deep%23name.xml")]
     public async Task CustomEncodedRegionalAddressUsesExactRelativeDtdResolution(string fileName, string hrefName)
     {
-        using var fixture = new XmlFixture();
-        var original = Path.Combine(fixture.Source, "m1/us/us-regional.xml");
-        var destination = Path.Combine(fixture.Source, "m1/us/custom/" + fileName);
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        File.Move(original, destination);
+        using var fixture = new XmlFixture(regionalDestination: "m1/us/custom/" + fileName);
+        Assert.False(File.Exists(Path.Combine(fixture.Source, "m1/us/us-regional.xml")));
         fixture.Replace("m1/us/custom/" + fileName, "../../util/dtd/us-regional-v3-3.dtd", "../../../util/dtd/us-regional-v3-3.dtd");
         fixture.Replace("index.xml", "m1/us/us-regional.xml", "m1/us/custom/" + hrefName);
         var inspection = await fixture.InspectAsync();
@@ -344,8 +341,8 @@ public sealed class PackageXmlInspectorTests
     [Fact]
     public async Task MissingReferencedRegionalXmlFailsWhileUnselectedRegionalScopeRemainsUnevaluated()
     {
-        using var fixture = new XmlFixture();
-        fixture.RetainMissingFile(Path.Combine(fixture.Source, "m1/us/us-regional.xml"));
+        using var fixture = new XmlFixture(regionalDestination: null);
+        Assert.False(File.Exists(Path.Combine(fixture.Source, "m1/us/us-regional.xml")));
         var selected = await fixture.InspectAsync();
         Assert.Contains(Findings(selected), finding => finding.Code == "BACKBONE_READ_FAILED" && finding.Location.LogicalPath == "0000/m1/us/us-regional.xml");
         var ichOnly = await fixture.InspectAsync(profile: PackageValidationCatalog.IchProfile);
@@ -419,15 +416,20 @@ public sealed class PackageXmlInspectorTests
         private readonly string _root = RetainedPackageTestFiles.Create();
         private readonly PackageInputReader _reader;
         public string Source { get; }
-        public void RetainMissingFile(string path) => RetainedPackageTestFiles.RetainFile(_root, path);
-        public XmlFixture(string sequence = "0000")
+        public XmlFixture(string sequence = "0000", string? regionalDestination = "m1/us/us-regional.xml")
         {
             Source = Path.Combine(_root, "source", sequence);
             Directory.CreateDirectory(Source);
             var original = Path.Combine(PackageRuleCatalogTests.Root, "tests/RATools.Tests/Fixtures/Publisher/sequences", sequence);
             foreach (var file in Directory.EnumerateFiles(original, "*", SearchOption.AllDirectories))
             {
-                var destination = Path.Combine(Source, Path.GetRelativePath(original, file));
+                var relative = Path.GetRelativePath(original, file);
+                if (relative.Replace('\\', '/') == "m1/us/us-regional.xml")
+                {
+                    if (regionalDestination is null) continue;
+                    relative = regionalDestination;
+                }
+                var destination = Path.Combine(Source, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 File.Copy(file, destination);
             }

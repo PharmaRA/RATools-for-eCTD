@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2002 XML/DTD符合性（Partial，限定代码及终态审查PASS）。** 2001依赖记录已提交`cebb46f`。固定FDA PDF43涵盖index、区域XML、STF的DTD及属性文件符合性；本项仅消费绑定当前capture/profile/catalog/assets/limits、唯一文件与真实根身份的精确DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED Fail诊断。STF另核内容hash，坏尾确定错误可Fail；I/O、offline、quota及profile选择错误不重标违规。默认区域路径及当前index实际区域引用须有唯一观察，缺失/歧义NE，其他已知错误保留Fail。属性文件语义、历史引用、仅声明身份、发现分类与STF中断前观察保留未资格，仍Partial；文件引擎v69。
+
+red十一项0过11败均缺2002结果；red2三十八项20过18败均接入/状态/取消断言，补强XML前提通过，红测终态只读核对PASS。candidate六类204项201过3败：新规则45/45通过，三个旧XML夹具的File.Move/RetainFile被禁删ACL拒绝。限定改为创建时直接布局/不复制缺失文件，不改保护器或parser。主审查发现遗漏区域观察假Pass，review-red五项3过2败（夹具三例通过，两例期望NE实际Pass），补区域路径/观察对应及自定义位置、独立STF Fail保留对照，增量审查PASS。
+
+最终`fda2002-final-20261123`六类 **208/208、0失败/跳过**，2002为49。三个Build目标及顶层build/test退出0；树stopped=true、forcedTreeStop=true，子进程仍有退出1，不称全部自然退出或全0。8/8输入匹配（4生产、3测试、catalog；库存及.sha256另核），manifest SHA`cfbc449e0638da6b14ca0f078050c337d3adadf7bc58f225e9ee1e8a1feeab41`，TRX SHA`e4d16e404de20dedbef6214757d4caa6c9abcb57f87464570af282d97aedcb31`；目录132条canonical SHA`ba6a2acab37c0aa3406dc2d2e055f245b751baab17e152fb16233bbdf03ccb1e`独立通过。限定终态/八输入审查PASS，五轮证据副本`backups/fda2002-20261123/evidence/`摘要一致，bin/obj已回收可恢复。库存64 Implemented、24 Partial、59 NotAssessed，待完整覆盖仍83、原107完整完成仍24。下一2003区域DTD/样式位置，须区分官方网站地址与本地resolver策略及适用日期，再2021。非全项目或监管资格。
+
 **FDA2001 历史DTD版本比较依赖（未实现，保持NotAssessed）。** 1990已提交`aef84ef`。固定FDA PDF43要求同一application先前提交引用更高、较新DTD后不得回退，不是DTD文件遗漏规则，也不另设FDA accepted/received前提。限定依赖核对尚未获得可直接实现确定回退Fail的已资格版本组合：需当前与历史实际DTD声明/捕获内容身份、固定来源支持的版本顺序，以及绑定同application、发生事实、内容摘要和版本的可信先前提交见证。单条可信较高版本先前提交即可证明Fail，不要求先有全历史；Pass另需历史覆盖证明或可信的此前最高版本事实。
 
 空baseline不等于首次提交；所选baseline仅允许较小sequence，不能表达同sequence重报先后。VerifiedForScope/Finalized仅为本地验证/定稿，不证明实际提交或覆盖完整性；ForSequence缺映射回退当前context也不证明历史真实版本。现有1445仅已完成3.3范围，不据此断言全仓历史profile只有3.3。不补造版本排序或历史发生事实；无业务实现/红绿回归、无新增规则目录项，库存仍64 Implemented、23 Partial、60 NotAssessed，待完整覆盖83、原107完整24。2001留队，继续2002的DTD及属性文件符合性，再2003。

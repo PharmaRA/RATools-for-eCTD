@@ -1813,10 +1813,15 @@
       "correctiveAction": "Resubmit your submission ensuring that you use xml files valid with the schema (DTD) and attribute files as applicable. You may resubmit using the original sequence number of the submission.",
       "guidanceSource": "ICH eCTD Specification V3.2.2; The eCTD Backbone Files Specification for Module 1; General good practice to ensure reviewability",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-2002"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaSchemaValidityRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaSchemaValidityRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs",
+          "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
+        ],
+        "note": "Maps exact current-file Fail DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED diagnostics after capture/profile/asset/limit/root binding. Missing regional observations remain unknown and do not erase independent failures. Quota/offline/I/O/profile selection failures do not establish schema invalidity. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted STF retention remain unqualified. Final selected Windows regression 208/208, including 49 FDA2002 cases, and bounded code/evidence review passed."
       }
     },
     {

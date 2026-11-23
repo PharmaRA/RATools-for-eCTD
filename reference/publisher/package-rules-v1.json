@@ -3784,6 +3784,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-2002",
+      "authorityRuleId": "2002",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 43, error 2002",
+      "effectiveFrom": "2015-06-15",
+      "title": "XML must conform to applicable DTD and attribute files",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Precisely bound current index, US regional and identified STF XML diagnostic observations.",
+      "applicability": "Always",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Maps exact-file Fail DTD_VALIDATION_ERROR and XML_NOT_WELL_FORMED diagnostics only after capture/profile/asset/limit and actual root identity checks. Quota, offline, I/O and profile selection failures are not schema violations. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted STF observation retention remain unqualified; component Pass does not establish complete FDA2002 conformance.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaSchemaValidityRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaSchemaValidityRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaSchemaValidityRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

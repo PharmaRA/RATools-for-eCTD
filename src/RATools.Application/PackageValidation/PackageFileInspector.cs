@@ -211,6 +211,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var stfSections = FdaStfMultiSectionReferenceRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (stfSections is not null) RetainChecksum(stfSections);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var schemaValidity = FdaSchemaValidityRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (schemaValidity is not null) RetainChecksum(schemaValidity);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -626,6 +629,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfMultiSectionReferenceRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfMultiSectionReferenceRule.RuleId, CheckStatus.NotEvaluated,
                     "The STF cross-section reference inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaSchemaValidityRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaSchemaValidityRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaSchemaValidityRule.RuleId, CheckStatus.NotEvaluated,
+                    "The schema validity inspection was not reached before interruption.")).ToArray();
             if (!official.Any(check => check.RuleId == FdaStfStudyIdContinuityRule.RuleId) &&
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaStfStudyIdContinuityRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaStfStudyIdContinuityRule.RuleId, CheckStatus.NotEvaluated,
