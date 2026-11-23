@@ -1625,10 +1625,16 @@
       "correctiveAction": "In a future submission you should include an updated STF file that reflects the proper doc-content file tag using the \"Replace\" operator.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": [
+          "FDA47-1918"
+        ],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaStfDocContentFileTagRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaStfDocContentFileTagRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Checks each complete, bidirectionally consistent doc-content for a direct file-tag. Definite omissions without ancestor block tags fail; possible ancestor-tag inheritance remains unevaluated pending normative qualification. Sibling tags cannot substitute, incomplete XML cannot establish absence, and tag value/multiplicity rules remain separate. Final selected Windows regression 815/815 and bounded code/evidence review passed."
       }
     },
     {

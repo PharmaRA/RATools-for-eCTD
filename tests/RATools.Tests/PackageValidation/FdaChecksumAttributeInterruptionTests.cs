@@ -135,6 +135,9 @@ public sealed class FdaChecksumAttributeInterruptionTests
         var pendingStfLocation = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1901");
         Assert.Equal(CheckStatus.NotEvaluated, pendingStfLocation.Status);
         Assert.Empty(pendingStfLocation.Findings);
+        var pendingStfTags = Assert.Single(files.Checks, item => item.RuleId == "FDA47-1918");
+        Assert.Equal(CheckStatus.NotEvaluated, pendingStfTags.Status);
+        Assert.Empty(pendingStfTags.Findings);
         Assert.Equal(afterFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
         if (afterFailure) AssertFirstFailure(Assert.Single(check.Findings));
         else Assert.Empty(check.Findings);

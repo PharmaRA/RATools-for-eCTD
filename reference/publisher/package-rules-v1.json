@@ -3652,6 +3652,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1918",
+      "authorityRuleId": "1918",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 39, error 1918; STF specification v2.6.1 p. 7",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF doc-content must include a file-tag",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete identified target STFs and qualified current-owner references to historical STF content, checked per doc-content occurrence.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects absent direct file-tag elements when complete, bidirectionally consistent doc-content structure has no ancestor block tag. Ancestor content-block tag inheritance remains unqualified and does not pass or create a speculative omission. Sibling tags never satisfy another document; invalid/truncated evidence remains unevaluated. Tag values and multiple-tag restrictions are separate.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDocContentFileTagRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDocContentFileTagRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfDocContentFileTagRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

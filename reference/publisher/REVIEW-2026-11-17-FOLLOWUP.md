@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1918 doc-content标签遗漏（Partial，限定代码及终态审查PASS）。** 1901已提交`85bde18`。固定FDA PDF39/STF规范7明确doc-content标签要求；DTD允许doc与content-block各自file-tag*，样式表分别显示，未找到父块标签可替代文档标签的明确规范，因此不猜测继承。完整读取、DTD合格、唯一捕获身份与双向父子关系一致后逐doc-content检查：有直接标签不报遗漏；无直接标签且任一祖先块有标签保留NE；无直接及祖先标签才Fail。兄弟标签不互补，同href按元素位置独立检查；坏尾/身份矛盾不能证明遗漏。标签值与多标签限制另条处理。文件引擎v63，目录Partial。
+
+red41项18过23败，失败均业务/回调/报告断言，XML前提通过；占位NE通过不作实现证据。只读测试审查后补直接及父块同时有标签、有效标签单一树矛盾、反向缺元素、direct hash/context、精确finding位置、坏尾节点、来源移除与入口取消。工作预算与finding预算分开：低work测试仅证明端到端受限，规则内部Tick为静态证据，不冒充独立循环资格。candidate八类371项363过8败，1918自身48/48，八败均空STF返回NA与目录Always冲突；仅将1918改为LifecycleOperationsPresent，补空STF报告与非.xml缺历史raw补查反例，报告引擎和既有规则未改。
+
+最终`fda1918-final-20261123`十八类 **815/815、0失败/跳过**，1918为50；三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不声称全部自然退出。7/7输入绑定（4生产、2测试、catalog，库存及.sha256另核），manifest SHA`daac4632b5437408bb88523b976b41902b4b1579d2e532d27a0df0834e02e970`，TRX SHA`f05dd76c87b87d70c7c39ac0f01f23767f61db3dcb13c74067da445339daef1d`；目录126条canonical SHA`2e9a3f2cd1c9605fae0c30e68b37ef2c8c325f830e5a97bc2a09485f8075177e`独立通过。代码、适用性增量、终态/七输入只读审查PASS；审查字段探测曾多列manifest键名，未读额外文件，实际比对限七项。证据副本`backups/fda1918-20261123/evidence/`摘要一致，三轮bin/obj已回收可恢复。库存62 Implemented、20 Partial、65 NotAssessed，待完整覆盖仍85、原107完整完成仍22。下一1935逐doc-content直接多标签，再1953；非全套或监管资格。
+
 **FDA1901 STF目录位置（Partial，限定代码及终态审查PASS）。** 1884已提交`811b170`。2026-11-23续做确认PowerShell7.6.10及Python3.15.2 x64可用（旧Python313-32入口已失效），v3保护器ntdll/source/8输入仍匹配，未改全局环境或重新使用失效路径。固定FDA PDF39/STF规范4支持模块4/5之外的确定违规；模块内具体允许标题未建立完整资格，不借1789 Required当1901 Allowed。本项从当前原始leaf出发，先核对raw/derived operation并排除一致delete，非删除owner再核对ID、href及地址；精确绑定当前/历史STF文件hash、profile和唯一根，以实际祖先链及当前schema章节定位，物理目录/旧历史位置不代替当前TOC。M4/5标题未资格、M1被区域解析占用及区域内部身份缺口NE；孤立STF不自动违规。文件引擎v62。
 
 red42项22过20败（19业务/接入失败，1项index-tail夹具误要求派生叶，后按实际空Leaves修正）；候选七类319/319。只读审查提出内部backbone profile失配仍报Fail、未引用STF全局inventory污染NA两项，review-red八项6过2败后分别补owner/排除目标profile检查、移除无条件全局inventory门禁。green323项322过1败是超时夹具第二次Verify在1901之前触发，撤回该时点假设；测试改为观察实际进入1901后再于后续Verify触发超时，生产未改，增量审查通过。最终`fda1901-final-20261123`十七类 **765/765、0失败/跳过**，1901为46，低工作预算NE及1901 Fail经文件层超时保留均通过。
