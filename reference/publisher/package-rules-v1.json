@@ -3762,6 +3762,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1990",
+      "authorityRuleId": "1990",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 42, error 1990; ICH Q&A60 referenced but not independently qualified",
+      "effectiveFrom": "2013-04-30",
+      "title": "One STF file must not be referenced across multiple sections",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Exact captured STF identities referenced by qualified current non-delete ICH owners in schema-bound standard sections.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects a single resolved STF path and capture identity referenced in different standard SectionPaths. Equivalent hrefs converge, but equal hashes or Study IDs at different paths do not merge files. Same-section different heading/extension instances and full Q&A60 section semantics remain unqualified. Unknown references do not erase established cross-section failures.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfMultiSectionReferenceRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfMultiSectionReferenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfMultiSectionReferenceRule.cs", "src/RATools.Application/PackageValidation/PackageXmlIdentityInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

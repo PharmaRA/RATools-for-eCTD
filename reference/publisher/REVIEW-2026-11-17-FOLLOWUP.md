@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1990 同一STF跨章节引用（Partial，限定代码及终态审查PASS）。** 1985已提交`1b00b41`。固定FDA PDF42的问题正文限定同一STF在多个section被引用，不把标题中的“more than once”扩写为所有重复引用。按精确解析路径与所属capture身份归组，当前raw owner核对地址、ID、operation/href及实际schema祖先链，再比较标准SectionPath；等价href合并，同hash/StudyID不同路径不合并。不同标准章节产生每文件一条Fail，同一实际实例可给局部Pass，同SectionPath不同heading/extension实例NE；当前引用历史STF按当前位置比较，旧历史owner不计。已有Fail不被未知引用抹掉。Q&A60正文未独立资格（仅两份指定来源清单未命中，不称全仓不存在），保留Partial；文件引擎v68。
+
+red39项15过24败，失败均业务/回调/报告断言，XML前提通过；补各场景STF数量/路径、历史capture及Partial报告、零finding额度/预取消后candidate十三类631/631，限定代码审查PASS。最终`fda1990-final-20261123`二十三类 **1073/1073、0失败/跳过**，1990为41。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，子进程仍有退出1，不称全部自然退出或全0。
+
+7/7输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`ff800b2ddd0d17d637bfacd28340b94102e13a6b6f634931e34eb3e074982dc5`，TRX SHA`e92c36f8f791e0c81ad7e717861493f77f7c96a9fb8a7ddd23cfaa6324bc38ce`；目录131条canonical SHA`314a44ef6475bb76767f4e163dc303b41c685b1ca4d049836a19eaba98a2bb11`独立通过。限定终态/七输入审查PASS，证据副本`backups/fda1990-20261123/evidence/`摘要一致，三轮bin/obj已回收可恢复。库存64 Implemented、23 Partial、60 NotAssessed，待完整覆盖仍83、原107完整完成仍24。下一2001同一申请DTD版本回退，需核对可比较版本与实际历史提交见证，不把所选baseline当完整提交历史；再2002。非全项目或监管资格。
+
 **FDA1985 STF研究标题遗漏（Partial，限定代码及终态审查PASS）。** 1981依赖记录已提交`7aa5c45`，未计实现。固定FDA PDF42/STF规范及DTD要求研究title；本项在完整、唯一、双向且全图连根的冻结结构中检测缺study-identifier/title，doc-content/title不补足研究标题。缺标题本身可导致DTD Fail，故确定遗漏不要求DTD Pass，也不以泛DTD错误证明缺标题。存在唯一非空标题且DTD合格可给组件Pass；empty/space和重复身份保留NE/Partial，不宣称空白内容已有规范资格。当前未引用STF及精确合格当前owner所指历史内容分别覆盖，地址/profile/派生delete矛盾保持NE。文件引擎v67。
 
 red39项21过18败，失败均业务/回调/报告断言，XML前提通过。测试审查后补具体标题结构/文本、坏尾保留节点、missing hash/context、历史地址四字段、两文件finding定位、零finding额度/入口取消及Partial报告。candidate首次仅Tests编译CA1861失败（Api/Migrator退出0），未运行业务测试；固定数组断言等价改为Assert.Collection后candidate2十二类590/590，代码及断言增量审查PASS。
