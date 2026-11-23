@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2026 合法后续提交的父活动自引用（Partial，限定代码及终态审查PASS）。** 2025已提交`92e0127`。固定FDA PDF47与M1 Table4支持正向识别合法amendment/resubmission，不将2025起点白名单取反。本项绑定当前capture/context、唯一完整区域XML、双向连根结构及单明确application，三代码active且允许组合合格后比较四位ASCII标识。自引用Fail、较早ID局部Pass但不证明父存在/身份/版本、未来ID或其他subtype NE；无需历史输入。2027-01-16前NA、缺日期NE，Medium映射Warning。分组及完整父引用资格仍Partial；文件引擎v73。
+
+red三十一项18过13败，失败均状态/接入/取消断言，XML前提通过；按审查将空ID与缺元素拆开，锁定非法Annual Report/Resubmission的两代码active但组合不合法，补结构/摘要冲突、Partial报告及预取消。candidate十一类473/473，限定代码审查PASS；不把合成结构冲突称真实XML复现，也不把局部Pass写成父活动存在证明。
+
+最终`fda2026-final-20261123`十一类 **473/473、0失败/跳过**，2026为41。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部子进程自然退出或全0。7/7输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`4dcbf5ffacec4138147ce3df85897c5b7d0d0914de462e1d03cabbc606bc4dc2`，TRX SHA`2ae23dfcc5304d1f0fdd0d98fa8737a7663e18eee81cf9c51429b2fee4b1d8fd`；目录136条canonical SHA`a0f3dd64e87cd2e4b1a55add8a1aca38ba12084d6f9314a35214e3832f4ee998`独立通过。限定终态/七输入审查PASS，三轮证据副本`backups/fda2026-20261123/evidence/`摘要一致，bin/obj已回收可恢复；跨日完成仍保留启动日期目录名。库存64 Implemented、28 Partial、55 NotAssessed，待完整覆盖仍83、原107完整24。下一2043公司ID差异及所有权例外依赖，再3001 doc-content/title禁用。非全项目或监管资格。
+
 **FDA2025 确定活动起点的序列等值（Partial，限定代码及终态审查PASS）。** 2024已提交`1265abb`。固定FDA PDF47于2027-01-16生效；结合M1 v2.6 Table2/4与活动章节，明确记录七组起点为项目推导而非字典自带标志：Annual/IND Safety/Periodic Safety的Report、PMR/PMC与Promotional的Original、Product Correspondence的Correspondence、REMS的Application。先核对当前capture/context、单明确application、完整双向连根结构、三代码active及捕获允许组合，再比较原始四位ASCII标识。仅新增AllowsCombination查询，原属性检查不改。无历史也能比较；合法amendment/resubmission在本起点规则NA，fdast1–4的presubmission/application首次身份未知NE，不以等值反证起点。分组及其余起点资格仍Partial；文件引擎v72。
 
 red四十二项18过24败，失败均状态/接入/取消断言，XML前提通过。复现官方0002/0001 presubmission和0003/0001 application反例，另补短ID3对0003、冻结结构/绑定冲突、Partial的Pass/Fail/NA报告及预取消；candidate十类432/432，限定代码审查PASS。合成结构冲突仅验证消费者，不冒称真实XML解析复现。
