@@ -1728,7 +1728,7 @@
         "status": "NotAssessed",
         "internalRuleIds": [],
         "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "note": "Dependency assessed on 2026-11-23; no rule implementation claimed. Current captures establish STF identity from readable content, while absent targets have no independent trusted STF-role declaration. A filename/version hint, unavailable historical capture or stale parse record cannot prove that a missing target is an STF. Requires an auditable expected-role fact bound to the exact current input/owner/path, or qualified normative evidence for a role-declaring leaf marker; generic missing-file findings remain separate. Retained as NotAssessed pending that prerequisite."
       }
     },
     {

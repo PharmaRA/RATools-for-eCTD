@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1981 缺失STF身份依赖（未实现，保持NotAssessed）。** 1969已提交`52e7f6e`。固定FDA PDF41要求同时证明leaf引用的是STF及目标无法定位。限定只读核对发现：现有STF身份来自实际可读DOCTYPE/根；缺失目标只产生STF_CANDIDATE_MISSING/NE，不生成可绑定文档。叶名stf-*.xml、version、相同旧历史名称/StudyID均无本次固定来源支持的独立角色证明，历史capture未提供也不证明历史文件实际缺失；残留解析与manifest缺失属矛盾事实。不能把通用FILE-HREF缺失直接重标1981 Fail。
+
+最小依赖为独立于目标存在性的可信预期STF角色事实（来源/可信条件/适用范围明确，并绑定application、sequence、当前owner、精确逻辑路径及本次输入），或固定规范明确规定可声明STF角色的leaf标记。当前未补造发布清单/人工角色或扩大授权，仅记录依赖并继续下一独立条目。无业务红绿测试、无规则目录项、无完成统计增加；库存仍64 Implemented、21 Partial、62 NotAssessed，剩83、原107完整24。下一1985研究标题遗漏，再1990；1981保留在待完整覆盖队列。
+
 **FDA1969 STF XML有效性（Partial，限定代码及终态审查PASS）。** 1953已提交`8f1d0c2`。固定FDA PDF41列出缺StudyID、无子节点或XML无法加载。仅在唯一捕获身份、实际STF根、双向且全部连根的冻结树成立后，使用精确路径/序列、STF-DTD、Fail状态的XML_NOT_WELL_FORMED/DTD_VALIDATION_ERROR，或完整结构中确定缺StudyID/空根产生Fail。无诊断的完整结构反例独立覆盖；不靠DtdStatus汇总或英文错误文本推断。quota/offline/I/O/身份未知保持NE，合成诊断只验证消费分类，不称真实限额/I/O复现。声明无根身份、发现阶段原因细分、空白ID含义及解析超时前观察保留仍未资格，保留Partial，未修改parser。文件引擎v66。
 
 red46项25过21败，失败均业务/回调/报告断言，XML前提通过；candidate十一类540项539过1败，ordinary报告暴露1867的Always/NA契约，直接核对1884同类契约并限定补报告例。审查发现脱离唯一根的ID自环可误证缺ID；review-red七项4过3败复现自环及两报告场景后，Tree增加有界DFS全图连根验证，1867/1884仅目录适用性改LifecycleOperationsPresent，旧规则生产未改、未重开初审。增量静态审查PASS。
