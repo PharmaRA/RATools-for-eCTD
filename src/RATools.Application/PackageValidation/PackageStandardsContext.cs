@@ -27,6 +27,8 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
     internal FdaM1ConditionalPolicy? FdaM1ConditionalPolicy => _fdaM1ConditionalPolicy.Value;
     private Lazy<FdaSupplementCombinations?> _supplementCombinations = new(() => null);
     internal FdaSupplementCombinations? SupplementCombinations => _supplementCombinations.Value;
+    private Lazy<IReadOnlyList<FdaXfaTemplateEvidence.Template>> _fdaXfaTemplates = new(() => []);
+    internal IReadOnlyList<FdaXfaTemplateEvidence.Template> FdaXfaTemplates => _fdaXfaTemplates.Value;
     public PackageStandardsContext ForSequence(string sequence) => history?.GetValueOrDefault(sequence) ?? this;
     internal PackageStandardsContext? ExplicitHistoryForSequence(string sequence) => history?.GetValueOrDefault(sequence);
     public static PackageStandardsContext Current => new(PackageValidationCatalog.Current, PackageXmlAssets.Current, IchSectionDefinitions.Current);
@@ -51,6 +53,7 @@ public sealed class PackageStandardsContext(ValidationRuleCatalog catalog, Packa
         return new(catalog, assets, IchSectionDefinitions.Load(schema), snapshot.Id, history, selectionDate)
         { _snapshot = snapshot, _fdaM1Policy = new(() => FdaM1AttributePolicy.FromSnapshot(snapshot, catalog)),
             _fdaM1ConditionalPolicy = new(() => PackageValidation.FdaM1ConditionalPolicy.FromSnapshot(snapshot, catalog)),
-            _supplementCombinations = new(() => FdaSupplementCombinations.FromSnapshot(snapshot)) };
+            _supplementCombinations = new(() => FdaSupplementCombinations.FromSnapshot(snapshot)),
+            _fdaXfaTemplates = new(() => FdaXfaTemplateEvidence.ReadCatalog(snapshot)) };
     }
 }

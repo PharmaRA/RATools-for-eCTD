@@ -78,6 +78,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         private readonly FdaPdfInactiveHyperlinkRule.Inspection _inactiveHyperlinks = new(input, files, context, cancellationToken);
         private readonly FdaPdfNonRelativeHyperlinkRule.Inspection _nonRelativeHyperlinks = new(input, files, context, cancellationToken);
         private readonly FdaPdfHyperlinkZoomRule.Inspection _hyperlinkZoom = new(input, files, context, cancellationToken);
+        private readonly FdaXfaTemplateEvidence.Inspection _formTemplates = new(input, files, context, cancellationToken);
         public bool Incomplete { get; set; }
 
         public void Read(IPackagePdfInspector inspector)
@@ -99,6 +100,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 _documents.Add(path, facts);
+                _formTemplates.Observe(new(path, facts, _inventory[path].Sha256));
                 _contentProcessing.Observe(new(path, facts, _inventory[path].Sha256),
                     input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount - _externalBookmarks.FindingCount - _inactiveBookmarks.FindingCount - _nonRelativeBookmarks.FindingCount - _bookmarkZoom.FindingCount - _brokenHyperlinks.FindingCount - _corruptHyperlinks.FindingCount - _hyperlinkPages.FindingCount - _multipleHyperlinkActions.FindingCount - _externalHyperlinks.FindingCount - _inactiveHyperlinks.FindingCount - _nonRelativeHyperlinks.FindingCount - _hyperlinkZoom.FindingCount);
                 _fontEmbedding.Observe(new(path, facts, _inventory[path].Sha256),
@@ -373,7 +375,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             if (nonRelativeHyperlinks is not null) checks = checks.Append(nonRelativeHyperlinks);
             var hyperlinkZoom = _hyperlinkZoom.Finish(Incomplete);
             if (hyperlinkZoom is not null) checks = checks.Append(hyperlinkZoom);
-            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks);
+            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks, _formTemplates.Matches);
         }
         private static ValidationLocation Location(string path) => new(path.Split('/')[0], path);
     }

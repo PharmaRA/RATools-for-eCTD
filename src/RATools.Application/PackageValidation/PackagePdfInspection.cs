@@ -9,16 +9,18 @@ public sealed record PackagePdfLinkResolution(string SourceLogicalPath, PdfNavig
 public sealed class PackagePdfInspection
 {
     internal PackagePdfInspection(PackageFileInspection files, string inspectorVersion, IEnumerable<PackagePdfDocument> documents,
-        IEnumerable<PackagePdfLinkResolution> links, IEnumerable<RuleCheckResult> checks)
+        IEnumerable<PackagePdfLinkResolution> links, IEnumerable<RuleCheckResult> checks,
+        IEnumerable<PackageFormTemplateMatch>? formTemplates = null)
     {
         InputDigest = files.InputDigest;
         HistoryManifestDigest = files.HistoryManifestDigest;
         ProfileSnapshotId = files.ProfileSnapshotId;
         LimitsDigest = files.LimitsDigest;
-        EngineVersion = "package-pdf-validator-v25;" + inspectorVersion;
+        EngineVersion = "package-pdf-validator-v26;" + inspectorVersion;
         Documents = Array.AsReadOnly(documents.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
+        FormTemplates = Array.AsReadOnly((formTemplates ?? []).ToArray());
         RulesDigest = files.RulesDigest;
     }
     public int SchemaVersion { get; } = 1;
@@ -31,4 +33,5 @@ public sealed class PackagePdfInspection
     public IReadOnlyList<PackagePdfDocument> Documents { get; }
     public IReadOnlyList<PackagePdfLinkResolution> Links { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
+    public IReadOnlyList<PackageFormTemplateMatch> FormTemplates { get; }
 }
