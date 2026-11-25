@@ -25,36 +25,79 @@ internal static class FdaAttributeWhitespaceRule
             yield return new(RuleId, CheckStatus.NotApplicable, "The selection precedes the effective date of FDA 1344.");
             yield break;
         }
-        var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
-        var incomplete = xml is null || xml.Backbones.Count == 0 ||
+        var limits = target.Limits;
+        var observations = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).Take(2).ToArray();
+        if (lifecycle.InputDigest != target.InputDigest || lifecycle.RulesDigest != context.Catalog.Digest ||
+            lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != limits.Digest() || observations.Length != 1 ||
+            observations[0].RulesDigest != context.Catalog.Digest || observations[0].AssetManifestDigest != context.Assets.Digest ||
+            observations[0].LimitsDigest != limits.Digest())
+        {
+            yield return new(RuleId, CheckStatus.NotEvaluated, "FDA 1344 requires one exact target XML observation bound to rules, assets and limits.");
+            yield break;
+        }
+        var xml = observations[0];
+        var incomplete = xml.Backbones.Count == 0 ||
             !xml.StudyTaggingFiles.InventoryComplete ||
             !xml.Checks.Any(check => check.RuleId == "XML-OFFLINE" && check.Status == CheckStatus.Pass) ||
             !xml.Checks.Any(check => check.RuleId == "XML-LIMITS" && check.Status == CheckStatus.Pass) ||
             xml.Checks.SelectMany(check => check.Findings).Any(finding => finding.Code == "INVALID_REGIONAL_BACKBONE_REFERENCE");
         var findings = new List<ValidationFinding>();
-        var documents = (xml?.Backbones ?? []).Select(document => (document.LogicalPath, document.ReadComplete,
+        var work = limits.MaxXmlNodes;
+        var documents = xml.Backbones.Select(document => (document.LogicalPath, ReadComplete: document.ReadComplete && document.ProfileSnapshotId == lifecycle.ProfileSnapshotId,
                 document.Elements, Leaves: (IEnumerable<ParsedPackageLeaf>)document.Leaves))
-            .Concat((xml?.StudyTaggingFiles.Documents ?? []).Select(document => (document.LogicalPath, document.ReadComplete,
-                document.Elements, Leaves: Enumerable.Empty<ParsedPackageLeaf>())));
+            .Concat(xml.StudyTaggingFiles.Documents.Select(document => (document.LogicalPath, document.ReadComplete,
+                document.Elements, Leaves: Enumerable.Empty<ParsedPackageLeaf>()))).ToArray();
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        var duplicatePaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var document in documents)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!document.ReadComplete) { incomplete = true; continue; }
-            var leaves = document.Leaves.ToDictionary(leaf => leaf.NodePath, StringComparer.Ordinal);
+            if (work-- <= 0) { incomplete = true; break; }
+            if (!paths.Add(document.LogicalPath)) duplicatePaths.Add(document.LogicalPath);
+        }
+        foreach (var document in documents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (work-- <= 0) { incomplete = true; break; }
+            if (!document.ReadComplete || duplicatePaths.Contains(document.LogicalPath) ||
+                !document.LogicalPath.StartsWith(target.Manifest.SequenceNumber + "/", StringComparison.Ordinal))
+            { incomplete = true; continue; }
+            var nodes = new HashSet<string>(StringComparer.Ordinal);
+            var unique = true;
             foreach (var element in document.Elements)
-            foreach (var attribute in element.Attributes.Values)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (attribute.IsDefault) continue;
-                if (attribute.ExplicitValue is not { } value) { incomplete = true; continue; }
-                if (!value.StartsWith(' ') && !value.EndsWith(' ')) continue;
-                if (remaining <= 0) { incomplete = true; continue; }
-                remaining--;
-                findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
-                    "The explicitly supplied attribute value starts or ends with a space before DTD type normalization.",
-                    element.Location with { FieldPath = "@" + attribute.Name, Line = attribute.Line, Column = attribute.Column,
-                        LeafId = leaves.GetValueOrDefault(element.NodePath)?.Id, Files = [new(target.SourceId, document.LogicalPath)] },
-                    Actual: value, RecommendedAction: "Review the source attribute value and the submission procedure for leading or trailing spaces."));
+                if (work-- <= 0) { unique = false; break; }
+                if (!nodes.Add(element.NodePath) || element.Location.LogicalPath != document.LogicalPath || element.Location.NodePath != element.NodePath) unique = false;
+            }
+            var leaves = new Dictionary<string, ParsedPackageLeaf>(StringComparer.Ordinal);
+            foreach (var leaf in document.Leaves)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (work-- <= 0) { unique = false; break; }
+                if (!leaves.TryAdd(leaf.NodePath, leaf) || !nodes.Contains(leaf.NodePath) ||
+                    leaf.Location.LogicalPath != document.LogicalPath || leaf.Location.NodePath != leaf.NodePath) unique = false;
+            }
+            if (!unique) { incomplete = true; continue; }
+            foreach (var element in document.Elements)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (work-- <= 0) { incomplete = true; break; }
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (work-- <= 0) { incomplete = true; break; }
+                    if (attribute.IsDefault) continue;
+                    if (attribute.ExplicitValue is not { } value) { incomplete = true; continue; }
+                    if (!value.StartsWith(' ') && !value.EndsWith(' ')) continue;
+                    if (remaining <= 0) { incomplete = true; continue; }
+                    remaining--;
+                    findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
+                        "The explicitly supplied attribute value starts or ends with a space before DTD type normalization.",
+                        element.Location with { FieldPath = "@" + attribute.Name, Line = attribute.Line, Column = attribute.Column,
+                            LeafId = leaves.GetValueOrDefault(element.NodePath)?.Id, Files = [new(target.SourceId, document.LogicalPath)] },
+                        Actual: value, RecommendedAction: "Review the source attribute value and the submission procedure for leading or trailing spaces."));
+                }
             }
         }
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,

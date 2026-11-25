@@ -2927,9 +2927,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Checks XML-decoded explicit values for leading or trailing U+0020 in target backbones and discovered STF documents. DTD defaults are excluded; missing raw values, incomplete discovery and unread documents remain unevaluated. Other XML scopes require further qualification.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfAttributeWhitespaceTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfAttributeWhitespaceTests.cs"],
+      "implementationNote": "Checks XML-decoded explicit values for leading or trailing U+0020 before DTD normalization in current backbones and discovered STF documents. Requires unique exact XML input/rules/assets/limits binding, current paths, unique document/element/leaf indexes and bounded work. DTD defaults remain excluded; missing raw values, incomplete discovery, unread or inconsistent evidence remain unknown while known failures survive. Other XML scopes remain unqualified.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfAttributeWhitespaceTests.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfAttributeWhitespaceTests.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceBindingTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaAttributeWhitespaceRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
       "externalComparisonEvidence": []
     },

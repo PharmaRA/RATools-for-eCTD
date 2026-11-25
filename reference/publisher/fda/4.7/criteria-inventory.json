@@ -648,8 +648,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1344"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaAttributeWhitespaceRule.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs"],
-        "note": "Checks explicit target backbone and discovered STF attribute values before DTD type normalization; defaults are excluded, incomplete or unavailable raw evidence cannot pass. Other XML scopes remain unqualified; status stays Partial."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaAttributeWhitespaceRule.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfAttributeWhitespaceTests.cs", "tests/RATools.Tests/PackageValidation/FdaAttributeWhitespaceBindingTests.cs"],
+        "note": "Checks explicit current backbone/STF values before DTD type normalization, with unique exact XML/rules/assets/limits binding, current paths, unique document/element/leaf indexes and bounded traversal. Defaults remain excluded; incomplete/raw-unavailable/inconsistent evidence stays unknown while known failures survive. Final seven-class Windows regression 204/204 including 33 binding cases and bounded main-agent read-only review passed without subagents. Other XML scopes remain unqualified; still Partial."
       }
     },
     {
