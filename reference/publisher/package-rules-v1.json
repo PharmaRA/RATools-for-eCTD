@@ -4496,6 +4496,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5215",
+      "authorityRuleId": "5215",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 69 error 5215",
+      "effectiveFrom": "2013-04-30",
+      "title": "Non-relative hyperlink",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link GoToR actions with slash-rooted absolute file specifications.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent page-Link identity, complete source-page qualification and capture binding. File specifications are literal, never URI-decoded, trimmed or interpreted with local OS path rules; new findings retain classification only. URI/platform/drive variants, other file/action encodings, annotation variants, historical source PDFs and complete referenced-guidance qualification remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeHyperlinkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeHyperlinkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfNonRelativeHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

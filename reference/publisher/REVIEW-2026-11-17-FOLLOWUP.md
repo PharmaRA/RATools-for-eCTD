@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5215 非相对超链接（Partial，主代理限定只读自审及终态核对通过）。** 5210已提交`d3ca208`。固定criteria页69为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。复用独立合格页面Link GoToR文件规范，当前源完整页数及capture绑定后检查原始斜杠根绝对路径。文件值不解码、不trim、不按本机路径解析、不访问目标，新finding仅保留AbsoluteFileSpecification类别。URI/驱动器变体、其他编码/动作、批注变体、历史源及完整引用指南资格仍Partial，无Pass。PDF验证器v24，适配器仍inactive-v21，file仍v79。
+
+red27项全部缺规则断言且解析前提通过；candidate/final二十六类1220/1220，本规则47项覆盖斜杠根/网络样式/F与UF字典、相对路径/原始百分号/前导空格/驱动器/URI、书签/OpenAction/页归属/隐藏/冲突/Next隔离、hash/旧事实/页资格/历史源、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及分类不含原目标路径的Partial报告。主代理限定只读自审规则、测试、接线及直接依赖通过，无子代理，不称独立审计；22处Observe及1处总预算计入新finding，不改reader。
+
+最终`fda5215-final-20261126`二十六类 **1220/1220、0失败/跳过**，本规则47、其余二十五类1173。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。6/6交付输入（4生产、1测试、catalog）加3/3直接依赖匹配manifest；manifest SHA`f4be1a8fdac9fbade123b0072fb8302b70622e421c9d845f6d70c8bd55f7c685`，TRX SHA`22c661110af048f5ff611ec147ad3fda3c86bf1e01d94d2f689c5ce747f50bde`。目录164条canonical SHA`f3450a895ca40aef4b63a70002e3eba7e37ea0ac4ab7a94c8f1939448f93049c`通过。red/candidate/final证据在`.artifacts/local-check/fda5215-*-20261126/`，校验副本`backups/fda5215-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、53 Partial、27 NotAssessed，待完整覆盖仍80、原107完整27；下一5217，不代表完整超链接或Formal资格。
+
 **FDA5210 未激活超链接（Partial，主代理限定只读自审及终态核对通过）。** 5205已提交`07522be`。固定criteria页68为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立合格页面Link明确缺A/Dest/AA/StructParent原始键时建立未激活事实；完整页树、批注清单、唯一引用及capture绑定后才发布。显式null、未解析引用、未知动作不能当成键缺失；其他批注变体/未激活语义和历史源仍Partial，无Pass。PDF验证器v23、适配器hyperlinks-pages-actions-external-inactive-v21，file仍v79。
 
 red17项全部缺规则断言，未解析引用用例已明确断言基础解析失败，其余解析前提通过；candidate/final二十五类1173/1173，本规则43项覆盖缺键/有效动作/目的地/null/未知动作/未解析引用、AA/结构/隐藏/页归属/AP、书签/OpenAction隔离、reader重复引用/无页资格/预算/I/O/非Link、hash/旧事实/页矛盾、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader增量、测试和接线通过，全程无子代理，不称独立审计；21处Observe及1处总预算计入新finding。
