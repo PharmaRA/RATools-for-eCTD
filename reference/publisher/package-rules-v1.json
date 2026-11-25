@@ -4166,6 +4166,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5057",
+      "authorityRuleId": "5057",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 63 error 5057; FDA PDF specification 4.1 printed p. 4 SOURCE OF ELECTRONIC DOCUMENTS",
+      "effectiveFrom": "2013-04-30",
+      "title": "Image-only documents should be text searchable whenever possible",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured PDFs with complete bounded unfiltered page streams containing only qualified raster drawing operations under archived PDF specification 4.1 from 2016-09-21.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent image-only evidence, exact capture, successful processing, both archived sources and no extracted text. Every page must have only complete q/Q/cm/Do grammar, balanced state, nonsingular transforms and valid unfiltered 8-bit Gray/RGB image XObjects. Empty/vector/OCR/nested/filtered/unknown content is not inferred from HasSearchableText=false. Content work is capped by configured PDF objects/depth and one MiB aggregate page-stream bytes. Other image encodings, OCR quality, forms/annotations/structure, history, non-PDF-named contents and earlier policy remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfImageOnlyRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfImageOnlyRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfImageOnlyRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageImageOnlyReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

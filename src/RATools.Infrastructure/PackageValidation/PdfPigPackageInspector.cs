@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-v9";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-v10";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -35,7 +35,8 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 navigation.DestinationsComplete, navigation.Reasons, form,
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
-                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations);
+                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations,
+                navigation.ReadImageOnly());
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -102,6 +103,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         private bool _uriBase;
 
         public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count, limits).Read(document.Structure.Catalog.CatalogDictionary);
+        public PdfImageOnlyStatus ReadImageOnly() => new PdfPigPackageImageOnlyReader(document, Resolve, limits, cancellationToken).Read();
         public PdfOpeningViewFacts? ReadOpeningView()
         {
             try

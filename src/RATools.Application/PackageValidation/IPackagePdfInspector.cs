@@ -21,6 +21,7 @@ public sealed record PdfVersionDeclaration(string HeaderVersion, bool HasCatalog
 public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified }
 public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions);
 public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
+public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }
 
 public sealed class PackagePdfFacts
 {
@@ -30,7 +31,7 @@ public sealed class PackagePdfFacts
         PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown,
         IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null,
         PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null,
-        IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null)
+        IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null, PdfImageOnlyStatus imageOnly = PdfImageOnlyStatus.Unknown)
     {
         Basics = basics with
         {
@@ -49,6 +50,7 @@ public sealed class PackagePdfFacts
         Linearization = linearization;
         OpeningView = openingView;
         MarkupAnnotations = Array.AsReadOnly((markupAnnotations ?? []).ToArray());
+        ImageOnly = imageOnly;
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -63,6 +65,7 @@ public sealed class PackagePdfFacts
     public PdfLinearizationStatus Linearization { get; }
     public PdfOpeningViewFacts? OpeningView { get; }
     public IReadOnlyList<PdfMarkupAnnotation> MarkupAnnotations { get; }
+    public PdfImageOnlyStatus ImageOnly { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

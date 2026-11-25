@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5057终态补记：red/candidate/candidate2/final四轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5057 无文本图像文档（Partial，主代理限定只读自审及终态核对通过）。** 5055已提交`4643802`。固定criteria页63与FDA PDF4.1印刷页4要求未来文档尽可能可检索。本批不取反HasSearchableText，而以完整页面内容流证明简单纯图像：未过滤单流、完整q/Q/cm/Do语法、平衡图形状态、非奇异变换、实际图像次数一致、Gray/RGB八位图像尺寸/长度匹配，逐页无文字。空白/矢量/OCR/嵌套Form/过滤流/未知操作及表单、批注、结构树均未知；不声称图像来自扫描。受PDF对象/深度及累计1 MiB内容字节限制，超限未知；捕获hash、Processed和双归档来源/2016-09-21支持日期绑定。更多编码、OCR质量、历史与非.pdf内容未闭合，保持Partial且无Pass。PDF验证器v9、适配器image-v10，file仍v79。
+
+red25项全部缺规则断言且前提通过。candidate494/495唯一失败是多余Q导致固定解析器栈错误；绕过新增读取器用PdfPig.GetPage独立复现相同错误，改为解析失败且本规则未知对照，不放宽生产检查。补1 MiB及图像字节长度边界后candidate2/final十一类501/501。主代理完整读取新规则/读取器/测试与接入diff，限定只读自审通过；尾部分隔符内存探查未发现静默遗漏，一次工具参数封装错误未执行后已正确重调。全程无子代理，不称独立审计。
+
+最终`fda5057-final-20261125`十一类 **501/501、0失败/跳过**，本规则64、其他PDF十类437。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter保留summary.json；三Build与顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9/9交付输入绑定（7生产、1测试、catalog），manifest SHA`5458086fd6374d713e09e1419ac4ed14b085af3eec05f05561e18fc03fce5ca0`，TRX SHA`57982a477656442488c3e939c2ea6694877934fcb50f064e355d4b78485f98d3`；目录149条canonical SHA`353458a04832c0feb6a3f614336a12e344b5abed284c4deee1970a537a599d26`独立通过。证据`.artifacts/local-check/fda5057-*-20261125/`，校验副本`backups/fda5057-20261125/evidence/`。库存67 Implemented、38 Partial、42 NotAssessed，待完整覆盖80、原107完整27；下一5100/5101，不代表全部文本搜索或监管资格。
+
 5055终态补记：red/candidate/candidate2/final四轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5055 PDF批注（Partial，主代理限定只读自审及终态核对通过）。** 5050依赖记录已提交`6c40fdd`。固定criteria页62要求1.15以外PDF不含批注；本批冻结可识别正文批注子类型、页码与对象位置，要求四个数值矩形及可选P页引用一致，Link/Widget/未知类型不等同于正文批注。PDF验证器增加可选生命周期证据，由交付入口显式传入；旧调用未提供时新规则未知。完整当前固定US DTD区域XML需精确capture/context、唯一观察、双向全图连根及原始叶引用一致；按实际祖先链识别1.15，不靠目录名/标题。同文件同时在例外内外引用仍按例外外叶报一次，重复引用不重复报；缺文件不误NA，delete/历史/未引用/坏尾保持未知。模块2–5、其他批注语义及完整历史未闭合，保持Partial且无Pass。统一PDF额度包括新finding，后续文件限额不抹已知Fail；PDF验证器v8、适配器annotations-v9，文件仍v79。
