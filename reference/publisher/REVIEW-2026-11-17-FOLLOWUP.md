@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5第二轮前置：官方表单原件进入标准快照（不计规则完成，主代理限定只读自审及终态核对通过）。** 5217已提交`4495a9e`，按原顺序返回最早未闭合FDA5。核对现有AcroForm/XFA物理读取与XML候选组合同后，确认七份归档官方表单尚未进入运行时标准快照。新增既有来源捕获机制中的七份原件及来源清单冻结，精确SHA/长度核验，获取日保留2026-11-20，本次本地归档核验日2026-11-26；不称本次重新联网获取。新捕获资格自2026-11-26起，较早日期、EU、版本/区域不匹配及旧快照不借用。版本仅标记原件PDF修改时间，不混同官网版次、内部db_form_version或字段资格；原件合计20,177,241字节，既有32 MiB/64资源/单件8 MiB预算未扩大。未纳入需登录生成或缺来源的3397/3792/3794/2567。
+
+red8项1过7败，其中6项缺原件/清单/来源证据，1项测试前缀误把form-types字典计入表单，改为七个精确键；candidate/final六类117/117。新来源10项、通用来源16、study来源8、快照合同14、AcroForm34、XFA35；覆盖原件/清单字节与provenance、日期/区域/profile隔离、缺失或替换字节拒绝、旧快照不借当前源、重开无需provider及返回字节副本。主代理限定只读自审实现、资源声明和测试通过，无子代理，不称独立审计。FDA5仍NotAssessed，Form.Complete/模板身份/可填写性/业务字段映射未升级，其他FDA库存未改。
+
+最终`fda5-sources-final-20261126`六类 **117/117、0失败/跳过**。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。Api/DatabaseMigrator/Tests三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，26/26及5/5受保护，不称全部自然退出。3/3交付输入及8/8归档资源均匹配最终manifest；manifest SHA`81a6a45d8929a5200fece9ef1cdadd267b869d7b345aeeee062f86c62f806e84`，TRX SHA`4c5bfb08e00ff08512f48e4d54a721ccc49fe967752b95c0ca4d30ac692cf37e`。red/candidate/final证据在`.artifacts/local-check/fda5-sources-*-20261126/`，校验副本`backups/fda5-sources-20261126/evidence/`，bin/obj只移入回收站可恢复。目录165条及库存67 Implemented、54 Partial、26 NotAssessed不变，待完整覆盖仍80、原107完整27。下一步仍FDA5：先建立精确归档XFA模板匹配事实，不等同主表单或字段语义；2252官方模板已核对申请号6位与可选延续号4位不同，不能只按同名数据节点比较完整申请身份。
+
 **FDA5217 超链接不继承缩放（Partial，主代理限定只读自审及终态核对通过）。** 5215已提交`300d2cd`。固定criteria页69为Medium/Warning，纠正说明保持“Ensure that all links in future submissions are set to 'Inherit Zoom'.”。固定PDF4.1印刷页6正文及SHA再次核对，要求目的页与源文档同一放大比例；沿用已核对Adobe表8.2的Fit重算、XYZ正数固定、0/null保留语义。独立合格页面Link新增Fit/合法完整XYZ正数缩放事实，完整批注清单/唯一引用后发布；源capture与完整页数、双归档来源及2016-09-21资格日期绑定。内部/命名目的地、其他模式/动作/文件编码、批注变体、历史源和早期政策仍Partial，无Pass。PDF验证器v25、适配器hyperlinks-pages-actions-external-inactive-zoom-v22，file仍v79。
 
 red29项全部缺规则断言且前提通过；candidate1273/1276三项失败均为新5217源finding使5201/5202旧可用额度减少。两份测试先备份，5201保留6/7未知并加8失败，3102在6未知/7起失败；5202保留7/8未知并加9失败，均明确5217 Fail、总额度及终态诊断，不改生产预算。最终本规则56项含Fit/XYZ正数/0/null/坏参数、非Link/内部/命名模式、动作/文件变体、适配器独立事实、hash/页资格/旧事实/类别矛盾、取消/重复观察/额度、双来源/日期/无PDF及Partial报告。主代理限定只读自审实现、测试及两份预算测试增量通过，无子代理，不称独立审计；23处Observe及1处总预算计入新finding。

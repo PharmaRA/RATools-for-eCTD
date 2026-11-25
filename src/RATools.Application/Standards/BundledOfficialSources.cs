@@ -38,6 +38,7 @@ internal sealed record BundledOfficialSources(
         "https://www.fda.gov/media/153632/download", "3455b7dc93d1866bc94684d8dd3200f15a297e8d84d36e4be63d45e36a1bf689", "Verified");
     // Reacquired from the official endpoint and matched to the existing archive on this date.
     private static readonly DateOnly StudyDataGuideAcquiredOn = new(2026, 11, 20);
+    private static readonly DateOnly FormSourcesVerifiedOn = new(2026, 11, 26);
 
     public static BundledOfficialSources? Capture(StandardsProfile profile, DateOnly captureDate)
     {
@@ -111,6 +112,26 @@ internal sealed record BundledOfficialSources(
                 "application/pdf", source.Id, source.Sha256!);
             resources.Add(resource);
             provenance.Add(new(source.Url, source.Version, StudyDataGuideAcquiredOn, StudyDataGuideAcquiredOn, source.VerificationStatus, resource.Sha256));
+        }
+        if (captureDate >= FormSourcesVerifiedOn && selected.Any(item => item.GetProperty("id").GetString() == "fda-criteria"))
+        {
+            var forms = ReadResource("official-fda-form-inventory", "SourceInventory", "metadata/official-sources/forms-2026-11-20.json",
+                "application/json", "fda-form-inventory", "d6784bfd301bd384865e81539857e2d5a4efdf837ac6a27903f956b236796e32");
+            resources.Add(forms);
+            using var formInventory = JsonDocument.Parse(forms.ReadBytes());
+            foreach (var form in formInventory.RootElement.GetProperty("sources").EnumerateArray())
+            {
+                var id = form.GetProperty("id").GetString()!;
+                var resource = ReadResource("official-" + id, "OfficialSource", "official-sources/" + id + ".pdf",
+                    "application/pdf", id, form.GetProperty("sha256").GetString()!);
+                if (resource.Length != form.GetProperty("bytes").GetInt64())
+                    throw new InvalidDataException("Official form length differs from its acquisition record.");
+                resources.Add(resource);
+                // Archive revision identity is not website edition, template mapping or field qualification.
+                provenance.Add(new(form.GetProperty("requestedUrl").GetString()!,
+                    "Archived PDF modification " + form.GetProperty("pdfModificationDate").GetString(),
+                    new DateOnly(2026, 11, 20), FormSourcesVerifiedOn, "Verified", resource.Sha256));
+            }
         }
         return new(resources, provenance.OrderBy(source => source.SourceUrl, StringComparer.Ordinal).ToArray(),
             new("Sources", "Verified", "Official originals, versions, acquisition dates and applicability are bound to captured source bytes. Rule implementation and external comparison remain separately unqualified.", binding.Sha256));

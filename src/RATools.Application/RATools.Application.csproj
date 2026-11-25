@@ -70,5 +70,13 @@
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\ich-stf-page.json" LogicalName="RATools.OfficialSources.ich-stf-page" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-stf\valid-values-v6.zip" LogicalName="RATools.OfficialSources.ich-stf-valid-values" />
     <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-09-production\ema-harmonised-guidance.pdf" LogicalName="RATools.OfficialSources.ema-harmonised-guidance" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\source-snapshot.json" LogicalName="RATools.OfficialSources.fda-form-inventory" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-356h.pdf" LogicalName="RATools.OfficialSources.fda-form-356h" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-1571.pdf" LogicalName="RATools.OfficialSources.fda-form-1571" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-2252.pdf" LogicalName="RATools.OfficialSources.fda-form-2252" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-2253.pdf" LogicalName="RATools.OfficialSources.fda-form-2253" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-3674.pdf" LogicalName="RATools.OfficialSources.fda-form-3674" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-3938.pdf" LogicalName="RATools.OfficialSources.fda-form-3938" />
+    <EmbeddedResource Include="..\..\reference\publisher\official-sources\2026-11-20-forms\fda-form-3988.pdf" LogicalName="RATools.OfficialSources.fda-form-3988" />
   </ItemGroup>
 </Project>
