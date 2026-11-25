@@ -71,7 +71,8 @@ internal static class FdaFileExtensionRule
             bool? allowed = Path.GetExtension(path).ToLowerInvariant() switch
             {
                 ".pdf" or ".jpg" or ".jpeg" or ".png" => true,
-                ".txt" or ".xls" or ".xlsx" or ".xpt" or ".r" or ".sas" => module >= 3,
+                ".txt" or ".xls" or ".xlsx" or ".xpt" or ".r" or ".sas" or ".svg" => module >= 3,
+                ".rmd" or ".json" or ".cas" or ".dat" => module == 5,
                 ".sdf" => module == 3,
                 _ => null
             };

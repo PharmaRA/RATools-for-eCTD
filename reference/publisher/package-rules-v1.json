@@ -2729,9 +2729,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Selected module-level rows in the archived FDA format revision 9.3 for M2 through M5. Regional sections, additional formats, permissible uses and historical versions require further assessment.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs"],
+      "implementationNote": "Selected module-level rows in archived FDA format revision 9.3 for M2 through M5, including SVG in M3-M5 and RMD/JSON/CAS/DAT in M5. Actual backbone module governs, not the physical folder name. Regional/subsection placement, remaining formats, permissible uses, archive-copy requirements and historical revisions remain unqualified; status remains Partial.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaFileExtensionAdditionalRowsTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaFileExtensionAdditionalRowsTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaFileExtensionRule.cs", "reference/publisher/official-sources/2026-11-09/fda-file-formats.pdf"],
       "externalComparisonEvidence": []
     },

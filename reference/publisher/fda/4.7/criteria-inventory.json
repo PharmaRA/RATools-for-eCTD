@@ -476,8 +476,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1255"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaFileExtensionRule.cs", "tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs", "reference/publisher/official-sources/2026-11-09/fda-file-formats.pdf"],
-        "note": "Selected module-level format rows for target ICH M2 through M5 under FDA format revision 9.3. Regional and subsection placement, other formats, business-use conditions and earlier revisions require further evidence."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaFileExtensionRule.cs", "tests/RATools.Tests/PackageValidation/FdaFileExtensionRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaFileExtensionAdditionalRowsTests.cs", "reference/publisher/official-sources/2026-11-09/fda-file-formats.pdf"],
+        "note": "Selected module-level rows for current ICH M2-M5 under archived FDA format 9.3 now include SVG in M3-M5 and RMD/JSON/CAS/DAT in M5. Actual XML module, not physical folder naming, determines placement. Final six-class Windows regression 157/157 (37 added cases) and bounded main-agent read-only review passed without subagents. Regional/subsection placement, remaining formats, permissible uses, archive-copy requirements and earlier revisions remain unqualified; still Partial."
       }
     },
     {
