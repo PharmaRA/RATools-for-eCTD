@@ -33,42 +33,82 @@ internal static class FdaStfDuplicateCategoryRule
             yield return new(RuleId, CheckStatus.NotEvaluated, "STF duplicate-category assessment requires the archived STF specification and pinned DTD.");
             yield break;
         }
-        var xml = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).ToArray();
-        if (xml.Length != 1)
+        var limits = target.Limits;
+        var xml = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).Take(2).ToArray();
+        if (lifecycle.InputDigest != target.InputDigest || lifecycle.RulesDigest != context.Catalog.Digest ||
+            lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != limits.Digest() || xml.Length != 1 ||
+            xml[0].RulesDigest != context.Catalog.Digest || xml[0].AssetManifestDigest != context.Assets.Digest || xml[0].LimitsDigest != limits.Digest())
         {
-            yield return new(RuleId, CheckStatus.NotEvaluated, "Target XML facts are missing or ambiguous.");
+            yield return new(RuleId, CheckStatus.NotEvaluated, "FDA 1362 requires one exact current XML observation bound to rules, assets and limits.");
             yield break;
         }
         var stfs = xml[0].StudyTaggingFiles;
         var incomplete = !stfs.InventoryComplete;
         var findings = new List<ValidationFinding>();
+        var work = limits.MaxXmlNodes;
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        var duplicatePaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var document in stfs.Documents)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!document.ReadComplete || document.DtdStatus != CheckStatus.Pass) { incomplete = true; continue; }
-            var roots = document.Elements.Where(element => element.ParentPath is null).ToArray();
-            if (roots.Length != 1 || roots[0] is not { LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" })
+            if (work-- <= 0) { incomplete = true; break; }
+            if (!paths.Add(document.LogicalPath)) duplicatePaths.Add(document.LogicalPath);
+        }
+        foreach (var document in stfs.Documents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (work-- <= 0) { incomplete = true; break; }
+            if (!document.ReadComplete || document.DtdStatus != CheckStatus.Pass || duplicatePaths.Contains(document.LogicalPath) ||
+                !document.LogicalPath.StartsWith(target.Manifest.SequenceNumber + "/", StringComparison.Ordinal))
             { incomplete = true; continue; }
-            var identifiers = document.Elements.Where(element => element.ParentPath == roots[0].NodePath &&
-                element is { LocalName: "study-identifier", NamespaceUri.Length: 0 }).ToArray();
-            if (identifiers.Length != 1) { incomplete = true; continue; }
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var category in document.Elements.Where(element => element.ParentPath == identifiers[0].NodePath &&
-                         element is { LocalName: "category", NamespaceUri.Length: 0 }))
+            var nodes = new HashSet<string>(StringComparer.Ordinal);
+            var children = new Dictionary<string, List<ParsedXmlElement>>(StringComparer.Ordinal);
+            var unique = true; var roots = 0; ParsedXmlElement? root = null;
+            foreach (var element in document.Elements)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var name = category.Attribute("name", "");
+                if (work-- <= 0) { unique = false; break; }
+                if (!nodes.Add(element.NodePath) || element.Location.LogicalPath != document.LogicalPath || element.Location.NodePath != element.NodePath) unique = false;
+                if (element.ParentPath is not { } parent) { roots++; root = element; }
+                else
+                {
+                    if (!children.TryGetValue(parent, out var siblings)) children.Add(parent, siblings = []);
+                    siblings.Add(element);
+                }
+            }
+            if (!unique || roots != 1 || root is not { LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" })
+            { incomplete = true; continue; }
+            ParsedXmlElement? identifier = null; var identifiers = 0;
+            foreach (var element in children.GetValueOrDefault(root.NodePath) ?? [])
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (work-- <= 0) { unique = false; break; }
+                if (element is { LocalName: "study-identifier", NamespaceUri.Length: 0 }) { identifier = element; identifiers++; }
+            }
+            if (!unique || identifiers != 1 || identifier is null) { incomplete = true; continue; }
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var category in children.GetValueOrDefault(identifier.NodePath) ?? [])
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (work-- <= 0) { incomplete = true; break; }
+                if (category is not { LocalName: "category", NamespaceUri.Length: 0 }) continue;
+                if (work < 2) { work = 0; incomplete = true; break; }
+                work -= 2;
+                var attribute = category.Attributes.GetValueOrDefault("name");
+                var infoType = category.Attributes.GetValueOrDefault("info-type");
+                if (attribute is not { LocalName: "name", NamespaceUri: "" } || infoType is not { LocalName: "info-type", NamespaceUri: "" })
+                { incomplete = true; continue; }
+                var name = attribute.Value;
                 var realm = name switch
                 {
                     "species" or "route-of-admin" or "type-of-control" => "ich",
                     "duration" => "us",
                     _ => null
                 };
-                if (realm is null || category.Attribute("info-type", "") != realm) { incomplete = true; continue; }
-                if (seen.Add(name!)) continue;
+                if (realm is null || infoType.Value != realm) { incomplete = true; continue; }
+                if (seen.Add(name)) continue;
                 if (remaining <= 0) { incomplete = true; continue; }
                 remaining--;
-                var attribute = category.Attributes["name"];
                 findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
                     "A known STF study category is declared more than once in this document.",
                     category.Location with { FieldPath = "@name", Line = attribute.Line, Column = attribute.Column,

@@ -686,8 +686,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1362"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaStfDuplicateCategoryRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
-        "note": "Checks duplicate known study-identifier categories per target STF, with realm-specific identity and no cross-document/history merging. Unknown categories/realms and other business-attribute scopes remain unqualified."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfDuplicateCategoryRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryBindingTests.cs"],
+        "note": "Checks duplicate known study categories per current STF with unique exact XML/rules/assets/limits binding, unique document/element indexes, exact locations and bounded traversal. Duplicate observed facts are not duplicate business categories, and known failures survive later unknown evidence. Final seven-class Windows regression 203/203 including 33 binding cases and bounded main-agent read-only review passed without subagents. Unknown category/realm and other business-attribute scopes remain unqualified; still Partial."
       }
     },
     {

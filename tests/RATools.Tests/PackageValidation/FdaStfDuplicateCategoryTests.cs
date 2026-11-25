@@ -162,7 +162,7 @@ public sealed class FdaStfDuplicateCategoryTests
         public PackageInputManifest Manifest { get; } = new(Guid.NewGuid(), "0001", [], [], [], []);
         public string? ArchiveSha256 => null;
         public string InputDigest => digest;
-        public PackageReadLimits Limits { get; } = new();
+        public PackageReadLimits Limits { get; } = new() { MaxBackbones = 100 };
         public Stream OpenRead(string logicalPath) => throw new InvalidOperationException("No content reread expected.");
         public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => throw new InvalidOperationException("Rule uses bound facts only.");
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

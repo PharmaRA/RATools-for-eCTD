@@ -2971,9 +2971,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects repeated species, route-of-admin and type-of-control categories for realm ich and duration for realm us, without merging distinct STF documents. Unknown category/realm and other business-attribute scopes remain unqualified; file-tags and properties are not study categories.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs"],
+      "implementationNote": "Detects repeated known study categories per current STF, with unique XML/rules/assets/limits binding, unique document/element indexes, exact locations and bounded traversal. Duplicate observation facts are not duplicate business categories; known failures survive later unknown evidence. Unknown category/realm and other business-attribute scopes remain unqualified; file-tags and properties are not study categories.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfDuplicateCategoryBindingTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfDuplicateCategoryRule.cs", "reference/publisher/official-sources/2026-11-20-stf/fda-stf-specification.pdf", "reference/publisher/official-sources/2026-11-20-stf/ich-stf-v2-2.dtd"],
       "externalComparisonEvidence": []
     },
