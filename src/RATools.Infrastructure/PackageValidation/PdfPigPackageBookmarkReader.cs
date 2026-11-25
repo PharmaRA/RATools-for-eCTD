@@ -10,6 +10,9 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
 {
     private readonly HashSet<IndirectReference> _seen = [];
     private readonly List<PdfBookmarkFileTarget> _targets = [];
+    private readonly List<PdfBookmarkActionCount> _actions = [];
+    private bool _complete;
+    internal IReadOnlyList<PdfBookmarkActionCount> MultipleActions => _complete ? _actions.ToArray() : [];
     private int _work = limits.MaxPdfObjects;
     private int _items;
 
@@ -20,7 +23,8 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             if (Get(catalog, "Outlines") is not IndirectReferenceToken rootReference ||
                 Resolve(rootReference) is not DictionaryToken root || Name(Get(root, "Type")) != "Outlines") return [];
             _seen.Add(rootReference.Data);
-            return Children(root, rootReference, 0) ? _targets.ToArray() : [];
+            _complete = Children(root, rootReference, 0);
+            return _complete ? _targets.ToArray() : [];
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
         {
@@ -45,6 +49,8 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             var prev = Get(item, "Prev");
             if (previous is null ? prev is not null : prev is not IndirectReferenceToken back || back.Data != previous.Data) return false;
             ReadAction(item, _items);
+            if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(item) is int count && count > 1)
+                _actions.Add(new($"outline[{_items}]/A", count));
             if (!Children(item, current, depth + 1)) return false;
             var next = Get(item, "Next");
             if (next is null) return current.Data == end.Data;

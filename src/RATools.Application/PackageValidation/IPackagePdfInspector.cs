@@ -23,6 +23,7 @@ public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, b
 public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
 public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }
 public sealed record PdfBookmarkFileTarget(string ObjectPath, string FileSpecification, long? ZeroBasedPageIndex = null);
+public sealed record PdfBookmarkActionCount(string ObjectPath, int Count);
 
 public sealed class PackagePdfFacts
 {
@@ -33,7 +34,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null,
         PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null,
         IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null, PdfImageOnlyStatus imageOnly = PdfImageOnlyStatus.Unknown,
-        IEnumerable<PdfBookmarkFileTarget>? bookmarkFiles = null, int? qualifiedPageCount = null)
+        IEnumerable<PdfBookmarkFileTarget>? bookmarkFiles = null, int? qualifiedPageCount = null,
+        IEnumerable<PdfBookmarkActionCount>? multipleBookmarkActions = null)
     {
         Basics = basics with
         {
@@ -55,6 +57,7 @@ public sealed class PackagePdfFacts
         ImageOnly = imageOnly;
         BookmarkFiles = Array.AsReadOnly((bookmarkFiles ?? []).ToArray());
         QualifiedPageCount = qualifiedPageCount;
+        MultipleBookmarkActions = Array.AsReadOnly((multipleBookmarkActions ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -72,6 +75,7 @@ public sealed class PackagePdfFacts
     public PdfImageOnlyStatus ImageOnly { get; }
     public IReadOnlyList<PdfBookmarkFileTarget> BookmarkFiles { get; }
     public int? QualifiedPageCount { get; }
+    public IReadOnlyList<PdfBookmarkActionCount> MultipleBookmarkActions { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

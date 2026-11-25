@@ -65,6 +65,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         private readonly FdaPdfBrokenBookmarkRule.Inspection _brokenBookmarks = new(input, files, context, cancellationToken);
         private readonly FdaPdfCorruptBookmarkRule.Inspection _corruptBookmarks = new(input, files, context, cancellationToken);
         private readonly FdaPdfBookmarkPageRule.Inspection _bookmarkPages = new(input, files, context, cancellationToken);
+        private readonly FdaPdfMultipleBookmarkActionsRule.Inspection _multipleActions = new(input, files, context, cancellationToken);
         public bool Incomplete { get; set; }
 
         public void Read(IPackagePdfInspector inspector)
@@ -87,25 +88,27 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                 cancellationToken.ThrowIfCancellationRequested();
                 _documents.Add(path, facts);
                 _contentProcessing.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _fontEmbedding.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _version.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _linearization.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _openingView.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _annotations.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _imageOnly.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _brokenBookmarks.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _corruptBookmarks.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 _bookmarkPages.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
+                _multipleActions.Observe(new(path, facts, _inventory[path].Sha256),
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount - _imageOnly.FindingCount - _brokenBookmarks.FindingCount - _corruptBookmarks.FindingCount - _bookmarkPages.FindingCount - _multipleActions.FindingCount);
                 pages += facts.Basics.PageCount ?? 0;
                 links += facts.Links.Count;
                 if (pages > input.Packages.Target.Limits.MaxPdfPages || links > input.Packages.Target.Limits.MaxPdfLinks)
@@ -271,7 +274,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             string? actual = null, ValidationSeverity? severity = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_findings.Count + _contentProcessing.FindingCount + _fontEmbedding.FindingCount + _version.FindingCount + _linearization.FindingCount + _openingView.FindingCount + _annotations.FindingCount + _imageOnly.FindingCount + _brokenBookmarks.FindingCount + _corruptBookmarks.FindingCount + _bookmarkPages.FindingCount >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
+            if (_findings.Count + _contentProcessing.FindingCount + _fontEmbedding.FindingCount + _version.FindingCount + _linearization.FindingCount + _openingView.FindingCount + _annotations.FindingCount + _imageOnly.FindingCount + _brokenBookmarks.FindingCount + _corruptBookmarks.FindingCount + _bookmarkPages.FindingCount + _multipleActions.FindingCount >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
             var catalog = location.SequenceNumber is { } sequence ? context.ForSequence(sequence).Catalog : context.Catalog;
             var declaredSeverity = catalog.Rules[rule].Severity;
             _findings.Add(new(rule, status, severity ?? declaredSeverity, code,
@@ -308,6 +311,8 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             if (corruptBookmarks is not null) checks = checks.Append(corruptBookmarks);
             var bookmarkPages = _bookmarkPages.Finish(Incomplete);
             if (bookmarkPages is not null) checks = checks.Append(bookmarkPages);
+            var multipleActions = _multipleActions.Finish(Incomplete);
+            if (multipleActions is not null) checks = checks.Append(multipleActions);
             return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks);
         }
         private static ValidationLocation Location(string path) => new(path.Split('/')[0], path);
