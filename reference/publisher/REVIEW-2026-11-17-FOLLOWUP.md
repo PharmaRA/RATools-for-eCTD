@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA3078 最底层标准章节缺leaf（Partial，主代理限定只读自审及终态核对通过）。** 3029已提交`5a08c68`。固定FDA PDF56针对最底层章节，不是任意空XML元素。本项仅核对当前完整、DTD合格ICH模块2–5：固定schema无下级标准章节、实际祖先链一致且无扩展子节点时，直接leaf数为0给Low→Info提示。delete叶仍是leaf元素；主干必须唯一、准确输入/context绑定、双向且全图连根。区域M1、扩展实例及父章节无下级实例的解释未资格，保留Partial；原文“无需纠正”保留，文件引擎v77。
+
+首轮red十九项6过13败，其中12项为状态/接入/取消断言，1项delete叶缺必需checksum/checksum-type造成DTD夹具失败，不计业务红测。按固定DTD补齐两属性后fixture-red同组八项3过5败，全部失败落业务结果断言；原先“只重跑单例”的表述已更正为实际八个理论场景。补冻结结构/context冲突、Partial报告与预取消后candidate七类158/158；主代理完整读取新规则/测试及接入diff完成限定自审，未发现阻断，全程无子代理。
+
+最终`fda3078-final-20261125`七类 **158/158、0失败/跳过**，3078为30。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部子进程自然退出或全0。7/7输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`f7cf55a22cf52950365bdf0da5a6d714da2dec864f676e6c0f7306c6e2031481`，TRX SHA`cb1c3d046838da9dc842c17bf29ed662ce1ce3f195d06d63f0ebf2b55db6ff6c`；目录140条canonical SHA`53e0cc2fa367d54de011b0a9b5f686c90a35cc38f73ca9a75fb3ad897f5c5fdc`独立通过。主代理终态/七输入核对通过，四轮证据副本`backups/fda3078-20261125/evidence/`摘要一致，bin/obj已回收可恢复。库存67 Implemented、29 Partial、51 NotAssessed，待完整覆盖仍80、原107完整27。下一3102先分清PDF内容错误与适配层异常/环境失败，再5005；非全项目或监管资格。
+
 **FDA3029 STF content-block使用提示（Implemented，主代理限定只读自审及终态核对通过）。** 3015已提交`15ea432`。固定FDA PDF54不建议使用content-block，并要求下次计划提交时修正；本项保持Medium→Warning及对应建议措辞，不升级为立即重报要求。逐完整、身份/固定DTD绑定、双向且全图连根的实际块定位，嵌套/兄弟各自计数，空块及缺block-title导致DTD失败也不掩盖已确认使用。完整无块STF可Pass，无STF为NA；泛DTD错误、坏尾、冲突或缺引用目标NE，不抹掉独立Fail。当前未引用STF与当前合格owner历史选入均覆盖，文件引擎v76；共享parser/绑定器不改。
 
 新增文件时两次补丁参数封装错误均被拒绝、没有写入，短补丁恢复后red二十九项8过21败，失败均规则状态/接入/取消断言，XML前提通过。补hash/结构/owner冲突、报告提示级别、预取消后candidate十二类584/584；主代理完整读取新规则与测试、核对接入diff并完成限定只读自审，未发现阻断。按用户要求全程未调用子代理，自审不称独立审计。

@@ -3960,6 +3960,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-3078",
+      "authorityRuleId": "3078",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 56 error 3078; fixed ICH 3.2.2 heading structure",
+      "effectiveFrom": "2013-04-30",
+      "title": "Lowest-level eCTD headings should contain leaf elements",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete current ICH modules 2-5 standard headings with no lower standard definitions or actual extension children.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Detects leaf absence in exact schema-bound lowest standard ICH headings after complete qualified XML and connected structure checks. A delete leaf is still a leaf element. Regional headings, extension instances and parent headings with no lower instances remain unqualified. Findings preserve Low severity and the source's no-corrective-action language; component Pass does not establish full rule coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaEmptyLowestHeadingRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaEmptyLowestHeadingRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaEmptyLowestHeadingRule.cs", "src/RATools.Application/Ctd/IchSectionDefinitions.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
