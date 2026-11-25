@@ -10,17 +10,19 @@ public sealed class PackagePdfInspection
 {
     internal PackagePdfInspection(PackageFileInspection files, string inspectorVersion, IEnumerable<PackagePdfDocument> documents,
         IEnumerable<PackagePdfLinkResolution> links, IEnumerable<RuleCheckResult> checks,
-        IEnumerable<PackageFormTemplateMatch>? formTemplates = null)
+        IEnumerable<PackageFormTemplateMatch>? formTemplates = null,
+        IEnumerable<PackageFormFieldEvidence>? formFieldEvidence = null)
     {
         InputDigest = files.InputDigest;
         HistoryManifestDigest = files.HistoryManifestDigest;
         ProfileSnapshotId = files.ProfileSnapshotId;
         LimitsDigest = files.LimitsDigest;
-        EngineVersion = "package-pdf-validator-v26;" + inspectorVersion;
+        EngineVersion = "package-pdf-validator-v27;" + inspectorVersion;
         Documents = Array.AsReadOnly(documents.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
         FormTemplates = Array.AsReadOnly((formTemplates ?? []).ToArray());
+        FormFieldEvidence = Array.AsReadOnly((formFieldEvidence ?? []).ToArray());
         RulesDigest = files.RulesDigest;
     }
     public int SchemaVersion { get; } = 1;
@@ -34,4 +36,5 @@ public sealed class PackagePdfInspection
     public IReadOnlyList<PackagePdfLinkResolution> Links { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
     public IReadOnlyList<PackageFormTemplateMatch> FormTemplates { get; }
+    public IReadOnlyList<PackageFormFieldEvidence> FormFieldEvidence { get; }
 }

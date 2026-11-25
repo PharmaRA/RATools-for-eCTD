@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5第二轮前置：2252原始申请字段证据（不计规则完成，主代理限定只读自审及终态核对通过）。** 模板匹配已提交`5338437`。固定2252模板字段层级与datasets层级不同，官方模板明确主申请号6位、可选延续号4位，中心切换脚本只控制延续号访问属性，未执行脚本。新增`FormFieldEvidence`及`fda2252-raw-datasets-v1`，只在精确2252模板匹配后，按datasets完整命名空间/祖先路径提取类型、主号、延续号原始状态：Unknown/Missing/Empty/Text。完整有界扫描后才发布，重复/复杂/命名空间或祖先矛盾未知；空字符串与缺失分开，前导零、空格和Choose One原样保留，不拼接、不规范化、不推断显示值或主表单身份。记录模板匹配及datasets SHA；不生成FDA5结论，预算耗尽不发布半份字段记录。PDF验证器v27，其余引擎未改。
+
+red8项全部在字段输出不存在处失败且模板匹配前提通过；candidate/final八类195/195，本项30、模板33、PDF验证23、AcroForm34、XFA35、表单来源10、通用来源16、快照合同14。覆盖真实官方空白PDF、合成原始填写值、缺字段/空值/重复实例/复杂节点/孤立子节点、祖先缺失或冲突、三个字段独立状态、无模板/不完整XFA、文件/模板/路径绑定、对象/节点/字符预算及取消。主代理限定只读自审实现、接线和测试通过，无子代理，不称独立审计。合成填写事实不等于真实填写PDF渲染资格，未执行XFA绑定/脚本或业务适用性验证。
+
+最终`fda5-fields-final-20261126`八类 **195/195、0失败/跳过**。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，26/26及5/5受保护，不称全部自然退出。6/6交付输入（5生产、1测试）及来源清单/2252原件2/2资源匹配manifest；manifest SHA`8568c24edd75a3d19ebc92eedfd66b0cc24a4c2dba3e0bd0dc25cbf261109299`，TRX SHA`81acb87f0b1369760c7f579186995b7d68398d87500bd90218cc6f9f4e2d52f2`。证据`.artifacts/local-check/fda5-fields-*-20261126/`，校验副本`backups/fda5-fields-20261126/evidence/`，三轮bin/obj只移入回收站可恢复。目录165条及库存67 Implemented、54 Partial、26 NotAssessed不变，待完整覆盖80、原107完整27。下一FDA5：把当前XML候选表单组经精确leaf引用关联到捕获PDF字段证据；保留SharedM1全部候选申请与附件边界，不按文件名或containing-files自动选申请，然后再资格化实际字段显示/业务匹配。
+
 **FDA5第二轮前置：精确归档XFA模板匹配事实（不计规则完成，主代理限定只读自审及终态核对通过）。** 来源冻结已提交`23a69a0`。新增独立`PackagePdfInspection.FormTemplates`及`fda-xfa-template-equality-v1`，只记录当前捕获PDF模板包与快照中2252/2253/3674/3938/3988归档template SHA精确一致。匹配携带文件路径/SHA、标准快照ID、来源表单ID/原件SHA、template SHA和算法版本。需完整且无矛盾的XFA读取、唯一template/datasets、正数有界包长度、独立捕获绑定，以及同快照精确来源清单/原件/provenance；旧快照、缺来源、改地址、未知模板、单XDP整体摘要、历史源或预算不足均不产生匹配。无脚本执行、字段解释、主表单/附件推断、可填写性或FDA5结论；无匹配也不证明不是官方表单。PDF验证器v26，其他引擎不变。
 
 red7项全部在输出属性不存在处失败，真实PDF解析/XFA前提通过。candidate首次缺PackageInputFile命名空间导致Api编译失败，未执行测试；补引用后candidate2七类159/165，五份官方XFA及已知匹配取消保留共6项失败。只读根因核对确认五份官方原件均带可正常打开的权限加密，template摘要与归档完全一致；新匹配逻辑错误要求!IsEncrypted，现只依据Processed和完整解码包，不修改PDF安全规则。无法解密的Encrypted处理状态仍拒绝；官方样本测试明确要求IsEncrypted=true、Processed、XFA完整。candidate3/final七类165/165，本项33、旧PDF验证23、AcroForm34、XFA35、表单来源10、通用来源16、快照合同14。主代理限定只读自审实现、接线、负例和权限加密修复通过，全程无子代理，不称独立审计。

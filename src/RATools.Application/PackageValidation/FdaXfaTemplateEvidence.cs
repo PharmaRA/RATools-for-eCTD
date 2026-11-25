@@ -51,9 +51,11 @@ internal static class FdaXfaTemplateEvidence
         private readonly Dictionary<string, PackageInputFile> _expected = new(StringComparer.Ordinal);
         private readonly HashSet<string> _observed = new(StringComparer.Ordinal);
         private readonly List<PackageFormTemplateMatch> _matches = [];
+        private readonly List<PackageFormFieldEvidence> _fields = [];
         private int _work;
         private bool _ready;
         internal IReadOnlyList<PackageFormTemplateMatch> Matches => _matches.AsReadOnly();
+        internal IReadOnlyList<PackageFormFieldEvidence> Fields => _fields.AsReadOnly();
 
         internal Inspection(PackageDeliveryInput input, PackageFileInspection files, PackageStandardsContext context, CancellationToken token)
         {
@@ -103,8 +105,10 @@ internal static class FdaXfaTemplateEvidence
             }
             if (match is null) return;
             _token.ThrowIfCancellationRequested();
-            _matches.Add(new(document.LogicalPath, captured.Sha256, _snapshotId!, match.FormId, match.SourceSha256,
-                template.Sha256, AlgorithmVersion));
+            var evidence = new PackageFormTemplateMatch(document.LogicalPath, captured.Sha256, _snapshotId!, match.FormId, match.SourceSha256,
+                template.Sha256, AlgorithmVersion);
+            _matches.Add(evidence);
+            if (Fda2252FieldEvidence.Read(document, evidence, _limits, ref _work, _token) is { } fields) _fields.Add(fields);
         }
 
         private static bool Digest(string value) => value.Length == 64 && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');

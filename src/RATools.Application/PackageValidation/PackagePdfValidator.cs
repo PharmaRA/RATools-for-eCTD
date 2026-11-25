@@ -375,7 +375,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             if (nonRelativeHyperlinks is not null) checks = checks.Append(nonRelativeHyperlinks);
             var hyperlinkZoom = _hyperlinkZoom.Finish(Incomplete);
             if (hyperlinkZoom is not null) checks = checks.Append(hyperlinkZoom);
-            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks, _formTemplates.Matches);
+            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks, _formTemplates.Matches, _formTemplates.Fields);
         }
         private static ValidationLocation Location(string path) => new(path.Split('/')[0], path);
     }
