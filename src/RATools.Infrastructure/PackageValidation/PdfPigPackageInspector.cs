@@ -2,13 +2,14 @@ using RATools.Application.PackageValidation;
 using RATools.Infrastructure.Publishing.Validation.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Exceptions;
 using UglyToad.PdfPig.Tokens;
 
 namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-v3";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-v4";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -31,11 +32,22 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             };
             cancellationToken.ThrowIfCancellationRequested();
             return new(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
-                navigation.DestinationsComplete, navigation.Reasons, form);
+                navigation.DestinationsComplete, navigation.Reasons, form,
+                basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
-            return new(PdfPigPdfInspector.ParseFailure(exception.Message), [], [], false, false, ["PDF parsing did not complete."]);
+            // Preserve the original generic parse facts. The separate category does not
+            // infer malformed content from an environmental or unsupported failure.
+            var category = exception switch
+            {
+                PdfDocumentEncryptedException => PdfContentProcessingStatus.Encrypted,
+                PdfDocumentStackDepthException => PdfContentProcessingStatus.ResourceLimited,
+                IOException => PdfContentProcessingStatus.InputUnavailable,
+                PdfDocumentFormatException when exception.InnerException is null => PdfContentProcessingStatus.InvalidContent,
+                _ => PdfContentProcessingStatus.Unknown
+            };
+            return new(PdfPigPdfInspector.ParseFailure(exception.Message), [], [], false, false, ["PDF parsing did not complete."], contentProcessing: category);
         }
     }
 

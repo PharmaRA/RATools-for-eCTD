@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA3102 PDF内容无法处理（Partial，主代理限定只读自审及终态核对通过）。** 3078已提交`e3dcbb0`。固定FDA PDF56要求区分内容损坏与无法取得检查结果。现有适配层宽泛ParseError不足以授权本条：新增默认Unknown的处理分类，仅无inner exception的PdfDocumentFormatException标InvalidContent，加密、深度限额、I/O及其他异常分别保留未知原因；旧ParseError与旧PDF规则判据不改。当前.pdf文件需精确capture hash及分类/基本事实一致后判定，旧调用者不提供新分类不自动通过。逐文件在旧PDF检查消耗额度前保留本条finding，后续限额不抹掉确定Fail；统一额度计入新finding。PDF验证器v3、适配器content-v4，file仍v77。历史引用、非.pdf发现、完整格式资格和进程隔离未闭合，保持Partial。
+
+首轮red仅Tests构建失败：固定程序集的深度异常构造函数非公开，文档签名不能直接new；Api/Migrator退出0，未运行业务测试。核对实际元数据后测试用反射注入，red2二十五项6过19败，均分类/规则状态/接入/取消断言，前提通过。真实有效/损坏PDF与注入加密/深度/I/O测试分开，后者不称真实加密或深度文件资格；补带inner格式错误、旧事实/矛盾/重复/缺来源、后续限额保留失败及Partial报告，candidate五类145/145。主代理完整读取实现/测试及接入diff自审，未发现阻断，全程无子代理。
+
+最终`fda3102-final-20261125`五类 **145/145、0失败/跳过**，3102为36。三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部子进程自然退出或全0。8/8输入匹配（6生产、1测试、catalog；库存及.sha256另核），manifest SHA`2f41371c9a4a7afc515c0bbc5c3811a163362cb59359bdd4b27e2503401fa540`，TRX SHA`0ed86cd93e22398e96725ba24d681886b82768d69ea0ad2f392cfc4a5f41f701`；目录141条canonical SHA`96c11bc9665de60bac8e622d71113069b051820bcdbdbafa3d6c380593f4a945`独立通过。主代理终态/八输入核对通过，四轮证据副本`backups/fda3102-20261125/evidence/`摘要一致，bin/obj已回收可恢复。库存67 Implemented、30 Partial、50 NotAssessed，待完整覆盖仍80、原107完整27。下一5005核对真实字体身份及完整嵌入证据，再5020；非全项目或监管资格。
+
 **FDA3078 最底层标准章节缺leaf（Partial，主代理限定只读自审及终态核对通过）。** 3029已提交`5a08c68`。固定FDA PDF56针对最底层章节，不是任意空XML元素。本项仅核对当前完整、DTD合格ICH模块2–5：固定schema无下级标准章节、实际祖先链一致且无扩展子节点时，直接leaf数为0给Low→Info提示。delete叶仍是leaf元素；主干必须唯一、准确输入/context绑定、双向且全图连根。区域M1、扩展实例及父章节无下级实例的解释未资格，保留Partial；原文“无需纠正”保留，文件引擎v77。
 
 首轮red十九项6过13败，其中12项为状态/接入/取消断言，1项delete叶缺必需checksum/checksum-type造成DTD夹具失败，不计业务红测。按固定DTD补齐两属性后fixture-red同组八项3过5败，全部失败落业务结果断言；原先“只重跑单例”的表述已更正为实际八个理论场景。补冻结结构/context冲突、Partial报告与预取消后candidate七类158/158；主代理完整读取新规则/测试及接入diff完成限定自审，未发现阻断，全程无子代理。

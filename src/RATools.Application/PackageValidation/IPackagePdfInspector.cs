@@ -14,11 +14,14 @@ public sealed record PdfDestinationTarget(string? FileSpecification = null, int?
 public sealed record PdfNavigationLink(string ObjectPath, int? SourcePageNumber, PdfDestinationTarget Target);
 public sealed record PdfNamedDestination(string Name, int? PageNumber, bool Invalid = false);
 
+public enum PdfContentProcessingStatus { Unknown, Processed, InvalidContent, Encrypted, ResourceLimited, InputUnavailable }
+
 public sealed class PackagePdfFacts
 {
     public PackagePdfFacts(PdfInspectionResult basics, IEnumerable<PdfNavigationLink> links,
         IEnumerable<PdfNamedDestination> destinations, bool navigationComplete, bool destinationsComplete,
-        IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null)
+        IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null,
+        PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown)
     {
         Basics = basics with
         {
@@ -31,6 +34,7 @@ public sealed class PackagePdfFacts
         DestinationsComplete = destinationsComplete;
         IncompleteReasons = Array.AsReadOnly((incompleteReasons ?? []).ToArray());
         Form = form ?? PackagePdfFormFacts.Unknown;
+        ContentProcessing = contentProcessing;
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -39,6 +43,7 @@ public sealed class PackagePdfFacts
     public bool DestinationsComplete { get; }
     public IReadOnlyList<string> IncompleteReasons { get; }
     public PackagePdfFormFacts Form { get; }
+    public PdfContentProcessingStatus ContentProcessing { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

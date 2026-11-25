@@ -3982,6 +3982,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-3102",
+      "authorityRuleId": "3102",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 56 error 3102; typed strict PdfPig 0.1.15 content-processing observations",
+      "effectiveFrom": "2013-04-30",
+      "title": "PDF contents must be processable",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured files named PDF with exact manifest binding and typed processing evidence.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Maps only unwrapped PdfDocumentFormatException to definite content failure, preserving distinct encrypted, resource-limit, I/O and unknown outcomes. Legacy ParseError text does not authorize a failure; captured hashes and facts must agree. Incremental results retain established failures when later work is limited. Historical-reference scope, non-PDF-named content discovery, full parser qualification and isolation remain unqualified.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfContentProcessingRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfContentProcessingRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfContentProcessingRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

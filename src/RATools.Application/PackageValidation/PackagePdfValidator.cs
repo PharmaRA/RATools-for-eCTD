@@ -54,6 +54,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         private readonly Dictionary<string, PackagePdfFacts?> _documents = new(StringComparer.Ordinal);
         private readonly List<ValidationFinding> _findings = [];
         private readonly List<PackagePdfLinkResolution> _links = [];
+        private readonly FdaPdfContentProcessingRule.Inspection _contentProcessing = new(input, files, context, cancellationToken);
         public bool Incomplete { get; set; }
 
         public void Read(IPackagePdfInspector inspector)
@@ -75,6 +76,8 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 _documents.Add(path, facts);
+                _contentProcessing.Observe(new(path, facts, _inventory[path].Sha256),
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount);
                 pages += facts.Basics.PageCount ?? 0;
                 links += facts.Links.Count;
                 if (pages > input.Packages.Target.Limits.MaxPdfPages || links > input.Packages.Target.Limits.MaxPdfLinks)
@@ -240,7 +243,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             string? actual = null, ValidationSeverity? severity = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_findings.Count >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
+            if (_findings.Count + _contentProcessing.FindingCount >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
             var catalog = location.SequenceNumber is { } sequence ? context.ForSequence(sequence).Catalog : context.Catalog;
             var declaredSeverity = catalog.Rules[rule].Severity;
             _findings.Add(new(rule, status, severity ?? declaredSeverity, code,
@@ -257,7 +260,9 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                     findings.Any(finding => finding.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : hasPdf ? CheckStatus.Pass : CheckStatus.NotApplicable;
                 return new RuleCheckResult(rule, status, "PDF checks retain observed facts and all unsupported conditions; see located findings.", findings);
             });
-            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value)), _links, checks);
+            var content = _contentProcessing.Finish(Incomplete);
+            if (content is not null) checks = checks.Append(content);
+            return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks);
         }
         private static ValidationLocation Location(string path) => new(path.Split('/')[0], path);
     }

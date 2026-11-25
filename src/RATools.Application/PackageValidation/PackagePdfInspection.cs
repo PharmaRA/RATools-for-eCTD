@@ -2,7 +2,7 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed record PackagePdfDocument(string LogicalPath, PackagePdfFacts? Facts);
+public sealed record PackagePdfDocument(string LogicalPath, PackagePdfFacts? Facts, string? CapturedSha256 = null);
 public sealed record PackagePdfLinkResolution(string SourceLogicalPath, PdfNavigationLink Link,
     string? TargetLogicalPath, CheckStatus Status);
 
@@ -15,7 +15,7 @@ public sealed class PackagePdfInspection
         HistoryManifestDigest = files.HistoryManifestDigest;
         ProfileSnapshotId = files.ProfileSnapshotId;
         LimitsDigest = files.LimitsDigest;
-        EngineVersion = "package-pdf-validator-v2;" + inspectorVersion;
+        EngineVersion = "package-pdf-validator-v3;" + inspectorVersion;
         Documents = Array.AsReadOnly(documents.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());
