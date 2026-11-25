@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5101 无法打开目标书签（Partial，主代理限定只读自审及终态核对通过）。** 5100已提交`887f01d`。固定criteria页63为Medium/Warning，保留未来提交和必要时联系纠正的措辞，不强制Replace。使用5100独立资格GoToR书签文件事实，字面解析目标；源当前PDF和目标当前/显式历史PDF分别绑定capture hash。只有目标InvalidContent且ParseError存在/PageCount未知/未加密的类型化一致失败可判5101，缺文件、未选历史、泛错误消息、I/O、加密、不支持和资源限制均不能证明损坏。按目标路径增量关联，源先读/目标先读均可，后续超限不抹已知Fail，Finish不重新读取。其他动作、格式、历史源PDF及完整解析器资格仍未闭合，无Pass。PDF验证器v11，适配器bookmarks-v11和file-v79不变。
+
+red20项全部缺规则断言，源解析和目标类型前提通过。candidate十三类607/608唯一失败为共享额度7的期望错误：源5条、3102目标1条、终态保留1条已占满，无额度发布5101；改为7未知/8失败并保留3102/总额度/终态断言，不改生产预算。补两侧hash/事实矛盾、旧调用者、缺来源、显式日期、两种顺序/重复观察、取消/后续限额、无PDF及Partial报告测试。主代理完整限定读取新规则/测试和接入diff，最后预算用例增量只读复审通过，全程无子代理，不称独立审计。
+
+最终`fda5101-final-20261125`十三类 **608/608、0失败/跳过**，5101为42、其余十二类566。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test均退出0，进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。6/6交付输入（4生产、1测试、catalog）与3/3既有直接依赖匹配最终清单；manifest SHA`873249b6bfcbdbe9be6bedef2066b4bdd3fbd2f7fd269d8a8ffa46d943cff025`，TRX SHA`b5eb3afa428ebbdeddd5bdbff450520bb355914e6db953b6cafcc795f684a503`。目录151条canonical SHA`ad26996adeaabde608ce9b61b1aebfc387642d1cc865ee32eb25f7d76b39c469`独立通过。red/candidate/final三轮证据原件在`.artifacts/local-check/fda5101-*-20261125/`，校验副本`backups/fda5101-20261125/evidence/`，bin/obj仅移入回收站可恢复。库存67 Implemented、40 Partial、40 NotAssessed，待完整覆盖80、原107完整27；下一5102，再5103，不代表全部书签或Formal资格。
+
 **FDA5100 缺目标文件书签（Partial，主代理限定只读自审及终态核对通过）。** 5057已提交`f53f282`。固定criteria页63要求书签不能指向不存在文件，Medium映射Warning，保留“未来提交/必要时联系纠正”措辞，不强制Replace。新增独立结构化GoToR书签文件目标事实，不靠通用链接ObjectPath前缀；有界遍历完整outline父子/首尾/前后链并排除冲突Dest/A、Next动作、错误Action类型、文件规范UF/F冲突及嵌入/平台变体。字面文件规范只经过编码后共享一次解码resolver，百分号不二次解码。源当前capture hash、成功解析、HasBookmarks一致性和归档来源/生效日期绑定；目标历史未选未知，所选完整清单确实缺目标才Fail，目标存在但坏内容不是5100。其他动作、文件/目标编码、历史源PDF及非.pdf内容未闭合，保持Partial、无Pass。PDF验证器v10、适配器bookmarks-v11，file仍v79。
 
 red28项全部因缺规则断言失败，前提通过；candidate十二类529/529。主代理限定只读自审发现基础书签事实矛盾和错误Action类型资格缺口，review-red两项均预期NE/实际Fail，修复后首final561/562，唯一失败为cycle夹具假设新reader能先于旧通用导航运行，实际旧阶段先触发PDF链接预算。改为入口受限NE并直接测试新reader循环/坏父链/预算拒绝，未修改旧导航或放宽生产判据。所有交付代码/测试及接入diff已限定只读复审，无子代理，不称独立审计。一次提前读取尚未生成manifest且未设置遇错停止导致无效9/9输出，已明确撤回；最终严格核对重新通过。一次清单键误全量打印未读取对应源码，后续改为精确键索引。
