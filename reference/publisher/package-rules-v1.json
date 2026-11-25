@@ -4276,6 +4276,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5105",
+      "authorityRuleId": "5105",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 64 error 5105",
+      "effectiveFrom": "2013-04-30",
+      "title": "Bookmark is external to the application",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Independently qualified current-PDF bookmarks using explicit absolute HTTP/HTTPS/mailto URI actions.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires complete bounded outline identity, unambiguous supported URI action, exact capture and consistent successful parsing. Absolute web/email URI classification is local only and findings retain category, not the original address. Relative/Base references, other schemes/actions, cross-application file specifications, historical source PDFs and complete ICH Q&A 64 qualification remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfExternalBookmarkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfExternalBookmarkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfExternalBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

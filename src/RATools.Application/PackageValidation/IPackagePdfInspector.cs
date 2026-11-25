@@ -24,6 +24,8 @@ public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, stri
 public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }
 public sealed record PdfBookmarkFileTarget(string ObjectPath, string FileSpecification, long? ZeroBasedPageIndex = null);
 public sealed record PdfBookmarkActionCount(string ObjectPath, int Count);
+public enum PdfExternalBookmarkKind { Unknown, Web, Email }
+public sealed record PdfExternalBookmark(string ObjectPath, PdfExternalBookmarkKind Kind);
 
 public sealed class PackagePdfFacts
 {
@@ -35,7 +37,8 @@ public sealed class PackagePdfFacts
         PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null,
         IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null, PdfImageOnlyStatus imageOnly = PdfImageOnlyStatus.Unknown,
         IEnumerable<PdfBookmarkFileTarget>? bookmarkFiles = null, int? qualifiedPageCount = null,
-        IEnumerable<PdfBookmarkActionCount>? multipleBookmarkActions = null)
+        IEnumerable<PdfBookmarkActionCount>? multipleBookmarkActions = null,
+        IEnumerable<PdfExternalBookmark>? externalBookmarks = null)
     {
         Basics = basics with
         {
@@ -58,6 +61,7 @@ public sealed class PackagePdfFacts
         BookmarkFiles = Array.AsReadOnly((bookmarkFiles ?? []).ToArray());
         QualifiedPageCount = qualifiedPageCount;
         MultipleBookmarkActions = Array.AsReadOnly((multipleBookmarkActions ?? []).ToArray());
+        ExternalBookmarks = Array.AsReadOnly((externalBookmarks ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -76,6 +80,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfBookmarkFileTarget> BookmarkFiles { get; }
     public int? QualifiedPageCount { get; }
     public IReadOnlyList<PdfBookmarkActionCount> MultipleBookmarkActions { get; }
+    public IReadOnlyList<PdfExternalBookmark> ExternalBookmarks { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

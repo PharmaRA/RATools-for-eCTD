@@ -11,8 +11,10 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
     private readonly HashSet<IndirectReference> _seen = [];
     private readonly List<PdfBookmarkFileTarget> _targets = [];
     private readonly List<PdfBookmarkActionCount> _actions = [];
+    private readonly List<PdfExternalBookmark> _external = [];
     private bool _complete;
     internal IReadOnlyList<PdfBookmarkActionCount> MultipleActions => _complete ? _actions.ToArray() : [];
+    internal IReadOnlyList<PdfExternalBookmark> ExternalBookmarks => _complete ? _external.ToArray() : [];
     private int _work = limits.MaxPdfObjects;
     private int _items;
 
@@ -49,6 +51,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             var prev = Get(item, "Prev");
             if (previous is null ? prev is not null : prev is not IndirectReferenceToken back || back.Data != previous.Data) return false;
             ReadAction(item, _items);
+            ReadExternal(item, _items);
             if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(item) is int count && count > 1)
                 _actions.Add(new($"outline[{_items}]/A", count));
             if (!Children(item, current, depth + 1)) return false;
@@ -87,6 +90,24 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         // Encoding/platform variants require separate qualification, not guessed conversion.
         if (string.IsNullOrWhiteSpace(value) || value.Any(character => character is < ' ' or > '~')) return;
         _targets.Add(new($"outline[{number}]/A/F", value, pageIndex));
+    }
+
+    private void ReadExternal(DictionaryToken item, int number)
+    {
+        if (HasAny(item, "Dest", "AA") || Resolve(Get(item, "A")) is not DictionaryToken action ||
+            Name(Get(action, "S")) != "URI" || HasAny(action, "Next", "IsMap") ||
+            Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
+        var text = Text(Resolve(Get(action, "URI")));
+        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~') ||
+            !Uri.TryCreate(text, UriKind.Absolute, out var uri) || !uri.IsWellFormedOriginalString()) return;
+        var kind = uri.Scheme switch
+        {
+            "http" or "https" when uri.Host.Length > 0 => PdfExternalBookmarkKind.Web,
+            "mailto" when uri.Host.Length > 0 => PdfExternalBookmarkKind.Email,
+            _ => PdfExternalBookmarkKind.Unknown
+        };
+        // Do not retain the address or query in the new regulatory evidence.
+        if (kind != PdfExternalBookmarkKind.Unknown) _external.Add(new($"outline[{number}]/A/URI", kind));
     }
 
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Bookmark evidence budget exceeded."); }

@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-v13";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-v14";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -36,7 +36,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
                 PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations,
-                navigation.ReadImageOnly(), navigation.ReadBookmarkFiles(), navigation.ReadQualifiedPageCount(), navigation.MultipleBookmarkActions);
+                navigation.ReadImageOnly(), navigation.ReadBookmarkFiles(), navigation.ReadQualifiedPageCount(), navigation.MultipleBookmarkActions, navigation.ExternalBookmarks);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -91,6 +91,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         public List<string> Reasons { get; } = [];
         public List<PdfMarkupAnnotation> MarkupAnnotations { get; } = [];
         public IReadOnlyList<PdfBookmarkActionCount> MultipleBookmarkActions { get; private set; } = [];
+        public IReadOnlyList<PdfExternalBookmark> ExternalBookmarks { get; private set; } = [];
         public bool NavigationComplete { get; private set; } = true;
         public bool DestinationsComplete { get; private set; } = true;
         public int BookmarkCount { get; private set; }
@@ -110,6 +111,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             var reader = new PdfPigPackageBookmarkReader(Resolve, limits, cancellationToken);
             var files = reader.Read(document.Structure.Catalog.CatalogDictionary);
             MultipleBookmarkActions = reader.MultipleActions;
+            ExternalBookmarks = reader.ExternalBookmarks;
             return files;
         }
         public int? ReadQualifiedPageCount() => new PdfPigPackagePageTreeReader(Resolve, limits, cancellationToken).Read(document.Structure.Catalog.CatalogDictionary, document.NumberOfPages);
