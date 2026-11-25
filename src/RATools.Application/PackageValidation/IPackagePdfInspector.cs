@@ -27,6 +27,8 @@ public sealed record PdfBookmarkActionCount(string ObjectPath, int Count);
 public enum PdfExternalBookmarkKind { Unknown, Web, Email }
 public sealed record PdfExternalBookmark(string ObjectPath, PdfExternalBookmarkKind Kind);
 public sealed record PdfInactiveBookmark(string ObjectPath);
+public enum PdfBookmarkZoomKind { Unknown, FitPage, FixedFactor }
+public sealed record PdfBookmarkZoom(string ObjectPath, PdfBookmarkZoomKind Kind);
 
 public sealed class PackagePdfFacts
 {
@@ -40,7 +42,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfBookmarkFileTarget>? bookmarkFiles = null, int? qualifiedPageCount = null,
         IEnumerable<PdfBookmarkActionCount>? multipleBookmarkActions = null,
         IEnumerable<PdfExternalBookmark>? externalBookmarks = null,
-        IEnumerable<PdfInactiveBookmark>? inactiveBookmarks = null)
+        IEnumerable<PdfInactiveBookmark>? inactiveBookmarks = null,
+        IEnumerable<PdfBookmarkZoom>? nonInheritingBookmarkZooms = null)
     {
         Basics = basics with
         {
@@ -65,6 +68,7 @@ public sealed class PackagePdfFacts
         MultipleBookmarkActions = Array.AsReadOnly((multipleBookmarkActions ?? []).ToArray());
         ExternalBookmarks = Array.AsReadOnly((externalBookmarks ?? []).ToArray());
         InactiveBookmarks = Array.AsReadOnly((inactiveBookmarks ?? []).ToArray());
+        NonInheritingBookmarkZooms = Array.AsReadOnly((nonInheritingBookmarkZooms ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -85,6 +89,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfBookmarkActionCount> MultipleBookmarkActions { get; }
     public IReadOnlyList<PdfExternalBookmark> ExternalBookmarks { get; }
     public IReadOnlyList<PdfInactiveBookmark> InactiveBookmarks { get; }
+    public IReadOnlyList<PdfBookmarkZoom> NonInheritingBookmarkZooms { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

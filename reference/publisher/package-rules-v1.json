@@ -4342,6 +4342,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5117",
+      "authorityRuleId": "5117",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 66 error 5117; FDA PDF specification 4.1 printed p. 6 bookmarks magnification; PDF Reference 1.7 Table 8.2 p. 582",
+      "effectiveFrom": "2013-04-30",
+      "title": "Bookmark does not inherit zoom",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current GoToR bookmarks explicitly selecting Fit or positive fixed XYZ zoom under archived FDA PDF specification 4.1 from 2016-09-21.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent bounded outline/action identity, complete explicit destination syntax, simple file specification, exact capture and consistent successful parsing. XYZ zero/null retains zoom and is not a violation; malformed/unsupported settings stay unknown. Internal/named targets, other modes/actions/file encodings, historical source PDFs and earlier policy remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBookmarkZoomRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBookmarkZoomRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBookmarkZoomRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -13,10 +13,12 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
     private readonly List<PdfBookmarkActionCount> _actions = [];
     private readonly List<PdfExternalBookmark> _external = [];
     private readonly List<PdfInactiveBookmark> _inactive = [];
+    private readonly List<PdfBookmarkZoom> _zooms = [];
     private bool _complete;
     internal IReadOnlyList<PdfBookmarkActionCount> MultipleActions => _complete ? _actions.ToArray() : [];
     internal IReadOnlyList<PdfExternalBookmark> ExternalBookmarks => _complete ? _external.ToArray() : [];
     internal IReadOnlyList<PdfInactiveBookmark> InactiveBookmarks => _complete ? _inactive.ToArray() : [];
+    internal IReadOnlyList<PdfBookmarkZoom> NonInheritingZooms => _complete ? _zooms.ToArray() : [];
     private int _work = limits.MaxPdfObjects;
     private int _items;
 
@@ -54,6 +56,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             if (previous is null ? prev is not null : prev is not IndirectReferenceToken back || back.Data != previous.Data) return false;
             ReadAction(item, _items);
             ReadExternal(item, _items);
+            ReadZoom(item, _items);
             // Key absence is not a failed resolution or an explicit null value.
             // Parent outline items may act as expand/collapse headings; leave them unknown.
             if (!HasAny(item, "A", "Dest", "AA", "SE", "First", "Last", "Count"))
@@ -97,6 +100,32 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         if (string.IsNullOrWhiteSpace(value) || value.Any(character => character is < ' ' or > '~')) return;
         _targets.Add(new($"outline[{number}]/A/F", value, pageIndex));
     }
+
+    private void ReadZoom(DictionaryToken item, int number)
+    {
+        if (HasAny(item, "Dest", "AA") || Resolve(Get(item, "A")) is not DictionaryToken action ||
+            Name(Get(action, "S")) != "GoToR" || HasAny(action, "Next") ||
+            Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
+        var file = Text(Resolve(Get(action, "F")));
+        if (string.IsNullOrWhiteSpace(file) || file.Any(character => character is < ' ' or > '~') ||
+            Resolve(Get(action, "D")) is not ArrayToken destination || destination.Length < 2 ||
+            Resolve(destination.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return;
+        var mode = Name(destination.Data[1]);
+        var kind = PdfBookmarkZoomKind.Unknown;
+        if (mode == "Fit" && destination.Length == 2) kind = PdfBookmarkZoomKind.FitPage;
+        else if (mode == "XYZ" && destination.Length == 5 && Coordinate(destination.Data[2]) && Coordinate(destination.Data[3]) &&
+            Resolve(destination.Data[4]) is NumericToken zoom && double.IsFinite(zoom.Double) && zoom.Double > 0)
+            kind = PdfBookmarkZoomKind.FixedFactor;
+        // PDF Reference 1.7 Table 8.2: XYZ zoom 0 or null retains the current factor.
+        if (kind != PdfBookmarkZoomKind.Unknown) _zooms.Add(new($"outline[{number}]/A/D", kind));
+    }
+
+    private bool Coordinate(IToken value) => Resolve(value) switch
+    {
+        NullToken => true,
+        NumericToken number => double.IsFinite(number.Double),
+        _ => false
+    };
 
     private void ReadExternal(DictionaryToken item, int number)
     {

@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5117 书签不继承缩放（Partial，主代理限定只读自审及终态核对通过）。** 5115已提交`c4cff1e`。固定criteria页66为Medium/Warning，纠正说明保持“Ensure that all bookmarks are set to 'Inherit Zoom'.”。固定FDA PDF4.1印刷页6要求与源文档相同放大比例；Adobe官方PDF Reference 1.7物理页582 Table8.2明确XYZ zoom为0/null保留当前比例、Fit重算适配页面。官方URL `https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf`经7890代理内存读取，首次表号文本匹配未命中后同页段XYZ正文核对，无落盘。首批独立读取完整合格GoToR Fit或XYZ合法坐标/正数有限zoom，0/null及坏参数未知不报违规。当前capture/解析事实、双归档来源和2016-09-21资格日期绑定。内部/命名目的地、其他模式/动作/文件规范、历史源和早期政策未闭合，保持Partial、无Pass。PDF验证器v17、适配器zoom-v16，file仍v79。
+
+red28项均缺规则断言且解析前提通过。candidate十九类877/880三项失败均为新增5117源finding先占一条额度，5101原7/8及5102原8/9边界前提变化；两份直接依赖测试先备份，保留旧额度未知对照并增加5101的9、5102的10可分配边界，明确5117已知Fail、3102实际状态、总预算和终态断言，不改生产预算。主代理完整限定只读自审新规则/读取增量/测试/接线及两份预算测试增量通过；一处截断接线已补读，全程无子代理，不称独立审计。
+
+最终`fda5117-final-20261126`十九类 **882/882、0失败/跳过**，5117为53、其余十八类829。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。11/11交付输入（7生产、3测试、catalog）匹配最终manifest；manifest SHA`187a79ad74adee03db71f43b8e8bf8fd6abc894bb36c8d53fa4c6016c1d398e2`，TRX SHA`b695f8f25bb4b7b6baf35a3ed889322b16f64237b9bdb5a3570d05270f526aee`。目录157条canonical SHA`eac0d6fe7d458e54b7393057ad4505b3879fe3d3e930edf3e8965e8384bbf802`独立通过。red/candidate/final证据在`.artifacts/local-check/fda5117-*-20261126/`，校验副本`backups/fda5117-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、46 Partial、34 NotAssessed，待完整覆盖80、原107完整27；下一5200，再5201，不代表完整书签或Formal资格。
+
 **FDA5115 非相对书签（Partial，主代理限定只读自审及终态核对通过）。** 5110已提交`f11b9e9`。固定criteria页65为Medium/Warning，保留未来提交仅使用相对书签的建议，不强制Replace。首批使用独立合格GoToR书签文件事实，检查原始斜杠根绝对路径；要求当前capture hash、Processed/HasBookmarks一致性。文件规范不URI解码、不trim、不套本机路径规则、不访问目标；finding只保留AbsoluteFileSpecification分类和书签位置。字面%2F不变成根斜杠，URI动作和F/UF冲突、FS/EF等不借用宽松通用链接事实。驱动器/其他平台编码、其他动作、历史源及引用指导文件的完整资格仍未闭合，保持Partial、无Pass。PDF验证器v16，适配器inactive-v15和file-v79未改。
 
 red22项全部缺规则断言且解析前提通过；candidate/final十八类827/827。本规则43项包含根斜杠/卷路径/网络路径、相对/百分号/URI/驱动器未知、文件字典F/UF一致与冲突、动作/结构隔离、hash/旧事实/历史源/矛盾事实、取消/重复观察、额度4未知/5失败、来源/日期/无PDF和Partial报告分类保密。主代理完整限定只读自审新增规则/测试及接线通过，无子代理，不称独立审计。

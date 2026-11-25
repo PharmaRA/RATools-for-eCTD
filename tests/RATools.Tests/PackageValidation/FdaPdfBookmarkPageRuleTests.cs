@@ -157,11 +157,13 @@ public sealed class FdaPdfBookmarkPageRuleTests
 
     [Theory]
     [InlineData(8, CheckStatus.NotEvaluated)]
-    [InlineData(9, CheckStatus.Fail)]
+    [InlineData(9, CheckStatus.NotEvaluated)]
+    [InlineData(10, CheckStatus.Fail)]
     public async Task SharedBudgetPreservesOnlyAllocatedFindings(int limit, CheckStatus expected)
     {
         var result = await Run(await Fixture("[1 /Fit]", "valid", limits: new() { MaxXmlFindings = limit }));
         Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5117").Status);
         Assert.True(result.Checks.Sum(item => item.Findings.Count) <= limit);
         Assert.Contains(result.Checks.SelectMany(item => item.Findings), item => item.Code == "PDF_INSPECTION_LIMIT");
     }

@@ -142,13 +142,15 @@ public sealed class FdaPdfCorruptBookmarkRuleTests
     }
 
     [Theory]
-    [InlineData(7, CheckStatus.NotEvaluated)]
-    [InlineData(8, CheckStatus.Fail)]
-    public async Task SharedFindingAllowanceRetainsKnownFailureOnlyWhenAllocated(int limit, CheckStatus expected)
+    [InlineData(7, CheckStatus.NotEvaluated, CheckStatus.NotEvaluated)]
+    [InlineData(8, CheckStatus.NotEvaluated, CheckStatus.Fail)]
+    [InlineData(9, CheckStatus.Fail, CheckStatus.Fail)]
+    public async Task SharedFindingAllowanceRetainsKnownFailureOnlyWhenAllocated(int limit, CheckStatus expected, CheckStatus contentStatus)
     {
         var result = await Run(await Fixture("broken", limits: new() { MaxXmlFindings = limit }));
         Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
-        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == "FDA47-3102").Status);
+        Assert.Equal(contentStatus, Assert.Single(result.Checks, item => item.RuleId == "FDA47-3102").Status);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5117").Status);
         Assert.True(result.Checks.Sum(item => item.Findings.Count) <= limit);
         Assert.Contains(result.Checks.SelectMany(item => item.Findings), item => item.Code == "PDF_INSPECTION_LIMIT");
     }
