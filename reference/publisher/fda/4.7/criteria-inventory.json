@@ -3052,10 +3052,10 @@
       "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have corrupt links.",
       "guidanceSource": "General good practice to ensure reviewability.",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-5201"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaPdfCorruptHyperlinkRule.cs", "tests/RATools.Tests/PackageValidation/FdaPdfCorruptHyperlinkRuleTests.cs"],
+        "note": "Qualified current page-Link GoToR references are associated with independently capture-bound existing PDFs having typed definite content-format opening failures. Either observation order and shared limits retain known failure. Missing files, unselected history, generic parse errors, encryption, I/O and resource limits do not prove corruption. Other actions/formats, annotation variants, historical source PDFs and complete parser qualification remain incomplete; no Pass is emitted."
       }
     },
     {

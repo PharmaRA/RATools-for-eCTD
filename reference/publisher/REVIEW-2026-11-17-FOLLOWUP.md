@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5201 无法打开目标的超链接（Partial，主代理限定只读自审及终态核对通过）。** 5200已提交`001d9bc`。固定criteria页67为Medium/Warning，生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立页面Link GoToR身份及源完整页数资格，与显式选入当前/历史PDF的类型化InvalidContent、ParseError、无页数/非加密事实关联；源/目标均精确绑定capture SHA。支持先源后目标及反向观察，字面文件规范只经一次解码，未选历史、缺文件、泛ParseError、加密、I/O和资源限制均不证明损坏。其他动作/格式、批注变体、历史源及完整parser资格保持Partial，无Pass。PDF验证器v19，file仍v79、适配器仍hyperlinks-v17。
+
+red20项全部缺规则断言且解析/损坏类别前提通过；candidate/final二十一类986/986，本规则44项覆盖当前/历史目标、两种顺序、损坏与缺失/好文件/非PDF名称、书签/OpenAction/URI隔离、字面百分号、五类处理结果、双侧hash及缺观察、页资格矛盾、重复观察/取消/后续超限、额度6未知/7失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、测试、接线和直接依赖通过，全程无子代理，不称独立审计。17处Observe及1处总预算已计入新finding，无预算绕过。
+
+最终`fda5201-final-20261126`二十一类 **986/986、0失败/跳过**，本规则44、其余二十类942。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。Api/DatabaseMigrator/Tests三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。6/6交付输入（4生产、1测试、catalog）加4/4直接依赖匹配manifest；manifest SHA`1462eb5a15e741f60053c773630fc54ca1e3ec107862f1740d2d5b3793b54b1e`，TRX SHA`ac44e140e20835432207d33b2d70d9516344edec759d83720f6a18135a1c32fa`。目录159条canonical SHA`7ebe8ab0b55696901d2b09ffe2ac5812f549b78eadaa383f287440600950088a`独立通过。red/candidate/final证据在`.artifacts/local-check/fda5201-*-20261126/`，校验副本`backups/fda5201-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、48 Partial、32 NotAssessed，待完整覆盖仍80、原107完整27；下一5202，再5203，不代表完整超链接或Formal资格。
+
 **FDA5200 缺目标文件超链接（Partial，主代理限定只读自审及终态核对通过）。** 5117已提交`8c2ee16`。固定criteria页66为Medium/Warning，保留未来提交/必要时联系纠正措辞。新增独立页面Link GoToR文件目标事实，不借通用ObjectPath或书签/OpenAction身份；要求完整页树资格、唯一间接批注引用、非退化有限矩形、可选P页归属一致、默认/零flags、无Dest/A冲突及无Next/AA/OC/AP/QuadPoints变体。文件规范支持简单ASCII或一致F/UF字典，按字面编码后共用一次解码resolver。当前源capture/完整页数一致，目标仅在显式选入当前/历史完整清单中确认缺失；未选历史未知，已有坏文件不是缺失。其他动作/批注/文件规范变体、历史源和非.pdf内容仍未闭合，无Pass。PDF验证器v18、适配器hyperlinks-v17，file仍v79。
 
 red29项中28项缺规则断言，1项wrong-page-parent在固定解析器先拒绝页父引用，不算业务红测；保留解析失败且5200未知对照。candidate/final二十类942/942。60项本规则含当前/历史缺文件与未选历史、已有坏文件、字面百分号/片段、Link/书签/打开动作/URI/正文注释隔离、P归属/矩形/隐藏标志、重复批注/页树资格/预算/I/O、hash/旧事实/源页码矛盾、取消/重复观察、额度3未知/4失败、来源/日期/无PDF及Partial报告。主代理完整限定只读自审reader/规则/测试及接线通过，全程无子代理，不称独立审计。共享预算仅机械追加16处Observe和1处总预算，替换次数及diff核对，无重构。

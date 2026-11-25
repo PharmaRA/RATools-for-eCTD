@@ -4386,6 +4386,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5201",
+      "authorityRuleId": "5201",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 67 error 5201",
+      "effectiveFrom": "2013-04-30",
+      "title": "Corrupt hyperlink pointing to an unopenable file",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link GoToR targets with existing explicitly selected PDFs having definite content-format opening failures.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent hyperlink identity, complete source-page qualification, literal path resolution and exact source/target capture binding. Incremental association supports either observation order and retains known failure under later limits. Missing files, unselected history, generic parse errors, encryption, I/O and limits cannot prove corruption. Other actions/formats, annotation variants, historical source PDFs and complete parser qualification remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfCorruptHyperlinkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfCorruptHyperlinkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfCorruptHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
