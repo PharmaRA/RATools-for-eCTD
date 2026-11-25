@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-v7";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-v8";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -35,7 +35,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 navigation.DestinationsComplete, navigation.Reasons, form,
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
-                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken));
+                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView());
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -101,6 +101,46 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         private bool _uriBase;
 
         public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count, limits).Read(document.Structure.Catalog.CatalogDictionary);
+        public PdfOpeningViewFacts? ReadOpeningView()
+        {
+            try
+            {
+                Count(0);
+                var catalog = document.Structure.Catalog.CatalogDictionary;
+                // PDF Reference Table 3.25: absent PageMode defaults to UseNone.
+                // A present but unresolvable/wrongly typed entry is not absence.
+                var mode = catalog.ContainsKey(NameToken.PageMode) ? Name(Get(catalog, "PageMode")) : "UseNone";
+                var actions = catalog.ContainsKey(NameToken.Create("OpenAction")) || catalog.ContainsKey(NameToken.Create("AA"));
+                bool? bookmarks = null;
+                if (!catalog.ContainsKey(NameToken.Create("Outlines"))) bookmarks = false;
+                else if (Get(catalog, "Outlines") is IndirectReferenceToken rootReference &&
+                    Dictionary(rootReference) is { } root && Name(Get(root, "Type")) == "Outlines")
+                {
+                    if (!root.ContainsKey(NameToken.Create("First")) && !root.ContainsKey(NameToken.Create("Last")))
+                    {
+                        if (!root.ContainsKey(NameToken.Create("Count")) || Resolve(Get(root, "Count")) is NumericToken { HasDecimalPlaces: false, Long: 0 }) bookmarks = false;
+                    }
+                    else if (Get(root, "First") is IndirectReferenceToken firstReference &&
+                        Get(root, "Last") is IndirectReferenceToken lastReference &&
+                        ValidItem(firstReference, rootReference) && ValidItem(lastReference, rootReference)) bookmarks = true;
+                }
+                return new(mode, bookmarks, actions);
+            }
+            catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
+            {
+                // Supplemental view evidence cannot turn a read failure into a
+                // content-corruption classification or proven bookmark absence.
+                return null;
+            }
+
+            bool ValidItem(IndirectReferenceToken reference, IndirectReferenceToken parent)
+            {
+                Count(0);
+                return reference.Data != parent.Data && Dictionary(reference) is { } item &&
+                    Get(item, "Parent") is IndirectReferenceToken owner && owner.Data == parent.Data &&
+                    Text(Resolve(Get(item, "Title"))) is not null;
+            }
+        }
         public IReadOnlyList<PdfFontObservation> ReadFonts()
         {
             try { return new PdfPigPackageFontReader(document, Resolve, Count).Read(); }

@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5045终态补记：red/candidate/final三轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5045 PDF打开设置（Partial，主代理限定只读自审及终态核对通过）。** 5040已提交`bff64f0`。固定criteria页61及FDA PDF规范4.1印刷页6要求有书签用Bookmarks Panel and Page、无书签用Page Only；Adobe官方PDF Reference 1.7第140页Table 3.25已内存读取，确认PageMode默认UseNone及各模式含义。本批仅覆盖面板：独立冻结PageMode/书签存在/打开动作事实，缺省UseNone不等同于显式错误类型或引用失败。书签缺失必须没有Outlines或合格空树；存在须间接根/First/Last、父引用及标题类型一致。事实与旧基本值冲突时未知。OpenAction/AA、布局、放大倍率、链接/书签继承缩放、其他未知树形、历史及非.pdf内容仍缺，保持Partial且无Pass。当前capture hash、Processed及两份归档来源/2016-09-21日期绑定；读取错误不污染3102。PDF验证器v7、适配器view-v8，文件仍v79，旧PageMode读取逻辑未改。
+
+red29项全部缺规则断言且解析前提通过；补直接事实、空树/坏父/标题、缺模式引用、旧/冲突事实、精确额度、取消/后续限额与Partial报告，candidate/final九类均362/362。主代理完整阅读新规则/测试和接入diff，限定只读自审通过；全程无子代理，不称独立审计。
+
+最终`fda5045-final-20261125`九类 **362/362、0失败/跳过**，本规则65、5040为45、5035为50、5005为57、3102为36、其余PDF组109。回归入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录，QualifiedGuard为`remaining107-qualification-20261121-v3`，精确九类Filter保留summary.json；Api/DatabaseMigrator/Tests三Build和顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8/8输入绑定（6生产、1测试、catalog）；manifest SHA`4b464025e6260aaf97942c84f70467232be50093666b0ce04669ffc2a94ef659`，TRX SHA`81c10920db898a9fece122b0ee2ec6957a91ed573996266a1721dafafb0d5288`；目录147条canonical SHA`bcdac91b8b3a7a76c4be32d0fe83686d8691d9da7002ec92de866df42ac2791e`独立通过。原证据`.artifacts/local-check/fda5045-*-20261125/`，校验副本`backups/fda5045-20261125/evidence/`。库存67 Implemented、36 Partial、44 NotAssessed，待完整覆盖80、原107完整27；下一5050密码保护，不代表完整打开设置或监管资格。
+
 5040终态补记：red/candidate/final三轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5040 Fast Web Access（Partial，主代理限定只读自审及终态核对通过）。** 5038已提交`c8f257d`。固定criteria页61要求未来提交启用Fast Web Access，保持Medium/Warning。另从Adobe官方`https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf`在内存中读取物理/印刷页1028–1030，核对F.2.2及Table F.1：线性化字典是文件头后的首个间接对象、完整位于前1024字节、Linearized为必需键。此前未取得正文的搜索/说明不算来源核对。固定PdfPig CoreTokenScanner严格读取有界前缀，必须读完字典/endobj及窗口内真实分隔符才判缺键；注释/字符串/嵌套键/后续对象不冒充顶层声明，转义键按真实token解码。首对象与Catalog分离，其他对象形态、读取不足/异常保持未知；声明存在仅DeclaredUnverified，绝不证明提示流、偏移或增量更新有效。新事实默认Unknown，绑定Processed、capture hash及归档criteria，补充读取异常不污染3102，统一额度与后续限额保留Fail。历史/非.pdf发现及完整线性化资格仍缺，无Pass分支；PDF验证器v6、适配器linearization-v7，文件仍v79。

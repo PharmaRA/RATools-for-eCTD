@@ -2751,10 +2751,14 @@
       "correctiveAction": "Ensure that PDF Opening settings are correct for all future submissions. The initial view of the PDF files should be set as Bookmarks and Pages in the Navigation Panel. If there are no bookmarks, the initial view should be set to Pages only. PDFs should open in 'most recent view' (i.e. 'inherit zoom' for bookmarks and links, and 'default' in open dialogue box).",
       "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-5045"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaPdfOpeningViewRule.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+          "tests/RATools.Tests/PackageValidation/FdaPdfOpeningViewRuleTests.cs"
+        ],
+        "note": "Checks qualified opening-panel settings with independent bookmark-presence evidence. Absent PageMode defaults to UseNone, while wrongly typed/unresolved values and inconsistent outline dictionaries remain unknown. Requires successful parsing, exact capture, both archived sources and PDF 4.1 applicability from 2016-09-21. Known modes must match UseOutlines with bookmarks or UseNone without them. Opening actions, layout, magnification, inherited zoom, uncertain outlines, history and non-PDF-named contents remain unqualified; no Pass is emitted. Final nine-class Windows regression 362/362, including 65 FDA5045 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {
