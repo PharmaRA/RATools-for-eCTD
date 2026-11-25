@@ -4518,6 +4518,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5217",
+      "authorityRuleId": "5217",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 69 error 5217; FDA PDF specification 4.1 p. 6",
+      "effectiveFrom": "2013-04-30",
+      "title": "Hyperlink does not inherit zoom",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link GoToR Fit and positive fixed XYZ zoom settings under archived PDF 4.1.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent Link identity, complete page/annotation inventory, unique ownership, capture binding and both archived regulatory sources. Fixed policy qualification begins 2016-09-21; earlier applicable dates remain unknown. XYZ zero/null retains zoom and is not a violation. Internal/named destinations, other modes/actions/file encodings, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkZoomRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkZoomRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfHyperlinkZoomRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -34,6 +34,8 @@ public sealed record PdfHyperlinkActionCount(string ObjectPath, int PageNumber, 
 public enum PdfExternalHyperlinkKind { Unknown, Web, Email }
 public sealed record PdfExternalHyperlink(string ObjectPath, int PageNumber, PdfExternalHyperlinkKind Kind);
 public sealed record PdfInactiveHyperlink(string ObjectPath, int PageNumber);
+public enum PdfHyperlinkZoomKind { Unknown, FitPage, FixedFactor }
+public sealed record PdfHyperlinkZoom(string ObjectPath, int PageNumber, PdfHyperlinkZoomKind Kind);
 
 public sealed class PackagePdfFacts
 {
@@ -52,7 +54,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfHyperlinkFileTarget>? hyperlinkFiles = null,
         IEnumerable<PdfHyperlinkActionCount>? multipleHyperlinkActions = null,
         IEnumerable<PdfExternalHyperlink>? externalHyperlinks = null,
-        IEnumerable<PdfInactiveHyperlink>? inactiveHyperlinks = null)
+        IEnumerable<PdfInactiveHyperlink>? inactiveHyperlinks = null,
+        IEnumerable<PdfHyperlinkZoom>? nonInheritingHyperlinkZooms = null)
     {
         Basics = basics with
         {
@@ -82,6 +85,7 @@ public sealed class PackagePdfFacts
         MultipleHyperlinkActions = Array.AsReadOnly((multipleHyperlinkActions ?? []).ToArray());
         ExternalHyperlinks = Array.AsReadOnly((externalHyperlinks ?? []).ToArray());
         InactiveHyperlinks = Array.AsReadOnly((inactiveHyperlinks ?? []).ToArray());
+        NonInheritingHyperlinkZooms = Array.AsReadOnly((nonInheritingHyperlinkZooms ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -107,6 +111,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfHyperlinkActionCount> MultipleHyperlinkActions { get; }
     public IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; }
     public IReadOnlyList<PdfInactiveHyperlink> InactiveHyperlinks { get; }
+    public IReadOnlyList<PdfHyperlinkZoom> NonInheritingHyperlinkZooms { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

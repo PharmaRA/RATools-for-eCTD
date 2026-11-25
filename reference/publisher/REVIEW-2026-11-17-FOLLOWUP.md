@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5217 超链接不继承缩放（Partial，主代理限定只读自审及终态核对通过）。** 5215已提交`300d2cd`。固定criteria页69为Medium/Warning，纠正说明保持“Ensure that all links in future submissions are set to 'Inherit Zoom'.”。固定PDF4.1印刷页6正文及SHA再次核对，要求目的页与源文档同一放大比例；沿用已核对Adobe表8.2的Fit重算、XYZ正数固定、0/null保留语义。独立合格页面Link新增Fit/合法完整XYZ正数缩放事实，完整批注清单/唯一引用后发布；源capture与完整页数、双归档来源及2016-09-21资格日期绑定。内部/命名目的地、其他模式/动作/文件编码、批注变体、历史源和早期政策仍Partial，无Pass。PDF验证器v25、适配器hyperlinks-pages-actions-external-inactive-zoom-v22，file仍v79。
+
+red29项全部缺规则断言且前提通过；candidate1273/1276三项失败均为新5217源finding使5201/5202旧可用额度减少。两份测试先备份，5201保留6/7未知并加8失败，3102在6未知/7起失败；5202保留7/8未知并加9失败，均明确5217 Fail、总额度及终态诊断，不改生产预算。最终本规则56项含Fit/XYZ正数/0/null/坏参数、非Link/内部/命名模式、动作/文件变体、适配器独立事实、hash/页资格/旧事实/类别矛盾、取消/重复观察/额度、双来源/日期/无PDF及Partial报告。主代理限定只读自审实现、测试及两份预算测试增量通过，无子代理，不称独立审计；23处Observe及1处总预算计入新finding。
+
+最终`fda5217-final-20261126`二十七类 **1278/1278、0失败/跳过**，5217为56、5201为45、5202为51，其余24类1126。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。11/11交付输入（7生产、3测试、catalog）匹配manifest；manifest SHA`477204341b1aa2d1aff9479cc0623be421f5e29fcfdec1c283aa74550983b171`，TRX SHA`2050a4d6983626d9a4787b66967d168575e45078f3f2079dc4c1c67f2da88554`。目录165条canonical SHA`d3ae370ee2f8853de1b05dbd093b60ece670b02d704226819a4e1a74ef7bb3b2`通过。red/candidate/final证据在`.artifacts/local-check/fda5217-*-20261126/`，校验副本`backups/fda5217-20261126/evidence/`，三轮bin/obj只移入回收站可恢复，候选失败证据保留。库存67 Implemented、54 Partial、26 NotAssessed，待完整覆盖仍80、原107完整27；首轮队列到尾不是107项完成。后续按原顺序返回FDA5，继续实际模板身份/主表单与附件区分及字段映射，保留其他真实依赖，不重复已完成规则初审。
+
 **FDA5215 非相对超链接（Partial，主代理限定只读自审及终态核对通过）。** 5210已提交`d3ca208`。固定criteria页69为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。复用独立合格页面Link GoToR文件规范，当前源完整页数及capture绑定后检查原始斜杠根绝对路径。文件值不解码、不trim、不按本机路径解析、不访问目标，新finding仅保留AbsoluteFileSpecification类别。URI/驱动器变体、其他编码/动作、批注变体、历史源及完整引用指南资格仍Partial，无Pass。PDF验证器v24，适配器仍inactive-v21，file仍v79。
 
 red27项全部缺规则断言且解析前提通过；candidate/final二十六类1220/1220，本规则47项覆盖斜杠根/网络样式/F与UF字典、相对路径/原始百分号/前导空格/驱动器/URI、书签/OpenAction/页归属/隐藏/冲突/Next隔离、hash/旧事实/页资格/历史源、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及分类不含原目标路径的Partial报告。主代理限定只读自审规则、测试、接线及直接依赖通过，无子代理，不称独立审计；22处Observe及1处总预算计入新finding，不改reader。

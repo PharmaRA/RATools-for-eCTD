@@ -11,6 +11,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
     internal IReadOnlyList<PdfHyperlinkActionCount> MultipleActions { get; private set; } = [];
     internal IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; private set; } = [];
     internal IReadOnlyList<PdfInactiveHyperlink> InactiveHyperlinks { get; private set; } = [];
+    internal IReadOnlyList<PdfHyperlinkZoom> NonInheritingZooms { get; private set; } = [];
 
     internal IReadOnlyList<PdfHyperlinkFileTarget> Read(IReadOnlyList<DictionaryToken> pages,
         IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount)
@@ -19,10 +20,12 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
         var actions = new List<(IndirectReference Reference, PdfHyperlinkActionCount Count)>();
         var external = new List<(IndirectReference Reference, PdfExternalHyperlink Link)>();
         var inactive = new List<(IndirectReference Reference, PdfInactiveHyperlink Link)>();
+        var zooms = new List<(IndirectReference Reference, PdfHyperlinkZoom Zoom)>();
         var references = new Dictionary<IndirectReference, int>();
         MultipleActions = [];
         ExternalHyperlinks = [];
         InactiveHyperlinks = [];
+        NonInheritingZooms = [];
         try
         {
             if (qualifiedPageCount is null or < 1 || qualifiedPageCount != pages.Count || pageNumbers.Count != pages.Count) return [];
@@ -61,6 +64,9 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         var kind = ReadExternal(annotation);
                         if (kind is PdfExternalHyperlinkKind.Web or PdfExternalHyperlinkKind.Email)
                             external.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/URI", pageIndex + 1, kind)));
+                        var zoom = ReadZoom(annotation);
+                        if (zoom is PdfHyperlinkZoomKind.FitPage or PdfHyperlinkZoomKind.FixedFactor)
+                            zooms.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/D", pageIndex + 1, zoom)));
                         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
                             Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") continue;
                         var destination = Resolve(Get(action, "D"));
@@ -93,6 +99,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             MultipleActions = actions.Where(action => references[action.Reference] == 1).Select(action => action.Count).ToArray();
             ExternalHyperlinks = external.Where(link => references[link.Reference] == 1).Select(link => link.Link).ToArray();
             InactiveHyperlinks = inactive.Where(link => references[link.Reference] == 1).Select(link => link.Link).ToArray();
+            NonInheritingZooms = zooms.Where(zoom => references[zoom.Reference] == 1).Select(zoom => zoom.Zoom).ToArray();
             return files;
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
@@ -101,6 +108,29 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             return [];
         }
     }
+
+    private PdfHyperlinkZoomKind ReadZoom(DictionaryToken annotation)
+    {
+        if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
+            Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") return PdfHyperlinkZoomKind.Unknown;
+        var file = Text(Resolve(Get(action, "F")));
+        if (string.IsNullOrWhiteSpace(file) || file.Any(character => character is < ' ' or > '~') ||
+            Resolve(Get(action, "D")) is not ArrayToken destination || destination.Length < 2 ||
+            Resolve(destination.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return PdfHyperlinkZoomKind.Unknown;
+        var mode = Name(destination.Data[1]);
+        if (mode == "Fit" && destination.Length == 2) return PdfHyperlinkZoomKind.FitPage;
+        if (mode == "XYZ" && destination.Length == 5 && Coordinate(destination.Data[2]) && Coordinate(destination.Data[3]) &&
+            Resolve(destination.Data[4]) is NumericToken zoom && double.IsFinite(zoom.Double) && zoom.Double > 0) return PdfHyperlinkZoomKind.FixedFactor;
+        // PDF Reference 1.7 Table 8.2: XYZ zoom 0 or null retains the current factor.
+        return PdfHyperlinkZoomKind.Unknown;
+    }
+
+    private bool Coordinate(IToken value) => Resolve(value) switch
+    {
+        NullToken => true,
+        NumericToken number => double.IsFinite(number.Double),
+        _ => false
+    };
 
     private PdfExternalHyperlinkKind ReadExternal(DictionaryToken annotation)
     {

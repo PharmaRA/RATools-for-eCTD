@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-v21";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v22";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -36,7 +36,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
                 PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations,
-                navigation.ReadImageOnly(), navigation.ReadBookmarkFiles(), navigation.ReadQualifiedPageCount(), navigation.MultipleBookmarkActions, navigation.ExternalBookmarks, navigation.InactiveBookmarks, navigation.NonInheritingBookmarkZooms, navigation.ReadHyperlinkFiles(), navigation.MultipleHyperlinkActions, navigation.ExternalHyperlinks, navigation.InactiveHyperlinks);
+                navigation.ReadImageOnly(), navigation.ReadBookmarkFiles(), navigation.ReadQualifiedPageCount(), navigation.MultipleBookmarkActions, navigation.ExternalBookmarks, navigation.InactiveBookmarks, navigation.NonInheritingBookmarkZooms, navigation.ReadHyperlinkFiles(), navigation.MultipleHyperlinkActions, navigation.ExternalHyperlinks, navigation.InactiveHyperlinks, navigation.NonInheritingHyperlinkZooms);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -123,6 +123,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         public IReadOnlyList<PdfHyperlinkActionCount> MultipleHyperlinkActions { get; private set; } = [];
         public IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; private set; } = [];
         public IReadOnlyList<PdfInactiveHyperlink> InactiveHyperlinks { get; private set; } = [];
+        public IReadOnlyList<PdfHyperlinkZoom> NonInheritingHyperlinkZooms { get; private set; } = [];
         public IReadOnlyList<PdfHyperlinkFileTarget> ReadHyperlinkFiles()
         {
             var reader = new PdfPigPackageHyperlinkReader(Resolve, limits, cancellationToken);
@@ -130,6 +131,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             MultipleHyperlinkActions = reader.MultipleActions;
             ExternalHyperlinks = reader.ExternalHyperlinks;
             InactiveHyperlinks = reader.InactiveHyperlinks;
+            NonInheritingHyperlinkZooms = reader.NonInheritingZooms;
             return files;
         }
         public PdfOpeningViewFacts? ReadOpeningView()
