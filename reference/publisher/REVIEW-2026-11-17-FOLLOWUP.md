@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5第二轮前置：XML候选组与PDF字段证据精确关联（不计规则完成，主代理限定只读自审及终态核对通过）。** 字段证据已提交`07aeb20`。新增交付结果`FormEvidenceAssociations`及`form-leaf-evidence-association-v1`，以当前完整XML候选组、唯一组/叶归属、原始href与一次解码结果、引用位置、捕获文件SHA、同快照模板/字段事实建立关联。模板与字段用一次有界重放核对，不重新读取文件、不逐叶重跑PDF事实。缺目标/delete/查询或片段引用、重复/冲突事实及绑定不一致不关联；同一文件的不同叶保留各自位置。SharedM1全部候选申请及原始form-type保留，不依据containing-files或文件名挑选申请，也不认定同组附件是主表单。交付引擎v6，PDF仍v27、file仍v79；不产生FDA5结论。
+
+red6项均在关联输出不存在处失败，XML与PDF字段前提通过。candidate首轮因AlgorithmVersion表达式触发CA1822编译失败，改为实例只读属性后candidate2十一类252/252。限定只读审查发现每叶复制候选申请列表未逐次计入额度，review-red两项1过1败复现“少1额度仍发布10条关联”；逐叶逐候选扣减后final254/254，预算不扩大，保留刚好通过边界。主代理限定只读自审实现、接线、42项关联测试及预算修复通过，无子代理，不称独立审计。包括单/多申请、附件、百分号别名、绑定篡改/重复索引、同文件多叶、取消与早/晚预算耗尽，未把关联事实扩写为主表单或业务合格。
+
+最终`fda5-association-final-20261126`十一类 **254/254、0失败/跳过**，关联42、表单组17、字段30、模板33、PDF验证23、AcroForm34、XFA35、表单来源10、通用来源16、快照14。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，26/26及5/5受保护，不称全部自然退出。3/3交付输入及4/4直接依赖、2/2归档资源匹配manifest；manifest SHA`d86cd60383e5d067880feca8d3726fd8cc9d4f958a7213bf9f9ea1705adb4df9`，TRX SHA`c75557654c4d7ec8d5aa51b7c680ac5afe9bf97c50aaf7c49cdbcf73d81e60d9`。证据`.artifacts/local-check/fda5-association-*-20261126/`，校验副本`backups/fda5-association-20261126/evidence/`；red/candidate/candidate2/review-red/final五轮bin/obj移入回收站可恢复，失败日志保留。目录165条及库存67 Implemented、54 Partial、26 NotAssessed不变，待完整覆盖80、原107完整27。下一FDA5仍需实际XFA数据绑定/显示值及主表单身份、业务适用性资格；先核对固定2252模板的默认绑定、中心与延续号语义，再据有证据的分支建立失败用例，不以关联完成代替FDA5完成。
+
 **FDA5第二轮前置：2252原始申请字段证据（不计规则完成，主代理限定只读自审及终态核对通过）。** 模板匹配已提交`5338437`。固定2252模板字段层级与datasets层级不同，官方模板明确主申请号6位、可选延续号4位，中心切换脚本只控制延续号访问属性，未执行脚本。新增`FormFieldEvidence`及`fda2252-raw-datasets-v1`，只在精确2252模板匹配后，按datasets完整命名空间/祖先路径提取类型、主号、延续号原始状态：Unknown/Missing/Empty/Text。完整有界扫描后才发布，重复/复杂/命名空间或祖先矛盾未知；空字符串与缺失分开，前导零、空格和Choose One原样保留，不拼接、不规范化、不推断显示值或主表单身份。记录模板匹配及datasets SHA；不生成FDA5结论，预算耗尽不发布半份字段记录。PDF验证器v27，其余引擎未改。
 
 red8项全部在字段输出不存在处失败且模板匹配前提通过；candidate/final八类195/195，本项30、模板33、PDF验证23、AcroForm34、XFA35、表单来源10、通用来源16、快照合同14。覆盖真实官方空白PDF、合成原始填写值、缺字段/空值/重复实例/复杂节点/孤立子节点、祖先缺失或冲突、三个字段独立状态、无模板/不完整XFA、文件/模板/路径绑定、对象/节点/字符预算及取消。主代理限定只读自审实现、接线和测试通过，无子代理，不称独立审计。合成填写事实不等于真实填写PDF渲染资格，未执行XFA绑定/脚本或业务适用性验证。

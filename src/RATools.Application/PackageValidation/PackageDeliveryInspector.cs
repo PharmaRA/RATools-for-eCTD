@@ -4,7 +4,7 @@ namespace RATools.Application.PackageValidation;
 
 public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
 {
-    public const string DeliveryEngineVersion = "package-delivery-v5";
+    public const string DeliveryEngineVersion = "package-delivery-v6";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
     public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v79;package-pdf-validator-v27;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
@@ -22,8 +22,9 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
             var pdf = await new PackagePdfValidator(pdfInspector, timeProvider, context, lifecycle).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
             var regional = new PackageRegionalInspector(context).Inspect(input.Packages, lifecycle, linked.Token);
             var structure = InspectReachability(input, lifecycle, files, pdf, context, linked.Token);
+            var formAssociations = PackageFormEvidenceAssociationReader.Read(input, files, pdf, context, linked.Token);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
-            return new(input, lifecycle, files, pdf, structure, context.Catalog, regional, context.SelectionDate, context.SnapshotId);
+            return new(input, lifecycle, files, pdf, structure, context.Catalog, regional, context.SelectionDate, context.SnapshotId, formAssociations);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { throw new PackageInputException("INPUT-LIMITS", "DELIVERY_INSPECTION_TIMEOUT", "The complete delivery inspection exceeded its configured deadline."); }
@@ -88,12 +89,14 @@ public sealed class PackageDeliveryInspection
         ["INPUT-LAYOUT", "INPUT-PATHS", "INPUT-LIMITS", "INPUT-STABLE", "ZIP-PATHS", "ZIP-LIMITS"];
     internal PackageDeliveryInspection(PackageDeliveryInput input, PackageLifecycleInspection lifecycle, PackageFileInspection files,
         PackagePdfInspection pdf, RuleCheckResult structure, ValidationRuleCatalog? catalog = null, PackageRegionalInspection? regional = null,
-        DateOnly? selectionDate = null, string? standardsSnapshotId = null)
+        DateOnly? selectionDate = null, string? standardsSnapshotId = null,
+        IEnumerable<PackageFormEvidenceAssociation>? formEvidenceAssociations = null)
     {
         InputDigest = input.InputDigest;
         Lifecycle = lifecycle;
         Files = files;
         Pdf = pdf;
+        FormEvidenceAssociations = Array.AsReadOnly((formEvidenceAssociations ?? []).ToArray());
         Regional = regional ?? new([]);
         _catalog = catalog ?? PackageValidationCatalog.Current;
         _selectionDate = selectionDate;
@@ -127,6 +130,7 @@ public sealed class PackageDeliveryInspection
     public PackageLifecycleInspection Lifecycle { get; }
     public PackageFileInspection Files { get; }
     public PackagePdfInspection Pdf { get; }
+    public IReadOnlyList<PackageFormEvidenceAssociation> FormEvidenceAssociations { get; }
     public PackageRegionalInspection Regional { get; }
     public IReadOnlyList<RuleCheckResult> Checks { get; }
     public ValidationReport CreateReport(PackageValidationMode mode, ValidationBinding? exactBinding = null, IReadOnlyList<string>? standardsBlockingReasons = null) => ValidationReport.Create(_catalog,
