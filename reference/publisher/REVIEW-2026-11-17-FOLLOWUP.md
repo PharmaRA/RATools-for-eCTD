@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5202 不存在目的页的超链接（Partial，主代理限定只读自审及终态核对通过）。** 5201已提交`f088f59`。固定criteria页67为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立合格页面Link GoToR新增可选原始零基页索引，旧事实默认null，命名目标不伪造索引。源完整页树、页归属及capture资格与目标完整页树独立绑定；目标逐层Count/Parent/唯一引用及解析页数一致才可证明越界，不借旧PageCount。先源后目标、先目标后源、字面路径、取消/额度均保留已知Fail。命名目标、内部链接、其他模式/动作、批注变体及历史源仍Partial，无Pass。PDF验证器v20、适配器hyperlinks-pages-v18，file仍v79。
+
+red21项全部缺规则断言且源解析/目标完整页数前提通过；candidate/final二十二类1036/1036，本规则50项覆盖零基0/1/大整数、负数/小数/命名目标/其他模式、缺文件/坏文件/未选历史、书签/OpenAction隔离、两种观察顺序、双侧hash/缺观察/旧事实/页数矛盾、重复观察/取消/后续超限、额度7未知/8失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader增量、测试、接线和页树直接依赖通过，全程无子代理，不称独立审计；18处Observe及1处总预算计入新finding，无重构。首次测试新增补丁封装错误被拒绝，未写入；一次只读命令参数错误未执行，均限定重试并计入过程。
+
+最终`fda5202-final-20261126`二十二类 **1036/1036、0失败/跳过**，本规则50、其余二十一类986。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。9/9交付输入（7生产、1测试、catalog）加1/1页树直接依赖匹配manifest；manifest SHA`f882506fbcb75c11928ed866dd29c81ab852d31c4f9a69159e34eca14b136731`，TRX SHA`74416a9429581a7bada9b2893f131b2fb6e16b999b747aa0f26664a188414503`。目录160条canonical SHA`20e23890603defcf8f275ecaf617e61e77955a40ade601c4d316c162f84a0498`通过。red/candidate/final证据在`.artifacts/local-check/fda5202-*-20261126/`，校验副本`backups/fda5202-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、49 Partial、31 NotAssessed，待完整覆盖仍80、原107完整27；下一5203，再5205，不代表完整超链接或Formal资格。
+
 **FDA5201 无法打开目标的超链接（Partial，主代理限定只读自审及终态核对通过）。** 5200已提交`001d9bc`。固定criteria页67为Medium/Warning，生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立页面Link GoToR身份及源完整页数资格，与显式选入当前/历史PDF的类型化InvalidContent、ParseError、无页数/非加密事实关联；源/目标均精确绑定capture SHA。支持先源后目标及反向观察，字面文件规范只经一次解码，未选历史、缺文件、泛ParseError、加密、I/O和资源限制均不证明损坏。其他动作/格式、批注变体、历史源及完整parser资格保持Partial，无Pass。PDF验证器v19，file仍v79、适配器仍hyperlinks-v17。
 
 red20项全部缺规则断言且解析/损坏类别前提通过；candidate/final二十一类986/986，本规则44项覆盖当前/历史目标、两种顺序、损坏与缺失/好文件/非PDF名称、书签/OpenAction/URI隔离、字面百分号、五类处理结果、双侧hash及缺观察、页资格矛盾、重复观察/取消/后续超限、额度6未知/7失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、测试、接线和直接依赖通过，全程无子代理，不称独立审计。17处Observe及1处总预算已计入新finding，无预算绕过。

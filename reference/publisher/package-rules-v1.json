@@ -4408,6 +4408,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5202",
+      "authorityRuleId": "5202",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 67 error 5202",
+      "effectiveFrom": "2013-04-30",
+      "title": "Hyperlink referencing a non-existent named destination or page",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link GoToR Fit page indexes and complete captured target PDF page trees.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Independent hyperlink identity, raw nonnegative zero-based page index, complete page-tree qualification and exact source/target capture binding are required. Either observation order and shared limits retain known failure. Missing/unreadable files, legacy page counts and unselected history cannot establish absent pages. Named destinations, internal links, other modes/actions, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkPageRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkPageRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfHyperlinkPageRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackagePageTreeReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

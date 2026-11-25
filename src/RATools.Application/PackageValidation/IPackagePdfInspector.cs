@@ -29,7 +29,7 @@ public sealed record PdfExternalBookmark(string ObjectPath, PdfExternalBookmarkK
 public sealed record PdfInactiveBookmark(string ObjectPath);
 public enum PdfBookmarkZoomKind { Unknown, FitPage, FixedFactor }
 public sealed record PdfBookmarkZoom(string ObjectPath, PdfBookmarkZoomKind Kind);
-public sealed record PdfHyperlinkFileTarget(string ObjectPath, int PageNumber, string FileSpecification);
+public sealed record PdfHyperlinkFileTarget(string ObjectPath, int PageNumber, string FileSpecification, long? ZeroBasedPageIndex = null);
 
 public sealed class PackagePdfFacts
 {

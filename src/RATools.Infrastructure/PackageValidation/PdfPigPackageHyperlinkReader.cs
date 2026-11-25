@@ -47,9 +47,11 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
                             Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") continue;
                         var destination = Resolve(Get(action, "D"));
+                        long? pageTarget = null;
                         if (destination is ArrayToken array)
                         {
                             if (array.Length != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } targetPage || targetPage.Long < 0 || Name(array.Data[1]) != "Fit") continue;
+                            pageTarget = targetPage.Long;
                         }
                         else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) continue;
                         var file = Resolve(Get(action, "F")); string? specification;
@@ -62,7 +64,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         }
                         else specification = Text(file);
                         if (string.IsNullOrWhiteSpace(specification) || specification.Any(character => character is < ' ' or > '~')) continue;
-                        candidates.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/F", pageIndex + 1, specification)));
+                        candidates.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/F", pageIndex + 1, specification, pageTarget)));
                     }
                     catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
                     {
