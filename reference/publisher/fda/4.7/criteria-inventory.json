@@ -2661,8 +2661,12 @@
       "implementation": {
         "status": "NotAssessed",
         "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "evidence": [
+          "src/RATools.Application/PackageValidation/PackageFormBindings.cs",
+          "src/RATools.Application/PackageValidation/PackageFormBindingReader.cs",
+          "src/RATools.Application/PackageValidation/PackagePdfFormFacts.cs"
+        ],
+        "note": "Dependency assessment 2026-11-25: criteria p.59 requires the actual application form to be in the location required by the applicable M1 specification. Current XML form groups explicitly permit attachments and supply candidate associations, not main-form content identity. Form-type metadata, filename, or group membership cannot identify every actual form, especially a form placed outside the expected group. Needs versioned content identity distinguishing main forms and attachments, followed by applicable location mapping. Existing 2045 metadata eligibility must not be relabeled as complete 5034 coverage. No implementation or qualification claimed; remains NotAssessed."
       }
     },
     {
