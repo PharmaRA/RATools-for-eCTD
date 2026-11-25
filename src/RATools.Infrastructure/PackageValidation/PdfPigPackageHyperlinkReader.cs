@@ -8,12 +8,15 @@ namespace RATools.Infrastructure.PackageValidation;
 internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolve, PackageReadLimits limits, CancellationToken token)
 {
     private int _work = limits.MaxPdfObjects;
+    internal IReadOnlyList<PdfHyperlinkActionCount> MultipleActions { get; private set; } = [];
 
     internal IReadOnlyList<PdfHyperlinkFileTarget> Read(IReadOnlyList<DictionaryToken> pages,
         IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount)
     {
         var candidates = new List<(IndirectReference Reference, PdfHyperlinkFileTarget Target)>();
+        var actions = new List<(IndirectReference Reference, PdfHyperlinkActionCount Count)>();
         var references = new Dictionary<IndirectReference, int>();
+        MultipleActions = [];
         try
         {
             if (qualifiedPageCount is null or < 1 || qualifiedPageCount != pages.Count || pageNumbers.Count != pages.Count) return [];
@@ -44,6 +47,8 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                             coordinates[coordinate] = value.Double;
                         }
                         if (!valid || coordinates[2] <= coordinates[0] || coordinates[3] <= coordinates[1]) continue;
+                        if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(annotation) is int count && count > 1)
+                            actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
                         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
                             Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") continue;
                         var destination = Resolve(Get(action, "D"));
@@ -72,7 +77,9 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                     }
                 }
             }
-            return candidates.Where(candidate => references[candidate.Reference] == 1).Select(candidate => candidate.Target).ToArray();
+            var files = candidates.Where(candidate => references[candidate.Reference] == 1).Select(candidate => candidate.Target).ToArray();
+            MultipleActions = actions.Where(action => references[action.Reference] == 1).Select(action => action.Count).ToArray();
+            return files;
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
         {

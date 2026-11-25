@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5203 多动作超链接（Partial，主代理限定只读自审及终态核对通过）。** 5202已提交`64fa502`。固定criteria页68为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立页面Link身份完成页树/批注资格后复用有界GoToR动作链reader，新增独立动作数事实；完整批注清单和唯一间接引用资格完成后才发布。不将Next键存在、独立单动作批注、书签或OpenAction合并为多动作。未知/循环/损坏/冲突链保持未知，其他动作/文件规范/目的地、批注变体及历史源仍Partial，无Pass。PDF验证器v21、适配器hyperlinks-pages-actions-v19，file仍v79。
+
+red20项全部缺规则断言且解析前提通过；candidate/final二十三类1084/1084，本规则48项包含字典/数组/间接/嵌套链、单动作/空Next/null/错误类型/未知动作/坏文件规范/循环/冲突/隐藏批注、书签/OpenAction隔离、reader重复引用/独立批注/页树未知/预算/I/O、hash/旧事实/页数与动作数矛盾、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader、测试、接线及动作链直接依赖通过，无子代理，不称独立审计；19处Observe及1处总预算计入新finding，不改旧书签reader。
+
+最终`fda5203-final-20261126`二十三类 **1084/1084、0失败/跳过**，本规则48、其余二十二类1036。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。9/9交付输入（7生产、1测试、catalog）加1/1动作链直接依赖匹配manifest；manifest SHA`e043e6822805cb4ec801971221553c6965652b2bf4a491f12b3da1cb2131bb78`，TRX SHA`d3b59dcb57f05dd59b620fea56627cd24c7c8ad6a27c236719b61c6a86c03944`。目录161条canonical SHA`867a06d128280486d55fc114a87189845880feb0d0bedea187358e4534102675`通过。red/candidate/final证据在`.artifacts/local-check/fda5203-*-20261126/`，校验副本`backups/fda5203-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、50 Partial、30 NotAssessed，待完整覆盖仍80、原107完整27；下一5205，再5210，不代表完整超链接或Formal资格。
+
 **FDA5202 不存在目的页的超链接（Partial，主代理限定只读自审及终态核对通过）。** 5201已提交`f088f59`。固定criteria页67为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立合格页面Link GoToR新增可选原始零基页索引，旧事实默认null，命名目标不伪造索引。源完整页树、页归属及capture资格与目标完整页树独立绑定；目标逐层Count/Parent/唯一引用及解析页数一致才可证明越界，不借旧PageCount。先源后目标、先目标后源、字面路径、取消/额度均保留已知Fail。命名目标、内部链接、其他模式/动作、批注变体及历史源仍Partial，无Pass。PDF验证器v20、适配器hyperlinks-pages-v18，file仍v79。
 
 red21项全部缺规则断言且源解析/目标完整页数前提通过；candidate/final二十二类1036/1036，本规则50项覆盖零基0/1/大整数、负数/小数/命名目标/其他模式、缺文件/坏文件/未选历史、书签/OpenAction隔离、两种观察顺序、双侧hash/缺观察/旧事实/页数矛盾、重复观察/取消/后续超限、额度7未知/8失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader增量、测试、接线和页树直接依赖通过，全程无子代理，不称独立审计；18处Observe及1处总预算计入新finding，无重构。首次测试新增补丁封装错误被拒绝，未写入；一次只读命令参数错误未执行，均限定重试并计入过程。

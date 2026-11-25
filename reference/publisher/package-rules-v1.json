@@ -4430,6 +4430,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5203",
+      "authorityRuleId": "5203",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 68 error 5203",
+      "effectiveFrom": "2013-04-30",
+      "title": "Hyperlink triggering multiple actions",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete qualified current page-Link GoToR action chains.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent page-Link identity, unique annotation ownership, complete source pages, capture binding and a complete bounded supported action chain. Separate annotations, bookmarks and opening actions are not combined. Unknown/cyclic/malformed/conflicting chains, other actions or file/destination types, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfMultipleHyperlinkActionsRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfMultipleHyperlinkActionsRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfMultipleHyperlinkActionsRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkActionReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
