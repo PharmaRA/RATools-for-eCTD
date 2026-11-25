@@ -2776,8 +2776,12 @@
       "implementation": {
         "status": "NotAssessed",
         "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "evidence": [
+          "src/RATools.Application/PackageValidation/IPackagePdfInspector.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+          "src/RATools.Application/PackageValidation/PackagePdfFormFacts.cs"
+        ],
+        "note": "Dependency assessment 2026-11-25: criteria p.62 requires password protection preventing opening and explicitly excludes FDA Forms. PdfDocumentEncryptedException only establishes that encrypted content could not be decrypted; the current Encrypted category does not distinguish a required opening password, unsupported security handler, or malformed encryption data. Encryption presence/owner restrictions alone do not prove inability to open. Qualified actual FDA-form identity is also absent. Do not relabel FDA3102's encrypted/unknown classification or generic PDF-SECURITY findings as FDA5050. Requires typed opening-password evidence and qualified exception identity; no implementation or qualification claimed, remains NotAssessed."
       }
     },
     {

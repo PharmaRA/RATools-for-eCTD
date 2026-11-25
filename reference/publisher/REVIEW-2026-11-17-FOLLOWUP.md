@@ -1,5 +1,7 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5050 打开密码保护（依赖核对，仍NotAssessed）。** 5045已提交`64159cd`。固定criteria页62要求“密码保护并且无法打开”，明确不适用于FDA Forms。限定核对PdfPig 0.1.15异常文档及现有适配器：PdfDocumentEncryptedException只说明encrypted and cannot be decrypted，不证明原因必然是打开密码；当前Encrypted分类不区分密码、不支持处理器及加密数据损坏。仅有Encrypt字典或owner权限限制也不证明无法打开，且现有form模型没有官方表单内容身份。需要合格打开密码事实及FDA Forms例外身份，不能将3102的未知加密结果或通用PDF-SECURITY重新贴5050编号。本项只记录真实依赖，无运行时实现或业务回归声明；限定文档自审、逐条JSON核对与目录合同后单独提交。库存67/36/44、待完整覆盖80不变；下一5055注释与1.15例外。
+
 5045终态补记：red/candidate/final三轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5045 PDF打开设置（Partial，主代理限定只读自审及终态核对通过）。** 5040已提交`bff64f0`。固定criteria页61及FDA PDF规范4.1印刷页6要求有书签用Bookmarks Panel and Page、无书签用Page Only；Adobe官方PDF Reference 1.7第140页Table 3.25已内存读取，确认PageMode默认UseNone及各模式含义。本批仅覆盖面板：独立冻结PageMode/书签存在/打开动作事实，缺省UseNone不等同于显式错误类型或引用失败。书签缺失必须没有Outlines或合格空树；存在须间接根/First/Last、父引用及标题类型一致。事实与旧基本值冲突时未知。OpenAction/AA、布局、放大倍率、链接/书签继承缩放、其他未知树形、历史及非.pdf内容仍缺，保持Partial且无Pass。当前capture hash、Processed及两份归档来源/2016-09-21日期绑定；读取错误不污染3102。PDF验证器v7、适配器view-v8，文件仍v79，旧PageMode读取逻辑未改。
