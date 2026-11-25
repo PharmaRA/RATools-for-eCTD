@@ -32,6 +32,16 @@ def verify_package_rule_catalog() -> None:
             assert source["url"] == original["requestedUrl"]
             assert source["sha256"] == inventory["source"]["sha256"] == original["sha256"]
             assert hashlib.sha256((ROOT / original["repositoryPath"]).read_bytes()).hexdigest() == source["sha256"]
+        elif source["id"] == "fda-pdf-specification":
+            snapshot = json.loads((ROOT / "reference/publisher/official-sources/2026-11-09/source-snapshot.json").read_text(encoding="utf-8"))
+            bindings = json.loads((ROOT / "reference/publisher/official-sources/2026-11-09-production/bindings.json").read_text(encoding="utf-8"))
+            original = next(item for item in snapshot["sources"] if item["id"] == source["id"])
+            binding = next(item for item in bindings["sources"] if item["id"] == source["id"])
+            assert source["kind"] == "RegulatorySpecification" and source["verificationStatus"] == "Verified"
+            assert source["version"] == binding["version"] == "4.1"
+            assert source["url"] == original["requestedUrl"] == binding["sourceUrl"]
+            assert source["sha256"] == original["sha256"] == binding["sha256"]
+            assert hashlib.sha256((ROOT / original["repositoryPath"]).read_bytes()).hexdigest() == source["sha256"]
         elif source["kind"] == "RegulatorySpecification":
             original = originals[source["id"]]
             for field in ("url", "version", "sha256"):

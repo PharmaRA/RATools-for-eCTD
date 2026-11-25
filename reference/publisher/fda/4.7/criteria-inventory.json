@@ -2542,10 +2542,15 @@
       "correctiveAction": "Resubmit a corrected leaf in a future submission with the operation attribute of \"Replace\" and an updated PDF file with all non standard fonts embedded.",
       "guidanceSource": "ICH eCTD Specification V3.2.2; FDA Portable Document Format Specifications",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-5005"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaPdfFontEmbeddingRule.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageFontReader.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs",
+          "tests/RATools.Tests/PackageValidation/FdaPdfFontEmbeddingRuleTests.cs"
+        ],
+        "note": "Checks definite missing embedding of actually used Type1 Helvetica, Times and Courier built-in families, distinct from FDA PDF 4.1 Table 1. Requires exact current capture, typed successful parsing, both archived sources and selection date from 2016-09-21. Missing/contradictory font identity, unresolved descriptors and mere font-stream keys remain unknown. Optional font errors cannot become 3102 corruption or erase another known font. Arbitrary aliases, complete/subset font programs, nested/inherited resources, history, non-PDF-named contents and earlier policy remain unqualified; no Pass is emitted. Final selected Windows regression 202/202, including 57 FDA5005 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

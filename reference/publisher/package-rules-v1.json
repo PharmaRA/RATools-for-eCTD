@@ -5,6 +5,14 @@
   "reviewedOn": "2026-11-10",
   "sources": [
     {
+      "id": "fda-pdf-specification",
+      "kind": "RegulatorySpecification",
+      "version": "4.1",
+      "url": "https://www.fda.gov/media/76797/download?attachment",
+      "sha256": "113faa128d34ca5c2b99184da2cf4da2e4359403204289892720c1f73afcae2a",
+      "verificationStatus": "Verified"
+    },
+    {
       "id": "ich-ectd-3.2.2",
       "kind": "RegulatorySpecification",
       "version": "3.2.2",
@@ -4001,6 +4009,28 @@
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfContentProcessingRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfContentProcessingRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfContentProcessingRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
+      "internalRuleId": "FDA47-5005",
+      "authorityRuleId": "5005",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 57 error 5005; FDA PDF specification 4.1 printed pp. 2-3 and Table 1",
+      "effectiveFrom": "2013-04-30",
+      "title": "Non-standard PDF fonts must be fully embedded",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured PDF files with definite used simple-font observations under archived PDF specification 4.1 from 2016-09-21.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reports definite missing embedding only for actually used Type1 Helvetica, Times and Courier built-in families, distinct from FDA Table 1. Resource aliases, descriptor conflicts and font-stream key presence cannot prove a violation or full embedding. Requires typed processing, capture binding and both archived sources. Arbitrary font identity, full/subset programs, nested/inherited resources, history, non-PDF-named contents and pre-4.1 policy remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfFontEmbeddingRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfFontEmbeddingRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfFontEmbeddingRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageFontReader.cs"],
       "externalComparisonEvidence": []
     },
     {

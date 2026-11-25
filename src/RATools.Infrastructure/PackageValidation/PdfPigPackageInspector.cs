@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-v4";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-v5";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -33,7 +33,8 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             cancellationToken.ThrowIfCancellationRequested();
             return new(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
                 navigation.DestinationsComplete, navigation.Reasons, form,
-                basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown);
+                basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
+                navigation.ReadFonts());
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -71,6 +72,16 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         private bool _uriBase;
 
         public PackagePdfFormFacts ReadForm() => new PdfPigPackageFormReader(Resolve, Count, limits).Read(document.Structure.Catalog.CatalogDictionary);
+        public IReadOnlyList<PdfFontObservation> ReadFonts()
+        {
+            try { return new PdfPigPackageFontReader(document, Resolve, Count).Read(); }
+            catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
+            {
+                // Optional font traversal cannot reclassify already parsed contents
+                // as corrupt (3102), or turn absent font evidence into a Pass (5005).
+                return [];
+            }
+        }
 
         public void Read()
         {

@@ -15,13 +15,16 @@ public sealed record PdfNavigationLink(string ObjectPath, int? SourcePageNumber,
 public sealed record PdfNamedDestination(string Name, int? PageNumber, bool Invalid = false);
 
 public enum PdfContentProcessingStatus { Unknown, Processed, InvalidContent, Encrypted, ResourceLimited, InputUnavailable }
+public enum PdfFontEmbeddingStatus { Unknown, Missing }
+public sealed record PdfFontObservation(string ObjectPath, string? BaseFont, string? Subtype, PdfFontEmbeddingStatus Embedding);
 
 public sealed class PackagePdfFacts
 {
     public PackagePdfFacts(PdfInspectionResult basics, IEnumerable<PdfNavigationLink> links,
         IEnumerable<PdfNamedDestination> destinations, bool navigationComplete, bool destinationsComplete,
         IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null,
-        PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown)
+        PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown,
+        IEnumerable<PdfFontObservation>? fonts = null)
     {
         Basics = basics with
         {
@@ -35,6 +38,7 @@ public sealed class PackagePdfFacts
         IncompleteReasons = Array.AsReadOnly((incompleteReasons ?? []).ToArray());
         Form = form ?? PackagePdfFormFacts.Unknown;
         ContentProcessing = contentProcessing;
+        Fonts = Array.AsReadOnly((fonts ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -44,6 +48,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<string> IncompleteReasons { get; }
     public PackagePdfFormFacts Form { get; }
     public PdfContentProcessingStatus ContentProcessing { get; }
+    public IReadOnlyList<PdfFontObservation> Fonts { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);
