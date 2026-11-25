@@ -33,6 +33,7 @@ public sealed record PdfHyperlinkFileTarget(string ObjectPath, int PageNumber, s
 public sealed record PdfHyperlinkActionCount(string ObjectPath, int PageNumber, int Count);
 public enum PdfExternalHyperlinkKind { Unknown, Web, Email }
 public sealed record PdfExternalHyperlink(string ObjectPath, int PageNumber, PdfExternalHyperlinkKind Kind);
+public sealed record PdfInactiveHyperlink(string ObjectPath, int PageNumber);
 
 public sealed class PackagePdfFacts
 {
@@ -50,7 +51,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfBookmarkZoom>? nonInheritingBookmarkZooms = null,
         IEnumerable<PdfHyperlinkFileTarget>? hyperlinkFiles = null,
         IEnumerable<PdfHyperlinkActionCount>? multipleHyperlinkActions = null,
-        IEnumerable<PdfExternalHyperlink>? externalHyperlinks = null)
+        IEnumerable<PdfExternalHyperlink>? externalHyperlinks = null,
+        IEnumerable<PdfInactiveHyperlink>? inactiveHyperlinks = null)
     {
         Basics = basics with
         {
@@ -79,6 +81,7 @@ public sealed class PackagePdfFacts
         HyperlinkFiles = Array.AsReadOnly((hyperlinkFiles ?? []).ToArray());
         MultipleHyperlinkActions = Array.AsReadOnly((multipleHyperlinkActions ?? []).ToArray());
         ExternalHyperlinks = Array.AsReadOnly((externalHyperlinks ?? []).ToArray());
+        InactiveHyperlinks = Array.AsReadOnly((inactiveHyperlinks ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -103,6 +106,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfHyperlinkFileTarget> HyperlinkFiles { get; }
     public IReadOnlyList<PdfHyperlinkActionCount> MultipleHyperlinkActions { get; }
     public IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; }
+    public IReadOnlyList<PdfInactiveHyperlink> InactiveHyperlinks { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

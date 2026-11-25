@@ -4474,6 +4474,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5210",
+      "authorityRuleId": "5210",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 68 error 5210",
+      "effectiveFrom": "2013-04-30",
+      "title": "Inactive hyperlink",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link annotations with explicitly absent action/destination/additional-action/structure keys.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent Link identity, complete page/annotation inventory, unique ownership and capture binding. Original key absence is not explicit null, failed resolution or unsupported action. Annotation variants, other inactive semantics and historical source PDFs remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfInactiveHyperlinkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfInactiveHyperlinkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfInactiveHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

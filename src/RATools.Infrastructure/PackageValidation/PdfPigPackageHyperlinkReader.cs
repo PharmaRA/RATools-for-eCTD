@@ -10,6 +10,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
     private int _work = limits.MaxPdfObjects;
     internal IReadOnlyList<PdfHyperlinkActionCount> MultipleActions { get; private set; } = [];
     internal IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; private set; } = [];
+    internal IReadOnlyList<PdfInactiveHyperlink> InactiveHyperlinks { get; private set; } = [];
 
     internal IReadOnlyList<PdfHyperlinkFileTarget> Read(IReadOnlyList<DictionaryToken> pages,
         IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount)
@@ -17,9 +18,11 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
         var candidates = new List<(IndirectReference Reference, PdfHyperlinkFileTarget Target)>();
         var actions = new List<(IndirectReference Reference, PdfHyperlinkActionCount Count)>();
         var external = new List<(IndirectReference Reference, PdfExternalHyperlink Link)>();
+        var inactive = new List<(IndirectReference Reference, PdfInactiveHyperlink Link)>();
         var references = new Dictionary<IndirectReference, int>();
         MultipleActions = [];
         ExternalHyperlinks = [];
+        InactiveHyperlinks = [];
         try
         {
             if (qualifiedPageCount is null or < 1 || qualifiedPageCount != pages.Count || pageNumbers.Count != pages.Count) return [];
@@ -50,6 +53,9 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                             coordinates[coordinate] = value.Double;
                         }
                         if (!valid || coordinates[2] <= coordinates[0] || coordinates[3] <= coordinates[1]) continue;
+                        // Raw key absence is distinct from explicit null or an unresolved value.
+                        if (!HasAny(annotation, "A", "Dest", "AA", "StructParent"))
+                            inactive.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]", pageIndex + 1)));
                         if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(annotation) is int count && count > 1)
                             actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
                         var kind = ReadExternal(annotation);
@@ -86,6 +92,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             var files = candidates.Where(candidate => references[candidate.Reference] == 1).Select(candidate => candidate.Target).ToArray();
             MultipleActions = actions.Where(action => references[action.Reference] == 1).Select(action => action.Count).ToArray();
             ExternalHyperlinks = external.Where(link => references[link.Reference] == 1).Select(link => link.Link).ToArray();
+            InactiveHyperlinks = inactive.Where(link => references[link.Reference] == 1).Select(link => link.Link).ToArray();
             return files;
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))

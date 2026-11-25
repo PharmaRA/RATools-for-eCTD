@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5210 未激活超链接（Partial，主代理限定只读自审及终态核对通过）。** 5205已提交`07522be`。固定criteria页68为Medium/Warning、生效2013-04-30，保留未来提交/必要时联系纠正措辞。独立合格页面Link明确缺A/Dest/AA/StructParent原始键时建立未激活事实；完整页树、批注清单、唯一引用及capture绑定后才发布。显式null、未解析引用、未知动作不能当成键缺失；其他批注变体/未激活语义和历史源仍Partial，无Pass。PDF验证器v23、适配器hyperlinks-pages-actions-external-inactive-v21，file仍v79。
+
+red17项全部缺规则断言，未解析引用用例已明确断言基础解析失败，其余解析前提通过；candidate/final二十五类1173/1173，本规则43项覆盖缺键/有效动作/目的地/null/未知动作/未解析引用、AA/结构/隐藏/页归属/AP、书签/OpenAction隔离、reader重复引用/无页资格/预算/I/O/非Link、hash/旧事实/页矛盾、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader增量、测试和接线通过，全程无子代理，不称独立审计；21处Observe及1处总预算计入新finding。
+
+最终`fda5210-final-20261126`二十五类 **1173/1173、0失败/跳过**，本规则43、其余二十四类1130。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。9/9交付输入（7生产、1测试、catalog）匹配manifest；manifest SHA`f4f1bb9d4f4577f0e26f430642591e91bf263318b1886b720bed3403c4db66e7`，TRX SHA`fe4f19877f70a3c0810266a7ed985d388be9c2443584c80ee75b490d823c5374`。目录163条canonical SHA`d5807cccc0eeab14fff359bb3baae4f3d750b190dcdeba9a048a0c1033738167`通过。red/candidate/final证据在`.artifacts/local-check/fda5210-*-20261126/`，校验副本`backups/fda5210-20261126/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、52 Partial、28 NotAssessed，待完整覆盖仍80、原107完整27；下一5215，再5217，不代表完整超链接或Formal资格。
+
 **FDA5205 外部超链接（Partial，主代理限定只读自审及终态核对通过）。** 5203已提交`0e053e6`。固定criteria页68为Medium/Warning、生效2013-04-30，纠正说明仅要求未来提交不含申请外部超链接。独立合格页面Link URI动作在完整页树/批注清单、唯一引用及capture绑定后分类为Web/Email；支持绝对HTTP/HTTPS/mailto，不trim、不解码伪协议、不以Base补全相对地址。仅本地语法分类，不访问网络，新监管事实/finding不保留地址或查询。相对/Base URI、其他协议/动作、跨申请文件、批注变体及历史源仍Partial，无Pass。PDF验证器v22、适配器hyperlinks-pages-actions-external-v20，file仍v79。
 
 red24项全部缺规则断言且解析前提通过；candidate/final二十四类1130/1130，本规则46项覆盖Web/Email/大小写/绝对Base、相对/片段/空host/伪编码/空格/其他协议、书签/OpenAction/页归属/隐藏/冲突/Next/IsMap/错误动作类型、地址不进入新证据、hash/旧事实/页资格/类别矛盾、重复观察/取消、额度3未知/4失败、来源/日期/无PDF及Partial报告。主代理限定只读自审规则、reader增量、测试和接线通过，无子代理，不称独立审计；20处Observe及1处总预算计入新finding。
