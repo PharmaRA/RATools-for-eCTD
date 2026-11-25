@@ -9,14 +9,17 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
 {
     private int _work = limits.MaxPdfObjects;
     internal IReadOnlyList<PdfHyperlinkActionCount> MultipleActions { get; private set; } = [];
+    internal IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; private set; } = [];
 
     internal IReadOnlyList<PdfHyperlinkFileTarget> Read(IReadOnlyList<DictionaryToken> pages,
         IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount)
     {
         var candidates = new List<(IndirectReference Reference, PdfHyperlinkFileTarget Target)>();
         var actions = new List<(IndirectReference Reference, PdfHyperlinkActionCount Count)>();
+        var external = new List<(IndirectReference Reference, PdfExternalHyperlink Link)>();
         var references = new Dictionary<IndirectReference, int>();
         MultipleActions = [];
+        ExternalHyperlinks = [];
         try
         {
             if (qualifiedPageCount is null or < 1 || qualifiedPageCount != pages.Count || pageNumbers.Count != pages.Count) return [];
@@ -49,6 +52,9 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         if (!valid || coordinates[2] <= coordinates[0] || coordinates[3] <= coordinates[1]) continue;
                         if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(annotation) is int count && count > 1)
                             actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
+                        var kind = ReadExternal(annotation);
+                        if (kind is PdfExternalHyperlinkKind.Web or PdfExternalHyperlinkKind.Email)
+                            external.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/URI", pageIndex + 1, kind)));
                         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
                             Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") continue;
                         var destination = Resolve(Get(action, "D"));
@@ -79,6 +85,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             }
             var files = candidates.Where(candidate => references[candidate.Reference] == 1).Select(candidate => candidate.Target).ToArray();
             MultipleActions = actions.Where(action => references[action.Reference] == 1).Select(action => action.Count).ToArray();
+            ExternalHyperlinks = external.Where(link => references[link.Reference] == 1).Select(link => link.Link).ToArray();
             return files;
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
@@ -86,6 +93,22 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             // Incomplete inventory cannot establish unique annotation ownership.
             return [];
         }
+    }
+
+    private PdfExternalHyperlinkKind ReadExternal(DictionaryToken annotation)
+    {
+        if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "URI" ||
+            HasAny(action, "Next", "IsMap") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") return PdfExternalHyperlinkKind.Unknown;
+        var text = Text(Resolve(Get(action, "URI")));
+        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~') ||
+            !Uri.TryCreate(text, UriKind.Absolute, out var uri) || !uri.IsWellFormedOriginalString()) return PdfExternalHyperlinkKind.Unknown;
+        // Classification only: no network access or address retained in regulatory evidence.
+        return uri.Scheme switch
+        {
+            "http" or "https" when uri.Host.Length > 0 => PdfExternalHyperlinkKind.Web,
+            "mailto" when uri.Host.Length > 0 => PdfExternalHyperlinkKind.Email,
+            _ => PdfExternalHyperlinkKind.Unknown
+        };
     }
 
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Hyperlink identity budget exceeded."); }

@@ -3109,10 +3109,10 @@
       "correctiveAction": "Ensure that documents in future submissions do not have hyperlinks that are external to the application.",
       "guidanceSource": "ICH Q&A 64",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-5205"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaPdfExternalHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfExternalHyperlinkRuleTests.cs"],
+        "note": "Independent qualified current page-Link absolute HTTP/HTTPS/mailto URI actions establish external Web/Email hyperlinks. Complete page/annotation inventory, unique ownership and capture binding are required. No network request or original address is retained in new regulatory evidence. Relative/Base URIs, other schemes/actions, cross-application files, annotation variants and historical source PDFs remain incomplete; no Pass is emitted."
       }
     },
     {

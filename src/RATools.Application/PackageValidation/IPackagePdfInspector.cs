@@ -31,6 +31,8 @@ public enum PdfBookmarkZoomKind { Unknown, FitPage, FixedFactor }
 public sealed record PdfBookmarkZoom(string ObjectPath, PdfBookmarkZoomKind Kind);
 public sealed record PdfHyperlinkFileTarget(string ObjectPath, int PageNumber, string FileSpecification, long? ZeroBasedPageIndex = null);
 public sealed record PdfHyperlinkActionCount(string ObjectPath, int PageNumber, int Count);
+public enum PdfExternalHyperlinkKind { Unknown, Web, Email }
+public sealed record PdfExternalHyperlink(string ObjectPath, int PageNumber, PdfExternalHyperlinkKind Kind);
 
 public sealed class PackagePdfFacts
 {
@@ -47,7 +49,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfInactiveBookmark>? inactiveBookmarks = null,
         IEnumerable<PdfBookmarkZoom>? nonInheritingBookmarkZooms = null,
         IEnumerable<PdfHyperlinkFileTarget>? hyperlinkFiles = null,
-        IEnumerable<PdfHyperlinkActionCount>? multipleHyperlinkActions = null)
+        IEnumerable<PdfHyperlinkActionCount>? multipleHyperlinkActions = null,
+        IEnumerable<PdfExternalHyperlink>? externalHyperlinks = null)
     {
         Basics = basics with
         {
@@ -75,6 +78,7 @@ public sealed class PackagePdfFacts
         NonInheritingBookmarkZooms = Array.AsReadOnly((nonInheritingBookmarkZooms ?? []).ToArray());
         HyperlinkFiles = Array.AsReadOnly((hyperlinkFiles ?? []).ToArray());
         MultipleHyperlinkActions = Array.AsReadOnly((multipleHyperlinkActions ?? []).ToArray());
+        ExternalHyperlinks = Array.AsReadOnly((externalHyperlinks ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -98,6 +102,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfBookmarkZoom> NonInheritingBookmarkZooms { get; }
     public IReadOnlyList<PdfHyperlinkFileTarget> HyperlinkFiles { get; }
     public IReadOnlyList<PdfHyperlinkActionCount> MultipleHyperlinkActions { get; }
+    public IReadOnlyList<PdfExternalHyperlink> ExternalHyperlinks { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

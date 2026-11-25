@@ -4452,6 +4452,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5205",
+      "authorityRuleId": "5205",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 68 error 5205",
+      "effectiveFrom": "2013-04-30",
+      "title": "External hyperlink",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link absolute HTTP/HTTPS/mailto URI actions.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent page-Link identity, complete page/annotation inventory, unique ownership and exact capture binding. URI classification is local and only Web/Email category is retained in new regulatory evidence. Relative/Base URIs, other schemes/actions, cross-application files, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfExternalHyperlinkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfExternalHyperlinkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfExternalHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
