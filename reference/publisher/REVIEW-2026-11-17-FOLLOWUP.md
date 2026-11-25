@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1038第二轮：表单/封面操作的XML结构资格（仍Partial，主代理限定只读自审及终态核对通过）。** 关联前置已提交`169a12e`。按序核对FDA5/6/7后保留其真实依赖：2252原件含客户端动态渲染、恢复状态与脚本设置，精确template与原始datasets尚不证明最终显示申请号或主表单身份；FDA6缺强制eCTD适用/豁免输入，FDA7缺适当表单映射及可填写性资格。未新增凭猜测的监管结论。继续1038时复现错误根/命名空间与XML限额不匹配误Fail，以及缺父/缺叶/重复元素/重复XML观察抛异常；新增唯一精确XML绑定、文档级唯一FDA根、有界父链/循环识别和重复隔离。已知Fail保留、Info严重度及replace例外NE保持，不以通用DTD结果代替具体结构事实。file引擎v80、交付仍v6、PDF仍v27。
+
+red8项1过7败；candidate首轮因私有参数类型触发CA1859编译失败，未执行测试。补编译所需类型后review-red32项30过2败，复现错误空根假Pass和多根误Fail，文档级根资格已关闭。candidate2七类160/163，三败均为旧缺文件夹具RetainFile移动被ACL拒绝，未进入业务断言；先备份后改为创建夹具时精确省略缺文件，原缺失检查和DTD解析断言不变，不放宽禁删保护器。final七类163/163（新结构32、原操作12、区域路径32、文件检查28、表单组17、关联42）。主代理限定只读自审实现、结构用例及夹具增量通过，无子代理，不称独立审计。一次多文件补丁目录锚点错误被拒绝，经精确核对无写入后重试。
+
+最终`fda1038-scope-final-20261126`七类 **163/163、0失败/跳过**。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，26/26及5/5受保护，不称全部自然退出。6/6交付输入（3生产、2测试、catalog）加1/1原操作测试依赖匹配manifest；manifest SHA`2b819e363ce2c6484a1adbd041545e49004c01be4ff5b3e9222ea8dac3ae588d`，TRX SHA`5a525b384cc0de0ed07a8b3ec1591ca636d89ea21752b381cbb625148b8515d1`。目录165条canonical SHA`d7497ddb22e83a1117383178893cf8896fe6f0cd3c9ea027970d859493df14ef`通过。证据`.artifacts/local-check/fda1038-scope-*-20261126/`，校验副本`backups/fda1038-scope-20261126/evidence/`；red/candidate/review-red/candidate2/final五轮bin/obj移入回收站可恢复，失败证据保留。库存仍67 Implemented、54 Partial、26 NotAssessed，待完整覆盖80、原107完整27。下一1085起算口径：本轮再次读取固定ICH物理页12和criteria页7，仅确认230字符含文件名/扩展名，未明确起算目录；不能把当前含sequence的逻辑路径长度直接重标1085。继续按序处理可执行缺口，主表单/附件及替换例外仍留队。
+
 **FDA5第二轮前置：XML候选组与PDF字段证据精确关联（不计规则完成，主代理限定只读自审及终态核对通过）。** 字段证据已提交`07aeb20`。新增交付结果`FormEvidenceAssociations`及`form-leaf-evidence-association-v1`，以当前完整XML候选组、唯一组/叶归属、原始href与一次解码结果、引用位置、捕获文件SHA、同快照模板/字段事实建立关联。模板与字段用一次有界重放核对，不重新读取文件、不逐叶重跑PDF事实。缺目标/delete/查询或片段引用、重复/冲突事实及绑定不一致不关联；同一文件的不同叶保留各自位置。SharedM1全部候选申请及原始form-type保留，不依据containing-files或文件名挑选申请，也不认定同组附件是主表单。交付引擎v6，PDF仍v27、file仍v79；不产生FDA5结论。
 
 red6项均在关联输出不存在处失败，XML与PDF字段前提通过。candidate首轮因AlgorithmVersion表达式触发CA1822编译失败，改为实例只读属性后candidate2十一类252/252。限定只读审查发现每叶复制候选申请列表未逐次计入额度，review-red两项1过1败复现“少1额度仍发布10条关联”；逐叶逐候选扣减后final254/254，预算不扩大，保留刚好通过边界。主代理限定只读自审实现、接线、42项关联测试及预算修复通过，无子代理，不称独立审计。包括单/多申请、附件、百分号别名、绑定篡改/重复索引、同文件多叶、取消与早/晚预算耗尽，未把关联事实扩写为主表单或业务合格。

@@ -171,8 +171,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1038"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaFormOperationRule.cs", "tests/RATools.Tests/PackageValidation/FdaFormOperationRuleTests.cs"],
-        "note": "Checks operations in US application form and cover letter sections. Replacing an incorrect document requires exception assessment."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaFormOperationRule.cs", "tests/RATools.Tests/PackageValidation/FdaFormOperationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaFormOperationScopeTests.cs"],
+        "note": "Checks explicit operations in correctly rooted target FDA form/cover-letter sections with unique XML observations and rules/assets/limits binding. Missing/duplicate/cyclic/over-budget ancestry remains unknown and known failures survive later unknown evidence. Actual main-form/attachment identity, full scope and corrective-document replacement exceptions remain unqualified."
       }
     },
     {

@@ -33,20 +33,27 @@ public sealed class PackageFileInspectorTests
     [InlineData("changed-dtd", "DELIVERY_ASSET_CHANGED")]
     public async Task PhysicalDefectsAreLocatedIndependentlyOfWriterModels(string defect, string code)
     {
-        await using var fixture = new Fixture();
+        var omitted = defect switch
+        {
+            "missing-file" => "0000/m2/25-clin-over/overview.pdf",
+            "index-absent" => "0000/index-md5.txt",
+            "missing-dtd" => "0000/util/dtd/ich-ectd-3-2.dtd",
+            _ => null
+        };
+        await using var fixture = new Fixture(omitted);
         var pdf = fixture.PathOf("0000/m2/25-clin-over/overview.pdf");
         var hash = fixture.PathOf("0000/index-md5.txt");
         var dtd = fixture.PathOf("0000/util/dtd/ich-ectd-3-2.dtd");
         switch (defect)
         {
-            case "missing-file": fixture.RetainMissingFile(pdf); break;
+            case "missing-file": Assert.False(File.Exists(pdf)); break;
             case "changed-file": File.AppendAllText(pdf, "\n% corruption"); break;
             case "checksum-format": fixture.Replace("0000/index.xml", "checksum=\"", "checksum=\"x"); break;
             case "checksum-type": fixture.Replace("0000/index.xml", "checksum-type=\"md5\"", "checksum-type=\"sha256\""); break;
             case "index-hash": File.WriteAllText(hash, new string('0', 32)); break;
             case "index-format": File.WriteAllText(hash, "bogus index.xml"); break;
-            case "index-absent": fixture.RetainMissingFile(hash); break;
-            case "missing-dtd": fixture.RetainMissingFile(dtd); break;
+            case "index-absent": Assert.False(File.Exists(hash)); break;
+            case "missing-dtd": Assert.False(File.Exists(dtd)); break;
             case "changed-dtd": File.AppendAllText(dtd, "\n<!-- changed -->"); break;
         }
         var (input, lifecycle) = await fixture.SelectAsync("0000");
@@ -191,12 +198,14 @@ public sealed class PackageFileInspectorTests
         private readonly PackageInputReader _reader;
         private static readonly string[] HistoricalSequences = ["0000", "0001", "0002"];
         private static readonly Guid ApplicationId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-        public Fixture()
+        public Fixture(string? omittedRelativePath = null)
         {
             var source = Path.Combine(PackageRuleCatalogTests.Root, "tests/RATools.Tests/Fixtures/Publisher/sequences");
             foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
             {
-                var target = PathOf(Path.GetRelativePath(source, file));
+                var relative = Path.GetRelativePath(source, file);
+                if (relative.Replace('\\', '/') == omittedRelativePath) continue;
+                var target = PathOf(relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Copy(file, target);
             }
