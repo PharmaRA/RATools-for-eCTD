@@ -1,0 +1,90 @@
+using RATools.Application.PackageValidation;
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Tokens;
+
+namespace RATools.Infrastructure.PackageValidation;
+
+// Qualified outline identity is independent of generic navigation-link labels.
+// All structural links must agree before any candidate is published.
+internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve, PackageReadLimits limits, CancellationToken token)
+{
+    private readonly HashSet<IndirectReference> _seen = [];
+    private readonly List<PdfBookmarkFileTarget> _targets = [];
+    private int _work = limits.MaxPdfObjects;
+    private int _items;
+
+    internal IReadOnlyList<PdfBookmarkFileTarget> Read(DictionaryToken catalog)
+    {
+        try
+        {
+            if (Get(catalog, "Outlines") is not IndirectReferenceToken rootReference ||
+                Resolve(rootReference) is not DictionaryToken root || Name(Get(root, "Type")) != "Outlines") return [];
+            _seen.Add(rootReference.Data);
+            return Children(root, rootReference, 0) ? _targets.ToArray() : [];
+        }
+        catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
+        {
+            // Supplementary evidence failure is not document corruption or proof of absence.
+            return [];
+        }
+    }
+
+    private bool Children(DictionaryToken parent, IndirectReferenceToken parentReference, int depth)
+    {
+        Tick(); if (depth > limits.MaxPdfDepth) return false;
+        var first = Get(parent, "First"); var last = Get(parent, "Last");
+        if (first is null && last is null) return true;
+        if (first is not IndirectReferenceToken current || last is not IndirectReferenceToken end) return false;
+        IndirectReferenceToken? previous = null;
+        while (true)
+        {
+            Tick();
+            if (!_seen.Add(current.Data) || ++_items > limits.MaxPdfLinks || Resolve(current) is not DictionaryToken item ||
+                Get(item, "Parent") is not IndirectReferenceToken owner || owner.Data != parentReference.Data ||
+                Text(Resolve(Get(item, "Title"))) is null) return false;
+            var prev = Get(item, "Prev");
+            if (previous is null ? prev is not null : prev is not IndirectReferenceToken back || back.Data != previous.Data) return false;
+            ReadAction(item, _items);
+            if (!Children(item, current, depth + 1)) return false;
+            var next = Get(item, "Next");
+            if (next is null) return current.Data == end.Data;
+            if (current.Data == end.Data || next is not IndirectReferenceToken forward) return false;
+            previous = current; current = forward;
+        }
+    }
+
+    private void ReadAction(DictionaryToken item, int number)
+    {
+        if (HasAny(item, "Dest", "AA") || Resolve(Get(item, "A")) is not DictionaryToken action ||
+            Name(Get(action, "S")) != "GoToR" || HasAny(action, "Next") ||
+            Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
+        var destination = Resolve(Get(action, "D"));
+        // Only an explicit simple destination or nonempty named destination is qualified.
+        if (destination is ArrayToken array)
+        {
+            if (array.Data.Count != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page ||
+                page.Long < 0 || Name(array.Data[1]) != "Fit") return;
+        }
+        else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) return;
+        var file = Resolve(Get(action, "F"));
+        string? value;
+        if (file is DictionaryToken specification)
+        {
+            if (HasAny(specification, "FS", "EF", "RF", "DOS", "Mac", "Unix", "ID", "V") ||
+                Get(specification, "Type") is not null && Name(Get(specification, "Type")) != "Filespec") return;
+            value = Text(Resolve(Get(specification, "F")));
+            if (Get(specification, "UF") is { } unicode && Text(Resolve(unicode)) != value) return;
+        }
+        else value = Text(file);
+        // Encoding/platform variants require separate qualification, not guessed conversion.
+        if (string.IsNullOrWhiteSpace(value) || value.Any(character => character is < ' ' or > '~')) return;
+        _targets.Add(new($"outline[{number}]/A/F", value));
+    }
+
+    private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Bookmark evidence budget exceeded."); }
+    private IToken? Resolve(IToken? value) { Tick(); return resolve(value); }
+    private string? Name(IToken? value) => (Resolve(value) as NameToken)?.Data;
+    private static string? Text(IToken? value) => value switch { StringToken text => text.Data, HexToken text => text.Data, _ => null };
+    private static bool HasAny(DictionaryToken dictionary, params string[] names) => names.Any(name => dictionary.ContainsKey(NameToken.Create(name)));
+    private static IToken? Get(DictionaryToken dictionary, string name) => dictionary.TryGet(NameToken.Create(name), out var value) ? value : null;
+}

@@ -4188,6 +4188,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5100",
+      "authorityRuleId": "5100",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 63 error 5100",
+      "effectiveFrom": "2013-04-30",
+      "title": "Broken bookmark pointing to a missing file",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified GoToR bookmarks in current captured PDFs targeting an absent file in an explicitly selected current or historical sequence.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent bounded outline-tree identity, unambiguous simple file specification, exact source capture and complete selected target inventory. File specifications are literal, not URI-decoded. Unselected history, unsupported actions/specifications and existing unreadable files cannot prove absence. Historical source PDFs, other action/destination encodings and non-PDF-named contents remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenBookmarkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenBookmarkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBrokenBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

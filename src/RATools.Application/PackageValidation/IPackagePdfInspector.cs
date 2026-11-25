@@ -22,6 +22,7 @@ public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, Dec
 public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions);
 public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
 public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }
+public sealed record PdfBookmarkFileTarget(string ObjectPath, string FileSpecification);
 
 public sealed class PackagePdfFacts
 {
@@ -31,7 +32,8 @@ public sealed class PackagePdfFacts
         PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown,
         IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null,
         PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null,
-        IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null, PdfImageOnlyStatus imageOnly = PdfImageOnlyStatus.Unknown)
+        IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null, PdfImageOnlyStatus imageOnly = PdfImageOnlyStatus.Unknown,
+        IEnumerable<PdfBookmarkFileTarget>? bookmarkFiles = null)
     {
         Basics = basics with
         {
@@ -51,6 +53,7 @@ public sealed class PackagePdfFacts
         OpeningView = openingView;
         MarkupAnnotations = Array.AsReadOnly((markupAnnotations ?? []).ToArray());
         ImageOnly = imageOnly;
+        BookmarkFiles = Array.AsReadOnly((bookmarkFiles ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -66,6 +69,7 @@ public sealed class PackagePdfFacts
     public PdfOpeningViewFacts? OpeningView { get; }
     public IReadOnlyList<PdfMarkupAnnotation> MarkupAnnotations { get; }
     public PdfImageOnlyStatus ImageOnly { get; }
+    public IReadOnlyList<PdfBookmarkFileTarget> BookmarkFiles { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

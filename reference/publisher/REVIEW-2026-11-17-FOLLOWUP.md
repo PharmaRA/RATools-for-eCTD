@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5100 缺目标文件书签（Partial，主代理限定只读自审及终态核对通过）。** 5057已提交`f53f282`。固定criteria页63要求书签不能指向不存在文件，Medium映射Warning，保留“未来提交/必要时联系纠正”措辞，不强制Replace。新增独立结构化GoToR书签文件目标事实，不靠通用链接ObjectPath前缀；有界遍历完整outline父子/首尾/前后链并排除冲突Dest/A、Next动作、错误Action类型、文件规范UF/F冲突及嵌入/平台变体。字面文件规范只经过编码后共享一次解码resolver，百分号不二次解码。源当前capture hash、成功解析、HasBookmarks一致性和归档来源/生效日期绑定；目标历史未选未知，所选完整清单确实缺目标才Fail，目标存在但坏内容不是5100。其他动作、文件/目标编码、历史源PDF及非.pdf内容未闭合，保持Partial、无Pass。PDF验证器v10、适配器bookmarks-v11，file仍v79。
+
+red28项全部因缺规则断言失败，前提通过；candidate十二类529/529。主代理限定只读自审发现基础书签事实矛盾和错误Action类型资格缺口，review-red两项均预期NE/实际Fail，修复后首final561/562，唯一失败为cycle夹具假设新reader能先于旧通用导航运行，实际旧阶段先触发PDF链接预算。改为入口受限NE并直接测试新reader循环/坏父链/预算拒绝，未修改旧导航或放宽生产判据。所有交付代码/测试及接入diff已限定只读复审，无子代理，不称独立审计。一次提前读取尚未生成manifest且未设置遇错停止导致无效9/9输出，已明确撤回；最终严格核对重新通过。一次清单键误全量打印未读取对应源码，后续改为精确键索引。
+
+最终`fda5100-final2-20261125`十二类 **566/566、0失败/跳过**，5100为65、其他PDF十一类501。执行入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。9/9交付输入（7生产、1测试、catalog）与final2 manifest精确匹配；manifest SHA`85f5774115e3ff8d486ebb6e105196d2af6f84a451d8a5cbacc1bb0d7b68f16f`，TRX SHA`57aa0dc2c69b4f010628dbe88c5ac4c369baa3c18f7f930adcde9852d7d49a49`。目录150条canonical SHA`be37450fd9f66bc6d5ee3f84d54236708edf953bda51b7108a792667042e2352`独立合同通过。red/candidate/review-red/final/final2证据保留于`.artifacts/local-check/fda5100-*-20261125/`，校验副本`backups/fda5100-20261125/evidence/`；各轮bin/obj只移入回收站可恢复。库存67 Implemented、39 Partial、41 NotAssessed，待完整覆盖80、原107完整27；下一5101/5102，不代表全部书签或Formal监管资格。
+
 5057终态补记：red/candidate/candidate2/final四轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5057 无文本图像文档（Partial，主代理限定只读自审及终态核对通过）。** 5055已提交`4643802`。固定criteria页63与FDA PDF4.1印刷页4要求未来文档尽可能可检索。本批不取反HasSearchableText，而以完整页面内容流证明简单纯图像：未过滤单流、完整q/Q/cm/Do语法、平衡图形状态、非奇异变换、实际图像次数一致、Gray/RGB八位图像尺寸/长度匹配，逐页无文字。空白/矢量/OCR/嵌套Form/过滤流/未知操作及表单、批注、结构树均未知；不声称图像来自扫描。受PDF对象/深度及累计1 MiB内容字节限制，超限未知；捕获hash、Processed和双归档来源/2016-09-21支持日期绑定。更多编码、OCR质量、历史与非.pdf内容未闭合，保持Partial且无Pass。PDF验证器v9、适配器image-v10，file仍v79。
