@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5035终态补记：red/candidate/final三轮各八份证据已备份并校验摘要，bin/obj全部移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5035 PDF版本（Partial，主代理限定只读自审及终态核对通过）。** 5034记录已提交`580865a`。固定criteria物理页60及PDF规范4.1印刷页2接受PDF1.4–1.7、PDF/A-1和PDF/A-2，并规定Low/Info、当前提交无需纠正。新增独立原始声明事实：仅字节起始处规范PDF头、Catalog无Version/Extensions/Metadata键、解析Processed且头版本与解析值一致才比较；1.0–1.3提示、1.4–1.7仅组件通过。键存在即保留未决分支，包括null/错误类型，不借旧PdfVersion字符串直接归责。逐文件capture hash、来源及2016-09-21支持日期绑定，旧日期未知；读取恢复流位置、补充读取异常不污染3102，统一finding预算及后续限额保留已知Fail。Catalog覆盖/扩展、PDF/A、完整特征一致性、解析器不支持版本、历史及非.pdf内容仍缺，保持Partial。旧PDF-VERSION行为不改；PDF验证器v5、适配器version-v6，文件仍v78。
+
+red23项全失败，其中22项到达缺规则断言、1项PDF2.0夹具被固定PdfPig拒绝，改为明确解析未知对照，不计业务红灯。补直接原始事实、矛盾/旧事实/摘要、缺观察/重复/中断、取消/额度、后续文件限额与Partial报告，candidate/final七类均252/252。主代理完整阅读新规则/测试及接入diff，只读自审通过；全程无子代理，不称独立审计。一次最终只读核对工具参数封装错误未执行，正确重调后才确认输入绑定。
+
+最终`fda5035-final-20261125`七类 **252/252、0失败/跳过**，本规则50、5005为57、3102为36、其余PDF组109。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确七类Filter保留summary.json。Api/DatabaseMigrator/Tests三Build和顶层build/test退出0；进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8/8交付输入绑定（6生产、1测试、catalog）；manifest SHA`e247c36f1e87f67b29929d353bf67ad47d6192265a16700728a344605a7d332a`，TRX SHA`303590c584e18d983fcd60f5b996712267764681ca50d5808b4b8dd24cc39b21`。目录144条canonical SHA`937b7238f5b387289a6917d6cd7262ff55fb3d5af85abc08ec40cc68a0034c79`独立通过。原证据`.artifacts/local-check/fda5035-*-20261125/`，校验副本`backups/fda5035-20261125/evidence/`；库存67 Implemented、33 Partial、47 NotAssessed，待完整覆盖80、原107完整27，下一5038，不代表完整PDF或监管资格。
+
 **FDA5034 表单位置（依赖核对，仍NotAssessed）。** 5032已提交`a6b09c1`。固定criteria页59要求实际申请表单位于适用M1规范指定位置；现有PackageFormBindings明确是XML候选组且允许附件，PDF模型不提供主表单内容身份。不能把form组内全部叶子当主表单，也不能只看正确位置的声明而漏掉错误位置中的实际表单。需先建立版本化主表单/附件身份，再映射适用位置；2045已有元数据声明资格不等于5034内容位置覆盖。本项只登记依赖，无运行时实现或业务回归声明；限定文档自审、逐条JSON核对及目录合同后单独提交，库存67/32/48、待完整覆盖80不变。下一5035再5038。
 
 5032终态补记：red/red2/candidate/candidate2/final五轮证据副本摘要一致，全部bin/obj已移入回收站可恢复；编译失败candidate保留BuildOnly五份证据，未伪造测试结果。其余四轮保留八份证据，最终TRX与源码清单继续留存。

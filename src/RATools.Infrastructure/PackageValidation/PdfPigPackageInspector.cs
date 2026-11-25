@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-v5";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-v6";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -34,7 +34,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
             return new(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
                 navigation.DestinationsComplete, navigation.Reasons, form,
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
-                navigation.ReadFonts());
+                navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken));
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -49,6 +49,34 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 _ => PdfContentProcessingStatus.Unknown
             };
             return new(PdfPigPdfInspector.ParseFailure(exception.Message), [], [], false, false, ["PDF parsing did not complete."], contentProcessing: category);
+        }
+    }
+
+    private static PdfVersionDeclaration? ReadVersionDeclaration(Stream stream, PdfDocument document, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        try
+        {
+            if (!stream.CanSeek) return null;
+            var saved = stream.Position;
+            try
+            {
+                stream.Position = 0;
+                Span<byte> header = stackalloc byte[9];
+                if (stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false) != header.Length ||
+                    !header[..5].SequenceEqual("%PDF-"u8) || header[5] is < (byte)'0' or > (byte)'9' || header[6] != '.' ||
+                    header[7] is < (byte)'0' or > (byte)'9' || header[8] is not ((byte)'\r' or (byte)'\n')) return null;
+                var catalog = document.Structure.Catalog.CatalogDictionary;
+                token.ThrowIfCancellationRequested();
+                return new(System.Text.Encoding.ASCII.GetString(header[5..8]), catalog.ContainsKey(NameToken.Create("Version")),
+                    catalog.ContainsKey(NameToken.Create("Extensions")), catalog.ContainsKey(NameToken.Create("Metadata")));
+            }
+            finally { stream.Position = saved; }
+        }
+        catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
+        {
+            // Supplementary version inspection must not reclassify parsed PDF content as corrupt.
+            return null;
         }
     }
 
