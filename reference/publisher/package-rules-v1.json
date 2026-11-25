@@ -4320,6 +4320,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5115",
+      "authorityRuleId": "5115",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 65 error 5115",
+      "effectiveFrom": "2013-04-30",
+      "title": "Non-relative bookmark",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current-PDF GoToR bookmarks using literal slash-rooted absolute file specifications.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent bookmark/file identity, exact capture and consistent successful parsing. Checks raw slash-rooted file specifications without URI decoding, trimming, OS path resolution or target access. Findings retain classification rather than the original path. URI actions, platform/drive variants, other encodings/actions, historical sources and complete referenced-guidance qualification remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeBookmarkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeBookmarkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfNonRelativeBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

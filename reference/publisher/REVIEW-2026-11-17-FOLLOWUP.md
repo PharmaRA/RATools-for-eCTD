@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5115 非相对书签（Partial，主代理限定只读自审及终态核对通过）。** 5110已提交`f11b9e9`。固定criteria页65为Medium/Warning，保留未来提交仅使用相对书签的建议，不强制Replace。首批使用独立合格GoToR书签文件事实，检查原始斜杠根绝对路径；要求当前capture hash、Processed/HasBookmarks一致性。文件规范不URI解码、不trim、不套本机路径规则、不访问目标；finding只保留AbsoluteFileSpecification分类和书签位置。字面%2F不变成根斜杠，URI动作和F/UF冲突、FS/EF等不借用宽松通用链接事实。驱动器/其他平台编码、其他动作、历史源及引用指导文件的完整资格仍未闭合，保持Partial、无Pass。PDF验证器v16，适配器inactive-v15和file-v79未改。
+
+red22项全部缺规则断言且解析前提通过；candidate/final十八类827/827。本规则43项包含根斜杠/卷路径/网络路径、相对/百分号/URI/驱动器未知、文件字典F/UF一致与冲突、动作/结构隔离、hash/旧事实/历史源/矛盾事实、取消/重复观察、额度4未知/5失败、来源/日期/无PDF和Partial报告分类保密。主代理完整限定只读自审新增规则/测试及接线通过，无子代理，不称独立审计。
+
+最终`fda5115-final-20261126`十八类 **827/827、0失败/跳过**，5115为43、其余十七类784。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test均退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。6/6交付输入（4生产、1测试、catalog）与3/3直接依赖匹配最终manifest；manifest SHA`9514e59efa38d11480a33dd48f22da68e508f313284c2e9597ffe46654c04e3a`，TRX SHA`1955b41feb46ce87d01d88cc0f25b90da6a52bf3510edc7c40805e87bb48fc65`。目录156条canonical SHA`f73701b40fd7e9f21af0baa2c0fbf3a00dff2974333244edd4097565fca1129f`独立通过。修改前备份在`backups/fda5115-20261125/before/`；日期切换后red/candidate/final证据位于`.artifacts/local-check/fda5115-*-20261126/`，校验副本`backups/fda5115-20261126/evidence/`，bin/obj仅移入回收站可恢复。库存67 Implemented、45 Partial、35 NotAssessed，待完整覆盖80、原107完整27；下一5117，再5200，不代表完整规则或Formal资格。
+
 **FDA5110 未激活书签（Partial，主代理限定只读自审及终态核对通过）。** 5105已提交`5e2f11f`。固定criteria页65为Medium/Warning，保留未来提交/必要时联系纠正措辞。首批检测完整合格当前书签树中明确无动作的叶项，原始A/Dest/AA/SE/First/Last/Count键全部缺失才发布独立事实；显式null、未解析引用、未知动作、结构目标及父项展开行为不等同于无动作。当前capture hash、Processed/HasBookmarks一致性绑定，旧调用者不升级。父项、其他未激活语义、历史源和非.pdf内容仍未闭合，保持Partial、无Pass。PDF验证器v15、适配器inactive-v15，file仍v79。
 
 red19项中18项因缺规则断言失败，1项A 99 0 R在旧解析阶段返回Could not find the object with reference: 99 0，未到业务断言；保留为基础解析失败且规则未知对照，未放宽生产判据。candidate/final十七类784/784。38项本规则含无动作叶、有效动作/目的地、显式null/未解析/未知动作、AA/SE/父项/部分子项/Count0/空子项、坏树/普通注释隔离、hash/旧事实/矛盾事实、取消/重复观察、额度4未知/5失败、来源/日期/无PDF及Partial报告。主代理完整限定只读自审新规则/测试和接入diff通过，未使用子代理，不称独立审计。
