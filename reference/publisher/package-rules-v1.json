@@ -4232,6 +4232,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5102",
+      "authorityRuleId": "5102",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 64 error 5102",
+      "effectiveFrom": "2013-04-30",
+      "title": "Bookmark points to a non-existent page or named destination",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified GoToR Fit bookmarks in current PDFs with a zero-based page index outside an explicitly selected target PDF's complete qualified page tree.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires independent bookmark identity, raw zero-based index and source/target capture binding. Target page tree must have unique indirect identities, consistent parents and subtree Counts, complete bounded traversal and parsed-page agreement. Incremental association handles either order and shared finding budgets. Named destination namespaces/completeness, internal bookmarks, other modes, missing/unreadable targets and historical source PDFs remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBookmarkPageRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBookmarkPageRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBookmarkPageRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackagePageTreeReader.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

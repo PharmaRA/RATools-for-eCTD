@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5102 不存在目标页的书签（Partial，主代理限定只读自审及终态核对通过）。** 5101已提交`778454c`。固定criteria页64为Medium/Warning，保留未来提交/必要时联系纠正措辞。首批覆盖当前独立资格GoToR Fit书签的原始零基索引，不加一转换造成溢出；仅索引大于等于完整目标页数可判Fail。新增独立页树资格：有界完整遍历、唯一间接身份、父链一致、逐层Count等于实际子页数且与解析页数一致，预算/I/O/坏树未知。源和当前/显式历史目标分别绑定capture hash，旧PageCount不自动升级，任一侧未知不推断缺页。命名目标的Name/String命名空间与完整性尚未资格化，内部书签、其他目的地模式和历史源亦留缺口，保持Partial且无Pass。PDF验证器v12、适配器pages-v12，file仍v79。
+
+red20项全部因缺规则断言失败，前提通过；candidate/final十四类657/657。49项本规则含零基0/1及int.MaxValue索引、源/目标两种顺序、历史选入/未选、缺目标/坏目标/普通页面链接、字面百分号、页树Count/Parent/重复/循环/预算/I/O、旧事实与矛盾事实、两侧hash、取消/重复观察、共享额度8未知/9失败、来源/日期及Partial报告。主代理完整限定只读自审新增reader/规则/测试和全部接入diff通过，未使用子代理，不称独立审计。
+
+最终`fda5102-final-20261125`十四类 **657/657、0失败/跳过**，5102为49、其余十三类608。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter保留summary.json。三Build及顶层build/test退出0；进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。10/10交付输入（8生产、1测试、catalog）匹配最终manifest；manifest SHA`1be20d8427b8df8ffceedc5d1bd3acd59a3cd2f762a8ae0110429982765992a1`，TRX SHA`913eed54c4fcc0baf981c0460bfdf60748e3a4184920bcbea8f09e66353266d4`。目录152条canonical SHA`7b12dd90d1c806441445374008175d2b53d11d055ffca75a551a1c09b335f694`独立通过。red/candidate/final三轮证据在`.artifacts/local-check/fda5102-*-20261125/`，校验副本`backups/fda5102-20261125/evidence/`，bin/obj只移入回收站可恢复。库存67 Implemented、41 Partial、39 NotAssessed，待完整覆盖80、原107完整27；下一5103，不代表全部书签或Formal资格。
+
 **FDA5101 无法打开目标书签（Partial，主代理限定只读自审及终态核对通过）。** 5100已提交`887f01d`。固定criteria页63为Medium/Warning，保留未来提交和必要时联系纠正的措辞，不强制Replace。使用5100独立资格GoToR书签文件事实，字面解析目标；源当前PDF和目标当前/显式历史PDF分别绑定capture hash。只有目标InvalidContent且ParseError存在/PageCount未知/未加密的类型化一致失败可判5101，缺文件、未选历史、泛错误消息、I/O、加密、不支持和资源限制均不能证明损坏。按目标路径增量关联，源先读/目标先读均可，后续超限不抹已知Fail，Finish不重新读取。其他动作、格式、历史源PDF及完整解析器资格仍未闭合，无Pass。PDF验证器v11，适配器bookmarks-v11和file-v79不变。
 
 red20项全部缺规则断言，源解析和目标类型前提通过。candidate十三类607/608唯一失败为共享额度7的期望错误：源5条、3102目标1条、终态保留1条已占满，无额度发布5101；改为7未知/8失败并保留3102/总额度/终态断言，不改生产预算。补两侧hash/事实矛盾、旧调用者、缺来源、显式日期、两种顺序/重复观察、取消/后续限额、无PDF及Partial报告测试。主代理完整限定读取新规则/测试和接入diff，最后预算用例增量只读复审通过，全程无子代理，不称独立审计。

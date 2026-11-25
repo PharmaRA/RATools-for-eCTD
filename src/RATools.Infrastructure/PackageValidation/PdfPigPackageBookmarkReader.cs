@@ -59,11 +59,13 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             Name(Get(action, "S")) != "GoToR" || HasAny(action, "Next") ||
             Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
         var destination = Resolve(Get(action, "D"));
+        long? pageIndex = null;
         // Only an explicit simple destination or nonempty named destination is qualified.
         if (destination is ArrayToken array)
         {
             if (array.Data.Count != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page ||
                 page.Long < 0 || Name(array.Data[1]) != "Fit") return;
+            pageIndex = page.Long;
         }
         else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) return;
         var file = Resolve(Get(action, "F"));
@@ -78,7 +80,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         else value = Text(file);
         // Encoding/platform variants require separate qualification, not guessed conversion.
         if (string.IsNullOrWhiteSpace(value) || value.Any(character => character is < ' ' or > '~')) return;
-        _targets.Add(new($"outline[{number}]/A/F", value));
+        _targets.Add(new($"outline[{number}]/A/F", value, pageIndex));
     }
 
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Bookmark evidence budget exceeded."); }
