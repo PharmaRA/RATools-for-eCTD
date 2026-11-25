@@ -3938,6 +3938,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-3029",
+      "authorityRuleId": "3029",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 54 error 3029; fixed STF DTD content-block structure",
+      "effectiveFrom": "2008-03-10",
+      "title": "Use of STF content-block is not recommended",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete identified current STF files and exact historical STF files referenced by qualified current non-delete ICH owners.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Locates every actual content-block in a complete identity-bound connected STF tree, including nested and empty blocks. DTD allowance does not exempt use, and a missing block-title does not hide a known block. Absence requires complete qualified evidence; generic DTD errors or conflicting identities remain unknown. Findings preserve FDA Medium severity and the next-planned-submission recommendation, not an immediate-resubmission requirement.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfContentBlockRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfContentBlockRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfContentBlockRule.cs", "src/RATools.Application/PackageValidation/PackageStfInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

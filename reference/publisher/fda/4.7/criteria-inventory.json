@@ -2403,10 +2403,14 @@
       "correctiveAction": "Remove the content block element in the identified stf- xxxxxxxx.xml and resubmit at time of next planned submission.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-3029"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaStfContentBlockRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaStfContentBlockRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Locates every actual content-block in complete identity-bound connected STF structure, including nested, sibling and empty blocks; missing block-title does not hide known use. Current unreferenced files and exact qualified current-owner historical references are covered. Absence requires complete qualified evidence; generic DTD failures and conflicting identities remain unknown. Medium severity and next-planned-submission recommendation are preserved. Final selected Windows regression 584/584, including 47 FDA3029 cases, and main-agent bounded read-only code/evidence review passed without subagents."
       }
     },
     {
