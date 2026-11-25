@@ -241,6 +241,9 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var duplicateFormNames = FdaDuplicateFormFileNameRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
             if (duplicateFormNames is not null) RetainChecksum(duplicateFormNames);
+            remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
+            var wrongApplicationForm = FdaWrongApplicationFormRule.Inspect(input.Packages, lifecycle, context, remaining, cancellationToken, RetainChecksum);
+            if (wrongApplicationForm is not null) RetainChecksum(wrongApplicationForm);
 
             void RetainChecksum(RuleCheckResult result) => _officialFileNames = _officialFileNames
                 .Where(check => check.RuleId != result.RuleId).Append(result).ToArray();
@@ -700,6 +703,10 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
                 context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaDuplicateFormFileNameRule.RuleId))
                 official = official.Append(new RuleCheckResult(FdaDuplicateFormFileNameRule.RuleId, CheckStatus.NotEvaluated,
                     "The duplicate form filename inspection was not reached before interruption.")).ToArray();
+            if (!official.Any(check => check.RuleId == FdaWrongApplicationFormRule.RuleId) &&
+                context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).Any(rule => rule.InternalRuleId == FdaWrongApplicationFormRule.RuleId))
+                official = official.Append(new RuleCheckResult(FdaWrongApplicationFormRule.RuleId, CheckStatus.NotEvaluated,
+                    "The wrong application form inspection was not reached before interruption.")).ToArray();
             return new(input, lifecycle, _references, checks.Concat(official), _forms);
         }
 

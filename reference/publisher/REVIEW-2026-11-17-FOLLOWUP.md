@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5038终态补记：red/candidate/final三轮各八份证据已备份并校验摘要，bin/obj全部移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5038 错误申请表单（Partial，主代理限定只读自审及终态核对通过）。** 5035已提交`0bd166d`。固定criteria页60直接列举文件名分支：1571.pdf对应NDA/ANDA/BLA、356h.pdf对应IND，以及2252.pdf用于非年报。本批在完整固定DTD、精确capture/context、唯一当前区域观察及连通双向XML树上，复用form候选绑定，核对唯一六位申请号/类型和实际当前文件；按申请/文件去重，URI编码和片段别名不重复报。2252仅证明fdast1/fdasst3且submission-id/sequence-number均为当前序列的合格原始申请，不把未知修订/旧parent/缺类型取反成非年报。元数据form-type不替代文件名，存储申请不替代实际归属；High/Error及可沿用原sequence重交建议保留。真实表单身份、其他文件名/位置、其他非年报分支、历史生命周期和共享多申请未闭合，保持Partial且无Pass。文件引擎v79，PDF仍v5、适配器version-v6，不修改共用绑定器。
+
+red32项全部缺规则断言，XML/分组前提通过。补冻结事实冲突、缺策略/来源、日期、精确预算、取消进度、未到达终态、后续未知申请、重复引用和Partial报告，candidate/final八类均266/266。主代理完整读取实现/测试及接入diff限定只读自审通过，全程未使用子代理，不称独立审计。
+
+最终`fda5038-final-20261125`八类 **266/266、0失败/跳过**，5038为53、5032为44、表单绑定17、1038为12、区域检查90、5035为50。回归入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确八类Filter保留summary.json；Api/DatabaseMigrator/Tests三Build及顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6/6交付输入绑定（4生产、1测试、catalog），manifest SHA`23d126dd896424402672304a9f6928561f0e3df414a4b62cae33ee74447bfdba`，TRX SHA`f04fa9f389c2e4e1d595ae339a58df82ac0f79cf339bc1df96d48c586c2e2d00`；目录145条canonical SHA`c230703479f8536b23c2654f0ed3a5c8a489a5064f7f5ab46fc7dcc2abfe3baa`独立通过。原证据`.artifacts/local-check/fda5038-*-20261125/`，校验副本`backups/fda5038-20261125/evidence/`。库存67 Implemented、34 Partial、46 NotAssessed，待完整覆盖80、原107完整27；下一5040，再5045/5050，不代表全部表单或监管资格。
+
 5035终态补记：red/candidate/final三轮各八份证据已备份并校验摘要，bin/obj全部移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5035 PDF版本（Partial，主代理限定只读自审及终态核对通过）。** 5034记录已提交`580865a`。固定criteria物理页60及PDF规范4.1印刷页2接受PDF1.4–1.7、PDF/A-1和PDF/A-2，并规定Low/Info、当前提交无需纠正。新增独立原始声明事实：仅字节起始处规范PDF头、Catalog无Version/Extensions/Metadata键、解析Processed且头版本与解析值一致才比较；1.0–1.3提示、1.4–1.7仅组件通过。键存在即保留未决分支，包括null/错误类型，不借旧PdfVersion字符串直接归责。逐文件capture hash、来源及2016-09-21支持日期绑定，旧日期未知；读取恢复流位置、补充读取异常不污染3102，统一finding预算及后续限额保留已知Fail。Catalog覆盖/扩展、PDF/A、完整特征一致性、解析器不支持版本、历史及非.pdf内容仍缺，保持Partial。旧PDF-VERSION行为不改；PDF验证器v5、适配器version-v6，文件仍v78。

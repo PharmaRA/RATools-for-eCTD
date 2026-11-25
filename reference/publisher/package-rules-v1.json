@@ -4078,6 +4078,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5038",
+      "authorityRuleId": "5038",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 60 error 5038; exact filename/application contradictions and qualified original-application sequence",
+      "effectiveFrom": "2013-04-30",
+      "title": "Application form must match the application and submission type",
+      "category": "Regional",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current exact-named files in qualified regional form groups with a unique application association.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Error",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reports exact 1571.pdf for NDA/ANDA/BLA, 356h.pdf for IND, and 2252.pdf for an explicitly qualified original-application sequence. Binds fixed regional XML, raw leaf facts, captured filenames, application identity and archived dictionaries. Repeated references are deduplicated per application/file. Other nonannual sequences, actual form identity, other names/locations, history and shared multi-application groups remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaWrongApplicationFormRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaWrongApplicationFormRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaWrongApplicationFormRule.cs", "src/RATools.Application/PackageValidation/PackageFormBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
