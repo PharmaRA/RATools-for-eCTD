@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5040终态补记：red/candidate/final三轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5040 Fast Web Access（Partial，主代理限定只读自审及终态核对通过）。** 5038已提交`c8f257d`。固定criteria页61要求未来提交启用Fast Web Access，保持Medium/Warning。另从Adobe官方`https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf`在内存中读取物理/印刷页1028–1030，核对F.2.2及Table F.1：线性化字典是文件头后的首个间接对象、完整位于前1024字节、Linearized为必需键。此前未取得正文的搜索/说明不算来源核对。固定PdfPig CoreTokenScanner严格读取有界前缀，必须读完字典/endobj及窗口内真实分隔符才判缺键；注释/字符串/嵌套键/后续对象不冒充顶层声明，转义键按真实token解码。首对象与Catalog分离，其他对象形态、读取不足/异常保持未知；声明存在仅DeclaredUnverified，绝不证明提示流、偏移或增量更新有效。新事实默认Unknown，绑定Processed、capture hash及归档criteria，补充读取异常不污染3102，统一额度与后续限额保留Fail。历史/非.pdf发现及完整线性化资格仍缺，无Pass分支；PDF验证器v6、适配器linearization-v7，文件仍v79。
+
+red14项全部缺规则断言且PDF前提通过；补首对象独立于Catalog、字符串/注释/嵌套/转义键、1023/1024/1025分隔符边界、冻结事实/摘要/旧事实、预算/取消/报告与后续文件限额，candidate/final八类297/297。主代理完整读取新规则/读取器/测试及接入diff，限定只读自审通过；全程无子代理，不称独立审计。
+
+最终`fda5040-final-20261125`八类 **297/297、0失败/跳过**，本规则45、5035为50、5005为57、3102为36、其余PDF组109。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，八类精确Filter保留summary.json；三Build及顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9/9输入绑定（7生产、1测试、catalog）；manifest SHA`fe8a92f53809b684f5ced6171a02eed7cc4d873429e3aea5a25267ad11f6c7bd`，TRX SHA`e2addb25091ca68fe24815528ba1305a33673e8f9a3a5a0db05ce57fc6a54823`；目录146条canonical SHA`0bbd89a18c2a35938b1b44681e75db05ad8dfe616330b95702c8fefa1ba7257c`独立通过。原证据`.artifacts/local-check/fda5040-*-20261125/`，校验副本`backups/fda5040-20261125/evidence/`。库存67 Implemented、35 Partial、45 NotAssessed，待完整覆盖80、原107完整27；下一5045，再5050，不代表完整线性化或监管资格。
+
 5038终态补记：red/candidate/final三轮各八份证据已备份并校验摘要，bin/obj全部移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
 
 **FDA5038 错误申请表单（Partial，主代理限定只读自审及终态核对通过）。** 5035已提交`0bd166d`。固定criteria页60直接列举文件名分支：1571.pdf对应NDA/ANDA/BLA、356h.pdf对应IND，以及2252.pdf用于非年报。本批在完整固定DTD、精确capture/context、唯一当前区域观察及连通双向XML树上，复用form候选绑定，核对唯一六位申请号/类型和实际当前文件；按申请/文件去重，URI编码和片段别名不重复报。2252仅证明fdast1/fdasst3且submission-id/sequence-number均为当前序列的合格原始申请，不把未知修订/旧parent/缺类型取反成非年报。元数据form-type不替代文件名，存储申请不替代实际归属；High/Error及可沿用原sequence重交建议保留。真实表单身份、其他文件名/位置、其他非年报分支、历史生命周期和共享多申请未闭合，保持Partial且无Pass。文件引擎v79，PDF仍v5、适配器version-v6，不修改共用绑定器。

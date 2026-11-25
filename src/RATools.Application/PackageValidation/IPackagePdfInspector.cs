@@ -18,6 +18,7 @@ public enum PdfContentProcessingStatus { Unknown, Processed, InvalidContent, Enc
 public enum PdfFontEmbeddingStatus { Unknown, Missing }
 public sealed record PdfFontObservation(string ObjectPath, string? BaseFont, string? Subtype, PdfFontEmbeddingStatus Embedding);
 public sealed record PdfVersionDeclaration(string HeaderVersion, bool HasCatalogVersion, bool HasExtensions, bool HasMetadata);
+public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified }
 
 public sealed class PackagePdfFacts
 {
@@ -25,7 +26,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfNamedDestination> destinations, bool navigationComplete, bool destinationsComplete,
         IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null,
         PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown,
-        IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null)
+        IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null,
+        PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown)
     {
         Basics = basics with
         {
@@ -41,6 +43,7 @@ public sealed class PackagePdfFacts
         ContentProcessing = contentProcessing;
         Fonts = Array.AsReadOnly((fonts ?? []).ToArray());
         VersionDeclaration = versionDeclaration;
+        Linearization = linearization;
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -52,6 +55,7 @@ public sealed class PackagePdfFacts
     public PdfContentProcessingStatus ContentProcessing { get; }
     public IReadOnlyList<PdfFontObservation> Fonts { get; }
     public PdfVersionDeclaration? VersionDeclaration { get; }
+    public PdfLinearizationStatus Linearization { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

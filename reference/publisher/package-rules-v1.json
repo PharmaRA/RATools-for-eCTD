@@ -4100,6 +4100,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5040",
+      "authorityRuleId": "5040",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 61 error 5040; necessary first-object condition from Adobe PDF Reference 1.7 F.2.2 pp. 1028-1029 (https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf)",
+      "effectiveFrom": "2013-04-30",
+      "title": "PDF Fast Web Access must be enabled",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured PDF files with a completely tokenized physical first indirect dictionary within the first 1024 bytes and successful PDF processing.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reports missing Linearized key only after complete physical first-object tokenization, including endobj and its delimiter within the bounded prefix. Escaped names are decoded; comments, strings, nested keys and later objects are not top-level declarations. A present declaration remains unverified, never Pass. Captured hashes and typed successful parsing must bind. Hint streams, offsets, incremental-update validity, other object shapes, incomplete prefixes, historical references and non-PDF-named contents remain unqualified. Future-submission corrective wording is retained.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfLinearizationRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfLinearizationRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfLinearizationRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageLinearizationReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
