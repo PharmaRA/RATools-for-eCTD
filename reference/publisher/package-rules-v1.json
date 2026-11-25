@@ -4364,6 +4364,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5200",
+      "authorityRuleId": "5200",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 66 error 5200",
+      "effectiveFrom": "2013-04-30",
+      "title": "Broken hyperlink pointing to a missing file",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Qualified current page-Link GoToR file targets absent from an explicitly selected current or historical sequence inventory.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires complete qualified page tree, unique indirect annotation ownership, nondegenerate finite rectangle, consistent page owner, unambiguous GoToR action and simple literal file specification. Exact source capture and complete selected target inventory are required. Unselected history, existing unreadable files, URI/bookmark/open actions and unsupported annotation/specification variants remain unknown. Historical sources and non-PDF-named contents remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenHyperlinkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenHyperlinkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBrokenHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

@@ -29,6 +29,7 @@ public sealed record PdfExternalBookmark(string ObjectPath, PdfExternalBookmarkK
 public sealed record PdfInactiveBookmark(string ObjectPath);
 public enum PdfBookmarkZoomKind { Unknown, FitPage, FixedFactor }
 public sealed record PdfBookmarkZoom(string ObjectPath, PdfBookmarkZoomKind Kind);
+public sealed record PdfHyperlinkFileTarget(string ObjectPath, int PageNumber, string FileSpecification);
 
 public sealed class PackagePdfFacts
 {
@@ -43,7 +44,8 @@ public sealed class PackagePdfFacts
         IEnumerable<PdfBookmarkActionCount>? multipleBookmarkActions = null,
         IEnumerable<PdfExternalBookmark>? externalBookmarks = null,
         IEnumerable<PdfInactiveBookmark>? inactiveBookmarks = null,
-        IEnumerable<PdfBookmarkZoom>? nonInheritingBookmarkZooms = null)
+        IEnumerable<PdfBookmarkZoom>? nonInheritingBookmarkZooms = null,
+        IEnumerable<PdfHyperlinkFileTarget>? hyperlinkFiles = null)
     {
         Basics = basics with
         {
@@ -69,6 +71,7 @@ public sealed class PackagePdfFacts
         ExternalBookmarks = Array.AsReadOnly((externalBookmarks ?? []).ToArray());
         InactiveBookmarks = Array.AsReadOnly((inactiveBookmarks ?? []).ToArray());
         NonInheritingBookmarkZooms = Array.AsReadOnly((nonInheritingBookmarkZooms ?? []).ToArray());
+        HyperlinkFiles = Array.AsReadOnly((hyperlinkFiles ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -90,6 +93,7 @@ public sealed class PackagePdfFacts
     public IReadOnlyList<PdfExternalBookmark> ExternalBookmarks { get; }
     public IReadOnlyList<PdfInactiveBookmark> InactiveBookmarks { get; }
     public IReadOnlyList<PdfBookmarkZoom> NonInheritingBookmarkZooms { get; }
+    public IReadOnlyList<PdfHyperlinkFileTarget> HyperlinkFiles { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);
