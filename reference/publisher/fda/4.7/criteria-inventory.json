@@ -2568,8 +2568,13 @@
       "implementation": {
         "status": "NotAssessed",
         "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "evidence": [
+          "src/RATools.Application/PackageValidation/PackagePdfFormFacts.cs",
+          "src/RATools.Infrastructure/Publishing/Validation/Pdf/PdfPigPdfInspector.cs",
+          "src/RATools.Application/PackageValidation/FdaFormOperationRule.cs",
+          "reference/publisher/official-sources/2026-11-09/fda-pdf-specification.pdf"
+        ],
+        "note": "Dependency assessment 2026-11-25: criteria p.57 excludes FDA Forms; archived PDF specification 4.1 printed p.2 preserves supplied FDA-form security and forbids adding or removing it. Current PDF facts expose encryption presence and AcroForm/XFA structure, not actual permission semantics, authoritative FDA form identity or original security baseline. XML form metadata/location and a filename alone do not establish these facts. Do not relabel generic PDF-SECURITY failures, treat every form as exempt, or infer non-FDA identity from no AcroForm. Requires qualified form identity and security evidence before a regulatory failure/exception can be attributed. No rule implementation or qualification claimed; remains in the incomplete queue."
       }
     },
     {

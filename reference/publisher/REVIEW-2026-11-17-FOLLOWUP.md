@@ -1,5 +1,7 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5020 PDF安全设置（依赖核对，仍NotAssessed）。** 5005已提交`f583013`。限定读取固定criteria页57、PDF规范4.1页2及现有PDF/form事实和1038/2045表单声明逻辑：当前`HasSecurityRestrictions`等同于`IsEncrypted`，没有实际权限位/处理器资格；AcroForm/XFA只证明结构，不证明官方FDA Forms身份，XML form-type/位置和文件名亦不能替代。criteria排除FDA Forms，PDF规范要求官方表单保留提供的安全设置、不得追加或移除，故还缺可信表单身份及原始安全基线来归责例外。普通加密PDF、原始官方表单、被追加安全的官方表单三类不能由当前布尔值区分。不得把旧通用规则重新贴5020编号，也不把缺AcroForm当作非FDA身份。仅登记真实依赖，不添加总是NE的空壳规则，不宣称业务红绿测试或资格通过。首次多文件记录补丁因队列锚点错误被拒绝，经diff确认无部分写入后恢复；限定文档自审及逐条JSON核对后单独提交。库存仍67 Implemented、31 Partial、49 NotAssessed，剩80；下一5029，再5030。
+
 5005终态补记：五轮证据均已备份并逐份hash核对，bin/obj移入回收站可恢复；日志、TRX、manifest与资格工具保留。提交前库存diff核对发现同guidance文本导致首次补丁误落其他条目，未暂存/提交，已恢复并按5005特有纠正说明定位；JSON逐条对比确认只改变5005。一次台账补丁因整行上下文不匹配被拒绝，无写入。
 
 **FDA5005 非标准字体未完整嵌入（Partial，主代理限定只读自审及终态核对通过）。** 3102已提交`9bfb4cc`。固定FDA criteria物理页57、PDF规范4.1物理页5–6要求完整嵌入非标准字体，表1是Times New Roman/Arial/Courier New及Symbol/Zapf Dingbats，不能借旧CommonFonts把Helvetica/Times/Courier直接豁免。新增冻结实际字体观察，逐页面非空文字操作、Tf与q/Q状态确定资源选择；仅Type1明确非表1的内置三家族、无descriptor或同名descriptor明确无三个字体流键时报Warning。资源别名不代替BaseFont，坏/冲突descriptor、键存在、子集前缀、自定义别名、复合/Type3均不冒充完整嵌入资格。Do/gs页面、嵌套/继承、完整/子集程序、历史引用、非.pdf内容和旧政策仍缺，保持Partial且无Pass分支。两份归档来源、精确capture hash及Processed事实同时绑定，4.1按固定支持表2016-09-21闸门不追溯至2013。旧PDF-FONTS判据不改，PDF验证器v4、适配器fonts-v5，file仍v77。
