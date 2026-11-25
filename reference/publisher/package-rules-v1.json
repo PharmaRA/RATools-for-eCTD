@@ -3916,6 +3916,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-3015",
+      "authorityRuleId": "3015",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 54 error 3015; fixed STF DTD doc-content/content-block content models",
+      "effectiveFrom": "2008-03-10",
+      "title": "STF property elements must precede sibling file-tag elements",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Complete identified current STF files and exact historical STF files referenced by qualified current non-delete ICH owners.",
+      "applicability": "LifecycleOperationsPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Implemented",
+      "implementationNote": "Checks frozen direct sibling order independently per doc-content/content-block, requiring identity-bound complete rooted structure and agreement between Children and Elements order. Actual reverse order supports a finding despite DTD failure; generic DTD failure alone does not. Contradictory DTD Pass, partial reads and conflicting facts remain unknown. Nested file-tag/property and separate containers are not combined; missing input does not erase independent known failures.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfPropertyOrderRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfPropertyOrderRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfPropertyOrderRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

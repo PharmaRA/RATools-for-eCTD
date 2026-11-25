@@ -2380,10 +2380,14 @@
       "correctiveAction": "Modify your SOPs to ensure your STF is in conformance with the ordering as described in the specification and the DTD.",
       "guidanceSource": "The eCTD Backbone File Specification for Study Tagging Files V2.6.1",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Implemented",
+        "internalRuleIds": ["FDA47-3015"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaStfPropertyOrderRule.cs",
+          "tests/RATools.Tests/PackageValidation/FdaStfPropertyOrderRuleTests.cs",
+          "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
+        ],
+        "note": "Checks direct sibling property/file-tag order independently in complete identity-bound doc-content/content-block containers. Children and Elements sibling order must agree; actual reverse order can establish failure despite DTD failure, while generic DTD errors, contradictory Pass and incomplete observations remain unknown. Nested properties and separate containers are not combined. Final selected Windows regression 537/537, including 54 FDA3015 cases, and main-agent bounded read-only code/evidence review passed; no subagents used after the updated instruction."
       }
     },
     {

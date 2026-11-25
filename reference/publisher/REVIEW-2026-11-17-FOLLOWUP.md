@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA3015 STF同级元素顺序（Implemented，主代理限定只读审查及终态核对通过）。** 3001已提交`1df93f4`。按用户2026-11-25新指令，后续开发不再调用子代理；本项由主代理完成实现后只读审查。固定FDA PDF54及STF DTD要求doc-content/content-block内property先于同级file-tag；file-tag内部property、不同兄弟容器及祖先/后代不混计。要求精确capture/context/hash、已解析固定DTD、完整双向连根树，并核对Children与Elements同父节点顺序一致。完整倒序即使DTD Fail仍可按每容器定位首个倒序property；泛DTD失败不直接报错，DTD Pass与倒序矛盾、坏尾或顺序冲突NE。当前未引用STF与当前合格owner精确历史选入均覆盖，文件引擎v75。
+
+续接旧red目录`fda3015-red-20261124`确认34项11过23败，失败均规则状态/接入/取消断言，XML前提通过；旧终端句柄失效后仅读终态文件，未重跑。补混合完整倒序/坏尾、hash/顺序/结构/owner冲突、报告与预取消后candidate十一类537/537。主代理完整读取新规则/测试并核对接入diff，未发现阻断；共享解析器、绑定器及旧规则未改。
+
+最终`fda3015-final-20261125`十一类 **537/537、0失败/跳过**，3015为54。Api/DatabaseMigrator/Tests三个Build目标及顶层build/test退出0，树stopped=true、forcedTreeStop=true，不称全部子进程自然退出或全0。7/7输入匹配（4生产、2测试、catalog；库存及.sha256另核），manifest SHA`e45f20897c65c6a59a8e4a27cd8d4ff8ab3b4bdb87a17f53b683e56b9a66048a`，TRX SHA`721f9df4d860a5fcb2eaa6c73cabf352e2dfa97099d45ad3d63a6fb287ad3628`；目录138条canonical SHA`521fccefc5f0958a9d7178dc6a502b24dc4e95e46b3b8e6b3ef37edffc5b1fc1`独立通过。主代理终态/七输入核对通过，三轮证据副本`backups/fda3015-20261124/evidence/`摘要一致，bin/obj已回收可恢复；备份沿用最初任务目录日期。库存66 Implemented、28 Partial、53 NotAssessed，待完整覆盖81、原107完整完成26。下一3029 content-block使用提示，再3078；非全项目或监管资格。
+
 **FDA3001 STF文档标题禁用（Implemented，限定代码及终态审查PASS）。** 2043依赖记录已提交`4b7025d`。固定FDA PDF53禁止doc-content/title，空元素/空白也算included；DTD允许title不代表业务合格。当前实际STF独立检查，历史文件仅按当前完整且地址/raw/schema一致的非delete ICH owner精确选入，不按扩展名过滤。冻结树须唯一、双向且全图连根，逐实际doc-content检查直接无namespace title，每容器一finding，不按相同href合并，不混研究/leaf/block标题。缺输入或身份冲突NE，不抹掉独立Fail；文件引擎v74，未改共享发现器或绑定器。
 
 red三十一项9过22败，均状态/接入/取消断言，XML前提通过；补mixed定位、历史路径及owner前提、hash/结构/owner冲突和完整报告后candidate十类480/480。只读审查发现当前缺失非.xml目标被发现器排除、规则直接跳过而假NA/Pass；review-red三项1过2败准确复现，并验证独立违规仍Fail。仅补当前引用目标唯一捕获文件检查，缺失/歧义记未知，增量审查PASS；Implemented不等于缺输入也能判定。
