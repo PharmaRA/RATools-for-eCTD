@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5110 未激活书签（Partial，主代理限定只读自审及终态核对通过）。** 5105已提交`5e2f11f`。固定criteria页65为Medium/Warning，保留未来提交/必要时联系纠正措辞。首批检测完整合格当前书签树中明确无动作的叶项，原始A/Dest/AA/SE/First/Last/Count键全部缺失才发布独立事实；显式null、未解析引用、未知动作、结构目标及父项展开行为不等同于无动作。当前capture hash、Processed/HasBookmarks一致性绑定，旧调用者不升级。父项、其他未激活语义、历史源和非.pdf内容仍未闭合，保持Partial、无Pass。PDF验证器v15、适配器inactive-v15，file仍v79。
+
+red19项中18项因缺规则断言失败，1项A 99 0 R在旧解析阶段返回Could not find the object with reference: 99 0，未到业务断言；保留为基础解析失败且规则未知对照，未放宽生产判据。candidate/final十七类784/784。38项本规则含无动作叶、有效动作/目的地、显式null/未解析/未知动作、AA/SE/父项/部分子项/Count0/空子项、坏树/普通注释隔离、hash/旧事实/矛盾事实、取消/重复观察、额度4未知/5失败、来源/日期/无PDF及Partial报告。主代理完整限定只读自审新规则/测试和接入diff通过，未使用子代理，不称独立审计。
+
+最终`fda5110-final-20261125`十七类 **784/784、0失败/跳过**，5110为38、其余十六类746。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两个进程树stopped=true、forcedTreeStop=true，构建26/26、测试5/5受保护，不称全部自然退出。9/9交付输入（7生产、1测试、catalog）匹配最终manifest；manifest SHA`10dedf827de5515dde501d9af7fa663fe8c4d35d70e6b1a4954193f84078cfc6`，TRX SHA`0cdb688e0988b0955f3d196d60952d82abf1608b6db69fe9ee337d10700856b0`。目录155条canonical SHA`222019e02b3ba944d07743fdb244ddb9a65b2a0d4bc772f108232f39450dcc82`独立通过。red/candidate/final证据在`.artifacts/local-check/fda5110-*-20261125/`，校验副本`backups/fda5110-20261125/evidence/`，各轮bin/obj只移入回收站可恢复。库存67 Implemented、44 Partial、36 NotAssessed，待完整覆盖80、原107完整27；下一5115，再5117，不代表全部书签或Formal资格。
+
 **FDA5105 外部书签（Partial，主代理限定只读自审及终态核对通过）。** 5103已提交`29e347a`。固定criteria页64明确包括网页/邮件书签，Medium/Warning，保留未来提交建议。首批仅完整合格当前书签中的明确HTTP/HTTPS/mailto URI动作，要求绝对、原始格式有效、ASCII无空白；绝对URI不受Catalog Base改变，relative+Base仍未知，不trim或二次解码。Dest/A冲突、Next、IsMap、错误Type、普通页面链接/打开动作不充当此事实。源capture hash和Processed/HasBookmarks一致性绑定；新事实/finding仅保留Web/Email类别及对象位置，不复制原地址，未发网络请求。相对/Base、跨申请文件、其他scheme/action、历史源和ICH Q&A64完整资格未闭合，保持Partial且无Pass。PDF验证器v14、适配器external-v14，file仍v79。
 
 red23项全部因缺规则断言失败且解析前提通过；candidate/final十六类746/746。43项本规则覆盖网址/邮件/大小写scheme、绝对与相对Base、无效/未知scheme/百分号、结构/动作隔离、虚构用户名及query不进入监管finding、hash/旧事实/矛盾事实、枚举无效值、取消/重复观察、额度4未知/5失败、来源/日期/无PDF和Partial报告。主代理完整限定只读自审新增规则/测试和接入diff通过，全程未使用子代理，不称独立审计。

@@ -12,9 +12,11 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
     private readonly List<PdfBookmarkFileTarget> _targets = [];
     private readonly List<PdfBookmarkActionCount> _actions = [];
     private readonly List<PdfExternalBookmark> _external = [];
+    private readonly List<PdfInactiveBookmark> _inactive = [];
     private bool _complete;
     internal IReadOnlyList<PdfBookmarkActionCount> MultipleActions => _complete ? _actions.ToArray() : [];
     internal IReadOnlyList<PdfExternalBookmark> ExternalBookmarks => _complete ? _external.ToArray() : [];
+    internal IReadOnlyList<PdfInactiveBookmark> InactiveBookmarks => _complete ? _inactive.ToArray() : [];
     private int _work = limits.MaxPdfObjects;
     private int _items;
 
@@ -52,6 +54,10 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             if (previous is null ? prev is not null : prev is not IndirectReferenceToken back || back.Data != previous.Data) return false;
             ReadAction(item, _items);
             ReadExternal(item, _items);
+            // Key absence is not a failed resolution or an explicit null value.
+            // Parent outline items may act as expand/collapse headings; leave them unknown.
+            if (!HasAny(item, "A", "Dest", "AA", "SE", "First", "Last", "Count"))
+                _inactive.Add(new($"outline[{_items}]"));
             if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(item) is int count && count > 1)
                 _actions.Add(new($"outline[{_items}]/A", count));
             if (!Children(item, current, depth + 1)) return false;

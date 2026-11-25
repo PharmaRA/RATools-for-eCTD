@@ -2960,10 +2960,14 @@
       "correctiveAction": "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have inactive bookmarks.",
       "guidanceSource": "General good practice to ensure reviewability.",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-5110"],
+        "evidence": [
+          "src/RATools.Application/PackageValidation/FdaPdfInactiveBookmarkRule.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs",
+          "tests/RATools.Tests/PackageValidation/FdaPdfInactiveBookmarkRuleTests.cs"
+        ],
+        "note": "Checks independently qualified current leaf bookmarks with raw absence of A/Dest/AA/SE/First/Last/Count keys, requiring complete bounded outline identity, exact capture and consistent successful parsing. Explicit nulls, unresolved actions and parent headings do not establish this absence. Other inactive semantics, historical sources and non-PDF-named contents remain unqualified; no Pass is emitted. Final seventeen-class Windows regression 784/784, including 38 FDA5110 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

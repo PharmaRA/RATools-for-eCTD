@@ -4298,6 +4298,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5110",
+      "authorityRuleId": "5110",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 65 error 5110",
+      "effectiveFrom": "2013-04-30",
+      "title": "Inactive bookmark",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Independently qualified current-PDF leaf bookmarks with explicitly absent action, destination, structure-target and child-outline entries.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires complete bounded outline identity, exact capture and consistent successful parsing. Raw absence of A/Dest/AA/SE/First/Last/Count is distinguished from explicit null, failed resolution and unknown actions. Parent headings, other inactive semantics, historical sources and non-PDF-named content remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfInactiveBookmarkRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfInactiveBookmarkRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfInactiveBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
