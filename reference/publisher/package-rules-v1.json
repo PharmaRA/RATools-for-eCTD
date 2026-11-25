@@ -4034,6 +4034,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5032",
+      "authorityRuleId": "5032",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 59 error 5032; corrective instruction about multiple filenames containing the same form number",
+      "effectiveFrom": "2013-04-30",
+      "title": "Avoid multiple application-form filenames for the same application",
+      "category": "Regional",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured PDF-named files in qualified regional form groups with one exact application association; filename-marker component only.",
+      "applicability": "RegionalBackbonePresent",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Groups distinct current referenced files by exact application type, six-digit number and filename marker 1571 or 356h. Repeated references to one file, including URI-encoded or fragment aliases, do not count twice. Different applications or types do not mix. Complete fixed-DTD regional facts, connected structure and raw leaf agreement are required. Actual form content identity, other numbers/locations, unreferenced files, historical lifecycle and shared multi-application groups remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateFormFileNameRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateFormFileNameRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateFormFileNameRule.cs", "src/RATools.Application/PackageValidation/PackageFormBindingReader.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

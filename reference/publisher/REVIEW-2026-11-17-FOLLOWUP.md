@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5032终态补记：red/red2/candidate/candidate2/final五轮证据副本摘要一致，全部bin/obj已移入回收站可恢复；编译失败candidate保留BuildOnly五份证据，未伪造测试结果。其余四轮保留八份证据，最终TRX与源码清单继续留存。
+
+**FDA5032 同申请重复表单文件名（Partial，主代理限定只读自审及终态核对通过）。** 5030依赖记录已提交`aa882fc`。固定criteria页59明确未来仅一个文件名含表单编号，附件不要使用相同编号；本批仅实现该文件名分支，不宣称PDF内容身份。完整当前固定US DTD区域XML需精确capture/context、唯一观察、双向且全图连根；复用既有form绑定，按唯一申请类型/六位号及标记1571或356h分组，第二个不同实际当前PDF命名文件给Info。重复href、URI编码/片段别名同文件只算一次，不混不同申请或同号不同类型，不依赖存储所有者；缺文件、delete、历史目标、SharedM1多申请保持未知。真实表单身份、其他编号/位置、未引用文件、历史生命周期仍缺，保持Partial且无Pass。文件引擎v78，PDF仍v4；不改既有表单绑定器。
+
+首轮red23项全失败，12项缺规则、11项DTD夹具前提失败；固定DTD只允许submission-information一个form，修正为同form多个leaf或M1共享组后red2二十三项全部缺规则，前提通过。一次实现补丁参数封装错误被拒绝，无写入，分段恢复。首candidate仅Tests构建CA1068失败（测试辅助取消令牌位置），Api/Migrator0，没有业务TRX；修正签名不放宽分析器后candidate2七类220/220。补冻结事实冲突、预算/中断、后续未知申请不抹已知重复、Partial报告与Info严重级别，主代理完成限定代码/测试/接入diff只读自审，无子代理。
+
+最终`fda5032-final-20261125`七类 **220/220、0失败/跳过**，本规则44、表单绑定17、1038为12、区域检查90、5005为57。执行入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录，QualifiedGuard为`remaining107-qualification-20261121-v3`，七类精确Filter保留在summary.json；Api/DatabaseMigrator/Tests三Build及顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26及5/5受保护，不称全部自然退出。6/6输入绑定（4生产、1测试、catalog），manifest SHA`009888ce0f45bab68782e490c1ec5f0566d96cf3ab21784ffd3f58858b6d805e`，TRX SHA`819ac0929678d9a914c8dabf03135fa0f4af573807151f8f5f5c94f5288d42bb`。目录143条canonical SHA`d643e76a0b8213ba5af7286897194824a7b17e8bb8cd4dbe7d5fe641afacfb85`独立通过；证据在`.artifacts/local-check/fda5032-*-20261125/`，校验副本在`backups/fda5032-20261125/evidence/`。库存67 Implemented、32 Partial、48 NotAssessed，待完整覆盖80、原107完整27；下一5034再5035，不代表全部表单或监管资格。
+
 **FDA5030 表单申请号不一致（依赖核对，仍NotAssessed）。** 5029记录已提交`53e8b5c`。固定criteria页58要求实际表单申请号与对应us-regional申请号一致，trans BLA可忽略。现有AcroForm字段只有名称/值，XFA事实明确只保留物理packet与data节点，不提供模板身份、脚本结果或字段绑定。因此缺版本化表单字段语义及对应申请关联，不能凭同名字段或原始文本比较；例外也不能由BLA类型或缺少trans事实反推。保持NotAssessed，无新增运行时规则或业务回归声明。一个区域事实文件路径不存在，未由该失败读取作任何资格结论；已由实际PDF/XFA模型确定直接缺口后停止扩读。一次补丁参数封装错误被拒绝、没有写入，恢复后限定文档复核、逐条JSON核对及目录合同后独立提交。统计67/31/49、剩80不变；下一5032再5034。
 
 **FDA5029 表单命名（依赖核对，仍NotAssessed）。** 5020依赖记录已提交`93c1735`。固定criteria页58描述实际1571/356h表单文件名缺少对应标记，纠正建议使用1571.pdf/356h.pdf；不能把推荐精确名称升级为唯一合法名。限定核对现有AcroForm/XFA事实、M1 form-type声明与固定字典：fdaft1/fdaft2只映射声明标签，没有建立独立PDF内容身份，固定来源清单也未含可资格表单模板。用文件名识别表单再检查文件名是循环判据，会漏掉真正误命名表单。需版本化表单身份事实后再做名称检查，不将metadata声明当作内容认证。仅登记依赖，不改运行时，不计业务回归或完整完成；限定文档自审/目录合同/逐条JSON对比完成后单独提交。库存仍67/31/49、待完整覆盖80，下一5030再5032。
