@@ -20,6 +20,7 @@ public sealed record PdfFontObservation(string ObjectPath, string? BaseFont, str
 public sealed record PdfVersionDeclaration(string HeaderVersion, bool HasCatalogVersion, bool HasExtensions, bool HasMetadata);
 public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified }
 public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions);
+public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
 
 public sealed class PackagePdfFacts
 {
@@ -28,7 +29,8 @@ public sealed class PackagePdfFacts
         IEnumerable<string>? incompleteReasons = null, PackagePdfFormFacts? form = null,
         PdfContentProcessingStatus contentProcessing = PdfContentProcessingStatus.Unknown,
         IEnumerable<PdfFontObservation>? fonts = null, PdfVersionDeclaration? versionDeclaration = null,
-        PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null)
+        PdfLinearizationStatus linearization = PdfLinearizationStatus.Unknown, PdfOpeningViewFacts? openingView = null,
+        IEnumerable<PdfMarkupAnnotation>? markupAnnotations = null)
     {
         Basics = basics with
         {
@@ -46,6 +48,7 @@ public sealed class PackagePdfFacts
         VersionDeclaration = versionDeclaration;
         Linearization = linearization;
         OpeningView = openingView;
+        MarkupAnnotations = Array.AsReadOnly((markupAnnotations ?? []).ToArray());
     }
     public PdfInspectionResult Basics { get; }
     public IReadOnlyList<PdfNavigationLink> Links { get; }
@@ -59,6 +62,7 @@ public sealed class PackagePdfFacts
     public PdfVersionDeclaration? VersionDeclaration { get; }
     public PdfLinearizationStatus Linearization { get; }
     public PdfOpeningViewFacts? OpeningView { get; }
+    public IReadOnlyList<PdfMarkupAnnotation> MarkupAnnotations { get; }
 }
 
 public sealed class PdfInspectionLimitException(string message) : Exception(message);

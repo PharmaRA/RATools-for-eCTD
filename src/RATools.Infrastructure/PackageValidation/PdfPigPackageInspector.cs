@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-v8";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-v9";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -35,7 +35,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 navigation.DestinationsComplete, navigation.Reasons, form,
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
-                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView());
+                PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
         {
@@ -88,6 +88,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         public List<PdfNavigationLink> Links { get; } = [];
         public List<PdfNamedDestination> Destinations { get; } = [];
         public List<string> Reasons { get; } = [];
+        public List<PdfMarkupAnnotation> MarkupAnnotations { get; } = [];
         public bool NavigationComplete { get; private set; } = true;
         public bool DestinationsComplete { get; private set; } = true;
         public int BookmarkCount { get; private set; }
@@ -179,6 +180,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                     {
                         var annotationToken = array.Data[annotationIndex];
                         if (Dictionary(annotationToken) is not { } annotation) { Unknown("Unresolved annotation dictionary."); continue; }
+                        ReadMarkup(annotation, index + 1, annotationIndex + 1);
                         var link = Name(Get(annotation, "Subtype")) == "Link";
                         if (link || Get(annotation, "A") is not null || Get(annotation, "Dest") is not null)
                             ReadAction(annotation, $"page[{index + 1}]/annotation[{annotationIndex + 1}]", index + 1, required: link);
@@ -199,6 +201,32 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 else AddLink("catalog/OpenAction", null, Destination(value, remote: false));
             }
             if (Get(catalog, "AA") is not null) Unknown("Catalog additional actions require further inspection.");
+        }
+
+        private void ReadMarkup(DictionaryToken annotation, int page, int index)
+        {
+            try
+            {
+                Count(0);
+                if (Get(annotation, "Type") is { } type && Name(type) != "Annot") return;
+                var subtype = Name(Get(annotation, "Subtype"));
+                if (subtype is not ("Text" or "FreeText" or "Highlight" or "Underline" or "StrikeOut" or "Squiggly" or
+                    "Stamp" or "Ink" or "Line" or "Square" or "Circle" or "Polygon" or "PolyLine" or "Caret")) return;
+                if (Resolve(Get(annotation, "Rect")) is not ArrayToken { Length: 4 } rectangle) return;
+                foreach (var coordinate in rectangle.Data)
+                {
+                    Count(0);
+                    if (Resolve(coordinate) is not NumericToken number || !double.IsFinite(number.Double)) return;
+                }
+                if (Get(annotation, "P") is { } owner &&
+                    (owner is not IndirectReferenceToken reference || !_pageNumbers.TryGetValue(reference.Data, out var actualPage) || actualPage != page)) return;
+                MarkupAnnotations.Add(new($"page[{page}]/annotation[{index}]", page, subtype));
+            }
+            catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
+            {
+                // A supplemental annotation observation is not content corruption.
+                // Do not erase previously established annotations on another object.
+            }
         }
 
         private void ReadPages(IToken? token, int depth)

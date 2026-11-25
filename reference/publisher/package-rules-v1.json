@@ -4144,6 +4144,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-5055",
+      "authorityRuleId": "5055",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA criteria 4.7 p. 62 error 5055; current regional M1 ancestry and identified PDF markup annotations",
+      "effectiveFrom": "2016-09-14",
+      "title": "PDF markup annotations are limited to Module 1 section 1.15",
+      "category": "PDF",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Current captured PDFs with identified markup annotations and qualified actual regional M1 leaf references outside section 1.15.",
+      "applicability": "PdfPresent",
+      "severity": "Warning",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Requires exact capture, successful PDF processing and complete fixed-DTD regional XML with connected raw ancestry. One outside-1.15 reference prevents whole-file exemption; folder names and titles are not ancestry. Identifies selected markup subtypes with valid rectangles and consistent optional page owners. Links/widgets and unknown subtypes are not treated as proven markup. Legacy calls without lifecycle evidence remain unknown. Other annotation semantics, modules 2-5, historical/unreferenced contents and unresolved ownership remain unqualified; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfAnnotationRuleTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfAnnotationRuleTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfAnnotationRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageInspector.cs"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",

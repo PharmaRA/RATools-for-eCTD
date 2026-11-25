@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+5055终态补记：red/candidate/candidate2/final四轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。
+
+**FDA5055 PDF批注（Partial，主代理限定只读自审及终态核对通过）。** 5050依赖记录已提交`6c40fdd`。固定criteria页62要求1.15以外PDF不含批注；本批冻结可识别正文批注子类型、页码与对象位置，要求四个数值矩形及可选P页引用一致，Link/Widget/未知类型不等同于正文批注。PDF验证器增加可选生命周期证据，由交付入口显式传入；旧调用未提供时新规则未知。完整当前固定US DTD区域XML需精确capture/context、唯一观察、双向全图连根及原始叶引用一致；按实际祖先链识别1.15，不靠目录名/标题。同文件同时在例外内外引用仍按例外外叶报一次，重复引用不重复报；缺文件不误NA，delete/历史/未引用/坏尾保持未知。模块2–5、其他批注语义及完整历史未闭合，保持Partial且无Pass。统一PDF额度包括新finding，后续文件限额不抹已知Fail；PDF验证器v8、适配器annotations-v9，文件仍v79。
+
+red34项全部缺规则断言且XML/PDF前提通过。candidate十一类482/486，四项失败均无效矩形/缺Rect/错误Subtype夹具的解析成功前提；绕过新增逻辑直接调用固定PdfPig页面/链接提取，在内存中复现相同四种错误，确认基础解析限制后改为明确解析失败且5055未知对照，不放宽生产判据。补后续文件限额后candidate2/final487/487。主代理自审输出曾截断测试后半段，已补读后才确认完整限定审查通过；全程无子代理，不称独立审计。
+
+最终`fda5055-final-20261125`十一类 **487/487、0失败/跳过**，本规则75、其他PDF九类362、区域检查50。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该新目录、QualifiedGuard为`remaining107-qualification-20261121-v3`，十一类精确Filter保留summary.json；Api/DatabaseMigrator/Tests三Build与顶层build/test退出0。进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8/8输入绑定（6生产、1测试、catalog）；manifest SHA`d593f2147ac837fffd8e3247fe06b9dbd70d226d594d153bbd118914dcbb9349`，TRX SHA`6d1b16f4edfd413718b07a4f58b2b9cd3bf1a8d25037917370db61a1cefe3b13`；目录148条canonical SHA`62226a4baa64ac58270df0de325c227cf5dc0396d00761148d89be9471ba0def`独立通过。原证据`.artifacts/local-check/fda5055-*-20261125/`，校验副本`backups/fda5055-20261125/evidence/`。库存67 Implemented、37 Partial、43 NotAssessed，待完整覆盖80、原107完整27；下一5057，再5100/5101，不代表完整批注或监管资格。
+
 **FDA5050 打开密码保护（依赖核对，仍NotAssessed）。** 5045已提交`64159cd`。固定criteria页62要求“密码保护并且无法打开”，明确不适用于FDA Forms。限定核对PdfPig 0.1.15异常文档及现有适配器：PdfDocumentEncryptedException只说明encrypted and cannot be decrypted，不证明原因必然是打开密码；当前Encrypted分类不区分密码、不支持处理器及加密数据损坏。仅有Encrypt字典或owner权限限制也不证明无法打开，且现有form模型没有官方表单内容身份。需要合格打开密码事实及FDA Forms例外身份，不能将3102的未知加密结果或通用PDF-SECURITY重新贴5050编号。本项只记录真实依赖，无运行时实现或业务回归声明；限定文档自审、逐条JSON核对与目录合同后单独提交。库存67/36/44、待完整覆盖80不变；下一5055注释与1.15例外。
 
 5045终态补记：red/candidate/final三轮各八份证据已备份并逐份校验摘要，全部bin/obj已移入回收站可恢复；日志、TRX、源码清单与资格工具保留。

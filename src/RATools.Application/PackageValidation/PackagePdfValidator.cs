@@ -3,7 +3,8 @@ using RATools.Domain.PackageValidation;
 
 namespace RATools.Application.PackageValidation;
 
-public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null)
+public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProvider? timeProvider = null, PackageStandardsContext? standards = null,
+    PackageLifecycleInspection? lifecycle = null)
 {
     private static readonly string[] RuleIds = ["PDF-READABLE", "PDF-SECURITY", "PDF-FONTS", "PDF-NAVIGATION", "PDF-LINKS", "PDF-VERSION"];
     private static readonly HashSet<string> CommonFonts = new(StringComparer.Ordinal)
@@ -25,7 +26,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(input.Packages.Target.Limits.MaxElapsedSeconds), timeProvider ?? TimeProvider.System);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         ArgumentException.ThrowIfNullOrWhiteSpace(inspector.EngineVersion);
-        var run = new Inspection(input, files, inspector.EngineVersion, standards ?? PackageStandardsContext.Current, linked.Token);
+        var run = new Inspection(input, files, lifecycle, inspector.EngineVersion, standards ?? PackageStandardsContext.Current, linked.Token);
         try
         {
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
@@ -47,7 +48,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         return run.Finish();
     }
 
-    private sealed class Inspection(PackageDeliveryInput input, PackageFileInspection files, string inspectorVersion, PackageStandardsContext context, CancellationToken cancellationToken)
+    private sealed class Inspection(PackageDeliveryInput input, PackageFileInspection files, PackageLifecycleInspection? lifecycle, string inspectorVersion, PackageStandardsContext context, CancellationToken cancellationToken)
     {
         private readonly Dictionary<string, PackageInputFile> _inventory = input.Packages.Sequences.Values.SelectMany(capture => capture.Manifest.Files)
             .ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
@@ -59,6 +60,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
         private readonly FdaPdfVersionRule.Inspection _version = new(input, files, context, cancellationToken);
         private readonly FdaPdfLinearizationRule.Inspection _linearization = new(input, files, context, cancellationToken);
         private readonly FdaPdfOpeningViewRule.Inspection _openingView = new(input, files, context, cancellationToken);
+        private readonly FdaPdfAnnotationRule.Inspection _annotations = new(input, files, lifecycle, context, cancellationToken);
         public bool Incomplete { get; set; }
 
         public void Read(IPackagePdfInspector inspector)
@@ -81,15 +83,17 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                 cancellationToken.ThrowIfCancellationRequested();
                 _documents.Add(path, facts);
                 _contentProcessing.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
                 _fontEmbedding.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
                 _version.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
                 _linearization.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
                 _openingView.Observe(new(path, facts, _inventory[path].Sha256),
-                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount);
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
+                _annotations.Observe(new(path, facts, _inventory[path].Sha256),
+                    input.Packages.Target.Limits.MaxXmlFindings - 1 - _findings.Count - _contentProcessing.FindingCount - _fontEmbedding.FindingCount - _version.FindingCount - _linearization.FindingCount - _openingView.FindingCount - _annotations.FindingCount);
                 pages += facts.Basics.PageCount ?? 0;
                 links += facts.Links.Count;
                 if (pages > input.Packages.Target.Limits.MaxPdfPages || links > input.Packages.Target.Limits.MaxPdfLinks)
@@ -255,7 +259,7 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             string? actual = null, ValidationSeverity? severity = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_findings.Count + _contentProcessing.FindingCount + _fontEmbedding.FindingCount + _version.FindingCount + _linearization.FindingCount + _openingView.FindingCount >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
+            if (_findings.Count + _contentProcessing.FindingCount + _fontEmbedding.FindingCount + _version.FindingCount + _linearization.FindingCount + _openingView.FindingCount + _annotations.FindingCount >= input.Packages.Target.Limits.MaxXmlFindings - 1) throw new PdfInspectionLimitException("PDF finding limit exceeded.");
             var catalog = location.SequenceNumber is { } sequence ? context.ForSequence(sequence).Catalog : context.Catalog;
             var declaredSeverity = catalog.Rules[rule].Severity;
             _findings.Add(new(rule, status, severity ?? declaredSeverity, code,
@@ -282,6 +286,8 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             if (linearization is not null) checks = checks.Append(linearization);
             var openingView = _openingView.Finish(Incomplete);
             if (openingView is not null) checks = checks.Append(openingView);
+            var annotations = _annotations.Finish(Incomplete);
+            if (annotations is not null) checks = checks.Append(annotations);
             return new(files, inspectorVersion, _documents.Select(pair => new PackagePdfDocument(pair.Key, pair.Value, _inventory[pair.Key].Sha256)), _links, checks);
         }
         private static ValidationLocation Location(string path) => new(path.Split('/')[0], path);

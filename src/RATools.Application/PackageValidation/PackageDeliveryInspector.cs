@@ -6,7 +6,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 {
     public const string DeliveryEngineVersion = "package-delivery-v5";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
-    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v79;package-pdf-validator-v7;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v1;package-file-inspector-v79;package-pdf-validator-v8;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)
@@ -19,7 +19,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
             var context = standards ?? PackageStandardsContext.Current;
             var lifecycle = await new PackageLifecycleInspector(timeProvider, context).InspectAsync(input.Packages, profileSnapshotId, linked.Token).ConfigureAwait(false);
             var files = await new PackageFileInspector(timeProvider, context).InspectAsync(input, lifecycle, linked.Token).ConfigureAwait(false);
-            var pdf = await new PackagePdfValidator(pdfInspector, timeProvider, context).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
+            var pdf = await new PackagePdfValidator(pdfInspector, timeProvider, context, lifecycle).InspectAsync(input, files, linked.Token).ConfigureAwait(false);
             var regional = new PackageRegionalInspector(context).Inspect(input.Packages, lifecycle, linked.Token);
             var structure = InspectReachability(input, lifecycle, files, pdf, context, linked.Token);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
