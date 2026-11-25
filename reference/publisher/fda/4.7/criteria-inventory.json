@@ -2592,8 +2592,12 @@
       "implementation": {
         "status": "NotAssessed",
         "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "evidence": [
+          "src/RATools.Application/PackageValidation/PackagePdfFormFacts.cs",
+          "src/RATools.Infrastructure/PackageValidation/PdfPigPackageFormReader.cs",
+          "reference/publisher/official-sources/2026-11-09/fda-form-types.xml"
+        ],
+        "note": "Dependency assessment 2026-11-25: criteria p.58 requires identifying an actual 1571/356h form independently of its filename before checking the missing 1571/356h marker. Current PDF field/XFA structure and declared XML form-type are not qualified document identity; fdaft1/fdaft2 dictionary labels describe declarations only. The inspected archived-source inventory has the form-type dictionary, not qualified form templates/identity evidence. Filename-based identification would make this check circular and miss misnamed forms. Do not turn suggested exact filenames into an unsupported exact-match failure. Remains NotAssessed pending versioned form identity evidence; no implementation or qualification claimed."
       }
     },
     {
