@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5第三轮依赖复核：原始字段仍不是最终显示值（不计规则完成）。** 5217已提交`ff6bdba`。限定读取当前`Fda2252FieldEvidence`、`FdaXfaTemplateEvidence`、`PackageFormEvidenceAssociationReader`及固定2252原件，未执行表单脚本/渲染。原件SHA`921983dcb9ac14308617684c52e516f283cdf343adb7e0f3ab52fef09b1b1e7e`；config包SHA`36d7ab81b3ed81c22749fd2390e68fc04ebf2074b6e600c84d1a6754f8ecffd2`，template SHA`c761fd02da088844dea36e67570344ffbc13213e00b11849b6bdfe43fab506fc`，form包SHA`10bc0f809461d97968f68da1e67669ade38aed32e81eebeca1744785eca142a6`。config要求dynamicRender=required、scriptModel=XFA、runScripts=server；主号/延续号validate分别调用sixDigits/uptofourDigits，不合法输入分支会赋空rawValue。类型validate的旧转换脚本整段被注释，不作为可执行转换证据；CDER/CBER脚本控制延续号access，不证明申请号拼接规则。
+
+现有模板匹配只绑定template，原始字段只绑定datasets，候选关联明确不选择主表单或申请；因此还需合格的XFA默认绑定/配置与form状态/渲染见证，以及主表单与附件/申请归属业务资格。不能执行不可信脚本来伪造资格，也不能仅比较原始字段就发布FDA5失败。保留FDA5 NotAssessed及既有前置能力；本次仅只读依赖复核，无新增业务实现或回归完成声称，无子代理。FDA6/7适用及可填写性、1038实际身份/替换例外、1085起算目录依赖没有新证据，不重跑无变化项；按序继续1102后续可执行缺口。库存67 Implemented/56 Partial/24 NotAssessed，待完整覆盖80、原107完整27不变。
+
 **FDA5217第二轮：合格Filespec字典的明确超链接缩放（仍Partial，主代理限定只读自审及终态核对通过）。** 5210已提交`1999d3c`。先按序核5215现有斜杠根路径、百分号字面值和盘符对照，不将原始C:/套用Windows本机语义，平台变体/历史源资格保留。5217复用已经资格化的文件身份限制，支持非空ASCII F及可选一致UF的Filespec字典，排除FS/EF/RF/DOS/Mac/Unix/ID/V等字段。Fit与正数XYZ发布非继承缩放，零/null不违规；原始完整动作/页面身份及双来源/日期资格未放宽。
 
 red两项真实PDF解析、源页树和文件身份前提全过，预期Fail实际NE。修后十一类 **725/725、0失败/跳过**（5217为93含新增36、书签缩放87），覆盖字典类型/F与UF冲突/平台嵌入变体、未解析字段的基础解析失败及直接补充读取对照、错误目的地/页面资格、额度、取消和Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。
