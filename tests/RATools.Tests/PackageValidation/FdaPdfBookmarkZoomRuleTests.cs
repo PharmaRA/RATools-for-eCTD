@@ -7,12 +7,112 @@ using RATools.Domain.PackageValidation;
 using RATools.Domain.Standards;
 using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Persistence.InMemory;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Tokens;
 
 namespace RATools.Tests.PackageValidation;
 
 public sealed class FdaPdfBookmarkZoomRuleTests
 {
     private const string RuleId = "FDA47-5117";
+
+    [Theory]
+    [InlineData("[0 /Fit]")]
+    [InlineData("[0 /XYZ null null 1.25]")]
+    public async Task QualifiedFileDictionaryKeepsExplicitBookmarkZoom(string destination)
+    {
+        var result = await Run(await Fixture(Build(destination, "file-dictionary")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Single(facts.BookmarkFiles);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("outline[1]/A/D", Assert.Single(check.Findings).Location.FieldPath);
+    }
+
+    [Theory]
+    [InlineData("<< /Type /Filespec /F (target.pdf) >>", CheckStatus.Fail)]
+    [InlineData("<< /F (target.pdf) /UF (target.pdf) >>", CheckStatus.Fail)]
+    [InlineData("<< /F <7461726765742E706466> >>", CheckStatus.Fail)]
+    [InlineData("<< /F (target.pdf) /UF (other.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /UF null >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /UF 99 0 R >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /Type /Other >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F null >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F 99 0 R >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /UF (target.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /FS /URL >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /EF << >> >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /DOS (target.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /V false >>", CheckStatus.NotEvaluated)]
+    public async Task FileDictionaryMustHaveUnambiguousQualifiedIdentity(string specification, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("[0 /XYZ null null 1]", specification: specification)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        if (specification.Contains("99 0 R", StringComparison.Ordinal)) Assert.NotNull(facts.Basics.ParseError);
+        else Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, facts.NonInheritingBookmarkZooms.Count);
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("<< /F (target.pdf) >>", 1)]
+    [InlineData("<< /F (target.pdf) /UF 99 0 R >>", 0)]
+    [InlineData("<< /F 99 0 R >>", 0)]
+    public void SupplementalReaderDoesNotTreatUnresolvedFileIdentityAsQualified(string specification, int count)
+    {
+        using var stream = new MemoryStream(Build("[0 /XYZ null null 1]", specification: specification));
+        using var document = PdfDocument.Open(stream, new ParsingOptions { UseLenientParsing = false });
+        IToken? Resolve(IToken? value) => value is not IndirectReferenceToken reference ? value :
+            reference.Data == new UglyToad.PdfPig.Core.IndirectReference(99, 0) ? null : document.Structure.GetObject(reference.Data)?.Data;
+        var reader = new PdfPigPackageBookmarkReader(Resolve, new(), CancellationToken.None);
+        reader.Read(document.Structure.Catalog.CatalogDictionary);
+        Assert.Equal(count, reader.NonInheritingZooms.Count);
+    }
+
+    [Theory]
+    [InlineData("[0 /XYZ null null 0]", "bookmark")]
+    [InlineData("[0 /XYZ null null null]", "bookmark")]
+    [InlineData("[0 /XYZ null null -1]", "bookmark")]
+    [InlineData("[0 /XYZ /bad null 1]", "bookmark")]
+    [InlineData("[0 /Fit 1]", "bookmark")]
+    [InlineData("[0 /Fit]", "internal")]
+    [InlineData("[0 /Fit]", "page-link")]
+    [InlineData("[0 /Fit]", "open-action")]
+    [InlineData("[0 /Fit]", "next-action")]
+    [InlineData("[0 /Fit]", "conflict")]
+    [InlineData("[0 /Fit]", "bad-parent")]
+    public async Task FileDictionaryDoesNotBypassDestinationAndBookmarkQualification(string destination, string scenario)
+    {
+        var result = await Run(await Fixture(Build(destination, scenario, "<< /F (target.pdf) >>")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Empty(Assert.Single(result.Documents).Facts!.NonInheritingBookmarkZooms);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task DictionaryZoomHonorsAllowanceAndCancellation(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("[0 /Fit]", "file-dictionary")); var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task DictionaryZoomFailureRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("[0 /Fit]", "file-dictionary"));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
 
     [Theory]
     [InlineData("[0 /Fit]", "bookmark", CheckStatus.Fail)]
@@ -37,7 +137,7 @@ public sealed class FdaPdfBookmarkZoomRuleTests
     [InlineData("[0 /Fit]", "bad-parent", CheckStatus.NotEvaluated)]
     [InlineData("[0 /Fit]", "wrong-type", CheckStatus.NotEvaluated)]
     [InlineData("[0 /Fit]", "no-file", CheckStatus.NotEvaluated)]
-    [InlineData("[0 /Fit]", "file-dictionary", CheckStatus.NotEvaluated)]
+    [InlineData("[0 /Fit]", "file-dictionary", CheckStatus.Fail)]
     public async Task ExplicitZoomSettingIsDistinctFromInheritedOrUnknownSetting(string destination, string scenario, CheckStatus expected)
     {
         var result = await Run(await Fixture(Build(destination, scenario)));
@@ -212,9 +312,10 @@ public sealed class FdaPdfBookmarkZoomRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string destination, string scenario = "bookmark")
+    private static byte[] Build(string destination, string scenario = "bookmark", string? specification = null)
     {
         var file = scenario == "no-file" ? "" : scenario == "file-dictionary" ? " /F << /F (target.pdf) >>" : " /F (target.pdf)";
+        if (specification is not null) file = " /F " + specification;
         var action = "<< /S /" + (scenario == "internal" ? "GoTo" : "GoToR") + file + " /D " + destination +
             (scenario == "next-action" ? " /Next << /S /GoToR /F (target.pdf) /D [0 /Fit] >>" : "") + (scenario == "wrong-type" ? " /Type /Bogus" : "") + " >>";
         if (scenario == "page-link") return PdfPigPackageInspectorTests.Build("/A " + action);

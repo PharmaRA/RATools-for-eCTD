@@ -3014,7 +3014,7 @@
           "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs",
           "tests/RATools.Tests/PackageValidation/FdaPdfBookmarkZoomRuleTests.cs"
         ],
-        "note": "Checks independently qualified current GoToR Fit and positive fixed XYZ zoom settings, with complete explicit syntax, simple file specifications, capture binding and consistent parsing. XYZ zero/null retains zoom and is not a violation. Requires archived criteria and PDF 4.1 under its qualified date. Internal/named destinations, other modes/actions/file encodings, historical sources and earlier policy remain incomplete; no Pass is emitted. Final nineteen-class Windows regression 882/882, including 53 FDA5117 cases and updated shared-budget interactions, and main-agent bounded read-only review passed without subagents."
+        "note": "Checks qualified current GoToR Fit and positive XYZ zoom, now including simple Filespec dictionaries with nonempty ASCII F and matching optional UF. Platform/URL/embedded/related-file keys, conflicting or unresolved identities and malformed destinations remain unknown. Exact capture, complete outline/action identity, consistent parsing, archived criteria and PDF 4.1 date are required. XYZ zero/null retains zoom. Unresolved F/UF may be rejected by the base parser; direct supplemental-reader controls independently reject these identities. Internal/named destinations, other modes/actions/encodings, historical sources and earlier policy remain incomplete; no Pass. Final ten-class Windows regression 614/614, including 87 FDA5117 cases with 33 new cases, and main-agent bounded read-only review passed without subagents; still Partial."
       }
     },
     {

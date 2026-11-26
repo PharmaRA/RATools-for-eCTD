@@ -120,7 +120,16 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         if (HasAny(item, "Dest", "AA") || Resolve(Get(item, "A")) is not DictionaryToken action ||
             Name(Get(action, "S")) != "GoToR" || HasAny(action, "Next") ||
             Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
-        var file = Text(Resolve(Get(action, "F")));
+        var rawFile = Resolve(Get(action, "F"));
+        string? file;
+        if (rawFile is DictionaryToken specification)
+        {
+            if (HasAny(specification, "FS", "EF", "RF", "DOS", "Mac", "Unix", "ID", "V") ||
+                Get(specification, "Type") is not null && Name(Get(specification, "Type")) != "Filespec") return;
+            file = Text(Resolve(Get(specification, "F")));
+            if (Get(specification, "UF") is { } unicode && Text(Resolve(unicode)) != file) return;
+        }
+        else file = Text(rawFile);
         if (string.IsNullOrWhiteSpace(file) || file.Any(character => character is < ' ' or > '~') ||
             Resolve(Get(action, "D")) is not ArrayToken destination || destination.Length < 2 ||
             Resolve(destination.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return;
