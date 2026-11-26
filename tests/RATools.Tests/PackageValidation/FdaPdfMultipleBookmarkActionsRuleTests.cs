@@ -17,6 +17,105 @@ public sealed class FdaPdfMultipleBookmarkActionsRuleTests
     private const string RuleId = "FDA47-5103";
 
     [Theory]
+    [InlineData("dictionary", "[0 /XYZ null null null]", "[0 /Fit]", 2)]
+    [InlineData("dictionary", "[0 /Fit]", "[0 /XYZ null null 0]", 2)]
+    [InlineData("three", "[0 /XYZ null null 1]", "[1 /XYZ 0 100 1.25]", 3)]
+    [InlineData("indirect", "[0 /XYZ null null null]", "[0 /XYZ null null null]", 2)]
+    public async Task CompleteXyzChainsRetainAllBookmarkActionExecutions(string scenario, string first, string following, int count)
+    {
+        var result = await Run(await Fixture(Build(scenario, first, following)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.True(facts.Basics.HasBookmarks);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(count.ToString(CultureInfo.InvariantCulture), Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("[0 /XYZ null null -1]")]
+    [InlineData("[0 /XYZ null null (1)]")]
+    [InlineData("[0 /XYZ false null 1]")]
+    [InlineData("[0 /XYZ null null]")]
+    [InlineData("[0 /XYZ null null 1 0]")]
+    [InlineData("[-1 /XYZ null null null]")]
+    [InlineData("[0.5 /XYZ null null null]")]
+    [InlineData("[3 0 R /XYZ null null null]")]
+    public async Task InvalidXyzTailDoesNotPublishPartialActionCount(string following)
+    {
+        var result = await Run(await Fixture(Build("dictionary", "[0 /XYZ null null null]", following)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Empty(facts.MultipleBookmarkActions);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("single")]
+    [InlineData("siblings")]
+    [InlineData("empty-array")]
+    [InlineData("null")]
+    [InlineData("invalid")]
+    [InlineData("unknown-action")]
+    [InlineData("cycle")]
+    [InlineData("conflict")]
+    [InlineData("bad-parent")]
+    [InlineData("no-title")]
+    [InlineData("page-link")]
+    [InlineData("open-action")]
+    public async Task XyzChainKeepsBookmarkIdentityAndCompleteTailRequirements(string scenario)
+    {
+        var result = await Run(await Fixture(Build(scenario, "[0 /XYZ null null null]", "[0 /XYZ null null null]")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Empty(facts.MultipleBookmarkActions);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+        if (scenario == "page-link")
+        {
+            Assert.Empty(facts.MultipleHyperlinkActions);
+            Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5203").Status);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 200, 64, 100, null)]
+    [InlineData(true, 200, 64, 100, 3)]
+    [InlineData(true, 1, 64, 100, null)]
+    [InlineData(true, 200, 0, 100, null)]
+    [InlineData(true, 200, 64, 2, null)]
+    public void XyzActionReaderRequiresExplicitEnablementAndFullBudget(bool enabled, int work, int depth, int links, int? expected)
+    {
+        using var stream = new MemoryStream(Build("three", "[0 /XYZ null null null]", "[0 /XYZ null null null]"));
+        using var document = PdfDocument.Open(stream, new ParsingOptions { UseLenientParsing = false });
+        IToken? Resolve(IToken? value) => value is IndirectReferenceToken reference ? document.Structure.GetObject(reference.Data)?.Data : value;
+        var item = Assert.IsType<DictionaryToken>(document.Structure.GetObject(new(8, 0))!.Data);
+        var reader = new PdfPigPackageBookmarkActionReader(Resolve, new() { MaxPdfObjects = work, MaxPdfDepth = depth, MaxPdfLinks = links }, CancellationToken.None, enabled);
+        Assert.Equal(expected, reader.Read(item));
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task XyzActionChainHonorsFindingAllowanceAndCancellation(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("dictionary", "[0 /XYZ null null null]", "[0 /XYZ null null null]"));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task XyzActionChainReportRemainsPartial()
+    {
+        var fixture = await Fixture(Build("dictionary", "[0 /XYZ null null null]", "[0 /XYZ null null null]"));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("dictionary", CheckStatus.Fail)]
     [InlineData("array", CheckStatus.Fail)]
     [InlineData("three", CheckStatus.Fail)]
@@ -207,16 +306,16 @@ public sealed class FdaPdfMultipleBookmarkActionsRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string scenario)
+    private static byte[] Build(string scenario, string first = "[0 /Fit]", string following = "[0 /Fit]")
     {
-        const string simple = "<< /S /GoToR /F (target.pdf) /D [0 /Fit] >>";
+        var simple = "<< /S /GoToR /F (target.pdf) /D " + following + " >>";
         var next = scenario switch {
             "single" or "siblings" => "", "array" => " /Next [" + simple + "]", "three" => " /Next [" + simple + " " + simple + "]",
             "nested" => " /Next << /S /GoToR /F (target.pdf) /D [0 /Fit] /Next " + simple + " >>",
             "empty-array" => " /Next []", "null" => " /Next null", "invalid" => " /Next 12", "indirect" => " /Next 9 0 R",
             "cycle" => " /Next 9 0 R", "unknown-action" => " /Next << /S /Unknown >>", "wrong-type" => " /Next << /Type /Bogus /S /GoToR /F (target.pdf) /D [0 /Fit] >>",
             "bad-file" => " /Next << /S /GoToR /D [0 /Fit] >>", _ => " /Next " + simple };
-        var action = "<< /S /GoToR /F (target.pdf) /D [0 /Fit]" + next + " >>";
+        var action = "<< /S /GoToR /F (target.pdf) /D " + first + next + " >>";
         if (scenario == "page-link") return PdfPigPackageInspectorTests.Build("/A " + action);
         if (scenario == "open-action") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/OpenAction " + action);
         return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R",

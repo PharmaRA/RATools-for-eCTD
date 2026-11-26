@@ -61,7 +61,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             // Parent outline items may act as expand/collapse headings; leave them unknown.
             if (!HasAny(item, "A", "Dest", "AA", "SE", "First", "Last", "Count"))
                 _inactive.Add(new($"outline[{_items}]"));
-            if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(item) is int count && count > 1)
+            if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token, allowXyz: true).Read(item) is int count && count > 1)
                 _actions.Add(new($"outline[{_items}]/A", count));
             if (!Children(item, current, depth + 1)) return false;
             var next = Get(item, "Next");

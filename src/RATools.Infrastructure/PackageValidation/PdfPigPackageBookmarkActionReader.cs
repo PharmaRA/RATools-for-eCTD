@@ -5,7 +5,8 @@ using UglyToad.PdfPig.Tokens;
 namespace RATools.Infrastructure.PackageValidation;
 
 // Counts complete supported action executions, never outline sibling links.
-internal sealed class PdfPigPackageBookmarkActionReader(Func<IToken?, IToken?> resolve, PackageReadLimits limits, CancellationToken token)
+internal sealed class PdfPigPackageBookmarkActionReader(Func<IToken?, IToken?> resolve, PackageReadLimits limits, CancellationToken token,
+    bool allowXyz = false)
 {
     private readonly HashSet<IndirectReference> _activeReferences = [];
     private readonly HashSet<DictionaryToken> _activeDictionaries = new(ReferenceEqualityComparer.Instance);
@@ -42,7 +43,15 @@ internal sealed class PdfPigPackageBookmarkActionReader(Func<IToken?, IToken?> r
             var destination = Resolve(Get(action, "D"));
             if (destination is ArrayToken array)
             {
-                if (array.Length != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0 || Name(array.Data[1]) != "Fit") return false;
+                if (array.Length < 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return false;
+                var mode = Name(array.Data[1]);
+                if (mode == "Fit" && array.Length == 2) { }
+                else if (allowXyz && mode == "XYZ" && array.Length == 5 && Coordinate(array.Data[2]) && Coordinate(array.Data[3]))
+                {
+                    var zoom = Resolve(array.Data[4]);
+                    if (zoom is not NullToken && (zoom is not NumericToken factor || !double.IsFinite(factor.Double) || factor.Double < 0)) return false;
+                }
+                else return false;
             }
             else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) return false;
             if (Get(action, "Next") is not { } next) return true;
@@ -60,6 +69,12 @@ internal sealed class PdfPigPackageBookmarkActionReader(Func<IToken?, IToken?> r
         }
     }
 
+    private bool Coordinate(IToken value) => Resolve(value) switch
+    {
+        NullToken => true,
+        NumericToken number => double.IsFinite(number.Double),
+        _ => false
+    };
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Bookmark action evidence budget exceeded."); }
     private IToken? Resolve(IToken? value) { Tick(); return resolve(value); }
     private string? Name(IToken? value) => (Resolve(value) as NameToken)?.Data;
