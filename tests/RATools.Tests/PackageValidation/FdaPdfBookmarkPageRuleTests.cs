@@ -17,6 +17,104 @@ public sealed class FdaPdfBookmarkPageRuleTests
     private const string RuleId = "FDA47-5102";
 
     [Theory]
+    [InlineData("[1 /XYZ null null null]", false, false)]
+    [InlineData("[1 /XYZ null null 0]", true, false)]
+    [InlineData("[1 /XYZ null null null]", false, true)]
+    [InlineData("[1 /XYZ 0 100 1.25]", false, false)]
+    public async Task RemoteXyzIndexRequiresItsOwnPageExistenceQualification(string destination, bool targetFirst, bool history)
+    {
+        var fixture = await Fixture(destination, "valid", targetFirst, history);
+        var result = await Run(fixture);
+        var source = Assert.Single(result.Documents, item => item.LogicalPath == fixture.Source).Facts!;
+        var target = Assert.Single(result.Documents, item => item.LogicalPath == fixture.Target).Facts!;
+        Assert.Null(source.Basics.ParseError); Assert.Null(target.Basics.ParseError);
+        Assert.Single(source.BookmarkFiles); Assert.Equal(1, target.QualifiedPageCount);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Contains("zero-based-index=1", Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("[0 /XYZ null null null]", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "valid", CheckStatus.Fail)]
+    [InlineData("[2147483647 /XYZ null null 0]", "valid", CheckStatus.Fail)]
+    [InlineData("[1 /XYZ null null null]", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "unselected-history", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "broken", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "count-mismatch", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "wrong-parent", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "wrong-literal", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "page-link", CheckStatus.NotEvaluated)]
+    [InlineData("[-1 /XYZ null null null]", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("[1.5 /XYZ null null null]", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null -1]", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ (left) null 1]", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null 1 0]", "valid", CheckStatus.NotEvaluated)]
+    public async Task XyzPageFailureNeedsQualifiedIndexAndTarget(string destination, string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(destination, scenario);
+        var result = await Run(fixture);
+        Assert.Null(Assert.Single(result.Documents, item => item.LogicalPath == fixture.Source).Facts!.Basics.ParseError);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status); Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData(false, 0, CheckStatus.NotEvaluated)]
+    [InlineData(false, 1, CheckStatus.Fail)]
+    [InlineData(true, 0, CheckStatus.NotEvaluated)]
+    [InlineData(true, 1, CheckStatus.Fail)]
+    public async Task XyzBothObservationOrdersHonorAllowanceAndCancellation(bool targetFirst, int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture("[1 /XYZ null null null]", "valid");
+        var documents = (await Run(fixture)).Documents;
+        var source = Assert.Single(documents, item => item.LogicalPath == fixture.Source);
+        var target = Assert.Single(documents, item => item.LogicalPath == fixture.Target);
+        var run = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(targetFirst ? target : source, remaining); run.Observe(targetFirst ? source : target, remaining);
+        run.Observe(source, 10); run.Observe(target, 10);
+        Assert.Equal(expected, run.Finish(true)!.Status); Assert.Equal(remaining, run.FindingCount);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        cancelled.Observe(targetFirst ? target : source, 1);
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(targetFirst ? source : target, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Theory]
+    [InlineData("source-hash")]
+    [InlineData("target-hash")]
+    [InlineData("legacy-pages")]
+    [InlineData("count-conflict")]
+    public async Task XyzPageEvidenceCannotBorrowUnboundOrLegacyFacts(string variant)
+    {
+        var fixture = await Fixture("[1 /XYZ null null null]", "valid");
+        var documents = (await Run(fixture)).Documents;
+        var source = Assert.Single(documents, item => item.LogicalPath == fixture.Source);
+        var target = Assert.Single(documents, item => item.LogicalPath == fixture.Target);
+        if (variant == "source-hash") source = source with { CapturedSha256 = new string('0', 64) };
+        if (variant == "target-hash") target = target with { CapturedSha256 = new string('0', 64) };
+        if (variant is "legacy-pages" or "count-conflict") target = target with
+        {
+            Facts = new(target.Facts!.Basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+                qualifiedPageCount: variant == "legacy-pages" ? null : 2)
+        };
+        var run = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(source, 10); run.Observe(target, 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status); Assert.Equal(0, run.FindingCount);
+    }
+
+    [Fact]
+    public async Task XyzPageFailureRetainsPartialReportCoverage()
+    {
+        var fixture = await Fixture("[1 /XYZ null null null]", "valid");
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("[0 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1 /Fit]", "valid", false, false, CheckStatus.Fail)]
     [InlineData("[1 /Fit]", "valid", true, false, CheckStatus.Fail)]
@@ -24,7 +122,7 @@ public sealed class FdaPdfBookmarkPageRuleTests
     [InlineData("[2147483647 /Fit]", "valid", false, false, CheckStatus.Fail)]
     [InlineData("[-1 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1.5 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
-    [InlineData("[1 /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "valid", false, false, CheckStatus.Fail)]
     [InlineData("(absent)", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("/absent", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1 /Fit]", "missing", false, false, CheckStatus.NotEvaluated)]

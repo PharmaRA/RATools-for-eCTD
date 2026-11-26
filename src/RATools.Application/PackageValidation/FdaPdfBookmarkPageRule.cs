@@ -124,7 +124,7 @@ internal static class FdaPdfBookmarkPageRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _current.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified current GoToR Fit page indexes and complete independently capture-bound target page trees are covered. Named destinations, internal bookmarks, other destination modes, missing/unreadable targets, unselected history and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Qualified current GoToR Fit and XYZ page indexes are compared with complete independently capture-bound target page trees. Named destinations, internal bookmarks, other destination modes, missing/unreadable targets, unselected history and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

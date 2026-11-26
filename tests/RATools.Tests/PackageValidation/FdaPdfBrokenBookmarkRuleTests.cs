@@ -30,7 +30,7 @@ public sealed class FdaPdfBrokenBookmarkRuleTests
         var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
         Assert.Equal(CheckStatus.Fail, check.Status);
         Assert.Equal("0001/missing.pdf", Assert.Single(check.Findings).Actual);
-        Assert.Null(Assert.Single(facts.BookmarkFiles).ZeroBasedPageIndex);
+        Assert.Equal(0L, Assert.Single(facts.BookmarkFiles).ZeroBasedPageIndex);
     }
 
     [Theory]

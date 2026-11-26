@@ -88,8 +88,9 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             {
                 var zoom = Resolve(array.Data[4]);
                 if (zoom is not NullToken && (zoom is not NumericToken factor || !double.IsFinite(factor.Double) || factor.Double < 0)) return;
-                // Qualify the file target only. The existing page-existence
-                // consumer remains scoped to its separately qualified Fit index.
+                // GoToR XYZ uses the same nonnegative zero-based page index as
+                // Fit; the consumer separately qualifies the target page tree.
+                pageIndex = page.Long;
             }
             else return;
         }
