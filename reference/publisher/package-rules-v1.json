@@ -4225,7 +4225,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires independent bounded outline-tree identity, unambiguous simple file specification, exact source capture and complete selected target inventory. File specifications are literal, not URI-decoded. Unselected history, unsupported actions/specifications and existing unreadable files cannot prove absence. Historical source PDFs, other action/destination encodings and non-PDF-named contents remain unqualified; no Pass is emitted.",
+      "implementationNote": "Requires independent bounded outline-tree identity, unambiguous simple file specification, exact source capture and complete selected target inventory. Adds qualified GoToR XYZ file targets with nonnegative integer page, finite numeric/null coordinates and null/nonnegative finite zoom. This extends shared file identity, not XYZ page-existence qualification: no page index is published for that mode. File specifications remain literal, not URI-decoded. Unselected history, malformed destinations, unsupported actions/specifications and existing unreadable files cannot prove absence. Historical source PDFs, other encodings and non-PDF-named contents remain unqualified; no Pass; still Partial.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenBookmarkRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenBookmarkRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBrokenBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],

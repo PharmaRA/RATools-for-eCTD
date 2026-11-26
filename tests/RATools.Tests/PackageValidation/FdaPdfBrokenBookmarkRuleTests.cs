@@ -18,6 +18,100 @@ public sealed class FdaPdfBrokenBookmarkRuleTests
     private const string RuleId = "FDA47-5100";
 
     [Theory]
+    [InlineData("[0 /XYZ null null null]")]
+    [InlineData("[0 /XYZ 0 100 0]")]
+    [InlineData("[0 /XYZ null null 1.25]")]
+    public async Task QualifiedRemoteXyzBookmarkRetainsMissingFileIdentity(string destination)
+    {
+        var result = await Run(await Fixture(Build("missing.pdf", destinationOverride: destination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.True(facts.Basics.HasBookmarks);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("0001/missing.pdf", Assert.Single(check.Findings).Actual);
+        Assert.Null(Assert.Single(facts.BookmarkFiles).ZeroBasedPageIndex);
+    }
+
+    [Theory]
+    [InlineData("[0 /XYZ null null -1]")]
+    [InlineData("[0 /XYZ null null (1)]")]
+    [InlineData("[0 /XYZ (0) null 1]")]
+    [InlineData("[0 /XYZ null false 1]")]
+    [InlineData("[0 /XYZ null null]")]
+    [InlineData("[0 /XYZ null null 1 0]")]
+    [InlineData("[-1 /XYZ null null 1]")]
+    [InlineData("[0.5 /XYZ null null 1]")]
+    [InlineData("[3 0 R /XYZ null null 1]")]
+    [InlineData("[0 /Unknown null null 1]")]
+    public async Task InvalidRemoteXyzParametersCannotAuthorizeFileFailure(string destination)
+    {
+        var result = await Run(await Fixture(Build("missing.pdf", destinationOverride: destination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Empty(facts.BookmarkFiles);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("../0000/missing.pdf", false, null, CheckStatus.NotEvaluated, CheckStatus.NotEvaluated)]
+    [InlineData("../0000/missing.pdf", true, null, CheckStatus.Fail, CheckStatus.NotEvaluated)]
+    [InlineData("target.pdf", false, "target.pdf", CheckStatus.NotEvaluated, CheckStatus.Fail)]
+    [InlineData("../0000/target.pdf", true, "target.pdf", CheckStatus.NotEvaluated, CheckStatus.Fail)]
+    [InlineData("target%2Epdf", false, "target.pdf", CheckStatus.Fail, CheckStatus.NotEvaluated)]
+    [InlineData("target%2Epdf", false, "target%2Epdf", CheckStatus.NotEvaluated, CheckStatus.NotEvaluated)]
+    [InlineData("target.pdf#page=1", false, "target.pdf", CheckStatus.Fail, CheckStatus.NotEvaluated)]
+    [InlineData("../0002/missing.pdf", false, null, CheckStatus.NotEvaluated, CheckStatus.NotEvaluated)]
+    public async Task XyzFileIdentityPreservesLiteralInventoryAndCorruptionSeparation(string target, bool history, string? existing,
+        CheckStatus missing, CheckStatus corrupt)
+    {
+        var result = await Run(await Fixture(Build(target, destinationOverride: "[0 /XYZ null null null]"), history, existing));
+        var source = Assert.Single(result.Documents, item => item.LogicalPath == "0001/report.pdf");
+        Assert.Null(source.Facts!.Basics.ParseError);
+        Assert.Single(source.Facts.BookmarkFiles);
+        Assert.Equal(missing, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(corrupt, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5101").Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5102").Status);
+    }
+
+    [Theory]
+    [InlineData("bookmark", CheckStatus.Fail)]
+    [InlineData("file-dictionary", CheckStatus.Fail)]
+    [InlineData("same-uf", CheckStatus.Fail)]
+    [InlineData("conflict-uf", CheckStatus.NotEvaluated)]
+    [InlineData("embedded", CheckStatus.NotEvaluated)]
+    [InlineData("url-filespec", CheckStatus.NotEvaluated)]
+    [InlineData("conflict-dest", CheckStatus.NotEvaluated)]
+    [InlineData("next-action", CheckStatus.NotEvaluated)]
+    [InlineData("bad-parent", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-action-type", CheckStatus.NotEvaluated)]
+    [InlineData("page-link", CheckStatus.NotEvaluated)]
+    [InlineData("open-action", CheckStatus.NotEvaluated)]
+    public async Task XyzFileTargetsKeepIndependentBookmarkQualification(string scenario, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("/submission/missing.pdf", scenario, "[0 /XYZ null null null]")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5115").Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task XyzMissingFileHonorsAllowanceAndRetainsCancelledProgress(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("missing.pdf", destinationOverride: "[0 /XYZ null null null]"));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Theory]
     [InlineData("missing.pdf", false, null, CheckStatus.Fail)]
     [InlineData("../0000/missing.pdf", false, null, CheckStatus.NotEvaluated)]
     [InlineData("../0000/missing.pdf", true, null, CheckStatus.Fail)]
@@ -282,7 +376,7 @@ public sealed class FdaPdfBrokenBookmarkRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string target, string scenario = "bookmark")
+    private static byte[] Build(string target, string scenario = "bookmark", string? destinationOverride = null)
     {
         var file = scenario switch {
             "file-dictionary" => "<< /Type /Filespec /F (" + target + ") >>",
@@ -292,6 +386,7 @@ public sealed class FdaPdfBrokenBookmarkRuleTests
             "url-filespec" => "<< /FS /URL /F (" + target + ") >>",
             "hex-file" => "<" + Convert.ToHexString(Encoding.ASCII.GetBytes(target)) + ">", _ => "(" + target + ")" };
         var destination = scenario switch { "no-destination" => "", "named" => "/D (target)", "name" => "/D /target", "bad-destination" => "/D [-1 /Fit]", _ => "/D [0 /Fit]" };
+        if (destinationOverride is not null) destination = "/D " + destinationOverride;
         var action = scenario switch { "uri" => "<< /S /URI /URI (" + target + ") >>", "internal" => "<< /S /GoTo /D [3 0 R /Fit] >>", _ => "<< /S /GoToR /F " + file + " " + destination + (scenario == "wrong-action-type" ? " /Type /Bogus" : "") + (scenario == "next-action" ? " /Next << /S /GoToR /F (other.pdf) /D [0 /Fit] >>" : "") + " >>" };
         var siblings = scenario is "siblings" or "bad-prev";
         var nested = scenario is "nested" or "bad-child-parent";

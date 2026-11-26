@@ -81,9 +81,17 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         // Only an explicit simple destination or nonempty named destination is qualified.
         if (destination is ArrayToken array)
         {
-            if (array.Data.Count != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page ||
-                page.Long < 0 || Name(array.Data[1]) != "Fit") return;
-            pageIndex = page.Long;
+            if (array.Data.Count < 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return;
+            var mode = Name(array.Data[1]);
+            if (mode == "Fit" && array.Length == 2) pageIndex = page.Long;
+            else if (mode == "XYZ" && array.Length == 5 && Coordinate(array.Data[2]) && Coordinate(array.Data[3]))
+            {
+                var zoom = Resolve(array.Data[4]);
+                if (zoom is not NullToken && (zoom is not NumericToken factor || !double.IsFinite(factor.Double) || factor.Double < 0)) return;
+                // Qualify the file target only. The existing page-existence
+                // consumer remains scoped to its separately qualified Fit index.
+            }
+            else return;
         }
         else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) return;
         var file = Resolve(Get(action, "F"));
