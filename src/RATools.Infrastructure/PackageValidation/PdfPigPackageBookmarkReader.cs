@@ -63,7 +63,8 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             ReadZoom(item, _items);
             // Key absence is not a failed resolution or an explicit null value.
             // Parent outline items may act as expand/collapse headings; leave them unknown.
-            if (!HasAny(item, "A", "Dest", "AA", "SE", "First", "Last", "Count"))
+            if (!HasAny(item, "A", "Dest", "AA", "SE", "First", "Last") &&
+                (!HasAny(item, "Count") || Get(item, "Count") is NumericToken { HasDecimalPlaces: false, Long: 0 }))
                 _inactive.Add(new($"outline[{_items}]"));
             if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token, allowXyz: true).Read(item) is int count && count > 1)
                 _actions.Add(new($"outline[{_items}]/A", count));

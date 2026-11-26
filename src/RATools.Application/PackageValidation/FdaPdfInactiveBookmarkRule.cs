@@ -70,7 +70,7 @@ internal static class FdaPdfInactiveBookmarkRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified current leaf bookmarks with explicitly absent action/destination/structure/child keys are covered. Parent headings, explicit nulls, unresolved or unsupported actions, other inactive semantics and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Qualified current leaf bookmarks require absent action/destination/structure/child keys and absent or direct integer zero Count. Count metadata does not itself activate a childless item. Nonzero, null, indirect or malformed counts, parent headings, unresolved/unsupported actions, other inactive semantics and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

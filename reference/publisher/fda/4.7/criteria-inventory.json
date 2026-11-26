@@ -2968,7 +2968,7 @@
           "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs",
           "tests/RATools.Tests/PackageValidation/FdaPdfInactiveBookmarkRuleTests.cs"
         ],
-        "note": "Checks independently qualified current leaf bookmarks with raw absence of A/Dest/AA/SE/First/Last/Count keys, requiring complete bounded outline identity, exact capture and consistent successful parsing. Explicit nulls, unresolved actions and parent headings do not establish this absence. Other inactive semantics, historical sources and non-PDF-named contents remain unqualified; no Pass is emitted. Final seventeen-class Windows regression 784/784, including 38 FDA5110 cases, and main-agent bounded read-only review passed without subagents."
+        "note": "Checks qualified current childless bookmarks with absent A/Dest/AA/SE/First/Last and absent or direct integer zero Count. Count metadata does not activate an item. Complete bounded outline identity, exact capture and successful parsing remain required; zero cannot bypass action/child keys or inconsistent tree identity. Nonzero/null/indirect/malformed counts, null or unresolved actions and parent headings remain unknown. Other inactive semantics, historical sources and non-PDF-named contents remain incomplete; no Pass. Final ten-class Windows regression 581/581, including 62 FDA5110 cases with 24 new cases, and main-agent bounded read-only review passed without subagents; still Partial."
       }
     },
     {

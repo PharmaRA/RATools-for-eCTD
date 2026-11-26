@@ -14,6 +14,79 @@ public sealed class FdaPdfInactiveBookmarkRuleTests
 {
     private const string RuleId = "FDA47-5110";
 
+    [Fact]
+    public async Task ExplicitZeroCountDoesNotActivateAChildlessBookmark()
+    {
+        var result = await Run(await Fixture(Build("count-zero")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.True(facts.Basics.HasBookmarks);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("outline[1]", Assert.Single(check.Findings).Location.FieldPath);
+    }
+
+    [Theory]
+    [InlineData("/Count 0", CheckStatus.Fail)]
+    [InlineData("/Count +0", CheckStatus.Fail)]
+    [InlineData("/Count -0", CheckStatus.Fail)]
+    [InlineData("/Count 1", CheckStatus.NotEvaluated)]
+    [InlineData("/Count -1", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0.5", CheckStatus.NotEvaluated)]
+    [InlineData("/Count null", CheckStatus.NotEvaluated)]
+    [InlineData("/Count (0)", CheckStatus.NotEvaluated)]
+    [InlineData("/Count /Zero", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 9 0 R", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /A null", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /Dest null", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /Dest [3 0 R /Fit]", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /AA << >>", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /SE 9 0 R", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /First null /Last null", CheckStatus.NotEvaluated)]
+    [InlineData("/Count 0 /First 9 0 R /Last 9 0 R", CheckStatus.NotEvaluated)]
+    public async Task ZeroCountCannotReplaceActionAndChildAbsence(string properties, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("inactive", properties)));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status); Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("bad-parent")]
+    [InlineData("no-title")]
+    [InlineData("bad-last")]
+    public async Task ZeroCountDoesNotBypassCompleteOutlineIdentity(string scenario)
+    {
+        var result = await Run(await Fixture(Build(scenario, "/Count 0")));
+        Assert.Empty(Assert.Single(result.Documents).Facts!.InactiveBookmarks);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task ZeroCountHonorsAllowanceAndRetainsCancelledFailure(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("count-zero")); var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfInactiveBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfInactiveBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task ZeroCountFailureRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("count-zero"));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
     [Theory]
     [InlineData("inactive", CheckStatus.Fail)]
     [InlineData("dest", CheckStatus.NotEvaluated)]
@@ -31,7 +104,7 @@ public sealed class FdaPdfInactiveBookmarkRuleTests
     [InlineData("partial-children", CheckStatus.NotEvaluated)]
     [InlineData("no-outlines", CheckStatus.NotEvaluated)]
     [InlineData("page-annotation", CheckStatus.NotEvaluated)]
-    [InlineData("count-zero", CheckStatus.NotEvaluated)]
+    [InlineData("count-zero", CheckStatus.Fail)]
     [InlineData("null-children", CheckStatus.NotEvaluated)]
     public async Task InactiveLeafRequiresExplicitAbsenceNotUnresolvedAction(string scenario, CheckStatus expected)
     {
@@ -187,7 +260,7 @@ public sealed class FdaPdfInactiveBookmarkRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string scenario)
+    private static byte[] Build(string scenario, string? overrideProperties = null)
     {
         const string destination = "/Dest [3 0 R /Fit]";
         if (scenario is "no-outlines" or "page-annotation") return PdfPigPackageInspectorTests.Build(scenario == "page-annotation" ? "" : destination);
@@ -196,6 +269,7 @@ public sealed class FdaPdfInactiveBookmarkRuleTests
             "unresolved" => "/A 99 0 R", "unknown-action" => "/A << /S /Unknown >>", "aa" => "/AA << >>", "structure" => "/SE 9 0 R",
             "count-zero" => "/Count 0", "null-children" => "/First null /Last null",
             "parent" => "/First 9 0 R /Last 9 0 R /Count 1", "partial-children" => "/First 9 0 R", _ => "" };
+        if (overrideProperties is not null) properties = overrideProperties;
         return PdfPigPackageInspectorTests.Build(destination, "/Outlines 7 0 R",
             "<< /Type /Outlines /First 8 0 R /Last " + (scenario == "bad-last" ? "9" : "8") + " 0 R /Count " + (scenario == "parent" ? "2" : "1") + " >>",
             "<< " + (scenario == "no-title" ? "" : "/Title (bookmark)") + " /Parent " + (scenario == "bad-parent" ? "1" : "7") + " 0 R " + properties + " >>",
