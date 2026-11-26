@@ -17,6 +17,57 @@ public sealed class FdaPdfInactiveHyperlinkRuleTests
     private const string RuleId = "FDA47-5210";
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    public async Task StructureParentIndexDoesNotActivateAnOtherwiseInactiveLink(int index)
+    {
+        var result = await Run(await Fixture(PdfPigPackageInspectorTests.Build("/StructParent " + index.ToString(CultureInfo.InvariantCulture))));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("NoActionOrDestination", Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("-1")]
+    [InlineData("0.5")]
+    [InlineData("(0)")]
+    [InlineData("/Zero")]
+    [InlineData("[]")]
+    [InlineData("<< >>")]
+    [InlineData("7 0 R")]
+    public async Task UnsupportedStructureIndexCannotQualifyInactivity(string value)
+    {
+        var pdf = PdfPigPackageInspectorTests.Build("/StructParent " + value, "", "0");
+        var result = await Run(await Fixture(pdf));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.InactiveHyperlinks);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("/A null")]
+    [InlineData("/Dest null")]
+    [InlineData("/AA << >>")]
+    [InlineData("/A << /S /Unknown >>")]
+    [InlineData("/A << /S /GoTo /D [3 0 R /Fit] >>")]
+    [InlineData("/Dest [3 0 R /Fit]")]
+    [InlineData("/F 2")]
+    [InlineData("/P 2 0 R")]
+    [InlineData("/AP << >>")]
+    public async Task StructureIndexDoesNotBypassActionOrAnnotationBoundaries(string properties)
+    {
+        var result = await Run(await Fixture(PdfPigPackageInspectorTests.Build("/StructParent 0 " + properties)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.InactiveHyperlinks);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
     [InlineData("inactive", CheckStatus.Fail)]
     [InlineData("dest", CheckStatus.NotEvaluated)]
     [InlineData("action", CheckStatus.NotEvaluated)]
@@ -25,7 +76,7 @@ public sealed class FdaPdfInactiveHyperlinkRuleTests
     [InlineData("unresolved", CheckStatus.NotEvaluated)]
     [InlineData("unknown-action", CheckStatus.NotEvaluated)]
     [InlineData("aa", CheckStatus.NotEvaluated)]
-    [InlineData("structure", CheckStatus.NotEvaluated)]
+    [InlineData("structure", CheckStatus.Fail)]
     [InlineData("hidden", CheckStatus.NotEvaluated)]
     [InlineData("wrong-page", CheckStatus.NotEvaluated)]
     [InlineData("appearance", CheckStatus.NotEvaluated)]
@@ -109,22 +160,26 @@ public sealed class FdaPdfInactiveHyperlinkRuleTests
     }
 
     [Theory]
-    [InlineData(0, CheckStatus.NotEvaluated)]
-    [InlineData(1, CheckStatus.Fail)]
-    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected)
+    [InlineData(0, CheckStatus.NotEvaluated, false)]
+    [InlineData(1, CheckStatus.Fail, false)]
+    [InlineData(0, CheckStatus.NotEvaluated, true)]
+    [InlineData(1, CheckStatus.Fail, true)]
+    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected, bool structure)
     {
-        var fixture = await Fixture(Build("inactive")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build(structure ? "structure" : "inactive")); var document = Assert.Single((await Run(fixture)).Documents);
         var run = new FdaPdfInactiveHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
         run.Observe(document, remaining); run.Observe(document, 10);
         Assert.Equal(expected, run.Finish(true)!.Status); Assert.Equal(remaining, run.FindingCount);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure, bool structure)
     {
-        var fixture = await Fixture(Build("inactive")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build(structure ? "structure" : "inactive")); var document = Assert.Single((await Run(fixture)).Documents);
         using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
         Assert.ThrowsAny<OperationCanceledException>(() =>
         {
@@ -162,10 +217,12 @@ public sealed class FdaPdfInactiveHyperlinkRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
     }
 
-    [Fact]
-    public async Task PartialCoverageRetainsLocatedFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialCoverageRetainsLocatedFailure(bool structure)
     {
-        var fixture = await Fixture(Build("inactive"));
+        var fixture = await Fixture(Build(structure ? "structure" : "inactive"));
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
         Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);

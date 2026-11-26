@@ -55,7 +55,7 @@ internal static class FdaPdfInactiveHyperlinkRule
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
                 if (string.IsNullOrWhiteSpace(link.ObjectPath) || link.PageNumber < 1 || link.PageNumber > facts.QualifiedPageCount) continue;
                 _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
-                    "A qualified page hyperlink has explicitly absent action, destination and alternate structure keys.",
+                    "A qualified page hyperlink has explicitly absent action, destination and additional-action keys; a structure-parent index does not supply activation.",
                     new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: link.ObjectPath,
                         Files: [new(_input.Packages.Target.SourceId, document.LogicalPath)]), "Active hyperlink", "NoActionOrDestination",
                     "Corrective action may be necessary and you will be contacted if it is necessary. Ensure that documents in future submissions do not have inactive hyperlinks."));
@@ -70,7 +70,7 @@ internal static class FdaPdfInactiveHyperlinkRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified current page-Link annotations with explicitly absent action/destination/additional-action/structure keys are covered. Explicit nulls, unresolved or unsupported actions, annotation variants, other inactive semantics and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Only qualified current page-Link annotations with explicitly absent action/destination/additional-action keys and absent or direct nonnegative integer StructParent are covered. Structure-tree validity is not established. Explicit nulls, unresolved or unsupported actions, other structure-index forms, annotation variants, other inactive semantics and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

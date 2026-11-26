@@ -3132,7 +3132,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-5210"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaPdfInactiveHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfInactiveHyperlinkRuleTests.cs"],
-        "note": "Qualified current page-Link annotations with explicitly absent action/destination/additional-action/structure keys establish inactivity. Complete page/annotation inventory, unique ownership and capture binding are required. Explicit nulls, unresolved or unsupported actions, annotation variants, other inactive semantics and historical source PDFs remain incomplete; no Pass is emitted."
+      "note": "Qualified current page-Link annotations with explicitly absent action/destination/additional-action keys and absent or direct nonnegative integer StructParent establish inactivity. StructParent is structure metadata, not activation; structure-tree validity is not established. Complete page/annotation inventory, unique ownership and capture binding are required. Explicit nulls, unresolved or unsupported actions, other structure-index forms, annotation variants, other inactive semantics and historical source PDFs remain incomplete; no Pass is emitted. Second-round ten-class Windows regression 602/602, including 67 FDA5210 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

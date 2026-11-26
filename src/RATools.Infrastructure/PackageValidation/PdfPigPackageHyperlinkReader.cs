@@ -57,7 +57,9 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         }
                         if (!valid || coordinates[2] <= coordinates[0] || coordinates[3] <= coordinates[1]) continue;
                         // Raw key absence is distinct from explicit null or an unresolved value.
-                        if (!HasAny(annotation, "A", "Dest", "AA", "StructParent"))
+                        // StructParent is a structure-tree index, not an activation action (PDF 1.7 Tables 8.15/8.24).
+                        if (!HasAny(annotation, "A", "Dest", "AA") &&
+                            (!Has(annotation, "StructParent") || Get(annotation, "StructParent") is NumericToken { HasDecimalPlaces: false, Long: >= 0 }))
                             inactive.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]", pageIndex + 1)));
                         if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token, allowXyz: true).Read(annotation) is int count && count > 1)
                             actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
