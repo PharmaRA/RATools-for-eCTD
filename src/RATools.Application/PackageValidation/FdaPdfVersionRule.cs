@@ -55,10 +55,24 @@ internal static class FdaPdfVersionRule
             if (!_observed.Add(document.LogicalPath) || document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null || facts.Basics.PageCount is null or < 1 ||
                 facts.Basics.IsEncrypted || facts.VersionDeclaration is not { } declaration ||
-                declaration.HasCatalogVersion || declaration.HasExtensions || declaration.HasMetadata ||
-                facts.Basics.PdfVersion != declaration.HeaderVersion)
+                declaration.HasExtensions || declaration.HasMetadata)
             { _incomplete = true; return; }
             var version = declaration.HeaderVersion;
+            if (version is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5" or "1.6" or "1.7"))
+            { _incomplete = true; return; }
+            if (declaration.HasCatalogVersion)
+            {
+                // PDF Reference 1.7 Table 3.25: a direct Version name raises the
+                // header version, never lowers it. Unknown values are not absence.
+                if (declaration.CatalogVersion is not ("1.4" or "1.5" or "1.6" or "1.7"))
+                { _incomplete = true; return; }
+                if (string.CompareOrdinal(declaration.CatalogVersion, version) > 0) version = declaration.CatalogVersion;
+            }
+            else if (declaration.CatalogVersion is not null) { _incomplete = true; return; }
+            // Parsers may expose the original header or the effective declaration;
+            // neither permits a third, contradictory version to authorize a result.
+            if (facts.Basics.PdfVersion != declaration.HeaderVersion && facts.Basics.PdfVersion != version)
+            { _incomplete = true; return; }
             if (version is "1.4" or "1.5" or "1.6" or "1.7") return;
             if (version is not ("1.0" or "1.1" or "1.2" or "1.3") || remaining <= 0)
             { _incomplete = true; return; }
@@ -77,7 +91,7 @@ internal static class FdaPdfVersionRule
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : interrupted || _incomplete || _observed.Count != _expected.Count ? CheckStatus.NotEvaluated :
                 _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.Pass,
-                "Only original ordinary-PDF version declarations are compared. Catalog overrides, extensions, metadata/PDF-A qualification, unsupported parser versions, actual feature conformance, historical references, non-PDF-named contents and pre-4.1 policy remain unqualified.", _findings.ToArray());
+                "Original ordinary-PDF headers and qualified direct Catalog Version names are compared using the later declaration. Other catalog values, extensions, metadata/PDF-A qualification, unsupported parser versions, actual feature conformance, historical references, non-PDF-named contents and pre-4.1 policy remain unqualified.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

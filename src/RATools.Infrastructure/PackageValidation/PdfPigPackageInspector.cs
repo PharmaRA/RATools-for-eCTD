@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v23";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v24";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -71,7 +71,8 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 var catalog = document.Structure.Catalog.CatalogDictionary;
                 token.ThrowIfCancellationRequested();
                 return new(System.Text.Encoding.ASCII.GetString(header[5..8]), catalog.ContainsKey(NameToken.Create("Version")),
-                    catalog.ContainsKey(NameToken.Create("Extensions")), catalog.ContainsKey(NameToken.Create("Metadata")));
+                    catalog.ContainsKey(NameToken.Create("Extensions")), catalog.ContainsKey(NameToken.Create("Metadata")),
+                    catalog.TryGet(NameToken.Create("Version"), out var declared) && declared is NameToken name ? name.Data : null);
             }
             finally { stream.Position = saved; }
         }

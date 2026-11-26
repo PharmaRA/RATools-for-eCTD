@@ -16,13 +16,89 @@ public sealed class FdaPdfVersionRuleTests
     private const string RuleId = "FDA47-5035";
 
     [Theory]
+    [InlineData("1.3", "1.4")]
+    [InlineData("1.3", "1.7")]
+    [InlineData("1.7", "1.4")]
+    [InlineData("1.4", "1.4")]
+    [InlineData("1.0", "1.4")]
+    [InlineData("1.4", "1.5")]
+    [InlineData("1.4", "1.6")]
+    [InlineData("1.5", "1.7")]
+    [InlineData("1.6", "1.5")]
+    public async Task DirectCatalogNameSelectsTheLaterOrdinaryVersion(string header, string catalog)
+    {
+        var result = await Run(await Fixture(Build(header, "/Version /" + catalog)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        Assert.Equal(header, facts.VersionDeclaration!.HeaderVersion);
+        Assert.True(facts.VersionDeclaration.HasCatalogVersion);
+        Assert.Equal(catalog, facts.VersionDeclaration.CatalogVersion);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("/Version null", null)]
+    [InlineData("/Version (1.7)", null)]
+    [InlineData("/Version 1.7", null)]
+    [InlineData("/Version 99 0 R", null)]
+    [InlineData("/Version << >>", null)]
+    [InlineData("/Version /1.30", "1.30")]
+    [InlineData("/Version /2.0", "2.0")]
+    [InlineData("/Version /1.3", "1.3")]
+    [InlineData("/Version /1.7 /Extensions null", "1.7")]
+    [InlineData("/Version /1.7 /Metadata null", "1.7")]
+    public async Task UnqualifiedCatalogValuesAreNotOrdinaryVersionEvidence(string catalog, string? rawName)
+    {
+        var result = await Run(await Fixture(Build("1.3", catalog)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.True(facts.VersionDeclaration!.HasCatalogVersion);
+        Assert.Equal(rawName, facts.VersionDeclaration.CatalogVersion);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("1.3", "1.3", true, "1.7", CheckStatus.Pass)]
+    [InlineData("1.7", "1.3", true, "1.7", CheckStatus.Pass)]
+    [InlineData("1.5", "1.3", true, "1.7", CheckStatus.NotEvaluated)]
+    [InlineData("1.7", "1.3", true, null, CheckStatus.NotEvaluated)]
+    [InlineData("1.3", "1.3", false, "1.7", CheckStatus.NotEvaluated)]
+    [InlineData("1.3", "1.30", true, "1.7", CheckStatus.NotEvaluated)]
+    [InlineData("1.3", "1.3", true, "1.70", CheckStatus.NotEvaluated)]
+    [InlineData("1.3", "1.3", true, "2.0", CheckStatus.NotEvaluated)]
+    public async Task CatalogEvidenceMustAgreeWithRawHeaderAndParsedVersion(string parsed, string header, bool present, string? catalog, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("1.3"));
+        var file = Assert.Single(fixture.Input.Packages.Target.Manifest.Files, item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult(parsed, false, false, true, true, [], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            versionDeclaration: new(header, present, false, false, catalog));
+        var run = new FdaPdfVersionRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(expected, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Fact]
+    public async Task CatalogVersionComponentPassRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("1.3", "/Version /1.7"));
+        var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(result.Pdf.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("1.0", "", CheckStatus.Fail)]
     [InlineData("1.3", "", CheckStatus.Fail)]
     [InlineData("1.4", "", CheckStatus.Pass)]
     [InlineData("1.5", "", CheckStatus.Pass)]
     [InlineData("1.6", "", CheckStatus.Pass)]
     [InlineData("1.7", "", CheckStatus.Pass)]
-    [InlineData("1.3", "/Version /1.7", CheckStatus.NotEvaluated)]
+    [InlineData("1.3", "/Version /1.7", CheckStatus.Pass)]
     [InlineData("1.7", "/Version /2.0", CheckStatus.NotEvaluated)]
     [InlineData("1.7", "/Version (2.0)", CheckStatus.NotEvaluated)]
     [InlineData("1.7", "/Version null", CheckStatus.NotEvaluated)]
@@ -103,7 +179,7 @@ public sealed class FdaPdfVersionRuleTests
         using var stream = new MemoryStream(Build(version, catalog));
         var facts = new PdfPigPackageInspector().Inspect(stream, "0001/report.pdf", new(), CancellationToken.None);
         Assert.Null(facts.Basics.ParseError);
-        Assert.Equal(new PdfVersionDeclaration(version, overridden, extensions, metadata), facts.VersionDeclaration);
+        Assert.Equal(new PdfVersionDeclaration(version, overridden, extensions, metadata, overridden ? "1.7" : null), facts.VersionDeclaration);
     }
 
     [Theory]
