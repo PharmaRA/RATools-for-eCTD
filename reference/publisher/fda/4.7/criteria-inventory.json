@@ -1844,7 +1844,7 @@
           "tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Detects local relative DTD/stylesheet locations prohibited by captured M1 specification v2.6, with precise current input/root/observation binding and applicability from 2025-03-31. Official URL resolver rejection is not regulatory failure; missing PI after interrupted parsing is not proof of omission. Other URI forms, historical applicability, unavailable declarations, official-URL parsing and stylesheet version identity remain unqualified; no whole-rule Pass. Final selected Windows regression 244/244, including 36 FDA2003 cases, and bounded code/evidence review passed."
+        "note": "Detects source-prohibited local relative locations and well-formed explicit file:/// DTD/stylesheet URIs with empty host and no query/fragment under captured M1 v2.6 from 2025-03-31. Does not open URI resources or treat resolver rejection as regulatory evidence. Network hosts, malformed escapes, other URI forms, historical applicability, unavailable declarations/PI, approved-URL parsing and stylesheet version identity remain unqualified; no whole-rule Pass. Final five-class Windows regression 181/181 including 56 FDA2003 cases (20 added) and bounded main-agent read-only review passed without subagents; still Partial."
       }
     },
     {

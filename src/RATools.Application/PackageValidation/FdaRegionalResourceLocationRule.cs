@@ -52,7 +52,7 @@ internal static class FdaRegionalResourceLocationRule
                 foreach (var element in document.Elements) { Tick(); if (element.ParentPath is null) roots.Add(element); }
                 if (roots.Count != 1 || roots[0] is not { Name: "fda-regional:fda-regional", LocalName: "fda-regional", NamespaceUri: "http://www.ich.org/fda" } ||
                     roots[0].Attribute("dtd-version") != "3.3" || roots[0].Location.LogicalPath != document.LogicalPath || roots[0].Location.SequenceNumber != target.Manifest.SequenceNumber) continue;
-                if (LocalRelative(document.LogicalPath, document.SystemIdentifier))
+                if (ProhibitedLocal(document.LogicalPath, document.SystemIdentifier))
                     Fail(document.SystemIdentifier!, roots[0].Location with { FieldPath = "doctype/system" });
                 // The existing reader only retains PI observations after complete parsing.
                 if (!document.ReadComplete) continue;
@@ -61,21 +61,24 @@ internal static class FdaRegionalResourceLocationRule
                     Tick();
                     if (instruction.Target != "xml-stylesheet" || instruction.Location.LogicalPath != document.LogicalPath || instruction.Location.SequenceNumber != target.Manifest.SequenceNumber) continue;
                     var href = StyleHref(instruction.Data);
-                    if (LocalRelative(document.LogicalPath, href)) Fail(href!, instruction.Location with { FieldPath = "xml-stylesheet/@href" });
+                    if (ProhibitedLocal(document.LogicalPath, href)) Fail(href!, instruction.Location with { FieldPath = "xml-stylesheet/@href" });
                 }
             }
         }
         catch (LocationWorkLimitException) { }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated,
-            "Detected only source-prohibited local relative DTD/stylesheet locations. Historical applicability, other URI forms, missing or unavailable declarations, approved-URL parsing and stylesheet version identity remain unqualified.", findings);
+            "Detected source-prohibited local relative and qualified local file-URI DTD/stylesheet locations. Historical applicability, other URI forms, missing or unavailable declarations, approved-URL parsing and stylesheet version identity remain unqualified.", findings);
 
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new LocationWorkLimitException(); }
-        bool LocalRelative(string owner, string? value)
+        bool ProhibitedLocal(string owner, string? value)
         {
             Tick();
-            if (string.IsNullOrWhiteSpace(value) || value != value.Trim() || value.StartsWith('/') || value.Contains('\\') || value.Contains(':') ||
-                value.Contains('?') || value.Contains('#') || Uri.TryCreate(value, UriKind.Absolute, out _)) return false;
+            if (string.IsNullOrWhiteSpace(value) || value != value.Trim() || value.Contains('\\') || value.Contains('?') || value.Contains('#')) return false;
+            if (value.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
+                return Uri.TryCreate(value, UriKind.Absolute, out var fileUri) && fileUri.IsFile && fileUri.IsWellFormedOriginalString() &&
+                    fileUri.Host.Length == 0 && fileUri.Query.Length == 0 && fileUri.Fragment.Length == 0 && fileUri.AbsolutePath.Length > 0;
+            if (value.StartsWith('/') || value.Contains(':') || Uri.TryCreate(value, UriKind.Absolute, out _)) return false;
             try { return PackageLogicalPath.ResolveReference(owner, value).LogicalPath is not null; }
             catch (ArgumentException) { return false; }
         }

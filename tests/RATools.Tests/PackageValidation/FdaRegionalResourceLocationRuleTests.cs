@@ -47,7 +47,7 @@ public sealed class FdaRegionalResourceLocationRuleTests
     [InlineData("http", CheckStatus.NotEvaluated, null)]
     [InlineData("fragment", CheckStatus.NotEvaluated, null)]
     [InlineData("network-path", CheckStatus.NotEvaluated, null)]
-    [InlineData("file-uri", CheckStatus.NotEvaluated, null)]
+    [InlineData("file-uri", CheckStatus.Fail, "doctype/system")]
     [InlineData("style-network-path", CheckStatus.NotEvaluated, null)]
     [InlineData("missing-pi", CheckStatus.NotEvaluated, null)]
     [InlineData("incomplete-style", CheckStatus.NotEvaluated, null)]
@@ -61,6 +61,75 @@ public sealed class FdaRegionalResourceLocationRuleTests
         Assert.Equal(expected, check.Status);
         if (expected == CheckStatus.Fail) Assert.Equal(field, Assert.Single(check.Findings).Location.FieldPath);
         else Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData(false, "file:///C:/resources/us-regional-v3-3.dtd")]
+    [InlineData(false, "FILE:///resources/us-regional-v3-3.dtd")]
+    [InlineData(true, "file:///resources/us-regional.xsl")]
+    [InlineData(true, "file:///resources/us%20regional.xsl")]
+    public async Task ExplicitFileUrisAreLocalResources(bool stylesheet, string value)
+    {
+        var fixture = await Fixture("local");
+        fixture = WithRegional(fixture, document => Copy(document, system: stylesheet ? OfficialDtd : value,
+            instructions: [new("xml-stylesheet", "type='text/xsl' href='" + (stylesheet ? value : OfficialStyle) + "'",
+                new("0001", document.LogicalPath, Line: 2, Column: 1))]));
+        var check = Direct(fixture)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        var finding = Assert.Single(check.Findings);
+        Assert.Equal(stylesheet ? "xml-stylesheet/@href" : "doctype/system", finding.Location.FieldPath);
+        Assert.Equal(value, finding.Actual);
+        Assert.Equal(ValidationSeverity.Error, finding.Severity);
+    }
+
+    [Fact]
+    public async Task ActualFileStylesheetPiIsReportedWithoutOpeningTheResource()
+    {
+        var fixture = await Fixture("file-style");
+        var regional = Assert.Single(fixture.Xml.Backbones, item => item.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Contains(regional.ProcessingInstructions, item => item.Data.Contains("file:///resources/us-regional.xsl", StringComparison.Ordinal));
+        var check = Direct(fixture)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(2, check.Findings.Count);
+        Assert.Equal("file:///resources/us-regional.xsl", Assert.Single(check.Findings, item => item.Location.FieldPath == "xml-stylesheet/@href").Actual);
+    }
+
+    [Theory]
+    [InlineData("file://server/share/style.xsl")]
+    [InlineData("file:////server/share/style.xsl")]
+    [InlineData("file:///resources/style.xsl?version=1")]
+    [InlineData("file:///resources/style.xsl#part")]
+    [InlineData("file:///resources/%ZZ.xsl")]
+    [InlineData("file:relative.xsl")]
+    [InlineData(" file:///resources/style.xsl")]
+    [InlineData("file:///resources/style.xsl ")]
+    [InlineData("file:///resources/us regional.xsl")]
+    [InlineData("file:///C:\\resources\\style.xsl")]
+    [InlineData("file:///resources/\u0009style.xsl")]
+    [InlineData("https://example.invalid/style.xsl")]
+    public async Task UnqualifiedUriFormsDoNotBecomeFileUriFailures(string value)
+    {
+        var fixture = await Fixture("local");
+        fixture = WithRegional(fixture, document => Copy(document, system: value,
+            instructions: [new("xml-stylesheet", "type='text/xsl' href='" + OfficialStyle + "'", new("0001", document.LogicalPath))]));
+        var check = Direct(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData(false, 0, CheckStatus.NotEvaluated)]
+    [InlineData(false, 1, CheckStatus.Fail)]
+    [InlineData(true, 1, CheckStatus.NotEvaluated)]
+    public async Task FileStyleRequiresCompletePiEvidenceAndFindingCapacity(bool incomplete, int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture("local");
+        fixture = WithRegional(fixture, document => Copy(document, system: OfficialDtd, complete: !incomplete,
+            instructions: [new("xml-stylesheet", "type='text/xsl' href='file:///resources/style.xsl'", new("0001", document.LogicalPath))]));
+        var check = Direct(fixture, remaining)!;
+        Assert.Equal(expected, check.Status);
+        Assert.True(check.Findings.Count <= remaining);
     }
 
     [Theory]
@@ -183,6 +252,7 @@ public sealed class FdaRegionalResourceLocationRuleTests
             Assert.Contains("../../util/dtd/us-regional-v3-3.dtd", regional, StringComparison.Ordinal);
             if (scenario is "official" or "http") regional = regional.Replace("../../util/dtd/us-regional-v3-3.dtd", scenario == "http" ? OfficialDtd.Replace("https:", "http:", StringComparison.Ordinal) : OfficialDtd, StringComparison.Ordinal);
             regional = regional.Insert(regional.IndexOf("<!DOCTYPE", StringComparison.Ordinal), "<?xml-stylesheet type='text/xsl' href='../../util/style/us-regional.xsl'?>");
+            if (scenario == "file-style") regional = regional.Replace("../../util/style/us-regional.xsl", "file:///resources/us-regional.xsl", StringComparison.Ordinal);
             if (scenario == "tail") regional = regional[..^8];
             _files["0001/m1/us/us-regional.xml"] = Encoding.UTF8.GetBytes(regional);
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);

@@ -3851,7 +3851,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects source-prohibited local relative DTD and stylesheet locations. Resolver rejection does not prove regulatory invalidity. Current v2.6 interpretation is not backdated; other URI forms, historical applicability, unavailable declarations/PI, official-URL parsing and stylesheet version identity remain unqualified. No whole-rule Pass is emitted.",
+      "implementationNote": "Detects source-prohibited local relative DTD/stylesheet locations and well-formed explicit file:/// URIs with empty host and no query/fragment. Does not open URI resources or use resolver rejection as regulatory evidence. Malformed escapes, network hosts and other URI forms remain unqualified. Current v2.6 interpretation is not backdated; historical applicability, unavailable declarations/PI, approved-URL parsing and stylesheet version identity remain incomplete. No whole-rule Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegionalResourceLocationRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
