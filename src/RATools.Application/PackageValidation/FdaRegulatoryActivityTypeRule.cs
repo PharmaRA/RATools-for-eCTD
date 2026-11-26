@@ -42,7 +42,9 @@ internal static class FdaRegulatoryActivityTypeRule
             if (parent is null || parent.SubmissionId != current.SubmissionId || parent.ApplicationNumber != current.ApplicationNumber || parent.ApplicationType != current.ApplicationType)
                 return Unknown("The selected parent is not a unique self-identifying activity for the same XML application.");
             if (current.SubmissionType == parent.SubmissionType)
-                return new(RuleId, CheckStatus.Pass, "The selected current/parent pair has matching types; this is not full activity history or regulatory-received-version qualification.");
+                return current.Grouped || parent.Grouped
+                    ? Unknown("The selected primary application pair has matching types; other grouped members and full activity history remain unqualified.")
+                    : new(RuleId, CheckStatus.Pass, "The selected current/parent pair has matching types; this is not full activity history or regulatory-received-version qualification.");
             if (remaining <= 0) return Unknown("No finding allowance remains for the established mismatch.");
             var finding = new ValidationFinding(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
                 "The current sequence's submission type differs from its explicitly selected, self-identifying parent activity.",
@@ -98,8 +100,27 @@ internal static class FdaRegulatoryActivityTypeRule
             if (visited.Count != elements.Count) return null;
             var admin = Child(roots[0], "admin");
             var applicationSet = Child(admin, "application-set");
-            var application = Child(applicationSet, "application");
-            if (application is null || application.Attribute("application-containing-files") != "true") return null;
+            if (applicationSet is null) return null;
+            ParsedXmlElement? application = null;
+            var identities = new HashSet<(string Type, string Number)>();
+            foreach (var path in applicationSet.Children)
+            {
+                Tick();
+                var member = elements[path];
+                if (member is not { Name: "application", LocalName: "application", NamespaceUri.Length: 0 }) continue;
+                var owner = member.Attributes.GetValueOrDefault("application-containing-files");
+                if (owner is not { LocalName: "application-containing-files", NamespaceUri: "", IsDefault: false, Value: "true" or "false" }) return null;
+                var memberNumber = Child(Child(member, "application-information"), "application-number");
+                if (memberNumber is null || memberNumber.Children.Count != 0 || string.IsNullOrWhiteSpace(memberNumber.Text) ||
+                    memberNumber.Text != memberNumber.Text.Trim()) return null;
+                var memberType = memberNumber.Attributes.GetValueOrDefault("application-type");
+                if (memberType is not { LocalName: "application-type", NamespaceUri: "", IsDefault: false } ||
+                    !Contains(policy.InputValues("application-type"), memberType.Value) || !identities.Add((memberType.Value, memberNumber.Text))) return null;
+                if (owner.Value != "true") continue;
+                if (application is not null) return null;
+                application = member;
+            }
+            if (application is null) return null;
             var number = Child(Child(application, "application-information"), "application-number");
             var submission = Child(application, "submission-information");
             var id = Child(submission, "submission-id");
@@ -109,7 +130,7 @@ internal static class FdaRegulatoryActivityTypeRule
             var applicationType = number.Attribute("application-type", "");
             var submissionType = id.Attribute("submission-type", "");
             if (applicationType is null || submissionType is null || !Contains(policy.InputValues("application-type"), applicationType) || !Contains(policy.InputValues("submission-type"), submissionType)) return null;
-            return new(number.Text, applicationType, id.Text, submissionType, id.Location);
+            return new(number.Text, applicationType, id.Text, submissionType, id.Location, identities.Count > 1);
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)
             {
@@ -131,6 +152,6 @@ internal static class FdaRegulatoryActivityTypeRule
     }
     private static bool Sequence(string value) => value.Length == 4 && value.All(character => character is >= '0' and <= '9');
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);
-    private sealed record ActivityFact(string ApplicationNumber, string ApplicationType, string SubmissionId, string SubmissionType, ValidationLocation Location);
+    private sealed record ActivityFact(string ApplicationNumber, string ApplicationType, string SubmissionId, string SubmissionType, ValidationLocation Location, bool Grouped);
     private sealed class ActivityWorkLimitException : Exception;
 }

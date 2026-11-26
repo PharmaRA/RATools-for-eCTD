@@ -12,6 +12,73 @@ public sealed class FdaRegulatoryActivityTypeRuleTests
     private const string RuleId = "FDA47-2024";
 
     [Theory]
+    [InlineData("grouped-different", CheckStatus.Fail)]
+    [InlineData("grouped-current", CheckStatus.Fail)]
+    [InlineData("grouped-parent", CheckStatus.Fail)]
+    [InlineData("grouped-reordered", CheckStatus.Fail)]
+    [InlineData("grouped-match", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-type", CheckStatus.Fail)]
+    [InlineData("grouped-same-number-other-type", CheckStatus.Fail)]
+    public async Task GroupedPrimaryComparisonDoesNotMixMemberSequenceNumbers(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario);
+        foreach (var xml in fixture.Lifecycle.XmlInspections)
+            Assert.Equal(CheckStatus.Pass, Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.UsRegional).DtdStatus);
+        var current = Assert.Single(fixture.Lifecycle.XmlInspections, item => item.InputDigest == fixture.Packages.Target.InputDigest);
+        var regional = Assert.Single(current.Backbones, item => item.Kind == BackboneKind.UsRegional);
+        var primary = Assert.Single(regional.Elements, item => item.Name == "application" && item.Attribute("application-containing-files") == "true");
+        var result = Direct(fixture)!;
+        Assert.Equal(expected, result.Status);
+        if (expected == CheckStatus.Fail)
+        {
+            var finding = Assert.Single(result.Findings);
+            Assert.StartsWith(primary.NodePath + "/", finding.Location.NodePath, StringComparison.Ordinal);
+            Assert.Equal("fdast1", finding.Expected);
+            Assert.Equal("fdast2", finding.Actual);
+            Assert.Equal(2, finding.Location.Files!.Count);
+        }
+        else Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("grouped-two-primary")]
+    [InlineData("grouped-no-primary")]
+    [InlineData("grouped-duplicate-identity")]
+    [InlineData("grouped-parent-duplicate-identity")]
+    [InlineData("grouped-parent-switch")]
+    [InlineData("grouped-member-unknown-application-type")]
+    [InlineData("grouped-primary-missing-id")]
+    public async Task AmbiguousOrChangedPrimaryIdentityIsNotFilledFromAnotherMember(string scenario)
+    {
+        var fixture = await Fixture(scenario);
+        var result = Direct(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("2027-01-15", 1, CheckStatus.NotApplicable)]
+    [InlineData("2027-01-16", 0, CheckStatus.NotEvaluated)]
+    [InlineData("2027-01-16", 1, CheckStatus.Fail)]
+    public async Task GroupedPrimaryRequiresTheEffectiveDateAndFindingAllowance(string date, int remaining, CheckStatus expected)
+    {
+        var check = Direct(await Fixture("grouped-different", date), remaining)!;
+        Assert.Equal(expected, check.Status);
+        Assert.True(check.Findings.Count <= remaining);
+    }
+
+    [Theory]
+    [InlineData("grouped-match", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-different", CheckStatus.Fail)]
+    public async Task GroupedDeliveryDoesNotClaimAllMembersWereCompared(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario);
+        var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        Assert.Equal(expected, Assert.Single(result.Files.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("match", CheckStatus.Pass)]
     [InlineData("different", CheckStatus.Fail)]
     [InlineData("no-parent", CheckStatus.NotEvaluated)]
@@ -177,13 +244,45 @@ public sealed class FdaRegulatoryActivityTypeRuleTests
             xml.Descendants("sequence-number").Single().Value = sequence;
             var submission = xml.Descendants("submission-id").Single();
             submission.Value = !parent && scenario == "self" ? "0001" : parent && scenario == "wrong-parent" ? "0001" : "0000";
-            submission.SetAttributeValue("submission-type", parent || scenario == "match" ? "fdast1" : "fdast2");
+            submission.SetAttributeValue("submission-type", parent || scenario is "match" or "grouped-match" ? "fdast1" : "fdast2");
             if (!parent && scenario == "unknown-type") submission.SetAttributeValue("submission-type", "unqualified");
             if (!parent && scenario == "missing-type") submission.Attribute("submission-type")!.Remove();
             if (parent && scenario == "different-application") xml.Descendants("application-number").Single().Value = "654321";
             if (parent && scenario == "different-app-type") xml.Descendants("application-number").Single().SetAttributeValue("application-type", "fdaat4");
             if (!parent && scenario == "duplicate-id") submission.AddAfterSelf(new XElement(submission));
             if (!parent && scenario == "duplicate-application") { var application = xml.Descendants("application").Single(); application.AddAfterSelf(new XElement(application)); }
+            if (scenario.StartsWith("grouped-", StringComparison.Ordinal) && !(scenario == "grouped-current" && parent) && !(scenario == "grouped-parent" && !parent))
+            {
+                var primary = xml.Descendants("application").Single();
+                primary.SetAttributeValue("application-containing-files", "true");
+                var member = new XElement(primary);
+                member.SetAttributeValue("application-containing-files", "false");
+                member.Descendants("application-number").Single().Value = "654321";
+                member.Descendants("sequence-number").Single().Value = parent ? "0099" : "0100";
+                member.Descendants("submission-id").Single().Value = "0099";
+                member.Descendants("submission-id").Single().SetAttributeValue("submission-type", "fdast4");
+                if (!parent && scenario == "grouped-two-primary") member.SetAttributeValue("application-containing-files", "true");
+                if (!parent && scenario == "grouped-no-primary") primary.SetAttributeValue("application-containing-files", "false");
+                if ((!parent && scenario == "grouped-duplicate-identity") || (parent && scenario == "grouped-parent-duplicate-identity"))
+                    member.Descendants("application-number").Single().Value = primary.Descendants("application-number").Single().Value;
+                if (parent && scenario == "grouped-parent-switch")
+                {
+                    primary.SetAttributeValue("application-containing-files", "false");
+                    member.SetAttributeValue("application-containing-files", "true");
+                    member.Descendants("sequence-number").Single().Value = sequence;
+                    member.Descendants("submission-id").Single().Value = sequence;
+                }
+                if (scenario == "grouped-member-type") member.Descendants("submission-id").Single().SetAttributeValue("submission-type", parent ? "fdast1" : "unqualified");
+                if (scenario == "grouped-same-number-other-type")
+                {
+                    member.Descendants("application-number").Single().Value = primary.Descendants("application-number").Single().Value;
+                    member.Descendants("application-number").Single().SetAttributeValue("application-type", "fdaat4");
+                }
+                if (!parent && scenario == "grouped-member-unknown-application-type") member.Descendants("application-number").Single().SetAttributeValue("application-type", "unqualified");
+                if (!parent && scenario == "grouped-primary-missing-id") primary.Descendants("submission-id").Single().Remove();
+                if (scenario == "grouped-reordered" && !parent) primary.AddBeforeSelf(member);
+                else primary.AddAfterSelf(member);
+            }
             return xml.ToString();
         }
         var target = new PackageRegionalInspectionTests.MemoryInput(app, "0001", Regional("0001", false), PackageValidationCatalog.UsProfile);
