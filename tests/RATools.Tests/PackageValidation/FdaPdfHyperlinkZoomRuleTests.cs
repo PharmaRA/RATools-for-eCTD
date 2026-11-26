@@ -7,12 +7,91 @@ using RATools.Domain.PackageValidation;
 using RATools.Domain.Standards;
 using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Persistence.InMemory;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Tokens;
 
 namespace RATools.Tests.PackageValidation;
 
 public sealed class FdaPdfHyperlinkZoomRuleTests
 {
     private const string RuleId = "FDA47-5217";
+
+    [Theory]
+    [InlineData("[0 /Fit]")]
+    [InlineData("[0 /XYZ null null 1.25]")]
+    public async Task QualifiedFileDictionaryKeepsExplicitHyperlinkZoom(string destination)
+    {
+        var result = await Run(await Fixture(Build(destination, "file-dictionary")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Single(facts.HyperlinkFiles);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("page[1]/annotation[1]/A/D", Assert.Single(check.Findings).Location.FieldPath);
+    }
+
+    [Theory]
+    [InlineData("<< /Type /Filespec /F (target.pdf) >>", CheckStatus.Fail)]
+    [InlineData("<< /F (target.pdf) /UF (target.pdf) >>", CheckStatus.Fail)]
+    [InlineData("<< /F <7461726765742E706466> >>", CheckStatus.Fail)]
+    [InlineData("<< /F (target.pdf) /UF (other.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /UF null >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /UF 99 0 R >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /Type /Other >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F null >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F 99 0 R >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /UF (target.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /FS /URL >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /EF << >> >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /DOS (target.pdf) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /F (target.pdf) /V false >>", CheckStatus.NotEvaluated)]
+    public async Task FileDictionaryMustHaveUnambiguousQualifiedIdentity(string specification, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("[0 /XYZ null null 1]", specification: specification)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        if (specification.Contains("99 0 R", StringComparison.Ordinal)) Assert.NotNull(facts.Basics.ParseError);
+        else Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, facts.NonInheritingHyperlinkZooms.Count);
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("<< /F (target.pdf) >>", 1)]
+    [InlineData("<< /F (target.pdf) /UF 99 0 R >>", 0)]
+    [InlineData("<< /F 99 0 R >>", 0)]
+    public void SupplementalReaderDoesNotQualifyUnresolvedFileIdentity(string specification, int count)
+    {
+        using var stream = new MemoryStream(Build("[0 /XYZ null null 1]", specification: specification));
+        using var document = PdfDocument.Open(stream, new ParsingOptions { UseLenientParsing = false });
+        IToken? Resolve(IToken? value) => value is not IndirectReferenceToken reference ? value :
+            reference.Data == new IndirectReference(99, 0) ? null : document.Structure.GetObject(reference.Data)?.Data;
+        var page = Assert.IsType<DictionaryToken>(document.Structure.GetObject(new(3, 0))!.Data);
+        var reader = new PdfPigPackageHyperlinkReader(Resolve, new(), CancellationToken.None);
+        reader.Read([page], new Dictionary<IndirectReference, int> { [new(3, 0)] = 1 }, 1);
+        Assert.Equal(count, reader.NonInheritingZooms.Count);
+    }
+
+    [Theory]
+    [InlineData("[0 /XYZ null null 0]", "link")]
+    [InlineData("[0 /XYZ null null null]", "link")]
+    [InlineData("[0 /XYZ null null -1]", "link")]
+    [InlineData("[0 /XYZ /bad null 1]", "link")]
+    [InlineData("[0 /Fit 1]", "link")]
+    [InlineData("[0 /Fit]", "internal")]
+    [InlineData("[0 /Fit]", "bookmark")]
+    [InlineData("[0 /Fit]", "open-action")]
+    [InlineData("[0 /Fit]", "next-action")]
+    [InlineData("[0 /Fit]", "conflict")]
+    [InlineData("[0 /Fit]", "wrong-page")]
+    [InlineData("[0 /Fit]", "hidden")]
+    public async Task FileDictionaryDoesNotBypassDestinationOrPageLinkQualification(string destination, string scenario)
+    {
+        var result = await Run(await Fixture(Build(destination, scenario, "<< /F (target.pdf) >>")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Empty(Assert.Single(result.Documents).Facts!.NonInheritingHyperlinkZooms);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
 
     [Theory]
     [InlineData("[0 /Fit]", "link", CheckStatus.Fail)]
@@ -38,7 +117,7 @@ public sealed class FdaPdfHyperlinkZoomRuleTests
     [InlineData("[0 /Fit]", "hidden", CheckStatus.NotEvaluated)]
     [InlineData("[0 /Fit]", "wrong-type", CheckStatus.NotEvaluated)]
     [InlineData("[0 /Fit]", "no-file", CheckStatus.NotEvaluated)]
-    [InlineData("[0 /Fit]", "file-dictionary", CheckStatus.NotEvaluated)]
+    [InlineData("[0 /Fit]", "file-dictionary", CheckStatus.Fail)]
     public async Task ExplicitZoomIsDistinctFromInheritedOrUnknownSetting(string destination, string scenario, CheckStatus expected)
     {
         var result = await Run(await Fixture(Build(destination, scenario)));
@@ -112,22 +191,26 @@ public sealed class FdaPdfHyperlinkZoomRuleTests
     }
 
     [Theory]
-    [InlineData(0, CheckStatus.NotEvaluated)]
-    [InlineData(1, CheckStatus.Fail)]
-    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected)
+    [InlineData(0, CheckStatus.NotEvaluated, false)]
+    [InlineData(1, CheckStatus.Fail, false)]
+    [InlineData(0, CheckStatus.NotEvaluated, true)]
+    [InlineData(1, CheckStatus.Fail, true)]
+    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected, bool dictionary)
     {
-        var fixture = await Fixture(Build("[0 /XYZ null null 1]")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build("[0 /XYZ null null 1]", dictionary ? "file-dictionary" : "link")); var document = Assert.Single((await Run(fixture)).Documents);
         var run = new FdaPdfHyperlinkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
         run.Observe(document, remaining); run.Observe(document, 10);
         Assert.Equal(expected, run.Finish(true)!.Status); Assert.Equal(remaining, run.FindingCount);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure, bool dictionary)
     {
-        var fixture = await Fixture(Build("[0 /XYZ null null 1]")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build("[0 /XYZ null null 1]", dictionary ? "file-dictionary" : "link")); var document = Assert.Single((await Run(fixture)).Documents);
         using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
         Assert.ThrowsAny<OperationCanceledException>(() =>
         {
@@ -173,10 +256,12 @@ public sealed class FdaPdfHyperlinkZoomRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
     }
 
-    [Fact]
-    public async Task PartialReportRetainsLocatedFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialReportRetainsLocatedFailure(bool dictionary)
     {
-        var fixture = await Fixture(Build("[0 /Fit]"));
+        var fixture = await Fixture(Build("[0 /Fit]", dictionary ? "file-dictionary" : "link"));
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
         Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
@@ -221,9 +306,9 @@ public sealed class FdaPdfHyperlinkZoomRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string destination, string scenario = "link")
+    private static byte[] Build(string destination, string scenario = "link", string? specification = null)
     {
-        var file = scenario == "no-file" ? "" : scenario == "file-dictionary" ? " /F << /F (target.pdf) >>" : " /F (target.pdf)";
+        var file = specification is not null ? " /F " + specification : scenario == "no-file" ? "" : scenario == "file-dictionary" ? " /F << /F (target.pdf) >>" : " /F (target.pdf)";
         var action = "<< /S /" + (scenario == "internal" ? "GoTo" : "GoToR") + file + " /D " + destination +
             (scenario == "next-action" ? " /Next << /S /GoToR /F (target.pdf) /D [0 /Fit] >>" : "") + (scenario == "wrong-type" ? " /Type /Bogus" : "") + " >>";
         if (scenario == "bookmark") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R",

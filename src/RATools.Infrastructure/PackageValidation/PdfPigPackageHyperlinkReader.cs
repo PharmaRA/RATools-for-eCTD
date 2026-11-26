@@ -120,7 +120,16 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
     {
         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "GoToR" ||
             Has(action, "Next") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") return PdfHyperlinkZoomKind.Unknown;
-        var file = Text(Resolve(Get(action, "F")));
+        var rawFile = Resolve(Get(action, "F"));
+        string? file;
+        if (rawFile is DictionaryToken specification)
+        {
+            if (HasAny(specification, "FS", "EF", "RF", "DOS", "Mac", "Unix", "ID", "V") ||
+                Has(specification, "Type") && Name(Get(specification, "Type")) != "Filespec") return PdfHyperlinkZoomKind.Unknown;
+            file = Text(Resolve(Get(specification, "F")));
+            if (Get(specification, "UF") is { } unicode && Text(Resolve(unicode)) != file) return PdfHyperlinkZoomKind.Unknown;
+        }
+        else file = Text(rawFile);
         if (string.IsNullOrWhiteSpace(file) || file.Any(character => character is < ' ' or > '~') ||
             Resolve(Get(action, "D")) is not ArrayToken destination || destination.Length < 2 ||
             Resolve(destination.Data[0]) is not NumericToken { HasDecimalPlaces: false } page || page.Long < 0) return PdfHyperlinkZoomKind.Unknown;

@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5217第二轮：合格Filespec字典的明确超链接缩放（仍Partial，主代理限定只读自审及终态核对通过）。** 5210已提交`1999d3c`。先按序核5215现有斜杠根路径、百分号字面值和盘符对照，不将原始C:/套用Windows本机语义，平台变体/历史源资格保留。5217复用已经资格化的文件身份限制，支持非空ASCII F及可选一致UF的Filespec字典，排除FS/EF/RF/DOS/Mac/Unix/ID/V等字段。Fit与正数XYZ发布非继承缩放，零/null不违规；原始完整动作/页面身份及双来源/日期资格未放宽。
+
+red两项真实PDF解析、源页树和文件身份前提全过，预期Fail实际NE。修后十一类 **725/725、0失败/跳过**（5217为93含新增36、书签缩放87），覆盖字典类型/F与UF冲突/平台嵌入变体、未解析字段的基础解析失败及直接补充读取对照、错误目的地/页面资格、额度、取消和Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5217-filespec-candidate-20261126`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6交付/直接依赖输入SHA绑定；manifest SHA`16741a8df794eb90f5c5e5eede72a47ea3c744c1cef8a385b54a3d8440866963`、TRX SHA`7040e97e3972a632ba9829a6ec4227f707757b9303f768e7719976a1eb6646bc`；目录167条canonical SHA`99ba3fff4ce1fbbea7eb34feb4d6ac8a5df331f9a7af4d32dd2c7b876440e36a`。red/candidate证据及校验副本在`.artifacts/local-check/fda5217-filespec-*-20261126`和`backups/fda5217-filespec-20261126/evidence/`，bin/obj按精确范围回收。inspector-v39、PDF-v32、file-v91、交付v6；内部/命名目的地等仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。第二轮到尾不代表全部完成；按固定顺序返回最早未闭合FDA5，从实际显示/主表单资格断点接续，不重做已交付前置能力。
+
 **FDA5210第二轮：结构父索引不等同激活动作（仍Partial，主代理限定只读自审及终态核对通过）。** 5205已提交`d5827d8`。只读内存核对[Adobe PDF Reference 1.7](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf)第608页表8.15与622页表8.24：StructParent是结构父树条目的整数键，Link的A/Dest才定义激活行为。仅在既有页面Link资格和A/Dest/AA原始键缺失之上，允许缺失或直接非负整数StructParent；null、负数、小数、字符串/名称/容器及间接引用仍未知。该检查不证明标记结构树有效，也不把显式空动作当缺键。
 
 red两项真实PDF解析和页树前提全过，预期Fail实际NE。修后十类 **602/602、0失败/跳过**（5210为67含新增24），覆盖0/正整数、非法/间接结构索引、已有动作/目的地、隐藏/错误所属页/appearance、额度、取消和Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。

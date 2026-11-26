@@ -3170,7 +3170,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-5217"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaPdfHyperlinkZoomRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkZoomRuleTests.cs"],
-        "note": "Qualified current page-Link GoToR Fit and positive fixed XYZ zoom settings establish non-inheritance under both archived sources and PDF4.1 qualification from 2016-09-21. XYZ zero/null retains current magnification and is not a violation. Internal/named destinations, other view modes/actions/file encodings, annotation variants, historical sources and earlier policy remain incomplete; no Pass is emitted."
+      "note": "Qualified current page-Link GoToR Fit and positive fixed XYZ zoom settings establish non-inheritance under both archived sources and PDF4.1 qualification from 2016-09-21. Simple ASCII file specifications and unambiguous Filespec dictionaries with matching optional UF are supported; platform, embedded and related-file variants are excluded. XYZ zero/null retains current magnification and is not a violation. Internal/named destinations, other view modes/actions/file encodings, annotation variants, historical sources and earlier policy remain incomplete; no Pass is emitted. Second-round eleven-class Windows regression 725/725, including 93 FDA5217 cases, and main-agent bounded read-only review passed without subagents."
       }
     }
   ],

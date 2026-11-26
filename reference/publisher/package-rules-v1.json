@@ -4555,7 +4555,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires independent Link identity, complete page/annotation inventory, unique ownership, capture binding and both archived regulatory sources. Fixed policy qualification begins 2016-09-21; earlier applicable dates remain unknown. XYZ zero/null retains zoom and is not a violation. Internal/named destinations, other modes/actions/file encodings, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "implementationNote": "Requires independent Link identity, complete page/annotation inventory, unique ownership, capture binding and both archived regulatory sources. Simple ASCII file specifications and unambiguous Filespec dictionaries with matching optional UF are supported; platform, embedded and related-file variants are excluded. Fixed policy qualification begins 2016-09-21; earlier applicable dates remain unknown. XYZ zero/null retains zoom and is not a violation. Internal/named destinations, other modes/actions/file encodings, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkZoomRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkZoomRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfHyperlinkZoomRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
