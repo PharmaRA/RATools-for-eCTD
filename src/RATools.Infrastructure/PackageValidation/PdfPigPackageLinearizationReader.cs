@@ -30,7 +30,9 @@ internal static class PdfPigPackageLinearizationReader
                 var work = Math.Min(limits.MaxPdfObjects, 64);
                 if (Next() is not NumericToken number || number.HasDecimalPlaces || number.Long <= 0 ||
                     Next() is not NumericToken generation || generation.HasDecimalPlaces || generation.Long is < 0 or > 65535 ||
-                    Next() is not OperatorToken { Data: "obj" } || Next() is not DictionaryToken dictionary ||
+                    Next() is not OperatorToken { Data: "obj" }) return PdfLinearizationStatus.Unknown;
+                var first = Next();
+                if (first is not (DictionaryToken or NumericToken or StringToken or HexToken or ArrayToken or BooleanToken or NameToken or NullToken) ||
                     Next() is not OperatorToken { Data: "endobj" }) return PdfLinearizationStatus.Unknown;
                 // A token cut at the window boundary must not look complete merely
                 // because the scanner reached EOF. Require its real delimiter.
@@ -38,6 +40,7 @@ internal static class PdfPigPackageLinearizationReader
                 if (end >= used || !bytes.AsSpan((int)scanner.CurrentTokenStart, 6).SequenceEqual("endobj"u8) ||
                     bytes[(int)end] is not (0 or 9 or 10 or 12 or 13 or 32 or (byte)'%')) return PdfLinearizationStatus.Unknown;
                 token.ThrowIfCancellationRequested();
+                if (first is not DictionaryToken dictionary) return PdfLinearizationStatus.NonDictionaryFirstObject;
                 return dictionary.ContainsKey(NameToken.Create("Linearized"))
                     ? PdfLinearizationStatus.DeclaredUnverified : PdfLinearizationStatus.MissingFirstObjectDeclaration;
 

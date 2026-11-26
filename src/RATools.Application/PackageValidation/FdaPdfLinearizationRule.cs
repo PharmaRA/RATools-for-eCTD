@@ -50,11 +50,12 @@ internal static class FdaPdfLinearizationRule
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted ||
-                facts.Linearization != PdfLinearizationStatus.MissingFirstObjectDeclaration || remaining <= 0) return;
+                facts.Linearization is not (PdfLinearizationStatus.MissingFirstObjectDeclaration or PdfLinearizationStatus.NonDictionaryFirstObject) || remaining <= 0) return;
+            var notDictionary = facts.Linearization == PdfLinearizationStatus.NonDictionaryFirstObject;
             _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
-                "The complete physical first PDF object lacks the required linearization declaration.",
+                notDictionary ? "The complete physical first PDF object is not the required linearization dictionary." : "The complete physical first PDF object lacks the required linearization declaration.",
                 new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: "pdf-first-object/Linearized", Files: [new(_input.Packages.Target.SourceId, document.LogicalPath)]),
-                "Fast Web Access enabled", "Missing first-object Linearized declaration",
+                "Fast Web Access enabled", notDictionary ? "Non-dictionary first object" : "Missing first-object Linearized declaration",
                 "Ensure documents in future submissions are created with the Fast Web Access option."));
             _progress?.Invoke(new(RuleId, CheckStatus.Fail, "A missing linearization declaration is established; other PDF evidence may remain unknown.", _findings.ToArray()));
             _token.ThrowIfCancellationRequested();
@@ -65,7 +66,7 @@ internal static class FdaPdfLinearizationRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only a complete physical first dictionary object within 1024 bytes establishes missing linearization. A declaration is not validated linearization. Hint streams, offsets, incremental updates, other object shapes, interrupted reads, historical references and non-PDF-named contents remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "A complete physical first object within 1024 bytes establishes a necessary-condition failure only when its dictionary lacks Linearized or its value is a qualified non-dictionary type. A declaration is not validated linearization. Streams, references, hint streams, offsets, incremental updates, interrupted reads, historical references and non-PDF-named contents remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

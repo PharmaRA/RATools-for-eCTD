@@ -19,7 +19,7 @@ public enum PdfFontEmbeddingStatus { Unknown, Missing }
 public sealed record PdfFontObservation(string ObjectPath, string? BaseFont, string? Subtype, PdfFontEmbeddingStatus Embedding);
 public sealed record PdfVersionDeclaration(string HeaderVersion, bool HasCatalogVersion, bool HasExtensions, bool HasMetadata,
     string? CatalogVersion = null);
-public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified }
+public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified, NonDictionaryFirstObject }
 public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions);
 public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
 public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }

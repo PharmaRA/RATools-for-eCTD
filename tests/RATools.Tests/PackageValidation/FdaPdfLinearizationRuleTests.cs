@@ -14,6 +14,83 @@ namespace RATools.Tests.PackageValidation;
 public sealed class FdaPdfLinearizationRuleTests
 {
     private const string RuleId = "FDA47-5040";
+
+    [Theory]
+    [InlineData("42")]
+    [InlineData("(ordinary)")]
+    [InlineData("[1 2 3]")]
+    [InlineData("true")]
+    [InlineData("false")]
+    [InlineData("null")]
+    [InlineData("/Linearized")]
+    [InlineData("<4C696E656172697A6564>")]
+    [InlineData("[]")]
+    [InlineData("[<< /Linearized 1 >>]")]
+    [InlineData("1.25")]
+    [InlineData("-42")]
+    public async Task CompleteNonDictionaryFirstObjectCannotBeLinearized(string first)
+    {
+        var result = await Run(await Fixture(PhysicalPdf(first, "")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        Assert.Equal(PdfLinearizationStatus.NonDictionaryFirstObject, facts.Linearization);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("Non-dictionary first object", Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData(1023, PdfLinearizationStatus.NonDictionaryFirstObject)]
+    [InlineData(1024, PdfLinearizationStatus.Unknown)]
+    [InlineData(1025, PdfLinearizationStatus.Unknown)]
+    public void NonDictionaryEndRequiresDelimiterWithinWindow(int delimiterOffset, PdfLinearizationStatus expected)
+    {
+        var plain = PhysicalPdf("42", "");
+        var end = Encoding.ASCII.GetString(plain).IndexOf("endobj", StringComparison.Ordinal) + 6;
+        var bytes = PhysicalPdf("42", "%" + new string('x', delimiterOffset - end - 2) + "\n");
+        Assert.Equal(delimiterOffset, Encoding.ASCII.GetString(bytes).IndexOf("endobj", StringComparison.Ordinal) + 6);
+        using var stream = new MemoryStream(bytes); stream.Position = 7;
+        Assert.Equal(expected, PdfPigPackageLinearizationReader.Read(stream, new(), CancellationToken.None));
+        Assert.Equal(7, stream.Position);
+    }
+
+    [Theory]
+    [InlineData("%PDF-1.4\n1 0 obj [1 2 endobj\n")]
+    [InlineData("%PDF-1.4\n1 0 obj (unfinished endobj\n")]
+    [InlineData("%PDF-1.4\n1 0 obj 42 endobj")]
+    [InlineData("%PDF-1.4\n1 0 obj 42 endobject\n")]
+    [InlineData("%PDF-1.4\n1 0 obj 42 43 endobj\n")]
+    [InlineData("%PDF-1.4\n1 0 obj 2 0 R endobj\n")]
+    [InlineData("%PDF-1.4\n1 0 obj unknown endobj\n")]
+    [InlineData("%PDF-1.4\n1 0 obj << /Length 0 >> stream\nendstream endobj\n")]
+    public void IncompleteOrUnsupportedFirstObjectsRemainUnknown(string source)
+    {
+        using var stream = new MemoryStream(Encoding.ASCII.GetBytes(source));
+        Assert.Equal(PdfLinearizationStatus.Unknown, PdfPigPackageLinearizationReader.Read(stream, new(), CancellationToken.None));
+    }
+
+    [Fact]
+    public void NonDictionaryReadHonorsWorkLimitAndCancellation()
+    {
+        using var stream = new MemoryStream(PhysicalPdf("42", ""));
+        Assert.Equal(PdfLinearizationStatus.Unknown, PdfPigPackageLinearizationReader.Read(stream, new() { MaxPdfObjects = 1 }, CancellationToken.None));
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfPigPackageLinearizationReader.Read(stream, new(), cancellation.Token));
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task NonDictionaryFailureUsesSharedAllowance(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(PhysicalPdf("42", ""));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfLinearizationRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining);
+        Assert.Equal(expected, run.Finish(true)!.Status);
+    }
+
     [Theory]
     [InlineData("plain", CheckStatus.Fail)]
     [InlineData("declared", CheckStatus.NotEvaluated)]
@@ -87,7 +164,7 @@ public sealed class FdaPdfLinearizationRuleTests
     [InlineData("<< /Linearized 1 >>", "% comment\n", PdfLinearizationStatus.DeclaredUnverified)]
     [InlineData("<< /Note (ordinary) >>", "% /Linearized 1\n", PdfLinearizationStatus.MissingFirstObjectDeclaration)]
     [InlineData("<< /Other << /Linearized 1 >> >>", "", PdfLinearizationStatus.MissingFirstObjectDeclaration)]
-    [InlineData("42", "", PdfLinearizationStatus.Unknown)]
+    [InlineData("42", "", PdfLinearizationStatus.NonDictionaryFirstObject)]
     [InlineData("<< /Length 0 >>\nstream\n\nendstream", "", PdfLinearizationStatus.Unknown)]
     public void PhysicalFirstObjectIsIndependentOfCatalogAndComments(string first, string comments, PdfLinearizationStatus expected)
     {
