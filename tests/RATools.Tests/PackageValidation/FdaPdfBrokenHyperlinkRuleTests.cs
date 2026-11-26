@@ -29,7 +29,7 @@ public sealed class FdaPdfBrokenHyperlinkRuleTests
         var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
         Assert.Equal(CheckStatus.Fail, check.Status);
         Assert.Equal("0001/missing.pdf", Assert.Single(check.Findings).Actual);
-        Assert.Null(Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
+        Assert.Equal(0, Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5202").Status);
     }
 
@@ -69,7 +69,7 @@ public sealed class FdaPdfBrokenHyperlinkRuleTests
         var result = await Run(await Fixture(Build(target, destination: "[0 /XYZ null null null]"), history, existing));
         var facts = Assert.Single(result.Documents, item => item.LogicalPath == "0001/report.pdf").Facts!;
         Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
-        Assert.Null(Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
+        Assert.Equal(0, Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
         var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
         Assert.Equal(expected, check.Status);
         Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);

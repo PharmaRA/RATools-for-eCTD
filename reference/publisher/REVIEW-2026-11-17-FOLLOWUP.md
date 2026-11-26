@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5202第二轮：合格XYZ超链接的零基页目标（仍Partial，主代理限定只读自审及终态核对通过）。** 5200已提交`75ca21b`。先按序核5201，明确类型化InvalidContent加独立目标捕获才支持内容损坏，通用ParseError/加密/I/O/资源限制、其他格式及历史源资格仍不能强判，保留依赖。5202在5200已资格XYZ参数之上发布原始非负整数索引，只有当前合格Link源与已选入且完整Count/Parent/唯一引用/解析页数一致的目标页树才能判定越界；不把缺文件/坏文件/未读完整等同缺页。
+
+red四项当前目标、目标先读、所选历史及大整数索引的解析/两侧页树/文件身份前提全过，预期Fail实际NE。修后十类 **506/506、0失败/跳过**（5202为83含新增32），含零索引合法、非法XYZ参数、未选历史、缺目标/损坏/字面路径、错误Count/Parent、额度/重复观察、取消及Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5202-xyz-candidate-20261126`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9交付/直接依赖输入SHA绑定；manifest SHA`c257a29fe3b699597e6a74d4cc48697c68ca10b179a01cdc19b6fad4424d0356`、TRX SHA`033db33df6999e7e77832397011c8ca414a0c7ea8400f5b8b89c14d4ec826003`。目录167条canonical SHA`73a2872d2b73473b8a8b6e3cc58dff23269c152770b4d2713524418c33499893`。red/candidate证据及校验副本在`.artifacts/local-check/fda5202-xyz-*-20261126`和`backups/fda5202-xyz-20261126/evidence/`，bin/obj按精确范围回收。inspector-v35、PDF-v32、file-v91、交付v6；命名/内部目的地、其他模式动作及历史源仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一5203 XYZ完整动作链，再5205及后续。
+
 **FDA5200第二轮：合格XYZ页面超链接的字面文件目标（仍Partial，主代理限定只读自审及终态核对通过）。** 5117已提交`be5809a`。仅在既有完整页树、唯一间接批注、有效矩形/所属页及明确GoToR动作资格之上增加五项XYZ，页为非负整数、坐标为有限数字/null、倍率为非负有限数字/null；本项只发文件身份，不发XYZ页码。书签/OpenAction/URI、错误所属页、隐藏/零矩形、Next/冲突目的地及Filespec冲突仍不发超链接目标。
 
 red三项真实PDF解析/源页树前提通过，预期Fail实际NE。candidate十类472/473，唯一失败来自新增5200 finding先消耗共享额度，原5217额度4预期过时；保留3/4未知、增加5可分配并断言5200先获得一条，未改生产额度。final十类 **474/474、0失败/跳过**，5200为97含新增37；含原始字面百分号/井号、选入/未选历史、未来序列、明确损坏与缺失分离、绝对路径及未发布页码对照。主代理限定只读自审通过，无子代理。

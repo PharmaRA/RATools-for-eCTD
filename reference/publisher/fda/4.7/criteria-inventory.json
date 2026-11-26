@@ -3037,7 +3037,7 @@
           "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs",
           "tests/RATools.Tests/PackageValidation/FdaPdfBrokenHyperlinkRuleTests.cs"
         ],
-      "note": "Checks independently qualified current page-Link GoToR file targets absent from explicitly selected current/history inventories. Requires qualified complete page tree, unique indirect annotation ownership, valid nondegenerate rectangle, consistent page owner, unambiguous action/file specification and exact source capture. Fit and valid five-item XYZ qualify file identity; XYZ page index is not yet published. Unselected history is unknown; existing unreadable files are not missing. Literal file specifications are not URI-decoded. Other actions, annotation/specification variants, historical source PDFs and non-PDF-named contents remain unqualified; no Pass is emitted. Second-round ten-class Windows regression 474/474, including 97 FDA5200 cases, and main-agent bounded read-only review passed without subagents."
+      "note": "Checks independently qualified current page-Link GoToR file targets absent from explicitly selected current/history inventories. Requires qualified complete page tree, unique indirect annotation ownership, valid nondegenerate rectangle, consistent page owner, unambiguous action/file specification and exact source capture. Fit and valid five-item XYZ qualify file identity. Unselected history is unknown; existing unreadable files are not missing. Literal file specifications are not URI-decoded. Other actions, annotation/specification variants, historical source PDFs and non-PDF-named contents remain unqualified; no Pass is emitted. Second-round ten-class Windows regression 474/474, including 97 FDA5200 cases, and main-agent bounded read-only review passed without subagents; subsequent XYZ page-index qualification is recorded under FDA5202."
       }
     },
     {
@@ -3075,7 +3075,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-5202"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaPdfHyperlinkPageRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfHyperlinkPageRuleTests.cs"],
-        "note": "Qualified current page-Link GoToR Fit zero-based indexes are compared with independently capture-bound complete target PDF page trees, supporting either observation order and shared budgets. Missing/unreadable files, legacy page counts and unselected history do not prove absent pages. Named destinations, internal hyperlinks, other modes/actions, annotation variants and historical source PDFs remain incomplete; no Pass is emitted."
+      "note": "Qualified current page-Link GoToR Fit/XYZ zero-based indexes are compared with independently capture-bound complete target PDF page trees, supporting either observation order and shared budgets. XYZ requires five items, finite numeric or null coordinates and null or finite nonnegative zoom. Missing/unreadable files, legacy page counts and unselected history do not prove absent pages. Named destinations, internal hyperlinks, other modes/actions, annotation variants and historical source PDFs remain incomplete; no Pass is emitted. Second-round ten-class Windows regression 506/506, including 83 FDA5202 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

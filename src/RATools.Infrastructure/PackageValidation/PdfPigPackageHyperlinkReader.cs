@@ -79,7 +79,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                             else if (mode != "XYZ" || array.Length != 5 || !Coordinate(array.Data[2]) || !Coordinate(array.Data[3]) ||
                                 Resolve(array.Data[4]) is not NullToken &&
                                 (Resolve(array.Data[4]) is not NumericToken factor || !double.IsFinite(factor.Double) || factor.Double < 0)) continue;
-                            // XYZ qualifies file identity only; page-index publication is separately qualified.
+                            pageTarget = targetPage.Long;
                         }
                         else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) continue;
                         var file = Resolve(Get(action, "F")); string? specification;

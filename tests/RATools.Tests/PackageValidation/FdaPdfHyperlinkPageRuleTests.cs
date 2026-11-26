@@ -14,6 +14,26 @@ public sealed class FdaPdfHyperlinkPageRuleTests
     private const string RuleId = "FDA47-5202";
 
     [Theory]
+    [InlineData("[1 /XYZ null null null]", false, false)]
+    [InlineData("[1 /XYZ 0 100 0]", true, false)]
+    [InlineData("[1 /XYZ null null 1.25]", false, true)]
+    [InlineData("[2147483647 /XYZ null null null]", false, false)]
+    public async Task QualifiedXyzRemotePageRetainsOutOfRangeIndex(string destination, bool targetFirst, bool history)
+    {
+        var fixture = await Fixture(destination, "valid", targetFirst, history);
+        var result = await Run(fixture);
+        var source = Assert.Single(result.Documents, item => item.LogicalPath == fixture.Source).Facts!;
+        var target = Assert.Single(result.Documents, item => item.LogicalPath == fixture.Target).Facts!;
+        Assert.Null(source.Basics.ParseError); Assert.Equal(1, source.QualifiedPageCount);
+        Assert.Null(target.Basics.ParseError); Assert.Equal(1, target.QualifiedPageCount);
+        Assert.Equal(destination.StartsWith("[2147483647", StringComparison.Ordinal) ? 2147483647 : 1,
+            Assert.Single(source.HyperlinkFiles).ZeroBasedPageIndex);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Single(check.Findings);
+    }
+
+    [Theory]
     [InlineData("[0 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1 /Fit]", "valid", false, false, CheckStatus.Fail)]
     [InlineData("[1 /Fit]", "valid", true, false, CheckStatus.Fail)]
@@ -21,7 +41,28 @@ public sealed class FdaPdfHyperlinkPageRuleTests
     [InlineData("[2147483647 /Fit]", "valid", false, false, CheckStatus.Fail)]
     [InlineData("[-1 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1.5 /Fit]", "valid", false, false, CheckStatus.NotEvaluated)]
-    [InlineData("[1 /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "valid", false, false, CheckStatus.Fail)]
+    [InlineData("[0 /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[0 /XYZ -100 100 0]", "valid", true, false, CheckStatus.NotEvaluated)]
+    [InlineData("[0 /XYZ null null 1.25]", "valid", false, true, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null 0]", "valid", true, true, CheckStatus.Fail)]
+    [InlineData("[-1 /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1.5 /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[3 0 R /XYZ null null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ (0) null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null /Top null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null -1]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null (1)]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null 0]", "valid", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "missing", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "unselected-history", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "broken", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "bookmark", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "open-action", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "wrong-literal", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "count-mismatch", false, false, CheckStatus.NotEvaluated)]
+    [InlineData("[1 /XYZ null null null]", "wrong-parent", false, false, CheckStatus.NotEvaluated)]
     [InlineData("(absent)", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("/absent", "valid", false, false, CheckStatus.NotEvaluated)]
     [InlineData("[1 /Fit]", "missing", false, false, CheckStatus.NotEvaluated)]
@@ -109,13 +150,17 @@ public sealed class FdaPdfHyperlinkPageRuleTests
     }
 
     [Theory]
-    [InlineData(false, 0, CheckStatus.NotEvaluated)]
-    [InlineData(false, 1, CheckStatus.Fail)]
-    [InlineData(true, 0, CheckStatus.NotEvaluated)]
-    [InlineData(true, 1, CheckStatus.Fail)]
-    public async Task EitherOrderHonorsAllowanceAndDoesNotRepeat(bool targetFirst, int remaining, CheckStatus expected)
+    [InlineData(false, 0, CheckStatus.NotEvaluated, false)]
+    [InlineData(false, 1, CheckStatus.Fail, false)]
+    [InlineData(true, 0, CheckStatus.NotEvaluated, false)]
+    [InlineData(true, 1, CheckStatus.Fail, false)]
+    [InlineData(false, 0, CheckStatus.NotEvaluated, true)]
+    [InlineData(false, 1, CheckStatus.Fail, true)]
+    [InlineData(true, 0, CheckStatus.NotEvaluated, true)]
+    [InlineData(true, 1, CheckStatus.Fail, true)]
+    public async Task EitherOrderHonorsAllowanceAndDoesNotRepeat(bool targetFirst, int remaining, CheckStatus expected, bool xyz)
     {
-        var fixture = await Fixture("[1 /Fit]", "valid"); var documents = (await Run(fixture)).Documents;
+        var fixture = await Fixture(xyz ? "[1 /XYZ null null null]" : "[1 /Fit]", "valid"); var documents = (await Run(fixture)).Documents;
         var source = documents.Single(item => item.LogicalPath == fixture.Source); var target = documents.Single(item => item.LogicalPath == fixture.Target);
         var run = new FdaPdfHyperlinkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
         run.Observe(targetFirst ? target : source, remaining); run.Observe(targetFirst ? source : target, remaining);
@@ -124,11 +169,13 @@ public sealed class FdaPdfHyperlinkPageRuleTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CancellationRetainsInitialOrKnownResult(bool afterFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CancellationRetainsInitialOrKnownResult(bool afterFailure, bool xyz)
     {
-        var fixture = await Fixture("[1 /Fit]", "valid"); var documents = (await Run(fixture)).Documents;
+        var fixture = await Fixture(xyz ? "[1 /XYZ null null null]" : "[1 /Fit]", "valid"); var documents = (await Run(fixture)).Documents;
         using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
         Assert.ThrowsAny<OperationCanceledException>(() =>
         {
@@ -161,10 +208,12 @@ public sealed class FdaPdfHyperlinkPageRuleTests
         Assert.Contains(result.Checks.SelectMany(item => item.Findings), item => item.Code == "PDF_INSPECTION_LIMIT");
     }
 
-    [Fact]
-    public async Task PartialReportRetainsPageFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialReportRetainsPageFailure(bool xyz)
     {
-        var fixture = await Fixture("[1 /Fit]", "valid");
+        var fixture = await Fixture(xyz ? "[1 /XYZ null null null]" : "[1 /Fit]", "valid");
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
         Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
