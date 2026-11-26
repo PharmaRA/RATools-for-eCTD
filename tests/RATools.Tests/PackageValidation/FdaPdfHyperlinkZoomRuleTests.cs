@@ -140,11 +140,17 @@ public sealed class FdaPdfHyperlinkZoomRuleTests
 
     [Theory]
     [InlineData(3, CheckStatus.NotEvaluated)]
-    [InlineData(4, CheckStatus.Fail)]
+    [InlineData(4, CheckStatus.NotEvaluated)]
+    [InlineData(5, CheckStatus.Fail)]
     public async Task SharedBudgetOnlyRetainsAllocatedFindings(int limit, CheckStatus expected)
     {
         var result = await Run(await Fixture(Build("[0 /XYZ null null 1]"), limits: new() { MaxXmlFindings = limit }));
         Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+        if (limit >= 4)
+        {
+            var missing = Assert.Single(result.Checks, item => item.RuleId == "FDA47-5200");
+            Assert.Equal(CheckStatus.Fail, missing.Status); Assert.Single(missing.Findings);
+        }
         Assert.True(result.Checks.Sum(item => item.Findings.Count) <= limit);
         Assert.Contains(result.Checks.SelectMany(item => item.Findings), item => item.Code == "PDF_INSPECTION_LIMIT");
     }

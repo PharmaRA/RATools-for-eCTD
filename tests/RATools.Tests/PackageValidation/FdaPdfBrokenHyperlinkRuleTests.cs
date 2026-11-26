@@ -18,6 +18,90 @@ public sealed class FdaPdfBrokenHyperlinkRuleTests
     private const string RuleId = "FDA47-5200";
 
     [Theory]
+    [InlineData("[0 /XYZ null null null]")]
+    [InlineData("[0 /XYZ 0 100 0]")]
+    [InlineData("[0 /XYZ null null 1.25]")]
+    public async Task QualifiedXyzPageLinkRetainsMissingFileIdentity(string destination)
+    {
+        var result = await Run(await Fixture(Build("missing.pdf", destination: destination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("0001/missing.pdf", Assert.Single(check.Findings).Actual);
+        Assert.Null(Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5202").Status);
+    }
+
+    [Theory]
+    [InlineData("[-1 /XYZ null null null]")]
+    [InlineData("[0.5 /XYZ null null null]")]
+    [InlineData("[3 0 R /XYZ null null null]")]
+    [InlineData("[0 /XYZ (0) null null]")]
+    [InlineData("[0 /XYZ null /Top null]")]
+    [InlineData("[0 /XYZ null null -1]")]
+    [InlineData("[0 /XYZ null null (1)]")]
+    [InlineData("[0 /XYZ null null]")]
+    [InlineData("[0 /XYZ null null null 0]")]
+    [InlineData("[0 /Fit null null null]")]
+    public async Task InvalidXyzDestinationDoesNotPublishFileIdentity(string destination)
+    {
+        var result = await Run(await Fixture(Build("missing.pdf", destination: destination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.HyperlinkFiles);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("../0000/missing.pdf", false, null, CheckStatus.NotEvaluated)]
+    [InlineData("../0000/missing.pdf", true, null, CheckStatus.Fail)]
+    [InlineData("target.pdf", false, "target.pdf", CheckStatus.NotEvaluated)]
+    [InlineData("../0000/target.pdf", true, "target.pdf", CheckStatus.NotEvaluated)]
+    [InlineData("target%2Epdf", false, "target.pdf", CheckStatus.Fail)]
+    [InlineData("target%2Epdf", false, "target%2Epdf", CheckStatus.NotEvaluated)]
+    [InlineData("target.pdf#page=1", false, "target.pdf", CheckStatus.Fail)]
+    [InlineData("../0002/missing.pdf", false, null, CheckStatus.NotEvaluated)]
+    [InlineData("../../outside.pdf", false, null, CheckStatus.NotEvaluated)]
+    [InlineData("/missing.pdf", false, null, CheckStatus.NotEvaluated)]
+    public async Task XyzFileIdentityRetainsSelectedInventoryAndLiteralPathBoundaries(string target, bool history, string? existing, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build(target, destination: "[0 /XYZ null null null]"), history, existing));
+        var facts = Assert.Single(result.Documents, item => item.LogicalPath == "0001/report.pdf").Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Null(Assert.Single(facts.HyperlinkFiles).ZeroBasedPageIndex);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+        Assert.Equal(target is "target.pdf" or "../0000/target.pdf" ? CheckStatus.Fail : CheckStatus.NotEvaluated,
+            Assert.Single(result.Checks, item => item.RuleId == "FDA47-5201").Status);
+        Assert.Equal(target == "/missing.pdf" ? CheckStatus.Fail : CheckStatus.NotEvaluated,
+            Assert.Single(result.Checks, item => item.RuleId == "FDA47-5215").Status);
+    }
+
+    [Theory]
+    [InlineData("link", CheckStatus.Fail)]
+    [InlineData("owner", CheckStatus.Fail)]
+    [InlineData("filespec", CheckStatus.Fail)]
+    [InlineData("bookmark", CheckStatus.NotEvaluated)]
+    [InlineData("open-action", CheckStatus.NotEvaluated)]
+    [InlineData("uri", CheckStatus.NotEvaluated)]
+    [InlineData("text-annotation", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-owner", CheckStatus.NotEvaluated)]
+    [InlineData("conflict", CheckStatus.NotEvaluated)]
+    [InlineData("next", CheckStatus.NotEvaluated)]
+    [InlineData("conflict-uf", CheckStatus.NotEvaluated)]
+    [InlineData("unknown-filesystem", CheckStatus.NotEvaluated)]
+    [InlineData("hidden", CheckStatus.NotEvaluated)]
+    [InlineData("zero-rect", CheckStatus.NotEvaluated)]
+    public async Task XyzDestinationDoesNotBypassPageLinkQualification(string scenario, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("missing.pdf", scenario, "[0 /XYZ null null null]")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
     [InlineData("missing.pdf", false, null, CheckStatus.Fail)]
     [InlineData("../0000/missing.pdf", false, null, CheckStatus.NotEvaluated)]
     [InlineData("../0000/missing.pdf", true, null, CheckStatus.Fail)]
@@ -252,10 +336,10 @@ public sealed class FdaPdfBrokenHyperlinkRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string target, string scenario = "link")
+    private static byte[] Build(string target, string scenario = "link", string destination = "[0 /Fit]")
     {
         var file = scenario switch { "filespec" => "<< /Type /Filespec /F (" + target + ") >>", "conflict-uf" => "<< /F (" + target + ") /UF (other.pdf) >>", "unknown-filesystem" => "<< /FS /URL /F (" + target + ") >>", _ => "(" + target + ")" };
-        var action = scenario == "uri" ? "<< /S /URI /URI (" + target + ") >>" : "<< /S /GoToR /F " + file + " /D [0 /Fit]" + (scenario == "next" ? " /Next << /S /GoToR /F (other.pdf) /D [0 /Fit] >>" : "") + " >>";
+        var action = scenario == "uri" ? "<< /S /URI /URI (" + target + ") >>" : "<< /S /GoToR /F " + file + " /D " + destination + (scenario == "next" ? " /Next << /S /GoToR /F (other.pdf) /D [0 /Fit] >>" : "") + " >>";
         if (scenario == "bookmark") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R",
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>", "<< /Title (bookmark) /Parent 7 0 R /A " + action + " >>");
         if (scenario == "open-action") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/OpenAction " + action);

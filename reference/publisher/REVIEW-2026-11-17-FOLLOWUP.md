@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5200第二轮：合格XYZ页面超链接的字面文件目标（仍Partial，主代理限定只读自审及终态核对通过）。** 5117已提交`be5809a`。仅在既有完整页树、唯一间接批注、有效矩形/所属页及明确GoToR动作资格之上增加五项XYZ，页为非负整数、坐标为有限数字/null、倍率为非负有限数字/null；本项只发文件身份，不发XYZ页码。书签/OpenAction/URI、错误所属页、隐藏/零矩形、Next/冲突目的地及Filespec冲突仍不发超链接目标。
+
+red三项真实PDF解析/源页树前提通过，预期Fail实际NE。candidate十类472/473，唯一失败来自新增5200 finding先消耗共享额度，原5217额度4预期过时；保留3/4未知、增加5可分配并断言5200先获得一条，未改生产额度。final十类 **474/474、0失败/跳过**，5200为97含新增37；含原始字面百分号/井号、选入/未选历史、未来序列、明确损坏与缺失分离、绝对路径及未发布页码对照。主代理限定只读自审通过，无子代理。
+
+最终入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5200-xyz-final-20261126`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；进程树终态及受保护计数见同目录process回执。10交付/直接依赖输入SHA绑定；manifest SHA`bf65995594c46d00322d4af0ff6476e12eae3d0005012acbdf7130682b25a8ac`、TRX SHA`554da2edd40a547a70c7881f4482d397137ef6892bec95e8853798df9d2fa64a`。目录167条canonical SHA`8cbe4eaf9f765b329c35bad2105e4ef85d67653698be781d2718a540d200bda7`。red/candidate/final证据及校验副本在`.artifacts/local-check/fda5200-xyz-*-20261126`和`backups/fda5200-xyz-20261126/evidence/`，bin/obj按精确范围回收。inspector-v34、PDF-v32、file-v91、交付v6；历史源/其他动作编码仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一5201类型化失败依赖，再5202 XYZ页码。
+
 **FDA5117第二轮：合格Filespec字典的明确书签缩放（仍Partial，主代理限定只读自审及终态核对通过）。** 5110已提交`43dcef9`。先按序核5115：Adobe PDF1.7第179–181页将简单文件规范开头斜杠定义为绝对，盘符与反斜杠是平台转换结果，不能把原始C:/按本机Windows规则强判，保留平台变体依赖。5117复用已资格Filespec身份要求，补F为非空ASCII、可选UF一致的字典缩放证据，排除平台/URL/嵌入/相关文件等字段；Fit或正数XYZ才失败，0/null及未知目标语法仍未知。
 
 red两项PDF/文件身份前提均过，预期Fail实际NE；candidate十类609/611，两项未解析F/UF的基础解析器已报找不到99 0对象，失败仅因新夹具错误要求ParseError=null。生产代码不改，改为明确基础解析失败且规则未知，并加一项正常、两项未解析的直接书签读取器对照。final十类 **614/614、0失败/跳过**（5117为87含新增33、5100为100、5101为43、5102为78、5103为78、5105为83、5110为62、5115为43、PDF管线23、PdfPig17）。主代理限定只读自审通过，无子代理。

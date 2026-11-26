@@ -73,8 +73,13 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         long? pageTarget = null;
                         if (destination is ArrayToken array)
                         {
-                            if (array.Length != 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } targetPage || targetPage.Long < 0 || Name(array.Data[1]) != "Fit") continue;
-                            pageTarget = targetPage.Long;
+                            if (array.Length < 2 || Resolve(array.Data[0]) is not NumericToken { HasDecimalPlaces: false } targetPage || targetPage.Long < 0) continue;
+                            var mode = Name(array.Data[1]);
+                            if (mode == "Fit" && array.Length == 2) pageTarget = targetPage.Long;
+                            else if (mode != "XYZ" || array.Length != 5 || !Coordinate(array.Data[2]) || !Coordinate(array.Data[3]) ||
+                                Resolve(array.Data[4]) is not NullToken &&
+                                (Resolve(array.Data[4]) is not NumericToken factor || !double.IsFinite(factor.Double) || factor.Double < 0)) continue;
+                            // XYZ qualifies file identity only; page-index publication is separately qualified.
                         }
                         else if (string.IsNullOrEmpty(Text(destination)) && destination is not NameToken { Data.Length: > 0 }) continue;
                         var file = Resolve(Get(action, "F")); string? specification;

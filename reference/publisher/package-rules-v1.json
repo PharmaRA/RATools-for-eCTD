@@ -4401,7 +4401,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires complete qualified page tree, unique indirect annotation ownership, nondegenerate finite rectangle, consistent page owner, unambiguous GoToR action and simple literal file specification. Exact source capture and complete selected target inventory are required. Unselected history, existing unreadable files, URI/bookmark/open actions and unsupported annotation/specification variants remain unknown. Historical sources and non-PDF-named contents remain unqualified; no Pass is emitted.",
+      "implementationNote": "Requires complete qualified page tree, unique indirect annotation ownership, nondegenerate finite rectangle, consistent page owner, unambiguous GoToR action and simple literal file specification. Fit and valid five-item XYZ destinations qualify file identity; XYZ requires a nonnegative integer page, finite numeric or null coordinates and null or finite nonnegative zoom, without publishing its page index. Exact source capture and complete selected target inventory are required. Unselected history, existing unreadable files, URI/bookmark/open actions and unsupported annotation/specification variants remain unknown. Historical sources and non-PDF-named contents remain unqualified; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenHyperlinkRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfBrokenHyperlinkRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfBrokenHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs"],
