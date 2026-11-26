@@ -29,10 +29,8 @@ internal sealed class PdfPigPackageImageOnlyReader(PdfDocument document, Func<IT
                     HasAny(page.Dictionary, "Annots", "AA", "Metadata", "PieceInfo", "PresSteps") ||
                     Resolve(Get(page.Dictionary, "Resources")) is not DictionaryToken resources || HasAny(resources, "Properties", "ExtGState") ||
                     Resolve(Get(resources, "XObject")) is not DictionaryToken objects ||
-                    Resolve(Get(page.Dictionary, "Contents")) is not StreamToken content || !PlainStream(content)) return PdfImageOnlyStatus.Unknown;
-                _bytes -= content.Data.Length;
-                if (_bytes < 0) return PdfImageOnlyStatus.Unknown;
-                var scanner = new CoreTokenScanner(new MemoryInputBytes(content.Data), false,
+                    ReadContent(Get(page.Dictionary, "Contents")) is not { } content) return PdfImageOnlyStatus.Unknown;
+                var scanner = new CoreTokenScanner(new MemoryInputBytes(content), false,
                     new StackDepthGuard(limits.MaxPdfDepth), useLenientParsing: false);
                 var operands = new List<IToken>(); var depth = 0; var images = 0;
                 while (scanner.MoveNext())
@@ -79,6 +77,40 @@ internal sealed class PdfPigPackageImageOnlyReader(PdfDocument document, Func<IT
             // Bounded supplementary failures are unknown, never text absence or 3102 corruption.
             return PdfImageOnlyStatus.Unknown;
         }
+    }
+
+    private ReadOnlyMemory<byte>? ReadContent(IToken? value)
+    {
+        var resolved = Resolve(value);
+        if (resolved is StreamToken single)
+        {
+            if (!PlainStream(single) || single.Data.Length > _bytes) return null;
+            _bytes -= single.Data.Length;
+            return single.Data;
+        }
+        if (resolved is not ArrayToken array || array.Length == 0) return null;
+        var parts = new List<ReadOnlyMemory<byte>>();
+        var total = 0;
+        foreach (var member in array.Data)
+        {
+            Tick();
+            if (Resolve(member) is not StreamToken stream || !PlainStream(stream) || stream.Data.Length > _bytes) return null;
+            _bytes -= stream.Data.Length;
+            if (stream.Data.Length == 0) continue;
+            // PDF Reference Table 3.27 concatenates Contents in order. Qualify
+            // only explicit line boundaries, so a token or comment cannot be
+            // joined differently from the parser's stream-boundary handling.
+            if (parts.Count > 0 && parts[^1].Span[^1] is not (10 or 13)) return null;
+            total += stream.Data.Length;
+            parts.Add(stream.Data);
+        }
+        if (parts.Count == 0) return null;
+        var joined = new byte[total]; var offset = 0;
+        foreach (var part in parts)
+        {
+            Tick(); part.Span.CopyTo(joined.AsSpan(offset)); offset += part.Length;
+        }
+        return joined;
     }
 
     private bool Image(StreamToken stream)

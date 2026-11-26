@@ -69,7 +69,7 @@ internal static class FdaPdfImageOnlyRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only bounded unfiltered simple raster-only pages are qualified. Text extraction alone is not negative-text evidence. Filtered/nested content, other image encodings, OCR quality, forms/annotations/structure, historical references, non-PDF-named contents and earlier policy remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Only bounded unfiltered simple raster-only pages are qualified, including complete Contents arrays with explicit line boundaries and shared aggregate byte/work budgets. Text extraction alone is not negative-text evidence. Ambiguous stream boundaries, filtered/nested content, other image encodings, OCR quality, forms/annotations/structure, historical references, non-PDF-named contents and earlier policy remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

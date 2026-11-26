@@ -16,6 +16,123 @@ public sealed class FdaPdfImageOnlyRuleTests
     private const string RuleId = "FDA47-5057";
 
     [Theory]
+    [InlineData("single")]
+    [InlineData("multiple")]
+    [InlineData("state")]
+    [InlineData("operands")]
+    public async Task CompleteContentArraysCanEstablishImageOnly(string scenario)
+    {
+        string[] parts = scenario switch
+        {
+            "single" => ["q /Im1 Do Q"],
+            "multiple" => ["q /Im1 Do Q\n", "q /Im1 Do Q"],
+            "state" => ["q\n", "/Im1 Do\n", "Q"],
+            _ => ["q 100 0 0\n", "100 20 20 cm /Im1\n", "Do Q"]
+        };
+        var result = await Run(await Fixture(Build("image", contentParts: parts)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        Assert.False(facts.Basics.HasSearchableText);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("empty-members", CheckStatus.Fail)]
+    [InlineData("empty-only", CheckStatus.NotEvaluated)]
+    [InlineData("repeated-stream", CheckStatus.Fail)]
+    [InlineData("later-text", CheckStatus.NotEvaluated)]
+    [InlineData("earlier-text", CheckStatus.NotEvaluated)]
+    [InlineData("empty-text", CheckStatus.NotEvaluated)]
+    [InlineData("filtered-first", CheckStatus.NotEvaluated)]
+    [InlineData("filtered-last", CheckStatus.NotEvaluated)]
+    [InlineData("no-line-boundary", CheckStatus.NotEvaluated)]
+    [InlineData("comment-boundary", CheckStatus.NotEvaluated)]
+    [InlineData("comment-newline", CheckStatus.Fail)]
+    [InlineData("trailing-operand", CheckStatus.NotEvaluated)]
+    [InlineData("unclosed-state", CheckStatus.NotEvaluated)]
+    [InlineData("blank-then-image", CheckStatus.Fail)]
+    public async Task EveryContentArrayMemberParticipatesInQualification(string scenario, CheckStatus expected)
+    {
+        const string image = "q /Im1 Do Q\n";
+        const string text = "BT /F1 12 Tf 3 Tr (OCR) Tj ET\n";
+        string[] parts = scenario switch
+        {
+            "empty-members" => ["", image, ""], "empty-only" => ["", ""],
+            "later-text" => [image, text], "earlier-text" => [text, image],
+            "empty-text" => [image, "BT /F1 12 Tf () Tj ET"],
+            "no-line-boundary" => ["q /Im1 Do Q ", image],
+            "comment-boundary" => [image + "% unfinished comment", image],
+            "comment-newline" => [image + "% complete comment\n", image],
+            "trailing-operand" => [image, "12"], "unclosed-state" => ["q\n", "/Im1 Do\n"],
+            "blank-then-image" => [" \n", image], _ => [image, image]
+        };
+        var filtered = scenario == "filtered-first" ? 0 : scenario == "filtered-last" ? 1 : -1;
+        var result = await Run(await Fixture(Build("image", contentParts: parts, filteredPart: filtered,
+            contentsOverride: scenario == "repeated-stream" ? "[11 0 R 11 0 R]" : null)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(expected == CheckStatus.Fail ? PdfImageOnlyStatus.QualifiedImageOnly : PdfImageOnlyStatus.Unknown, facts.ImageOnly);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData(1048576, PdfImageOnlyStatus.QualifiedImageOnly)]
+    [InlineData(1048577, PdfImageOnlyStatus.Unknown)]
+    public void ArrayByteAllowanceIsAggregatedBeforeConcatenation(int length, PdfImageOnlyStatus expected)
+    {
+        const string image = "q /Im1 Do Q\n";
+        var part = image + new string(' ', 524288 - image.Length - 1) + "\n";
+        var tail = image + new string(' ', length - part.Length - image.Length);
+        using var stream = new MemoryStream(Build("image", contentParts: [part, tail]));
+        var facts = new PdfPigPackageInspector().Inspect(stream, "0001/report.pdf", new(), CancellationToken.None);
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(expected, facts.ImageOnly);
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("[4 0 R 99 0 R]")]
+    [InlineData("[4 0 R 6 0 R]")]
+    [InlineData("[4 0 R null]")]
+    [InlineData("[4 0 R [4 0 R]]")]
+    public async Task UnavailableOrNonStreamArrayMembersCannotProveImageOnly(string contents)
+    {
+        var result = await Run(await Fixture(Build("image", contentsOverride: contents)));
+        // Base-parser rejection and supplemental uncertainty both remain unknown
+        // for this rule; neither permits ignoring an unqualified array member.
+        Assert.Equal(PdfImageOnlyStatus.Unknown, Assert.Single(result.Documents).Facts!.ImageOnly);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task ArrayImageFailureUsesSharedAllowanceAndRetainsCancelledProgress(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("image", contentParts: ["q\n", "/Im1 Do\n", "Q"]));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfImageOnlyRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfImageOnlyRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task ArrayImageFailureRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("image", contentParts: ["q\n", "/Im1 Do\n", "Q"]));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("image", CheckStatus.Fail)]
     [InlineData("two-images", CheckStatus.Fail)]
     [InlineData("comment", CheckStatus.Fail)]
@@ -290,7 +407,8 @@ public sealed class FdaPdfImageOnlyRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string scenario, string? rawContent = null, string imageData = " ", string colorSpace = "/DeviceGray")
+    private static byte[] Build(string scenario, string? rawContent = null, string imageData = " ", string colorSpace = "/DeviceGray",
+        string[]? contentParts = null, int filteredPart = -1, string? contentsOverride = null)
     {
         const string image = "q 100 0 0 100 20 20 cm /Im1 Do Q";
         const string text = "BT /F1 12 Tf 3 Tr (OCR text) Tj ET";
@@ -304,10 +422,11 @@ public sealed class FdaPdfImageOnlyRuleTests
         var secondPage = scenario is "two-pages" or "image-and-blank" or "image-and-text";
         var catalog = scenario switch { "form" => "/AcroForm << /Fields [] >>", "structure" => "/StructTreeRoot << /Type /StructTreeRoot >>", _ => "" };
         const string resources = "/Resources << /XObject << /Im1 5 0 R /Fm1 7 0 R >> /Font << /F1 6 0 R >> >>";
+        var contents = contentsOverride ?? (contentParts is null ? "4 0 R" : "[" + string.Join(" ", contentParts.Select((_, index) => (index + 11).ToString(CultureInfo.InvariantCulture) + " 0 R")) + "]");
         var objects = new[] {
             "<< /Type /Catalog /Pages 2 0 R " + catalog + " >>",
             "<< /Type /Pages /Kids [3 0 R " + (secondPage ? "9 0 R" : "") + "] /Count " + (secondPage ? "2" : "1") + " >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " + resources + " /Contents 4 0 R " + (scenario == "annotation" ? "/Annots [8 0 R]" : "") + " >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " + resources + " /Contents " + contents + " " + (scenario == "annotation" ? "/Annots [8 0 R]" : "") + " >>",
             Stream(scenario == "filtered" ? Convert.ToHexString(Encoding.ASCII.GetBytes(content)) + ">" : content, scenario == "filtered" ? "/Filter /ASCIIHexDecode" : ""),
             Stream(imageData, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace " + colorSpace + " /BitsPerComponent 8"),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
@@ -316,6 +435,9 @@ public sealed class FdaPdfImageOnlyRuleTests
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " + resources + " /Contents 10 0 R >>",
             Stream(scenario == "image-and-blank" ? "" : scenario == "image-and-text" ? text : image)
         };
+        if (contentParts is not null) objects = objects.Concat(contentParts.Select((part, index) =>
+            Stream(index == filteredPart ? Convert.ToHexString(Encoding.ASCII.GetBytes(part)) + ">" : part,
+                index == filteredPart ? "/Filter /ASCIIHexDecode" : ""))).ToArray();
         var output = new StringBuilder("%PDF-1.4\n"); var offsets = new List<int>();
         for (var index = 0; index < objects.Length; index++) { offsets.Add(Encoding.ASCII.GetByteCount(output.ToString())); output.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n"); }
         var xref = Encoding.ASCII.GetByteCount(output.ToString()); output.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
