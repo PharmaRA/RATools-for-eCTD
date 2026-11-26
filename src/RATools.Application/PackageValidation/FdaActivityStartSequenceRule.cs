@@ -24,6 +24,7 @@ internal static class FdaActivityStartSequenceRule
         if (lifecycle.InputDigest != target.InputDigest || lifecycle.HistoryManifestDigest != packages.Baseline.Digest ||
             lifecycle.RulesDigest != context.Catalog.Digest || lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != target.Limits.Digest()) return Unknown("The lifecycle facts are not bound to this input.");
         var work = target.Limits.MaxXmlNodes;
+        var findings = new List<ValidationFinding>();
         try
         {
             var xmls = new List<PackageXmlInspection>();
@@ -61,29 +62,68 @@ internal static class FdaActivityStartSequenceRule
             var visited = new HashSet<string>(StringComparer.Ordinal); var pending = new Stack<string>(); pending.Push(roots[0].NodePath);
             while (pending.TryPop(out var path)) { Tick(); if (!visited.Add(path)) return Unknown("The regional tree contains a cycle."); foreach (var child in elements[path].Children) { Tick(); pending.Push(child); } }
             if (visited.Count != elements.Count) return Unknown("All regional elements must connect to the root.");
-            var application = Child(Child(Child(roots[0], "admin"), "application-set"), "application");
-            if (application is null || application.Attribute("application-containing-files") != "true") return Unknown("Only one explicit file-owning application is qualified.");
-            var number = Child(Child(application, "application-information"), "application-number");
-            var submission = Child(application, "submission-information");
-            var id = Child(submission, "submission-id"); var order = Child(submission, "sequence-number");
-            if (number is null || id is null || order is null || number.Children.Count != 0 || id.Children.Count != 0 || order.Children.Count != 0 ||
-                string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim() || order.Text != sequence || !Sequence(id.Text)) return Unknown("Unique exact application and four-digit sequence fields are required.");
-            var app = number.Attribute("application-type", ""); var type = id.Attribute("submission-type", ""); var subtype = order.Attribute("submission-sub-type", "");
-            if (app is null || type is null || subtype is null || !Contains(policy.InputValues("application-type"), app) || !Contains(policy.InputValues("submission-type"), type) ||
-                !Contains(policy.InputValues("submission-sub-type"), subtype) || !policy.AllowsCombination(app, type, subtype)) return Unknown("The exact application/type/subtype combination must be authorized by captured dictionaries.");
-            if (subtype is "fdasst4" or "fdasst5") return new(RuleId, CheckStatus.NotApplicable, "The qualified subtype describes a follow-up, not an activity start.");
-            // Project-derived applicability from captured M1 v2.6 Tables 2/4 and section III.B.3.
-            // The presubmission/application sequence in Table 5 expressly prevents subtype-only classification.
-            var starts = (type is "fdast5" or "fdast9" or "fdast10") && subtype == "fdasst6" ||
-                (type is "fdast7" or "fdast8") && subtype == "fdasst1" || type == "fdast6" && subtype == "fdasst7" || type == "fdast11" && subtype == "fdasst3";
-            if (!starts) return Unknown("The current combination does not independently establish that this is the activity's first submission.");
-            if (id.Text == sequence) return new(RuleId, CheckStatus.Pass, "The qualified start has equal four-digit sequence and submission identifiers; other start combinations remain unqualified.");
-            if (remaining <= 0) return Unknown("No finding allowance remains for the established mismatch.");
-            var finding = new ValidationFinding(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
-                "A qualified new regulatory activity must use its own sequence number as submission-id.",
-                id.Location with { FieldPath = "submission-id", Files = [new(target.SourceId, regional.LogicalPath)] }, sequence, id.Text);
-            var result = new RuleCheckResult(RuleId, CheckStatus.Fail, "A start sequence mismatch is established without requiring historical submissions.", [finding]);
-            retainProgress?.Invoke(result); cancellationToken.ThrowIfCancellationRequested(); return result;
+            var applicationSet = Child(Child(roots[0], "admin"), "application-set");
+            if (applicationSet is null) return Unknown("A unique application set is required.");
+            var members = new List<(ParsedXmlElement Application, string Type)>();
+            var identities = new HashSet<(string Type, string Number)>();
+            ParsedXmlElement? primary = null;
+            foreach (var path in applicationSet.Children)
+            {
+                Tick(); var application = elements[path];
+                if (application is not { Name: "application", LocalName: "application", NamespaceUri.Length: 0 }) continue;
+                var owner = application.Attributes.GetValueOrDefault("application-containing-files");
+                if (owner is not { LocalName: "application-containing-files", NamespaceUri: "", IsDefault: false, Value: "true" or "false" })
+                    return Unknown("Every member requires an explicit file-ownership declaration.");
+                var number = Child(Child(application, "application-information"), "application-number");
+                if (number is null || number.Children.Count != 0 || string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim())
+                    return Unknown("Each member requires an exact application identity.");
+                var app = Explicit(number, "application-type");
+                if (app is null || !Contains(policy.InputValues("application-type"), app) || !identities.Add((app, number.Text)))
+                    return Unknown("Member application identities must be qualified and unique.");
+                members.Add((application, app));
+                if (owner.Value != "true") continue;
+                if (primary is not null) return Unknown("Multiple file-owning applications do not identify one primary input.");
+                primary = application;
+            }
+            if (primary is null) return Unknown("A unique file-owning primary application is required.");
+            var primaryOrder = Child(Child(primary, "submission-information"), "sequence-number");
+            if (primaryOrder is null || primaryOrder.Children.Count != 0 || primaryOrder.Text != sequence)
+                return Unknown("The primary application's sequence must bind the captured directory sequence.");
+            var incomplete = false; var applicable = false;
+            foreach (var (application, app) in members)
+            {
+                Tick();
+                var submission = Child(application, "submission-information");
+                var id = Child(submission, "submission-id"); var order = Child(submission, "sequence-number");
+                if (id is null || order is null || id.Children.Count != 0 || order.Children.Count != 0 || !Sequence(order.Text) || !Sequence(id.Text))
+                { incomplete = true; continue; }
+                var type = Explicit(id, "submission-type"); var subtype = Explicit(order, "submission-sub-type");
+                if (type is null || subtype is null || !Contains(policy.InputValues("submission-type"), type) ||
+                    !Contains(policy.InputValues("submission-sub-type"), subtype) || !policy.AllowsCombination(app, type, subtype))
+                { incomplete = true; continue; }
+                if (subtype is "fdasst4" or "fdasst5") continue;
+                // Captured M1 Tables 2/4 and III.B.3 qualify these starts, not every application/presubmission.
+                var starts = (type is "fdast5" or "fdast9" or "fdast10") && subtype == "fdasst6" ||
+                    (type is "fdast7" or "fdast8") && subtype == "fdasst1" || type == "fdast6" && subtype == "fdasst7" || type == "fdast11" && subtype == "fdasst3";
+                if (!starts) { incomplete = true; continue; }
+                applicable = true;
+                if (id.Text == order.Text) continue;
+                if (remaining <= 0) { incomplete = true; continue; }
+                remaining--;
+                findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
+                    "A qualified new regulatory activity must use that application's own sequence number as submission-id.",
+                    id.Location with { FieldPath = "submission-id", Files = [new(target.SourceId, regional.LogicalPath)] }, order.Text, id.Text));
+                retainProgress?.Invoke(new(RuleId, CheckStatus.Fail, "A member's start sequence mismatch is established; other members may remain unqualified.", findings.ToArray()));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
+                "Compared each qualified start with its own application sequence without requiring history. Other start combinations and grouped-submission eligibility remain separate qualifications.", findings);
+
+            string? Explicit(ParsedXmlElement element, string name)
+            {
+                Tick();
+                return element.Attributes.GetValueOrDefault(name) is { NamespaceUri: "", IsDefault: false } attribute && attribute.LocalName == name ? attribute.Value : null;
+            }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)
             {
@@ -93,7 +133,11 @@ internal static class FdaActivityStartSequenceRule
                 return found;
             }
         }
-        catch (StartWorkLimitException) { return Unknown("The activity start comparison work allowance was exhausted."); }
+        catch (StartWorkLimitException)
+        {
+            return findings.Count > 0 ? new(RuleId, CheckStatus.Fail, "Known member mismatches were retained after the comparison work allowance was exhausted.", findings)
+                : Unknown("The activity start comparison work allowance was exhausted.");
+        }
         bool Contains(IEnumerable<string> values, string value) { foreach (var candidate in values) { Tick(); if (candidate == value) return true; } return false; }
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new StartWorkLimitException(); }
     }

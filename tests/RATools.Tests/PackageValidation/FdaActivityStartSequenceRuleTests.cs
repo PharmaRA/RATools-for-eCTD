@@ -13,6 +13,151 @@ public sealed class FdaActivityStartSequenceRuleTests
     private const string RuleId = "FDA47-2025";
 
     [Theory]
+    [InlineData("grouped-match", CheckStatus.Pass, 0)]
+    [InlineData("grouped-primary-mismatch", CheckStatus.Fail, 1)]
+    [InlineData("grouped-member-mismatch", CheckStatus.Fail, 1)]
+    [InlineData("grouped-both-mismatch", CheckStatus.Fail, 2)]
+    [InlineData("grouped-reordered", CheckStatus.Fail, 1)]
+    public async Task GroupedStartsUseEachApplicationsOwnSequence(string variant, CheckStatus expected, int count)
+    {
+        var fixture = await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: variant);
+        Assert.Empty(fixture.Packages.Baseline.Entries);
+        var regional = Assert.Single(Assert.Single(fixture.Lifecycle.XmlInspections).Backbones, item => item.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        Assert.Equal(2, regional.Elements.Count(item => item.Name == "application"));
+        var check = Direct(fixture)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(count, check.Findings.Count);
+        foreach (var finding in check.Findings)
+        {
+            var id = Assert.Single(regional.Elements, item => item.NodePath == finding.Location.NodePath);
+            var order = Assert.Single(regional.Elements, item => item.ParentPath == id.ParentPath && item.Name == "sequence-number");
+            Assert.Equal(order.Text, finding.Expected);
+            Assert.Equal(id.Text, finding.Actual);
+            Assert.Equal("0003/m1/us/us-regional.xml", finding.Location.LogicalPath);
+            Assert.Equal("submission-id", finding.Location.FieldPath);
+        }
+    }
+
+    [Theory]
+    [InlineData("grouped-two-primary", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-no-primary", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-duplicate-identity", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-primary-wrong-sequence", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-short-sequence", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-short-id", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-unknown-type", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-unknown-subtype", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-presubmission", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-followup", CheckStatus.Pass)]
+    [InlineData("grouped-all-followup", CheckStatus.NotApplicable)]
+    [InlineData("grouped-primary-fail-member-unknown", CheckStatus.Fail)]
+    [InlineData("grouped-member-unknown-first", CheckStatus.Fail)]
+    [InlineData("grouped-primary-unknown-member-fail", CheckStatus.Fail)]
+    public async Task GroupedIdentityAndMemberUnknownsRemainDistinct(string variant, CheckStatus expected)
+    {
+        var check = Direct(await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: variant))!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData(0, 0, CheckStatus.NotEvaluated)]
+    [InlineData(1, 1, CheckStatus.Fail)]
+    [InlineData(2, 2, CheckStatus.Fail)]
+    public async Task GroupedMismatchesShareFindingAllowance(int remaining, int count, CheckStatus expected)
+    {
+        var check = Direct(await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: "grouped-both-mismatch"), remaining)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(count, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("grouped-match", CheckStatus.Pass, CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-mismatch", CheckStatus.Fail, CheckStatus.Fail)]
+    public async Task GroupedDeliveryRetainsPartialCoverage(string variant, CheckStatus raw, CheckStatus coverage)
+    {
+        var fixture = await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: variant);
+        var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        Assert.Equal(raw, Assert.Single(result.Files.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(coverage, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
+    [InlineData("2027-01-15", CheckStatus.NotApplicable)]
+    [InlineData("2027-01-16", CheckStatus.Fail)]
+    public async Task GroupedComparisonIsNotBackdated(string date, CheckStatus expected)
+        => Assert.Equal(expected, Direct(await Fixture("fdast8", "fdasst1", "fdaat1", "0003", date: date, variant: "grouped-member-mismatch"))!.Status);
+
+    [Fact]
+    public async Task GroupedCancellationRetainsTheFirstImmutableMismatch()
+    {
+        var fixture = await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: "grouped-both-mismatch");
+        using var cancellation = new CancellationTokenSource();
+        RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Direct(fixture, progress: check =>
+        {
+            retained = check;
+            if (check.Status == CheckStatus.Fail) cancellation.Cancel();
+        }, token: cancellation.Token));
+        Assert.Equal(CheckStatus.Fail, retained!.Status);
+        Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task FrozenWorkBudgetRetainsKnownMismatchAfterLaterExhaustion()
+    {
+        var fixture = await Fixture("fdast8", "fdasst1", "fdaat1", "0003", variant: "grouped-both-mismatch");
+        var low = 1;
+        var high = fixture.Packages.Target.Limits.MaxXmlNodes;
+        Assert.Equal(2, Direct(WithWorkBudget(fixture, high))!.Findings.Count);
+        // Rebind already frozen observations: this exercises rule work, not XML parser limits.
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (Direct(WithWorkBudget(fixture, middle))!.Findings.Count > 0) high = middle;
+            else low = middle + 1;
+        }
+        Assert.True(low > 1);
+        var before = Direct(WithWorkBudget(fixture, low - 1))!;
+        Assert.Equal(CheckStatus.NotEvaluated, before.Status);
+        Assert.Empty(before.Findings);
+        RuleCheckResult? progress = null;
+        var after = Direct(WithWorkBudget(fixture, low), progress: result => progress = result)!;
+        Assert.Equal(CheckStatus.Fail, after.Status);
+        Assert.Single(after.Findings);
+        Assert.Contains("work allowance was exhausted", after.Reason, StringComparison.Ordinal);
+        Assert.Equal(CheckStatus.Fail, progress!.Status);
+        Assert.Single(progress.Findings);
+        Assert.Equal(after.Findings[0], progress.Findings[0]);
+    }
+
+    private static FixtureData WithWorkBudget(FixtureData fixture, int nodes)
+    {
+        var target = new FrozenWorkInput(fixture.Packages.Target, fixture.Packages.Target.Limits with { MaxXmlNodes = nodes });
+        var packages = new PackageInputSet(target, fixture.Packages.Baseline, []);
+        var xmls = fixture.Lifecycle.XmlInspections.Select(xml => new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId,
+            xml.AssetManifestDigest, target.Limits.Digest(), xml.Backbones, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var lifecycle = new PackageLifecycleInspection(packages, fixture.Lifecycle.ProfileSnapshotId, xmls, fixture.Lifecycle.Events,
+            fixture.Lifecycle.States, fixture.Lifecycle.Checks, fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        return new(packages, lifecycle, fixture.Context);
+    }
+
+    private sealed class FrozenWorkInput(ICapturedPackageInput original, PackageReadLimits limits) : ICapturedPackageInput
+    {
+        public string SourceId => original.SourceId;
+        public PackageSourceKind SourceKind => original.SourceKind;
+        public PackageInputManifest Manifest => original.Manifest;
+        public string? ArchiveSha256 => original.ArchiveSha256;
+        public string InputDigest => original.InputDigest;
+        public PackageReadLimits Limits => limits;
+        public Stream OpenRead(string path) => throw new InvalidOperationException("Work-budget replay must not reopen captured files.");
+        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => throw new InvalidOperationException("Work-budget replay uses frozen observations only.");
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Theory]
     [InlineData("fdast5", "fdasst6", "fdaat1", true)]
     [InlineData("fdast5", "fdasst6", "fdaat1", false)]
     [InlineData("fdast9", "fdasst6", "fdaat4", true)]
@@ -196,6 +341,34 @@ public sealed class FdaActivityStartSequenceRuleTests
         order.SetAttributeValue("submission-sub-type", variant == "unknown-subtype" ? "invalid" : variant == "bad-combination" ? "fdasst3" : subtype);
         if (variant == "duplicate-submission") { var info = xml.Descendants("submission-information").Single(); info.AddAfterSelf(new XElement(info)); }
         if (variant == "duplicate-application") { var app = xml.Descendants("application").Single(); app.AddAfterSelf(new XElement(app)); }
+        if (variant.StartsWith("grouped-", StringComparison.Ordinal))
+        {
+            var primary = xml.Descendants("application").Single();
+            primary.SetAttributeValue("application-containing-files", "true");
+            var member = new XElement(primary);
+            member.SetAttributeValue("application-containing-files", "false");
+            member.Descendants("application-number").Single().Value = "654321";
+            member.Descendants("sequence-number").Single().Value = "0042";
+            member.Descendants("submission-id").Single().Value = variant is "grouped-member-mismatch" or "grouped-both-mismatch" or "grouped-reordered" ? "0003" : "0042";
+            if (variant is "grouped-primary-mismatch" or "grouped-both-mismatch") id.Value = "0001";
+            var memberId = member.Descendants("submission-id").Single();
+            var memberOrder = member.Descendants("sequence-number").Single();
+            if (variant == "grouped-two-primary") member.SetAttributeValue("application-containing-files", "true");
+            if (variant == "grouped-no-primary") primary.SetAttributeValue("application-containing-files", "false");
+            if (variant == "grouped-duplicate-identity") member.Descendants("application-number").Single().Value = primary.Descendants("application-number").Single().Value;
+            if (variant == "grouped-primary-wrong-sequence") order.Value = "0042";
+            if (variant == "grouped-member-short-sequence") memberOrder.Value = "42";
+            if (variant == "grouped-member-short-id") memberId.Value = "42";
+            if (variant == "grouped-member-unknown-type") memberId.SetAttributeValue("submission-type", "unqualified");
+            if (variant == "grouped-member-unknown-subtype") memberOrder.SetAttributeValue("submission-sub-type", "unqualified");
+            if (variant == "grouped-member-presubmission") { memberId.SetAttributeValue("submission-type", "fdast1"); memberOrder.SetAttributeValue("submission-sub-type", "fdasst2"); }
+            if (variant is "grouped-member-followup" or "grouped-all-followup") { memberOrder.SetAttributeValue("submission-sub-type", "fdasst4"); memberId.Value = "0040"; }
+            if (variant == "grouped-all-followup") { order.SetAttributeValue("submission-sub-type", "fdasst4"); id.Value = "0001"; }
+            if (variant is "grouped-primary-fail-member-unknown" or "grouped-member-unknown-first") { id.Value = "0001"; memberId.SetAttributeValue("submission-type", "unqualified"); }
+            if (variant == "grouped-primary-unknown-member-fail") { id.SetAttributeValue("submission-type", "unqualified"); memberId.Value = "0003"; }
+            if (variant is "grouped-reordered" or "grouped-member-unknown-first") primary.AddBeforeSelf(member);
+            else primary.AddAfterSelf(member);
+        }
         var target = new PackageRegionalInspectionTests.MemoryInput(Guid.NewGuid(), sequence, xml.ToString(), PackageValidationCatalog.UsProfile);
         var packages = new PackageInputSet(target, new(target.Manifest.ApplicationId, sequence, []), []);
         var lifecycle = await new PackageLifecycleInspector(standards: context).InspectAsync(packages, PackageValidationCatalog.UsProfile);

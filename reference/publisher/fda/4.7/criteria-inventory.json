@@ -2012,7 +2012,7 @@
           "tests/RATools.Tests/PackageValidation/FdaActivityStartSequenceRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Checks exact four-digit sequence/submission-id equality for seven source-derived start combinations after current capture/context, complete connected single-application structure, active codes and captured allowed-combination qualification. No history is required. Presubmission-capable starts and grouped applications remain unqualified; equality alone does not prove a start. Valid amendment/resubmission is outside this start check. Effective from 2027-01-16. Final selected Windows regression 432/432, including 52 FDA2025 cases, and bounded code/evidence review passed."
+        "note": "Compares each uniquely identified current application's own four-digit sequence/submission-id for seven existing source-derived start combinations, including grouped members. Requires one explicit file owner bound to the captured sequence and unique type/number identities before comparison. Unknown member combinations remain unknown; known mismatches survive later unknowns or work exhaustion. No history is required; equality alone does not prove a start. Presubmission-capable starts and grouped-submission eligibility remain separate qualifications. Effective from 2027-01-16. Final five-class Windows regression 219/219 including 80 FDA2025 cases (28 added) and bounded main-agent read-only review passed without subagents; still Partial."
       }
     },
     {
