@@ -90,7 +90,7 @@ internal static class FdaPdfFontEmbeddingRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only exact captured current PDFs with definite used simple-font evidence are checked. Arbitrary aliases, full versus subset font programs, nested/inherited resources, historical references, non-PDF-named contents and pre-4.1 policy remain unqualified; absence of a finding is not Pass.", _findings.ToArray());
+                "Only exact captured current PDFs with definite used simple-font evidence are checked, including nearest inherited page resources after complete page-tree qualification. Arbitrary aliases, full versus subset font programs, nested/implicit resources, historical references, non-PDF-named contents and pre-4.1 policy remain unqualified; absence of a finding is not Pass.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string message) => new(RuleId, CheckStatus.NotEvaluated, message);

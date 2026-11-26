@@ -8,6 +8,9 @@ using RATools.Domain.PackageValidation;
 using RATools.Domain.Standards;
 using RATools.Infrastructure.PackageValidation;
 using RATools.Infrastructure.Persistence.InMemory;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Tokens;
 
 namespace RATools.Tests.PackageValidation;
 
@@ -262,6 +265,130 @@ public sealed class FdaPdfFontEmbeddingRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData("root")]
+    [InlineData("nearest")]
+    [InlineData("indirect")]
+    public async Task InheritedPageResourcesIdentifyActuallyUsedFonts(string scenario)
+    {
+        var result = await Run(await Fixture(BuildInherited(scenario)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(scenario == "nearest" ? "Courier" : "Helvetica", Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("page-override")]
+    [InlineData("nearest-standard")]
+    [InlineData("empty-page")]
+    [InlineData("empty-parent")]
+    [InlineData("null-page")]
+    [InlineData("null-parent")]
+    [InlineData("missing-reference")]
+    [InlineData("wrong-type")]
+    [InlineData("unused")]
+    public async Task ExplicitResourcesAreNotMergedWithAncestorFonts(string scenario)
+    {
+        var result = await Run(await Fixture(BuildInherited(scenario)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+        Assert.DoesNotContain(facts.Fonts, font => font.BaseFont is "Helvetica" or "Courier");
+    }
+
+    [Theory]
+    [InlineData("page-empty")]
+    [InlineData("page-null")]
+    [InlineData("parent-empty")]
+    [InlineData("parent-null")]
+    [InlineData("parent-number")]
+    [InlineData("parent-unresolved")]
+    [InlineData("unqualified")]
+    [InlineData("cycle")]
+    [InlineData("wrong-parent-type")]
+    [InlineData("depth")]
+    public void InheritedResourceLookupDoesNotInventFallback(string scenario)
+    {
+        using var document = PdfDocument.Open(Build());
+        var parentRef = new IndirectReferenceToken(new IndirectReference(2, 0));
+        var rootRef = new IndirectReferenceToken(new IndirectReference(3, 0));
+        var missingRef = new IndirectReferenceToken(new IndirectReference(99, 0));
+        var empty = new DictionaryToken(new Dictionary<NameToken, IToken>());
+        var rootResource = new DictionaryToken(new Dictionary<NameToken, IToken> { [NameToken.Create("Marker")] = NameToken.Create("Root") });
+        var root = new DictionaryToken(new Dictionary<NameToken, IToken> { [NameToken.Type] = NameToken.Create("Pages"), [NameToken.Create("Resources")] = rootResource });
+        var pageValues = new Dictionary<NameToken, IToken> { [NameToken.Parent] = parentRef };
+        var parentValues = new Dictionary<NameToken, IToken> { [NameToken.Type] = NameToken.Create(scenario == "wrong-parent-type" ? "Page" : "Pages"), [NameToken.Parent] = scenario == "cycle" ? parentRef : rootRef };
+        if (scenario.StartsWith("page-", StringComparison.Ordinal)) pageValues[NameToken.Create("Resources")] = scenario == "page-empty" ? empty : NullToken.Instance;
+        if (scenario.StartsWith("parent-", StringComparison.Ordinal)) parentValues[NameToken.Create("Resources")] = scenario switch
+        {
+            "parent-empty" => empty, "parent-null" => NullToken.Instance, "parent-number" => new NumericToken(42), _ => missingRef
+        };
+        var parent = new DictionaryToken(parentValues);
+        var rootReads = 0;
+        IToken? Resolve(IToken? value)
+        {
+            if (value is not IndirectReferenceToken reference) return value;
+            if (reference.Data == parentRef.Data) return parent;
+            if (reference.Data != rootRef.Data) return null;
+            rootReads++; return root;
+        }
+        var reader = new PdfPigPackageFontReader(document, Resolve, depth =>
+        {
+            if (scenario == "depth" && depth > 1) throw new PdfInspectionLimitException("Fixture depth limit");
+        }, () => scenario != "unqualified");
+        if (scenario == "depth") Assert.Throws<PdfInspectionLimitException>(() => reader.ReadResources(new(pageValues)));
+        else
+        {
+            var actual = reader.ReadResources(new(pageValues));
+            if (scenario.EndsWith("empty", StringComparison.Ordinal)) Assert.Same(empty, actual);
+            else Assert.Null(actual);
+        }
+        Assert.Equal(0, rootReads);
+    }
+
+    private static byte[] BuildInherited(string scenario)
+    {
+        const string helvetica = "<< /Font << /F1 4 0 R >> >>";
+        const string courier = "<< /Font << /F1 7 0 R >> >>";
+        const string symbol = "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Symbol >> >> >>";
+        var content = scenario is "empty-page" or "empty-parent" or "null-page" or "null-parent" or "missing-reference" or "wrong-type" or "unused" ? "" : "BT /F1 12 Tf (text) Tj ET";
+        var pageResources = scenario switch { "page-override" => "/Resources " + symbol, "empty-page" => "/Resources << >>", "null-page" => "/Resources null", _ => "" };
+        var parentResources = scenario switch
+        {
+            "nearest" => "/Resources " + courier, "nearest-standard" => "/Resources " + symbol,
+            "empty-parent" => "/Resources << >>", "null-parent" => "/Resources null",
+            "missing-reference" => "/Resources 99 0 R", "wrong-type" => "/Resources 42", _ => ""
+        };
+        var objects = new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [6 0 R] /Count 1 /Resources " + (scenario == "indirect" ? "8 0 R" : helvetica) + " >>",
+            "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 792] " + pageResources + " /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream",
+            "<< /Type /Pages /Parent 2 0 R /Kids [3 0 R] /Count 1 " + parentResources + " >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
+            helvetica
+        };
+        var text = new StringBuilder("%PDF-1.4\n"); var offsets = new List<int>();
+        for (var index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.ASCII.GetByteCount(text.ToString()));
+            text.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        var xref = Encoding.ASCII.GetByteCount(text.ToString());
+        text.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (var offset in offsets) text.Append(offset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        text.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(text.ToString());
+    }
+
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? bytes, string? date = "2026-11-25", string? missingHash = null, PackageReadLimits? limits = null, bool secondPdf = false)
     {

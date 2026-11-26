@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v22";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v23";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -176,7 +176,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         }
         public IReadOnlyList<PdfFontObservation> ReadFonts()
         {
-            try { return new PdfPigPackageFontReader(document, Resolve, Count).Read(); }
+            try { return new PdfPigPackageFontReader(document, Resolve, Count, () => ReadQualifiedPageCount() is not null).Read(); }
             catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
             {
                 // Optional font traversal cannot reclassify already parsed contents

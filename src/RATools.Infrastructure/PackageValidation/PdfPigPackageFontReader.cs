@@ -1,5 +1,6 @@
 using RATools.Application.PackageValidation;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Graphics.Operations.TextState;
 using UglyToad.PdfPig.Graphics.Operations.TextShowing;
 using UglyToad.PdfPig.Tokens;
@@ -8,8 +9,10 @@ namespace RATools.Infrastructure.PackageValidation;
 
 // Deliberately no "fully embedded" classification: a stream key is not proof of
 // a valid, complete font program. Nested/implicit font state remains unqualified.
-internal sealed class PdfPigPackageFontReader(PdfDocument document, Func<IToken?, IToken?> resolve, Action<int> count)
+internal sealed class PdfPigPackageFontReader(PdfDocument document, Func<IToken?, IToken?> resolve, Action<int> count,
+    Func<bool> qualifyPageTree)
 {
+    private bool? _qualifiedPageTree;
     internal IReadOnlyList<PdfFontObservation> Read()
     {
         var result = new List<PdfFontObservation>();
@@ -25,7 +28,7 @@ internal sealed class PdfPigPackageFontReader(PdfDocument document, Func<IToken?
             }
             // Do may use a different resource namespace; gs may select a font.
             if (unsafeResources) continue;
-            if (ResolveOptional(Get(page.Dictionary, "Resources")) is not DictionaryToken resources ||
+            if (ReadResources(page.Dictionary) is not { } resources ||
                 ResolveOptional(Get(resources, "Font")) is not DictionaryToken fonts) continue;
             string? selected = null;
             var stack = new Stack<string?>();
@@ -65,6 +68,26 @@ internal sealed class PdfPigPackageFontReader(PdfDocument document, Func<IToken?
             }
         }
         return result;
+    }
+
+    // PDF Reference 1.7 Table 3.27 and pp. 149/153: inherit the whole dictionary
+    // only when Resources is absent. Explicit empty or unresolved entries do not
+    // authorize merging or falling back to an ancestor's font namespace.
+    internal DictionaryToken? ReadResources(DictionaryToken page)
+    {
+        if (page.ContainsKey(NameToken.Create("Resources"))) return ResolveOptional(Get(page, "Resources")) as DictionaryToken;
+        if (!(_qualifiedPageTree ??= qualifyPageTree())) return null;
+        var seen = new HashSet<IndirectReference>();
+        var node = page;
+        while (Get(node, "Parent") is IndirectReferenceToken parent)
+        {
+            count(seen.Count + 1);
+            if (!seen.Add(parent.Data) || ResolveOptional(parent) is not DictionaryToken ancestor ||
+                (ResolveOptional(Get(ancestor, "Type")) as NameToken)?.Data != "Pages") return null;
+            if (ancestor.ContainsKey(NameToken.Create("Resources"))) return ResolveOptional(Get(ancestor, "Resources")) as DictionaryToken;
+            node = ancestor;
+        }
+        return null;
     }
 
     private bool HasText(IReadOnlyList<IToken> tokens)
