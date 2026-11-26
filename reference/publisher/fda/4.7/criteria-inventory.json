@@ -999,10 +999,10 @@
       "correctiveAction": "No corrective action is necessary. This is a warning to examine your naming conventions to reduce the size of the data values. Titles and keywords are limited to 512 characters.",
       "guidanceSource": "ICH eCTD Specification V3.2.2",
       "implementation": {
-        "status": "NotAssessed",
-        "internalRuleIds": [],
-        "evidence": [],
-        "note": "Official requirement inventoried; existing project checks have not yet established complete coverage of this authority rule."
+        "status": "Partial",
+        "internalRuleIds": ["FDA47-1500"],
+        "evidence": ["src/RATools.Application/PackageValidation/FdaTextLengthRule.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthBindingTests.cs"],
+        "note": "Reports unambiguous retained printable-ASCII leaf title and explicit whole keywords values above 512 characters in current ICH/US backbones, without trimming, token splitting, byte-length inference or rewriting content. Uses unique current XML/rules/assets/limits binding, bounded rooted ancestry and cumulative node/character/finding budgets. Final eight-class Windows regression 232/232 including 65 new cases and bounded main-agent read-only review passed without subagents; real unclosed-title tests distinguish 512 and 513 retained characters. Unicode counting, other title/text scopes and complete compliance remain unqualified; no Pass is emitted."
       }
     },
     {

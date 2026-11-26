@@ -92,12 +92,14 @@ public sealed class PackageFileInspector(TimeProvider? timeProvider = null, Pack
             remaining -= missingFiles.Sum(check => check.Findings.Count);
             var whitespace = FdaAttributeWhitespaceRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= whitespace.Sum(check => check.Findings.Count);
+            var textLengths = FdaTextLengthRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
+            remaining -= textLengths.Sum(check => check.Findings.Count);
             var requiredHeadings = FdaRequiredHeadingAttributeRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= requiredHeadings.Sum(check => check.Findings.Count);
             var duplicateCategories = FdaStfDuplicateCategoryRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken).ToArray();
             remaining -= duplicateCategories.Sum(check => check.Findings.Count);
             _officialFileNames = names.Concat(titles).Concat(operations).Concat(directories).Concat(regional).Concat(paths).Concat(targets).Concat(sizes).Concat(extensions).Concat(unreferenced).Concat(utilities).Concat(duplicates).Concat(requiredUtilities)
-                .Concat(forms).Concat(invalidPaths).Concat(missingFiles).Concat(whitespace).Concat(requiredHeadings).Concat(duplicateCategories).Concat(FdaExtraneousHeadingAttributeRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken)).ToArray();
+                .Concat(forms).Concat(invalidPaths).Concat(missingFiles).Concat(whitespace).Concat(textLengths).Concat(requiredHeadings).Concat(duplicateCategories).Concat(FdaExtraneousHeadingAttributeRule.Inspect(input.Packages.Target, lifecycle, context, remaining, cancellationToken)).ToArray();
             remaining = input.Packages.Target.Limits.MaxXmlFindings - 1 - _officialFileNames.Sum(check => check.Findings.Count);
             var target = input.Packages.Target;
             var shape = new PackageInputShapeEvidence(target.Manifest.ApplicationId, target.SourceId,

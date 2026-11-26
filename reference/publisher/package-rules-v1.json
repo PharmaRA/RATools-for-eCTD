@@ -4562,6 +4562,28 @@
       "externalComparisonEvidence": []
     },
     {
+      "internalRuleId": "FDA47-1500",
+      "authorityRuleId": "1500",
+      "sourceId": "fda-validation-criteria-4.7",
+      "sourceSection": "FDA Validation Criteria 4.7 p. 23, error 1500; ICH eCTD 3.2.2 physical p. 108 leaf title/keywords definitions",
+      "effectiveFrom": "2013-04-30",
+      "title": "Text data was truncated",
+      "category": "Files",
+      "ruleVersion": "4.7.1",
+      "profileSnapshotIds": ["us-fda-3.2.2-m1-3.3-development-v1"],
+      "applicableScope": "Unambiguous printable-ASCII overlength direct simple leaf titles and explicit whole keywords values in current ICH/US backbones.",
+      "applicability": "Always",
+      "severity": "Info",
+      "requiredForReadiness": true,
+      "allowsManualClosure": false,
+      "implementationStatus": "Partial",
+      "implementationNote": "Reports retained printable ASCII values above 512 characters without trimming, token splitting, byte-length inference or rewriting content. Uses unique current XML/rules/assets/limits binding, rooted bounded ancestry and cumulative node/character/finding budgets. Defaults, unavailable raw values, Unicode counting and other title/text scopes remain unqualified. Retained overlength evidence can fail after a later read error; no Pass is emitted.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaTextLengthRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaTextLengthRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthBindingTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaTextLengthRule.cs", "reference/publisher/official-sources/2026-11-09-production/ich-specification.pdf"],
+      "externalComparisonEvidence": []
+    },
+    {
       "internalRuleId": "FDA47-4",
       "authorityRuleId": "4",
       "sourceId": "fda-validation-criteria-4.7",
