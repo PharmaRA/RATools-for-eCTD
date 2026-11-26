@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v36";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v37";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -128,7 +128,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
         public IReadOnlyList<PdfHyperlinkFileTarget> ReadHyperlinkFiles()
         {
             var reader = new PdfPigPackageHyperlinkReader(Resolve, limits, cancellationToken);
-            var files = reader.Read(_pages, _pageNumbers, _qualifiedPageCount);
+            var files = reader.Read(_pages, _pageNumbers, _qualifiedPageCount, document.Structure.Catalog.CatalogDictionary);
             MultipleHyperlinkActions = reader.MultipleActions;
             ExternalHyperlinks = reader.ExternalHyperlinks;
             InactiveHyperlinks = reader.InactiveHyperlinks;

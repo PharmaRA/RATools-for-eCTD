@@ -15,13 +15,74 @@ public sealed class FdaPdfExternalHyperlinkRuleTests
     private const string RuleId = "FDA47-5205";
 
     [Theory]
+    [InlineData("relative.pdf", "https://base.invalid/docs/")]
+    [InlineData("../review.pdf", "https://base.invalid/docs/")]
+    [InlineData("chapter/one.html", "http://base.invalid/")]
+    public async Task ExplicitWebBaseQualifiesSimpleRelativeHyperlink(string uri, string basis)
+    {
+        var result = await Run(await Fixture(Build(uri, catalog: "/URI << /Base (" + basis + ") >>")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("Web", Assert.Single(check.Findings).Actual);
+        Assert.Equal(PdfExternalHyperlinkKind.Web, Assert.Single(facts.ExternalHyperlinks).Kind);
+        Assert.DoesNotContain("base.invalid", System.Text.Json.JsonSerializer.Serialize(check.Findings));
+        Assert.DoesNotContain("base.invalid", System.Text.Json.JsonSerializer.Serialize(facts.ExternalHyperlinks));
+    }
+
+    [Theory]
+    [InlineData("relative.pdf", "")]
+    [InlineData("relative.pdf", "/URI null")]
+    [InlineData("relative.pdf", "/URI (https://base.invalid/)")]
+    [InlineData("relative.pdf", "/URI << >>")]
+    [InlineData("relative.pdf", "/URI << /Base null >>")]
+    [InlineData("relative.pdf", "/URI << /Base /Invalid >>")]
+    [InlineData("relative.pdf", "/URI << /Base (relative/) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (ftp://base.invalid/) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (mailto:review@base.invalid) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (https://user@base.invalid/) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (https://base.invalid/a%2Fb/) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (https://base.invalid/?q=x) >>")]
+    [InlineData("relative.pdf", "/URI << /Base (https://base.invalid/#part) >>")]
+    [InlineData("relative.pdf", "/URI << /Base ( https://base.invalid/) >>")]
+    [InlineData("/root.pdf", "/URI << /Base (https://base.invalid/) >>")]
+    [InlineData("//other.invalid/a", "/URI << /Base (https://base.invalid/) >>")]
+    [InlineData("relative%2Epdf", "/URI << /Base (https://base.invalid/) >>")]
+    [InlineData("relative.pdf#part", "/URI << /Base (https://base.invalid/) >>")]
+    [InlineData("relative.pdf?q=x", "/URI << /Base (https://base.invalid/) >>")]
+    [InlineData("relative file.pdf", "/URI << /Base (https://base.invalid/) >>")]
+    public async Task RelativeUriRequiresQualifiedBaseAndSupportedSyntax(string uri, string catalog)
+    {
+        var result = await Run(await Fixture(Build(uri, catalog: catalog)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.ExternalHyperlinks);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("wrong-page")]
+    [InlineData("conflict")]
+    [InlineData("next-action")]
+    [InlineData("wrong-type")]
+    [InlineData("is-map")]
+    [InlineData("hidden")]
+    public async Task WebBaseCannotBypassQualifiedLinkIdentity(string scenario)
+    {
+        var result = await Run(await Fixture(Build("relative.pdf", scenario, "/URI << /Base (https://base.invalid/) >>")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
     [InlineData("https://example.invalid/document", "link", CheckStatus.Fail)]
     [InlineData("http://example.invalid/", "link", CheckStatus.Fail)]
     [InlineData("HTTPS://example.invalid/", "link", CheckStatus.Fail)]
     [InlineData("mailto:review@example.invalid", "link", CheckStatus.Fail)]
     [InlineData("https://example.invalid/document", "base", CheckStatus.Fail)]
     [InlineData("relative.pdf", "link", CheckStatus.NotEvaluated)]
-    [InlineData("relative.pdf", "base", CheckStatus.NotEvaluated)]
+    [InlineData("relative.pdf", "base", CheckStatus.Fail)]
     [InlineData("#page=1", "link", CheckStatus.NotEvaluated)]
     [InlineData("https://", "link", CheckStatus.NotEvaluated)]
     [InlineData("mailto:", "link", CheckStatus.NotEvaluated)]
@@ -106,22 +167,26 @@ public sealed class FdaPdfExternalHyperlinkRuleTests
     }
 
     [Theory]
-    [InlineData(0, CheckStatus.NotEvaluated)]
-    [InlineData(1, CheckStatus.Fail)]
-    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected)
+    [InlineData(0, CheckStatus.NotEvaluated, false)]
+    [InlineData(1, CheckStatus.Fail, false)]
+    [InlineData(0, CheckStatus.NotEvaluated, true)]
+    [InlineData(1, CheckStatus.Fail, true)]
+    public async Task FindingAllowanceAndRepeatedObservationAreBounded(int remaining, CheckStatus expected, bool relative)
     {
-        var fixture = await Fixture(Build("https://example.invalid/")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(relative ? Build("relative.pdf", "base") : Build("https://example.invalid/")); var document = Assert.Single((await Run(fixture)).Documents);
         var run = new FdaPdfExternalHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
         run.Observe(document, remaining); run.Observe(document, 10);
         Assert.Equal(expected, run.Finish(true)!.Status); Assert.Equal(remaining, run.FindingCount);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure, bool relative)
     {
-        var fixture = await Fixture(Build("https://example.invalid/")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(relative ? Build("relative.pdf", "base") : Build("https://example.invalid/")); var document = Assert.Single((await Run(fixture)).Documents);
         using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
         Assert.ThrowsAny<OperationCanceledException>(() =>
         {
@@ -159,10 +224,12 @@ public sealed class FdaPdfExternalHyperlinkRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
     }
 
-    [Fact]
-    public async Task PartialCoverageRetainsLocatedFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialCoverageRetainsLocatedFailure(bool relative)
     {
-        var fixture = await Fixture(Build("https://example.invalid/"));
+        var fixture = await Fixture(relative ? Build("relative.pdf", "base") : Build("https://example.invalid/"));
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
         Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
@@ -208,7 +275,7 @@ public sealed class FdaPdfExternalHyperlinkRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string uri, string scenario = "link")
+    private static byte[] Build(string uri, string scenario = "link", string? catalog = null)
     {
         var action = "<< /S /URI /URI (" + uri + ")" + (scenario == "wrong-type" ? " /Type /Bogus" : "") +
             (scenario == "next-action" ? " /Next << /S /URI /URI (https://example.invalid/other) >>" : "") + (scenario == "is-map" ? " /IsMap true" : "") + " >>";
@@ -216,6 +283,6 @@ public sealed class FdaPdfExternalHyperlinkRuleTests
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>", "<< /Title (bookmark) /Parent 7 0 R /A " + action + " >>");
         if (scenario == "open-action") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/OpenAction " + action);
         return PdfPigPackageInspectorTests.Build("/A " + action + (scenario == "conflict" ? " /Dest [3 0 R /Fit]" : "") +
-            (scenario == "wrong-page" ? " /P 2 0 R" : "") + (scenario == "hidden" ? " /F 2" : ""), scenario == "base" ? " /URI << /Base (https://base.invalid/) >>" : "");
+            (scenario == "wrong-page" ? " /P 2 0 R" : "") + (scenario == "hidden" ? " /F 2" : ""), catalog ?? (scenario == "base" ? " /URI << /Base (https://base.invalid/) >>" : ""));
     }
 }

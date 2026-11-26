@@ -3113,7 +3113,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-5205"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaPdfExternalHyperlinkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfExternalHyperlinkRuleTests.cs"],
-        "note": "Independent qualified current page-Link absolute HTTP/HTTPS/mailto URI actions establish external Web/Email hyperlinks. Complete page/annotation inventory, unique ownership and capture binding are required. No network request or original address is retained in new regulatory evidence. Relative/Base URIs, other schemes/actions, cross-application files, annotation variants and historical source PDFs remain incomplete; no Pass is emitted."
+      "note": "Independent qualified current page-Link absolute HTTP/HTTPS/mailto URI actions and simple ASCII relative paths with explicit qualified HTTP/HTTPS Catalog Base establish external Web/Email hyperlinks. Base userinfo, percent escapes, query and fragment are not qualified, and no document-location base is inferred. Complete page/annotation inventory, unique ownership and capture binding are required. No network request or original address is retained in new regulatory evidence. Other relative/Base forms, schemes/actions, cross-application files, annotation variants and historical source PDFs remain incomplete; no Pass is emitted. Second-round ten-class Windows regression 578/578, including 80 FDA5205 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

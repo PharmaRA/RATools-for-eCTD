@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5205第二轮：明确Web Base的简单相对URI页面超链接（仍Partial，主代理限定只读自审及终态核对通过）。** 5203已提交`bdbca16`。依据既定PDF1.7表8.57 Base语义，向独立超链接读取器传入当前Catalog，仅在简单ASCII相对路径分支使用明确HTTP/HTTPS Base；无Base/坏类型/其他协议及userinfo、百分号、查询、片段等未资格形态仍未知。原绝对URI分支不依赖Base；不发网络请求，不从文件位置推断Base，新监管事实仅保留Web/Email类别。
+
+red三项真实PDF解析和页树前提全过，预期Fail实际NE。修后十类 **578/578、0失败/跳过**（5205为80含新增34），覆盖当前/上级相对路径、HTTP/HTTPS Base、非法Base/URI、动作与页面身份、额度、取消和Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。首次manifest检查早于生成，后续MATCH打印不成立已撤回；构建完成后使用遇错即停核验，7输入全部绑定。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5205-base-candidate-20261126`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。manifest SHA`34473025a2e49396526bb1be6d2ee084e8282af5b8515384e5e892d03d4f9555`、TRX SHA`fb962836f329e549fa44bcabb26f6646e0f9d03a51f8c18bcd5090e7ba87bb9d`；目录167条canonical SHA`a4520777077893d85eb4d9fe2228b493be5c5d7e7e8768c5e579daf850d7faf3`。red/candidate证据及校验副本在`.artifacts/local-check/fda5205-base-*-20261126`和`backups/fda5205-base-20261126/evidence/`，bin/obj按精确范围回收。inspector-v37、PDF-v32、file-v91、交付v6；其他URI形态/跨申请文件/历史源仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一5210结构父索引与激活动作区分，再5215/5217。
+
 **FDA5203第二轮：完整XYZ页面超链接动作链（仍Partial，主代理限定只读自审及终态核对通过）。** 5202已提交`ab5782c`。页面Link在既有独立页树/唯一批注归属资格后，显式启用共享动作读取器的XYZ校验；每个GoToR动作仍需非负整数页、五项XYZ、有限数字/null坐标及非负有限/null倍率。只有完整受支持链才发布计数，未知/循环/坏尾部、预算不足、冲突目的地以及独立批注/书签/打开动作不拼成链。
 
 red三项真实解析和页树前提全过，预期Fail实际NE。candidate十一类621/622，唯一失败为既有书签测试仍要求页面XYZ链无超链接计数；保留书签计数为空和5103未知，更新已单独资格的页面链为计数2/5203 Fail，不改生产判定。final十一类 **622/622、0失败/跳过**（5203为86含新增38、共享书签动作78），覆盖首/尾/嵌套/间接XYZ、非法尾部、完整库存、循环、预算、取消和Partial报告。主代理限定只读自审通过，无子代理。

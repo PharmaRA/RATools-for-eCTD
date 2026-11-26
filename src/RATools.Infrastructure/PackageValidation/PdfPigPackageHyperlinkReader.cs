@@ -14,7 +14,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
     internal IReadOnlyList<PdfHyperlinkZoom> NonInheritingZooms { get; private set; } = [];
 
     internal IReadOnlyList<PdfHyperlinkFileTarget> Read(IReadOnlyList<DictionaryToken> pages,
-        IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount)
+        IReadOnlyDictionary<IndirectReference, int> pageNumbers, int? qualifiedPageCount, DictionaryToken? catalog = null)
     {
         var candidates = new List<(IndirectReference Reference, PdfHyperlinkFileTarget Target)>();
         var actions = new List<(IndirectReference Reference, PdfHyperlinkActionCount Count)>();
@@ -61,7 +61,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                             inactive.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]", pageIndex + 1)));
                         if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token, allowXyz: true).Read(annotation) is int count && count > 1)
                             actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
-                        var kind = ReadExternal(annotation);
+                        var kind = ReadExternal(annotation, catalog);
                         if (kind is PdfExternalHyperlinkKind.Web or PdfExternalHyperlinkKind.Email)
                             external.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A/URI", pageIndex + 1, kind)));
                         var zoom = ReadZoom(annotation);
@@ -137,13 +137,26 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
         _ => false
     };
 
-    private PdfExternalHyperlinkKind ReadExternal(DictionaryToken annotation)
+    private PdfExternalHyperlinkKind ReadExternal(DictionaryToken annotation, DictionaryToken? catalog)
     {
         if (Resolve(Get(annotation, "A")) is not DictionaryToken action || Name(Get(action, "S")) != "URI" ||
             HasAny(action, "Next", "IsMap") || Has(action, "Type") && Name(Get(action, "Type")) != "Action") return PdfExternalHyperlinkKind.Unknown;
         var text = Text(Resolve(Get(action, "URI")));
-        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~') ||
-            !Uri.TryCreate(text, UriKind.Absolute, out var uri) || !uri.IsWellFormedOriginalString()) return PdfExternalHyperlinkKind.Unknown;
+        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~')) return PdfExternalHyperlinkKind.Unknown;
+        Uri? uri;
+        if (Uri.TryCreate(text, UriKind.Absolute, out var absolute))
+        {
+            if (!absolute.IsWellFormedOriginalString()) return PdfExternalHyperlinkKind.Unknown;
+            uri = absolute;
+        }
+        else
+        {
+            // PDF Reference Table 8.57 supplies the explicit base for relative URI actions.
+            // Restrict this increment to simple ASCII paths; never infer a document-location base.
+            if (text.StartsWith('/') || text.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('.' or '_' or '-' or '~' or '/')) ||
+                WebBase(catalog) is not { } basis || !Uri.TryCreate(text, UriKind.Relative, out var relative) || !relative.IsWellFormedOriginalString() ||
+                !Uri.TryCreate(basis, relative, out uri)) return PdfExternalHyperlinkKind.Unknown;
+        }
         // Classification only: no network access or address retained in regulatory evidence.
         return uri.Scheme switch
         {
@@ -151,6 +164,16 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
             "mailto" when uri.Host.Length > 0 => PdfExternalHyperlinkKind.Email,
             _ => PdfExternalHyperlinkKind.Unknown
         };
+    }
+
+    private Uri? WebBase(DictionaryToken? catalog)
+    {
+        if (catalog is null || Resolve(Get(catalog, "URI")) is not DictionaryToken dictionary ||
+            Text(Resolve(Get(dictionary, "Base"))) is not { Length: > 0 } text ||
+            text.Any(character => character is <= ' ' or > '~' or '\\' or '%' or '?' or '#') ||
+            !Uri.TryCreate(text, UriKind.Absolute, out var value) || !value.IsWellFormedOriginalString() ||
+            value.Scheme is not ("http" or "https") || value.Host.Length == 0 || value.UserInfo.Length != 0) return null;
+        return value;
     }
 
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Hyperlink identity budget exceeded."); }

@@ -71,7 +71,7 @@ internal static class FdaPdfExternalHyperlinkRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified current page-Link absolute HTTP/HTTPS/mailto URI actions are covered; no network requests are made. Relative/Base URIs, other schemes/actions, cross-application file references, annotation variants and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Only qualified current page-Link absolute HTTP/HTTPS/mailto URI actions and simple relative paths with explicit qualified HTTP/HTTPS Catalog Base are covered; no network requests are made. Other relative/Base forms, schemes/actions, cross-application file references, annotation variants and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);
