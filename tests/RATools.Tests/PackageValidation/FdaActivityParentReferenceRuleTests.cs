@@ -13,6 +13,153 @@ public sealed class FdaActivityParentReferenceRuleTests
     private const string RuleId = "FDA47-2026";
 
     [Theory]
+    [InlineData("grouped-earlier", CheckStatus.Pass, 0)]
+    [InlineData("grouped-primary-self", CheckStatus.Fail, 1)]
+    [InlineData("grouped-member-self", CheckStatus.Fail, 1)]
+    [InlineData("grouped-both-self", CheckStatus.Fail, 2)]
+    [InlineData("grouped-reordered", CheckStatus.Fail, 1)]
+    [InlineData("grouped-directory-id", CheckStatus.Pass, 0)]
+    public async Task GroupedFollowupsCompareAgainstEachMembersOwnSequence(string variant, CheckStatus expected, int count)
+    {
+        var fixture = await Fixture("fdast8", "fdasst4", "0001", variant: variant);
+        Assert.Empty(fixture.Packages.Baseline.Entries);
+        var regional = Assert.Single(Assert.Single(fixture.Lifecycle.XmlInspections).Backbones, item => item.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        Assert.Equal(2, regional.Elements.Count(item => item.Name == "application"));
+        var check = Direct(fixture)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(count, check.Findings.Count);
+        foreach (var finding in check.Findings)
+        {
+            var id = Assert.Single(regional.Elements, item => item.NodePath == finding.Location.NodePath);
+            var order = Assert.Single(regional.Elements, item => item.ParentPath == id.ParentPath && item.Name == "sequence-number");
+            Assert.Equal(order.Text, id.Text);
+            Assert.Equal(order.Text, finding.Actual);
+            Assert.Equal(ValidationSeverity.Warning, finding.Severity);
+            Assert.Equal("0003/m1/us/us-regional.xml", finding.Location.LogicalPath);
+        }
+    }
+
+    [Theory]
+    [InlineData("grouped-two-primary", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-no-primary", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-duplicate-identity", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-primary-wrong-sequence", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-short-sequence", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-short-id", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-future", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-unknown-type", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-unknown-subtype", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-start", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-all-start", CheckStatus.NotEvaluated)]
+    [InlineData("grouped-primary-self-member-unknown", CheckStatus.Fail)]
+    [InlineData("grouped-member-unknown-first", CheckStatus.Fail)]
+    [InlineData("grouped-primary-unknown-member-self", CheckStatus.Fail)]
+    [InlineData("grouped-primary-self-member-future", CheckStatus.Fail)]
+    public async Task GroupedIdentityAndUnqualifiedMembersDoNotEraseKnownSelfReference(string variant, CheckStatus expected)
+    {
+        var check = Direct(await Fixture("fdast8", "fdasst4", "0001", variant: variant))!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData(0, 0, CheckStatus.NotEvaluated)]
+    [InlineData(1, 1, CheckStatus.Fail)]
+    [InlineData(2, 2, CheckStatus.Fail)]
+    public async Task GroupedSelfReferencesShareFindingAllowance(int remaining, int count, CheckStatus expected)
+    {
+        var check = Direct(await Fixture("fdast8", "fdasst4", "0001", variant: "grouped-both-self"), remaining)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(count, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("grouped-directory-id", CheckStatus.Pass, CheckStatus.NotEvaluated)]
+    [InlineData("grouped-member-self", CheckStatus.Fail, CheckStatus.Fail)]
+    public async Task GroupedDeliveryDoesNotProveParentExistence(string variant, CheckStatus raw, CheckStatus coverage)
+    {
+        var fixture = await Fixture("fdast8", "fdasst4", "0001", variant: variant);
+        Assert.Empty(fixture.Packages.Baseline.Entries);
+        var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        Assert.Equal(raw, Assert.Single(result.Files.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(coverage, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
+    [InlineData("2027-01-15", CheckStatus.NotApplicable)]
+    [InlineData("2027-01-16", CheckStatus.Fail)]
+    public async Task GroupedComparisonIsNotBackdated(string date, CheckStatus expected)
+        => Assert.Equal(expected, Direct(await Fixture("fdast8", "fdasst4", "0001", date: date, variant: "grouped-member-self"))!.Status);
+
+    [Fact]
+    public async Task GroupedCancellationRetainsTheFirstImmutableSelfReference()
+    {
+        var fixture = await Fixture("fdast8", "fdasst4", "0001", variant: "grouped-both-self");
+        using var cancellation = new CancellationTokenSource();
+        RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Direct(fixture, progress: check =>
+        {
+            retained = check;
+            if (check.Status == CheckStatus.Fail) cancellation.Cancel();
+        }, token: cancellation.Token));
+        Assert.Equal(CheckStatus.Fail, retained!.Status);
+        Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task FrozenWorkBudgetRetainsSelfReferenceAfterLaterExhaustion()
+    {
+        var fixture = await Fixture("fdast8", "fdasst4", "0001", variant: "grouped-both-self");
+        var low = 1; var high = fixture.Packages.Target.Limits.MaxXmlNodes;
+        Assert.Equal(2, Direct(WithWorkBudget(fixture, high))!.Findings.Count);
+        // Rebind frozen facts to test rule work, not XML parsing under reduced limits.
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (Direct(WithWorkBudget(fixture, middle))!.Findings.Count > 0) high = middle;
+            else low = middle + 1;
+        }
+        Assert.True(low > 1);
+        var before = Direct(WithWorkBudget(fixture, low - 1))!;
+        Assert.Equal(CheckStatus.NotEvaluated, before.Status);
+        Assert.Empty(before.Findings);
+        RuleCheckResult? retained = null;
+        var after = Direct(WithWorkBudget(fixture, low), progress: check => retained = check)!;
+        Assert.Equal(CheckStatus.Fail, after.Status);
+        Assert.Single(after.Findings);
+        Assert.Contains("work allowance was exhausted", after.Reason, StringComparison.Ordinal);
+        Assert.Equal(CheckStatus.Fail, retained!.Status);
+        Assert.Single(retained.Findings);
+        Assert.Equal(after.Findings[0], retained.Findings[0]);
+    }
+
+    private static FixtureData WithWorkBudget(FixtureData fixture, int nodes)
+    {
+        var target = new FrozenWorkInput(fixture.Packages.Target, fixture.Packages.Target.Limits with { MaxXmlNodes = nodes });
+        var packages = new PackageInputSet(target, fixture.Packages.Baseline, []);
+        var xmls = fixture.Lifecycle.XmlInspections.Select(xml => new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId,
+            xml.AssetManifestDigest, target.Limits.Digest(), xml.Backbones, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var lifecycle = new PackageLifecycleInspection(packages, fixture.Lifecycle.ProfileSnapshotId, xmls, fixture.Lifecycle.Events,
+            fixture.Lifecycle.States, fixture.Lifecycle.Checks, fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        return new(packages, lifecycle, fixture.Context);
+    }
+
+    private sealed class FrozenWorkInput(ICapturedPackageInput original, PackageReadLimits limits) : ICapturedPackageInput
+    {
+        public string SourceId => original.SourceId;
+        public PackageSourceKind SourceKind => original.SourceKind;
+        public PackageInputManifest Manifest => original.Manifest;
+        public string? ArchiveSha256 => original.ArchiveSha256;
+        public string InputDigest => original.InputDigest;
+        public PackageReadLimits Limits => limits;
+        public Stream OpenRead(string path) => throw new InvalidOperationException("Work-budget replay must not reopen captured files.");
+        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => throw new InvalidOperationException("Work-budget replay uses frozen observations only.");
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Theory]
     [InlineData("fdast5", "fdasst4", "0003", CheckStatus.Fail)]
     [InlineData("fdast5", "fdasst4", "0001", CheckStatus.Pass)]
     [InlineData("fdast8", "fdasst5", "0003", CheckStatus.Fail)]
@@ -181,6 +328,36 @@ public sealed class FdaActivityParentReferenceRuleTests
         order.SetAttributeValue("submission-sub-type", variant == "unknown-subtype" ? "invalid" : variant == "bad-combination" ? "fdasst5" : subtype);
         if (variant == "duplicate-application") { var app = xml.Descendants("application").Single(); app.AddAfterSelf(new XElement(app)); }
         if (variant == "duplicate-submission") { var submission = xml.Descendants("submission-information").Single(); submission.AddAfterSelf(new XElement(submission)); }
+        if (variant.StartsWith("grouped-", StringComparison.Ordinal))
+        {
+            var primary = xml.Descendants("application").Single();
+            primary.SetAttributeValue("application-containing-files", "true");
+            var member = new XElement(primary);
+            member.SetAttributeValue("application-containing-files", "false");
+            member.Descendants("application-number").Single().Value = "654321";
+            member.Descendants("sequence-number").Single().Value = "0042";
+            member.Descendants("submission-id").Single().Value = variant is "grouped-member-self" or "grouped-both-self" or "grouped-reordered" ? "0042" :
+                variant == "grouped-directory-id" ? "0003" : "0040";
+            if (variant is "grouped-primary-self" or "grouped-both-self") id.Value = "0003";
+            var memberId = member.Descendants("submission-id").Single();
+            var memberOrder = member.Descendants("sequence-number").Single();
+            if (variant == "grouped-two-primary") member.SetAttributeValue("application-containing-files", "true");
+            if (variant == "grouped-no-primary") primary.SetAttributeValue("application-containing-files", "false");
+            if (variant == "grouped-duplicate-identity") member.Descendants("application-number").Single().Value = primary.Descendants("application-number").Single().Value;
+            if (variant == "grouped-primary-wrong-sequence") order.Value = "0042";
+            if (variant == "grouped-member-short-sequence") memberOrder.Value = "42";
+            if (variant == "grouped-member-short-id") memberId.Value = "42";
+            if (variant == "grouped-member-future") memberId.Value = "0043";
+            if (variant == "grouped-member-unknown-type") memberId.SetAttributeValue("submission-type", "unqualified");
+            if (variant == "grouped-member-unknown-subtype") memberOrder.SetAttributeValue("submission-sub-type", "unqualified");
+            if (variant is "grouped-member-start" or "grouped-all-start") memberOrder.SetAttributeValue("submission-sub-type", "fdasst1");
+            if (variant == "grouped-all-start") order.SetAttributeValue("submission-sub-type", "fdasst1");
+            if (variant is "grouped-primary-self-member-unknown" or "grouped-member-unknown-first") { id.Value = "0003"; memberId.SetAttributeValue("submission-type", "unqualified"); }
+            if (variant == "grouped-primary-unknown-member-self") { id.SetAttributeValue("submission-type", "unqualified"); memberId.Value = "0042"; }
+            if (variant == "grouped-primary-self-member-future") { id.Value = "0003"; memberId.Value = "0043"; }
+            if (variant is "grouped-reordered" or "grouped-member-unknown-first") primary.AddBeforeSelf(member);
+            else primary.AddAfterSelf(member);
+        }
         var target = new PackageRegionalInspectionTests.MemoryInput(Guid.NewGuid(), "0003", xml.ToString(), PackageValidationCatalog.UsProfile);
         var packages = new PackageInputSet(target, new(target.Manifest.ApplicationId, "0003", []), []);
         var lifecycle = await new PackageLifecycleInspector(standards: context).InspectAsync(packages, PackageValidationCatalog.UsProfile);

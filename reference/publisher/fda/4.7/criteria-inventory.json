@@ -2035,7 +2035,7 @@
           "tests/RATools.Tests/PackageValidation/FdaActivityParentReferenceRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Detects current-sequence self-reference for positively qualified amendment/resubmission combinations after exact capture/context, complete connected single-application structure, active codes and allowed-combination checks. Earlier identifiers only establish absence of self-reference, not parent existence or identity; future identifiers and other/unknown starts remain unevaluated. Grouped applications and full parent-reference qualification remain incomplete. Effective from 2027-01-16. Final selected Windows regression 473/473, including 41 FDA2026 cases, and bounded code/evidence review passed."
+        "note": "Detects per-member self-reference for positively qualified amendment/resubmission combinations, including grouped applications using their own four-digit XML sequences. Requires unique member type/number identities, one explicit file owner bound to the captured directory sequence and exact capture/context/tree evidence. Known self-references survive later unknown members or work exhaustion. Earlier identifiers establish only absence of self-reference, not parent existence/identity/version; future identifiers, other starts and grouped eligibility remain unqualified. Effective from 2027-01-16. Final five-class Windows regression 249/249 including 71 FDA2026 cases (30 added) and bounded main-agent read-only review passed without subagents; still Partial."
       }
     },
     {

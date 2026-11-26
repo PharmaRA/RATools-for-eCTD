@@ -24,6 +24,7 @@ internal static class FdaActivityParentReferenceRule
         if (lifecycle.InputDigest != target.InputDigest || lifecycle.HistoryManifestDigest != packages.Baseline.Digest ||
             lifecycle.RulesDigest != context.Catalog.Digest || lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != target.Limits.Digest()) return Unknown("The lifecycle facts are not bound to this input.");
         var work = target.Limits.MaxXmlNodes;
+        var findings = new List<ValidationFinding>();
         try
         {
             var xmls = new List<PackageXmlInspection>();
@@ -61,28 +62,67 @@ internal static class FdaActivityParentReferenceRule
             var visited = new HashSet<string>(StringComparer.Ordinal); var pending = new Stack<string>(); pending.Push(roots[0].NodePath);
             while (pending.TryPop(out var path)) { Tick(); if (!visited.Add(path)) return Unknown("The regional tree contains a cycle."); foreach (var child in elements[path].Children) { Tick(); pending.Push(child); } }
             if (visited.Count != elements.Count) return Unknown("All regional elements must connect to the root.");
-            var application = Child(Child(Child(roots[0], "admin"), "application-set"), "application");
-            if (application is null || application.Attribute("application-containing-files") != "true") return Unknown("Only one explicit file-owning application is qualified.");
-            var number = Child(Child(application, "application-information"), "application-number");
-            var submission = Child(application, "submission-information");
-            var id = Child(submission, "submission-id"); var order = Child(submission, "sequence-number");
-            if (number is null || id is null || order is null || number.Children.Count != 0 || id.Children.Count != 0 || order.Children.Count != 0 ||
-                string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim() || order.Text != sequence || !Sequence(id.Text)) return Unknown("Unique exact application and four-digit sequence fields are required.");
-            var app = number.Attribute("application-type", ""); var type = id.Attribute("submission-type", ""); var subtype = order.Attribute("submission-sub-type", "");
-            if (app is null || type is null || subtype is null || !Contains(policy.InputValues("application-type"), app) || !Contains(policy.InputValues("submission-type"), type) ||
-                !Contains(policy.InputValues("submission-sub-type"), subtype) || !policy.AllowsCombination(app, type, subtype)) return Unknown("The exact application/type/subtype combination must be authorized by captured dictionaries.");
-            // Table 4 positively defines amendment and resubmission as subsequent submissions.
-            // Unknown activity starts must not become follow-ups by negating another rule's whitelist.
-            if (subtype is not ("fdasst4" or "fdasst5")) return Unknown("Only qualified amendment/resubmission follow-ups are covered by this component.");
-            var comparison = string.CompareOrdinal(id.Text, sequence);
-            if (comparison > 0) return Unknown("A future identifier does not establish a valid parent reference.");
-            if (comparison < 0) return new(RuleId, CheckStatus.Pass, "The follow-up does not refer to its own sequence. Parent existence, identity and accepted version are not established by this comparison.");
-            if (remaining <= 0) return Unknown("No finding allowance remains for the established self-reference.");
-            var finding = new ValidationFinding(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
-                "A qualified follow-up cannot use its own sequence number as the parent activity submission-id.",
-                id.Location with { FieldPath = "submission-id", Files = [new(target.SourceId, regional.LogicalPath)] }, "An identifier of the parent regulatory activity, not the current sequence", id.Text);
-            var result = new RuleCheckResult(RuleId, CheckStatus.Fail, "A follow-up self-reference is established without assuming historical submission facts.", [finding]);
-            retainProgress?.Invoke(result); cancellationToken.ThrowIfCancellationRequested(); return result;
+            var applicationSet = Child(Child(roots[0], "admin"), "application-set");
+            if (applicationSet is null) return Unknown("A unique application set is required.");
+            var members = new List<(ParsedXmlElement Application, string Type)>();
+            var identities = new HashSet<(string Type, string Number)>();
+            ParsedXmlElement? primary = null;
+            foreach (var path in applicationSet.Children)
+            {
+                Tick(); var application = elements[path];
+                if (application is not { Name: "application", LocalName: "application", NamespaceUri.Length: 0 }) continue;
+                var owner = application.Attributes.GetValueOrDefault("application-containing-files");
+                if (owner is not { LocalName: "application-containing-files", NamespaceUri: "", IsDefault: false, Value: "true" or "false" })
+                    return Unknown("Every member requires an explicit file-ownership declaration.");
+                var number = Child(Child(application, "application-information"), "application-number");
+                if (number is null || number.Children.Count != 0 || string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim())
+                    return Unknown("Each member requires an exact application identity.");
+                var app = Explicit(number, "application-type");
+                if (app is null || !Contains(policy.InputValues("application-type"), app) || !identities.Add((app, number.Text)))
+                    return Unknown("Member application identities must be qualified and unique.");
+                members.Add((application, app));
+                if (owner.Value != "true") continue;
+                if (primary is not null) return Unknown("Multiple file-owning applications do not identify one primary input.");
+                primary = application;
+            }
+            if (primary is null) return Unknown("A unique file-owning primary application is required.");
+            var primaryOrder = Child(Child(primary, "submission-information"), "sequence-number");
+            if (primaryOrder is null || primaryOrder.Children.Count != 0 || primaryOrder.Text != sequence)
+                return Unknown("The primary application's sequence must bind the captured directory sequence.");
+            var incomplete = false;
+            foreach (var (application, app) in members)
+            {
+                Tick();
+                var submission = Child(application, "submission-information");
+                var id = Child(submission, "submission-id"); var order = Child(submission, "sequence-number");
+                if (id is null || order is null || id.Children.Count != 0 || order.Children.Count != 0 || !Sequence(order.Text) || !Sequence(id.Text))
+                { incomplete = true; continue; }
+                var type = Explicit(id, "submission-type"); var subtype = Explicit(order, "submission-sub-type");
+                if (type is null || subtype is null || !Contains(policy.InputValues("submission-type"), type) ||
+                    !Contains(policy.InputValues("submission-sub-type"), subtype) || !policy.AllowsCombination(app, type, subtype))
+                { incomplete = true; continue; }
+                // Table 4 positively defines amendment/resubmission; do not negate a start whitelist.
+                if (subtype is not ("fdasst4" or "fdasst5")) { incomplete = true; continue; }
+                var comparison = string.CompareOrdinal(id.Text, order.Text);
+                if (comparison > 0) { incomplete = true; continue; }
+                if (comparison < 0) continue;
+                if (remaining <= 0) { incomplete = true; continue; }
+                remaining--;
+                findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
+                    "A qualified follow-up cannot use that application's own sequence number as the parent activity submission-id.",
+                    id.Location with { FieldPath = "submission-id", Files = [new(target.SourceId, regional.LogicalPath)] },
+                    "An identifier of the parent regulatory activity, not that application's current sequence", id.Text));
+                retainProgress?.Invoke(new(RuleId, CheckStatus.Fail, "A member's follow-up self-reference is established; other members may remain unqualified.", findings.ToArray()));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
+                "Compared each qualified follow-up with its own application sequence. Earlier identifiers do not establish parent existence, identity or accepted version; grouped eligibility remains separate.", findings);
+
+            string? Explicit(ParsedXmlElement element, string name)
+            {
+                Tick();
+                return element.Attributes.GetValueOrDefault(name) is { NamespaceUri: "", IsDefault: false } attribute && attribute.LocalName == name ? attribute.Value : null;
+            }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)
             {
@@ -92,7 +132,11 @@ internal static class FdaActivityParentReferenceRule
                 return found;
             }
         }
-        catch (ParentWorkLimitException) { return Unknown("The follow-up comparison work allowance was exhausted."); }
+        catch (ParentWorkLimitException)
+        {
+            return findings.Count > 0 ? new(RuleId, CheckStatus.Fail, "Known member self-references were retained after the comparison work allowance was exhausted.", findings)
+                : Unknown("The follow-up comparison work allowance was exhausted.");
+        }
         bool Contains(IEnumerable<string> values, string value) { foreach (var candidate in values) { Tick(); if (candidate == value) return true; } return false; }
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new ParentWorkLimitException(); }
     }
