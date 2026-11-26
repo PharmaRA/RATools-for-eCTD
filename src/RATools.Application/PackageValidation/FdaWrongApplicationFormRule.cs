@@ -5,6 +5,8 @@ namespace RATools.Application.PackageValidation;
 internal static class FdaWrongApplicationFormRule
 {
     internal const string RuleId = "FDA47-5038";
+    private static readonly ValidationRuleSource M1Specification = new("fda-m1-specification", RuleSourceKind.RegulatorySpecification, "2.6",
+        "https://www.fda.gov/media/159382/download?attachment", "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2", "Verified");
     internal static RuleCheckResult? Inspect(PackageInputSet packages, PackageLifecycleInspection lifecycle,
         PackageStandardsContext context, int remaining, CancellationToken token, Action<RuleCheckResult>? progress = null)
     {
@@ -17,6 +19,7 @@ internal static class FdaWrongApplicationFormRule
             !context.HasArchivedOfficialSource(source) || context.SelectionDate is null) return Unknown("Captured FDA criteria and explicit selection date are required.");
         if (context.SelectionDate < new DateOnly(2013, 4, 30)) return new(RuleId, CheckStatus.NotApplicable, "The selection precedes FDA 5038.");
         if (context.FdaM1Policy is not { } policy) return Unknown("Captured application and submission dictionaries are required.");
+        var expandedNonannualScope = context.SelectionDate >= new DateOnly(2025, 3, 31) && context.HasArchivedOfficialSource(M1Specification);
         var target = packages.Target;
         if (lifecycle.InputDigest != target.InputDigest || lifecycle.HistoryManifestDigest != packages.Baseline.Digest || lifecycle.RulesDigest != context.Catalog.Digest ||
             lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != target.Limits.Digest()) return Unknown("Lifecycle binding is inconsistent.");
@@ -75,7 +78,7 @@ internal static class FdaWrongApplicationFormRule
                 var number = application.Numbers[0]; var type = number.Type;
                 if (number.Number.Length != 6 || number.Number.Any(c => c is < '0' or > '9') || type is not { IsDefault: false, NamespaceUri: "" } ||
                     !Contains(policy.InputValues("application-type"), type.Value)) continue;
-                var originalApplication = false;
+                var nonannualStart = false;
                 if (elements.TryGetValue(application.NodePath, out var app))
                 {
                     var submission = Child(app, "submission-information");
@@ -83,8 +86,20 @@ internal static class FdaWrongApplicationFormRule
                     var submissionType = id?.Attribute("submission-type", ""); var subtype = order?.Attribute("submission-sub-type", "");
                     // The explicit original-application sequence is independently not
                     // an annual report. Unknown/follow-up activity is not its negation.
-                    originalApplication = id is { Children.Count: 0 } && order is { Children.Count: 0 } && id.Text == sequence && order.Text == sequence &&
+                    nonannualStart = id is { Children.Count: 0 } && order is { Children.Count: 0 } && id.Text == sequence && order.Text == sequence &&
                         submissionType == "fdast1" && subtype == "fdasst3" && policy.AllowsCombination(type.Value, submissionType, subtype);
+                    if (!nonannualStart && expandedNonannualScope && id is { Children.Count: 0 } && order is { Children.Count: 0 } &&
+                        id.Text == sequence && order.Text == sequence)
+                    {
+                        var explicitType = Explicit(id, "submission-type"); var explicitSubtype = Explicit(order, "submission-sub-type");
+                        // Captured M1 Tables 2/4 and III.B.3 independently identify
+                        // these starts. Annual reports and follow-ups are not negated.
+                        nonannualStart = explicitType is not null && explicitSubtype is not null &&
+                            policy.AllowsCombination(type.Value, explicitType, explicitSubtype) &&
+                            ((explicitType is "fdast9" or "fdast10") && explicitSubtype == "fdasst6" ||
+                             (explicitType is "fdast7" or "fdast8") && explicitSubtype == "fdasst1" ||
+                             explicitType == "fdast6" && explicitSubtype == "fdasst7" || explicitType == "fdast11" && explicitSubtype == "fdasst3");
+                    }
                 }
                 foreach (var leaf in group.Leaves)
                 {
@@ -100,16 +115,22 @@ internal static class FdaWrongApplicationFormRule
                         !file.StartsWith(sequence + "/", StringComparison.Ordinal) || !files.ContainsKey(file)) continue;
                     var name = file[(file.LastIndexOf('/') + 1)..];
                     var wrong = name == "1571.pdf" && type.Value is "fdaat1" or "fdaat2" or "fdaat3" ||
-                        name == "356h.pdf" && type.Value == "fdaat4" || name == "2252.pdf" && originalApplication;
+                        name == "356h.pdf" && type.Value == "fdaat4" || name == "2252.pdf" && nonannualStart;
                     if (!wrong || remaining <= 0 || !reported.Add((type.Value, number.Number, file))) continue;
                     remaining--;
                     findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
-                        "The exact application-form filename is inconsistent with its associated application type or qualified original-application sequence.",
+                        "The exact application-form filename is inconsistent with its associated application type or qualified nonannual starting sequence.",
                         leaf.Location with { FieldPath = "@xlink:href", Files = [new(target.SourceId, file)] },
                         "A correctly named application form for the associated application and submission", $"{type.Value}/{number.Number}; {name}",
                         "Resubmit with the correct application form; FDA permits the original sequence number. Update SOPs to use the correct form, filename and eCTD location."));
                     progress?.Invoke(Result()); token.ThrowIfCancellationRequested();
                 }
+            }
+
+            string? Explicit(ParsedXmlElement element, string name)
+            {
+                Tick();
+                return element.Attributes.GetValueOrDefault(name) is { NamespaceUri: "", IsDefault: false } attribute && attribute.LocalName == name ? attribute.Value : null;
             }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)
@@ -124,7 +145,7 @@ internal static class FdaWrongApplicationFormRule
         token.ThrowIfCancellationRequested(); return Result();
 
         RuleCheckResult Result() => new(RuleId, findings.Count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated,
-            "Checked only explicit exact-filename contradictions in current qualified form groups. Other filenames, actual form content identity, other nonannual sequences, historical lifecycle, other locations and shared multi-application groups remain unqualified; absence of a contradiction is not Pass.", findings.ToArray());
+            "Checked only explicit exact-filename contradictions in current qualified form groups, including six additional nonannual starts under captured M1 2.6 from 2025-03-31. Other filenames, actual form identity, other nonannual/follow-up sequences, historical lifecycle, other locations and shared multi-application groups remain unqualified; absence of a contradiction is not Pass.", findings.ToArray());
         void Tick() { token.ThrowIfCancellationRequested(); if (work-- <= 0) throw new WorkLimitException(); }
         bool Contains(IEnumerable<string> values, string expected) { foreach (var value in values) { Tick(); if (value == expected) return true; } return false; }
     }

@@ -15,6 +15,118 @@ public sealed class FdaWrongApplicationFormRuleTests
     private const string RuleId = "FDA47-5038";
 
     [Theory]
+    [InlineData("fdaat1", "fdast6", "fdasst7")]
+    [InlineData("fdaat1", "fdast7", "fdasst1")]
+    [InlineData("fdaat1", "fdast8", "fdasst1")]
+    [InlineData("fdaat4", "fdast9", "fdasst6")]
+    [InlineData("fdaat1", "fdast10", "fdasst6")]
+    [InlineData("fdaat1", "fdast11", "fdasst3")]
+    [InlineData("fdaat2", "fdast6", "fdasst7")]
+    [InlineData("fdaat3", "fdast7", "fdasst1")]
+    [InlineData("fdaat6", "fdast8", "fdasst1")]
+    [InlineData("fdaat2", "fdast10", "fdasst6")]
+    [InlineData("fdaat3", "fdast11", "fdasst3")]
+    public async Task ExplicitNonannualStartsCannotUse2252(string applicationType, string submissionType, string subtype)
+    {
+        var fixture = await Fixture("original2252", activity: (applicationType, submissionType, subtype));
+        Assert.True(fixture.Files.Forms.InventoryComplete);
+        Assert.True(fixture.Context.FdaM1Policy!.AllowsCombination(applicationType, submissionType, subtype));
+        Assert.Equal(CheckStatus.Pass, Assert.Single(Assert.Single(fixture.Lifecycle.XmlInspections).Backbones, item => item.Kind == BackboneKind.UsRegional).DtdStatus);
+        var check = Assert.Single(fixture.Files.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(ValidationSeverity.Error, Assert.Single(check.Findings).Severity);
+    }
+
+    [Theory]
+    [InlineData("fdaat1", "fdast5", "fdasst6")]
+    [InlineData("fdaat1", "fdast5", "fdasst4")]
+    [InlineData("fdaat1", "fdast6", "fdasst4")]
+    [InlineData("fdaat1", "fdast7", "fdasst4")]
+    [InlineData("fdaat1", "fdast8", "fdasst5")]
+    [InlineData("fdaat4", "fdast9", "fdasst4")]
+    [InlineData("fdaat1", "fdast10", "fdasst4")]
+    [InlineData("fdaat1", "fdast11", "fdasst5")]
+    [InlineData("fdaat1", "fdast9", "fdasst6")]
+    [InlineData("fdaat4", "fdast10", "fdasst6")]
+    [InlineData("fdaat2", "fdast7", "fdasst1")]
+    [InlineData("fdaat1", "fdast6", "fdasst1")]
+    public async Task AnnualFollowupAndInvalidCombinationsDoNotBecomeNonannualStarts(string application, string type, string subtype)
+    {
+        var fixture = await Fixture("original2252", activity: (application, type, subtype));
+        var check = Direct(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("2025-03-30", CheckStatus.NotEvaluated)]
+    [InlineData("2025-03-31", CheckStatus.Fail)]
+    [InlineData(null, CheckStatus.NotEvaluated)]
+    public async Task ExpandedNonannualScopeHasItsOwnDateGate(string? date, CheckStatus expected)
+    {
+        var fixture = await Fixture("original2252", date, activity: ("fdaat1", "fdast10", "fdasst6"));
+        Assert.Equal(expected, Direct(fixture)!.Status);
+    }
+
+    [Theory]
+    [InlineData("parent2252")]
+    [InlineData("missing-m1")]
+    public async Task ExpandedNonannualScopeRequiresStartIdentityAndArchivedSpecification(string scenario)
+    {
+        var fixture = await Fixture(scenario, activity: ("fdaat1", "fdast10", "fdasst6"));
+        Assert.Equal(CheckStatus.NotEvaluated, Direct(fixture)!.Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task ExpandedNonannualFailureHonorsAllowanceAndCancellation(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture("original2252", activity: ("fdaat1", "fdast10", "fdasst6"));
+        Assert.Equal(expected, Direct(fixture, remaining: remaining)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Direct(fixture, remaining: 1, token: cancellation.Token,
+            progress: result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); }));
+        Assert.Single(retained!.Findings); Assert.Equal(CheckStatus.Fail, retained.Status);
+    }
+
+    [Theory]
+    [InlineData("type-default")]
+    [InlineData("subtype-default")]
+    [InlineData("namespace")]
+    [InlineData("sequence")]
+    public async Task ExpandedNonannualStartRequiresExplicitConsistentFacts(string variant)
+    {
+        var fixture = await Fixture("original2252", activity: ("fdaat1", "fdast10", "fdasst6"));
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var regional = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.UsRegional);
+        var elements = regional.Elements.Select(element => new ParsedXmlElement(element.NodePath, element.ParentPath, element.Name, element.LocalName,
+            element.NamespaceUri, element.Attributes.Values.Select(attribute =>
+                variant == "type-default" && attribute.LocalName == "submission-type" || variant == "subtype-default" && attribute.LocalName == "submission-sub-type"
+                    ? attribute with { IsDefault = true }
+                    : variant == "namespace" && attribute.LocalName == "submission-type" ? attribute with { NamespaceUri = "urn:wrong" } : attribute),
+            element.Children, variant == "sequence" && element.LocalName == "sequence-number" ? "0002" : element.Text, element.Location)).ToArray();
+        var changed = new ParsedBackbone(regional.LogicalPath, regional.ProfileSnapshotId, regional.Kind, regional.ReadComplete, regional.DtdStatus,
+            regional.DocumentTypeName, regional.SystemIdentifier, regional.PublicIdentifier, elements, regional.Nodes, regional.Leaves,
+            regional.IdIndex.Values.SelectMany(value => value), regional.ResolvedAssets);
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Select(item => item == regional ? changed : item), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        var lifecycle = new PackageLifecycleInspection(fixture.Input.Packages, fixture.Lifecycle.ProfileSnapshotId, [modified], [], [], [],
+            fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        var check = Direct(fixture, lifecycle)!;
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Fact]
+    public async Task NonannualFailureSurvivesUnknownApplicationAndRemainsPartial()
+    {
+        var fixture = await Fixture("later-unknown2252", activity: ("fdaat1", "fdast10", "fdasst6"));
+        Assert.Single(Direct(fixture)!.Findings);
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("nda1571", CheckStatus.Fail)]
     [InlineData("anda1571", CheckStatus.Fail)]
     [InlineData("bla1571", CheckStatus.Fail)]
@@ -180,7 +292,8 @@ public sealed class FdaWrongApplicationFormRuleTests
         FdaWrongApplicationFormRule.Inspect(fixture.Input.Packages, lifecycle ?? fixture.Lifecycle, fixture.Context, remaining, token, progress);
 
     private sealed record FixtureData(PackageDeliveryInput Input, PackageLifecycleInspection Lifecycle, PackageFileInspection Files, PackageStandardsContext Context);
-    private static async Task<FixtureData> Fixture(string scenario, string? date = "2026-11-25", PackageReadLimits? limits = null)
+    private static async Task<FixtureData> Fixture(string scenario, string? date = "2026-11-25", PackageReadLimits? limits = null,
+        (string Application, string Submission, string Subtype)? activity = null)
     {
         var snapshot = await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2");
         if (scenario is "missing-source" or "missing-policy")
@@ -192,8 +305,15 @@ public sealed class FdaWrongApplicationFormRuleTests
             snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != removed[0].Sha256).ToArray() },
                 snapshot.Resources.Except(removed), snapshot.AcquiredUtc);
         }
+        if (scenario == "missing-m1")
+        {
+            const string m1Hash = "1adcbc40ad55adc63b3ae0c6ab6428721ccf6c8f3f64a4a1be58b1ee276b87f2";
+            Assert.Single(snapshot.Resources, item => item.Sha256 == m1Hash);
+            snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != m1Hash).ToArray() },
+                snapshot.Resources.Where(item => item.Sha256 != m1Hash), snapshot.AcquiredUtc);
+        }
         var context = PackageStandardsContext.FromSnapshot(snapshot, selectionDate: date is null ? null : DateOnly.Parse(date, CultureInfo.InvariantCulture));
-        var capture = new Capture(scenario, limits ?? new());
+        var capture = new Capture(scenario, limits ?? new(), activity);
         var packages = new PackageInputSet(capture, new(capture.Manifest.ApplicationId, "0001", []), []);
         var lifecycle = await new PackageLifecycleInspector(standards: context).InspectAsync(packages, PackageValidationCatalog.UsProfile);
         var input = new PackageDeliveryInput(packages);
@@ -203,14 +323,14 @@ public sealed class FdaWrongApplicationFormRuleTests
     private sealed class Capture : ICapturedPackageInput
     {
         private readonly Dictionary<string, byte[]> _files;
-        public Capture(string scenario, PackageReadLimits limits)
+        public Capture(string scenario, PackageReadLimits limits, (string Application, string Submission, string Subtype)? activity = null)
         {
             Limits = limits;
             var xml = XDocument.Parse(Fda47AttributeRulesTests.Valid());
             var application = xml.Descendants("application").Single();
             var type = scenario switch { "anda1571" => "fdaat2", "bla1571" => "fdaat3", "ind356h" or "ind1571" or "other-app" => "fdaat4", "dmf1571" => "fdaat5", _ => "fdaat1" };
             application.Descendants("application-number").Single().SetAttributeValue("application-type", type);
-            var filename = scenario.Contains("2252", StringComparison.Ordinal) ? "2252.pdf" : scenario is "ind356h" or "nda356h" ? "356h.pdf" : "1571.pdf";
+            var filename = scenario.Contains("2252", StringComparison.Ordinal) || scenario == "missing-m1" ? "2252.pdf" : scenario is "ind356h" or "nda356h" ? "356h.pdf" : "1571.pdf";
             var href = scenario switch
             {
                 "prefix1571" => "other1571.pdf", "upper1571" => "1571.PDF", "history" => "../../../0000/m1/us/1571.pdf",
@@ -231,7 +351,7 @@ public sealed class FdaWrongApplicationFormRuleTests
                 if (scenario == "other-app") other.Descendants("submission-information").Single().Add(Form("other", "1571.pdf"));
                 application.AddAfterSelf(other);
             }
-            if (scenario == "later-unknown")
+            if (scenario is "later-unknown" or "later-unknown2252")
             {
                 var other = new XElement(application);
                 other.SetAttributeValue("application-containing-files", "false");
@@ -242,6 +362,12 @@ public sealed class FdaWrongApplicationFormRuleTests
             }
             var id = application.Descendants("submission-id").Single();
             var sequence = application.Descendants("sequence-number").Single();
+            if (activity is { } declared)
+            {
+                application.Descendants("application-number").Single().SetAttributeValue("application-type", declared.Application);
+                id.SetAttributeValue("submission-type", declared.Submission);
+                sequence.SetAttributeValue("submission-sub-type", declared.Subtype);
+            }
             if (scenario == "annual2252") { id.SetAttributeValue("submission-type", "fdast5"); sequence.SetAttributeValue("submission-sub-type", "fdasst6"); }
             if (scenario == "amendment2252") sequence.SetAttributeValue("submission-sub-type", "fdasst4");
             if (scenario == "parent2252") id.Value = "0000";
