@@ -4467,7 +4467,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires independent page-Link identity, unique annotation ownership, complete source pages, capture binding and a complete bounded supported action chain. Separate annotations, bookmarks and opening actions are not combined. Unknown/cyclic/malformed/conflicting chains, other actions or file/destination types, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
+      "implementationNote": "Requires independent page-Link identity, unique annotation ownership, complete source pages, capture binding and a complete bounded supported action chain. Fit and valid five-item XYZ destinations are supported throughout the chain; XYZ requires a nonnegative integer page, finite numeric or null coordinates and null or finite nonnegative zoom. Separate annotations, bookmarks and opening actions are not combined. Unknown/cyclic/malformed/conflicting chains, other actions or file/destination types, annotation variants and historical source PDFs remain incomplete; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfMultipleHyperlinkActionsRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfMultipleHyperlinkActionsRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfMultipleHyperlinkActionsRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkActionReader.cs"],

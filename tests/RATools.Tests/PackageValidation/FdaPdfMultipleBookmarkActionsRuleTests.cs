@@ -69,8 +69,8 @@ public sealed class FdaPdfMultipleBookmarkActionsRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
         if (scenario == "page-link")
         {
-            Assert.Empty(facts.MultipleHyperlinkActions);
-            Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5203").Status);
+            Assert.Equal(2, Assert.Single(facts.MultipleHyperlinkActions).Count);
+            Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == "FDA47-5203").Status);
         }
     }
 

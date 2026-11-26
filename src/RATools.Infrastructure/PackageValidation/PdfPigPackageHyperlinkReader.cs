@@ -59,7 +59,7 @@ internal sealed class PdfPigPackageHyperlinkReader(Func<IToken?, IToken?> resolv
                         // Raw key absence is distinct from explicit null or an unresolved value.
                         if (!HasAny(annotation, "A", "Dest", "AA", "StructParent"))
                             inactive.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]", pageIndex + 1)));
-                        if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token).Read(annotation) is int count && count > 1)
+                        if (new PdfPigPackageBookmarkActionReader(Resolve, limits, token, allowXyz: true).Read(annotation) is int count && count > 1)
                             actions.Add((reference.Data, new($"page[{pageIndex + 1}]/annotation[{index + 1}]/A", pageIndex + 1, count)));
                         var kind = ReadExternal(annotation);
                         if (kind is PdfExternalHyperlinkKind.Web or PdfExternalHyperlinkKind.Email)

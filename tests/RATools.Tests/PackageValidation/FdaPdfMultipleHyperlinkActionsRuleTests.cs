@@ -17,6 +17,63 @@ public sealed class FdaPdfMultipleHyperlinkActionsRuleTests
     private const string RuleId = "FDA47-5203";
 
     [Theory]
+    [InlineData("dictionary", "[0 /XYZ null null null]", "[0 /Fit]", "2")]
+    [InlineData("array", "[0 /Fit]", "[0 /XYZ 0 100 0]", "2")]
+    [InlineData("nested", "[0 /XYZ null null 1.25]", "[0 /XYZ null null null]", "3")]
+    [InlineData("indirect", "[0 /XYZ null null null]", "[0 /XYZ null null null]", "2")]
+    [InlineData("three", "[0 /XYZ null null null]", "[0 /XYZ null null 1.25]", "3")]
+    public async Task QualifiedXyzHyperlinkChainRetainsAllActions(string scenario, string destination, string nextDestination, string count)
+    {
+        var result = await Run(await Fixture(Build(scenario, destination, nextDestination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(count, Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("[-1 /XYZ null null null]")]
+    [InlineData("[0.5 /XYZ null null null]")]
+    [InlineData("[3 0 R /XYZ null null null]")]
+    [InlineData("[0 /XYZ (0) null null]")]
+    [InlineData("[0 /XYZ null /Top null]")]
+    [InlineData("[0 /XYZ null null -1]")]
+    [InlineData("[0 /XYZ null null (1)]")]
+    [InlineData("[0 /XYZ null null]")]
+    [InlineData("[0 /XYZ null null null 0]")]
+    public async Task InvalidXyzTailDoesNotPublishPartialHyperlinkChain(string destination)
+    {
+        var result = await Run(await Fixture(Build("dictionary", "[0 /XYZ null null null]", destination)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.MultipleHyperlinkActions);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("single")]
+    [InlineData("empty-array")]
+    [InlineData("null")]
+    [InlineData("invalid")]
+    [InlineData("unknown-action")]
+    [InlineData("wrong-type")]
+    [InlineData("bad-file")]
+    [InlineData("cycle")]
+    [InlineData("conflict")]
+    [InlineData("hidden")]
+    [InlineData("bookmark")]
+    [InlineData("open-action")]
+    public async Task XyzDoesNotBypassPageIdentityOrCompleteChain(string scenario)
+    {
+        var result = await Run(await Fixture(Build(scenario, "[0 /XYZ null null null]", "[0 /XYZ null null null]")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.Equal(1, facts.QualifiedPageCount);
+        Assert.Empty(facts.MultipleHyperlinkActions);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
     [InlineData("dictionary", CheckStatus.Fail)]
     [InlineData("array", CheckStatus.Fail)]
     [InlineData("three", CheckStatus.Fail)]
@@ -64,20 +121,29 @@ public sealed class FdaPdfMultipleHyperlinkActionsRuleTests
     }
 
     [Theory]
-    [InlineData("multiple", 2)]
-    [InlineData("separate", null)]
-    [InlineData("duplicate", null)]
-    [InlineData("unknown-pages", null)]
-    [InlineData("budget", null)]
-    [InlineData("io", null)]
-    [InlineData("cycle", null)]
-    public void ReaderRequiresUniqueLinkAndCompleteInventory(string scenario, int? expected)
+    [InlineData("multiple", 2, false)]
+    [InlineData("separate", null, false)]
+    [InlineData("duplicate", null, false)]
+    [InlineData("unknown-pages", null, false)]
+    [InlineData("budget", null, false)]
+    [InlineData("io", null, false)]
+    [InlineData("cycle", null, false)]
+    [InlineData("multiple", 2, true)]
+    [InlineData("separate", null, true)]
+    [InlineData("duplicate", null, true)]
+    [InlineData("unknown-pages", null, true)]
+    [InlineData("budget", null, true)]
+    [InlineData("io", null, true)]
+    [InlineData("cycle", null, true)]
+    public void ReaderRequiresUniqueLinkAndCompleteInventory(string scenario, int? expected, bool xyz)
     {
         static DictionaryToken Dictionary(params (string Key, IToken Value)[] pairs) => new(pairs.ToDictionary(pair => NameToken.Create(pair.Key), pair => pair.Value));
         var pageReference = new IndirectReference(3, 0); var annotationReference = new IndirectReferenceToken(new(6, 0));
         var otherReference = new IndirectReferenceToken(new(7, 0)); var actionReference = new IndirectReferenceToken(new(8, 0));
-        var simple = Dictionary(("S", NameToken.Create("GoToR")), ("F", new StringToken("target.pdf")), ("D", new ArrayToken([new NumericToken(0), NameToken.Create("Fit")])));
-        var multiple = Dictionary(("S", NameToken.Create("GoToR")), ("F", new StringToken("target.pdf")), ("D", new ArrayToken([new NumericToken(0), NameToken.Create("Fit")])), ("Next", scenario == "cycle" ? actionReference : simple));
+        var destination = xyz ? new ArrayToken([new NumericToken(0), NameToken.Create("XYZ"), NullToken.Instance, NullToken.Instance, NullToken.Instance]) :
+            new ArrayToken([new NumericToken(0), NameToken.Create("Fit")]);
+        var simple = Dictionary(("S", NameToken.Create("GoToR")), ("F", new StringToken("target.pdf")), ("D", destination));
+        var multiple = Dictionary(("S", NameToken.Create("GoToR")), ("F", new StringToken("target.pdf")), ("D", destination), ("Next", scenario == "cycle" ? actionReference : simple));
         var annotation = Dictionary(("Subtype", NameToken.Create("Link")), ("Rect", new ArrayToken([new NumericToken(0), new NumericToken(0), new NumericToken(100), new NumericToken(100)])), ("A", scenario == "separate" ? simple : multiple));
         var page = Dictionary(("Annots", new ArrayToken(scenario == "duplicate" ? [annotationReference, annotationReference] : scenario == "separate" ? [annotationReference, otherReference] : [annotationReference])));
         IToken? Resolve(IToken? value) => value is not IndirectReferenceToken reference ? value : scenario == "io" ? throw new IOException("opaque") : reference.Data == actionReference.Data ? multiple : annotation;
@@ -115,22 +181,26 @@ public sealed class FdaPdfMultipleHyperlinkActionsRuleTests
     }
 
     [Theory]
-    [InlineData(0, CheckStatus.NotEvaluated)]
-    [InlineData(1, CheckStatus.Fail)]
-    public async Task FindingBudgetAndRepeatedObservationAreBounded(int remaining, CheckStatus expected)
+    [InlineData(0, CheckStatus.NotEvaluated, false)]
+    [InlineData(1, CheckStatus.Fail, false)]
+    [InlineData(0, CheckStatus.NotEvaluated, true)]
+    [InlineData(1, CheckStatus.Fail, true)]
+    public async Task FindingBudgetAndRepeatedObservationAreBounded(int remaining, CheckStatus expected, bool xyz)
     {
-        var fixture = await Fixture(Build("dictionary")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build("dictionary", xyz ? "[0 /XYZ null null null]" : "[0 /Fit]")); var document = Assert.Single((await Run(fixture)).Documents);
         var run = new FdaPdfMultipleHyperlinkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
         run.Observe(document, remaining); run.Observe(document, 10);
         Assert.Equal(expected, run.Finish(true)!.Status); Assert.Equal(remaining, run.FindingCount);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CancellationRetainsInitialUnknownOrKnownFailure(bool afterFailure, bool xyz)
     {
-        var fixture = await Fixture(Build("dictionary")); var document = Assert.Single((await Run(fixture)).Documents);
+        var fixture = await Fixture(Build("dictionary", xyz ? "[0 /XYZ null null null]" : "[0 /Fit]")); var document = Assert.Single((await Run(fixture)).Documents);
         using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
         Assert.ThrowsAny<OperationCanceledException>(() =>
         {
@@ -168,10 +238,12 @@ public sealed class FdaPdfMultipleHyperlinkActionsRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
     }
 
-    [Fact]
-    public async Task PartialCoverageRetainsLocatedFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialCoverageRetainsLocatedFailure(bool xyz)
     {
-        var fixture = await Fixture(Build("dictionary"));
+        var fixture = await Fixture(Build("dictionary", xyz ? "[0 /XYZ null null null]" : "[0 /Fit]"));
         Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
         var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
         Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
@@ -217,20 +289,20 @@ public sealed class FdaPdfMultipleHyperlinkActionsRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string scenario)
+    private static byte[] Build(string scenario, string destination = "[0 /Fit]", string nextDestination = "[0 /Fit]")
     {
-        const string simple = "<< /S /GoToR /F (target.pdf) /D [0 /Fit] >>";
+        var simple = "<< /S /GoToR /F (target.pdf) /D " + nextDestination + " >>";
         var next = scenario switch {
             "single" => "", "array" => " /Next [" + simple + "]", "three" => " /Next [" + simple + " " + simple + "]",
-            "nested" => " /Next << /S /GoToR /F (target.pdf) /D [0 /Fit] /Next " + simple + " >>",
+            "nested" => " /Next << /S /GoToR /F (target.pdf) /D " + nextDestination + " /Next " + simple + " >>",
             "empty-array" => " /Next []", "null" => " /Next null", "invalid" => " /Next 12", "indirect" or "cycle" => " /Next 7 0 R",
             "unknown-action" => " /Next << /S /Unknown >>", "wrong-type" => " /Next << /Type /Bogus /S /GoToR /F (target.pdf) /D [0 /Fit] >>",
             "bad-file" => " /Next << /S /GoToR /D [0 /Fit] >>", _ => " /Next " + simple };
-        var action = "<< /S /GoToR /F (target.pdf) /D [0 /Fit]" + next + " >>";
+        var action = "<< /S /GoToR /F (target.pdf) /D " + destination + next + " >>";
         if (scenario == "bookmark") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R",
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>", "<< /Title (bookmark) /Parent 7 0 R /A " + action + " >>");
         if (scenario == "open-action") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/OpenAction " + action);
         return PdfPigPackageInspectorTests.Build("/A " + action + (scenario == "conflict" ? " /Dest [3 0 R /Fit]" : "") + (scenario == "hidden" ? " /F 2" : ""), "",
-            scenario == "cycle" ? "<< /S /GoToR /F (target.pdf) /D [0 /Fit] /Next 7 0 R >>" : simple);
+            scenario == "cycle" ? "<< /S /GoToR /F (target.pdf) /D " + nextDestination + " /Next 7 0 R >>" : simple);
     }
 }

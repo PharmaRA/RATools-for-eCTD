@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5203第二轮：完整XYZ页面超链接动作链（仍Partial，主代理限定只读自审及终态核对通过）。** 5202已提交`ab5782c`。页面Link在既有独立页树/唯一批注归属资格后，显式启用共享动作读取器的XYZ校验；每个GoToR动作仍需非负整数页、五项XYZ、有限数字/null坐标及非负有限/null倍率。只有完整受支持链才发布计数，未知/循环/坏尾部、预算不足、冲突目的地以及独立批注/书签/打开动作不拼成链。
+
+red三项真实解析和页树前提全过，预期Fail实际NE。candidate十一类621/622，唯一失败为既有书签测试仍要求页面XYZ链无超链接计数；保留书签计数为空和5103未知，更新已单独资格的页面链为计数2/5203 Fail，不改生产判定。final十一类 **622/622、0失败/跳过**（5203为86含新增38、共享书签动作78），覆盖首/尾/嵌套/间接XYZ、非法尾部、完整库存、循环、预算、取消和Partial报告。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5203-xyz-final-20261126`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`ef1dc1ca1b0636015dc4a50ce64b62f3c2dfc1e2b75986261d017ba1a73f695b`、TRX SHA`4efc0cef878da8b27272897cafd880fcc19ead1cc8f4cf0e219326a727e85424`。目录167条canonical SHA`53ee32e56514a49c8e9a748250b40cb094be146b44d7f027cb10e21b6098691c`。red/candidate/final证据及校验副本在`.artifacts/local-check/fda5203-xyz-*-20261126`和`backups/fda5203-xyz-20261126/evidence/`，bin/obj按精确范围回收。inspector-v36、PDF-v32、file-v91、交付v6；其他动作/文件类型与历史源仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一5205明确Catalog Web Base与简单相对URI，再5210/5215/5217。
+
 **FDA5202第二轮：合格XYZ超链接的零基页目标（仍Partial，主代理限定只读自审及终态核对通过）。** 5200已提交`75ca21b`。先按序核5201，明确类型化InvalidContent加独立目标捕获才支持内容损坏，通用ParseError/加密/I/O/资源限制、其他格式及历史源资格仍不能强判，保留依赖。5202在5200已资格XYZ参数之上发布原始非负整数索引，只有当前合格Link源与已选入且完整Count/Parent/唯一引用/解析页数一致的目标页树才能判定越界；不把缺文件/坏文件/未读完整等同缺页。
 
 red四项当前目标、目标先读、所选历史及大整数索引的解析/两侧页树/文件身份前提全过，预期Fail实际NE。修后十类 **506/506、0失败/跳过**（5202为83含新增32），含零索引合法、非法XYZ参数、未选历史、缺目标/损坏/字面路径、错误Count/Parent、额度/重复观察、取消及Partial报告。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。

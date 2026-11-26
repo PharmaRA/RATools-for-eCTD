@@ -3094,7 +3094,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-5203"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaPdfMultipleHyperlinkActionsRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageHyperlinkReader.cs", "tests/RATools.Tests/PackageValidation/FdaPdfMultipleHyperlinkActionsRuleTests.cs"],
-        "note": "Independent qualified current page-Link identity and complete bounded GoToR action-chain counts establish multiple actions. Complete page/annotation inventory, unique ownership and capture binding are required. Separate annotations, bookmarks and opening actions are not combined. Unknown/cyclic/malformed/conflicting chains, other action/file/destination types, annotation variants and historical source PDFs remain incomplete; no Pass is emitted."
+      "note": "Independent qualified current page-Link identity and complete bounded GoToR action-chain counts establish multiple actions. Fit and valid five-item XYZ destinations are supported throughout the chain. Complete page/annotation inventory, unique ownership and capture binding are required. Separate annotations, bookmarks and opening actions are not combined. Unknown/cyclic/malformed/conflicting chains, other action/file/destination types, annotation variants and historical source PDFs remain incomplete; no Pass is emitted. Second-round eleven-class Windows regression 622/622, including 86 FDA5203 cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {
