@@ -15,13 +15,120 @@ public sealed class FdaPdfExternalBookmarkRuleTests
     private const string RuleId = "FDA47-5105";
 
     [Theory]
+    [InlineData("relative.pdf")]
+    [InlineData("./relative.pdf")]
+    [InlineData("../relative.pdf")]
+    [InlineData("folder/relative.pdf")]
+    public async Task ExplicitWebBaseMakesSimpleRelativeBookmarkExternal(string relative)
+    {
+        var result = await Run(await Fixture(Build(relative, "base")));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError); Assert.True(facts.Basics.HasBookmarks);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("Web", Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("<< /Base (http://base.invalid/folder/) >>", CheckStatus.Fail)]
+    [InlineData("<< /Base (https://base.invalid/document.pdf) >>", CheckStatus.Fail)]
+    [InlineData("null", CheckStatus.NotEvaluated)]
+    [InlineData("42", CheckStatus.NotEvaluated)]
+    [InlineData("<< >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base null >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base /Name >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base 99 0 R >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (relative/) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (file:///C:/folder/) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (ftp://base.invalid/) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (https://) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (https://base.invalid/%ZZ/) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (https://base.invalid/?q=1) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (https://base.invalid/#part) >>", CheckStatus.NotEvaluated)]
+    [InlineData("<< /Base (https://synthetic-user@base.invalid/) >>", CheckStatus.NotEvaluated)]
+    public async Task RelativeBookmarkRequiresExplicitQualifiedWebBase(string entry, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("relative.pdf", baseEntry: entry)));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status); Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("#part")]
+    [InlineData("?query=1")]
+    [InlineData("relative%2Epdf")]
+    [InlineData("relative.pdf#part")]
+    [InlineData("relative.pdf?q=1")]
+    [InlineData("relative file.pdf")]
+    [InlineData("/relative.pdf")]
+    [InlineData("//other.invalid/relative.pdf")]
+    [InlineData("C:/relative.pdf")]
+    public async Task AmbiguousRelativeFormsAreNotQualifiedByBaseAlone(string relative)
+    {
+        var result = await Run(await Fixture(Build(relative, "base")));
+        Assert.Null(Assert.Single(result.Documents).Facts!.Basics.ParseError);
+        Assert.Empty(Assert.Single(result.Documents).Facts!.ExternalBookmarks);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("<< /Base 99 0 R >>")]
+    [InlineData("<< /Base (file:///C:/folder/) >>")]
+    public async Task InvalidBaseDoesNotInvalidateAnExplicitAbsoluteWebBookmark(string entry)
+    {
+        var result = await Run(await Fixture(Build("https://example.invalid/document", baseEntry: entry)));
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("wrong-parent")]
+    [InlineData("conflict")]
+    [InlineData("next-action")]
+    [InlineData("wrong-type")]
+    [InlineData("is-map")]
+    public async Task WebBaseDoesNotBypassBookmarkActionQualification(string scenario)
+    {
+        var result = await Run(await Fixture(Build("relative.pdf", scenario, "<< /Base (https://base.invalid/) >>")));
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task BaseRelativeFindingPreservesAllowanceCancellationAndPrivacy(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("synthetic-relative.pdf", baseEntry: "<< /Base (https://synthetic-base.invalid/folder/) >>"));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal("Web", Assert.Single(retained!.Findings).Actual);
+        Assert.DoesNotContain("synthetic-", System.Text.Json.JsonSerializer.Serialize(retained));
+        Assert.DoesNotContain("synthetic-", System.Text.Json.JsonSerializer.Serialize(document.Facts!.ExternalBookmarks));
+    }
+
+    [Fact]
+    public async Task BaseRelativeFindingRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("relative.pdf", "base"));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
     [InlineData("https://example.invalid/document", "bookmark", CheckStatus.Fail)]
     [InlineData("http://example.invalid/", "bookmark", CheckStatus.Fail)]
     [InlineData("HTTPS://example.invalid/", "bookmark", CheckStatus.Fail)]
     [InlineData("mailto:review@example.invalid", "bookmark", CheckStatus.Fail)]
     [InlineData("https://example.invalid/document", "base", CheckStatus.Fail)]
     [InlineData("relative.pdf", "bookmark", CheckStatus.NotEvaluated)]
-    [InlineData("relative.pdf", "base", CheckStatus.NotEvaluated)]
+    [InlineData("relative.pdf", "base", CheckStatus.Fail)]
     [InlineData("#page=1", "bookmark", CheckStatus.NotEvaluated)]
     [InlineData("https://", "bookmark", CheckStatus.NotEvaluated)]
     [InlineData("mailto:", "bookmark", CheckStatus.NotEvaluated)]
@@ -201,13 +308,13 @@ public sealed class FdaPdfExternalBookmarkRuleTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private static byte[] Build(string uri, string scenario = "bookmark")
+    private static byte[] Build(string uri, string scenario = "bookmark", string? baseEntry = null)
     {
         var action = "<< /S /URI /URI (" + uri + ")" + (scenario == "wrong-type" ? " /Type /Bogus" : "") +
             (scenario == "next-action" ? " /Next << /S /URI /URI (https://example.invalid/other) >>" : "") + (scenario == "is-map" ? " /IsMap true" : "") + " >>";
         if (scenario == "page-link") return PdfPigPackageInspectorTests.Build("/A " + action);
         if (scenario == "open-action") return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/OpenAction " + action);
-        return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R" + (scenario == "base" ? " /URI << /Base (https://base.invalid/) >>" : ""),
+        return PdfPigPackageInspectorTests.Build("/Dest [3 0 R /Fit]", "/Outlines 7 0 R" + (baseEntry is not null ? " /URI " + baseEntry : scenario == "base" ? " /URI << /Base (https://base.invalid/) >>" : ""),
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
             "<< /Title (bookmark) /Parent " + (scenario == "wrong-parent" ? "1" : "7") + " 0 R /A " + action + (scenario == "conflict" ? " /Dest [3 0 R /Fit]" : "") + " >>");
     }

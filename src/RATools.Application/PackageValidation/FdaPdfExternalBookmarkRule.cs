@@ -70,7 +70,7 @@ internal static class FdaPdfExternalBookmarkRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified current-PDF absolute HTTP/HTTPS/mailto URI bookmarks are covered; no network requests are made. Relative/Base URIs, other schemes/actions, cross-application file references and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Qualified current-PDF absolute HTTP/HTTPS/mailto URI bookmarks and simple relative paths under an explicit qualified HTTP/HTTPS Catalog Base are covered; no network requests are made. Other relative/Base forms, schemes/actions, cross-application file references and historical source PDFs remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

@@ -1,5 +1,9 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5105第二轮：明确Web Base下的简单相对URI书签（仍Partial，主代理限定只读自审及终态核对通过）。** 5103已提交`2fc2b27`。只读内存核对Adobe PDF1.7第662–663页表8.56/8.57：相对URI按Catalog URI/Base解释，无Base时不能假设外部。新增简单ASCII路径在明确、语法有效HTTP/HTTPS Base下的本地解析；Base带userinfo/百分号/查询/片段，或类型错误/未解析等保持未知，相对地址的查询/片段/百分号/平台路径等不推断。绝对URI无需读取Base，因此坏Base不影响已明确的绝对外部地址。只保存Web/Email类别和位置，不保存原始或拼接地址，不访问书签目标。
+
+red四项真实PDF/书签前提全过，预期Fail实际NE；修后十一类 **603/603、0失败/跳过**（5105为83含新增40、5100为100、5101为43、5102为78、5103为78、5110为38、5115为43、5117为54、5205为46、PDF管线23、PdfPig17）。含有效/坏/缺失Base、歧义相对地址、绝对URI独立性、action资格、隐私、额度/取消与Partial报告。主代理限定只读自审通过，无子代理；审查未改输入，`fda5105-base-candidate-20261126`即最终证据。入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence为该目录、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。5交付输入加2直接依赖SHA绑定；manifest SHA`dd7f412a6b9b25a9ababc90896b96938a916a8448d31bcfbe05bbfec0f7be0b1`、TRX SHA`df2ed3feb2403aa66389eae7976e9331f58b24f8ec34e0b2c1f76302461fba6e`。目录167条canonical SHA`13293cbca664223cc4906bdf90e403e7a7f2a4d7179d4f58a3faee6b5ef79c3c`。red/candidate证据及校验副本在`.artifacts/local-check/fda5105-base-*-20261126`和`backups/fda5105-base-20261126/evidence/`，bin/obj按精确范围回收。inspector-v31、PDF-v32、file-v91、交付v6；其他相对/Base形式、协议/动作、跨申请文件及历史源仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一5110未激活书签，再5115/5117及后续。
+
 **FDA5103第二轮：完整书签动作链中的XYZ目的地（仍Partial，主代理限定只读自审及终态核对通过）。** 5102已提交`c82495c`。共享动作链读取器新增显式XYZ启用参数，仅书签调用点开启；超链接调用点保持默认关闭，避免提前扩大5203。每个XYZ动作要求非负整数页、有限数字/null坐标及null/非负有限倍率，完整链任意未知/坏尾部、循环、Dest/A冲突或工作/深度/动作限额不足均不发布部分计数。保留outline兄弟Next与动作Next字典/数组的区别，页面链接和OpenAction不冒充书签。
 
 red四项真实PDF/书签身份前提全过，预期Fail实际NE；修后十一类 **565/565、0失败/跳过**（5103为78含新增32、5100为100、5101为43、5102为78、5105为43、5110为38、5115为43、5117为54、5203为48、PDF管线23、PdfPig17）。含首/尾/数组/间接XYZ链、错误参数、未知尾部、循环、调用点启用隔离、工作/深度/动作数预算、finding额度/取消及Partial报告。主代理限定只读自审通过，无子代理；审查未改输入，`fda5103-xyz-candidate-20261126`即最终证据。首个证据核验工具调用参数格式错误未执行；同范围恢复后才确认以下证据。

@@ -15,6 +15,9 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
     private readonly List<PdfInactiveBookmark> _inactive = [];
     private readonly List<PdfBookmarkZoom> _zooms = [];
     private bool _complete;
+    private DictionaryToken? _catalog;
+    private bool _baseChecked;
+    private Uri? _webBase;
     internal IReadOnlyList<PdfBookmarkActionCount> MultipleActions => _complete ? _actions.ToArray() : [];
     internal IReadOnlyList<PdfExternalBookmark> ExternalBookmarks => _complete ? _external.ToArray() : [];
     internal IReadOnlyList<PdfInactiveBookmark> InactiveBookmarks => _complete ? _inactive.ToArray() : [];
@@ -26,6 +29,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
     {
         try
         {
+            _catalog = catalog;
             if (Get(catalog, "Outlines") is not IndirectReferenceToken rootReference ||
                 Resolve(rootReference) is not DictionaryToken root || Name(Get(root, "Type")) != "Outlines") return [];
             _seen.Add(rootReference.Data);
@@ -142,8 +146,22 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
             Name(Get(action, "S")) != "URI" || HasAny(action, "Next", "IsMap") ||
             Get(action, "Type") is not null && Name(Get(action, "Type")) != "Action") return;
         var text = Text(Resolve(Get(action, "URI")));
-        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~') ||
-            !Uri.TryCreate(text, UriKind.Absolute, out var uri) || !uri.IsWellFormedOriginalString()) return;
+        if (string.IsNullOrEmpty(text) || text.Any(character => character is <= ' ' or > '~')) return;
+        Uri? uri;
+        if (Uri.TryCreate(text, UriKind.Absolute, out var absolute))
+        {
+            if (!absolute.IsWellFormedOriginalString()) return;
+            uri = absolute;
+        }
+        else
+        {
+            // PDF Reference Table 8.57 supplies the base for relative URI actions.
+            // Only unambiguous ASCII path characters are qualified here; do not
+            // decode percent escapes or infer a base from the document location.
+            if (text.StartsWith('/') || text.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('.' or '_' or '-' or '~' or '/')) ||
+                WebBase() is not { } basis || !Uri.TryCreate(text, UriKind.Relative, out var relative) || !relative.IsWellFormedOriginalString() ||
+                !Uri.TryCreate(basis, relative, out uri)) return;
+        }
         var kind = uri.Scheme switch
         {
             "http" or "https" when uri.Host.Length > 0 => PdfExternalBookmarkKind.Web,
@@ -152,6 +170,18 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         };
         // Do not retain the address or query in the new regulatory evidence.
         if (kind != PdfExternalBookmarkKind.Unknown) _external.Add(new($"outline[{number}]/A/URI", kind));
+    }
+
+    private Uri? WebBase()
+    {
+        if (_baseChecked) return _webBase;
+        _baseChecked = true;
+        if (_catalog is null || Resolve(Get(_catalog, "URI")) is not DictionaryToken dictionary ||
+            Text(Resolve(Get(dictionary, "Base"))) is not { Length: > 0 } text ||
+            text.Any(character => character is <= ' ' or > '~' or '\\' or '%' or '?' or '#') ||
+            !Uri.TryCreate(text, UriKind.Absolute, out var value) || !value.IsWellFormedOriginalString() ||
+            value.Scheme is not ("http" or "https") || value.Host.Length == 0 || value.UserInfo.Length != 0) return null;
+        return _webBase = value;
     }
 
     private void Tick() { token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new PdfInspectionLimitException("Bookmark evidence budget exceeded."); }
