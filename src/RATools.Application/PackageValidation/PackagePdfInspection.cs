@@ -17,7 +17,7 @@ public sealed class PackagePdfInspection
         HistoryManifestDigest = files.HistoryManifestDigest;
         ProfileSnapshotId = files.ProfileSnapshotId;
         LimitsDigest = files.LimitsDigest;
-        EngineVersion = "package-pdf-validator-v31;" + inspectorVersion;
+        EngineVersion = "package-pdf-validator-v32;" + inspectorVersion;
         Documents = Array.AsReadOnly(documents.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         Checks = Array.AsReadOnly(checks.ToArray());

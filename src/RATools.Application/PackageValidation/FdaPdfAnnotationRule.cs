@@ -17,6 +17,7 @@ internal static class FdaPdfAnnotationRule
         private readonly ValidationRuleDescriptor? _rule;
         private RuleCheckResult? _terminal;
         private bool _missingReferencedPdf;
+        private bool _locationsComplete;
         private int _work;
         public int FindingCount => _findings.Count;
 
@@ -52,50 +53,73 @@ internal static class FdaPdfAnnotationRule
                 if (xmls.Count != 1) return;
                 var xml = xmls[0];
                 if (xml.ProfileSnapshotId != files.ProfileSnapshotId || xml.RulesDigest != files.RulesDigest || xml.AssetManifestDigest != files.AssetManifestDigest || xml.LimitsDigest != files.LimitsDigest) return;
-                var regionals = new List<ParsedBackbone>();
-                foreach (var item in xml.Backbones) { Tick(); if (item.Kind == BackboneKind.UsRegional) regionals.Add(item); }
-                if (regionals.Count != 1) return;
-                var regional = regionals[0]; var sequence = target.Manifest.SequenceNumber;
+                var regionals = new List<ParsedBackbone>(); var indexes = new List<ParsedBackbone>();
+                foreach (var item in xml.Backbones)
+                {
+                    Tick();
+                    if (item.Kind == BackboneKind.UsRegional) regionals.Add(item);
+                    if (item.Kind == BackboneKind.Ich) indexes.Add(item);
+                }
+                _locationsComplete = regionals.Count == 1 && indexes.Count == 1;
+                if (regionals.Count == 1) _locationsComplete &= ReadLocations(regionals[0], false);
+                if (indexes.Count == 1) _locationsComplete &= ReadLocations(indexes[0], true);
+                _work = target.Limits.MaxPdfObjects;
+                _terminal = null;
+
+                bool ReadLocations(ParsedBackbone regional, bool ich)
+                {
+                var sequence = target.Manifest.SequenceNumber;
+                var assetId = ich ? "ich-dtd" : "us-dtd";
                 if (!regional.ReadComplete || regional.DtdStatus != CheckStatus.Pass || regional.ProfileSnapshotId != xml.ProfileSnapshotId ||
-                    regional.DocumentTypeName != "fda-regional:fda-regional" || !Contains(regional.ResolvedAssets, "us-dtd") ||
+                    regional.DocumentTypeName != (ich ? "ectd:ectd" : "fda-regional:fda-regional") || !Contains(regional.ResolvedAssets, assetId) ||
                     !regional.LogicalPath.StartsWith(sequence + "/", StringComparison.Ordinal) || !captured.Contains(regional.LogicalPath) ||
-                    !context.Assets.Assets.TryGetValue("us-dtd", out var dtd) || dtd.Sha256 != "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec") return;
+                    !context.Assets.Assets.TryGetValue(assetId, out var dtd) || dtd.Sha256 != (ich
+                        ? "c094aa2bded99564ade8ac78ae1540f95e518461b8eebe9a3063f67a165c2731"
+                        : "d45139785dd6aa7eb3a60a23854ec2ea7d5d17c7c87b9ca12ab268baafc1dbec")) return false;
                 var count = 0;
                 foreach (var document in xml.Backbones) { Tick(); if (document.LogicalPath == regional.LogicalPath) count++; }
                 foreach (var document in xml.StudyTaggingFiles.Documents) { Tick(); if (document.LogicalPath == regional.LogicalPath) count++; }
-                if (count != 1) return;
+                if (count != 1) return false;
                 var elements = new Dictionary<string, ParsedXmlElement>(StringComparer.Ordinal);
                 foreach (var element in regional.Elements)
                 {
                     Tick();
-                    if (!elements.TryAdd(element.NodePath, element) || element.Location.LogicalPath != regional.LogicalPath || element.Location.SequenceNumber != sequence) return;
+                    if (!elements.TryAdd(element.NodePath, element) || element.Location.LogicalPath != regional.LogicalPath || element.Location.SequenceNumber != sequence || element.Location.NodePath != element.NodePath) return false;
                 }
                 var roots = new List<ParsedXmlElement>();
                 foreach (var element in elements.Values)
                 {
                     Tick();
                     if (element.ParentPath is null) roots.Add(element);
-                    else if (!elements.TryGetValue(element.ParentPath, out var parent) || !Contains(parent.Children, element.NodePath)) return;
+                    else if (!elements.TryGetValue(element.ParentPath, out var parent) || !Contains(parent.Children, element.NodePath)) return false;
                     var children = new HashSet<string>(StringComparer.Ordinal);
-                    foreach (var child in element.Children) { Tick(); if (!children.Add(child) || !elements.TryGetValue(child, out var value) || value.ParentPath != element.NodePath) return; }
+                    foreach (var child in element.Children) { Tick(); if (!children.Add(child) || !elements.TryGetValue(child, out var value) || value.ParentPath != element.NodePath) return false; }
                 }
-                if (roots.Count != 1 || roots[0] is not { Name: "fda-regional:fda-regional", LocalName: "fda-regional", NamespaceUri: "http://www.ich.org/fda" } || roots[0].Attribute("dtd-version") != "3.3") return;
+                if (roots.Count != 1) return false;
+                if (ich ? roots[0] is not { Name: "ectd:ectd", LocalName: "ectd", NamespaceUri: "http://www.ich.org/ectd" }
+                    : roots[0] is not { Name: "fda-regional:fda-regional", LocalName: "fda-regional", NamespaceUri: "http://www.ich.org/fda" } || roots[0].Attribute("dtd-version") != "3.3") return false;
                 var visited = new HashSet<string>(StringComparer.Ordinal); var pending = new Stack<string>(); pending.Push(roots[0].NodePath);
-                while (pending.TryPop(out var path)) { Tick(); if (!visited.Add(path)) return; foreach (var child in elements[path].Children) { Tick(); pending.Push(child); } }
-                if (visited.Count != elements.Count) return;
+                while (pending.TryPop(out var path)) { Tick(); if (!visited.Add(path)) return false; foreach (var child in elements[path].Children) { Tick(); pending.Push(child); } }
+                if (visited.Count != elements.Count) return false;
                 var leaves = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var leaf in regional.Leaves) { Tick(); if (!leaves.Add(leaf.NodePath)) return; }
+                foreach (var leaf in regional.Leaves) { Tick(); if (!leaves.Add(leaf.NodePath)) return false; }
+                var complete = true;
                 foreach (var leaf in regional.Leaves)
                 {
                     Tick();
                     if (!elements.TryGetValue(leaf.NodePath, out var element) || element is not { Name: "leaf", LocalName: "leaf", NamespaceUri: "" } ||
-                        leaf.Operation is not ("new" or "replace" or "append") || element.Attribute("operation") != leaf.Operation ||
+                        element.Attribute("operation") != leaf.Operation ||
+                        leaf.Location.LogicalPath != regional.LogicalPath || leaf.Location.SequenceNumber != sequence || leaf.Location.NodePath != leaf.NodePath)
+                    { complete = false; continue; }
+                    if (leaf.Operation == "delete") continue;
+                    if (leaf.Operation is not ("new" or "replace" or "append") ||
                         leaf.Href is null || element.Attribute("href", "http://www.w3c.org/1999/xlink") != leaf.Href ||
-                        leaf.Location.LogicalPath != regional.LogicalPath || leaf.Location.SequenceNumber != sequence || leaf.Location.NodePath != leaf.NodePath) continue;
+                        leaf.Id != element.Attribute("ID") || leaf.Location.LeafId != leaf.Id)
+                    { complete = false; continue; }
                     PackageReference reference;
                     try { reference = PackageLogicalPath.ResolveReference(regional.LogicalPath, leaf.Href); }
-                    catch (ArgumentException) { continue; }
-                    if (reference.ExternalUri is not null || reference.Query is not null || reference.LogicalPath is not { } file) continue;
+                    catch (ArgumentException) { complete = false; continue; }
+                    if (reference.ExternalUri is not null || reference.Query is not null || reference.LogicalPath is not { } file) { complete = false; continue; }
                     if (!_expected.ContainsKey(file))
                     {
                         if (file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) _missingReferencedPdf = true;
@@ -107,14 +131,17 @@ internal static class FdaPdfAnnotationRule
                         Tick(); var ancestor = elements[parent];
                         if (ancestor.ParentPath is null) continue;
                         if (ancestor.NamespaceUri.Length != 0 || ancestor.Name != ancestor.LocalName) { qualified = false; break; }
-                        if (ancestor.Name == "m1-regional" && ancestor.ParentPath == roots[0].NodePath) module = true;
-                        if (ancestor.Name == "m1-15-promotional-material" && ancestor.ParentPath is { } owner &&
+                        if (ancestor.ParentPath == roots[0].NodePath && (ich
+                            ? ancestor.Name is "m2-common-technical-document-summaries" or "m3-quality" or "m4-nonclinical-study-reports" or "m5-clinical-study-reports"
+                            : ancestor.Name == "m1-regional")) module = true;
+                        if (!ich && ancestor.Name == "m1-15-promotional-material" && ancestor.ParentPath is { } owner &&
                             elements[owner].Name == "m1-regional" && elements[owner].ParentPath == roots[0].NodePath) promotional = true;
                     }
                     if (qualified && module && !promotional) _outside.TryAdd(file, leaf.Location);
+                    if (!qualified) complete = false;
                 }
-                _work = target.Limits.MaxPdfObjects;
-                _terminal = null;
+                return complete;
+                }
             }
             catch (LocationLimitException) { }
         }
@@ -150,8 +177,8 @@ internal static class FdaPdfAnnotationRule
         {
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
-            return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && !_missingReferencedPdf && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only identified markup in current PDFs with qualified regional M1 references outside section 1.15 is checked. Links/widgets are not treated as markup; other annotation semantics, modules 2-5, historical/unreferenced contents and unknown ownership remain unqualified; no Pass is emitted.", _findings.ToArray());
+            return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _locationsComplete && !_missingReferencedPdf && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
+                "Identified markup in current PDFs with qualified regional M1 references outside section 1.15 or actual ICH module 2-5 references is checked. Physical folders do not determine the exception, and an allowed reference does not exempt another outside reference. Links/widgets are not markup; other annotation semantics, historical/unreferenced contents and unknown ownership remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
         private void Tick() { _token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new LocationLimitException(); }
         private bool Contains(IEnumerable<string> values, string expected) { foreach (var value in values) { Tick(); if (value == expected) return true; } return false; }

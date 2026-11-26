@@ -17,6 +17,154 @@ public sealed class FdaPdfAnnotationRuleTests
     private const string RuleId = "FDA47-5055";
 
     [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public async Task ActualIchModulesAreOutsidePromotionalException(int module)
+    {
+        var result = await Run(await Fixture("ich-" + module));
+        var index = Assert.Single(Assert.Single(result.Lifecycle.XmlInspections).Backbones, item => item.Kind == BackboneKind.Ich);
+        Assert.Equal(CheckStatus.Pass, index.DtdStatus);
+        var document = Assert.Single(result.Pdf.Documents, item => item.LogicalPath == "0001/m1/us/report.pdf");
+        Assert.Null(document.Facts!.Basics.ParseError);
+        Assert.NotEmpty(document.Facts.MarkupAnnotations);
+        var check = Assert.Single(result.Pdf.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("0001/index.xml", Assert.Single(check.Findings).Location.LogicalPath);
+    }
+
+    [Theory]
+    [InlineData("ich-2-extension", CheckStatus.Fail)]
+    [InlineData("ich-2-both", CheckStatus.Fail)]
+    [InlineData("ich-2-same", CheckStatus.Fail)]
+    [InlineData("ich-2-physical-promo", CheckStatus.Fail)]
+    [InlineData("ich-2-encoded", CheckStatus.Fail)]
+    [InlineData("ich-2-delete", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2-history", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2-missing", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2-query", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2-broken", CheckStatus.NotEvaluated)]
+    public async Task IchOwnershipDoesNotFollowPhysicalFoldersOrPromotionalAliases(string scenario, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(scenario));
+        var index = Assert.Single(Assert.Single(result.Lifecycle.XmlInspections).Backbones, item => item.Kind == BackboneKind.Ich);
+        if (scenario != "ich-2-broken") Assert.Equal(CheckStatus.Pass, index.DtdStatus);
+        var check = Assert.Single(result.Pdf.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(expected, check.Status);
+        if (expected == CheckStatus.Fail)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("0001/index.xml", finding.Location.LogicalPath);
+            Assert.Equal("ich-outside", finding.Location.LeafId);
+        }
+        else Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("duplicate-index")]
+    [InlineData("missing-dtd")]
+    [InlineData("incomplete")]
+    [InlineData("root")]
+    [InlineData("bad-children")]
+    [InlineData("namespace")]
+    [InlineData("element-location")]
+    [InlineData("leaf-href")]
+    [InlineData("duplicate-leaf")]
+    public async Task IchReferenceFactsMustBeUniqueCompleteAndConnected(string variant)
+    {
+        var fixture = await Fixture("ich-2"); var delivery = await Run(fixture);
+        var xml = Assert.Single(delivery.Lifecycle.XmlInspections);
+        var index = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.Ich);
+        var elements = index.Elements.Select(element => new ParsedXmlElement(element.NodePath, element.ParentPath,
+            variant == "root" && element.ParentPath is null ? "ectd:other" : element.Name, element.LocalName,
+            variant == "namespace" && element.ParentPath is not null ? "urn:wrong" : element.NamespaceUri,
+            element.Attributes.Values, variant == "bad-children" && element.ParentPath is null ? [] : element.Children,
+            element.Text, variant == "element-location" ? element.Location with { NodePath = "wrong" } : element.Location)).ToArray();
+        var leaves = index.Leaves.Select(leaf => variant == "leaf-href" && leaf.Id == "ich-outside" ? leaf with { Href = "different.pdf" } : leaf).ToList();
+        if (variant == "duplicate-leaf") leaves.Add(index.Leaves.Single(leaf => leaf.Id == "ich-outside"));
+        var changed = new ParsedBackbone(index.LogicalPath, index.ProfileSnapshotId, index.Kind, variant != "incomplete", index.DtdStatus,
+            index.DocumentTypeName, index.SystemIdentifier, index.PublicIdentifier, elements, index.Nodes, leaves,
+            index.IdIndex.Values.SelectMany(value => value), variant == "missing-dtd" ? [] : index.ResolvedAssets);
+        var documents = xml.Backbones.Select(item => item == index ? changed : item).ToList();
+        if (variant == "duplicate-index") documents.Add(changed);
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            documents, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        var lifecycle = new PackageLifecycleInspection(fixture.Input.Packages, delivery.Lifecycle.ProfileSnapshotId, [modified], [], [], [],
+            fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, lifecycle, fixture.Context, CancellationToken.None);
+        run.Observe(Assert.Single(delivery.Pdf.Documents, document => document.LogicalPath == "0001/m1/us/report.pdf"), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status); Assert.Equal(0, run.FindingCount);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task IchMarkupUsesSharedAllowanceAndRetainsCancelledFailure(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture("ich-2"); var delivery = await Run(fixture);
+        var document = Assert.Single(delivery.Pdf.Documents, item => item.LogicalPath == "0001/m1/us/report.pdf");
+        var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, delivery.Lifecycle, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, delivery.Lifecycle, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task IchMarkupRetainsPartialReportBoundary()
+    {
+        var fixture = await Fixture("ich-2"); var delivery = await Run(fixture);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
+    [InlineData("both", CheckStatus.NotEvaluated)]
+    [InlineData("ich", CheckStatus.NotEvaluated)]
+    [InlineData("regional", CheckStatus.NotEvaluated)]
+    [InlineData("complete", CheckStatus.NotApplicable)]
+    public async Task NoPdfWithIncompleteBackbonesIsUnknownNotInapplicable(string incomplete, CheckStatus expected)
+    {
+        var fixture = await Fixture("ich-2-empty"); var delivery = await Run(fixture);
+        Assert.Empty(delivery.Pdf.Documents);
+        var xml = Assert.Single(delivery.Lifecycle.XmlInspections);
+        Assert.All(xml.Backbones, document => Assert.Equal(CheckStatus.Pass, document.DtdStatus));
+        var documents = xml.Backbones.Select(document => new ParsedBackbone(document.LogicalPath, document.ProfileSnapshotId, document.Kind,
+            document.ReadComplete && incomplete != "both" && !(incomplete == "ich" && document.Kind == BackboneKind.Ich) &&
+                !(incomplete == "regional" && document.Kind == BackboneKind.UsRegional),
+            document.DtdStatus, document.DocumentTypeName, document.SystemIdentifier, document.PublicIdentifier,
+            document.Elements, document.Nodes, document.Leaves, document.IdIndex.Values.SelectMany(value => value), document.ResolvedAssets));
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            documents, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        var lifecycle = new PackageLifecycleInspection(fixture.Input.Packages, delivery.Lifecycle.ProfileSnapshotId, [modified], [], [], [],
+            fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, lifecycle, fixture.Context, CancellationToken.None);
+        Assert.Equal(expected, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData("ich-2", BackboneKind.UsRegional)]
+    [InlineData("cover", BackboneKind.Ich)]
+    public async Task QualifiedLocationRetainsFailureWhenOtherBackboneIsIncomplete(string scenario, BackboneKind incomplete)
+    {
+        var fixture = await Fixture(scenario); var delivery = await Run(fixture);
+        var xml = Assert.Single(delivery.Lifecycle.XmlInspections);
+        var documents = xml.Backbones.Select(document => new ParsedBackbone(document.LogicalPath, document.ProfileSnapshotId, document.Kind,
+            document.Kind != incomplete && document.ReadComplete, document.DtdStatus, document.DocumentTypeName, document.SystemIdentifier,
+            document.PublicIdentifier, document.Elements, document.Nodes, document.Leaves, document.IdIndex.Values.SelectMany(value => value), document.ResolvedAssets));
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            documents, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        var lifecycle = new PackageLifecycleInspection(fixture.Input.Packages, delivery.Lifecycle.ProfileSnapshotId, [modified], [], [], [],
+            fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, lifecycle, fixture.Context, CancellationToken.None);
+        run.Observe(Assert.Single(delivery.Pdf.Documents, document => document.LogicalPath == "0001/m1/us/report.pdf"), 10);
+        Assert.Equal(CheckStatus.Fail, run.Finish(false)!.Status); Assert.Equal(1, run.FindingCount);
+    }
+
+    [Theory]
     [InlineData("cover", CheckStatus.Fail)]
     [InlineData("promotional", CheckStatus.NotEvaluated)]
     [InlineData("both", CheckStatus.Fail)]
@@ -298,16 +446,16 @@ public sealed class FdaPdfAnnotationRuleTests
             var pdf = Build(subtype, annotation);
             var xml = XDocument.Parse(Fda47AttributeRulesTests.Valid());
             var module = xml.Descendants("m1-regional").Single();
-            var path = scenario == "folder-name" ? "m1-15-promotional-material/report.pdf" : "report.pdf";
+            var path = scenario is "folder-name" or "ich-2-physical-promo" ? "m1-15-promotional-material/report.pdf" : "report.pdf";
             var href = scenario == "history" ? "../../../0000/m1/us/report.pdf" : path;
             var leaf = Leaf("outside", href, scenario == "delete" ? "delete" : "new", pdf);
-            if (scenario is not ("promotional" or "promotional-extension" or "unreferenced"))
+            if (!scenario.StartsWith("ich-", StringComparison.Ordinal) && scenario is not ("promotional" or "promotional-extension" or "unreferenced"))
             {
                 var cover = new XElement("m1-2-cover-letters", scenario == "extension" ? Extension(leaf) : leaf);
                 if (scenario == "same-file") cover.Add(Leaf("alias", path + "#page=1", "new", pdf));
                 module.Add(cover);
             }
-            if (scenario is "promotional" or "promotional-extension" or "both")
+            if (scenario is "promotional" or "promotional-extension" or "both" or "ich-2-both")
             {
                 var allowed = Leaf("inside", path, "new", pdf);
                 module.Add(new XElement("m1-15-promotional-material", new XAttribute("promotional-material-audience-type", "fdapmat1"),
@@ -317,8 +465,34 @@ public sealed class FdaPdfAnnotationRuleTests
             var text = xml.ToString(SaveOptions.DisableFormatting);
             if (scenario == "broken-tail") text += "<broken";
             var original = new PackageRegionalInspectionTests.MemoryInput(app, "0001", text, PackageValidationCatalog.UsProfile);
-            _files = original.Manifest.Files.ToDictionary(file => file.LogicalPath, file => { using var stream = original.OpenRead(file.LogicalPath); using var output = new MemoryStream(); stream.CopyTo(output); return output.ToArray(); }, StringComparer.Ordinal);
-            if (scenario != "missing") _files["0001/m1/us/" + path] = pdf;
+            _files = original.Manifest.Files.Where(file => scenario is not ("ich-2-no-pdf" or "ich-2-empty") || !file.LogicalPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(file => file.LogicalPath, file => { using var stream = original.OpenRead(file.LogicalPath); using var output = new MemoryStream(); stream.CopyTo(output); return output.ToArray(); }, StringComparer.Ordinal);
+            if (scenario.StartsWith("ich-", StringComparison.Ordinal))
+            {
+                var index = XDocument.Parse(Encoding.UTF8.GetString(_files["0001/index.xml"]));
+                var regionalLeaf = index.Descendants("leaf").Single();
+                regionalLeaf.SetAttributeValue("checksum", new string('0', 32)); regionalLeaf.SetAttributeValue("checksum-type", "md5");
+                var heading = scenario.Split('-')[1] switch
+                {
+                    "2" => ("m2-common-technical-document-summaries", "m2-5-clinical-overview"),
+                    "3" => ("m3-quality", (string?)null),
+                    "4" => ("m4-nonclinical-study-reports", (string?)null),
+                    "5" => ("m5-clinical-study-reports", (string?)null),
+                    _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+                };
+                var ichHref = scenario switch
+                {
+                    "ich-2-history" => "../0000/m1/us/report.pdf", "ich-2-query" => "m1/us/report.pdf?view=1",
+                    "ich-2-encoded" => "m1/us/re%70ort.pdf", _ => "m1/us/" + path
+                };
+                var content = Leaf("ich-outside", ichHref, scenario == "ich-2-delete" ? "delete" : "new", pdf);
+                if (scenario == "ich-2-extension") content = Extension(content);
+                if (scenario == "ich-2-same") content = new XElement("node-extension", new XAttribute("ID", "aliases"), new XElement("title", "Aliases"),
+                    content, Leaf("ich-alias", "m1/us/report.pdf#page=1", "new", pdf));
+                if (scenario != "ich-2-empty") index.Root!.Add(new XElement(heading.Item1, heading.Item2 is null ? content : new XElement(heading.Item2, content)));
+                _files["0001/index.xml"] = Encoding.UTF8.GetBytes(index.ToString() + (scenario == "ich-2-broken" ? "<broken" : ""));
+            }
+            if (scenario is not ("missing" or "ich-2-missing" or "ich-2-no-pdf" or "ich-2-empty")) _files["0001/m1/us/" + path] = pdf;
             if (secondPdf) _files["0001/z-other.pdf"] = pdf;
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }
