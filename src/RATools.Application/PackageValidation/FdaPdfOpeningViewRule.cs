@@ -53,8 +53,20 @@ internal static class FdaPdfOpeningViewRule
             if (!_expected.TryGetValue(document.LogicalPath, out var captured) || !_observed.Add(document.LogicalPath) ||
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
-                facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || facts.OpeningView is not { } view ||
-                view.HasViewActions || view.HasBookmarks is not { } bookmarks || bookmarks != facts.Basics.HasBookmarks ||
+                facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || facts.OpeningView is not { } view) return;
+            if (view.HasViewActions && view.OpeningZoom is PdfOpeningZoomKind.FitPage or PdfOpeningZoomKind.FixedFactor &&
+                facts.QualifiedPageCount == facts.Basics.PageCount)
+            {
+                if (remaining <= 0) return;
+                _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
+                    "The qualified direct PDF opening destination selects a fit-page or fixed magnification instead of Default.",
+                    new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: "catalog/OpenAction", Files: [new(_input.Packages.Target.SourceId, document.LogicalPath)]),
+                    "Default magnification", view.OpeningZoom.ToString(),
+                    "Ensure PDF opening magnification is set to Default for future submissions."));
+                _progress?.Invoke(new(RuleId, CheckStatus.Fail, "A definite opening magnification mismatch is established; other settings may remain unknown.", _findings.ToArray()));
+                _token.ThrowIfCancellationRequested(); return;
+            }
+            if (view.HasViewActions || view.OpeningZoom != PdfOpeningZoomKind.Unknown || view.HasBookmarks is not { } bookmarks || bookmarks != facts.Basics.HasBookmarks ||
                 view.PageMode is not ("UseNone" or "UseOutlines" or "UseThumbs" or "FullScreen" or "UseOC" or "UseAttachments") ||
                 facts.Basics.PageMode is { } originalMode && originalMode != view.PageMode) return;
             var expected = bookmarks ? "UseOutlines" : "UseNone";
@@ -73,7 +85,7 @@ internal static class FdaPdfOpeningViewRule
             if (_rule is null) return null;
             if (_terminal is not null) return _terminal;
             return new(RuleId, _findings.Count > 0 ? CheckStatus.Fail : !interrupted && _expected.Count == 0 ? CheckStatus.NotApplicable : CheckStatus.NotEvaluated,
-                "Only qualified opening-panel settings are compared. Layout, magnification, inherited zoom, opening actions, uncertain outlines, history, non-PDF-named contents and pre-4.1 policy remain unqualified; no Pass is emitted.", _findings.ToArray());
+                "Qualified opening-panel settings and isolated direct OpenAction Fit/positive XYZ magnification are compared. Zero/null XYZ is not a failure. Layout, other opening actions/destinations, inherited link/bookmark zoom, uncertain outlines, history, non-PDF-named contents and pre-4.1 policy remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

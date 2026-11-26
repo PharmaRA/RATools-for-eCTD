@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 using RATools.Application.PackageValidation;
 using RATools.Application.Publishing.Validation.Pdf;
 using RATools.Application.Standards;
@@ -13,6 +14,138 @@ namespace RATools.Tests.PackageValidation;
 public sealed class FdaPdfOpeningViewRuleTests
 {
     private const string RuleId = "FDA47-5045";
+
+    [Theory]
+    [InlineData("[3 0 R /Fit]")]
+    [InlineData("[3 0 R /XYZ null null 1]")]
+    [InlineData("[3 0 R /XYZ 0 100 1.25]")]
+    [InlineData("[3 0 R /XYZ null null 0.5]")]
+    public async Task ExplicitOpeningMagnificationIsNotDefault(string destination)
+    {
+        var result = await Run(await Fixture(Build("/OpenAction " + destination, false)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfContentProcessingStatus.Processed, facts.ContentProcessing);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal("catalog/OpenAction", Assert.Single(check.Findings).Location.FieldPath);
+    }
+
+    [Theory]
+    [InlineData("[3 0 R /XYZ null null 0]")]
+    [InlineData("[3 0 R /XYZ null null null]")]
+    [InlineData("[3 0 R /XYZ null null -1]")]
+    [InlineData("[3 0 R /XYZ null null (1)]")]
+    [InlineData("[3 0 R /XYZ (0) null 1]")]
+    [InlineData("[3 0 R /XYZ null null 1 0]")]
+    [InlineData("[3 0 R /Fit 0]")]
+    [InlineData("[3 0 R /FitH 0]")]
+    [InlineData("[3 0 R /Unknown]")]
+    [InlineData("[99 0 R /Fit]")]
+    [InlineData("[4 0 R /Fit]")]
+    [InlineData("[0 /Fit]")]
+    [InlineData("(named)")]
+    [InlineData("null")]
+    [InlineData("<< /S /GoTo /D [3 0 R /Fit] >>")]
+    [InlineData("[3 0 R /Fit] /AA << >>")]
+    [InlineData("[3 0 R /Fit] /Names << >>")]
+    [InlineData("[3 0 R /Fit] /AcroForm << /Fields [] >>")]
+    public async Task UnsupportedOrOverriddenOpeningViewsDoNotProveFixedZoom(string destination)
+    {
+        var result = await Run(await Fixture(Build("/OpenAction " + destination, false)));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(PdfOpeningZoomKind.Unknown, facts.OpeningView!.OpeningZoom);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("2016-09-20", CheckStatus.NotEvaluated)]
+    [InlineData("2016-09-21", CheckStatus.Fail)]
+    [InlineData(null, CheckStatus.NotEvaluated)]
+    public async Task OpeningZoomUsesCapturedPolicyDate(string? date, CheckStatus expected)
+    {
+        var result = await Run(await Fixture(Build("/OpenAction [3 0 R /Fit]", false), date));
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
+    [Theory]
+    [InlineData("hash")]
+    [InlineData("legacy")]
+    [InlineData("page-count")]
+    [InlineData("missing-pages")]
+    [InlineData("no-action")]
+    [InlineData("unknown-kind")]
+    public async Task OpeningZoomRequiresConsistentBoundFacts(string variant)
+    {
+        var fixture = await Fixture(Build("/OpenAction [3 0 R /Fit]", false));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var original = document.Facts!;
+        var facts = new PackagePdfFacts(original.Basics, [], [], true, true,
+            contentProcessing: variant == "legacy" ? PdfContentProcessingStatus.Unknown : PdfContentProcessingStatus.Processed,
+            openingView: original.OpeningView! with { HasViewActions = variant != "no-action", OpeningZoom = variant == "unknown-kind" ? (PdfOpeningZoomKind)99 : PdfOpeningZoomKind.FitPage },
+            qualifiedPageCount: variant == "missing-pages" ? null : variant == "page-count" ? 2 : 1);
+        var run = new FdaPdfOpeningViewRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document with { Facts = facts, CapturedSha256 = variant == "hash" ? new string('0', 64) : document.CapturedSha256 }, 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task OpeningZoomHonorsAllowanceAndRetainsFailureOnCancellation(int remaining, CheckStatus expected)
+    {
+        var fixture = await Fixture(Build("/OpenAction [3 0 R /Fit]", false));
+        var document = Assert.Single((await Run(fixture)).Documents);
+        var run = new FdaPdfOpeningViewRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(document, remaining); Assert.Equal(expected, run.Finish(true)!.Status);
+        using var cancellation = new CancellationTokenSource(); RuleCheckResult? retained = null;
+        var cancelled = new FdaPdfOpeningViewRule.Inspection(fixture.Input, fixture.Files, fixture.Context, cancellation.Token,
+            result => { retained = result; if (result.Status == CheckStatus.Fail) cancellation.Cancel(); });
+        Assert.ThrowsAny<OperationCanceledException>(() => cancelled.Observe(document, 1));
+        Assert.Equal(CheckStatus.Fail, retained!.Status); Assert.Single(retained.Findings);
+    }
+
+    [Fact]
+    public async Task OpeningZoomFailureRemainsPartialInReport()
+    {
+        var fixture = await Fixture(Build("/OpenAction [3 0 R /Fit]", false));
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(ImplementationStatus.Partial, fixture.Context.Catalog.Rules[RuleId].ImplementationStatus);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
+    [Theory]
+    [InlineData("direct", CheckStatus.Fail)]
+    [InlineData("page-aa", CheckStatus.NotEvaluated)]
+    [InlineData("indirect", CheckStatus.NotEvaluated)]
+    public async Task PageActionsAndIndirectOpeningDestinationsRemainUnqualified(string scenario, CheckStatus expected)
+    {
+        var objects = new[] {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction " + (scenario == "indirect" ? "4 0 R" : "[3 0 R /Fit]") + " >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> " + (scenario == "page-aa" ? "/AA << >>" : "") + " >>",
+            "[3 0 R /Fit]"
+        };
+        var text = new StringBuilder("%PDF-1.4\n"); var offsets = new List<int>();
+        for (var index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.ASCII.GetByteCount(text.ToString()));
+            text.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        var xref = Encoding.ASCII.GetByteCount(text.ToString());
+        text.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (var offset in offsets) text.Append(offset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        text.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        var result = await Run(await Fixture(Encoding.ASCII.GetBytes(text.ToString())));
+        var facts = Assert.Single(result.Documents).Facts!;
+        Assert.Null(facts.Basics.ParseError);
+        Assert.Equal(expected == CheckStatus.Fail ? PdfOpeningZoomKind.FitPage : PdfOpeningZoomKind.Unknown, facts.OpeningView!.OpeningZoom);
+        Assert.Equal(expected, Assert.Single(result.Checks, item => item.RuleId == RuleId).Status);
+    }
+
 
     [Theory]
     [InlineData("", false, CheckStatus.NotEvaluated)]
@@ -29,7 +162,7 @@ public sealed class FdaPdfOpeningViewRuleTests
     [InlineData("/PageMode null", true, CheckStatus.NotEvaluated)]
     [InlineData("/PageMode /Unknown", false, CheckStatus.NotEvaluated)]
     [InlineData("/PageMode 9 0 R", true, CheckStatus.Fail)]
-    [InlineData("/PageMode /UseThumbs /OpenAction [3 0 R /Fit]", true, CheckStatus.NotEvaluated)]
+    [InlineData("/PageMode /UseThumbs /OpenAction [3 0 R /Fit]", true, CheckStatus.Fail)]
     [InlineData("/PageMode /UseThumbs /AA << >>", true, CheckStatus.NotEvaluated)]
     public async Task OriginalModeAndBookmarkEvidenceReachIndependentRule(string catalog, bool bookmarks, CheckStatus expected)
     {
@@ -102,7 +235,7 @@ public sealed class FdaPdfOpeningViewRuleTests
         using var stream = new MemoryStream(Build(catalog, bookmarks));
         var facts = new PdfPigPackageInspector().Inspect(stream, "0001/report.pdf", new(), CancellationToken.None);
         Assert.Null(facts.Basics.ParseError);
-        Assert.Equal(new PdfOpeningViewFacts(mode, presence, actions), facts.OpeningView);
+        Assert.Equal(new PdfOpeningViewFacts(mode, presence, actions, actions ? PdfOpeningZoomKind.FitPage : PdfOpeningZoomKind.Unknown), facts.OpeningView);
     }
 
     [Theory]

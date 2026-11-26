@@ -9,7 +9,7 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v25";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v26";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -158,7 +158,7 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                         Get(root, "Last") is IndirectReferenceToken lastReference &&
                         ValidItem(firstReference, rootReference) && ValidItem(lastReference, rootReference)) bookmarks = true;
                 }
-                return new(mode, bookmarks, actions);
+                return new(mode, bookmarks, actions, ReadOpeningZoom(catalog));
             }
             catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
             {
@@ -174,6 +174,31 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                     Get(item, "Parent") is IndirectReferenceToken owner && owner.Data == parent.Data &&
                     Text(Resolve(Get(item, "Title"))) is not null;
             }
+
+            PdfOpeningZoomKind ReadOpeningZoom(DictionaryToken catalog)
+            {
+                Count(0);
+                if (catalog.ContainsKey(NameToken.Create("AA")) || catalog.ContainsKey(NameToken.Create("Names")) ||
+                    catalog.ContainsKey(NameToken.Create("AcroForm")) || Get(catalog, "OpenAction") is not ArrayToken destination ||
+                    destination.Length < 2 || destination.Data[0] is not IndirectReferenceToken target ||
+                    !_pageNumbers.ContainsKey(target.Data) || _pages.Count != document.NumberOfPages || ReadQualifiedPageCount() is null)
+                    return PdfOpeningZoomKind.Unknown;
+                foreach (var page in _pages)
+                {
+                    Count(0);
+                    if (page.ContainsKey(NameToken.Create("AA"))) return PdfOpeningZoomKind.Unknown;
+                }
+                // PDF Reference Table 8.2: direct XYZ zero/null retains zoom;
+                // Fit and a positive finite XYZ factor explicitly select it.
+                var kind = destination.Data[1] as NameToken;
+                if (kind?.Data == "Fit" && destination.Length == 2) return PdfOpeningZoomKind.FitPage;
+                if (kind?.Data == "XYZ" && destination.Length == 5 && Coordinate(destination.Data[2]) && Coordinate(destination.Data[3]) &&
+                    destination.Data[4] is NumericToken zoom && double.IsFinite(zoom.Double) && zoom.Double > 0)
+                    return PdfOpeningZoomKind.FixedFactor;
+                return PdfOpeningZoomKind.Unknown;
+            }
+
+            static bool Coordinate(IToken value) => value is NullToken || value is NumericToken number && double.IsFinite(number.Double);
         }
         public IReadOnlyList<PdfFontObservation> ReadFonts()
         {

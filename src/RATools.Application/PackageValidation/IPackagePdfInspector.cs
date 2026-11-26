@@ -20,7 +20,9 @@ public sealed record PdfFontObservation(string ObjectPath, string? BaseFont, str
 public sealed record PdfVersionDeclaration(string HeaderVersion, bool HasCatalogVersion, bool HasExtensions, bool HasMetadata,
     string? CatalogVersion = null);
 public enum PdfLinearizationStatus { Unknown, MissingFirstObjectDeclaration, DeclaredUnverified, NonDictionaryFirstObject }
-public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions);
+public enum PdfOpeningZoomKind { Unknown, FitPage, FixedFactor }
+public sealed record PdfOpeningViewFacts(string? PageMode, bool? HasBookmarks, bool HasViewActions,
+    PdfOpeningZoomKind OpeningZoom = PdfOpeningZoomKind.Unknown);
 public sealed record PdfMarkupAnnotation(string ObjectPath, int PageNumber, string Subtype);
 public enum PdfImageOnlyStatus { Unknown, QualifiedImageOnly }
 public sealed record PdfBookmarkFileTarget(string ObjectPath, string FileSpecification, long? ZeroBasedPageIndex = null);
