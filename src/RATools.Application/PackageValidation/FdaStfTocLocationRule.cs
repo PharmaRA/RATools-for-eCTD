@@ -6,6 +6,8 @@ namespace RATools.Application.PackageValidation;
 internal static class FdaStfTocLocationRule
 {
     internal const string RuleId = "FDA47-1901";
+    private static readonly ValidationRuleSource HeadingGuide = new("fda-technical-guide", RuleSourceKind.RegulatorySpecification, "1.9",
+        "https://www.fda.gov/media/181847/download?attachment", "d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c", "Verified");
     internal static RuleCheckResult? Inspect(PackageInputSet packages, PackageLifecycleInspection lifecycle,
         PackageStandardsContext context, int remaining, CancellationToken cancellationToken, Action<RuleCheckResult>? retainProgress = null)
     {
@@ -27,6 +29,7 @@ internal static class FdaStfTocLocationRule
             return Unknown("The lifecycle facts do not bind the selected inputs and context.");
 
         var incomplete = false;
+        var applicable = false;
         var findings = new List<ValidationFinding>();
         var work = packages.Target.Limits.MaxXmlNodes;
         var targetNumber = packages.Target.Manifest.SequenceNumber;
@@ -86,11 +89,12 @@ internal static class FdaStfTocLocationRule
                     var identity = Identity(path);
                     if (identity is null) { incomplete = true; continue; }
                     if (!identity.Value.Stf) continue;
+                    applicable = true;
                     var section = backbone.Kind == BackboneKind.Ich ? Section(element, elements) :
                         RegionalModule(backbone, element, leaf, elements);
                     if (section is null) { incomplete = true; continue; }
                     if (Within(section, "m4") || Within(section, "m5"))
-                    { incomplete = true; continue; } // Module membership alone does not qualify a heading.
+                    { if (!PermittedStudyHeading(backbone, element, leaf, elements, section)) incomplete = true; continue; }
                     if (remaining <= 0) { incomplete = true; continue; }
                     remaining--;
                     findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
@@ -103,8 +107,63 @@ internal static class FdaStfTocLocationRule
         }
         catch (LocationWorkLimitException) { incomplete = true; }
         cancellationToken.ThrowIfCancellationRequested();
-        return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.NotApplicable,
-            "Checked exact current STF owners for module-external placement, including actual STF content selected by a qualified US regional module-one leaf. Specific allowed headings within modules 4/5 and STF content misread as a regional backbone remain unqualified; no complete location Pass is asserted.", findings);
+        return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
+            "Checked exact current STF owners for module-external placement and qualified lowest standard study-report headings under m4.2 and m5.3.1 through m5.3.5. Aggregate, extension and other module-four/five headings, and STF content misread as a regional backbone remain unqualified. Local location passes do not establish full rule coverage or study-content suitability.", findings);
+
+        bool PermittedStudyHeading(ParsedBackbone backbone, ParsedXmlElement element, ParsedPackageLeaf leaf,
+            IReadOnlyDictionary<string, ParsedXmlElement> elements, string section)
+        {
+            Tick();
+            if (context.SelectionDate < new DateOnly(2024, 9, 9) || !context.HasArchivedOfficialSource(HeadingGuide) ||
+                backbone.Kind != BackboneKind.Ich || !leaf.ContextComplete ||
+                !(section.StartsWith("m4.2.", StringComparison.Ordinal) ||
+                  section.StartsWith("m5.3.1.", StringComparison.Ordinal) || section.StartsWith("m5.3.2.", StringComparison.Ordinal) ||
+                  section.StartsWith("m5.3.3.", StringComparison.Ordinal) || section.StartsWith("m5.3.4.", StringComparison.Ordinal) ||
+                  section.StartsWith("m5.3.5.", StringComparison.Ordinal)) ||
+                element.ParentPath is not { } headingPath || !elements.TryGetValue(headingPath, out var heading) ||
+                !context.NodeSchema.Definitions.TryGetValue(heading.Name, out var definition) || definition.SectionPath != section ||
+                definition.Children.Count != 0 || !definition.AllowsLeaves ||
+                leaf.Location.LogicalPath != backbone.LogicalPath || leaf.Location.NodePath != element.NodePath) return false;
+            if (Raw("ID", "") != leaf.Id || Raw("operation", "") != leaf.Operation ||
+                Raw("href", "http://www.w3c.org/1999/xlink") is not { } href || href != leaf.Href) return false;
+            var roots = new List<ParsedXmlElement>();
+            var parents = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var node in elements.Values)
+            {
+                Tick();
+                if (node.ParentPath is null) roots.Add(node);
+                foreach (var child in node.Children)
+                {
+                    Tick();
+                    if (!parents.TryGetValue(child, out var owners)) parents.Add(child, owners = []);
+                    owners.Add(node.NodePath);
+                }
+            }
+            if (roots.Count != 1 || roots[0] is not { LocalName: "ectd", NamespaceUri: "http://www.ich.org/ectd" }) return false;
+            var current = element;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            while (true)
+            {
+                Tick();
+                if (!seen.Add(current.NodePath) || current.Location.LogicalPath != backbone.LogicalPath || current.Location.NodePath != current.NodePath) return false;
+                if (current.ParentPath is not { } path) return current == roots[0] && !parents.ContainsKey(current.NodePath);
+                if (!elements.TryGetValue(path, out var parent) || !parents.TryGetValue(current.NodePath, out var owners) ||
+                    owners.Count != 1 || owners[0] != parent.NodePath) return false;
+                current = parent;
+            }
+            string? Raw(string name, string ns)
+            {
+                var count = 0; string? value = null;
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.Value == attribute.ExplicitValue) value = attribute.ExplicitValue;
+                }
+                return count == 1 ? value : null;
+            }
+        }
 
         string? RegionalModule(ParsedBackbone backbone, ParsedXmlElement leafElement, ParsedPackageLeaf leaf,
             IReadOnlyDictionary<string, ParsedXmlElement> elements)

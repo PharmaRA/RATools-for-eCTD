@@ -15,6 +15,103 @@ public sealed class FdaStfTocLocationRuleTests
     private const string RuleId = "FDA47-1901";
 
     [Theory]
+    [InlineData("m4-study", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m5-study", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m4-study", "valid", "missing-guide", CheckStatus.NotEvaluated)]
+    [InlineData("m4-study", "extension", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m4-methods", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m5-study2", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m5-study3", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m5-study4", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m5-study5", "valid", "valid", CheckStatus.Pass)]
+    [InlineData("m4-study", "history", "valid", CheckStatus.Pass)]
+    [InlineData("m4-study", "two", "valid", CheckStatus.Pass)]
+    [InlineData("m4-parent", "valid", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m5-parent", "valid", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m5-listing", "valid", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m5-postmarketing", "valid", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m4", "valid", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m5", "valid", "valid", CheckStatus.NotEvaluated)]
+    public async Task LowestStudyHeadingNeedsArchivedPolicyAndExactPlacement(string module, string scenario, string variant, CheckStatus expected)
+    {
+        var fixture = await Fixture(module, scenario, variant);
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections, x => x.InputDigest == fixture.Packages.Target.InputDigest);
+        var index = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.Ich);
+        Assert.Equal(CheckStatus.Pass, index.DtdStatus);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(fixture.Lifecycle.XmlInspections.SelectMany(x => x.StudyTaggingFiles.Documents)).DtdStatus);
+        var result = Inspect(fixture)!;
+        Assert.Equal(expected, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("2024-09-08", CheckStatus.NotEvaluated)]
+    [InlineData("2024-09-09", CheckStatus.Pass)]
+    public async Task StudyHeadingPolicyDoesNotApplyBeforeItsSelectedSupportDate(string date, CheckStatus expected)
+        => Assert.Equal(expected, Inspect(await Fixture("m4-study", date: date))!.Status);
+
+    [Theory]
+    [InlineData("missing-href")]
+    [InlineData("conflicting-operation")]
+    [InlineData("default-id")]
+    [InlineData("element-location")]
+    [InlineData("leaf-location")]
+    [InlineData("parent-location")]
+    [InlineData("second-parent")]
+    [InlineData("duplicate-child")]
+    [InlineData("extra-root")]
+    [InlineData("context-incomplete")]
+    public async Task PermittedHeadingNeedsOriginalUniquePlacementEvidence(string scenario)
+    {
+        var fixture = await Fixture("m4-study");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var index = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.Ich);
+        var owner = Assert.Single(index.Leaves, l => l.Id == "owner");
+        var root = Assert.Single(index.Elements, e => e.ParentPath is null);
+        var elements = index.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => e.NodePath != owner.NodePath ? a : (scenario, a.LocalName) switch
+            {
+                ("missing-href", "href") => a with { ExplicitValue = null },
+                ("conflicting-operation", "operation") => a with { ExplicitValue = "delete" },
+                ("default-id", "ID") => a with { IsDefault = true }, _ => a
+            }), scenario == "second-parent" && e == root || scenario == "duplicate-child" && e.NodePath == owner.ParentNodePath ? e.Children.Append(owner.NodePath) : e.Children,
+            e.Text, scenario == "element-location" && e.NodePath == owner.NodePath || scenario == "parent-location" && e.NodePath == owner.ParentNodePath ?
+                e.Location with { LogicalPath = "0000/index.xml" } : e.Location));
+        if (scenario == "extra-root") elements = elements.Append(new("extra", null, root.Name, root.LocalName, root.NamespaceUri, [], [], "", root.Location with { NodePath = "extra" }));
+        var changed = new ParsedBackbone(index.LogicalPath, index.ProfileSnapshotId, index.Kind, index.ReadComplete, index.DtdStatus,
+            index.DocumentTypeName, index.SystemIdentifier, index.PublicIdentifier, elements, index.Nodes,
+            index.Leaves.Select(l => l != owner ? l : scenario switch
+            {
+                "leaf-location" => l with { Location = l.Location with { NodePath = "wrong-node" } },
+                "context-incomplete" => l with { ContextComplete = false }, _ => l
+            }), index.IdIndex.Values.SelectMany(ids => ids), index.ResolvedAssets);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b != index).Append(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var result = Inspect(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Fact]
+    public async Task LocationPassIsNotFullCoverageAndCannotHideIndependentFailure()
+    {
+        var fixture = await Fixture("m4-study");
+        Assert.Equal(CheckStatus.Pass, Inspect(fixture, 0)!.Status);
+        foreach (var input in fixture.Packages.Sequences.Values.Cast<Capture>()) input.Armed = false;
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context)
+            .InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        Assert.Equal(CheckStatus.Pass, Assert.Single(delivery.Files.Checks, c => c.RuleId == RuleId).Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, c => c.RuleId == RuleId).CheckStatus);
+        foreach (var variant in new[] { "valid", "missing-guide" })
+        {
+            var mixed = await Fixture("m4-study", "study-and-regional", variant);
+            var result = Inspect(mixed, 1)!;
+            Assert.Equal(CheckStatus.Fail, result.Status);
+            Assert.Equal("0001/m1/us/us-regional.xml", Assert.Single(result.Findings).Location.LogicalPath);
+        }
+    }
+
+    [Theory]
     [InlineData("valid", CheckStatus.Fail)]
     [InlineData("history", CheckStatus.Fail)]
     [InlineData("ordinary", CheckStatus.NotApplicable)]
@@ -383,9 +480,10 @@ public sealed class FdaStfTocLocationRuleTests
     private static async Task<FixtureData> Fixture(string module, string scenario = "valid", string variant = "valid", string? date = "2026-11-23")
     {
         var snapshot = await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2");
-        if (variant is "missing-source" or "missing-spec")
+        if (variant is "missing-source" or "missing-spec" or "missing-guide")
         {
-            var hash = variant == "missing-source" ? "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c" : "63132c3751682193f6f13db125ee03583b740680851c0f0e6412561438b482da";
+            var hash = variant == "missing-source" ? "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c" :
+                variant == "missing-guide" ? "d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c" : "63132c3751682193f6f13db125ee03583b740680851c0f0e6412561438b482da";
             snapshot = StandardsProfileSnapshot.Create(snapshot.Descriptor with { Provenance = snapshot.Descriptor.Provenance.Where(item => item.Sha256 != hash).ToArray() }, snapshot.Resources.Where(item => item.Sha256 != hash), snapshot.AcquiredUtc);
         }
         var context = PackageStandardsContext.FromSnapshot(snapshot, selectionDate: date is null ? null : DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture));
@@ -433,7 +531,7 @@ public sealed class FdaStfTocLocationRuleTests
         {
             var regional = XDocument.Parse(Fda47AttributeRulesTests.Valid());
             regional.Descendants("sequence-number").Single().Value = sequence;
-            if (module == "regional")
+            if (module == "regional" || scenario == "study-and-regional")
             {
                 var href = (scenario.StartsWith("history", StringComparison.Ordinal) ? "../../../0000/" : "../../") +
                     "m4/study/" + (scenario == "ordinary" ? "metadata.xml" : "stf-A.xml");
@@ -447,12 +545,40 @@ public sealed class FdaStfTocLocationRuleTests
             var heading = module switch { "m2" => "m2-2-introduction", "m3" => "m3-3-literature-references", "m4" => "m4-3-literature-references", _ => "m5-4-literature-references" };
             var container = module switch { "m2" => "m2-common-technical-document-summaries", "m3" => "m3-quality", "m4" => "m4-nonclinical-study-reports", _ => "m5-clinical-study-reports" };
             var section = module == "m1" ? region : new XElement(heading);
-            if (module != "m1") root.Add(new XElement(container, section));
+            if (module is "m4-study" or "m4-methods" or "m4-parent")
+            {
+                section = new XElement(module == "m4-methods" ? "m4-2-2-1-analytical-methods-and-validation-reports" : "m4-2-1-1-primary-pharmacodynamics");
+                var parent = new XElement(module == "m4-methods" ? "m4-2-2-pharmacokinetics" : "m4-2-1-pharmacology", section);
+                root.Add(new XElement("m4-nonclinical-study-reports", new XElement("m4-2-study-reports", parent)));
+                if (module == "m4-parent") section = parent;
+            }
+            else if (module.StartsWith("m5-study", StringComparison.Ordinal) || module is "m5-parent" or "m5-postmarketing" or "m5-listing")
+            {
+                var (parentName, childName) = module switch
+                {
+                    "m5-study2" => ("m5-3-2-reports-of-studies-pertinent-to-pharmacokinetics-using-human-biomaterials", "m5-3-2-1-plasma-protein-binding-study-reports"),
+                    "m5-study3" => ("m5-3-3-reports-of-human-pharmacokinetics-pk-studies", "m5-3-3-1-healthy-subject-pk-and-initial-tolerability-study-reports"),
+                    "m5-study4" => ("m5-3-4-reports-of-human-pharmacodynamics-pd-studies", "m5-3-4-1-healthy-subject-pd-and-pk-pd-study-reports"),
+                    "m5-study5" => ("m5-3-5-reports-of-efficacy-and-safety-studies", "m5-3-5-1-study-reports-of-controlled-clinical-studies-pertinent-to-the-claimed-indication"),
+                    _ => ("m5-3-1-reports-of-biopharmaceutic-studies", "m5-3-1-1-bioavailability-study-reports")
+                };
+                section = new XElement(childName);
+                var parent = new XElement(parentName, section);
+                if (module == "m5-study5") parent.SetAttributeValue("indication", "A");
+                var reports = new XElement("m5-3-clinical-study-reports", parent);
+                if (module == "m5-parent") section = parent;
+                if (module == "m5-postmarketing") { section = new XElement("m5-3-6-reports-of-postmarketing-experience"); reports = new XElement("m5-3-clinical-study-reports", section); }
+                if (module == "m5-listing") { section = new XElement("m5-2-tabular-listing-of-all-clinical-studies"); root.Add(new XElement("m5-clinical-study-reports", section)); }
+                else root.Add(new XElement("m5-clinical-study-reports", reports));
+            }
+            else if (module != "m1") root.Add(new XElement(container, section));
             if (scenario == "extension") { var extension = new XElement("node-extension", new XAttribute("ID", "ext"), new XElement("title", "Study")); section.Add(extension); section = extension; }
             if (module != "regional" && scenario is not ("unreferenced" or "history-only"))
             {
                 var href = (scenario.StartsWith("history", StringComparison.Ordinal) ? "../0000/" : "") + "m4/study/" + (scenario == "ordinary" ? "metadata.xml" : "stf-A.xml") + (scenario == "history-fragment" ? "#bad" : "");
-                section.Add(Leaf("owner", href, scenario == "delete" ? "delete" : "new"));
+                var owner = Leaf("owner", href, scenario == "delete" ? "delete" : "new");
+                if (module is "m4-parent" or "m5-parent") section.AddFirst(owner);
+                else section.Add(owner);
                 if (scenario == "two") section.Add(Leaf("owner2", href));
             }
             var index = new XDocument(new XDocumentType("ectd:ectd", null, "util/dtd/ich-ectd-3-2.dtd", null), root).ToString();

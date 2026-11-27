@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1901第三轮：最低标准研究报告章节的位置正向资格（仍Partial，主代理限定只读自审及终态核对通过）。** 区域STF分支已提交`769df8a`。固定FDA eCTD技术指南1.9物理第12/20/21页（正文6/14/15页）明确4.2及5.3.1–5.3.5的STF供应与最低层级研究报告放置；来源SHA`d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c`与快照绑定一致。本项仅在归档指南存在、选择日期不早于2024-09-09、无标准子章节的研究报告节点、完整owner上下文、原始显式叶属性/定位和唯一连根父链一致时给位置组件Pass。聚合父节点、node-extension、4.3/5.2/5.3.6/5.4及其他未资格章节仍NE，不以非必需推定禁止；不判断研究内容与章节的专业适配性，不影响独立模块外Fail。
+
+red四项2过2败，两类最低研究报告节点在完整真实ICH/STF前提后复现NE，缺指南/扩展节点对照正确。candidate八类 **386/386、0失败/跳过**（1901为108含新增30、1789为51、发现55、区域50、1884为66、中断16、文件28、交付12）。覆盖4.2两类及5.3.1–5.3.5代表节点、聚合及非必需章节、历史内容、多个owner、指南缺失/日期边界、原始属性/位置/重复归属/多根/上下文冲突、零finding额度Pass、Partial报告仍NE，以及有/无指南时独立区域Fail保留。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1901-study-headings-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。10交付/直接依赖输入SHA绑定；manifest SHA`16133c311a24099cca3b96d65280b1b456d6c1b8c1a781b3dce7225495e08d5d`、TRX SHA`e992315c5098f26af7288abd9dd62b402d67056d22639992df3e869ce480f082`；目录167条canonical SHA`f2f6a5babae4da70463fdfe29aee2bcbac57375b356fb5db0655c107d76e198c`。两轮证据及校验副本位于`.artifacts/local-check/fda1901-study-headings-*-20261128`和`backups/fda1901-study-headings-20261128/evidence/`，bin/obj仅回收。file-v107、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1901被ICH模块1引用并误作区域骨架的实际STF身份，以及其余未资格章节；之后按固定顺序处理1918等仍未闭合项，已Implemented项不重开。
+
 **FDA1901第二轮：有效US区域骨架中的真实STF归属（仍Partial，主代理限定只读自审及终态核对通过）。** 1884已提交`b8e1e3f`。固定criteria第39页与STF规格第4页明确STF仅能位于模块4/5。核技术指南物理第12/20/21/23页区分必需与允许：5.2/5.3.6不要求STF不能改写为禁止，完整允许清单尚未闭合。本项接入有效US区域骨架内当前叶引用真实当前/历史STF的模块1违规，绑定当前唯一捕获骨架、完整DTD、实际区域根、m1-regional下唯一双向父链、原始/派生定位与显式ID/operation/href；不按扩展名、物理文件夹或旧owner推定位置，不修改共享STF发现器。ICH模块1把STF误当区域骨架的路径继续未知。
 
 red四项2过2败，当前/历史真实STF均在完整区域DTD及真实根前提后复现NE，普通XML/缺文件对照正确。candidate七类303/304，唯一失败是新增区域交付用例误放ICH定位参数表而要求index.xml；移入实际交付/报告测试，保留旧断言与生产判断，并补区域工作预算相邻边界。final七类 **305/305、0失败/跳过**（1901为78含新增31、发现55、区域50、1884为66、中断16、文件28、交付12），覆盖当前/历史、已确认根后尾部损坏、坏根/缺文件/缺历史/delete、原始证据冲突、定位/配置/重复骨架/父链、未知owner前后独立已知违规、finding预算、取消和交付报告。主代理限定只读自审通过，无子代理。
