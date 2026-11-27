@@ -1,5 +1,13 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1735/1736共享前置：Define-XML 2.1声明事实读取（不计规则完成，主代理限定只读自审及终态核对通过）。** 1734已提交`a7563d7`。重核固定FDA Study Data Guide物理23/30/33页，确认SDTM/ADaM/SEND数据集需对应define元数据。代理网络连接重置、一次直连握手超时后，直连GitHub内容接口取得CDISC官方组织仓库固定提交`6738f18dc203f8fe29a5920fc6a33d0779fe0bd8`的相关模式定义；五份原件SHA与具体使用范围见[来源与边界](define-xml-21-declaration-reader.md)。扩展模式注释带draft，未冒称完整正式发布资格，未嵌入标准快照；Hindsight请求失败未作为证据。
+
+新增纯内存读取器：同一复制字节绑定SHA；限定单Study/MetaDataVersion、DefineVersion=2.1.0、直接Standards/Standard与ItemGroupDef/leaf，按展开命名空间和精确OID/ID保存解码声明与关联。缺引用、空引用、找不到、重复目标分开，不默认采用唯一标准；不trim、不折叠大小写、不根据文件名/标签证明模型。字节/节点及属性/深度/字符限额，禁DTD/外部实体/解析器，不访问href或样式；失败/超限不发布部分事实。ReadComplete仅支持范围读取结束，Resolved仅唯一声明ID关联，不是实际文件存在或CDISC合规。
+
+red五项全败，均为尚未实现的Unsupported；candidate、candidate2先后因公开Theory参数使用内部枚举、ReadOnlyMemory空集合构造造成Tests编译失败，未执行用例。修测试签名/空值表达式且不改预期；candidate3五类 **198/198、0失败/跳过**（新define52、XPT49、捕获XPT23、研究数据18、1734为56）。覆盖版本/多上下文/Include/xml:base、DTD/截断/坏尾、精确及歧义引用、命名空间、UTF16/坏UTF8、预算相邻边界、取消及只读事实。主代理限定只读自审通过，无子代理，candidate3即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1735-define-reader-candidate3-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。3交付源码输入SHA绑定；manifest SHA`7c2ace3b8657b70c4f3794d5203ee750e2d7bc047db421d023ee5603ec9ece65`、TRX SHA`a464a7360bf194e5ff491dfb98bfba000b1623994796399a98491c07bc67425b`。四轮证据及校验副本位于`.artifacts/local-check/fda1735-define-reader-*-20261127`和`backups/fda1735-define-reader-20261127/evidence/`；编译错误详见各失败轮的`build/Tests.build.log`，bin/obj仅回收。未改目录/引擎或两条规则状态，库存67/56/24、待完整覆盖80、原107完整27不变。下一先完成define捕获文件/清单/前后稳定性绑定，再关联实际XPT/STF/研究；模型/中心/日期/历史和正式来源资格仍待闭合。
+
 **FDA1734第二轮：当前区域申请身份绑定（仍Partial，主代理限定只读自审及终态核对通过）。** 1500已提交`984d898`。按序保留1544相关前次公司名称基线、1551/1553中心/实际表单/最新标签、1636/1697真实提交记录依赖；已Implemented项不重开。1734共享研究数据入口已绑定顶层规则/资产/输入，但规则自身的ApplicationType未验证区域观察当前路径/配置身份，历史或未捕获区域也可能触发缺TS失败。本项只增加当前配置、当前序列唯一捕获文件、元素位置一致和唯一真实区域根门槛；不改变原申请类型/默认值、TS供应、中心日期或历史政策。
 
 red四项1过3败：正常当前区域缺TS对照通过，历史路径、未捕获路径、错误配置均复现预期NE实际Fail；研究数据ScopeComplete及实际研究前提通过。修后七类 **184/184、0失败/跳过**（新区域绑定14、原1734为56、研究数据18、1737为40、中断16、文件28、交付12），含元素位置/节点位置、额外或错误根、重复元素/区域、不完整/DTD失败及乱序。主代理限定只读自审通过，无子代理；审查未改变受测输入，candidate即最终证据。
