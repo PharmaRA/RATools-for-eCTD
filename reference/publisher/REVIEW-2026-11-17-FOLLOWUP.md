@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1255第三轮：模块位置事实的绑定与唯一归属（仍Partial，主代理限定只读自审及终态核对通过）。** 1238已提交`ed823da`。原实现直接索引父节点/叶节点和SingleOrDefault，缺失或重复事实会抛异常，错误根/绑定冲突仍可能误报。新增唯一当前XML及规则/资产/限额绑定、捕获ICH根、唯一元素/叶索引、显式ID/operation/href一致性，以及有界、双向一致且唯一父项的模块归属。支持乱序事实，不再依赖遍历顺序；其他未知叶不抹去独立已知失败。已有格式表、日期门槛和DTD前提保持不变。
+
+red六项1过5败，正常M2违规对照通过，三项查找异常和两项误Fail复现。candidate六类136/167，31项既有格式行因新增实现/合成夹具误用www.w3.org而回退NE；核固定ICH DTD与真实XML后修为www.w3c.org，不改旧预期。自审新增两项多父归属冲突；review-red三类95/97仅这两项误Fail，补复用Children遍历的唯一归属索引。final六类 **169/169、0失败/跳过**（新增证据47、原规则13、附加行37、共用叶路径32、文件28、交付12），覆盖原始属性、绑定/命名空间、循环/缺父/重复、乱序、预算相邻边界、取消和已知失败保留。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1255-binding-final-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`d28fb98c19d2225078692b9ee4ae98b7784c49299126a1d42c4b9da9e5d50563`、TRX SHA`789ba0352692e9bf58f870f6ab67ad4133a523414d77defffd0984eb4d6d9635`；目录167条canonical SHA`c1fba674693f9f02dbdd839ea2cd977e069dcf2e75b0e04e8ac41129f80ac68d`。red/candidate/review-red/final证据及校验副本在`.artifacts/local-check/fda1255-binding-*-20261127`和`backups/fda1255-binding-20261127/evidence/`，bin/obj按精确范围回收。file-v95、inspector-v39、PDF-v32、交付v6；其他格式/用途/区域等缺口仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一1314读取失败隔离，再按固定顺序继续。
+
 **FDA1238第三轮：单文件读取失败不抹去独立大小证据（仍Partial，主代理限定只读自审及终态核对通过）。** 1119/1130已提交`78704b4`；1154跨申请实际提交见证没有新输入，保留依赖。1238原PDF头部读取异常会直接中断规则，先前发现无法返回。本项只隔离普通IOException（排除所有PackageInputException）与UnauthorizedAccessException；不可读文件保持未知，其他明确超限文件仍检查并保留。取消和输入变更/完整性异常必须传播，既有十进制/二进制边界、PDF头部判据及数据集范围不变。
 
 red三项均复现IOException中断；candidate四类108/108。主代理自审发现清单按路径排序，原before/after夹具实际都先读取known.pdf，不能声称两方向已验证；改为a-unreadable/m-known/z-unreadable并断言实际打开顺序，生产不变。final四类 **108/108、0失败/跳过**（1238为36含新增16、共用叶路径32、文件28、交付12），含读取/打开/关闭失败、访问拒绝、完整性与取消传播、不应打开的边界、真实两方向保留以及原ZIP展开长度对照。主代理限定只读自审通过，无子代理。

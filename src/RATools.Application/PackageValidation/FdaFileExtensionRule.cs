@@ -32,36 +32,89 @@ internal static class FdaFileExtensionRule
             yield return new(RuleId, CheckStatus.NotEvaluated, "This check requires the archived file-format revision 9.3 and a selection on or after its revision date.");
             yield break;
         }
-        var xml = lifecycle.XmlInspections.SingleOrDefault(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId);
-        var index = xml?.Backbones.SingleOrDefault(item => item.LogicalPath == target.Manifest.SequenceNumber + "/index.xml");
-        if (index is null || !index.ReadComplete || index.DtdStatus != CheckStatus.Pass)
+        var limits = target.Limits;
+        var xmls = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).Take(2).ToArray();
+        if (lifecycle.InputDigest != target.InputDigest || lifecycle.RulesDigest != context.Catalog.Digest ||
+            lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != limits.Digest() || xmls.Length != 1 ||
+            xmls[0].RulesDigest != context.Catalog.Digest || xmls[0].AssetManifestDigest != context.Assets.Digest || xmls[0].LimitsDigest != limits.Digest())
+        {
+            yield return new(RuleId, CheckStatus.NotEvaluated, "Module assignment requires one exact XML observation bound to the capture, rules, assets and limits.");
+            yield break;
+        }
+        var indexes = xmls[0].Backbones.Where(item => item.LogicalPath == target.Manifest.SequenceNumber + "/index.xml").Take(2).ToArray();
+        var index = indexes.Length == 1 ? indexes[0] : null;
+        if (index is null || index.Kind != BackboneKind.Ich || index.ProfileSnapshotId != lifecycle.ProfileSnapshotId ||
+            !index.ReadComplete || index.DtdStatus != CheckStatus.Pass)
         {
             yield return new(RuleId, CheckStatus.NotEvaluated, "Module assignment requires a fully read, DTD-valid ICH backbone.");
             yield break;
         }
         var findings = new List<ValidationFinding>();
-        var files = target.Manifest.Files.Select(file => file.LogicalPath).ToHashSet(StringComparer.Ordinal);
-        var modules = new Dictionary<string, int>(StringComparer.Ordinal);
-        var incomplete = false;
+        var work = limits.MaxXmlNodes;
+        var files = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in target.Manifest.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (work-- <= 0 || !files.Add(file.LogicalPath))
+            {
+                yield return new(RuleId, CheckStatus.NotEvaluated, "Captured file indexing is incomplete or ambiguous.");
+                yield break;
+            }
+        }
+        var profile = context.Assets.ForProfile(lifecycle.ProfileSnapshotId).SingleOrDefault(item => item.Kind == BackboneKind.Ich);
+        var elements = new Dictionary<string, ParsedXmlElement>(StringComparer.Ordinal);
+        var children = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        var owners = new Dictionary<string, string?>(StringComparer.Ordinal);
+        ParsedXmlElement? root = null;
+        var unique = true;
         foreach (var element in index.Elements)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var parentModule = element.ParentPath is null ? 0 : modules[element.ParentPath];
-            modules[element.NodePath] = element.LocalName switch
+            if (work-- <= 0) { unique = false; break; }
+            unique &= elements.TryAdd(element.NodePath, element);
+            var members = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var child in element.Children)
             {
-                "m2-common-technical-document-summaries" => 2,
-                "m3-quality" => 3,
-                "m4-nonclinical-study-reports" => 4,
-                "m5-clinical-study-reports" => 5,
-                _ => parentModule
-            };
+                cancellationToken.ThrowIfCancellationRequested();
+                if (work-- <= 0) { unique = false; break; }
+                unique &= members.Add(child);
+                if (!owners.TryAdd(child, element.NodePath)) owners[child] = null;
+            }
+            children.TryAdd(element.NodePath, members);
+            if (element.ParentPath is not null) continue;
+            if (root is not null) unique = false;
+            root = element;
         }
+        var leafPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var leaf in index.Leaves)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (work-- <= 0) { unique = false; break; }
+            unique &= leafPaths.Add(leaf.NodePath);
+        }
+        if (!unique || !files.Contains(index.LogicalPath) || profile is null || root is null ||
+            root.LocalName != profile.RootLocalName || root.NamespaceUri != profile.NamespaceUri ||
+            root.Location.LogicalPath != index.LogicalPath || root.Location.NodePath != root.NodePath)
+        {
+            yield return new(RuleId, CheckStatus.NotEvaluated, "Module assignment requires a captured ICH root and unique bounded element and leaf facts.");
+            yield break;
+        }
+        var incomplete = false;
+        foreach (var leaf in index.Leaves)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (work-- <= 0) { incomplete = true; break; }
             if (leaf.IsRegionalReference || leaf.Operation == "delete") continue;
-            var module = modules[leaf.NodePath];
-            if (module == 0 || leaf.Operation is not ("new" or "replace" or "append") || string.IsNullOrWhiteSpace(leaf.Href))
+            if (leaf.Operation is not ("new" or "replace" or "append") || string.IsNullOrWhiteSpace(leaf.Href) ||
+                leaf.Location.LogicalPath != index.LogicalPath || leaf.Location.NodePath != leaf.NodePath || leaf.Location.LeafId != leaf.Id ||
+                !elements.TryGetValue(leaf.NodePath, out var element) || element.LocalName != "leaf" || element.NamespaceUri.Length != 0 ||
+                element.ParentPath != leaf.ParentNodePath ||
+                !Explicit(element, "ID", "", leaf.Id, ref work, cancellationToken) ||
+                !Explicit(element, "operation", "", leaf.Operation, ref work, cancellationToken) ||
+                !Explicit(element, "href", "http://www.w3c.org/1999/xlink", leaf.Href, ref work, cancellationToken))
+            { incomplete = true; continue; }
+            var module = Module(element, root, elements, children, owners, index.LogicalPath, limits.MaxXmlDepth, ref work, cancellationToken);
+            if (module == 0)
             { incomplete = true; continue; }
             PackageReference reference;
             try { reference = PackageLogicalPath.ResolveReference(index.LogicalPath, leaf.Href); }
@@ -85,5 +138,48 @@ internal static class FdaFileExtensionRule
         }
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
             "Checked selected format rows for target ICH module 2 through 5 content leaves. Regional and remaining file-format rows require separate assessment.", findings);
+    }
+
+    private static bool Explicit(ParsedXmlElement element, string name, string ns, string? expected, ref int work, CancellationToken token)
+    {
+        ParsedXmlAttributeValue? found = null;
+        foreach (var attribute in element.Attributes.Values)
+        {
+            token.ThrowIfCancellationRequested();
+            if (work-- <= 0) return false;
+            if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+            if (found is not null) return false;
+            found = attribute;
+        }
+        return found is { IsDefault: false, ExplicitValue: not null } && found.Value == expected && found.ExplicitValue == found.Value;
+    }
+
+    private static int Module(ParsedXmlElement element, ParsedXmlElement root, Dictionary<string, ParsedXmlElement> elements,
+        Dictionary<string, HashSet<string>> children, Dictionary<string, string?> owners, string path, int maxDepth, ref int work, CancellationToken token)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var depth = 0;
+        var module = 0;
+        while (element != root)
+        {
+            token.ThrowIfCancellationRequested();
+            if (work-- <= 0 || ++depth > maxDepth || !seen.Add(element.NodePath) || element.NamespaceUri.Length != 0 ||
+                element.Location.LogicalPath != path || element.Location.NodePath != element.NodePath ||
+                element.ParentPath is not { } parent || !elements.TryGetValue(parent, out var owner) ||
+                !owners.TryGetValue(element.NodePath, out var declaredOwner) || declaredOwner != parent ||
+                !children.TryGetValue(parent, out var members) || !members.Contains(element.NodePath)) return 0;
+            var current = element.LocalName switch
+            {
+                "m2-common-technical-document-summaries" => 2, "m3-quality" => 3,
+                "m4-nonclinical-study-reports" => 4, "m5-clinical-study-reports" => 5, _ => 0
+            };
+            if (current != 0)
+            {
+                if (owner != root || module != 0) return 0;
+                module = current;
+            }
+            element = owner;
+        }
+        return module;
     }
 }
