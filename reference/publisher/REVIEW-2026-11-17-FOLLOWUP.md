@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1238第三轮：单文件读取失败不抹去独立大小证据（仍Partial，主代理限定只读自审及终态核对通过）。** 1119/1130已提交`78704b4`；1154跨申请实际提交见证没有新输入，保留依赖。1238原PDF头部读取异常会直接中断规则，先前发现无法返回。本项只隔离普通IOException（排除所有PackageInputException）与UnauthorizedAccessException；不可读文件保持未知，其他明确超限文件仍检查并保留。取消和输入变更/完整性异常必须传播，既有十进制/二进制边界、PDF头部判据及数据集范围不变。
+
+red三项均复现IOException中断；candidate四类108/108。主代理自审发现清单按路径排序，原before/after夹具实际都先读取known.pdf，不能声称两方向已验证；改为a-unreadable/m-known/z-unreadable并断言实际打开顺序，生产不变。final四类 **108/108、0失败/跳过**（1238为36含新增16、共用叶路径32、文件28、交付12），含读取/打开/关闭失败、访问拒绝、完整性与取消传播、不应打开的边界、真实两方向保留以及原ZIP展开长度对照。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1238-read-failure-final-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`fea4d9f3ba74ae5b24a67b5eabd62f9a8db1f3862935521dbfb0e670dac13320`、TRX SHA`5b66bf6b172c56e415d3667d4226b5b86db855fd84b780b089aa9671ba158834`；目录167条canonical SHA`6aaada24cc4e0c368dcc303c56f1840f70db2320f6c8b43b96550286fccf517f`。red/candidate/final证据及校验副本在`.artifacts/local-check/fda1238-read-failure-*-20261127`和`backups/fda1238-read-failure-20261127/evidence/`，bin/obj按精确范围回收。file-v94、inspector-v39、PDF-v32、交付v6；字节口径/数据集仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一1255模块位置事实资格，先复现冲突/缺失观察异常或误归责，不扩展格式政策。
+
 **FDA1119/1130第三轮：条件支持文件必须有实际STF身份（仍Partial，主代理限定只读自审及终态核对通过）。** 1102已提交`4bc1b35`。发现器可凭DOCTYPE收录候选，而低层XML读取器拒绝错误根后保留声明、但不发布任何元素。原条件规则直接用候选声明检查支持文件，导致实际STF身份不可用时误报缺失或篡改。本次增加唯一XML/规则/资产/限额绑定、当前捕获路径/SHA、候选路径去重及有界实际study根校验。不要求整体DTD Pass；已确认实际根后发生截断或其他DTD诊断，仍可凭完整独立声明保留已知支持文件失败。未知/冲突候选不抹去另一个已知失败。
 
 首red四项均停在夹具期待存在错误根的前提，不计业务红测；修正为实际Elements为空、ReadComplete=false后，red2四项预期NE实际Fail，前提全过。修后六类 **153/153、0失败/跳过**（条件STF33、身份25、主DTD23、共用叶路径32、文件28、交付12），新增身份用例分别覆盖两规则的无根/错误根/重复路径、捕获SHA、历史路径、XML绑定、预算、取消、独立已知失败保留。主代理限定只读自审通过，无子代理，candidate即最终证据。

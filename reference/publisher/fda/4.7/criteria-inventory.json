@@ -458,7 +458,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1238"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaFileSizeRule.cs", "tests/RATools.Tests/PackageValidation/FdaFileSizeRuleTests.cs", "reference/publisher/official-sources/2026-11-18/fda-study-data-technical-conformance-guide.pdf"],
-        "note": "General size screen for captured target files. Precise byte convention, additional large file formats and dataset-specific applicability require further evidence. The archived October 2026 Study Data Technical Conformance Guide discusses dataset splitting in section 3.1.2."
+        "note": "General size screen for captured target files. Ordinary PDF prefix I/O and access failures leave that file unknown while preserving other known size failures in either manifest order; input-integrity exceptions and cancellation propagate. Third-round four-class Windows regression 108/108, including 36 size cases, and main-agent bounded read-only review passed without subagents. Precise byte convention, additional large file formats and dataset-specific applicability require further evidence. The archived October 2026 Study Data Technical Conformance Guide discusses dataset splitting in section 3.1.2."
       }
     },
     {

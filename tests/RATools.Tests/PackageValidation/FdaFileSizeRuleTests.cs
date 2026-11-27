@@ -15,6 +15,102 @@ public sealed class FdaFileSizeRuleTests
         new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2"));
 
     [Theory]
+    [InlineData("only", CheckStatus.NotEvaluated)]
+    [InlineData("before", CheckStatus.Fail)]
+    [InlineData("after", CheckStatus.Fail)]
+    public async Task UnavailablePdfPrefixDoesNotAbortOtherSizeEvidence(string scenario, CheckStatus expected)
+    {
+        var unreadable = FileEntry(scenario == "before" ? "0001/a-unreadable.pdf" : "0001/z-unreadable.pdf", 500_000_000);
+        var known = FileEntry("0001/m-known.pdf", 500_000_000);
+        PackageInputFile[] files = scenario == "only" ? [unreadable] : scenario == "before" ? [unreadable, known] : [known, unreadable];
+        var opened = new List<string>();
+        await using var input = new PrefixCapture(files, [], "%PDF-", path =>
+        {
+            opened.Add(path);
+            return path == unreadable.LogicalPath ? throw new IOException("Synthetic unavailable captured prefix.") :
+                new MemoryStream("%PDF-"u8.ToArray(), writable: false);
+        });
+        var check = await Inspect(input, 2);
+        Assert.Equal(files.Select(file => file.LogicalPath), opened);
+        Assert.Equal(expected, check.Status);
+        if (expected == CheckStatus.Fail) Assert.Equal(known.LogicalPath, Assert.Single(check.Findings).Location.LogicalPath);
+        else Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("denied")]
+    [InlineData("read")]
+    [InlineData("dispose")]
+    public async Task OrdinaryPrefixFailuresRemainUnknown(string scenario)
+    {
+        await using var input = new PrefixCapture([FileEntry("0001/file.pdf", 500_000_000)], [], "%PDF-", _ => scenario switch
+        {
+            "missing" => throw new FileNotFoundException("Synthetic missing prefix."),
+            "denied" => throw new UnauthorizedAccessException("Synthetic denied prefix."),
+            _ => new FaultingPrefixStream(scenario)
+        });
+        var check = await Inspect(input, 1);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status); Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("changed")]
+    [InlineData("integrity")]
+    [InlineData("cancel")]
+    public async Task IntegrityAndCancellationCannotBecomeOrdinaryUnknown(string scenario)
+    {
+        Exception failure = scenario switch
+        {
+            "changed" => new PackageInputChangedException("synthetic-source"),
+            "integrity" => new PackageInputException("INPUT-STABLE", "SYNTHETIC", "Synthetic integrity failure."),
+            _ => new OperationCanceledException("Synthetic cancellation.")
+        };
+        await using var input = new PrefixCapture([FileEntry("0001/file.pdf", 500_000_000)], [], "%PDF-", _ => throw failure);
+        Assert.Same(failure, await Record.ExceptionAsync(() => Inspect(input, 1)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancellationDuringPrefixOpenCannotPublishAResult(bool ioFailure)
+    {
+        using var cancellation = new CancellationTokenSource();
+        await using var input = new PrefixCapture([FileEntry("0001/file.pdf", 500_000_000)], [], "%PDF-", _ =>
+        {
+            cancellation.Cancel();
+            if (ioFailure) throw new IOException("Synthetic I/O after cancellation.");
+            return new MemoryStream("%PDF-"u8.ToArray(), writable: false);
+        });
+        var context = PackageStandardsContext.FromSnapshot(await Snapshot.Value, selectionDate: new(2026, 11, 27));
+        Assert.ThrowsAny<OperationCanceledException>(() => FdaFileSizeRule.Inspect(input, PackageValidationCatalog.UsProfile,
+            context, 1, cancellation.Token).ToArray());
+    }
+
+    [Theory]
+    [InlineData(400_000_000L, "file.pdf", 1, CheckStatus.Pass)]
+    [InlineData(400_000_001L, "file.pdf", 1, CheckStatus.NotEvaluated)]
+    [InlineData(500_000_000L, "file.xpt", 1, CheckStatus.NotEvaluated)]
+    [InlineData(500_000_000L, "file.pdf", 0, CheckStatus.NotEvaluated)]
+    public async Task PrefixIsNotOpenedOutsideQualifiedSizeAndFindingScope(long size, string name, int remaining, CheckStatus expected)
+    {
+        await using var input = new PrefixCapture([FileEntry("0001/" + name, size)], [], "",
+            _ => throw new InvalidOperationException("Prefix must not be read."));
+        Assert.Equal(expected, (await Inspect(input, remaining)).Status);
+    }
+
+    private sealed class FaultingPrefixStream(string scenario) : MemoryStream("%PDF-"u8.ToArray(), writable: false)
+    {
+        public override int Read(Span<byte> buffer) => scenario == "read"
+            ? throw new IOException("Synthetic read failure.") : base.Read(buffer);
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing && scenario == "dispose") throw new IOException("Synthetic close failure.");
+        }
+    }
+
+    [Theory]
     [InlineData(399_999_999L, "file.pdf", "%PDF-", CheckStatus.Pass)]
     [InlineData(400_000_000L, "data.xpt", "", CheckStatus.Pass)]
     [InlineData(400_000_001L, "file.pdf", "%PDF-", CheckStatus.NotEvaluated)]
@@ -119,7 +215,8 @@ public sealed class FdaFileSizeRuleTests
             [new RuleCheckResult(FdaFileSizeRule.RuleId, CheckStatus.NotApplicable, "fixture")]));
     }
 
-    private sealed class PrefixCapture(PackageInputFile[] files, PackageInputFile[] additional, string prefix) : ICapturedPackageInput
+    private sealed class PrefixCapture(PackageInputFile[] files, PackageInputFile[] additional, string prefix,
+        Func<string, Stream>? open = null) : ICapturedPackageInput
     {
         public PackageInputManifest Manifest { get; } = new(Guid.NewGuid(), "0001", files, [], additional, []);
         public string SourceId => "1238-prefix-fixture";
@@ -127,7 +224,7 @@ public sealed class FdaFileSizeRuleTests
         public string? ArchiveSha256 => null;
         public string InputDigest => Manifest.Digest;
         public PackageReadLimits Limits { get; } = new();
-        public Stream OpenRead(string logicalPath) => new MemoryStream(Encoding.ASCII.GetBytes(prefix), writable: false);
+        public Stream OpenRead(string logicalPath) => open is null ? new MemoryStream(Encoding.ASCII.GetBytes(prefix), writable: false) : open(logicalPath);
         public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }

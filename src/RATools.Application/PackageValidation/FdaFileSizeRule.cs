@@ -35,7 +35,7 @@ internal static class FdaFileSizeRule
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (file.Length <= DecimalLimit) continue;
-            if (file.Length <= BinaryLimit || remaining <= 0 || !IsPdfDocument(target, file.LogicalPath))
+            if (file.Length <= BinaryLimit || remaining <= 0 || !IsPdfDocument(target, file.LogicalPath, cancellationToken))
             {
                 incomplete = true;
                 continue;
@@ -47,15 +47,28 @@ internal static class FdaFileSizeRule
                 RecommendedAction: "Review the document size against FDA 4.7 criterion 1238."));
         }
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            incomplete ? "Some target files require a byte-boundary decision, dataset or file-type assessment, or additional finding capacity." :
+            incomplete ? "Some target files require a byte-boundary decision, readable type evidence, dataset or file-type assessment, or additional finding capacity." :
                 "Compared captured target file lengths with the general FDA size limit.", findings);
     }
 
-    private static bool IsPdfDocument(ICapturedPackageInput target, string path)
+    private static bool IsPdfDocument(ICapturedPackageInput target, string path, CancellationToken token)
     {
         if (!path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) return false;
-        using var stream = target.OpenRead(path);
-        Span<byte> header = stackalloc byte[5];
-        return stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false) == header.Length && header.SequenceEqual("%PDF-"u8);
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            using var stream = target.OpenRead(path);
+            Span<byte> header = stackalloc byte[5];
+            var length = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+            token.ThrowIfCancellationRequested();
+            return length == header.Length && header.SequenceEqual("%PDF-"u8);
+        }
+        catch (Exception exception) when (exception is IOException and not PackageInputException or UnauthorizedAccessException)
+        {
+            // Unavailable bytes cannot prove PDF identity, or erase another file's known failure.
+            // Input-integrity exceptions and cancellation remain fatal to this observation.
+            token.ThrowIfCancellationRequested();
+            return false;
+        }
     }
 }

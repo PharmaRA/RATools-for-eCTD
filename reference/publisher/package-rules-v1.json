@@ -2707,7 +2707,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "The general size screen covers lengths up to 400000000 bytes and reports declared PDFs with a PDF header above 419430400 bytes. The intervening byte range and other large file types require further assessment. Dataset applicability and effective-date qualification remain open.",
+      "implementationNote": "The general size screen covers lengths up to 400000000 bytes and reports declared PDFs with a PDF header above 419430400 bytes. Ordinary prefix I/O or access failures leave that file unknown while preserving other known size failures; input-integrity exceptions and cancellation propagate. The intervening byte range and other large file types require further assessment. Dataset applicability and effective-date qualification remain open.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileSizeRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaFileSizeRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaFileSizeRule.cs", "tests/RATools.Tests/PackageValidation/FdaFileSizeRuleTests.cs"],
