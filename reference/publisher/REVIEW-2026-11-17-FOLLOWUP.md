@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1735/1736共享前置：Define-XML捕获与稳定性绑定（不计规则完成，主代理限定只读自审及终态核对通过）。** 声明读取器已提交`08d810f`。新增显式capture/path读取，不信扩展名；分配前检查清单唯一性/长度与两层字节限额，完整读和EOF探测后对同字节核SHA，前后VerifyUnchanged并重比source/input/manifest/limits。选择摘要绑定读取器版本、路径、原始及有效解析限额、捕获限额。解析节点/深度/字符取更严边界；Missing/OutsideSelection/InputChanged/Unavailable/LimitExceeded区分，外层Read保留内层Invalid/Unsupported/LimitExceeded，取消优先传播。未接入FDA规则或推定实际标准化模型。
+
+red六项全败，正常读取/变化状态不满足，I/O对照通过读取次数揭示占位实现未打开文件。修后candidate五类 **184/184、0失败/跳过**（新捕获35、define52、捕获XPT23、研究数据18、1734为56），涵盖缺失/范围外、短读/额外字节/摘要、打开/关闭/终验失败、前后身份、非可寻址分段流、取消竞态、坏XML/版本、双层限额与选择摘要。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1735-define-capture-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。5交付/直接依赖源码输入SHA绑定；manifest SHA`72140d317738a558ab24608ccfaa27deabf26da6719474f7ef0d52843fa45367`、TRX SHA`e6586182df1930b2956ea3ce3f9e37131e8647267ce3d116c32c84c222af6ef2`。red/candidate证据及校验副本位于`.artifacts/local-check/fda1735-define-capture-*-20261127`和`backups/fda1735-define-capture-20261127/evidence/`，两轮bin/obj仅回收。目录/引擎和库存67/56/24、待完整覆盖80、原107完整27不变。下一define叶到真实XPT/STF与研究身份关联；1735/1736继续NotAssessed。
+
 **FDA1735/1736共享前置：Define-XML 2.1声明事实读取（不计规则完成，主代理限定只读自审及终态核对通过）。** 1734已提交`a7563d7`。重核固定FDA Study Data Guide物理23/30/33页，确认SDTM/ADaM/SEND数据集需对应define元数据。代理网络连接重置、一次直连握手超时后，直连GitHub内容接口取得CDISC官方组织仓库固定提交`6738f18dc203f8fe29a5920fc6a33d0779fe0bd8`的相关模式定义；五份原件SHA与具体使用范围见[来源与边界](define-xml-21-declaration-reader.md)。扩展模式注释带draft，未冒称完整正式发布资格，未嵌入标准快照；Hindsight请求失败未作为证据。
 
 新增纯内存读取器：同一复制字节绑定SHA；限定单Study/MetaDataVersion、DefineVersion=2.1.0、直接Standards/Standard与ItemGroupDef/leaf，按展开命名空间和精确OID/ID保存解码声明与关联。缺引用、空引用、找不到、重复目标分开，不默认采用唯一标准；不trim、不折叠大小写、不根据文件名/标签证明模型。字节/节点及属性/深度/字符限额，禁DTD/外部实体/解析器，不访问href或样式；失败/超限不发布部分事实。ReadComplete仅支持范围读取结束，Resolved仅唯一声明ID关联，不是实际文件存在或CDISC合规。

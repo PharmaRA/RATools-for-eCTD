@@ -30,4 +30,6 @@ FDA Study Data Technical Conformance Guide October 2026，现有固定归档 `of
 
 ## 后续依赖
 
-先建立捕获文件/清单/前后稳定性绑定，再将 define 叶与实际 XPT、STF 引用及研究身份关联；之后才具备研究标准声明与真实内容的交叉核验条件。FDA 1735 的模型/标签适用性、1736 的 DM/ADSL 与对应 define 供应，还需中心/日期/历史供应政策和正式来源资格。不得仅凭文件名、STF 标签或本读取器的声明创建 Fail/Pass。
+已增加 `PackageCapturedDefineXmlReader`：必须显式选择捕获源和逻辑路径，不按扩展名识别；前后验证稳定性并重比source/input/manifest/limits身份，核清单唯一长度、完整读/EOF与SHA。选择摘要包括读取器版本、原始/有效解析限额与捕获限额；有效限额取两者更严者。Missing、OutsideSelection、InputChanged、Unavailable、LimitExceeded分开，外层Read保留内层Invalid/Unsupported/LimitExceeded，不将其变为空define；外部取消优先传播。已验证分段非可寻址流及释放失败，不要求读取器访问外部资源。
+
+下一将 define 叶与实际 XPT、STF 引用及研究身份关联；之后才具备研究标准声明与真实内容的交叉核验条件。FDA 1735 的模型/标签适用性、1736 的 DM/ADSL 与对应 define 供应，还需中心/日期/历史供应政策和正式来源资格。不得仅凭文件名、STF 标签或本读取器的声明创建 Fail/Pass。
