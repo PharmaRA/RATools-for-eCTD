@@ -84,6 +84,7 @@ internal static class FdaStfLeafAssociationRule
                 { incomplete = true; continue; }
                 if (bound.References.Count == 0)
                 {
+                    if (FdaStfIdentifierRevision.Qualified(bound, owners, bindings, packages, lifecycle, context, Tick)) continue;
                     var initial = owners.Count > 0;
                     foreach (var owner in owners) { Tick(); initial &= InitialNew(owner); }
                     if (!initial) { incomplete = true; continue; }
@@ -122,7 +123,7 @@ internal static class FdaStfLeafAssociationRule
         catch (LeafAssociationWorkLimitException) { incomplete = true; }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
-            "Checked each selected STF for at least one actual leaf association. Complete definite-negative references and qualified initial empty STFs can fail; missing evidence and empty revision inheritance remain unevaluated. Identifier-only revision qualification is incomplete, so local passes do not establish full FDA 1816 coverage.", findings);
+            "Checked each selected STF for at least one actual leaf association. Qualified direct identifier-only appends may inherit a still-current predecessor association. Initial empty STFs can fail; other revision chains and unavailable context remain unevaluated. Local passes do not establish full FDA 1816 coverage.", findings);
 
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new LeafAssociationWorkLimitException(); }
     }

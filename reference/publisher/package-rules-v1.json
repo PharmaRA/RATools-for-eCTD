@@ -3565,10 +3565,10 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "One resolved leaf establishes per-STF association even when other references are unknown or invalid. Complete definite-negative references can fail; empty STFs fail only with qualified all-new current owners and no modified-file evidence. Empty identifier-only revisions, mixed or unavailable revision context remain unqualified rather than falsely rejected. Local passes do not establish full coverage of the revision inheritance exception.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfLeafAssociationRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
+      "implementationNote": "One resolved leaf establishes per-STF association even when other references are unknown or invalid. Complete definite-negative references and qualified all-new empty STFs can fail. An empty single-owner append with changed title/categories and unchanged study-id can qualify through a direct selected initial predecessor, exact raw lifecycle binding, matching context, effective states and a still-current prior leaf association. Longer chains, replace, mixed owners, unchanged identifiers, category-key removal and unavailable context remain unqualified. Local passes do not establish full coverage of the revision exception.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfIdentifierRevisionTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfIdentifierRevisionTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfLeafAssociationRule.cs", "src/RATools.Application/PackageValidation/FdaStfIdentifierRevision.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
       "externalComparisonEvidence": []
     },
     {

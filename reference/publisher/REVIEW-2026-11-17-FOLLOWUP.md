@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1816第二轮：空STF标识修订的直接前驱关联例外（仍Partial，主代理限定只读自审及终态核对通过）。** 1799已提交`0e11e6f`。固定STF规格v2.6.1第12–13页允许重交完整study-identifier的空study-document append。本项限定当前单owner、直接已选初始new前驱、显式原始operation/modified-file/href与派生事实一致、相同章节及ContextKey、成功生命周期事件、唯一且仍Current的前后状态及至少一个仍Current的前次Resolved叶关联。study-id须不变，title/categories须实际变化且不删除前次类别键；类别重排不构成更正。长链、replace、混合owner及缺上下文继续NE，不新增Fail，不借1731私有累积链推定资格。
+
+red五项3过2败，title/category更正在真实XML、前次关联及有效append前提通过后复现NE。candidate七类170/219，49败全部来自旧生命周期fixture使用`<fixture>/captures`，不符合已资格保留路径`<fixture>/validation/captures`；isolated六类170/170仅作隔离证据，不替代整组回归。只修fixture路径，不放宽保护器或改生产回收逻辑。主代理自审补重复历史观察、章节/上下文及工作预算边界；review-red两类84/85，重复历史STF观察复现误Pass，修为同一绑定XML中的唯一STF路径观察及摘要一致门槛。final七类 **224/224、0失败/跳过**（新修订36、原1816为47、累积36、生命周期49、中断16、文件28、交付12），局部Pass不能提升Partial报告Coverage的回归通过。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1816-identifier-revision-final-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。12交付/直接依赖输入SHA绑定；manifest SHA`1ee255a55a5923c753f84128f454d7305509889fc7ed073023244f3fe5931761`、TRX SHA`71467324c5ac1ca79149bb604dc5bea7d1c08773cecf9b8a1adee5807fe34551`；目录167条canonical SHA`3e9755da64381bca9d2d5d111fa5f73235c53914993cd3aef515b27f6186bbd8`。五轮证据及校验副本位于`.artifacts/local-check/fda1816-identifier-revision-*-20261128`和`backups/fda1816-identifier-revision-20261128/evidence/`，bin/obj仅回收。file-v104、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一按序跳过已Implemented的1833/1850/1867，核1884文件名字符适用性及后续剩余项；不把本项直接修订分支写成1816完整关闭。
+
 **FDA1799第二轮：当前及历史内容叶原始路径资格（仍Partial，主代理限定只读自审及终态核对通过）。** 1789已提交`ef28844`。固定criteria36页仍只禁止引用“another STF”，自引用不强行升Fail。原QualifiedContentHref仅用规范化Value与派生Href比较，缺原始证据、位置或配置冲突仍会误Fail。本项按叶所在序列选择当前/历史自身profile、rules/assets/limits，核对申请/叶地址、原始及派生位置，显式ID/operation/href一致性与唯一展开属性；不改自引用、源/目标尾部损坏和历史复用政策。
 
 red五项1过4败，正常跨STF对照通过，其余在共享引用Resolved前提后误Fail。candidate七类 **187/187、0失败/跳过**（新绑定17、原1799为45、1789为51、研究数据18、中断16、文件28、交付12），覆盖缺/默认/冲突原始属性、定位、配置、等价前缀、乱序及未知引用前后独立已知失败保留，既有历史源/目标、自引用和尾部损坏回归通过。主代理限定只读自审通过，无子代理，candidate即最终证据。

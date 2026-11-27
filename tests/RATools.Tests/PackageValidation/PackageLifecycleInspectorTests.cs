@@ -348,7 +348,7 @@ public sealed class PackageLifecycleInspectorTests
         {
             var original = Path.Combine(PackageRuleCatalogTests.Root, "tests/RATools.Tests/Fixtures/Publisher/sequences");
             Copy(original, Path.Combine(_root, "source"));
-            _reader = new PackageInputReader(Path.Combine(_root, "captures"));
+            _reader = new PackageInputReader(Path.Combine(_root, "validation", "captures"));
         }
         public string PathOf(string relative) => Path.Combine(_root, "source", relative);
         public void Clone(string source, string destination) => Copy(PathOf(source), PathOf(destination));

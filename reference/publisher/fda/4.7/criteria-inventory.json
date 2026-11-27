@@ -1488,8 +1488,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1816"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaStfLeafAssociationRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-        "note": "Checks per-STF existence of at least one resolved leaf independently of other invalid or unknown references. Complete definite-negative references and empty STFs with qualified all-new owners and no modified-file evidence can fail. Empty identifier-only revisions, mixed owners and unavailable revision context remain unqualified; component passes do not establish full coverage. Final selected Windows regression 487/487 and bounded read-only review passed."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfLeafAssociationRule.cs", "src/RATools.Application/PackageValidation/FdaStfIdentifierRevision.cs", "tests/RATools.Tests/PackageValidation/FdaStfLeafAssociationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfIdentifierRevisionTests.cs", "tests/RATools.Tests/PackageValidation/PackageLifecycleInspectorTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Checks per-STF existence of at least one resolved leaf independently of other invalid or unknown references. Complete definite-negative references and qualified initial empty STFs can fail. Empty identifier-only appends can inherit a direct selected initial predecessor association only with unique bound observations, original explicit lifecycle attributes, matching heading/context, current effective states, unchanged study-id and an actual title/category change without category-key removal. Longer chains, replace, mixed owners and unavailable context remain unqualified; component passes do not establish full coverage. Latest seven-class Windows regression 224/224 including 36 revision cases and 49 lifecycle cases, plus bounded main-agent read-only review, passed without subagents."
       }
     },
     {
