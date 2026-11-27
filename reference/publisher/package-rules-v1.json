@@ -2949,9 +2949,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Checks required heading substance/manufacturer/indication and known STF species/route-of-admin/type-of-control categories using actual target index references and exact heading ancestry. Shared STF references union requirements. Duration applicability, regional category variants, missing placement and incomplete discovery remain unevaluated; complete STF attribute qualification remains open.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfRequiredCategoryTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfRequiredCategoryTests.cs"],
+      "implementationNote": "Checks required heading substance/manufacturer/indication using unique current XML bound to capture/rules/assets/limits, captured ICH roots and bounded consistent parent ownership. Missing, duplicate, cyclic or conflicting heading facts remain unknown without erasing independent known failures; DTD Pass is not required for a known missing heading attribute. Known STF species/route-of-admin/type-of-control categories use actual target index references and exact heading ancestry; shared references union requirements. Duration applicability, regional category variants, missing placement and incomplete discovery remain unevaluated; complete STF attribute qualification remains open.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfRequiredCategoryTests.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfRequiredCategoryTests.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeBindingTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "src/RATools.Application/PackageValidation/FdaStfRequiredCategoryRule.cs", "reference/dtd/ich-ectd-3-2.dtd", "reference/publisher/official-sources/2026-11-20-stf/fda-stf-specification.pdf"],
       "externalComparisonEvidence": []
     },

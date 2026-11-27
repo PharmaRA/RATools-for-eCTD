@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1357第三轮：标题必需属性的绑定与有界父链（仍Partial，主代理限定只读自审及终态核对通过）。** 1314已提交`3bd9803`；1344已关闭的显式/默认/规范化和绑定语义不重开，其他XML范围无新资格。1357原直接父节点索引与SingleOrDefault会因缺父/重复观察抛异常，错误根及规则摘要冲突仍误报。本项新增唯一XML与规则/资产/限额绑定、当前捕获ICH根、节点唯一索引和有界一致父链；多父、循环、位置/历史路径或缺捕获事实保持未知，其他已知缺属性失败保留。不要求整体DTD Pass，避免把缺必需属性自身引发的DTD失败当作未知；STF类别消费者仅接收结构身份已资格的骨架，duration/类别政策不变。
+
+red五项1过4败，正常缺indication对照通过，缺父和重复XML异常、错误根及规则摘要误Fail均复现。修后六类 **158/158、0失败/跳过**（新标题绑定32、原标题22、STF类别32、共用叶路径32、文件28、交付12），含重复/多根/多父/循环、历史与位置绑定、乱序、相邻预算、取消、未知前后已知失败保留及既有STF分类回归。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1357-binding-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`32733ee07020eeccb6893ab1540073ed9e776958fc13e66d9fedf09bc1a18380`、TRX SHA`e44be3c8cd15ab1fa276213ac26b059346e64969e0dd1e39eff5f2df411ee783`；目录167条canonical SHA`0bb93666d80f0002db739989a74f3466ca6630ac92ee6156de41fa4188138759`。red/candidate证据及校验副本在`.artifacts/local-check/fda1357-binding-*-20261127`和`backups/fda1357-binding-20261127/evidence/`，bin/obj按精确范围回收。file-v97、inspector-v39、PDF-v32、交付v6；duration/区域类别等仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一1362未知分类/realm依赖及1368标题/STF事实资格，保留已关闭内容属性范围。
+
 **FDA1314第三轮：单文件元数据读取失败隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 1255已提交`9302991`。原Finder头部读取异常直接中断整条规则。本项只隔离普通IOException（排除所有PackageInputException）与UnauthorizedAccessException，不可读文件保持未知，继续保留其他已确认Finder元数据违规；取消与输入完整性异常继续传播。原八字节头部、路径及区域支持文件分类不变，单finding额度下仍优先保留已知失败而非未知项。
 
 red三项全部复现IOException，夹具用a/m/z路径并断言真实打开顺序。修后五类 **100/100、0失败/跳过**（新增读取失败17、原规则11、共用叶路径32、文件28、交付12），覆盖两种观察顺序、打开/读取/关闭失败、访问拒绝、输入完整性与取消、单额度替换未知项、不应读取的范围。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。

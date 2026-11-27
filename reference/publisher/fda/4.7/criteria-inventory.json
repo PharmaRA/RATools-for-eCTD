@@ -667,8 +667,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1357"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs"],
-        "note": "Checks four qualified ICH heading chains and known STF category requirements bound to actual target section references. Duration applicability, regional variants and complete STF attribute qualification remain open; status stays Partial."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredHeadingAttributeRule.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredHeadingAttributeBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfRequiredCategoryTests.cs"],
+        "note": "Checks four qualified ICH heading chains using unique current XML bound to capture/rules/assets/limits, captured ICH roots and bounded consistent parent ownership. Missing, duplicate, cyclic or conflicting heading facts remain unknown while independent known failures survive; a known missing heading attribute does not require DTD Pass. Known STF category policy remains unchanged and only qualified backbones reach that consumer. Third-round six-class Windows regression 158/158 including 32 new binding cases and main-agent bounded read-only review passed without subagents. Duration applicability, regional variants and complete STF attribute qualification remain open; status stays Partial."
       }
     },
     {
