@@ -106,20 +106,41 @@ internal static class FdaStfCrossReferenceRule
                 Tick();
                 if (leaf.Address is not { } address || !packages.Sequences.TryGetValue(address.SequenceNumber, out var capture) ||
                     !xmlByDigest.TryGetValue(capture.InputDigest, out var matches) || matches.Count != 1) return null;
+                if (address.ApplicationId != packages.Target.Manifest.ApplicationId || address.LeafId != leaf.Id) return null;
+                var selected = context.ForSequence(address.SequenceNumber);
+                var profile = address.SequenceNumber == packages.Target.Manifest.SequenceNumber ? lifecycle.ProfileSnapshotId :
+                    packages.Baseline.Entries.Single(entry => entry.SequenceNumber == address.SequenceNumber).ProfileSnapshotId;
+                var xml = matches[0];
+                if (xml.ProfileSnapshotId != profile || xml.RulesDigest != selected.Catalog.Digest || xml.AssetManifestDigest != selected.Assets.Digest ||
+                    xml.LimitsDigest != capture.Limits.Digest()) return null;
                 var backbonePath = address.SequenceNumber + "/" + address.BackboneRelativePath;
                 var documents = new List<ParsedBackbone>();
                 foreach (var document in matches[0].Backbones) { Tick(); if (document.LogicalPath == backbonePath) documents.Add(document); }
-                if (documents.Count != 1) return null;
+                if (documents.Count != 1 || documents[0].ProfileSnapshotId != profile ||
+                    documents[0].Kind is not (BackboneKind.Ich or BackboneKind.UsRegional)) return null;
                 var elements = new List<ParsedXmlElement>();
                 foreach (var element in documents[0].Elements) { Tick(); if (element.NodePath == leaf.NodePath) elements.Add(element); }
                 if (elements.Count != 1 || elements[0] is not { Name: "leaf", LocalName: "leaf", NamespaceUri.Length: 0 }) return null;
-                ParsedXmlAttributeValue? href = null;
-                foreach (var attribute in elements[0].Attributes.Values)
+                var original = elements[0];
+                if (original.Location.LogicalPath != backbonePath || original.Location.NodePath != leaf.NodePath ||
+                    leaf.Location.LogicalPath != backbonePath || leaf.Location.NodePath != leaf.NodePath ||
+                    Explicit(original, "ID", "") != leaf.Id || Explicit(original, "operation", "") != leaf.Operation ||
+                    leaf.Operation is not ("new" or "append" or "replace")) return null;
+                var href = Explicit(original, "href", "http://www.w3c.org/1999/xlink");
+                return href is not null && href == leaf.Href ? href : null;
+            }
+
+            string? Explicit(ParsedXmlElement element, string name, string ns)
+            {
+                var count = 0; string? value = null;
+                foreach (var attribute in element.Attributes.Values)
                 {
                     Tick();
-                    if (attribute.LocalName == "href" && attribute.NamespaceUri == "http://www.w3c.org/1999/xlink") href = attribute;
+                    if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.ExplicitValue == attribute.Value) value = attribute.ExplicitValue;
                 }
-                return href is { IsDefault: false } && href.Value == leaf.Href ? href.Value : null;
+                return count == 1 ? value : null;
             }
 
             bool ActualStf(BoundStudyTaggingFile bound)

@@ -1469,8 +1469,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1799"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaStfCrossReferenceRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfCrossReferenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-        "note": "Detects actual STF-to-another-STF references through exact backbone leaves and content captures, including selected historical sources and targets. Original explicit leaf href must agree with the derived leaf; excluded invalid reference structure cannot become an empty-reference pass. Known local violations survive later tail damage. Self-reference interpretation and content identity outside completed XML discovery remain unqualified. Final selected Windows regression 404/404 and bounded read-only review passed; coverage remains Partial."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfCrossReferenceRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfCrossReferenceRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfCrossReferenceBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Detects actual STF-to-another-STF references through exact backbone leaves and content captures, including selected historical sources and targets. Content leaves require their selected current/historical profile, rules, assets and limits, exact application/leaf address, consistent element/leaf locations and original explicit ID/operation/href agreement. Excluded invalid reference structure cannot become an empty-reference pass; known local violations survive later tail damage. Self-reference interpretation and content identity outside completed XML discovery remain unqualified. Latest seven-class Windows regression 187/187 including 17 binding cases and bounded main-agent read-only review passed without subagents; coverage remains Partial."
       }
     },
     {
