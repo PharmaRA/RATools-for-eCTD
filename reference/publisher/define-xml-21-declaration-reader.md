@@ -32,4 +32,6 @@ FDA Study Data Technical Conformance Guide October 2026，现有固定归档 `of
 
 已增加 `PackageCapturedDefineXmlReader`：必须显式选择捕获源和逻辑路径，不按扩展名识别；前后验证稳定性并重比source/input/manifest/limits身份，核清单唯一长度、完整读/EOF与SHA。选择摘要包括读取器版本、原始/有效解析限额与捕获限额；有效限额取两者更严者。Missing、OutsideSelection、InputChanged、Unavailable、LimitExceeded分开，外层Read保留内层Invalid/Unsupported/LimitExceeded，不将其变为空define；外部取消优先传播。已验证分段非可寻址流及释放失败，不要求读取器访问外部资源。
 
-下一将 define 叶与实际 XPT、STF 引用及研究身份关联；之后才具备研究标准声明与真实内容的交叉核验条件。FDA 1735 的模型/标签适用性、1736 的 DM/ADSL 与对应 define 供应，还需中心/日期/历史供应政策和正式来源资格。不得仅凭文件名、STF 标签或本读取器的声明创建 Fail/Pass。
+已增加 `PackageDefineDatasetInspector`：从一个明确define捕获文件出发，将唯一文件叶声明关联到同序列清单中的实际内容，使用既有XPT读取器，不按扩展名推定格式。仅处理简单可打印ASCII相对路径，允许同序列内的`.`/`..`，跨序列、百分号、查询/片段、平台和外部URI保持UnsupportedPath且不打开目标。重复声明保留各自身份，同路径内容只读一次；不同目标共享字节/行/单元格预算，清单和关联遍历有工作量限额。单文件不可读可保留其他独立事实；捕获身份变化、整组终验失败或工作量中断清空结果。TraversalComplete仅表示关联遍历和终验完成，不保证所有目标可读，也不表示模型、STF或研究身份合格。
+
+下一将上述关联结果与实际STF引用、研究及数据集身份交叉核对；目前保留真实XPT member/列/内容，不自行推定声明模型。FDA 1735 的模型/标签适用性、1736 的 DM/ADSL 与对应 define 供应，还需中心/日期/历史供应政策和正式来源资格。不得仅凭文件名、STF 标签或本读取器的声明创建 Fail/Pass。

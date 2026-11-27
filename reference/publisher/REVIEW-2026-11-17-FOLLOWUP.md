@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1735/1736共享前置：Define声明到同捕获XPT内容关联（不计规则完成，主代理限定只读自审及终态核对通过）。** 捕获绑定已提交`615f56e`。新增明确define路径出发的关联层，按唯一文件叶声明及同序列精确清单读取实际XPT，不按扩展名判格式。仅简单可打印ASCII相对路径；跨序列、百分号、查询/片段、平台和外部URI标记不支持且不打开。保留每个声明与实际源/input/path/XPT事实，同路径缓存不合并声明；不同文件共享字节/行/单元格预算，清单/关联/行计数受工作限额约束。单文件I/O失败保留其他稳定事实；输入变化、整组终验失败或工作中断清空整组。TraversalComplete只表示遍历和终验，不是模型或研究合规。
+
+red五项全败，正常/非XPT/缺目标/外部路径均复现缺少关联能力；candidate七类 **236/236、0失败/跳过**（新关联41、define捕获35、define读取52、捕获XPT23、XPT49、研究数据18、逻辑路径18）。覆盖不支持路径不打开、缺/歧义引用、坏define与坏XPT分层、重复缓存、共享预算相邻边界、单文件I/O、整组身份/终验、工作量、取消及选择摘要。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1735-define-xpt-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖源码SHA绑定；manifest SHA`197f00063b2066af717da807d3ad0f1a2ab58c90258d35b4f140a420da36695e`、TRX SHA`c71c96f578eb2692b8ae5eba72c298338a346ca934b899eb9e3290848b0aafae`。red/candidate证据及校验副本位于`.artifacts/local-check/fda1735-define-xpt-*-20261127`和`backups/fda1735-define-xpt-20261127/evidence/`，两轮bin/obj仅回收。目录/引擎和库存67/56/24、待完整覆盖80、原107完整27不变。下一实际STF引用与研究/数据集身份交叉关联及正式来源/适用性资格；1735/1736仍NotAssessed，未接入业务规则。
+
 **FDA1735/1736共享前置：Define-XML捕获与稳定性绑定（不计规则完成，主代理限定只读自审及终态核对通过）。** 声明读取器已提交`08d810f`。新增显式capture/path读取，不信扩展名；分配前检查清单唯一性/长度与两层字节限额，完整读和EOF探测后对同字节核SHA，前后VerifyUnchanged并重比source/input/manifest/limits。选择摘要绑定读取器版本、路径、原始及有效解析限额、捕获限额。解析节点/深度/字符取更严边界；Missing/OutsideSelection/InputChanged/Unavailable/LimitExceeded区分，外层Read保留内层Invalid/Unsupported/LimitExceeded，取消优先传播。未接入FDA规则或推定实际标准化模型。
 
 red六项全败，正常读取/变化状态不满足，I/O对照通过读取次数揭示占位实现未打开文件。修后candidate五类 **184/184、0失败/跳过**（新捕获35、define52、捕获XPT23、研究数据18、1734为56），涵盖缺失/范围外、短读/额外字节/摘要、打开/关闭/终验失败、前后身份、非可寻址分段流、取消竞态、坏XML/版本、双层限额与选择摘要。主代理限定只读自审通过，无子代理，candidate即最终证据。
