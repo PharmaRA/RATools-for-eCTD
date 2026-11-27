@@ -3653,7 +3653,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects incorrect stf- prefixes and compares the complete filename with stf- plus a unique complete decoded study-id plus .xml using Ordinal equality. No trimming, case folding or character replacement. Study-id alphanumeric character admissibility remains unqualified; component matches do not establish complete coverage.",
+      "implementationNote": "Detects incorrect stf- prefixes and compares the complete filename with stf- plus a unique complete decoded study-id plus .xml using Ordinal equality. Historical content requires a unique current-profile owner backbone, exact current application/leaf address, matching original/derived locations and original explicit ID/operation/href agreement. Current confirmed STF identity remains independent of owner evidence. No trimming, case folding or character replacement. Study-id alphanumeric character admissibility remains unqualified; component matches do not establish complete coverage.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfFileNameRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfFileNameRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfFileNameRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],

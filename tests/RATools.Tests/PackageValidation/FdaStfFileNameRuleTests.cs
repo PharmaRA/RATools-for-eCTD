@@ -102,6 +102,89 @@ public sealed class FdaStfFileNameRuleTests
     }
 
     [Theory]
+    [InlineData("valid", CheckStatus.Fail)]
+    [InlineData("missing-raw-href", CheckStatus.NotEvaluated)]
+    [InlineData("operation-conflict", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-location", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-profile", CheckStatus.NotEvaluated)]
+    [InlineData("default-href", CheckStatus.NotEvaluated)]
+    [InlineData("href-conflict", CheckStatus.NotEvaluated)]
+    [InlineData("missing-raw-id", CheckStatus.NotEvaluated)]
+    [InlineData("missing-raw-operation", CheckStatus.NotEvaluated)]
+    [InlineData("element-location", CheckStatus.NotEvaluated)]
+    [InlineData("element-node", CheckStatus.NotEvaluated)]
+    [InlineData("leaf-node", CheckStatus.NotEvaluated)]
+    [InlineData("address-application", CheckStatus.NotEvaluated)]
+    [InlineData("address-backbone", CheckStatus.NotEvaluated)]
+    [InlineData("address-id", CheckStatus.NotEvaluated)]
+    [InlineData("reordered", CheckStatus.Fail)]
+    public async Task HistoricalNameRequiresQualifiedCurrentOwnerEvidence(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture("wrong.xml", "A", "history");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections, item => item.InputDigest == fixture.Packages.Target.InputDigest);
+        var index = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.Ich);
+        var owner = Assert.Single(index.Leaves, leaf => leaf.Id == "owner");
+        var elements = index.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => e.NodePath != owner.NodePath ? a : (scenario, a.LocalName) switch
+            {
+                ("missing-raw-href", "href") => a with { ExplicitValue = null },
+                ("operation-conflict", "operation") => a with { ExplicitValue = "delete" },
+                ("default-href", "href") => a with { IsDefault = true },
+                ("href-conflict", "href") => a with { ExplicitValue = "../0000/m4/study/other.xml" },
+                ("missing-raw-id", "ID") => a with { ExplicitValue = null },
+                ("missing-raw-operation", "operation") => a with { ExplicitValue = null }, _ => a
+            }), e.Children, e.Text, e.NodePath != owner.NodePath ? e.Location : scenario switch
+            {
+                "element-location" => e.Location with { LogicalPath = "0000/index.xml" },
+                "element-node" => e.Location with { NodePath = "wrong-node" }, _ => e.Location
+            }));
+        if (scenario == "reordered") elements = elements.Reverse();
+        var changedIndex = new ParsedBackbone(index.LogicalPath, scenario == "wrong-profile" ? PackageValidationCatalog.EuProfile : index.ProfileSnapshotId,
+            index.Kind, index.ReadComplete, index.DtdStatus, index.DocumentTypeName, index.SystemIdentifier, index.PublicIdentifier,
+            elements, index.Nodes, index.Leaves.Select(leaf => leaf.Id != "owner" ? leaf : scenario switch
+            {
+                "wrong-location" => leaf with { Location = leaf.Location with { LogicalPath = "0000/index.xml" } },
+                "leaf-node" => leaf with { Location = leaf.Location with { NodePath = "wrong-node" } },
+                "address-application" => leaf with { Address = new(Guid.NewGuid(), leaf.Address!.SequenceNumber, leaf.Address.BackboneRelativePath, leaf.Address.LeafId) },
+                "address-backbone" => leaf with { Address = new(leaf.Address!.ApplicationId, leaf.Address.SequenceNumber, "other.xml", leaf.Address.LeafId) },
+                "address-id" => leaf with { Address = new(leaf.Address!.ApplicationId, leaf.Address.SequenceNumber, leaf.Address.BackboneRelativePath, "other") }, _ => leaf
+            }),
+            index.IdIndex.Values.SelectMany(ids => ids), index.ResolvedAssets, index.ProcessingInstructions);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(backbone => backbone.Kind != BackboneKind.Ich).Append(changedIndex), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var graph = PackageStfBindingReader.Read(fixture.Packages, fixture.Lifecycle, fixture.Context, default);
+        Assert.True(graph.TargetScopeComplete);
+        Assert.Equal("0000/m4/study/wrong.xml", Assert.Single(graph.Documents).Document.LogicalPath);
+        var result = Inspect(fixture)!;
+        Assert.Equal(expected, result.Status);
+        if (expected == CheckStatus.NotEvaluated) Assert.Empty(result.Findings);
+        else Assert.Single(result.Findings);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnknownHistoricalOwnerCannotHideAnIndependentCurrentNameFailure(bool reversed)
+    {
+        var fixture = await Fixture("wrong.xml", "A", "history-and-current");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections, item => item.InputDigest == fixture.Packages.Target.InputDigest);
+        var index = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.Ich);
+        var changed = new ParsedBackbone(index.LogicalPath, index.ProfileSnapshotId, index.Kind, index.ReadComplete, index.DtdStatus,
+            index.DocumentTypeName, index.SystemIdentifier, index.PublicIdentifier,
+            index.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+                e.Attributes.Values.Select(a => e.Attribute("ID") == "owner" && a.LocalName == "href" ? a with { ExplicitValue = null } : a),
+                e.Children, e.Text, e.Location)), index.Nodes, index.Leaves, index.IdIndex.Values.SelectMany(ids => ids), index.ResolvedAssets);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b.Kind != BackboneKind.Ich).Append(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        if (reversed) fixture = fixture with { Lifecycle = new(fixture.Packages, fixture.Lifecycle.ProfileSnapshotId,
+            fixture.Lifecycle.XmlInspections.Reverse(), fixture.Lifecycle.Events, fixture.Lifecycle.States, fixture.Lifecycle.Checks,
+            fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest) };
+        var result = Inspect(fixture, 1)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.Equal("0001/m4/study/current-wrong.xml", Assert.Single(result.Findings).Location.LogicalPath);
+    }
+
+    [Theory]
     [InlineData("valid", "2008-03-09", CheckStatus.NotApplicable)]
     [InlineData("valid", "2008-03-10", CheckStatus.Fail)]
     [InlineData("valid", null, CheckStatus.NotEvaluated)]
@@ -183,14 +266,15 @@ public sealed class FdaStfFileNameRuleTests
         var context = PackageStandardsContext.FromSnapshot(snapshot, selectionDate: date is null ? null : DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture));
         var app = Guid.NewGuid();
         var target = new Capture(app, "0001", name, id, scenario);
-        var history = scenario is "history" or "history-only" or "history-fragment" or "history-tail" ? new Capture(app, "0000", name, id, scenario == "history-tail" ? "tail" : "valid") : null;
+        var history = scenario is "history" or "history-only" or "history-fragment" or "history-tail" or "history-and-current" ? new Capture(app, "0000", name, id, scenario == "history-tail" ? "tail" : "valid") : null;
         var packages = new PackageInputSet(target, new(app, "0001", history is null ? [] : [new("0000", HistorySourceKind.ImportedExternal, history.SourceId, history.InputDigest, PackageValidationCatalog.UsProfile, HistoryTrustStatus.Unverified)]), history is null ? [] : [history]);
         var lifecycle = await new PackageLifecycleInspector(standards: context).InspectAsync(packages, PackageValidationCatalog.UsProfile);
         var targetXml = Assert.Single(lifecycle.XmlInspections, xml => xml.InputDigest == target.InputDigest);
         var targetIndex = Assert.Single(targetXml.Backbones, document => document.Kind == BackboneKind.Ich);
         if (scenario.StartsWith("history", StringComparison.Ordinal))
         {
-            Assert.Empty(targetXml.StudyTaggingFiles.Documents);
+            if (scenario == "history-and-current") Assert.Equal("0001/m4/study/current-wrong.xml", Assert.Single(targetXml.StudyTaggingFiles.Documents).LogicalPath);
+            else Assert.Empty(targetXml.StudyTaggingFiles.Documents);
             if (scenario == "history-only") Assert.DoesNotContain(targetIndex.Elements, element => element.Attribute("ID") == "owner");
             else Assert.Equal("../0000/m4/study/" + name + (scenario == "history-fragment" ? "#bad" : ""),
                 Assert.Single(targetIndex.Elements, element => element.Attribute("ID") == "owner").Attribute("href", "http://www.w3c.org/1999/xlink"));
@@ -253,6 +337,7 @@ public sealed class FdaStfFileNameRuleTests
             if (scenario == "missing-root") stf = declaration;
             if (scenario == "ordinary") stf = "%PDF-1.4 ordinary";
             if (!scenario.StartsWith("history", StringComparison.Ordinal)) _files[sequence + "/m4/study/" + name] = Encoding.UTF8.GetBytes(stf);
+            if (scenario == "history-and-current") _files[sequence + "/m4/study/current-wrong.xml"] = Encoding.UTF8.GetBytes(stf);
             if (scenario == "two") _files[sequence + "/m4/study/also-wrong.xml"] = Encoding.UTF8.GetBytes(stf);
             _files[sequence + "/m4/study/report.pdf"] = "%PDF-1.4 fixture"u8.ToArray();
             Manifest = new(app, sequence, _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);

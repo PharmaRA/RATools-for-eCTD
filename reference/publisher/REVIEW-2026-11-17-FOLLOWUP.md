@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1884第二轮：历史STF文件名检查的当前owner选择资格（仍Partial，主代理限定只读自审及终态核对通过）。** 1816已提交`43b0151`。按序跳过已Implemented的1833/1850/1867。固定STF规格v2.6.1第4–5页仅述alphanumeric code，本项不据此自行扩写特殊字符处罚，字符适用性仍留队。修复已复现的历史选择误归责：要求当前精确申请/序列/index/叶ID地址、唯一当前配置骨架、原始/派生位置及显式ID/operation/href一致；主遍历与补充范围检查使用同一资格门槛，属性枚举纳入共享工作预算。当前捕获已确认的STF独立于owner，未收紧此路径；历史内容自身尾部已知错误保留。
+
+red五项1过4败，正常历史错误文件名对照通过，缺href原始证据、operation冲突、叶位置与错误配置均在真实历史STF存在前提后误Fail。candidate生产Api/迁移器构建过，测试编译因对只读LeafAddress属性with赋值失败，未执行测试，不算业务红测；改为构造新地址，生产及断言未变。candidate2七类 **252/252、0失败/跳过**（1884为66含新增18、1867为47、原1816为47、修订36、中断16、文件28、交付12），覆盖默认/缺失/冲突原始属性、原始/派生位置、申请/骨架/ID地址、元素乱序与单finding预算下独立当前错误保留；XML观察反序不冒充按序列排序后的绑定遍历反序。主代理限定只读自审通过，无子代理，candidate2即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1884-owner-binding-candidate2-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`02f509122f0147e175a7d240d04a8c3792cf4ee6d8c3cacbdd67532f6f038efd`、TRX SHA`8a6b5160e3da0dc7391e39499b095912ec25b4f92e359c56aaf5f3b64fe501ce`；目录167条canonical SHA`f86303b0df37757e7ea8616975cb66cb450e2c3ab8d5e1cef1478cbf0b8e8756`。三轮证据及校验副本位于`.artifacts/local-check/fda1884-owner-binding-*-20261128`和`backups/fda1884-owner-binding-20261128/evidence/`，bin/obj仅回收。file-v105、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1901模块4/5内允许章节及区域STF身份等剩余边界，再按序继续；不重复已闭合历史owner选择语义。
+
 **FDA1816第二轮：空STF标识修订的直接前驱关联例外（仍Partial，主代理限定只读自审及终态核对通过）。** 1799已提交`0e11e6f`。固定STF规格v2.6.1第12–13页允许重交完整study-identifier的空study-document append。本项限定当前单owner、直接已选初始new前驱、显式原始operation/modified-file/href与派生事实一致、相同章节及ContextKey、成功生命周期事件、唯一且仍Current的前后状态及至少一个仍Current的前次Resolved叶关联。study-id须不变，title/categories须实际变化且不删除前次类别键；类别重排不构成更正。长链、replace、混合owner及缺上下文继续NE，不新增Fail，不借1731私有累积链推定资格。
 
 red五项3过2败，title/category更正在真实XML、前次关联及有效append前提通过后复现NE。candidate七类170/219，49败全部来自旧生命周期fixture使用`<fixture>/captures`，不符合已资格保留路径`<fixture>/validation/captures`；isolated六类170/170仅作隔离证据，不替代整组回归。只修fixture路径，不放宽保护器或改生产回收逻辑。主代理自审补重复历史观察、章节/上下文及工作预算边界；review-red两类84/85，重复历史STF观察复现误Pass，修为同一绑定XML中的唯一STF路径观察及摘要一致门槛。final七类 **224/224、0失败/跳过**（新修订36、原1816为47、累积36、生命周期49、中断16、文件28、交付12），局部Pass不能提升Partial报告Coverage的回归通过。主代理限定只读自审通过，无子代理。

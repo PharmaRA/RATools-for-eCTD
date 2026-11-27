@@ -40,7 +40,8 @@ internal static class FdaStfFileNameRule
                 {
                     Tick();
                     if (owner.Leaf.Address?.SequenceNumber != targetNumber) continue;
-                    if (!owner.Qualified) { if (!bound.IsTarget) incomplete = true; continue; }
+                    if (!owner.Qualified || !bound.IsTarget && !QualifiedCurrentOwner(owner))
+                    { if (!bound.IsTarget) incomplete = true; continue; }
                     selected = true;
                 }
                 if (!selected) continue;
@@ -134,7 +135,8 @@ internal static class FdaStfFileNameRule
                             foreach (var owner in bound.Owners)
                             {
                                 Tick();
-                                if (owner.BackboneLogicalPath == backbone.LogicalPath && owner.Leaf.NodePath == element.NodePath && owner.Qualified) qualified = true;
+                                if (owner.BackboneLogicalPath == backbone.LogicalPath && owner.Leaf.NodePath == element.NodePath &&
+                                    owner.Qualified && QualifiedCurrentOwner(owner)) qualified = true;
                             }
                         }
                         if (!qualified) incomplete = true;
@@ -146,6 +148,47 @@ internal static class FdaStfFileNameRule
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
             "Compared full filenames with stf- plus complete decoded study-id plus .xml. Study-id character admissibility is not qualified; matching names do not establish complete FDA 1884 coverage.", findings);
+
+        bool QualifiedCurrentOwner(StfOwnerBinding owner)
+        {
+            Tick();
+            var leaf = owner.Leaf;
+            if (!owner.Qualified || !leaf.ContextComplete || leaf.Address is not { } address ||
+                address.ApplicationId != packages.Target.Manifest.ApplicationId || address.SequenceNumber != targetNumber ||
+                address.BackboneRelativePath != "index.xml" || address.LeafId != leaf.Id || owner.BackboneLogicalPath != targetNumber + "/index.xml" ||
+                leaf.Location.LogicalPath != owner.BackboneLogicalPath || leaf.Location.NodePath != leaf.NodePath) return false;
+            var xmls = new List<PackageXmlInspection>();
+            foreach (var xml in lifecycle.XmlInspections)
+            { Tick(); if (xml.InputDigest == packages.Target.InputDigest && xml.ProfileSnapshotId == lifecycle.ProfileSnapshotId) xmls.Add(xml); }
+            if (xmls.Count != 1 || xmls[0].RulesDigest != context.Catalog.Digest || xmls[0].AssetManifestDigest != context.Assets.Digest ||
+                xmls[0].LimitsDigest != packages.Target.Limits.Digest()) return false;
+            var backbones = new List<ParsedBackbone>();
+            foreach (var backbone in xmls[0].Backbones)
+            { Tick(); if (backbone.LogicalPath == owner.BackboneLogicalPath) backbones.Add(backbone); }
+            if (backbones.Count != 1 || backbones[0].ProfileSnapshotId != lifecycle.ProfileSnapshotId || backbones[0].Kind != BackboneKind.Ich ||
+                !backbones[0].ReadComplete || backbones[0].DtdStatus != CheckStatus.Pass) return false;
+            var elements = new List<ParsedXmlElement>();
+            foreach (var element in backbones[0].Elements)
+            { Tick(); if (element.NodePath == leaf.NodePath) elements.Add(element); }
+            if (elements.Count != 1 || elements[0] is not { LocalName: "leaf", NamespaceUri.Length: 0 } ||
+                elements[0].Location.LogicalPath != owner.BackboneLogicalPath || elements[0].Location.NodePath != leaf.NodePath) return false;
+            var original = elements[0];
+            return Raw("ID", "") == leaf.Id && Raw("operation", "") is { } operation && operation == leaf.Operation &&
+                operation is "new" or "append" or "replace" && Raw("href", "http://www.w3c.org/1999/xlink") is { } href && href == leaf.Href;
+
+            string? Raw(string name, string ns)
+            {
+                var count = 0; string? value = null;
+                foreach (var attribute in original.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.ExplicitValue == attribute.Value) value = attribute.ExplicitValue;
+                }
+                return count == 1 ? value : null;
+            }
+        }
 
         string? StudyId(ParsedStudyTaggingFile document)
         {

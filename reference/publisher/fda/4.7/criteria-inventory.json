@@ -1584,7 +1584,7 @@
           "tests/RATools.Tests/PackageValidation/FdaStfFileNameRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Checks confirmed STF prefixes and exact full filenames against stf- plus complete unique decoded study-id plus .xml, without trimming or case folding. Current unreferenced files and qualified current references to historical content are included; incomplete ID text remains unevaluated. Alphanumeric character admissibility remains unqualified, so component matches do not establish complete coverage. Final selected Windows regression 719/719 and bounded code/evidence review passed."
+        "note": "Checks confirmed STF prefixes and exact full filenames against stf- plus complete unique decoded study-id plus .xml, without trimming or case folding. Historical content selection requires a unique current-profile owner backbone, exact current application/leaf address, matching original/derived locations and original explicit ID/operation/href agreement. Current confirmed STF identity remains independent of owner evidence; unknown historical owners do not hide independent current naming failures. Alphanumeric character admissibility remains unqualified, so component matches do not establish complete coverage. Latest seven-class Windows regression 252/252 including 66 filename cases (18 new binding cases) and bounded main-agent read-only review passed without subagents."
       }
     },
     {
