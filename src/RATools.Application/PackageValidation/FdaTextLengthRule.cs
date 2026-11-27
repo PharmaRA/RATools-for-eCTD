@@ -93,14 +93,14 @@ internal static class FdaTextLengthRule
             {
                 if (findings.Count >= remaining) return;
                 findings.Add(new(RuleId, CheckStatus.Fail, rule.Severity, RuleId,
-                    "The retained leaf title or explicit keywords value already exceeds 512 printable ASCII characters.",
+                    "The retained leaf title or explicit keywords value already exceeds 512 characters (printable ASCII or basic CJK).",
                     location with { Files = [new(target.SourceId, document.LogicalPath)] }, Expected: "At most 512 characters",
-                    Actual: length.ToString(CultureInfo.InvariantCulture) + " printable ASCII characters",
+                    Actual: length.ToString(CultureInfo.InvariantCulture) + " characters (printable ASCII or basic CJK)",
                     RecommendedAction: "Review future title and keyword naming conventions. This check does not truncate or rewrite the submitted value."));
             }
         }
         yield return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated,
-            "Only unambiguous printable-ASCII overlength current leaf titles and explicit keywords are qualified. Retained overlength evidence survives incomplete reading; Unicode counting, other text scopes and complete compliance remain unqualified. No Pass is emitted.", findings);
+            "Only overlength current leaf titles and explicit keywords composed of printable ASCII or basic CJK (U+4E00-U+9FFF) are qualified. These values have equal UTF-16, scalar and grapheme counts. Retained overlength evidence survives incomplete reading; other Unicode counting, other text scopes and complete compliance remain unqualified. No Pass is emitted.", findings);
     }
 
     private static bool TooLong(string value, ref long characters, CancellationToken token)
@@ -110,7 +110,7 @@ internal static class FdaTextLengthRule
         {
             token.ThrowIfCancellationRequested();
             characters--;
-            if (character is < ' ' or > '~') return false;
+            if (character is not (>= ' ' and <= '~') and not (>= '\u4e00' and <= '\u9fff')) return false;
         }
         return true;
     }

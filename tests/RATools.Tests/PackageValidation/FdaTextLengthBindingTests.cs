@@ -74,17 +74,47 @@ public sealed class FdaTextLengthBindingTests
         Assert.ThrowsAny<OperationCanceledException>(() => FdaTextLengthRule.Inspect(fixture.Input, fixture.Lifecycle, fixture.Context, 10, cancellation.Token).ToArray());
     }
 
+    [Theory]
+    [InlineData(512, 10, 0)]
+    [InlineData(513, 10, 1)]
+    [InlineData(1025, 10, 1)]
+    [InlineData(1026, 10, 2)]
+    [InlineData(1026, 1, 1)]
+    [InlineData(1026, 0, 0)]
+    public async Task BasicCjkUsesTheSameSharedBudgets(long characters, int remaining, int count)
+    {
+        var fixture = await Fixture("both", characters, new string('文', 513));
+        var check = Assert.Single(FdaTextLengthRule.Inspect(fixture.Input, fixture.Lifecycle, fixture.Context, remaining, CancellationToken.None));
+        Assert.Equal(count, check.Findings.Count);
+        Assert.Equal(count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+    }
+
+    [Theory]
+    [InlineData("keywords", CheckStatus.Fail)]
+    [InlineData("default-keywords", CheckStatus.NotEvaluated)]
+    [InlineData("missing-explicit", CheckStatus.NotEvaluated)]
+    [InlineData("unknown-keywords", CheckStatus.Fail)]
+    public async Task BasicCjkDoesNotBypassRawEvidenceOrLoseAnIndependentTitle(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario, value: new string('文', 513));
+        var check = Assert.Single(FdaTextLengthRule.Inspect(fixture.Input, fixture.Lifecycle, fixture.Context, 10, CancellationToken.None));
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+        if (scenario == "unknown-keywords") Assert.Equal("title", Assert.Single(check.Findings).Location.FieldPath);
+    }
+
     private sealed record FixtureData(Input Input, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context);
-    private static async Task<FixtureData> Fixture(string scenario, long? characters = null)
+    private static async Task<FixtureData> Fixture(string scenario, long? characters = null, string? value = null)
     {
         var context = await Context.Value;
         var input = new Input(new() { MaxXmlNodes = scenario == "budget" ? 1 : 500000, MaxXmlDepth = scenario == "depth" ? 1 : 128,
             MaxXmlCharacters = characters ?? (scenario == "characters-short" ? 512 : scenario == "characters-exact" ? 513 : 16 * 1024 * 1024) });
-        const string path = "0001/index.xml"; var longText = new string('A', 513);
+        const string path = "0001/index.xml"; var longText = value ?? new string('A', 513);
         var isKeywords = scenario is "keywords" or "default-keywords" or "missing-explicit";
         var attributes = new List<ParsedXmlAttributeValue> { new("ID", "ID", "", "content", false, 3, 1, "content") };
         if (isKeywords || scenario == "both") attributes.Add(new("keywords", "keywords", "", longText, scenario == "default-keywords", 3, 20,
             scenario is "default-keywords" or "missing-explicit" ? null : longText));
+        if (scenario == "unknown-keywords") attributes.Add(new("keywords", "keywords", "", longText + "\u0301", false, 3, 20, longText + "\u0301"));
         var elements = new List<ParsedXmlElement>
         {
             Element("/root", null, scenario == "wrong-root" ? "other" : "ectd", scenario == "wrong-root-namespace" ? "urn:other" : "http://www.ich.org/ectd"),

@@ -1002,7 +1002,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1500"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaTextLengthRule.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaTextLengthBindingTests.cs"],
-        "note": "Reports unambiguous retained printable-ASCII leaf title and explicit whole keywords values above 512 characters in current ICH/US backbones, without trimming, token splitting, byte-length inference or rewriting content. Uses unique current XML/rules/assets/limits binding, bounded rooted ancestry and cumulative node/character/finding budgets. Final eight-class Windows regression 232/232 including 65 new cases and bounded main-agent read-only review passed without subagents; real unclosed-title tests distinguish 512 and 513 retained characters. Unicode counting, other title/text scopes and complete compliance remain unqualified; no Pass is emitted."
+        "note": "Reports retained printable ASCII/basic CJK (U+4E00-U+9FFF) leaf title and explicit whole keywords values above 512 characters in current ICH/US backbones, where UTF-16, scalar and grapheme counts agree, without trimming, token splitting, byte-length inference or rewriting content. Unique current XML/rules/assets/limits binding, bounded ancestry and cumulative budgets remain required. Latest nine-class Windows regression 307/307 including 37 new cases and bounded main-agent read-only review passed without subagents; covers character/UTF-8 distinction, raw/default values, region, truncation, entities, excluded Unicode and budgets. Other Unicode counting and other title/text scopes remain unqualified; no Pass is emitted."
       }
     },
     {

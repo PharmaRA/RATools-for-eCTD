@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1500第二轮：基本汉字与ASCII混合值的明确字符边界（仍Partial，主代理限定只读自审及终态核对通过）。** 1368已提交`a1e3e42`；1425的index-md5归责及1459/1463版本支持政策依赖无新资格，继续保留。固定FDA criteria第23页明确512 characters；ICH3.2.2物理第108页提及1024 bytes (512 characters)，本项不据此推定UTF-8字节上限。只扩展可打印ASCII与基本汉字U+4E00–U+9FFF集合：这些文本的UTF-16单元、Unicode标量和字素数一致，混合值亦然。仍仅当前ICH/US简单叶标题和原始显式整段keywords，不trim/拆词/规范化/截断，不发Pass。组合字符、代理对、连接符、变体选择符及集合外字符仍未知。
+
+red八项4过4败：512字符即使UTF-8超过1024字节也不失败；四个513字符title/keywords纯汉字及混合值均复现预期Fail实际NE，真实读取前提通过。candidate首轮Tests因新区域测试未导入BackboneKind编译失败，未执行测试；改用精确区域XML路径选择观察，不改业务预期。candidate2九类 **307/307、0失败/跳过**（长度54、绑定48、叶路径32、空白26、内容属性34、无效路径55、逻辑路径18、文件28、交付12；新增37），覆盖集合相邻边界、原文保留、区域定位、截断/实体、默认/缺原始值、未知不抹去独立失败及共享预算。主代理限定只读自审通过，无子代理；审查未改受测输入，candidate2即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1500-basic-cjk-candidate2-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26与5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`2413d9ee3c0e1adca3e5bfa456113bdd086fbbbbf2d5a05a66f82edfb9a01b90`、TRX SHA`9f37f21b8240465f3f465f06a036c86abbb5b3ead6e3f286d739b00edad448fe`；目录167条canonical SHA`058dcdc1635b54c8d72b81d5268b0942cf1575141556e86fdd1a943e4bcd8894`。red/candidate/candidate2证据及校验副本在`.artifacts/local-check/fda1500-basic-cjk-*-20261127`和`backups/fda1500-basic-cjk-20261127/evidence/`，编译错误详见candidate的`build/Tests.build.log`。三轮bin/obj按精确范围回收。file-v99、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一按固定顺序继续1544及后续可执行缺口，不重开已Implemented规则。
+
 **FDA1368第三轮：标题多余属性的绑定与真实根资格（仍Partial，主代理限定只读自审及终态核对通过）。** 1357已提交`21597c9`；1362未知分类/realm适用性没有新证据，已关闭绑定检查不重开。1368原标题分支直接SingleOrDefault/ToDictionary，并把第一元素当根，导致重复观察异常和错误根误归责。本次增加唯一当前XML/rules/assets/limits绑定、捕获真实ICH根、唯一节点及有界一致父项归属；错误位置、历史路径、循环和多父冲突保持未知，显式证据不可用不当作确定多余属性。独立内容属性分支未改，STF类别政策未改，只过滤身份不合格的骨架输入。
 
 red五项1过4败，正常M4 manufacturer对照通过，重复XML/节点异常及错误根/规则摘要冲突误Fail均复现。修后八类 **221/221、0失败/跳过**（新标题绑定33、原标题19、内容属性34、内容绑定29、STF类别34、共用叶路径32、文件28、交付12），覆盖根/父链/捕获/位置/绑定、重复/多父/循环、乱序、相邻预算、默认/显式证据和独立已知失败保留。主代理限定只读自审通过，无子代理，candidate即最终证据。
