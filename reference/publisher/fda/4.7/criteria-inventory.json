@@ -1609,7 +1609,7 @@
           "tests/RATools.Tests/PackageValidation/FdaStfTocLocationRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Detects confirmed current STF owners outside modules 4/5 using original/derived leaf agreement, exact captured content identity and schema-bound ancestry. Historical content is checked at its current owner, not its old placement. Internal backbone profile conflicts and missing evidence remain unevaluated; unrelated orphan discovery does not pollute excluded owner scope. Specific allowed headings within modules 4/5 and regional STF identification remain unqualified. Final selected Windows regression 765/765 and bounded code/evidence review passed."
+        "note": "Detects confirmed current STF owners outside modules 4/5 using original/derived leaf agreement and exact captured content identity. Qualified US regional module-one owners now fail through a unique captured complete backbone, actual regional root, unique m1-regional parent chain, matching locations and original explicit ID/operation/href agreement. Historical content is checked at its current owner, not its old placement. Missing or contradictory evidence remains unevaluated; known violations survive other unknown owners and STF tail damage. Specific allowed headings within modules 4/5 and STF content misread as a regional backbone remain unqualified. Latest seven-class Windows regression 305/305 including 78 location cases (31 new) and bounded main-agent read-only review passed without subagents."
       }
     },
     {

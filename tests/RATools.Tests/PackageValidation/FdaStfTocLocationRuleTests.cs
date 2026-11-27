@@ -15,6 +15,131 @@ public sealed class FdaStfTocLocationRuleTests
     private const string RuleId = "FDA47-1901";
 
     [Theory]
+    [InlineData("valid", CheckStatus.Fail)]
+    [InlineData("history", CheckStatus.Fail)]
+    [InlineData("ordinary", CheckStatus.NotApplicable)]
+    [InlineData("missing", CheckStatus.NotEvaluated)]
+    [InlineData("tail", CheckStatus.Fail)]
+    [InlineData("history-tail", CheckStatus.Fail)]
+    [InlineData("wrong-root", CheckStatus.NotEvaluated)]
+    [InlineData("missing-root", CheckStatus.NotEvaluated)]
+    [InlineData("history-missing", CheckStatus.NotEvaluated)]
+    [InlineData("delete", CheckStatus.NotApplicable)]
+    public async Task RegionalLeafUsesActualStfIdentityAndModuleOneLocation(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture("regional", scenario);
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections, x => x.InputDigest == fixture.Packages.Target.InputDigest);
+        var region = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.True(region.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, region.DtdStatus);
+        Assert.Single(region.Leaves, leaf => leaf.Id == "owner");
+        if (scenario is "valid" or "history")
+        {
+            var stf = Assert.Single(fixture.Lifecycle.XmlInspections.SelectMany(x => x.StudyTaggingFiles.Documents));
+            Assert.Equal(CheckStatus.Pass, stf.DtdStatus);
+            Assert.Equal("study", Assert.Single(stf.Elements, e => e.ParentPath is null).LocalName);
+        }
+        var result = Inspect(fixture)!;
+        Assert.Equal(expected, result.Status);
+        if (expected == CheckStatus.Fail)
+        {
+            var finding = Assert.Single(result.Findings);
+            Assert.Equal("0001/m1/us/us-regional.xml", finding.Location.LogicalPath);
+            Assert.Equal("owner", finding.Location.LeafId);
+            Assert.Equal("m1", finding.Actual);
+        }
+        else Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("missing-href")]
+    [InlineData("conflicting-operation")]
+    [InlineData("default-id")]
+    [InlineData("element-location")]
+    [InlineData("leaf-location")]
+    [InlineData("parent-location")]
+    [InlineData("missing-parent")]
+    [InlineData("second-parent")]
+    [InlineData("duplicate-child")]
+    [InlineData("wrong-root")]
+    [InlineData("no-module")]
+    [InlineData("wrong-profile")]
+    [InlineData("incomplete")]
+    [InlineData("invalid-dtd")]
+    [InlineData("duplicate-backbone")]
+    public async Task RegionalPlacementNeedsUniqueOriginalRootedEvidence(string scenario)
+    {
+        var fixture = await Fixture("regional");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var region = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        var owner = Assert.Single(region.Leaves);
+        var root = Assert.Single(region.Elements, e => e.ParentPath is null);
+        var elements = region.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath,
+            scenario == "no-module" && e.LocalName == "m1-regional" ? "other" : e.Name,
+            scenario == "no-module" && e.LocalName == "m1-regional" ? "other" : e.LocalName,
+            scenario == "wrong-root" && e == root ? "urn:wrong" : e.NamespaceUri,
+            e.Attributes.Values.Select(a => e.NodePath != owner.NodePath ? a : (scenario, a.LocalName) switch
+            {
+                ("missing-href", "href") => a with { ExplicitValue = null },
+                ("conflicting-operation", "operation") => a with { ExplicitValue = "delete" },
+                ("default-id", "ID") => a with { IsDefault = true }, _ => a
+            }),
+            scenario == "missing-parent" && e.NodePath == owner.ParentNodePath ? e.Children.Where(p => p != owner.NodePath) :
+            scenario == "second-parent" && e == root || scenario == "duplicate-child" && e.NodePath == owner.ParentNodePath ? e.Children.Append(owner.NodePath) : e.Children,
+            e.Text, scenario == "element-location" && e.NodePath == owner.NodePath || scenario == "parent-location" && e.NodePath == owner.ParentNodePath ?
+                e.Location with { LogicalPath = "0000/m1/us/us-regional.xml" } : e.Location));
+        var changed = new ParsedBackbone(region.LogicalPath, scenario == "wrong-profile" ? PackageValidationCatalog.EuProfile : region.ProfileSnapshotId,
+            region.Kind, scenario != "incomplete" && region.ReadComplete, scenario == "invalid-dtd" ? CheckStatus.Fail : region.DtdStatus,
+            region.DocumentTypeName, region.SystemIdentifier, region.PublicIdentifier, elements, region.Nodes,
+            region.Leaves.Select(l => scenario == "leaf-location" ? l with { Location = l.Location with { NodePath = "wrong-node" } } : l),
+            region.IdIndex.Values.SelectMany(ids => ids), region.ResolvedAssets);
+        var backbones = xml.Backbones.Where(b => b != region).Append(changed);
+        if (scenario == "duplicate-backbone") backbones = backbones.Append(changed);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            backbones, xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var result = Inspect(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnknownRegionalOwnerDoesNotHideAnotherKnownViolation(bool reverse)
+    {
+        var fixture = await Fixture("regional", "two");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var region = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        var elements = region.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => e.Attribute("ID") == "owner" && a.LocalName == "href" ? a with { ExplicitValue = null } : a),
+            e.Children, e.Text, e.Location));
+        if (reverse) elements = elements.Reverse();
+        var changed = new ParsedBackbone(region.LogicalPath, region.ProfileSnapshotId, region.Kind, region.ReadComplete, region.DtdStatus,
+            region.DocumentTypeName, region.SystemIdentifier, region.PublicIdentifier, elements, region.Nodes, region.Leaves,
+            region.IdIndex.Values.SelectMany(ids => ids), region.ResolvedAssets);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b != region).Append(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var result = Inspect(fixture, 1)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.Equal("owner2", Assert.Single(result.Findings).Location.LeafId);
+    }
+
+    [Theory]
+    [InlineData(0, CheckStatus.NotEvaluated)]
+    [InlineData(1, CheckStatus.Fail)]
+    public async Task RegionalViolationUsesSharedFindingBudget(int budget, CheckStatus expected)
+    {
+        var fixture = await Fixture("regional");
+        Assert.Equal(expected, Inspect(fixture, budget)!.Status);
+        using var cancel = new CancellationTokenSource();
+        RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Inspect(fixture, 1, check =>
+        { retained = check; if (check.Status == CheckStatus.Fail) cancel.Cancel(); }, cancel.Token));
+        Assert.Equal(CheckStatus.Fail, retained!.Status);
+        Assert.Single(retained.Findings);
+    }
+
+    [Theory]
     [InlineData("m2", "valid", CheckStatus.Fail)]
     [InlineData("m3", "valid", CheckStatus.Fail)]
     [InlineData("m2", "extension", CheckStatus.Fail)]
@@ -197,6 +322,7 @@ public sealed class FdaStfTocLocationRuleTests
     [InlineData("m2", "valid", CheckStatus.Fail)]
     [InlineData("m4", "valid", CheckStatus.NotEvaluated)]
     [InlineData("m2", "unreferenced", CheckStatus.NotApplicable)]
+    [InlineData("regional", "valid", CheckStatus.Fail)]
     public async Task DeliveryAndPartialReportExposeModuleBoundary(string module, string scenario, CheckStatus expected)
     {
         var fixture = await Fixture(module, scenario);
@@ -205,6 +331,36 @@ public sealed class FdaStfTocLocationRuleTests
         var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
         Assert.Equal(expected, Assert.Single(result.Files.Checks, check => check.RuleId == RuleId).Status);
         Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, check => check.RuleId == RuleId).CheckStatus);
+    }
+
+    [Fact]
+    public async Task RegionalWorkLimitHasAnExactEvidenceBoundary()
+    {
+        var fixture = await Fixture("regional");
+        var capture = Assert.IsType<Capture>(fixture.Packages.Target);
+        var original = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var low = 1;
+        var high = capture.Limits.MaxXmlNodes;
+        Assert.Equal(CheckStatus.NotEvaluated, WithBudget(low).Status);
+        Assert.Equal(CheckStatus.Fail, WithBudget(high).Status);
+        while (high - low > 1)
+        {
+            var middle = low + (high - low) / 2;
+            if (WithBudget(middle).Status == CheckStatus.Fail) high = middle;
+            else low = middle;
+        }
+        var insufficient = WithBudget(high - 1);
+        Assert.Equal(CheckStatus.NotEvaluated, insufficient.Status);
+        Assert.Empty(insufficient.Findings);
+        Assert.Single(WithBudget(high).Findings);
+
+        RuleCheckResult WithBudget(int work)
+        {
+            capture.Limits = new() { MaxXmlNodes = work };
+            var changed = ReplaceXml(fixture, new(original.InputDigest, original.ProfileSnapshotId, original.AssetManifestDigest,
+                capture.Limits.Digest(), original.Backbones, original.Checks, original.RulesDigest, original.StudyTaggingFiles));
+            return Inspect(changed)!;
+        }
     }
 
     [Fact]
@@ -243,6 +399,7 @@ public sealed class FdaStfTocLocationRuleTests
         if (scenario == "index-tail") Assert.False(index.ReadComplete);
         else Assert.Equal(CheckStatus.Pass, index.DtdStatus);
         if (scenario == "index-tail") Assert.Empty(index.Leaves);
+        else if (module == "regional") Assert.DoesNotContain(index.Leaves, leaf => leaf.Id == "owner");
         else if (scenario is "unreferenced" or "history-only") Assert.DoesNotContain(index.Leaves, leaf => leaf.Id == "owner");
         else
         {
@@ -276,6 +433,13 @@ public sealed class FdaStfTocLocationRuleTests
         {
             var regional = XDocument.Parse(Fda47AttributeRulesTests.Valid());
             regional.Descendants("sequence-number").Single().Value = sequence;
+            if (module == "regional")
+            {
+                var href = (scenario.StartsWith("history", StringComparison.Ordinal) ? "../../../0000/" : "../../") +
+                    "m4/study/" + (scenario == "ordinary" ? "metadata.xml" : "stf-A.xml");
+                regional.Descendants("form").First().Add(Leaf("owner", href, scenario == "delete" ? "delete" : "new"));
+                if (scenario == "two") regional.Descendants("form").First().Add(Leaf("owner2", href));
+            }
             var original = new PackageRegionalInspectionTests.MemoryInput(app, sequence, regional.ToString(), PackageValidationCatalog.UsProfile);
             _files = original.Manifest.Files.ToDictionary(file => file.LogicalPath, file => { using var stream = original.OpenRead(file.LogicalPath); using var output = new MemoryStream(); stream.CopyTo(output); return output.ToArray(); }, StringComparer.Ordinal);
             var region = new XElement("m1-administrative-information-and-prescribing-information", Leaf("regional", "m1/us/us-regional.xml"));
@@ -285,7 +449,7 @@ public sealed class FdaStfTocLocationRuleTests
             var section = module == "m1" ? region : new XElement(heading);
             if (module != "m1") root.Add(new XElement(container, section));
             if (scenario == "extension") { var extension = new XElement("node-extension", new XAttribute("ID", "ext"), new XElement("title", "Study")); section.Add(extension); section = extension; }
-            if (scenario is not ("unreferenced" or "history-only"))
+            if (module != "regional" && scenario is not ("unreferenced" or "history-only"))
             {
                 var href = (scenario.StartsWith("history", StringComparison.Ordinal) ? "../0000/" : "") + "m4/study/" + (scenario == "ordinary" ? "metadata.xml" : "stf-A.xml") + (scenario == "history-fragment" ? "#bad" : "");
                 section.Add(Leaf("owner", href, scenario == "delete" ? "delete" : "new"));

@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1901第二轮：有效US区域骨架中的真实STF归属（仍Partial，主代理限定只读自审及终态核对通过）。** 1884已提交`b8e1e3f`。固定criteria第39页与STF规格第4页明确STF仅能位于模块4/5。核技术指南物理第12/20/21/23页区分必需与允许：5.2/5.3.6不要求STF不能改写为禁止，完整允许清单尚未闭合。本项接入有效US区域骨架内当前叶引用真实当前/历史STF的模块1违规，绑定当前唯一捕获骨架、完整DTD、实际区域根、m1-regional下唯一双向父链、原始/派生定位与显式ID/operation/href；不按扩展名、物理文件夹或旧owner推定位置，不修改共享STF发现器。ICH模块1把STF误当区域骨架的路径继续未知。
+
+red四项2过2败，当前/历史真实STF均在完整区域DTD及真实根前提后复现NE，普通XML/缺文件对照正确。candidate七类303/304，唯一失败是新增区域交付用例误放ICH定位参数表而要求index.xml；移入实际交付/报告测试，保留旧断言与生产判断，并补区域工作预算相邻边界。final七类 **305/305、0失败/跳过**（1901为78含新增31、发现55、区域50、1884为66、中断16、文件28、交付12），覆盖当前/历史、已确认根后尾部损坏、坏根/缺文件/缺历史/delete、原始证据冲突、定位/配置/重复骨架/父链、未知owner前后独立已知违规、finding预算、取消和交付报告。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1901-regional-stf-final-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9交付/直接依赖输入SHA绑定；manifest SHA`2ef13e72a5d123564a10749c37d4c45f55a0c85c08fcbb56e78f19c5cb4d9f4c`、TRX SHA`cbc0b76263d957a2453ea8ac8ab0ba5d526ff8cb4f9a54fc101cbbbc36b97ed7`；目录167条canonical SHA`08eee5ad4139b326293afb13d8e8e89a7dc146fc131df5f3348b23021d9a3a2e`。三轮证据及校验副本位于`.artifacts/local-check/fda1901-regional-stf-*-20261128`和`backups/fda1901-regional-stf-20261128/evidence/`，bin/obj仅回收。file-v106、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1901模块4/5内允许章节的来源及判定资格，保留误作区域骨架的身份缺口，再按序后续项。
+
 **FDA1884第二轮：历史STF文件名检查的当前owner选择资格（仍Partial，主代理限定只读自审及终态核对通过）。** 1816已提交`43b0151`。按序跳过已Implemented的1833/1850/1867。固定STF规格v2.6.1第4–5页仅述alphanumeric code，本项不据此自行扩写特殊字符处罚，字符适用性仍留队。修复已复现的历史选择误归责：要求当前精确申请/序列/index/叶ID地址、唯一当前配置骨架、原始/派生位置及显式ID/operation/href一致；主遍历与补充范围检查使用同一资格门槛，属性枚举纳入共享工作预算。当前捕获已确认的STF独立于owner，未收紧此路径；历史内容自身尾部已知错误保留。
 
 red五项1过4败，正常历史错误文件名对照通过，缺href原始证据、operation冲突、叶位置与错误配置均在真实历史STF存在前提后误Fail。candidate生产Api/迁移器构建过，测试编译因对只读LeafAddress属性with赋值失败，未执行测试，不算业务红测；改为构造新地址，生产及断言未变。candidate2七类 **252/252、0失败/跳过**（1884为66含新增18、1867为47、原1816为47、修订36、中断16、文件28、交付12），覆盖默认/缺失/冲突原始属性、原始/派生位置、申请/骨架/ID地址、元素乱序与单finding预算下独立当前错误保留；XML观察反序不冒充按序列排序后的绑定遍历反序。主代理限定只读自审通过，无子代理，candidate2即最终证据。
