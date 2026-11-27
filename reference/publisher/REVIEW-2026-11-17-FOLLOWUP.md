@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1102第三轮：URI后缀不掩盖明确本地路径缺陷（仍Partial，主代理限定只读自审及终态核对通过）。** FDA5依赖复核已提交`2f0c324`。固定FDA criteria第8页给出路径非法字符；[RFC3986第3.3–3.5节](https://www.rfc-editor.org/rfc/rfc3986.txt)与现有逻辑路径解析均以第一个?或\#结束路径。本项仅对分界前的明确本地路径沿用原有非法字符检查，后缀本身不产生路径缺陷、不消除已知缺陷。协议/绝对路径/百分号路径保持未知，不宣称查询/片段语法、目标存在或后缀本身的监管资格已完成。
+
+red三项完整XML与原始href前提全过，预期Fail实际NE。candidate六类184/201，17项失败全部为文件检查器升级v92后交付静态VersionFor仍声明v91；修正该生产声明，保留原一致性断言。final六类 **201/201、0失败/跳过**（1102原始用例55、证据56、共用叶路径32、逻辑路径18、文件管线28、交付12），新增38项含非法路径/后缀分离、先后分界、协议/编码/历史路径边界、属性/完整性/预算及区域报告。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1102-components-final-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9交付/直接依赖输入SHA绑定；manifest SHA`f5b1b04d6716a022eedee2f18005289866c7bef51822ac06b3b6ad55b4f85df8`、TRX SHA`a441ca6e9e2d0de2931abc2aad8b1baa42e58975d07755c85fbb6c4d2bea6caa`；目录167条canonical SHA`426a57c7e2bc79576f103b9408dbca8bce55c032738edcdeb679210e94012e76`。red/candidate/final证据及校验副本在`.artifacts/local-check/fda1102-components-*-20261127`和`backups/fda1102-components-20261127/evidence/`，bin/obj按精确范围回收。file-v92、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1119/1130条件支持文件的实际STF身份与捕获绑定，先复现声明候选而非实际study根的误归责。
+
 **FDA5第三轮依赖复核：原始字段仍不是最终显示值（不计规则完成）。** 5217已提交`ff6bdba`。限定读取当前`Fda2252FieldEvidence`、`FdaXfaTemplateEvidence`、`PackageFormEvidenceAssociationReader`及固定2252原件，未执行表单脚本/渲染。原件SHA`921983dcb9ac14308617684c52e516f283cdf343adb7e0f3ab52fef09b1b1e7e`；config包SHA`36d7ab81b3ed81c22749fd2390e68fc04ebf2074b6e600c84d1a6754f8ecffd2`，template SHA`c761fd02da088844dea36e67570344ffbc13213e00b11849b6bdfe43fab506fc`，form包SHA`10bc0f809461d97968f68da1e67669ade38aed32e81eebeca1744785eca142a6`。config要求dynamicRender=required、scriptModel=XFA、runScripts=server；主号/延续号validate分别调用sixDigits/uptofourDigits，不合法输入分支会赋空rawValue。类型validate的旧转换脚本整段被注释，不作为可执行转换证据；CDER/CBER脚本控制延续号access，不证明申请号拼接规则。
 
 现有模板匹配只绑定template，原始字段只绑定datasets，候选关联明确不选择主表单或申请；因此还需合格的XFA默认绑定/配置与form状态/渲染见证，以及主表单与附件/申请归属业务资格。不能执行不可信脚本来伪造资格，也不能仅比较原始字段就发布FDA5失败。保留FDA5 NotAssessed及既有前置能力；本次仅只读依赖复核，无新增业务实现或回归完成声称，无子代理。FDA6/7适用及可填写性、1038实际身份/替换例外、1085起算目录依赖没有新证据，不重跑无变化项；按序继续1102后续可执行缺口。库存67 Implemented/56 Partial/24 NotAssessed，待完整覆盖80、原107完整27不变。

@@ -258,7 +258,7 @@
         "status": "Partial",
         "internalRuleIds": ["FDA47-1102"],
         "evidence": ["src/RATools.Application/PackageValidation/FdaInvalidLeafPathRule.cs", "tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathEvidenceTests.cs"],
-        "note": "Detects explicit unnormalized local href defects in complete rooted current ICH/US backbones, with unique XML and exact rules/assets/limits binding. Distinguishes default/unavailable/conflicting raw values and bounds ancestry, indexing and findings. URI scheme, percent encoding, query/fragment syntax, delete leaves, historical sources and other XML scopes remain unqualified; no Pass is emitted. Final eight-class Windows regression 221/221 including 73 new cases and bounded main-agent read-only review passed without subagents. Remains Partial."
+      "note": "Detects explicit unnormalized local href path defects before the first query/fragment delimiter in complete rooted current ICH/US backbones, with unique XML and exact rules/assets/limits binding. Suffix contents neither hide known path defects nor supply path defects. Distinguishes default/unavailable/conflicting raw values and bounds ancestry, indexing and findings. URI scheme, percent-encoded paths, query/fragment validity, delete leaves, historical sources and other XML scopes remain unqualified; no Pass is emitted. Third-round six-class Windows regression 201/201 including 111 FDA1102 cases and bounded main-agent read-only review passed without subagents. Remains Partial."
       }
     },
     {

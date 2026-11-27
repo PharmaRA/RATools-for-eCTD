@@ -16,6 +16,27 @@ public sealed class FdaInvalidLeafPathEvidenceTests
     [InlineData("default", CheckStatus.NotEvaluated)]
     [InlineData("no-explicit", CheckStatus.NotEvaluated)]
     [InlineData("normalized", CheckStatus.NotEvaluated)]
+    [InlineData("leaf-value-conflict", CheckStatus.NotEvaluated)]
+    [InlineData("delete", CheckStatus.NotEvaluated)]
+    [InlineData("unread", CheckStatus.NotEvaluated)]
+    [InlineData("duplicate-xml", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-rules", CheckStatus.NotEvaluated)]
+    [InlineData("historical-document", CheckStatus.NotEvaluated)]
+    [InlineData("budget-short", CheckStatus.NotEvaluated)]
+    [InlineData("budget-exact", CheckStatus.Fail)]
+    public async Task SuffixDoesNotBypassBoundExplicitEvidence(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario, "m2/bad name.pdf#page=1");
+        var check = Assert.Single(FdaInvalidLeafPathRule.Inspect(fixture.Input, fixture.Lifecycle, fixture.Context, 10, CancellationToken.None));
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("valid", CheckStatus.Fail)]
+    [InlineData("default", CheckStatus.NotEvaluated)]
+    [InlineData("no-explicit", CheckStatus.NotEvaluated)]
+    [InlineData("normalized", CheckStatus.NotEvaluated)]
     [InlineData("wrong-attribute-namespace", CheckStatus.NotEvaluated)]
     [InlineData("duplicate-href", CheckStatus.NotEvaluated)]
     [InlineData("missing-attribute", CheckStatus.NotEvaluated)]
@@ -100,11 +121,11 @@ public sealed class FdaInvalidLeafPathEvidenceTests
     }
 
     private sealed record FixtureData(Input Input, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context);
-    private static async Task<FixtureData> Fixture(string scenario)
+    private static async Task<FixtureData> Fixture(string scenario, string value = "m2/bad name.pdf")
     {
         var context = await Context.Value;
         var input = new Input(new() { MaxXmlNodes = scenario switch { "budget" => 1, "budget-short" => 10, "budget-exact" => 11, _ => 500000 }, MaxXmlDepth = scenario == "depth" ? 1 : 128 });
-        const string path = "0001/index.xml"; const string value = "m2/bad name.pdf";
+        const string path = "0001/index.xml";
         var profile = context.Assets.ForProfile(PackageValidationCatalog.UsProfile).Single(item => item.Kind == BackboneKind.Ich);
         var operation = scenario == "delete" ? "delete" : scenario == "unknown-operation" ? "other" : "new";
         var attributes = new List<ParsedXmlAttributeValue>

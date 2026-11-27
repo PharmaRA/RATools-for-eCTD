@@ -2883,7 +2883,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects explicit unnormalized local href values containing backslash, colon within a later path segment, asterisk, less-than, greater-than, pipe or space. Requires complete rooted current XML and exact rules/assets/limits binding. Default/missing/raw-value conflicts, URI schemes, percent encoding, query/fragment syntax, delete leaves, historical sources and other XML scopes remain unqualified. No Pass is emitted.",
+      "implementationNote": "Detects explicit unnormalized local href path components containing backslash, colon within a later path segment, asterisk, less-than, greater-than, pipe or space before the first query/fragment delimiter. Suffix contents neither erase a known path defect nor supply a path defect. Requires complete rooted current XML and exact rules/assets/limits binding. Default/missing/raw-value conflicts, URI schemes, percent-encoded paths, query/fragment validity, delete leaves, historical sources and other XML scopes remain unqualified. No Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathEvidenceTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaInvalidLeafPathEvidenceTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaInvalidLeafPathRule.cs"],

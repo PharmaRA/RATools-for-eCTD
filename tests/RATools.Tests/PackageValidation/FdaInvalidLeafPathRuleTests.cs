@@ -5,6 +5,69 @@ namespace RATools.Tests.PackageValidation;
 public sealed class FdaInvalidLeafPathRuleTests
 {
     [Theory]
+    [InlineData("m2/bad name.pdf#page=1")]
+    [InlineData("m2/bad|name.pdf?view=1")]
+    [InlineData("m2/bad:name.pdf?view=1#page=1")]
+    public async Task UriSuffixDoesNotHideExplicitLocalPathDefect(string href)
+    {
+        var result = await FdaExtraneousLeafPathRulesTests.Inspect("new", href, null,
+            contentModule: "m2-common-technical-document-summaries");
+        var backbone = Assert.Single(result.Lifecycle.XmlInspections.SelectMany(item => item.Backbones),
+            item => item.LogicalPath == "0001/index.xml");
+        Assert.True(backbone.ReadComplete);
+        Assert.Equal(href, Assert.Single(backbone.Leaves).Href);
+        var check = Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1102");
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(href, Assert.Single(check.Findings).Actual);
+    }
+
+    [Theory]
+    [InlineData("m2/bad\\name.pdf#page=1", CheckStatus.Fail)]
+    [InlineData("m2/bad*name.pdf?view=1", CheckStatus.Fail)]
+    [InlineData("m2/bad<name.pdf#page=1", CheckStatus.Fail)]
+    [InlineData("m2/bad>name.pdf?view=1", CheckStatus.Fail)]
+    [InlineData("m2/bad name.pdf#", CheckStatus.Fail)]
+    [InlineData("m2/bad name.pdf?", CheckStatus.Fail)]
+    [InlineData("m2/bad name.pdf#x?https://example.invalid/a", CheckStatus.Fail)]
+    [InlineData("m2/bad name.pdf?q=%ZZ#part", CheckStatus.Fail)]
+    [InlineData("bad name.pdf#page=1", CheckStatus.Fail)]
+    [InlineData("../0000/m2/bad name.pdf?view=1", CheckStatus.Fail)]
+    [InlineData("m2/good.pdf?q=bad\\name|file:other", CheckStatus.NotEvaluated)]
+    [InlineData("m2/good.pdf#bad name?other|name", CheckStatus.NotEvaluated)]
+    [InlineData("good.pdf?q=scheme:value/part", CheckStatus.NotEvaluated)]
+    [InlineData("#bad name.pdf", CheckStatus.NotEvaluated)]
+    [InlineData("?bad name.pdf", CheckStatus.NotEvaluated)]
+    [InlineData("https://example.invalid/bad name.pdf#part", CheckStatus.NotEvaluated)]
+    [InlineData("mailto:bad name@example.invalid?subject=x", CheckStatus.NotEvaluated)]
+    [InlineData("C:/bad name.pdf#part", CheckStatus.NotEvaluated)]
+    [InlineData("/bad name.pdf#part", CheckStatus.NotEvaluated)]
+    [InlineData("//example.invalid/bad name.pdf?view=1", CheckStatus.NotEvaluated)]
+    [InlineData("m2/bad%20name.pdf#part", CheckStatus.NotEvaluated)]
+    [InlineData("m2/bad%ZZ name.pdf?view=1", CheckStatus.NotEvaluated)]
+    public async Task PathAndSuffixDefectsAreNotInterchanged(string href, CheckStatus expected)
+    {
+        var result = await FdaExtraneousLeafPathRulesTests.Inspect("new", href, null,
+            contentModule: "m2-common-technical-document-summaries");
+        var check = Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1102");
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+        if (expected == CheckStatus.Fail) Assert.Equal(href, check.Findings[0].Actual);
+    }
+
+    [Fact]
+    public async Task RegionalPathDefectWithFragmentRetainsPartialReportAndLocation()
+    {
+        var result = await FdaExtraneousLeafPathRulesTests.Inspect("new", "m1/us/us-regional.xml", null,
+            regionalContentHref: "bad name.pdf#page=1");
+        var finding = Assert.Single(Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-1102").Findings);
+        Assert.Equal("0001/m1/us/us-regional.xml", finding.Location.LogicalPath);
+        Assert.Equal("form-leaf", finding.Location.LeafId);
+        Assert.Equal("bad name.pdf#page=1", finding.Actual);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage,
+            item => item.RuleId == "FDA47-1102").CheckStatus);
+    }
+
+    [Theory]
     [InlineData("valid", "2008-03-09", CheckStatus.NotApplicable)]
     [InlineData("valid", "2008-03-10", CheckStatus.Fail)]
     [InlineData("valid", null, CheckStatus.NotEvaluated)]

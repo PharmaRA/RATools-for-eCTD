@@ -12,7 +12,7 @@ internal static class FdaInvalidLeafPathRule
         cancellationToken.ThrowIfCancellationRequested();
         var rule = context.Catalog.ForProfile(lifecycle.ProfileSnapshotId).SingleOrDefault(item => item.InternalRuleId == RuleId);
         if (rule is null) yield break;
-        const string unknown = "Only explicit local target backbone path defects are qualified. URI components/encoding, other XML scopes and historical sources remain unevaluated; no Pass is emitted.";
+        const string unknown = "Only explicit local target backbone path defects before the first query/fragment delimiter are qualified. Query/fragment validity, URI schemes/encoding, other XML scopes and historical sources remain unevaluated; no Pass is emitted.";
         if (rule.AuthorityRuleId != "1102" || rule.RuleVersion != "4.7.1" || rule.SourceId != "fda-validation-criteria-4.7" ||
             !context.Catalog.Sources.TryGetValue(rule.SourceId, out var source) || source.Kind != RuleSourceKind.RegulatorySpecification ||
             source.Version != "4.7" || source.VerificationStatus != "Verified" || source.Sha256 != "2b390199bebb1b7cde65926d027120ae576ca304f2628950cc51d2c9e4a3ab8c" ||
@@ -96,7 +96,11 @@ internal static class FdaInvalidLeafPathRule
     private static bool HasQualifiedDefect(string value)
     {
         // Do not mistake URI scheme, query/fragment text or encoded bytes for a file path.
-        if (value.Length == 0 || value.StartsWith('/') || value.IndexOfAny(['%', '?', '#']) >= 0) return false;
+        // RFC 3986 3.3: the first '?' or '#' ends the path; suffix contents cannot
+        // erase an independently known path defect or supply a path defect themselves.
+        var boundary = value.IndexOfAny(['?', '#']);
+        if (boundary >= 0) value = value[..boundary];
+        if (value.Length == 0 || value.StartsWith('/') || value.Contains('%')) return false;
         var colon = value.IndexOf(':'); var slash = value.IndexOf('/');
         if (colon >= 0 && (slash < 0 || colon < slash)) return false;
         return value.IndexOfAny(['\\', ':', '*', '<', '>', '|', ' ']) >= 0;
