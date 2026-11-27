@@ -34,4 +34,8 @@ FDA Study Data Technical Conformance Guide October 2026，现有固定归档 `of
 
 已增加 `PackageDefineDatasetInspector`：从一个明确define捕获文件出发，将唯一文件叶声明关联到同序列清单中的实际内容，使用既有XPT读取器，不按扩展名推定格式。仅处理简单可打印ASCII相对路径，允许同序列内的`.`/`..`，跨序列、百分号、查询/片段、平台和外部URI保持UnsupportedPath且不打开目标。重复声明保留各自身份，同路径内容只读一次；不同目标共享字节/行/单元格预算，清单和关联遍历有工作量限额。单文件不可读可保留其他独立事实；捕获身份变化、整组终验失败或工作量中断清空结果。TraversalComplete仅表示关联遍历和终验完成，不保证所有目标可读，也不表示模型、STF或研究身份合格。
 
-下一将上述关联结果与实际STF引用、研究及数据集身份交叉核对；目前保留真实XPT member/列/内容，不自行推定声明模型。FDA 1735 的模型/标签适用性、1736 的 DM/ADSL 与对应 define 供应，还需中心/日期/历史供应政策和正式来源资格。不得仅凭文件名、STF 标签或本读取器的声明创建 Fail/Pass。
+已增加 `PackageStfDefineInspector`：显式选择当前STF文件与其中的define叶地址，核对当前捕获、规则/资产/基线/限额、实际STF归属与原始显式叶href，复用define→XPT关联结果。按同一STF中的精确文件路径分别标记Referenced、MultipleLeaves、NotReferenced、Unknown，重复引用同一叶保留次数但不冒充多个叶；另一个同study-id的STF不能补齐本STF引用。存在未知引用时不能把未匹配当确定未引用。只处理当前index叶与同序列简单相对路径，不扩写历史研究供应。
+
+分别保留STF study-id、Define Study OID/数据集声明、实际XPT member和逐行STUDYID（行号、确定性、解码状态及原值）。缺列、不可解码、可能填充行不伪装完整；80字节全空白行不能全部视为最多79字节的合法填充，确定空值仍独立保留。Read及StudyIdsComplete仅表示相应读取/关联完整性，不能证明这些不同标识应相等；既有1738的TS STUDYID/SPREFID政策未改。原始XML不重新打开；整组终验/身份失败不发布事实。
+
+下一核对声明数据集名与实际XPT member的身份对应，再闭合模型/标签、DM/ADSL供应的规则语义。FDA 1735/1736 仍需中心/日期/历史供应政策和正式来源资格，自动发现/全部STF范围及实际业务接入尚未完成。不得仅凭文件名、STF标签或本读取器的声明创建Fail/Pass。
