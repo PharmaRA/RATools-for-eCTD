@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1314第三轮：单文件元数据读取失败隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 1255已提交`9302991`。原Finder头部读取异常直接中断整条规则。本项只隔离普通IOException（排除所有PackageInputException）与UnauthorizedAccessException，不可读文件保持未知，继续保留其他已确认Finder元数据违规；取消与输入完整性异常继续传播。原八字节头部、路径及区域支持文件分类不变，单finding额度下仍优先保留已知失败而非未知项。
+
+red三项全部复现IOException，夹具用a/m/z路径并断言真实打开顺序。修后五类 **100/100、0失败/跳过**（新增读取失败17、原规则11、共用叶路径32、文件28、交付12），覆盖两种观察顺序、打开/读取/关闭失败、访问拒绝、输入完整性与取消、单额度替换未知项、不应读取的范围。主代理限定只读自审通过，无子代理，审查未改输入，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1314-read-failure-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`f34c717c295ada55265bc8176a728eb509d254c52af1db0bae0970ea639b4aa2`、TRX SHA`818bfc1060139f3d916f5dd208547efe630e912fc18ecbd7e276bbb42bce12d9`；目录167条canonical SHA`2b060bcaaa655443f3b76953400834978f53e5b891c41582de4ddb9e541b2948`。red/candidate证据及校验副本在`.artifacts/local-check/fda1314-read-failure-*-20261127`和`backups/fda1314-read-failure-20261127/evidence/`，bin/obj按精确范围回收。file-v96、inspector-v39、PDF-v32、交付v6；其他文件分类仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一1344其他XML范围、1357 duration适用性等剩余依赖，保留已关闭的原始属性及绑定语义。
+
 **FDA1255第三轮：模块位置事实的绑定与唯一归属（仍Partial，主代理限定只读自审及终态核对通过）。** 1238已提交`ed823da`。原实现直接索引父节点/叶节点和SingleOrDefault，缺失或重复事实会抛异常，错误根/绑定冲突仍可能误报。新增唯一当前XML及规则/资产/限额绑定、捕获ICH根、唯一元素/叶索引、显式ID/operation/href一致性，以及有界、双向一致且唯一父项的模块归属。支持乱序事实，不再依赖遍历顺序；其他未知叶不抹去独立已知失败。已有格式表、日期门槛和DTD前提保持不变。
 
 red六项1过5败，正常M2违规对照通过，三项查找异常和两项误Fail复现。candidate六类136/167，31项既有格式行因新增实现/合成夹具误用www.w3.org而回退NE；核固定ICH DTD与真实XML后修为www.w3c.org，不改旧预期。自审新增两项多父归属冲突；review-red三类95/97仅这两项误Fail，补复用Children遍历的唯一归属索引。final六类 **169/169、0失败/跳过**（新增证据47、原规则13、附加行37、共用叶路径32、文件28、交付12），覆盖原始属性、绑定/命名空间、循环/缺父/重复、乱序、预算相邻边界、取消和已知失败保留。主代理限定只读自审通过，无子代理。

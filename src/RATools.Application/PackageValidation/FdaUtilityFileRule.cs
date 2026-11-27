@@ -48,7 +48,7 @@ internal static class FdaUtilityFileRule
             if (relative == "util/style/us-regional.xsl" && file.Sha256 == "41fe92721f947fb3bb1dbe6209bccc515d09eb67adbdf3b12e22ad889e963599" &&
                 context.HasArchivedOfficialSource(UsStylesheet)) continue;
             if (failures >= remaining) { incomplete = true; break; }
-            var status = IsFinderMetadata(target, file) ? CheckStatus.Fail : CheckStatus.NotEvaluated;
+            var status = IsFinderMetadata(target, file, cancellationToken) ? CheckStatus.Fail : CheckStatus.NotEvaluated;
             if (status == CheckStatus.NotEvaluated)
             {
                 incomplete = true;
@@ -67,11 +67,24 @@ internal static class FdaUtilityFileRule
             "Assessed files delivered under the target sequence's util directory using archived utility assets and ICH Q&A 51.", findings);
     }
 
-    private static bool IsFinderMetadata(ICapturedPackageInput target, PackageInputFile file)
+    private static bool IsFinderMetadata(ICapturedPackageInput target, PackageInputFile file, CancellationToken token)
     {
         if (!file.LogicalPath.EndsWith("/.DS_Store", StringComparison.Ordinal) || file.Length < 8) return false;
-        using var stream = target.OpenRead(file.LogicalPath);
-        Span<byte> header = stackalloc byte[8];
-        return stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false) == header.Length && header.SequenceEqual("\0\0\0\u0001Bud1"u8);
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            using var stream = target.OpenRead(file.LogicalPath);
+            Span<byte> header = stackalloc byte[8];
+            var length = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+            token.ThrowIfCancellationRequested();
+            return length == header.Length && header.SequenceEqual("\0\0\0\u0001Bud1"u8);
+        }
+        catch (Exception exception) when (exception is IOException and not PackageInputException or UnauthorizedAccessException)
+        {
+            // Unavailable metadata remains unknown. Input integrity and cancellation
+            // still propagate; unrelated known utility failures must not be discarded.
+            token.ThrowIfCancellationRequested();
+            return false;
+        }
     }
 }

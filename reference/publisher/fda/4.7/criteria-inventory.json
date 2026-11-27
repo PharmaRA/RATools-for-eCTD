@@ -586,8 +586,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1314"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaUtilityFileRule.cs", "tests/RATools.Tests/PackageValidation/FdaUtilityFileRuleTests.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
-        "note": "Recognizes captured utility assets by exact path and bytes and reports Finder metadata. Other regional support artifacts and miscellaneous files need additional assessment."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaUtilityFileRule.cs", "tests/RATools.Tests/PackageValidation/FdaUtilityFileRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaUtilityReadFailureTests.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-v3.2-qa-v1.33.zip"],
+        "note": "Recognizes captured utility assets by exact path and bytes and reports Finder metadata. Ordinary metadata I/O and access failures remain unknown without discarding independent known failures; shared finding priority remains bounded, and input-integrity exceptions and cancellation propagate. Third-round five-class Windows regression 100/100, including 17 new read-failure cases, and main-agent bounded read-only review passed without subagents. Other regional support artifacts and miscellaneous files need additional assessment."
       }
     },
     {
