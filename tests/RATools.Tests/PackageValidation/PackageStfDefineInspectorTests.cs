@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 using RATools.Application.PackageValidation;
 using RATools.Domain.PackageValidation;
 
@@ -7,6 +8,59 @@ namespace RATools.Tests.PackageValidation;
 
 public sealed class PackageStfDefineInspectorTests
 {
+    [Theory]
+    [InlineData("valid", true, "Equal", "Equal")]
+    [InlineData("different-name", true, "Different", "Equal")]
+    [InlineData("different-sas-name", true, "Equal", "Different")]
+    [InlineData("duplicate-oid", false, "Equal", "Equal")]
+    public async Task DatasetIdentityIsComparedAgainstTheActualMember(string scenario, bool unique, string name, string sasName)
+    {
+        var result = await Inspect(await Fixture(scenario));
+        Assert.Equal(StfDefineInspectionStatus.Read, result.Status);
+        Assert.NotEmpty(result.Datasets);
+        foreach (var dataset in result.Datasets)
+        {
+            Assert.Equal("DM", dataset.Content.Xpt!.Content!.MemberName);
+            Assert.Equal(scenario == "different-name" ? "OTHER" : "DM", dataset.Content.Declaration.Name);
+            Assert.Equal(scenario == "different-sas-name" ? "OTHER" : "DM", dataset.Content.Declaration.SasDatasetName);
+            Assert.Equal(unique, dataset.Identity.UniqueDeclarationOid);
+            Assert.Equal(name, dataset.Identity.NameToMember.ToString());
+            Assert.Equal(sasName, dataset.Identity.SasNameToMember.ToString());
+        }
+        Assert.Equal(scenario == "duplicate-oid" ? 2 : 1, result.Datasets.Count);
+    }
+
+    [Theory]
+    [InlineData("missing-name", true, "Unknown", "Equal")]
+    [InlineData("empty-name", true, "Unknown", "Equal")]
+    [InlineData("missing-sas-name", true, "Equal", "Unknown")]
+    [InlineData("empty-sas-name", true, "Equal", "Unknown")]
+    [InlineData("lower-name", true, "Different", "Equal")]
+    [InlineData("space-name", true, "Different", "Equal")]
+    [InlineData("lower-sas-name", true, "Equal", "Different")]
+    [InlineData("space-sas-name", true, "Equal", "Different")]
+    [InlineData("missing-oid", false, "Equal", "Equal")]
+    [InlineData("empty-oid", false, "Equal", "Equal")]
+    [InlineData("different-member", true, "Different", "Different")]
+    [InlineData("bad-data", true, "Unknown", "Unknown")]
+    [InlineData("missing-data", true, "Unknown", "Unknown")]
+    [InlineData("unreadable-data", true, "Unknown", "Unknown")]
+    public async Task UnknownNamesAndLiteralDifferencesRemainIndependent(string scenario, bool unique, string name, string sasName)
+    {
+        var result = await Inspect(await Fixture(scenario));
+        Assert.Equal(StfDefineInspectionStatus.Read, result.Status);
+        var dataset = Assert.Single(result.Datasets);
+        Assert.Equal(StfDatasetReferenceStatus.Referenced, dataset.ReferenceStatus);
+        Assert.Equal(unique, dataset.Identity.UniqueDeclarationOid);
+        Assert.Equal(name, dataset.Identity.NameToMember.ToString());
+        Assert.Equal(sasName, dataset.Identity.SasNameToMember.ToString());
+        if (scenario == "different-member")
+        {
+            Assert.Equal("0001/m4/study/dm.xpt", dataset.Content.LogicalPath);
+            Assert.Equal("OTHER", dataset.Content.Xpt!.Content!.MemberName);
+        }
+    }
+
     [Theory]
     [InlineData("valid", "Referenced")]
     [InlineData("unreferenced", "NotReferenced")]
@@ -136,6 +190,8 @@ public sealed class PackageStfDefineInspectorTests
             new(f.Target.Manifest.ApplicationId, "0001", "index.xml", "define"), xptLimits: new(MaxRows: 0));
         Assert.Equal(StfDefineInspectionStatus.Read, limited.Status);
         Assert.Equal(XptReadStatus.LimitExceeded, Assert.Single(limited.Datasets).Content.Xpt!.Content!.Status);
+        Assert.Equal(DatasetNameComparison.Unknown, limited.Datasets[0].Identity.NameToMember);
+        Assert.Equal(DatasetNameComparison.Unknown, limited.Datasets[0].Identity.SasNameToMember);
         Assert.NotEqual(original.SelectionDigest, limited.SelectionDigest);
         Assert.Throws<NotSupportedException>(() => ((IList<StfDefineDataset>)original.Datasets).Clear());
     }
@@ -237,10 +293,30 @@ public sealed class PackageStfDefineInspectorTests
                 (scenario is "unknown-reference" or "known-with-unknown" ? Doc("absent", "study-report-body") : "");
             _files[StfPath] = Encoding.UTF8.GetBytes(Stf(references));
             if (scenario == "other-stf") _files["0001/m4/study/other.xml"] = Encoding.UTF8.GetBytes(Stf(Doc("data", "data-tabulation-dataset-send")));
-            if (scenario != "missing-define") _files["0001/m4/study/define.xml"] = Encoding.UTF8.GetBytes(PackageDefineXmlReaderTests.Sample("SENDIG") + (scenario == "bad-define" ? "<broken" : ""));
+            var define = XDocument.Parse(PackageDefineXmlReaderTests.Sample("SENDIG"));
+            XNamespace odm = "http://www.cdisc.org/ns/odm/v1.3", def = "http://www.cdisc.org/ns/def/v2.1";
+            var group = define.Descendants(odm + "ItemGroupDef").Single();
+            if (scenario == "different-name") group.SetAttributeValue("Name", "OTHER");
+            if (scenario == "different-sas-name") group.SetAttributeValue("SASDatasetName", "OTHER");
+            if (scenario == "missing-name") group.SetAttributeValue("Name", null);
+            if (scenario == "empty-name") group.SetAttributeValue("Name", "");
+            if (scenario == "missing-sas-name") group.SetAttributeValue("SASDatasetName", null);
+            if (scenario == "empty-sas-name") group.SetAttributeValue("SASDatasetName", "");
+            if (scenario == "lower-name") group.SetAttributeValue("Name", "dm");
+            if (scenario == "space-name") group.SetAttributeValue("Name", " DM ");
+            if (scenario == "lower-sas-name") group.SetAttributeValue("SASDatasetName", "dm");
+            if (scenario == "space-sas-name") group.SetAttributeValue("SASDatasetName", " DM ");
+            if (scenario == "missing-oid") group.SetAttributeValue("OID", null);
+            if (scenario == "empty-oid") group.SetAttributeValue("OID", "");
+            if (scenario == "duplicate-oid")
+            {
+                var duplicate = new XElement(group); duplicate.Element(def + "leaf")!.Remove();
+                group.AddAfterSelf(duplicate);
+            }
+            if (scenario != "missing-define") _files["0001/m4/study/define.xml"] = Encoding.UTF8.GetBytes(define.ToString() + (scenario == "bad-define" ? "<broken" : ""));
             var columns = new[] { new PackageXptReaderTests.Column(scenario == "missing-study-column" ? "OTHER" : "STUDYID", 2, scenario == "possible-row" ? 24 : 80) };
             var bytes = PackageXptReaderTests.Sample(columns, [PackageXptReaderTests.TextRow(columns, scenario == "different-study" ? "B" : scenario == "empty-study" ? "" : scenario == "undecoded-study" ? "研究" : "A")]);
-            Encoding.ASCII.GetBytes("DM".PadRight(8)).CopyTo(bytes, 408);
+            Encoding.ASCII.GetBytes((scenario == "different-member" ? "OTHER" : "DM").PadRight(8)).CopyTo(bytes, 408);
             if (scenario != "missing-data") _files["0001/m4/study/dm.xpt"] = scenario == "bad-data" ? Encoding.ASCII.GetBytes(new string('x', 80)) : bytes;
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length,
                 Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);

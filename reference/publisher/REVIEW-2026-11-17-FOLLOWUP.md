@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1735/1736共享前置：声明名称与实际XPT member的身份字面比较（不计规则完成，主代理限定只读自审及终态核对通过）。** STF交叉关联已提交`8fe209c`。分别比较Define Name、SASDatasetName与完整实际XPT member，不trim/折叠大小写或以文件名替代；缺失/空值/内容不合格为Unknown，Equal/Different不推定监管合规。新增受工作预算约束的非空OID精确计数，重复声明仍各自保留，唯一性不等于XSD有效。前置选择摘要升级stf-define-cross-v2，业务目录/引擎不变。
+
+red四项均在声明及实际member读取前提通过后失败于未知占位比较；candidate七类 **301/301、0失败/跳过**（交叉关联55含本项新增18、define→XPT41、define捕获35、define读取52、研究数据18、1738为60、1737为40）。覆盖两个名称独立变化、缺失/空值、大小写/空白、重复/缺OID、文件名与实际member不一致、不可读/非XPT及解析超限Unknown，既有引用关系/终验/取消回归保持。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1735-dataset-identity-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。7交付/直接依赖源码SHA绑定；manifest SHA`37fab3cd0d60b98861ebe63e5a4c873116bac20c1e0b615998cd0ffd4172629e`、TRX SHA`ad05d6531ad3108803ec7b030225549e6aa7d7805678f15a429cec2d8133dbb3`。两轮证据及校验副本位于`.artifacts/local-check/fda1735-dataset-identity-*-20261127`和`backups/fda1735-dataset-identity-20261127/evidence/`，bin/obj仅回收。目录/引擎和库存67/56/24、待完整覆盖80、原107完整27不变。下一标准声明/真实数据模型资格、STF标签与DM/ADSL供应的规则语义，正式来源/中心/日期/历史及全范围发现依赖仍保留；1735/1736仍NotAssessed，未接入业务规则。
+
 **FDA1735/1736共享前置：选定STF与Define/XPT交叉关联（不计规则完成，主代理限定只读自审及终态核对通过）。** define→XPT已提交`80f74b9`。新增显式当前STF路径和define叶选择，绑定规则/资产/基线/捕获/限额、实际STF归属及叶原始显式href。按同一STF的精确文件路径区分已引用、多个不同叶、确定未引用和未知引用；保留重复引用而不合并同study-id的独立STF。分别保留STF study-id、Define OID/数据集声明、实际XPT member/逐行STUDYID与确定/解码状态，不发监管相等性或标准化结论。当前index与同序列简单路径范围明确，未读完整或终验失败不发布整组事实。
 
 red首轮缺Ctd命名空间导致编译失败，未执行用例；补导入后red2四项均在真实ICH/STF前提通过后失败于占位返回。candidate为277/279，两项是测试假设错误：80字节全空白行无法整体归入0–79字节填充，仍是确定空值行；缺define文件先使共享STF发现范围不完整，当前入口应StfUnavailable。依据实际reader/graph纠正预期，不改生产判定；自审补编码/查询路径、绑定预算及显式UTF8用例，撤回会破坏DTD前提的错误命名空间变体。final七类 **283/283、0失败/跳过**（新交叉37、define→XPT41、define捕获35、define读取52、研究数据18、1738为60、1737为40）。主代理限定只读自审通过，无子代理。

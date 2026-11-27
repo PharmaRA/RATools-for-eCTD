@@ -25,7 +25,7 @@ internal static class PackageStfDefineInspector
         var baseline = packages.Baseline.Digest;
         var selection = CanonicalJson.Digest(JsonSerializer.SerializeToElement(new
         {
-            schemaVersion = 1, readerVersion = "stf-define-cross-v1;define-datasets-v1", source, digest,
+            schemaVersion = 1, readerVersion = "stf-define-cross-v2;define-datasets-v1", source, digest,
             manifestDigest = manifest.Digest, limitsDigest, baseline, lifecycle.ProfileSnapshotId,
             rules = context.Catalog.Digest, assets = context.Assets.Digest, stfPath, defineLeaf,
             defineLimits, xptLimits, encoding = encoding.ToString()
@@ -99,6 +99,13 @@ internal static class PackageStfDefineInspector
             if (define.Status != DefineDatasetInspectionStatus.Read || !define.TraversalComplete)
                 return Result(define.Status == DefineDatasetInspectionStatus.LimitExceeded ? StfDefineInspectionStatus.LimitExceeded : StfDefineInspectionStatus.DefineUnavailable);
             var datasets = new List<StfDefineDataset>();
+            var declarationIds = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var dataset in define.Datasets)
+            {
+                Tick();
+                if (dataset.Declaration.Oid is { Length: > 0 } oid)
+                    declarationIds[oid] = declarationIds.GetValueOrDefault(oid) + 1;
+            }
             foreach (var dataset in define.Datasets)
             {
                 Tick();
@@ -127,7 +134,12 @@ internal static class PackageStfDefineInspector
                         }
                     }
                 }
-                datasets.Add(new(dataset, status, references, complete, studyIds));
+                var member = dataset.Xpt?.Content is { Status: XptReadStatus.Read, StructureComplete: true } xpt ? xpt.MemberName : null;
+                datasets.Add(new(dataset, status, references, complete, studyIds)
+                {
+                    Identity = new(dataset.Declaration.Oid is { Length: > 0 } oid && declarationIds[oid] == 1,
+                        CompareName(dataset.Declaration.Name, member), CompareName(dataset.Declaration.SasDatasetName, member))
+                });
             }
             await packages.VerifyUnchangedAsync(token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
@@ -185,5 +197,8 @@ internal static class PackageStfDefineInspector
         PackageStfDefineInspection Result(StfDefineInspectionStatus status)
         { cancellationToken.ThrowIfCancellationRequested(); return new(status, selection); }
     }
+    private static DatasetNameComparison CompareName(string? declared, string? actual) =>
+        string.IsNullOrEmpty(declared) || string.IsNullOrEmpty(actual) ? DatasetNameComparison.Unknown :
+        string.Equals(declared, actual, StringComparison.Ordinal) ? DatasetNameComparison.Equal : DatasetNameComparison.Different;
     private sealed class CrossLimitException : Exception;
 }

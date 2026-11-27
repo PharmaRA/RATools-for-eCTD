@@ -38,4 +38,6 @@ FDA Study Data Technical Conformance Guide October 2026，现有固定归档 `of
 
 分别保留STF study-id、Define Study OID/数据集声明、实际XPT member和逐行STUDYID（行号、确定性、解码状态及原值）。缺列、不可解码、可能填充行不伪装完整；80字节全空白行不能全部视为最多79字节的合法填充，确定空值仍独立保留。Read及StudyIdsComplete仅表示相应读取/关联完整性，不能证明这些不同标识应相等；既有1738的TS STUDYID/SPREFID政策未改。原始XML不重新打开；整组终验/身份失败不发布事实。
 
-下一核对声明数据集名与实际XPT member的身份对应，再闭合模型/标签、DM/ADSL供应的规则语义。FDA 1735/1736 仍需中心/日期/历史供应政策和正式来源资格，自动发现/全部STF范围及实际业务接入尚未完成。不得仅凭文件名、STF标签或本读取器的声明创建Fail/Pass。
+已增加数据集身份字面比较：分别比较Define Name、SASDatasetName与已完整读取的实际XPT member，输出Unknown/Equal/Different，不trim或折叠大小写，不借文件名替代member。缺值、空值、缺文件、不可读或非完整XPT保持Unknown；定义的非空OID按精确值计数并保留唯一性，重复声明不任选也不抹去各自原值。UniqueDeclarationOid只表示当前声明集合中的非空键唯一，不是XSD有效性；Equal/Different只描述已读字符串，不能推定监管规则或模型合规。选择摘要使用`stf-define-cross-v2`。
+
+下一闭合标准声明/真实数据的模型资格、STF标签和DM/ADSL供应的规则语义。FDA 1735/1736仍需中心/日期/历史供应政策和正式来源资格，自动发现/全部STF范围及实际业务接入尚未完成。不得仅凭文件名、STF标签或本读取器的声明创建Fail/Pass。
