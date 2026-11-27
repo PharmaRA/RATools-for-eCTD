@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1368第三轮：标题多余属性的绑定与真实根资格（仍Partial，主代理限定只读自审及终态核对通过）。** 1357已提交`21597c9`；1362未知分类/realm适用性没有新证据，已关闭绑定检查不重开。1368原标题分支直接SingleOrDefault/ToDictionary，并把第一元素当根，导致重复观察异常和错误根误归责。本次增加唯一当前XML/rules/assets/limits绑定、捕获真实ICH根、唯一节点及有界一致父项归属；错误位置、历史路径、循环和多父冲突保持未知，显式证据不可用不当作确定多余属性。独立内容属性分支未改，STF类别政策未改，只过滤身份不合格的骨架输入。
+
+red五项1过4败，正常M4 manufacturer对照通过，重复XML/节点异常及错误根/规则摘要冲突误Fail均复现。修后八类 **221/221、0失败/跳过**（新标题绑定33、原标题19、内容属性34、内容绑定29、STF类别34、共用叶路径32、文件28、交付12），覆盖根/父链/捕获/位置/绑定、重复/多父/循环、乱序、相邻预算、默认/显式证据和独立已知失败保留。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1368-heading-binding-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`12790365ff7a01b74b1a72684dc5ddee8238a36a172df5df9422b9aaf7957447`、TRX SHA`43f7aa856e15069de54857570b60e0415c5bde4f4f17d75e35245a8d697832d9`；目录167条canonical SHA`a3d9d43d23f632db25749b0a501e657a4fbf568245bd9e4acb873d30d0e6f3a6`。red/candidate证据及校验副本在`.artifacts/local-check/fda1368-heading-binding-*-20261127`和`backups/fda1368-heading-binding-20261127/evidence/`，bin/obj按精确范围回收。file-v98、inspector-v39、PDF-v32、交付v6；其他XML/类别/区域等仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一按固定顺序核1425、1459/1463依赖后继续1500，不重开已Implemented规则。
+
 **FDA1357第三轮：标题必需属性的绑定与有界父链（仍Partial，主代理限定只读自审及终态核对通过）。** 1314已提交`3bd9803`；1344已关闭的显式/默认/规范化和绑定语义不重开，其他XML范围无新资格。1357原直接父节点索引与SingleOrDefault会因缺父/重复观察抛异常，错误根及规则摘要冲突仍误报。本项新增唯一XML与规则/资产/限额绑定、当前捕获ICH根、节点唯一索引和有界一致父链；多父、循环、位置/历史路径或缺捕获事实保持未知，其他已知缺属性失败保留。不要求整体DTD Pass，避免把缺必需属性自身引发的DTD失败当作未知；STF类别消费者仅接收结构身份已资格的骨架，duration/类别政策不变。
 
 red五项1过4败，正常缺indication对照通过，缺父和重复XML异常、错误根及规则摘要误Fail均复现。修后六类 **158/158、0失败/跳过**（新标题绑定32、原标题22、STF类别32、共用叶路径32、文件28、交付12），含重复/多根/多父/循环、历史与位置绑定、乱序、相邻预算、取消、未知前后已知失败保留及既有STF分类回归。主代理限定只读自审通过，无子代理，candidate即最终证据。
