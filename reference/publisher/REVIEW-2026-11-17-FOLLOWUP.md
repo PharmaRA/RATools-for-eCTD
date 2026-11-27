@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1119/1130第三轮：条件支持文件必须有实际STF身份（仍Partial，主代理限定只读自审及终态核对通过）。** 1102已提交`4bc1b35`。发现器可凭DOCTYPE收录候选，而低层XML读取器拒绝错误根后保留声明、但不发布任何元素。原条件规则直接用候选声明检查支持文件，导致实际STF身份不可用时误报缺失或篡改。本次增加唯一XML/规则/资产/限额绑定、当前捕获路径/SHA、候选路径去重及有界实际study根校验。不要求整体DTD Pass；已确认实际根后发生截断或其他DTD诊断，仍可凭完整独立声明保留已知支持文件失败。未知/冲突候选不抹去另一个已知失败。
+
+首red四项均停在夹具期待存在错误根的前提，不计业务红测；修正为实际Elements为空、ReadComplete=false后，red2四项预期NE实际Fail，前提全过。修后六类 **153/153、0失败/跳过**（条件STF33、身份25、主DTD23、共用叶路径32、文件28、交付12），新增身份用例分别覆盖两规则的无根/错误根/重复路径、捕获SHA、历史路径、XML绑定、预算、取消、独立已知失败保留。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1119-stf-identity-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9交付/直接依赖输入SHA绑定；manifest SHA`8967a6348cd558f4ead03a6c5fb755c00e54831a5802488f470c0d33e80fd350`、TRX SHA`68b81d901a197570a3a7b6d722a0988aee4f13bce8fbe38d953d6ca4a163174b`；目录167条canonical SHA`4ee929a5d1088240398cfa86895c54711e618cdd761c57b471c8a47f1e2a9ec1`。red/red2/candidate证据及校验副本在`.artifacts/local-check/fda1119-stf-identity-*-20261127`和`backups/fda1119-stf-identity-20261127/evidence/`，bin/obj按精确范围回收。file-v93、inspector-v39、PDF-v32、交付v6；创建时样式表及历史/未知版本依赖仍留队，两条仍Partial，库存67/56/24、待完整覆盖80、原107完整27不变。下一1154，再1238/1255未闭合范围；新提交按用户最新E2设置允许时窗内递增随机元数据时间，既有提交及实际测试时间不改写。
+
 **FDA1102第三轮：URI后缀不掩盖明确本地路径缺陷（仍Partial，主代理限定只读自审及终态核对通过）。** FDA5依赖复核已提交`2f0c324`。固定FDA criteria第8页给出路径非法字符；[RFC3986第3.3–3.5节](https://www.rfc-editor.org/rfc/rfc3986.txt)与现有逻辑路径解析均以第一个?或\#结束路径。本项仅对分界前的明确本地路径沿用原有非法字符检查，后缀本身不产生路径缺陷、不消除已知缺陷。协议/绝对路径/百分号路径保持未知，不宣称查询/片段语法、目标存在或后缀本身的监管资格已完成。
 
 red三项完整XML与原始href前提全过，预期Fail实际NE。candidate六类184/201，17项失败全部为文件检查器升级v92后交付静态VersionFor仍声明v91；修正该生产声明，保留原一致性断言。final六类 **201/201、0失败/跳过**（1102原始用例55、证据56、共用叶路径32、逻辑路径18、文件管线28、交付12），新增38项含非法路径/后缀分离、先后分界、协议/编码/历史路径边界、属性/完整性/预算及区域报告。主代理限定只读自审通过，无子代理。

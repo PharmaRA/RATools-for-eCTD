@@ -9,6 +9,40 @@ namespace RATools.Tests.PackageValidation;
 public sealed class FdaStfUtilityTests
 {
     [Theory]
+    [InlineData("wrong-root", "1119")]
+    [InlineData("wrong-namespace", "1119")]
+    [InlineData("wrong-root", "1130")]
+    [InlineData("wrong-namespace", "1130")]
+    public async Task DeclaredCandidateWithoutActualStudyIdentityCannotAuthorizeConditionalFailure(string scenario, string authority)
+    {
+        var result = await Inspect(omitted: authority == "1119" ? "dtd" : null,
+            changed: authority == "1130" ? "dtd" : null, editStf: text => scenario == "wrong-root"
+                ? text.Replace("<ectd:study ", "<ectd:other ", StringComparison.Ordinal).Replace("</ectd:study>", "</ectd:other>", StringComparison.Ordinal)
+                : text.Replace("xmlns:ectd='http://www.ich.org/ectd'", "xmlns:ectd='urn:not-stf'", StringComparison.Ordinal));
+        var candidate = Assert.Single(result.Lifecycle.XmlInspections.SelectMany(item => item.StudyTaggingFiles.Documents));
+        Assert.Equal("../../util/dtd/ich-stf-v2-2.dtd", candidate.SystemIdentifier);
+        Assert.False(candidate.ReadComplete);
+        Assert.Empty(candidate.Elements);
+        var check = Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-" + authority);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData("1119")]
+    [InlineData("1130")]
+    public async Task ActualStudyRootWithLaterTruncationRetainsIndependentUtilityFailure(string authority)
+    {
+        var result = await Inspect(omitted: authority == "1119" ? "dtd" : null,
+            changed: authority == "1130" ? "dtd" : null, editStf: text => text[..^12]);
+        var candidate = Assert.Single(result.Lifecycle.XmlInspections.SelectMany(item => item.StudyTaggingFiles.Documents));
+        Assert.False(candidate.ReadComplete);
+        var root = Assert.Single(candidate.Elements, item => item.ParentPath is null);
+        Assert.Equal("study", root.LocalName); Assert.Equal("http://www.ich.org/ectd", root.NamespaceUri);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(result.Files.Checks, item => item.RuleId == "FDA47-" + authority).Status);
+    }
+
+    [Theory]
     [InlineData("dtd", "1119", CheckStatus.Fail)]
     [InlineData("style", "1119", CheckStatus.Fail)]
     [InlineData("values", "1119", CheckStatus.Fail)]
@@ -133,7 +167,7 @@ public sealed class FdaStfUtilityTests
     };
 
     private static Task<RATools.Application.PackageValidation.PackageDeliveryInspection> Inspect(string? omitted = null, string? changed = null, bool alias = false,
-        string? withoutSource = null, string? date = "2026-11-20", string variant = "valid")
+        string? withoutSource = null, string? date = "2026-11-20", string variant = "valid", Func<string, string>? editStf = null)
     {
         var styleName = changed == "legacy-style" ? "ich-stf-stylesheet-2-2.xsl" : alias ? "study-view.xsl" : FileName("style");
         var pi = changed == "no-style-pi" ? "" : "<?xml-stylesheet type=\"text/xsl\" href=\"" +
@@ -141,6 +175,7 @@ public sealed class FdaStfUtilityTests
         var xml = pi + "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'>" +
             "<ectd:study xmlns:ectd='http://www.ich.org/ectd' dtd-version='2.2'><study-identifier><title>A</title><study-id>A</study-id></study-identifier><study-document/></ectd:study>";
         if (changed == "truncated-stf") xml = xml[..^12];
+        if (editStf is not null) xml = editStf(xml);
         return FdaExtraneousLeafPathRulesTests.Inspect("new", "m1/us/us-regional.xml", null, variant, date: date,
             editSnapshot: withoutSource is null ? null : snapshot =>
             {

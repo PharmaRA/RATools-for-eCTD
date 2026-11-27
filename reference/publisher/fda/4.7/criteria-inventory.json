@@ -295,8 +295,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1119"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs"],
-        "note": "Checks ICH main DTD and observed conditional STF DTD/declared stylesheet/qualified valid-values dependency. Creation-time ICH stylesheet and unresolved or historical utility variants remain open; status remains Partial."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs", "src/RATools.Application/PackageValidation/FdaStfUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaStfUtilityTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfUtilityIdentityTests.cs"],
+        "note": "Checks ICH main DTD and capture-bound actual STF roots with observed conditional DTD/declared stylesheet/qualified valid-values dependency. Conditional evidence requires unique XML and rules/assets/limits binding, unique candidate path and bounded actual root identity; declaration-only or conflicting candidates remain unknown. Independent known failures survive later unknown evidence without requiring DTD Pass. Third-round six-class Windows regression 153/153 and main-agent bounded read-only review passed without subagents. Creation-time ICH stylesheet and unresolved or historical utility variants remain open; status remains Partial."
       }
     },
     {
@@ -314,8 +314,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1130"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-main-dtd-md5.zip"],
-        "note": "Checks published MD5 for ICH main DTD, identified STF DTD 2.2 and stylesheet 2.3, and recognizes valid-values 6.0 using the explicitly versioned official webpage checksum. Unknown variants and creation-time ICH stylesheet remain open; status remains Partial."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaRequiredUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaRequiredUtilityTests.cs", "reference/publisher/official-sources/2026-11-18/ich-ectd-main-dtd-md5.zip", "src/RATools.Application/PackageValidation/FdaStfUtilityRules.cs", "tests/RATools.Tests/PackageValidation/FdaStfUtilityTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfUtilityIdentityTests.cs"],
+        "note": "Checks published MD5 for ICH main DTD, identified STF DTD 2.2 and stylesheet 2.3, and recognizes valid-values 6.0 using the explicitly versioned official webpage checksum. Conditional evidence requires capture-bound actual STF roots, unique XML/rules/assets/limits binding and bounded identity; declaration-only or conflicting candidates cannot authorize corruption findings. Third-round six-class Windows regression 153/153 and main-agent bounded read-only review passed without subagents. Unknown variants and creation-time ICH stylesheet remain open; status remains Partial."
       }
     },
     {

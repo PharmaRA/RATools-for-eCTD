@@ -16,8 +16,12 @@ internal static class FdaStfUtilityRules
     {
         var id = rule.InternalRuleId;
         var checksum = id == FdaRequiredUtilityRules.ChecksumRuleId;
-        var xml = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).ToArray();
-        if (xml.Length != 1) return Unknown("Target XML facts are not unique or available.");
+        token.ThrowIfCancellationRequested();
+        var xml = lifecycle.XmlInspections.Where(item => item.InputDigest == target.InputDigest && item.ProfileSnapshotId == lifecycle.ProfileSnapshotId).Take(2).ToArray();
+        if (lifecycle.InputDigest != target.InputDigest || lifecycle.RulesDigest != context.Catalog.Digest ||
+            lifecycle.AssetManifestDigest != context.Assets.Digest || lifecycle.LimitsDigest != target.Limits.Digest() ||
+            xml.Length != 1 || xml[0].RulesDigest != context.Catalog.Digest || xml[0].AssetManifestDigest != context.Assets.Digest ||
+            xml[0].LimitsDigest != target.Limits.Digest()) return Unknown("Target XML facts must be unique and bound to the capture, rules, assets and limits.");
         var stfs = xml[0].StudyTaggingFiles;
         if (stfs.Documents.Count == 0) return stfs.InventoryComplete ? new(id, CheckStatus.Pass, "No target STF candidates require conditional utilities.") :
             Unknown("STF discovery is incomplete; conditional utilities remain unresolved.");
@@ -30,11 +34,32 @@ internal static class FdaStfUtilityRules
         var incomplete = !stfs.InventoryComplete;
         var findings = new List<ValidationFinding>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var files = target.Manifest.Files.ToDictionary(file => file.LogicalPath, StringComparer.Ordinal);
+        var work = target.Limits.MaxXmlNodes;
+        var files = new Dictionary<string, PackageInputFile>(StringComparer.Ordinal);
+        foreach (var file in target.Manifest.Files)
+        {
+            token.ThrowIfCancellationRequested();
+            if (work-- <= 0 || !files.TryAdd(file.LogicalPath, file)) return Unknown("Captured utility inventory is ambiguous or exceeds the work limit.");
+        }
+        var documentPaths = new HashSet<string>(StringComparer.Ordinal);
+        var duplicates = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var document in stfs.Documents)
+        {
+            token.ThrowIfCancellationRequested();
+            if (work-- <= 0) return Unknown("STF identity inventory exceeds the work limit.");
+            if (!documentPaths.Add(document.LogicalPath)) duplicates.Add(document.LogicalPath);
+        }
         var prefix = target.Manifest.SequenceNumber + "/";
         foreach (var document in stfs.Documents)
         {
             token.ThrowIfCancellationRequested();
+            if (work-- <= 0) { incomplete = true; break; }
+            if (!document.LogicalPath.StartsWith(prefix, StringComparison.Ordinal) || duplicates.Contains(document.LogicalPath) ||
+                !files.TryGetValue(document.LogicalPath, out var captured) || captured.Sha256 != document.CapturedSha256 ||
+                !HasStudyRoot(document, ref work, token)) { incomplete = true; continue; }
+            // A declaration-only discovery candidate is not an established STF. Conversely,
+            // a later DTD/content error cannot erase an already observed actual study root.
+            if (!document.ReadComplete) incomplete = true;
             var dtdPath = Resolve(document.LogicalPath, document.SystemIdentifier, prefix + "util/dtd/");
             if (dtdPath != prefix + "util/dtd/ich-stf-v2-2.dtd") incomplete = true;
             else Check(dtdPath, DtdMd5, BundledOfficialSources.StfDtdChecksum);
@@ -43,6 +68,7 @@ internal static class FdaStfUtilityRules
             foreach (var instruction in instructions)
             {
                 token.ThrowIfCancellationRequested();
+                if (work-- <= 0) { incomplete = true; break; }
                 var href = StylesheetHref(instruction.Data, target.Limits.MaxXmlCharacters);
                 var path = Resolve(document.LogicalPath, href, prefix + "util/style/");
                 if (path is null) { incomplete = true; continue; }
@@ -68,7 +94,7 @@ internal static class FdaStfUtilityRules
             }
         }
         return new(id, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Assessed conditional STF 2.2 DTD, declared stylesheet and recognized valid-values 6.0 evidence. Creation-time ICH styles and other supported versions remain unqualified.", findings);
+            "Assessed capture-bound actual STF roots with conditional STF 2.2 DTD, declared stylesheet and recognized valid-values 6.0 evidence. Declaration-only, conflicting or unbound candidates remain unknown. Creation-time ICH styles and other supported versions remain unqualified.", findings);
 
         PackageInputFile? Check(string path, string md5, ValidationRuleSource evidence)
         {
@@ -87,6 +113,22 @@ internal static class FdaStfUtilityRules
             return file;
         }
         RuleCheckResult Unknown(string reason) => new(id, CheckStatus.NotEvaluated, reason);
+    }
+
+    private static bool HasStudyRoot(ParsedStudyTaggingFile document, ref int work, CancellationToken token)
+    {
+        ParsedXmlElement? root = null;
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var element in document.Elements)
+        {
+            token.ThrowIfCancellationRequested();
+            if (work-- <= 0 || !paths.Add(element.NodePath)) return false;
+            if (element.ParentPath is not null) continue;
+            if (root is not null) return false;
+            root = element;
+        }
+        return root is { LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" } &&
+            root.Location.LogicalPath == document.LogicalPath && root.Location.NodePath == root.NodePath;
     }
 
     private static string? Resolve(string source, string? href, string prefix)
