@@ -150,7 +150,7 @@ public sealed class FdaDuplicateStudyDatasetRuleTests
         Assert.Empty(check.Findings);
     }
 
-    private static async Task<(PackageInputSet Packages, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context)> Fixture(
+    internal static async Task<(PackageInputSet Packages, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context)> Fixture(
         string scenario, string? date = "2026-11-20", string section = "m4.2.3.1")
     {
         var snapshot = await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2");
@@ -223,6 +223,11 @@ public sealed class FdaDuplicateStudyDatasetRuleTests
                 }
             }
             if (scenario == "duplicate-plus-missing") references.Add(Doc("unknown"));
+            if (scenario == "three-leaves")
+            {
+                parent.Add(Leaf("third", "m4/study/one/dm.xpt", "Data"));
+                references.Add(Doc("third"));
+            }
             if (scenario == "historical-reference")
             {
                 references.Clear();

@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1737第二轮：原始叶与标题证据绑定（仍Partial，主代理限定只读自审及终态核对通过）。** 身份前置已提交`71fd411`。按序续核1735/1736：固定criteria30–31页及guide50–51页明确标签/供应要求，完整CDISC合规不是额外前提；CDISC官方页当前2.1.11标准文件须登录，未取得正式模式包，原draft字段参考不提升资格，依赖留队。1737固定STF16–17页允许同研究独立分析单元，不按study-id扩写跨STF合并。本项修已复现的派生leaf.Href与原始href/标题事实不一致仍误报重复：增加当前配置骨架、显式ID/operation/href一致性、叶/标题位置、唯一直接简单标题门槛，不改精确文件名/标题比较和历史内容复用。
+
+red五项1过4败，正常重复通过，href冲突/缺原始证据/标题位置/错误配置均在真实XPT可读前提后误Fail。candidate八类248/249，仅重复标题指针用例错误要求可读；共享绑定器先判BackboneInvalid/ReferenceUnavailable，修为明确断言提前拒绝，最终NE预期及生产实现不变。final八类 **249/249、0失败/跳过**（新绑定19、原1737为40、研究数据18、1738为60、1734为56、中断16、文件28、交付12）。覆盖默认/显式/规范化冲突、位置、隐藏子项/标题、重复指针、乱序及未知前后独立已知重复保留。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1737-leaf-binding-final-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖SHA绑定；manifest SHA`99f69651ec0425e650b920941794c343ea0e8ca6934d96bf833b9c834817ad44`、TRX SHA`00f216600f9cf2236d9ddb45cedf0c5c2a8dcdfbd6dfe6da105e1d9c180dbfd7`；目录167条canonical SHA`3e6c4eb79cdcf0e81a353764e94a9f863959f4ade8344fd7ba4341ff9290a49c`。三轮证据及校验副本位于`.artifacts/local-check/fda1737-leaf-binding-*-20261127`和`backups/fda1737-leaf-binding-20261127/evidence/`，bin/obj仅回收。file-v101、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一跳过已Implemented项，按固定顺序核1782/1786版本支持依赖，再1789等可执行缺口。
+
 **FDA1735/1736共享前置：声明名称与实际XPT member的身份字面比较（不计规则完成，主代理限定只读自审及终态核对通过）。** STF交叉关联已提交`8fe209c`。分别比较Define Name、SASDatasetName与完整实际XPT member，不trim/折叠大小写或以文件名替代；缺失/空值/内容不合格为Unknown，Equal/Different不推定监管合规。新增受工作预算约束的非空OID精确计数，重复声明仍各自保留，唯一性不等于XSD有效。前置选择摘要升级stf-define-cross-v2，业务目录/引擎不变。
 
 red四项均在声明及实际member读取前提通过后失败于未知占位比较；candidate七类 **301/301、0失败/跳过**（交叉关联55含本项新增18、define→XPT41、define捕获35、define读取52、研究数据18、1738为60、1737为40）。覆盖两个名称独立变化、缺失/空值、大小写/空白、重复/缺OID、文件名与实际member不一致、不可读/非XPT及解析超限Unknown，既有引用关系/终验/取消回归保持。主代理限定只读自审通过，无子代理，candidate即最终证据。

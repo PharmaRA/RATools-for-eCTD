@@ -1317,8 +1317,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1737"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaDuplicateStudyDatasetRule.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-        "note": "Checks distinct current new XPT dataset leaves within a qualified STF using exact decoded filename and original direct leaf title, deduplicating repeated references by LeafAddress. Content locations retain their real capture sources. Cross-STF study identity, historical lifecycle counting and other dataset formats remain unqualified; Partial passes cannot establish readiness."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaDuplicateStudyDatasetRule.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Checks distinct current new XPT dataset leaves within a qualified STF using exact decoded filename and original direct leaf title, deduplicating repeated references by LeafAddress. Requires current-profile backbone, explicit ID/operation/href agreement, consistent leaf/title locations and one observed direct simple title. Content locations retain their real capture sources. Latest eight-class Windows regression 249/249 including 19 binding cases and bounded main-agent read-only review passed without subagents. Cross-STF study identity, historical lifecycle counting and other dataset formats remain unqualified; Partial passes cannot establish readiness."
       }
     },
     {

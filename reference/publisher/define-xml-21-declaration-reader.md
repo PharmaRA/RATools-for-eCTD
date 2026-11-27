@@ -18,6 +18,8 @@ FDA Study Data Technical Conformance Guide October 2026，现有固定归档 `of
 
 注意：该官方仓库的 `define-extension.xsd` 注释带有 draft 字样。这是可追溯的字段结构参考，不冒称经过完整发布资格确认的正式模式包；未归档完整模式依赖或嵌入标准快照，后续规则资格仍需独立来源与冻结绑定。
 
+2026-11-27续核[CDISC官方发布页](https://www.cdisc.org/standards/data-exchange/define-xml/define-xml-v2-1)：页面当前显示Define-XML v2.1.11、Package Update 6 April 2026，明确标准文件需登录获取；未尝试登录、读取凭据或将仓库draft参考当作正式包。固定FDA Study Data Guide物理50–51页确认define描述提交数据元数据，SEND/SDTM使用data-tabulation-data-definition、ADaM使用analysis-data-definition。FDA1735并未要求先完成全部CDISC合规验证，因此不能把完整模型验证额外当作该规则前提；但当前声明字段正式来源、适用性与全范围绑定仍须闭合。这些依赖继续留队，不因网站登录依赖停止其他可独立规则开发。
+
 命名空间按展开名称处理：ODM `http://www.cdisc.org/ns/odm/v1.3`、Define `http://www.cdisc.org/ns/def/v2.1`、XLink `http://www.w3.org/1999/xlink`。不混用 ICH backbone 中不同的 xlink URI。
 
 ## 已支持的事实

@@ -38,6 +38,7 @@ internal static class FdaDuplicateStudyDatasetRule
             if (xmls.Length != 1) return Unknown("A unique frozen target XML inspection is required.");
             var backbones = new Dictionary<string, ParsedBackbone>(StringComparer.Ordinal);
             var elements = new Dictionary<(string Path, string Node), ParsedXmlElement>();
+            var children = new Dictionary<(string Path, string Parent), List<ParsedXmlElement>>();
             foreach (var backbone in xmls[0].Backbones)
             {
                 Tick();
@@ -46,6 +47,12 @@ internal static class FdaDuplicateStudyDatasetRule
                 {
                     Tick();
                     if (!elements.TryAdd((backbone.LogicalPath, element.NodePath), element)) return Unknown("Ambiguous target element facts.");
+                    if (element.ParentPath is { } parent)
+                    {
+                        var key = (backbone.LogicalPath, parent);
+                        if (!children.TryGetValue(key, out var members)) children.Add(key, members = []);
+                        members.Add(element);
+                    }
                 }
             }
             foreach (var document in data.Documents)
@@ -81,7 +88,13 @@ internal static class FdaDuplicateStudyDatasetRule
                     applicable = true;
                     var backbonePath = address.SequenceNumber + "/" + address.BackboneRelativePath;
                     if (!backbones.TryGetValue(backbonePath, out var backbone) || !backbone.ReadComplete || backbone.DtdStatus != CheckStatus.Pass ||
-                        !elements.TryGetValue((backbonePath, leaf.NodePath), out var original)) { incomplete = true; continue; }
+                        backbone.ProfileSnapshotId != lifecycle.ProfileSnapshotId || backbone.Kind is not (BackboneKind.Ich or BackboneKind.UsRegional) ||
+                        !elements.TryGetValue((backbonePath, leaf.NodePath), out var original) || original.LocalName != "leaf" || original.NamespaceUri.Length != 0 ||
+                        original.Location.LogicalPath != backbonePath || original.Location.NodePath != original.NodePath ||
+                        leaf.Location.LogicalPath != backbonePath || leaf.Location.NodePath != original.NodePath ||
+                        Explicit(original, "ID", "") != address.LeafId || Explicit(original, "operation", "") != "new" ||
+                        Explicit(original, "href", "http://www.w3c.org/1999/xlink") is not { } href || href != leaf.Href)
+                    { incomplete = true; continue; }
                     var titles = new List<ParsedXmlElement>();
                     foreach (var childPath in original.Children)
                     {
@@ -89,7 +102,13 @@ internal static class FdaDuplicateStudyDatasetRule
                         if (elements.TryGetValue((backbonePath, childPath), out var child) && child.ParentPath == original.NodePath &&
                             child.LocalName == "title" && child.NamespaceUri.Length == 0) titles.Add(child);
                     }
-                    if (titles.Count != 1 || titles[0].Children.Count != 0) { incomplete = true; continue; }
+                    var observedTitles = 0;
+                    foreach (var child in children.GetValueOrDefault((backbonePath, original.NodePath)) ?? [])
+                    { Tick(); if (child.LocalName == "title" && child.NamespaceUri.Length == 0) observedTitles++; }
+                    if (titles.Count != 1 || observedTitles != 1 || titles[0].Children.Count != 0 ||
+                        children.ContainsKey((backbonePath, titles[0].NodePath)) || titles[0].Location.LogicalPath != backbonePath ||
+                        titles[0].Location.NodePath != titles[0].NodePath)
+                    { incomplete = true; continue; }
                     var key = (path.Split('/')[^1], titles[0].Text);
                     if (!pairs.TryGetValue(key, out var previous)) { pairs.Add(key, (address, path, reference.Xpt.SourceId)); continue; }
                     if (!reported.Add((previous.Address, address))) continue;
@@ -115,6 +134,18 @@ internal static class FdaDuplicateStudyDatasetRule
             "Compared distinct current new XPT dataset leaves within each qualified STF using exact decoded filenames and untrimmed leaf titles. Cross-STF study identity, historical lifecycle counting and other dataset formats remain Partial.", findings);
 
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new DuplicateStudyWorkLimitException(); }
+        string? Explicit(ParsedXmlElement element, string name, string ns)
+        {
+            var count = 0; string? value = null;
+            foreach (var attribute in element.Attributes.Values)
+            {
+                Tick();
+                if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                count++;
+                if (!attribute.IsDefault && attribute.ExplicitValue == attribute.Value) value = attribute.ExplicitValue;
+            }
+            return count == 1 ? value : null;
+        }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);
     private sealed class DuplicateStudyWorkLimitException : Exception;

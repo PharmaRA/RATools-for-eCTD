@@ -3389,9 +3389,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects distinct current new XPT dataset leaves within a qualified STF using exact decoded basename and original direct leaf title; repeated references are deduplicated by LeafAddress, not content path. Known duplicate failures survive unrelated unknown references. Cross-STF study identity, historical lifecycle counting and other dataset formats remain unqualified; local passes do not establish readiness.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "implementationNote": "Detects distinct current new XPT dataset leaves within a qualified STF using exact decoded basename and original direct leaf title; repeated references are deduplicated by LeafAddress, not content path. Requires current-profile backbone, explicit ID/operation/href agreement, consistent leaf/title locations and one observed direct simple title. Known duplicate failures survive unrelated unknown references. Cross-STF study identity, historical lifecycle counting and other dataset formats remain unqualified; local passes do not establish readiness.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaDuplicateStudyDatasetBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateStudyDatasetRule.cs", "src/RATools.Application/PackageValidation/PackageStudyDataInspector.cs"],
       "externalComparisonEvidence": []
     },
