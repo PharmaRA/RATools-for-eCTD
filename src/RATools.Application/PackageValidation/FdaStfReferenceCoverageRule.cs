@@ -54,7 +54,8 @@ internal static class FdaStfReferenceCoverageRule
                     if (document.Kind == BackboneKind.Ich && document.LogicalPath == packages.Target.Manifest.SequenceNumber + "/index.xml") indices.Add(document);
                 }
             }
-            if (indices.Count != 1 || !indices[0].ReadComplete || indices[0].DtdStatus != CheckStatus.Pass)
+            if (indices.Count != 1 || !indices[0].ReadComplete || indices[0].DtdStatus != CheckStatus.Pass ||
+                indices[0].ProfileSnapshotId != lifecycle.ProfileSnapshotId)
                 return Unknown("A unique completely read target ICH backbone is required.");
             var index = indices[0];
             var elements = new Dictionary<string, ParsedXmlElement>(StringComparer.Ordinal);
@@ -103,6 +104,10 @@ internal static class FdaStfReferenceCoverageRule
                 if (heading is null) { incomplete = true; continue; }
                 if (!Required(heading.Value.Section)) continue;
                 if (leaf.Address is null || !leaf.ContextComplete || !elements.TryGetValue(leaf.NodePath, out var element) ||
+                    leaf.Address.ApplicationId != packages.Target.Manifest.ApplicationId || leaf.Address.SequenceNumber != packages.Target.Manifest.SequenceNumber ||
+                    leaf.Address.BackboneRelativePath != "index.xml" || leaf.Address.LeafId != leaf.Id ||
+                    element.Location.LogicalPath != index.LogicalPath || element.Location.NodePath != element.NodePath ||
+                    leaf.Location.LogicalPath != index.LogicalPath || leaf.Location.NodePath != element.NodePath ||
                     !Plain(element, "leaf") || !index.IdIndex.TryGetValue(leaf.Address.LeafId, out var ids) || ids.Count != 1 || !ids[0].IsLeaf ||
                     ids[0].NodePath != leaf.NodePath || Explicit(element, "ID", "") != leaf.Id ||
                     Explicit(element, "operation", "") is not ("new" or "append" or "replace") ||
@@ -192,11 +197,21 @@ internal static class FdaStfReferenceCoverageRule
             "Checked current non-delete content leaves in m4.2 and m5.3 study sections, excluding m5.3.6, by exact leaf address. Coverage requires an actual current STF owner and matching heading/extension instance. Cross-instance or otherwise ambiguous associations remain unqualified; local passes do not establish full FDA 1789 coverage.", findings);
 
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new ReferenceCoverageWorkLimitException(); }
+        string? Explicit(ParsedXmlElement element, string name, string ns)
+        {
+            var count = 0; string? value = null;
+            foreach (var attribute in element.Attributes.Values)
+            {
+                Tick();
+                if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                count++;
+                if (!attribute.IsDefault && attribute.ExplicitValue == attribute.Value) value = attribute.ExplicitValue;
+            }
+            return count == 1 ? value : null;
+        }
     }
     private static bool Required(string section) => Within(section, "m4.2") || Within(section, "m5.3") && !Within(section, "m5.3.6");
     private static bool Within(string section, string parent) => section == parent || section.StartsWith(parent + ".", StringComparison.Ordinal);
-    private static string? Explicit(ParsedXmlElement element, string name, string ns) => element.Attributes.Values
-        .SingleOrDefault(attribute => attribute.LocalName == name && attribute.NamespaceUri == ns && !attribute.IsDefault)?.Value;
     private static bool Plain(ParsedXmlElement element, string name) => element.Name == name && element.LocalName == name && element.NamespaceUri.Length == 0;
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);
     private sealed class ReferenceCoverageWorkLimitException : Exception;

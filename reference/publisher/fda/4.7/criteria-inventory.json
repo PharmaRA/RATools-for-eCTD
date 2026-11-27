@@ -1450,8 +1450,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1789"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaStfReferenceCoverageRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-        "note": "Checks exact current leaf coverage under mapped study sections using submitted STF owners and matching heading/extension instances. Multiple STFs form a coverage union; orphan STFs and old leaf addresses do not cover current events. Unrelated historical unknown roots cannot hide proven absence. Cross-instance study associations remain unqualified; local passes remain report-unevaluated. Final selected Windows regression 359/359 and bounded read-only review passed."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaStfReferenceCoverageRule.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Checks exact current leaf coverage under mapped study sections using submitted STF owners and matching heading/extension instances. Candidate leaves require current-profile backbone, current exact address, consistent element/leaf locations and original explicit ID/operation/href agreement. Multiple STFs form a coverage union; orphan STFs and old leaf addresses do not cover current events. Unrelated historical unknown roots cannot hide proven absence. Cross-instance study associations remain unqualified; local passes remain report-unevaluated. Latest seven-class Windows regression 189/189 including 19 binding cases and bounded main-agent read-only review passed without subagents."
       }
     },
     {

@@ -148,8 +148,8 @@ public sealed class FdaStfReferenceCoverageRuleTests
     }
 
     private static RuleCheckResult Inspect(FixtureData fixture) => FdaStfReferenceCoverageRule.Inspect(fixture.Packages, fixture.Lifecycle, fixture.Context, 20, default)!;
-    private sealed record FixtureData(PackageInputSet Packages, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context);
-    private static async Task<FixtureData> Fixture(string scenario, string section = "m4.2.3.1", string variant = "valid", string? date = "2026-11-20")
+    internal sealed record FixtureData(PackageInputSet Packages, PackageLifecycleInspection Lifecycle, PackageStandardsContext Context);
+    internal static async Task<FixtureData> Fixture(string scenario, string section = "m4.2.3.1", string variant = "valid", string? date = "2026-11-20")
     {
         var snapshot = await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2");
         if (variant is "missing-source" or "missing-spec")

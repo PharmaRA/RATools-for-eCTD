@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1789第二轮：当前内容叶的原始属性与地址绑定（仍Partial，主代理限定只读自审及终态核对通过）。** 1737已提交`72b62da`；1782/1786日期化支持版本政策无新增证据，继续留队，已Implemented项不重开。1789原使用规范化属性值，且未核对当前配置/地址/位置，导致原始证据缺失或冲突仍报缺覆盖。本项增加当前配置骨架、当前申请/序列/index/叶ID精确地址、原始与派生叶定位、显式ID/operation/href一致性门槛；属性枚举纳入工作预算，缺原始值/默认/冲突保持未知。不改章节、覆盖并集、跨实例及历史引用政策，其他合格叶的确定缺覆盖仍保留。
+
+red五项1过4败，正常缺覆盖对照通过，缺href原始证据、operation冲突、叶位置和错误配置均在完整发现前提下误Fail。candidate七类 **189/189、0失败/跳过**（新绑定19、原1789为51、1799为45、研究数据18、中断16、文件28、交付12）。覆盖缺/默认/规范化冲突、原始/派生位置、跨申请/序列/骨架/叶ID、乱序与未知叶前后已知失败保留。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1789-leaf-binding-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖SHA绑定；manifest SHA`a915e51ab382c195fdbc0ad4507bc66fb214db495948b512be97208a1adbb5d3`、TRX SHA`b69eb540e59c049c3b59bf6cd234e84e0dfc1024e7d3ab08459234b11dad34ad`；目录167条canonical SHA`9b90d5a0684f90084706f445cc5bce07dd472afb84d36d5e362505de1ea9309a`。两轮证据及校验副本位于`.artifacts/local-check/fda1789-leaf-binding-*-20261127`和`backups/fda1789-leaf-binding-20261127/evidence/`，bin/obj仅回收。file-v102、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1799的自引用/发现身份剩余边界，再1816及后续，按固定顺序推进。
+
 **FDA1737第二轮：原始叶与标题证据绑定（仍Partial，主代理限定只读自审及终态核对通过）。** 身份前置已提交`71fd411`。按序续核1735/1736：固定criteria30–31页及guide50–51页明确标签/供应要求，完整CDISC合规不是额外前提；CDISC官方页当前2.1.11标准文件须登录，未取得正式模式包，原draft字段参考不提升资格，依赖留队。1737固定STF16–17页允许同研究独立分析单元，不按study-id扩写跨STF合并。本项修已复现的派生leaf.Href与原始href/标题事实不一致仍误报重复：增加当前配置骨架、显式ID/operation/href一致性、叶/标题位置、唯一直接简单标题门槛，不改精确文件名/标题比较和历史内容复用。
 
 red五项1过4败，正常重复通过，href冲突/缺原始证据/标题位置/错误配置均在真实XPT可读前提后误Fail。candidate八类248/249，仅重复标题指针用例错误要求可读；共享绑定器先判BackboneInvalid/ReferenceUnavailable，修为明确断言提前拒绝，最终NE预期及生产实现不变。final八类 **249/249、0失败/跳过**（新绑定19、原1737为40、研究数据18、1738为60、1734为56、中断16、文件28、交付12）。覆盖默认/显式/规范化冲突、位置、隐藏子项/标题、重复指针、乱序及未知前后独立已知重复保留。主代理限定只读自审通过，无子代理。

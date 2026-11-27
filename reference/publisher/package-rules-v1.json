@@ -3521,9 +3521,9 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires exact per-leaf STF references from an actual current owner in the same qualified heading/extension instance. Multiple STFs contribute a reference union; same-path leaves remain separate. Orphan STFs and historical references do not retarget current leaf events. Unrelated historical STF observations and complete invalid/other-address references do not hide proven uncovered leaves. Cross-instance or ambiguous study associations remain unqualified; local passes do not establish full coverage.",
-      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs"],
-      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+      "implementationNote": "Requires exact per-leaf STF references from an actual current owner in the same qualified heading/extension instance. Candidate leaves require current-profile backbone, current exact address, consistent element/leaf locations and original explicit ID/operation/href agreement. Multiple STFs contribute a reference union; same-path leaves remain separate. Orphan STFs and historical references do not retarget current leaf events. Unrelated historical STF observations and complete invalid/other-address references do not hide proven uncovered leaves. Cross-instance or ambiguous study associations remain unqualified; local passes do not establish full coverage.",
+      "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageBindingTests.cs"],
+      "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaStfReferenceCoverageBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfReferenceCoverageRule.cs", "src/RATools.Application/PackageValidation/PackageStfBindingReader.cs"],
       "externalComparisonEvidence": []
     },
