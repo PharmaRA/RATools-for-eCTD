@@ -1260,8 +1260,8 @@
       "implementation": {
         "status": "Partial",
         "internalRuleIds": ["FDA47-1734"],
-        "evidence": ["src/RATools.Application/PackageValidation/FdaTrialSummaryRequirementRule.cs", "tests/RATools.Tests/PackageValidation/FdaTrialSummaryRequirementRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-        "note": "Known NDA/ANDA/BLA and common center-date branches use actual current study report/XPT triggers and associated TS start-date facts. Missing TS or absent information can fail; unavailable facts remain unevaluated. Center-specific transition dates, commercial IND status, NA applicability and historical-leaf TS supply remain unqualified. Partial passes cannot establish readiness."
+        "evidence": ["src/RATools.Application/PackageValidation/FdaTrialSummaryRequirementRule.cs", "tests/RATools.Tests/PackageValidation/FdaTrialSummaryRequirementRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaTrialSummaryRegionBindingTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
+        "note": "Known NDA/ANDA/BLA and common center-date branches use actual current study report/XPT triggers and associated TS start-date facts. Application type requires a unique current-profile regional observation in a uniquely captured current-sequence file, consistent element locations and one actual regional root. Latest seven-class Windows regression 184/184 including 14 new regional identity cases and bounded main-agent read-only review passed without subagents. Missing TS or absent information can fail; unavailable facts remain unevaluated. Center-specific transition dates, commercial IND status, NA applicability and historical-leaf TS supply remain unqualified. Partial passes cannot establish readiness."
       }
     },
     {

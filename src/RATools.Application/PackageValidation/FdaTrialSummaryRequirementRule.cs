@@ -160,10 +160,21 @@ internal static class FdaTrialSummaryRequirementRule
             if (xml.Length != 1) return null;
             var regions = xml[0].Backbones.Where(backbone => backbone.Kind == BackboneKind.UsRegional).ToArray();
             if (regions.Length != 1 || !regions[0].ReadComplete || regions[0].DtdStatus != CheckStatus.Pass) return null;
+            var regional = regions[0];
+            if (regional.ProfileSnapshotId != lifecycle.ProfileSnapshotId ||
+                !regional.LogicalPath.StartsWith(packages.Target.Manifest.SequenceNumber + "/", StringComparison.Ordinal)) return null;
+            var captured = 0;
+            foreach (var file in packages.Target.Manifest.Files) { Tick(); if (file.LogicalPath == regional.LogicalPath) captured++; }
+            if (captured != 1) return null;
             var map = new Dictionary<string, ParsedXmlElement>(StringComparer.Ordinal);
-            foreach (var element in regions[0].Elements) { Tick(); if (!map.TryAdd(element.NodePath, element)) return null; }
-            var roots = regions[0].Elements.Where(element => element.ParentPath is null && element.LocalName == "fda-regional" && element.NamespaceUri == "http://www.ich.org/fda").ToArray();
-            if (roots.Length != 1) return null;
+            foreach (var element in regional.Elements)
+            {
+                Tick();
+                if (!map.TryAdd(element.NodePath, element) || element.Location.LogicalPath != regional.LogicalPath ||
+                    element.Location.NodePath != element.NodePath) return null;
+            }
+            var roots = regional.Elements.Where(element => element.ParentPath is null).ToArray();
+            if (roots.Length != 1 || roots[0].LocalName != "fda-regional" || roots[0].NamespaceUri != "http://www.ich.org/fda") return null;
             var applications = Child(roots[0], "admin").SelectMany(admin => Child(admin, "application-set")).SelectMany(set => Child(set, "application")).ToArray();
             var owners = new List<ParsedXmlElement>();
             foreach (var app in applications)

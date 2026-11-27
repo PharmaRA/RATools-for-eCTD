@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1734第二轮：当前区域申请身份绑定（仍Partial，主代理限定只读自审及终态核对通过）。** 1500已提交`984d898`。按序保留1544相关前次公司名称基线、1551/1553中心/实际表单/最新标签、1636/1697真实提交记录依赖；已Implemented项不重开。1734共享研究数据入口已绑定顶层规则/资产/输入，但规则自身的ApplicationType未验证区域观察当前路径/配置身份，历史或未捕获区域也可能触发缺TS失败。本项只增加当前配置、当前序列唯一捕获文件、元素位置一致和唯一真实区域根门槛；不改变原申请类型/默认值、TS供应、中心日期或历史政策。
+
+red四项1过3败：正常当前区域缺TS对照通过，历史路径、未捕获路径、错误配置均复现预期NE实际Fail；研究数据ScopeComplete及实际研究前提通过。修后七类 **184/184、0失败/跳过**（新区域绑定14、原1734为56、研究数据18、1737为40、中断16、文件28、交付12），含元素位置/节点位置、额外或错误根、重复元素/区域、不完整/DTD失败及乱序。主代理限定只读自审通过，无子代理；审查未改变受测输入，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1734-region-binding-candidate-20261127`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`93bfa22cf74a378748886a3b1b5986cd5eb14f4c6d5ba825ac1d47944aa13f03`、TRX SHA`051d58de5129f943dc497833087647e2c36d16ec81c7691ed4c8cc049bb5c946`；目录167条canonical SHA`8c69e233d11aab70d40125595a67102f7f521033687492be93885166c2bd8c98`。red/candidate证据及校验副本在`.artifacts/local-check/fda1734-region-binding-*-20261127`和`backups/fda1734-region-binding-20261127/evidence/`，两轮bin/obj按精确范围回收。file-v100、inspector-v39、PDF-v32、交付v6；库存67/56/24、待完整覆盖80、原107完整27不变。下一1735/1736标准化模型及define身份依赖，再1737及后续可执行缺口。
+
 **FDA1500第二轮：基本汉字与ASCII混合值的明确字符边界（仍Partial，主代理限定只读自审及终态核对通过）。** 1368已提交`a1e3e42`；1425的index-md5归责及1459/1463版本支持政策依赖无新资格，继续保留。固定FDA criteria第23页明确512 characters；ICH3.2.2物理第108页提及1024 bytes (512 characters)，本项不据此推定UTF-8字节上限。只扩展可打印ASCII与基本汉字U+4E00–U+9FFF集合：这些文本的UTF-16单元、Unicode标量和字素数一致，混合值亦然。仍仅当前ICH/US简单叶标题和原始显式整段keywords，不trim/拆词/规范化/截断，不发Pass。组合字符、代理对、连接符、变体选择符及集合外字符仍未知。
 
 red八项4过4败：512字符即使UTF-8超过1024字节也不失败；四个513字符title/keywords纯汉字及混合值均复现预期Fail实际NE，真实读取前提通过。candidate首轮Tests因新区域测试未导入BackboneKind编译失败，未执行测试；改用精确区域XML路径选择观察，不改业务预期。candidate2九类 **307/307、0失败/跳过**（长度54、绑定48、叶路径32、空白26、内容属性34、无效路径55、逻辑路径18、文件28、交付12；新增37），覆盖集合相邻边界、原文保留、区域定位、截断/实体、默认/缺原始值、未知不抹去独立失败及共享预算。主代理限定只读自审通过，无子代理；审查未改受测输入，candidate2即最终证据。
