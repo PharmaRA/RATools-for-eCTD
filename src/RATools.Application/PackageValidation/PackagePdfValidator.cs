@@ -87,15 +87,19 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
             foreach (var path in _inventory.Keys.Where(path => path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                using var stream = input.Packages.OpenRead(path);
+                Stream opened;
+                try { opened = input.Packages.OpenRead(path); }
+                catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
+                {
+                    RecordUnavailable(path, exception);
+                    continue;
+                }
+                using var stream = opened;
                 PackagePdfFacts facts;
                 try { facts = inspector.Inspect(stream, path, input.Packages.Target.Limits, cancellationToken); }
                 catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
                 {
-                    _documents.Add(path, null);
-                    Add("PDF-READABLE", CheckStatus.NotEvaluated, "PDF_INSPECTOR_FAILED", "PDF inspection failed: " + exception.Message, Location(path));
-                    foreach (var rule in RuleIds.Where(rule => rule != "PDF-READABLE"))
-                        Add(rule, CheckStatus.NotEvaluated, "PDF_PREREQUISITE_UNRESOLVED", "PDF facts could not be obtained.", Location(path));
+                    RecordUnavailable(path, exception);
                     continue;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
@@ -153,6 +157,14 @@ public sealed class PackagePdfValidator(IPackagePdfInspector inspector, TimeProv
                     throw new PdfInspectionLimitException("Aggregate PDF pages or links exceeded.");
                 InspectFacts(path, facts);
             }
+        }
+
+        private void RecordUnavailable(string path, Exception exception)
+        {
+            _documents.Add(path, null);
+            Add("PDF-READABLE", CheckStatus.NotEvaluated, "PDF_INSPECTOR_FAILED", "PDF inspection failed: " + exception.Message, Location(path));
+            foreach (var rule in RuleIds.Where(rule => rule != "PDF-READABLE"))
+                Add(rule, CheckStatus.NotEvaluated, "PDF_PREREQUISITE_UNRESOLVED", "PDF facts could not be obtained.", Location(path));
         }
 
         private void InspectFacts(string path, PackagePdfFacts facts)

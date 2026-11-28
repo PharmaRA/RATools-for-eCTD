@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA3102第三轮：单文件打开失败隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 2026已提交`f03b7f6`。2043实际提交/所有权例外、3078最低层级定义及3102非.pdf内容身份缺依据继续留队；已Implemented项不重开。本项将普通OpenRead失败纳入已有空事实/未知诊断路径，损坏PDF前后出现不可读文件均不隐藏其他确定错误。输入变化继续传播、外部取消优先，限额/局部取消保持终止和已知结果保留；最终捕获复核仍执行。不改变流释放异常的原有传播边界，不新增内容扫描。
+
+red因新测试常量数组触发CA1861编译失败，不计业务红灯；修正断言写法后red2六项全败，明确复现IOException/UnauthorizedAccessException越过单文件边界。candidate六类 **162/162、0失败/跳过**（3102为52含新增16、历史3102为30、PDF管线23、实际解析器17、文件28、交付12），覆盖先后顺序、全不可读、输入变化、取消伴随I/O竞态、限额/局部取消、最终复核和Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda3102-open-failure-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`f8eaffdb70d0702d92613d87114cde9abd20e1f88735a16e5a216cc1f033c9b9`、TRX SHA`20a97480c944c70187e2a12f84cdb1395971a8b95f3a1e987a8f557e28bf98a0`。目录167条canonical SHA`a51a329c7c56c2a2175558a53e3e6e1de571f41dd1bdd2082f27783232376ad0`独立合同通过；清单不收录.sha256文件，不冒称其构建绑定。三轮证据及校验副本位于`.artifacts/local-check/fda3102-open-failure-*-20261128`和`backups/fda3102-open-failure-20261128/evidence/`，bin/obj仅回收。PDF-validator-v33，file-v114及XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一按序5005及后续PDF未闭合项，缺规范依据继续留队。
+
 **FDA2026第三轮：后续活动资格的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 2025已提交`32f32a7`。本项独立复现合法follow-up自引用判定使用缺失/矛盾原始属性仍误Fail；补file ownership、application-type、submission-type和subtype的唯一非默认原始值一致门槛，属性枚举纳入工作预算。身份级未知不授权整组，成员级未知不隐藏另一已知自引用；保留amendment/resubmission正向资格，不用起点白名单取反，不以较早编号证明父活动存在。
 
 red五项1过4败，正常自引用通过，其余在完整区域DTD前提后误Fail。candidate六类 **312/312、0失败/跳过**（2026为88含新增17、2025为97、2024为71、中断16、文件28、交付12），覆盖四属性缺失/默认/冲突及主/次成员未知前后另一已知自引用保留，既有精确工作预算、取消、分组、日期及Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据；生效日仍2027-01-16。

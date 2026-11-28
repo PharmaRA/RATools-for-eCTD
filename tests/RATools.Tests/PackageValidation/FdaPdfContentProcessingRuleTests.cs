@@ -150,6 +150,113 @@ public sealed class FdaPdfContentProcessingRuleTests
         Assert.ThrowsAny<OperationCanceledException>(() => Direct(fixture, Evidence(fixture), token: cancellation.Token));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task OpenFailureDoesNotHideOtherInvalidPdf(bool unavailableFirst, bool accessDenied)
+    {
+        var fixture = await Fixture("two-pdf");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        var unavailable = unavailableFirst ? "0001/report.pdf" : "0001/z-other.pdf";
+        var invalid = unavailableFirst ? "0001/z-other.pdf" : "0001/report.pdf";
+        capture.OpenError = path => path == unavailable ? OpenFailure(accessDenied) : null;
+        var result = await new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+        Assert.Collection(capture.OpenedPdfPaths, path => Assert.Equal("0001/report.pdf", path), path => Assert.Equal("0001/z-other.pdf", path));
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(invalid, Assert.Single(check.Findings).Location.LogicalPath);
+        Assert.Contains(result.Checks.SelectMany(item => item.Findings), finding => finding.Code == "PDF_INSPECTOR_FAILED" && finding.Location.LogicalPath == unavailable);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OnlyUnavailablePdfRemainsUnknown(bool accessDenied)
+    {
+        var fixture = await Fixture("broken");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        capture.OpenError = _ => OpenFailure(accessDenied);
+        var result = await new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+        Assert.Equal("0001/report.pdf", Assert.Single(capture.OpenedPdfPaths));
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    private static Exception OpenFailure(bool accessDenied) => accessDenied
+        ? new UnauthorizedAccessException("Injected unavailable PDF.") : new IOException("Injected unavailable PDF.");
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OpenInputChangeAlwaysPropagates(bool afterKnownFailure)
+    {
+        var fixture = await Fixture("two-pdf");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        var changed = afterKnownFailure ? "0001/z-other.pdf" : "0001/report.pdf";
+        capture.OpenError = path => path == changed ? new PackageInputChangedException(capture.SourceId) : null;
+        await Assert.ThrowsAsync<PackageInputChangedException>(() => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files));
+        Assert.Equal(afterKnownFailure ? 2 : 1, capture.OpenedPdfPaths.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExternalCancellationAtOpenIsNotConvertedToUnknown(bool throwsIo)
+    {
+        var fixture = await Fixture("two-pdf");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        using var cancellation = new CancellationTokenSource();
+        capture.OpenError = _ => { cancellation.Cancel(); return throwsIo ? OpenFailure(false) : new OperationCanceledException(cancellation.Token); };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files, cancellation.Token));
+        Assert.Single(capture.OpenedPdfPaths);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task OpenTerminalFailureRetainsOnlyPreviouslyKnownContent(bool afterKnownFailure, bool timeout)
+    {
+        var fixture = await Fixture("two-pdf");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        var failed = afterKnownFailure ? "0001/z-other.pdf" : "0001/report.pdf";
+        capture.OpenError = path => path != failed ? null : timeout ? new OperationCanceledException("Injected local timeout.") : new PdfInspectionLimitException("Injected limit.");
+        var result = await new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+        Assert.Equal(afterKnownFailure ? 2 : 1, capture.OpenedPdfPaths.Count);
+        var check = Assert.Single(result.Checks, item => item.RuleId == RuleId);
+        Assert.Equal(afterKnownFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(afterKnownFailure ? 1 : 0, check.Findings.Count);
+        Assert.Contains(result.Checks.SelectMany(item => item.Findings), finding => finding.Code == (timeout ? "PDF_INSPECTION_TIMEOUT" : "PDF_INSPECTION_LIMIT"));
+    }
+
+    [Fact]
+    public async Task UnavailableOpenStillRequiresFinalCaptureVerification()
+    {
+        var fixture = await Fixture("two-pdf");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        var verifications = 0;
+        capture.OpenError = path => path == "0001/report.pdf" ? OpenFailure(false) : null;
+        capture.Verify = () => { if (++verifications == 2) throw new PackageInputChangedException(capture.SourceId); };
+        await Assert.ThrowsAsync<PackageInputChangedException>(() => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files));
+        Assert.Equal(2, verifications);
+        Assert.Equal(2, capture.OpenedPdfPaths.Count);
+    }
+
+    [Fact]
+    public async Task UnavailableOpenDoesNotPublishPartialCoverageAsPass()
+    {
+        var fixture = await Fixture("valid");
+        var capture = (Capture)fixture.Input.Packages.Target;
+        capture.OpenError = _ => OpenFailure(false);
+        var result = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.Pdf.Checks, item => item.RuleId == RuleId).Status);
+        Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
+    }
+
     private sealed class FixedInspector(string scenario) : IPackagePdfInspector
     {
         private int _count;
@@ -201,14 +308,30 @@ public sealed class FdaPdfContentProcessingRuleTests
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }
         public bool InjectFailures { get; set; }
+        public Func<string, Exception?>? OpenError { get; set; }
+        public Action? Verify { get; set; }
+        public List<string> OpenedPdfPaths { get; } = [];
         public string SourceId => "fda3102";
         public PackageSourceKind SourceKind => PackageSourceKind.Directory;
         public PackageInputManifest Manifest { get; }
         public string? ArchiveSha256 => null;
         public string InputDigest => Manifest.Digest;
         public PackageReadLimits Limits { get; } = new();
-        public Stream OpenRead(string path) => InjectFailures && path.EndsWith("report.pdf", StringComparison.Ordinal) && _scenario is "io" or "encrypted" or "depth" or "unknown" or "legacy-error" ? new FailingStream(_scenario) : new MemoryStream(_files[path], false);
-        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Stream OpenRead(string path)
+        {
+            if (InjectFailures && path.EndsWith(".pdf", StringComparison.Ordinal))
+            {
+                OpenedPdfPaths.Add(path);
+                if (OpenError?.Invoke(path) is { } error) throw error;
+            }
+            return InjectFailures && path.EndsWith("report.pdf", StringComparison.Ordinal) && _scenario is "io" or "encrypted" or "depth" or "unknown" or "legacy-error" ? new FailingStream(_scenario) : new MemoryStream(_files[path], false);
+        }
+        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Verify?.Invoke();
+            return Task.CompletedTask;
+        }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
     // Injected reader failures verify the adapter boundary, not real encrypted or deep PDF qualification.
