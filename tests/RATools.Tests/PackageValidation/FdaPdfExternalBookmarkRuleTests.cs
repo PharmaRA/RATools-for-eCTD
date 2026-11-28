@@ -269,6 +269,77 @@ public sealed class FdaPdfExternalBookmarkRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingExternalKindsCannotAuthorizeFinding(bool webFirst, bool independent)
+    {
+        var fixture = await Fixture(Build("https://example.invalid/"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var web = new PdfExternalBookmark("outline[1]/A/URI", PdfExternalBookmarkKind.Web);
+        var unknown = web with { Kind = PdfExternalBookmarkKind.Unknown };
+        var bookmarks = webFirst ? new List<PdfExternalBookmark> { web, unknown } : [unknown, web];
+        if (independent) bookmarks.Add(new("outline[2]/A/URI", PdfExternalBookmarkKind.Email));
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed, externalBookmarks: bookmarks);
+        var run = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("outline[2]/A/URI", finding.Location.FieldPath);
+            Assert.Equal("Email", finding.Actual);
+        }
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("outline[1]/A/URI", 0)]
+    [InlineData("outline[2]/A/URI", 2)]
+    public async Task DuplicateOrUnlocatedExternalKindsDoNotAuthorizeExtraFindings(string? otherPath, int expected)
+    {
+        var fixture = await Fixture(Build("https://example.invalid/"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            externalBookmarks: [new(otherPath!, PdfExternalBookmarkKind.Web), new("outline[1]/A/URI", PdfExternalBookmarkKind.Web)]);
+        var run = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(expected, run.FindingCount);
+        Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteExternalKindScanCannotPublish(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("https://example.invalid/"));
+        var fixture = await Fixture(Build("https://example.invalid/"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            externalBookmarks: [new("outline[1]/A/URI", PdfExternalBookmarkKind.Web), new("outline[2]/A/URI", PdfExternalBookmarkKind.Email),
+                new(conflictLast ? "outline[1]/A/URI" : "outline[3]/A/URI", PdfExternalBookmarkKind.Unknown)]);
+        var run = new FdaPdfExternalBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, string? date = "2026-11-25", PackageReadLimits? limits = null, bool missingSource = false)
     {
