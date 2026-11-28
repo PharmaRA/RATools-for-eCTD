@@ -53,10 +53,17 @@ internal static class FdaPdfBrokenBookmarkRule
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || !facts.Basics.HasBookmarks) return;
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var bookmark in facts.BookmarkFiles)
+            {
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath)) continue;
+                paths[bookmark.ObjectPath] = paths.GetValueOrDefault(bookmark.ObjectPath) + 1;
+            }
             foreach (var bookmark in facts.BookmarkFiles)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
-                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath) || string.IsNullOrWhiteSpace(bookmark.FileSpecification)) continue;
+                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath) || paths[bookmark.ObjectPath] != 1 || string.IsNullOrWhiteSpace(bookmark.FileSpecification)) continue;
                 var file = bookmark.FileSpecification;
                 if (file.Contains('\\') || file.StartsWith('/') || file.Contains(':')) continue;
                 string? target;

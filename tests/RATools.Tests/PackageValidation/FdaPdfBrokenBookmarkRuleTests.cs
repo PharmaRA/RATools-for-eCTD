@@ -331,6 +331,77 @@ public sealed class FdaPdfBrokenBookmarkRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingBookmarkTargetCannotAuthorizeMissingFile(bool missingFirst, bool independentFailure)
+    {
+        var fixture = await Fixture(Build("missing.pdf"), existing: "present.pdf");
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var missing = new PdfBookmarkFileTarget("outline[1]/A/F", "missing.pdf");
+        var present = missing with { FileSpecification = "present.pdf" };
+        var targets = missingFirst ? new List<PdfBookmarkFileTarget> { missing, present } : [present, missing];
+        if (independentFailure) targets.Add(new("outline[2]/A/F", "other-missing.pdf"));
+        var basics = new PdfInspectionResult("1.4", false, false, false, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed, bookmarkFiles: targets);
+        var run = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independentFailure ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independentFailure ? 1 : 0, check.Findings.Count);
+        if (independentFailure)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("outline[2]/A/F", finding.Location.FieldPath);
+            Assert.Equal("0001/other-missing.pdf", finding.Actual);
+            foreach (var remaining in new[] { 0, 1 })
+            {
+                var bounded = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+                bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+                Assert.Equal(remaining == 0 ? CheckStatus.NotEvaluated : CheckStatus.Fail, bounded.Finish(true)!.Status);
+                Assert.Equal(remaining, bounded.FindingCount);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("outline[1]/A/F", 0)]
+    [InlineData("outline[2]/A/F", 2)]
+    public async Task DuplicateOrUnlocatedTargetsDoNotBecomeIndependentBookmarks(string? otherPath, int findings)
+    {
+        var fixture = await Fixture(Build("missing.pdf"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, false, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [new(otherPath!, "missing.pdf"), new("outline[1]/A/F", "missing.pdf")]);
+        var run = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(findings, run.FindingCount);
+        Assert.Equal(findings > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteTargetUniquenessScanDoesNotAuthorizeFailure(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("missing.pdf"));
+        var fixture = await Fixture(Build("missing.pdf"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, false, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [new("outline[1]/A/F", "missing.pdf"), new("outline[2]/A/F", "other.pdf"), new(conflictLast ? "outline[1]/A/F" : "outline[3]/A/F", "last.pdf")]);
+        var run = new FdaPdfBrokenBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, bool history = false, string? existing = null, string? date = "2026-11-25", PackageReadLimits? limits = null, bool missingSource = false)
     {
