@@ -283,6 +283,116 @@ public sealed class FdaPdfLinearizationRuleTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TerminalReadFailureSurvivesPositionRestoreFailure(bool inputChanged)
+    {
+        Exception primary = inputChanged ? new PackageInputChangedException("linearization-fixture") : new OperationCanceledException("Injected cancellation.");
+        using var stream = new ReadFailureStream(PhysicalPdf("42", ""), primary, failRestore: true);
+        var actual = Record.Exception(() => PdfPigPackageLinearizationReader.Read(stream, new(), CancellationToken.None));
+        Assert.Same(primary, actual);
+        Assert.True(stream.RestoreAttempted);
+    }
+
+    [Fact]
+    public void AdapterDoesNotReclassifyChangedInputAsUnavailablePdf()
+    {
+        var primary = new PackageInputChangedException("linearization-fixture");
+        using var stream = new ReadFailureStream(PhysicalPdf("42", ""), primary, failRestore: false);
+        Assert.Same(primary, Record.Exception(() => new PdfPigPackageInspector().Inspect(stream, "0001/report.pdf", new(), CancellationToken.None)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdapterRetainsInputChangeFromPositionOrSeek(bool seek)
+    {
+        var primary = new PackageInputChangedException("linearization-position-fixture");
+        using var stream = new PositionFailureStream(PhysicalPdf("42", ""), primary, seek);
+        Assert.Same(primary, Record.Exception(() => new PdfPigPackageInspector().Inspect(stream, "0001/report.pdf", new(), CancellationToken.None)));
+        Assert.True(stream.FailureObserved);
+    }
+
+    private sealed class PositionFailureStream(byte[] bytes, PackageInputChangedException failure, bool seek) : MemoryStream(bytes, false)
+    {
+        public bool FailureObserved { get; private set; }
+        public override long Position
+        {
+            get => base.Position;
+            set { if (!seek) { FailureObserved = true; throw failure; } base.Position = value; }
+        }
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (seek) { FailureObserved = true; throw failure; }
+            return base.Seek(offset, origin);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OrdinaryReadFailureRemainsUnknownEvenWhenRestoreFails(bool failRestore)
+    {
+        using var stream = new ReadFailureStream(PhysicalPdf("42", ""), new IOException("Injected unavailable input."), failRestore);
+        Assert.Equal(PdfLinearizationStatus.Unknown, PdfPigPackageLinearizationReader.Read(stream, new(), CancellationToken.None));
+        Assert.True(stream.RestoreAttempted);
+        if (!failRestore) Assert.Equal(7, stream.Position);
+    }
+
+    [Fact]
+    public void SuccessfulReadWithFailedRestoreDoesNotAuthorizeFinding()
+    {
+        using var stream = new ReadFailureStream(PhysicalPdf("42", ""), null, failRestore: true);
+        Assert.Equal(PdfLinearizationStatus.Unknown, PdfPigPackageLinearizationReader.Read(stream, new(), CancellationToken.None));
+        Assert.True(stream.RestoreAttempted);
+    }
+
+    [Fact]
+    public void CancellationAccompanyingIoFailureStillPropagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new ReadFailureStream(PhysicalPdf("42", ""), new IOException("Injected unavailable input."), failRestore: true)
+        { BeforeRead = cancellation.Cancel };
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfPigPackageLinearizationReader.Read(stream, new(), cancellation.Token));
+        Assert.True(stream.RestoreAttempted);
+    }
+
+    private sealed class ReadFailureStream : MemoryStream
+    {
+        private readonly Exception? _primary;
+        private readonly bool _failRestore;
+        private bool _readAttempted;
+        public ReadFailureStream(byte[] bytes, Exception? primary, bool failRestore) : base(bytes, false)
+        {
+            _primary = primary; _failRestore = failRestore; base.Position = 7;
+        }
+        public bool RestoreAttempted { get; private set; }
+        public Action? BeforeRead { get; init; }
+        public override long Position
+        {
+            get => base.Position;
+            set
+            {
+                if (_readAttempted && value == 7)
+                {
+                    RestoreAttempted = true;
+                    if (_failRestore) throw new IOException("Injected position restore failure.");
+                }
+                base.Position = value;
+            }
+        }
+        private void CheckRead()
+        {
+            _readAttempted = true;
+            BeforeRead?.Invoke();
+            if (_primary is not null) throw _primary;
+        }
+        public override int Read(Span<byte> buffer) { CheckRead(); return base.Read(buffer); }
+        public override int Read(byte[] buffer, int offset, int count) { CheckRead(); return base.Read(buffer, offset, count); }
+        public override int ReadByte() { CheckRead(); return base.ReadByte(); }
+    }
+
     // The unreferenced physical first object is deliberately not the catalog.
     private static byte[] PhysicalPdf(string first, string comments)
     {

@@ -17,6 +17,7 @@ internal static class PdfPigPackageLinearizationReader
         {
             if (!stream.CanSeek) return PdfLinearizationStatus.Unknown;
             var saved = stream.Position;
+            var terminalReadFailure = false;
             try
             {
                 stream.Position = 0;
@@ -55,12 +56,26 @@ internal static class PdfPigPackageLinearizationReader
                     return null;
                 }
             }
-            finally { stream.Position = saved; }
+            catch (Exception exception) when (exception is OperationCanceledException or PackageInputChangedException)
+            {
+                terminalReadFailure = true;
+                throw;
+            }
+            finally
+            {
+                try { stream.Position = saved; }
+                catch (Exception) when (terminalReadFailure)
+                {
+                    // Restoring a cursor must not replace an already established
+                    // cancellation or captured-input integrity failure.
+                }
+            }
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
         {
             // Failure of this bounded supplementary inspection is unknown evidence,
             // not a new content corruption classification for FDA 3102.
+            token.ThrowIfCancellationRequested();
             return PdfLinearizationStatus.Unknown;
         }
     }

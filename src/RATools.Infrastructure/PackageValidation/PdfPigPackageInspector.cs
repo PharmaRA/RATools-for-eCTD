@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using RATools.Application.PackageValidation;
 using RATools.Infrastructure.Publishing.Validation.Pdf;
 using UglyToad.PdfPig;
@@ -9,16 +10,16 @@ namespace RATools.Infrastructure.PackageValidation;
 
 public sealed class PdfPigPackageInspector : IPackagePdfInspector
 {
-    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v39";
+    public string EngineVersion => "pdfpig-0.1.15/package-navigation-forms-xfa-content-fonts-version-linearization-view-annotations-image-bookmarks-pages-actions-external-inactive-zoom-hyperlinks-pages-actions-external-inactive-zoom-v40";
     public PackagePdfFacts Inspect(Stream stream, string logicalPath, PackageReadLimits limits, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
         limits.Validate();
         cancellationToken.ThrowIfCancellationRequested();
         if (stream.Length > limits.MaxFileBytes) throw new PdfInspectionLimitException("PDF file byte limit exceeded.");
+        using var guarded = new CancellationStream(stream, cancellationToken);
         try
         {
-            using var guarded = new CancellationStream(stream, cancellationToken);
             using var document = PdfDocument.Open(guarded, new ParsingOptions { UseLenientParsing = false, MaxStackDepth = limits.MaxPdfDepth });
             if (document.NumberOfPages > limits.MaxPdfPages) throw new PdfInspectionLimitException("PDF page limit exceeded.");
             var navigation = new Navigation(document, limits, cancellationToken);
@@ -31,15 +32,18 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
                 BookmarkMaxDepth = navigation.NavigationComplete ? navigation.BookmarkDepth : null
             };
             cancellationToken.ThrowIfCancellationRequested();
-            return new(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
+            var facts = new PackagePdfFacts(basics, navigation.Links, navigation.Destinations, navigation.NavigationComplete,
                 navigation.DestinationsComplete, navigation.Reasons, form,
                 basics.ParseError is null && basics.PageCount is > 0 ? PdfContentProcessingStatus.Processed : PdfContentProcessingStatus.Unknown,
                 navigation.ReadFonts(), ReadVersionDeclaration(guarded, document, cancellationToken),
                 PdfPigPackageLinearizationReader.Read(guarded, limits, cancellationToken), navigation.ReadOpeningView(), navigation.MarkupAnnotations,
                 navigation.ReadImageOnly(), navigation.ReadBookmarkFiles(), navigation.ReadQualifiedPageCount(), navigation.MultipleBookmarkActions, navigation.ExternalBookmarks, navigation.InactiveBookmarks, navigation.NonInheritingBookmarkZooms, navigation.ReadHyperlinkFiles(), navigation.MultipleHyperlinkActions, navigation.ExternalHyperlinks, navigation.InactiveHyperlinks, navigation.NonInheritingHyperlinkZooms);
+            guarded.ThrowIfInputChanged();
+            return facts;
         }
-        catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException))
+        catch (Exception exception) when (exception is not (OperationCanceledException or PdfInspectionLimitException or PackageInputChangedException))
         {
+            guarded.ThrowIfInputChanged();
             // Preserve the original generic parse facts. The separate category does not
             // infer malformed content from an environmental or unsupported failure.
             var category = exception switch
@@ -445,15 +449,28 @@ public sealed class PdfPigPackageInspector : IPackagePdfInspector
 
     private sealed class CancellationStream(Stream inner, CancellationToken cancellationToken) : Stream
     {
+        private ExceptionDispatchInfo? _inputChange;
+        public void ThrowIfInputChanged() => _inputChange?.Throw();
         public override bool CanRead => inner.CanRead;
         public override bool CanSeek => inner.CanSeek;
         public override bool CanWrite => false;
-        public override long Length => inner.Length;
-        public override long Position { get => inner.Position; set { cancellationToken.ThrowIfCancellationRequested(); inner.Position = value; } }
-        public override int Read(byte[] buffer, int offset, int count) { cancellationToken.ThrowIfCancellationRequested(); return inner.Read(buffer, offset, count); }
-        public override int Read(Span<byte> buffer) { cancellationToken.ThrowIfCancellationRequested(); return inner.Read(buffer); }
-        public override int ReadByte() { cancellationToken.ThrowIfCancellationRequested(); return inner.ReadByte(); }
-        public override long Seek(long offset, SeekOrigin origin) { cancellationToken.ThrowIfCancellationRequested(); return inner.Seek(offset, origin); }
+        public override long Length => Observe(() => inner.Length);
+        public override long Position { get => Observe(() => inner.Position); set => Observe(() => { inner.Position = value; return value; }); }
+        public override int Read(byte[] buffer, int offset, int count) => Observe(() => inner.Read(buffer, offset, count));
+        public override int Read(Span<byte> buffer)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try { return inner.Read(buffer); }
+            catch (PackageInputChangedException exception) { _inputChange ??= ExceptionDispatchInfo.Capture(exception); throw; }
+        }
+        public override int ReadByte() => Observe(inner.ReadByte);
+        public override long Seek(long offset, SeekOrigin origin) => Observe(() => inner.Seek(offset, origin));
+        private T Observe<T>(Func<T> action)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try { return action(); }
+            catch (PackageInputChangedException exception) { _inputChange ??= ExceptionDispatchInfo.Capture(exception); throw; }
+        }
         public override void Flush() => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
