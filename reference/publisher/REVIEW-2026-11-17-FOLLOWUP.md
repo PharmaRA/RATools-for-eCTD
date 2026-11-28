@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2024第三轮：当前及父申请的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 2003已提交`18c7053`；2021实际提交见证依赖保留，已Implemented项不重开。本项修当前/父侧原始submission-type缺失或冲突仍使用规范化值误报不一致：主申请声明、各成员application-type及被比较submission-type统一要求唯一、非默认且原始显式值与解析值一致，属性枚举纳入既有工作预算。不修改主申请选择、非主成员历史范围、父快照绑定、起点或类型比较政策。
+
+red五项1过4败，正常不一致对照通过，当前/父侧缺失或冲突均在完整区域DTD前提通过后误Fail。candidate六类 **278/278、0失败/跳过**（2024为71含新增17、2025为80、2026为71、中断16、文件28、交付12），覆盖默认值、主申请声明/申请类型缺失冲突、分组成员身份缺证，既有匹配/不匹配、分组顺序、父快照、额度/取消及Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。生效日仍2027-01-16，显式未来日期测试不作为当期全覆盖声明。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda2024-raw-activity-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。7交付/直接依赖输入SHA绑定；manifest SHA`527dfae83b828aa82c8af92e8c338fccc144da18916240d4ae18cc412edfb900`、TRX SHA`1114b2e5ac72f975f1f303d27981abdd9182a09b00d0e2b2ffd62abb643c1b9c`；目录167条canonical SHA`676c6c38b46f066cc517a3395d8ac1782fcc6eb24633abf18793f66d2aba329d`。两轮证据及校验副本位于`.artifacts/local-check/fda2024-raw-activity-*-20261128`和`backups/fda2024-raw-activity-20261128/evidence/`，bin/obj仅回收。file-v112，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一2025起点原始类型/子类型及主申请声明证据，先独立红测再修复，不扩展七类起点政策。
+
 **FDA2003第三轮：尾部损坏前已观察stylesheet PI的保留（仍Partial，主代理限定只读自审及终态核对通过）。** 2002已提交`6206d12`。固定M1 v2.6物理第4/47页仍要求网站地址代替本地路径，不改变既有日期、URI或历史政策。本项修低层已保留PI事件却在未完整XML身份组装时被清空的证据丢失：新增独立不可变PartialProcessingInstructions，仅保存已完整读取的PI事件；既有完整PI集合语义不变。2003仍须实际区域根、捕获/配置/定位绑定后才消费部分PI，不以根前失败、未观察PI或resolver拒绝证明违规，不输出整条Pass。
 
 red两项均在真实区域根和XML尾部错误前提后复现预期2条实际1条，丢失本地相对/file:///样式违规。candidate八类 **339/339、0失败/跳过**（2003为70含新增14、XML42、生命周期49、区域50、2002为72、中断16、文件28、交付12），覆盖无PI/损坏后才出现PI、官网DTD在根前受阻、部分PI路径/序列/目标/语法/href冲突、finding额度及交付报告。旧未提供部分PI证据的NE用例保持；旧尾部真实证据改为保留DTD与样式两条，不放宽URI判据。主代理限定只读自审通过，无子代理，candidate即最终证据。

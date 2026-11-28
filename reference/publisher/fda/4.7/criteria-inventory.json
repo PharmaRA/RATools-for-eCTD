@@ -1988,7 +1988,7 @@
           "tests/RATools.Tests/PackageValidation/FdaRegulatoryActivityTypeRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Compares the unique explicit file-owning primary application, including grouped submissions, with its explicitly selected self-identifying parent for the same application type/number. Requires unique member identities and bound capture/context/tree evidence; secondary sequence numbers and types do not supply primary facts. Grouped primary matches remain unevaluated; primary mismatches can fail. Effective only from 2027-01-16. Secondary members, self-start scope, complete activity history and regulatory-received parent version remain unqualified. Final five-class Windows regression 191/191 including 54 FDA2024 cases (19 added) and bounded main-agent read-only review passed without subagents; still Partial."
+        "note": "Compares the unique file-owning primary application with its explicitly selected self-identifying parent for the same application type/number. Current and parent file-ownership, application-type and compared submission-type attributes require unique non-default original evidence agreeing with parsed values; missing/default/conflicting evidence remains unknown. Grouped primary matches remain unevaluated; primary mismatches can fail and secondary members cannot supply primary facts. Effective only from 2027-01-16. Secondary members, self-start scope, complete activity history and regulatory-received parent version remain unqualified. Latest six-class Windows regression 278/278 including 71 FDA2024 cases (17 new) and bounded main-agent read-only review passed without subagents; still Partial."
       }
     },
     {

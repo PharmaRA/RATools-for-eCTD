@@ -108,15 +108,15 @@ internal static class FdaRegulatoryActivityTypeRule
                 Tick();
                 var member = elements[path];
                 if (member is not { Name: "application", LocalName: "application", NamespaceUri.Length: 0 }) continue;
-                var owner = member.Attributes.GetValueOrDefault("application-containing-files");
-                if (owner is not { LocalName: "application-containing-files", NamespaceUri: "", IsDefault: false, Value: "true" or "false" }) return null;
+                var owner = Original(member, "application-containing-files");
+                if (owner is not ("true" or "false")) return null;
                 var memberNumber = Child(Child(member, "application-information"), "application-number");
                 if (memberNumber is null || memberNumber.Children.Count != 0 || string.IsNullOrWhiteSpace(memberNumber.Text) ||
                     memberNumber.Text != memberNumber.Text.Trim()) return null;
-                var memberType = memberNumber.Attributes.GetValueOrDefault("application-type");
-                if (memberType is not { LocalName: "application-type", NamespaceUri: "", IsDefault: false } ||
-                    !Contains(policy.InputValues("application-type"), memberType.Value) || !identities.Add((memberType.Value, memberNumber.Text))) return null;
-                if (owner.Value != "true") continue;
+                var memberType = Original(memberNumber, "application-type");
+                if (memberType is null || !Contains(policy.InputValues("application-type"), memberType) ||
+                    !identities.Add((memberType, memberNumber.Text))) return null;
+                if (owner != "true") continue;
                 if (application is not null) return null;
                 application = member;
             }
@@ -127,10 +127,23 @@ internal static class FdaRegulatoryActivityTypeRule
             var order = Child(submission, "sequence-number");
             if (number is null || id is null || order is null || number.Children.Count != 0 || id.Children.Count != 0 || order.Children.Count != 0 ||
                 string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim() || order.Text != sequence || !Sequence(id.Text)) return null;
-            var applicationType = number.Attribute("application-type", "");
-            var submissionType = id.Attribute("submission-type", "");
+            var applicationType = Original(number, "application-type");
+            var submissionType = Original(id, "submission-type");
             if (applicationType is null || submissionType is null || !Contains(policy.InputValues("application-type"), applicationType) || !Contains(policy.InputValues("submission-type"), submissionType)) return null;
             return new(number.Text, applicationType, id.Text, submissionType, id.Location, identities.Count > 1);
+
+            string? Original(ParsedXmlElement element, string name)
+            {
+                var count = 0; string? value = null;
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri.Length != 0) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.Value == attribute.ExplicitValue) value = attribute.ExplicitValue;
+                }
+                return count == 1 ? value : null;
+            }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)
             {

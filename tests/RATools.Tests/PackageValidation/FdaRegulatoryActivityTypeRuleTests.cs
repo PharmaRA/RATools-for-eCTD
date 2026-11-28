@@ -12,6 +12,53 @@ public sealed class FdaRegulatoryActivityTypeRuleTests
     private const string RuleId = "FDA47-2024";
 
     [Theory]
+    [InlineData(false, "valid", CheckStatus.Fail, "submission-type")]
+    [InlineData(false, "missing", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(true, "missing", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(false, "conflict", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(true, "conflict", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(false, "default", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(true, "default", CheckStatus.NotEvaluated, "submission-type")]
+    [InlineData(false, "missing", CheckStatus.NotEvaluated, "application-containing-files")]
+    [InlineData(true, "missing", CheckStatus.NotEvaluated, "application-containing-files")]
+    [InlineData(false, "conflict", CheckStatus.NotEvaluated, "application-containing-files")]
+    [InlineData(true, "conflict", CheckStatus.NotEvaluated, "application-containing-files")]
+    [InlineData(false, "missing", CheckStatus.NotEvaluated, "application-type")]
+    [InlineData(true, "missing", CheckStatus.NotEvaluated, "application-type")]
+    [InlineData(false, "conflict", CheckStatus.NotEvaluated, "application-type")]
+    [InlineData(true, "conflict", CheckStatus.NotEvaluated, "application-type")]
+    [InlineData(false, "grouped-missing", CheckStatus.NotEvaluated, "application-type")]
+    [InlineData(true, "grouped-missing", CheckStatus.NotEvaluated, "application-type")]
+    public async Task ParentComparisonRequiresOriginalSubmissionTypeEvidence(bool parent, string variant, CheckStatus expected, string attributeName)
+    {
+        var fixture = await Fixture(variant == "grouped-missing" ? "grouped-different" : "different");
+        var input = fixture.Packages.Sequences[parent ? "0000" : "0001"];
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections, x => x.InputDigest == input.InputDigest);
+        var regional = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        var elements = regional.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => a.LocalName != attributeName ? a : variant switch
+            {
+                "missing" => a with { ExplicitValue = null },
+                "grouped-missing" => a with { ExplicitValue = e.Text == "654321" ? null : a.ExplicitValue },
+                "conflict" => a with { ExplicitValue = attributeName == "application-containing-files" ? "false" : attributeName == "application-type" ? "fdaat4" : parent ? "fdast2" : "fdast1" },
+                "default" => a with { IsDefault = true }, _ => a
+            }), e.Children, e.Text, e.Location));
+        var changed = new ParsedBackbone(regional.LogicalPath, regional.ProfileSnapshotId, regional.Kind, regional.ReadComplete, regional.DtdStatus,
+            regional.DocumentTypeName, regional.SystemIdentifier, regional.PublicIdentifier, elements, regional.Nodes, regional.Leaves,
+            regional.IdIndex.Values.SelectMany(ids => ids), regional.ResolvedAssets, regional.ProcessingInstructions);
+        var replacement = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b != regional).Append(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        var lifecycle = new PackageLifecycleInspection(fixture.Packages, fixture.Lifecycle.ProfileSnapshotId,
+            fixture.Lifecycle.XmlInspections.Where(x => x != xml).Append(replacement), fixture.Lifecycle.Events, fixture.Lifecycle.States,
+            fixture.Lifecycle.Checks, fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+        var result = Direct(fixture with { Lifecycle = lifecycle })!;
+        Assert.Equal(expected, result.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, result.Findings.Count);
+    }
+
+    [Theory]
     [InlineData("grouped-different", CheckStatus.Fail)]
     [InlineData("grouped-current", CheckStatus.Fail)]
     [InlineData("grouped-parent", CheckStatus.Fail)]
