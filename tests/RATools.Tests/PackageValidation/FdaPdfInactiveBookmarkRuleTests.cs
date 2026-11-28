@@ -14,6 +14,67 @@ public sealed class FdaPdfInactiveBookmarkRuleTests
 {
     private const string RuleId = "FDA47-5110";
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SupplementalReadFailureCannotConsumeCancellation(bool io)
+    {
+        using var stream = new MemoryStream(Build("inactive"));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+        using var cancellation = new CancellationTokenSource();
+        var called = false;
+        var reader = new PdfPigPackageBookmarkReader(_ =>
+        {
+            called = true;
+            cancellation.Cancel();
+            throw io ? new IOException("Injected outline failure.") : new InvalidOperationException("Injected outline failure.");
+        }, new(), cancellation.Token);
+        Assert.ThrowsAny<OperationCanceledException>(() => reader.Read(document.Structure.Catalog.CatalogDictionary));
+        Assert.True(called);
+        Assert.Empty(reader.InactiveBookmarks);
+    }
+
+    [Fact]
+    public void PreCancelledSupplementalReaderRejectsEvenAbsentOutlines()
+    {
+        using var stream = new MemoryStream(Build("no-outlines"));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        var called = false;
+        var reader = new PdfPigPackageBookmarkReader(value => { called = true; return value; }, new(), cancellation.Token);
+        Assert.ThrowsAny<OperationCanceledException>(() => reader.Read(document.Structure.Catalog.CatalogDictionary));
+        Assert.False(called);
+    }
+
+    [Theory]
+    [InlineData("io")]
+    [InlineData("ordinary")]
+    [InlineData("limit")]
+    [InlineData("changed")]
+    [InlineData("cancelled")]
+    public void SupplementalFailuresDoNotProveInactiveBookmarks(string category)
+    {
+        using var stream = new MemoryStream(Build("inactive"));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+        Exception failure = category switch
+        {
+            "io" => new IOException("Injected unavailable outline evidence."),
+            "limit" => new PdfInspectionLimitException("Injected supplemental limit."),
+            "changed" => new PackageInputChangedException("inactive-bookmark-fixture"),
+            "cancelled" => new OperationCanceledException("Injected cancellation."),
+            _ => new InvalidOperationException("Injected unavailable outline evidence.")
+        };
+        var calls = 0;
+        var reader = new PdfPigPackageBookmarkReader(_ => { calls++; throw failure; }, new(), CancellationToken.None);
+        if (category is "changed" or "cancelled") Assert.Same(failure, Record.Exception(() => reader.Read(document.Structure.Catalog.CatalogDictionary)));
+        else Assert.Empty(reader.Read(document.Structure.Catalog.CatalogDictionary));
+        Assert.Equal(1, calls);
+        Assert.Empty(reader.InactiveBookmarks);
+        Assert.Empty(reader.ExternalBookmarks);
+        Assert.Empty(reader.MultipleActions);
+        Assert.Empty(reader.NonInheritingZooms);
+    }
+
     [Fact]
     public async Task ExplicitZeroCountDoesNotActivateAChildlessBookmark()
     {

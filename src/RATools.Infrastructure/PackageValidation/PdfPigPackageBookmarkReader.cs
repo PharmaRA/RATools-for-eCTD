@@ -27,6 +27,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
 
     internal IReadOnlyList<PdfBookmarkFileTarget> Read(DictionaryToken catalog)
     {
+        token.ThrowIfCancellationRequested();
         try
         {
             _catalog = catalog;
@@ -39,6 +40,7 @@ internal sealed class PdfPigPackageBookmarkReader(Func<IToken?, IToken?> resolve
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
         {
             // Supplementary evidence failure is not document corruption or proof of absence.
+            token.ThrowIfCancellationRequested();
             return [];
         }
     }
