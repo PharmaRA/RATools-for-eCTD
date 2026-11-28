@@ -283,6 +283,93 @@ public sealed class FdaPdfBookmarkPageRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public async Task ConflictingSourcePageCannotAuthorizeOutOfRangeFinding(bool targetFirst, bool independent, bool history)
+    {
+        var fixture = await Fixture("[1 /Fit]", "valid", history: history);
+        var documents = (await Run(fixture)).Documents;
+        var source = documents.Single(item => item.LogicalPath == fixture.Source);
+        var target = documents.Single(item => item.LogicalPath == fixture.Target);
+        Assert.Equal(1, target.Facts!.QualifiedPageCount);
+        var original = Assert.Single(source.Facts!.BookmarkFiles);
+        Assert.Equal(1L, original.ZeroBasedPageIndex);
+        var bookmarks = new List<PdfBookmarkFileTarget> { original, original with { ZeroBasedPageIndex = 0 } };
+        if (independent) bookmarks.Add(original with { ObjectPath = "outline[independent]/A/F" });
+        source = source with { Facts = new(source.Facts.Basics, [], [], true, true,
+            contentProcessing: PdfContentProcessingStatus.Processed, bookmarkFiles: bookmarks) };
+        var run = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(targetFirst ? target : source, 10);
+        run.Observe(targetFirst ? source : target, 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent) Assert.Equal("outline[independent]/A/F; destination-page", Assert.Single(check.Findings).Location.FieldPath);
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(targetFirst ? target : source, remaining);
+            bounded.Observe(targetFirst ? source : target, remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("duplicate", 0)]
+    [InlineData("independent", 2)]
+    public async Task DuplicateOrUnlocatedPageDestinationsRemainUnknown(string? variant, int expected)
+    {
+        var fixture = await Fixture("[1 /Fit]", "valid");
+        var documents = (await Run(fixture)).Documents;
+        var source = documents.Single(item => item.LogicalPath == fixture.Source);
+        var target = documents.Single(item => item.LogicalPath == fixture.Target);
+        var original = Assert.Single(source.Facts!.BookmarkFiles);
+        source = source with { Facts = new(source.Facts.Basics, [], [], true, true,
+            contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [original, original with { ObjectPath = variant == "duplicate" ? original.ObjectPath : variant! }]) };
+        foreach (var targetFirst in new[] { false, true })
+        {
+            var run = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            run.Observe(targetFirst ? target : source, 10);
+            run.Observe(targetFirst ? source : target, 10);
+            Assert.Equal(expected, run.FindingCount);
+            Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompletePageDestinationScanCannotQueueOrPublish(bool targetFirst)
+    {
+        var baseline = await Fixture("[1 /Fit]", "valid");
+        var documents = (await Run(baseline)).Documents;
+        var source = documents.Single(item => item.LogicalPath == baseline.Source);
+        var target = documents.Single(item => item.LogicalPath == baseline.Target);
+        var original = Assert.Single(source.Facts!.BookmarkFiles);
+        source = source with { Facts = new(source.Facts.Basics, [], [], true, true,
+            contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [original, original with { ObjectPath = "outline[2]/A/F" }, original with { ZeroBasedPageIndex = 0 }]) };
+        var fixture = await Fixture("[1 /Fit]", "valid", limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        Assert.Equal(source.CapturedSha256, fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == source.LogicalPath).Sha256);
+        Assert.Equal(target.CapturedSha256, fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == target.LogicalPath).Sha256);
+        var run = new FdaPdfBookmarkPageRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(targetFirst ? target : source, 10);
+        run.Observe(targetFirst ? source : target, 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context, string Source, string Target);
     private static async Task<FixtureData> Fixture(string destination, string scenario, bool targetFirst = false, bool history = false, string? date = "2026-11-25", PackageReadLimits? limits = null, bool missingSource = false)
     {
