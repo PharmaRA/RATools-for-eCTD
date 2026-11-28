@@ -13,6 +13,115 @@ public sealed class FdaSchemaValidityRuleTests
     private const string RuleId = "FDA47-2002";
 
     [Theory]
+    [InlineData("recovered-dtd", CheckStatus.Fail)]
+    [InlineData("recovered-tail", CheckStatus.Fail)]
+    [InlineData("recovered-valid", CheckStatus.NotEvaluated)]
+    [InlineData("recovered-declaration", CheckStatus.NotEvaluated)]
+    public async Task RecoveredStfSchemaErrorIsIndependentOfItsRegionalMisclassification(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario);
+        Assert.Empty(fixture.Xml.StudyTaggingFiles.Documents);
+        var candidate = Assert.Single(fixture.Xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        Assert.Equal("0001/m4/study/stf-A.xml", candidate.LogicalPath);
+        var mistaken = Assert.Single(fixture.Xml.Backbones, b => b.LogicalPath == candidate.LogicalPath);
+        Assert.Equal(BackboneKind.UsRegional, mistaken.Kind);
+        Assert.False(mistaken.ReadComplete);
+        if (scenario == "recovered-declaration") Assert.Empty(candidate.Elements);
+        else Assert.Single(candidate.Elements, e => e.ParentPath is null && e.LocalName == "study");
+        if (scenario is "recovered-dtd" or "recovered-tail") Assert.Contains(fixture.Xml.StudyTaggingFiles.Findings,
+            f => f.RuleId == "STF-DTD" && f.CheckStatus == CheckStatus.Fail && f.Location.LogicalPath == candidate.LogicalPath &&
+                f.Code == (scenario == "recovered-dtd" ? "DTD_VALIDATION_ERROR" : "XML_NOT_WELL_FORMED"));
+        var result = Direct(fixture)!;
+        Assert.Equal(expected, result.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, result.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("hash")]
+    [InlineData("root-missing")]
+    [InlineData("root-path")]
+    [InlineData("root-sequence")]
+    [InlineData("asset-missing")]
+    [InlineData("duplicate-candidate")]
+    [InlineData("duplicate-regional")]
+    [InlineData("regional-profile")]
+    [InlineData("regional-complete")]
+    [InlineData("regional-pass")]
+    [InlineData("regional-missing")]
+    [InlineData("no-diagnostic")]
+    [InlineData("wrong-rule")]
+    [InlineData("wrong-path")]
+    [InlineData("wrong-sequence")]
+    [InlineData("io")]
+    [InlineData("quota")]
+    public async Task RecoveryCannotBorrowAnUnboundOrNonSchemaDiagnostic(string scenario)
+    {
+        var fixture = await Fixture("recovered-dtd");
+        var xml = fixture.Xml;
+        var candidate = Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        var changed = new ParsedStudyTaggingFile(candidate.LogicalPath, scenario == "hash" ? new string('f', 64) : candidate.CapturedSha256,
+            candidate.ReadComplete, candidate.DtdStatus, candidate.SystemIdentifier,
+            scenario == "root-missing" ? [] : candidate.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+                e.Attributes.Values, e.Children, e.Text, e.ParentPath is not null ? e.Location : e.Location with
+                { LogicalPath = scenario == "root-path" ? "0001/other.xml" : e.Location.LogicalPath, SequenceNumber = scenario == "root-sequence" ? "0000" : e.Location.SequenceNumber })),
+            candidate.ProcessingInstructions, scenario == "asset-missing" ? [] : candidate.ResolvedAssets);
+        var region = Assert.Single(xml.Backbones, b => b.LogicalPath == candidate.LogicalPath);
+        var alteredRegion = new ParsedBackbone(region.LogicalPath, scenario == "regional-profile" ? PackageValidationCatalog.EuProfile : region.ProfileSnapshotId,
+            region.Kind, scenario == "regional-complete" || region.ReadComplete, scenario == "regional-pass" ? CheckStatus.Pass : region.DtdStatus,
+            region.DocumentTypeName, region.SystemIdentifier, region.PublicIdentifier, region.Elements, region.Nodes, region.Leaves,
+            region.IdIndex.Values.SelectMany(ids => ids), region.ResolvedAssets);
+        var backbones = xml.Backbones.Where(b => b != region).ToList();
+        if (scenario != "regional-missing") backbones.Add(alteredRegion);
+        if (scenario == "duplicate-regional") backbones.Add(alteredRegion);
+        var diagnostics = xml.StudyTaggingFiles.Findings.Select(f => f with
+        {
+            RuleId = scenario == "wrong-rule" ? "OTHER" : scenario == "quota" ? "XML-LIMITS" : f.RuleId,
+            Code = scenario == "io" ? "BACKBONE_READ_FAILED" : scenario == "quota" ? "XML_STRUCTURE_LIMIT" : f.Code,
+            Location = f.Location with { LogicalPath = scenario == "wrong-path" ? "0001/other.xml" : f.Location.LogicalPath,
+                SequenceNumber = scenario == "wrong-sequence" ? "0000" : f.Location.SequenceNumber }
+        });
+        var replacement = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            backbones, xml.Checks, xml.RulesDigest, new(false, xml.StudyTaggingFiles.Documents,
+                scenario == "no-diagnostic" ? [] : diagnostics, scenario == "duplicate-candidate" ? [changed, changed] : [changed]));
+        var result = Direct(WithXml(fixture, replacement))!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Fact]
+    public async Task RecoveredSchemaFailureRetainsBudgetCancellationAndReportLocation()
+    {
+        var fixture = await Fixture("recovered-dtd");
+        Assert.Equal(CheckStatus.NotEvaluated, Direct(fixture, 0)!.Status);
+        using var cancel = new CancellationTokenSource();
+        RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Direct(fixture, 1, check =>
+        { retained = check; if (check.Status == CheckStatus.Fail) cancel.Cancel(); }, cancel.Token));
+        Assert.Single(retained!.Findings);
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context)
+            .InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        var finding = Assert.Single(Assert.Single(delivery.Files.Checks, c => c.RuleId == RuleId).Findings);
+        Assert.Equal("0001/m4/study/stf-A.xml", finding.Location.LogicalPath);
+        Assert.Equal(ValidationSeverity.Error, finding.Severity);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, c => c.RuleId == RuleId).CheckStatus);
+    }
+
+    [Fact]
+    public async Task UnknownRecoveryDoesNotHideAnIndependentCurrentStfFailure()
+    {
+        var fixture = await Fixture("recovered-mixed");
+        var xml = fixture.Xml;
+        var candidate = Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        var unknown = new ParsedStudyTaggingFile(candidate.LogicalPath, new string('f', 64), candidate.ReadComplete, candidate.DtdStatus,
+            candidate.SystemIdentifier, candidate.Elements, candidate.ProcessingInstructions, candidate.ResolvedAssets);
+        var changed = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones, xml.Checks, xml.RulesDigest, new(false, xml.StudyTaggingFiles.Documents, xml.StudyTaggingFiles.Findings, [unknown]));
+        var result = Direct(WithXml(fixture, changed), 1)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.Equal("0001/m4/study/stf-B.xml", Assert.Single(result.Findings).Location.LogicalPath);
+    }
+
+    [Theory]
     [InlineData("valid", CheckStatus.Pass)]
     [InlineData("index-dtd", CheckStatus.Fail)]
     [InlineData("regional-dtd", CheckStatus.Fail)]
@@ -228,6 +337,8 @@ public sealed class FdaSchemaValidityRuleTests
             var original = new PackageRegionalInspectionTests.MemoryInput(app, "0001", Fda47AttributeRulesTests.Valid(), PackageValidationCatalog.UsProfile);
             _files = original.Manifest.Files.ToDictionary(file => scenario == "custom-regional" && file.LogicalPath == "0001/m1/us/us-regional.xml" ? "0001/m1/us/custom.xml" : file.LogicalPath, file => { using var stream = original.OpenRead(file.LogicalPath); using var output = new MemoryStream(); stream.CopyTo(output); return output.ToArray(); }, StringComparer.Ordinal);
             var index = "<!DOCTYPE ectd:ectd SYSTEM 'util/dtd/ich-ectd-3-2.dtd'><ectd:ectd xmlns:ectd='http://www.ich.org/ectd' xmlns:xlink='http://www.w3c.org/1999/xlink' dtd-version='3.2'><m1-administrative-information-and-prescribing-information>" + Leaf("regional", "m1/us/us-regional.xml") + "</m1-administrative-information-and-prescribing-information><m4-nonclinical-study-reports><m4-3-literature-references>" + Leaf("owner", "m4/study/stf-A.xml") + "</m4-3-literature-references></m4-nonclinical-study-reports></ectd:ectd>";
+            if (scenario.StartsWith("recovered-", StringComparison.Ordinal)) index = index.Replace(Leaf("owner", "m4/study/stf-A.xml"), "", StringComparison.Ordinal)
+                .Replace("</m1-administrative-information-and-prescribing-information>", Leaf("owner", "m4/study/stf-A.xml") + "</m1-administrative-information-and-prescribing-information>", StringComparison.Ordinal);
             if (scenario == "index-dtd") index = index.Replace("operation='new'", "operation='unsupported'", StringComparison.Ordinal);
             if (scenario == "index-tail") index = index[..^8];
             if (scenario == "index-offline") index = index.Replace("util/dtd/ich-ectd-3-2.dtd", "https://not-contacted.invalid/ich.dtd", StringComparison.Ordinal);
@@ -239,10 +350,12 @@ public sealed class FdaSchemaValidityRuleTests
             if (scenario == "regional-tail") regional = regional[..^8];
             _files[regionalPath] = Encoding.UTF8.GetBytes(regional);
             _regionalIo = scenario is "regional-io" or "mixed";
-            var stf = "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'><ectd:study xmlns:ectd='http://www.ich.org/ectd' xmlns:xlink='http://www.w3.org/1999/xlink' dtd-version='2.2'><study-identifier><title>A</title>" + (scenario is "stf-dtd" or "mixed" ? "" : "<study-id>A</study-id>") + "</study-identifier><study-document/></ectd:study>";
-            if (scenario == "stf-tail") stf = stf[..^8];
+            var stf = "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'><ectd:study xmlns:ectd='http://www.ich.org/ectd' xmlns:xlink='http://www.w3.org/1999/xlink' dtd-version='2.2'><study-identifier><title>A</title>" + (scenario is "stf-dtd" or "mixed" or "recovered-dtd" or "recovered-mixed" ? "" : "<study-id>A</study-id>") + "</study-identifier><study-document/></ectd:study>";
+            if (scenario is "stf-tail" or "recovered-tail") stf = stf[..^8];
+            if (scenario == "recovered-declaration") stf = "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'>";
             if (scenario == "stf-offline") stf = stf.Replace("../../util/dtd/ich-stf-v2-2.dtd", "https://not-contacted.invalid/stf.dtd", StringComparison.Ordinal);
             _files["0001/m4/study/stf-A.xml"] = Encoding.UTF8.GetBytes(stf);
+            if (scenario == "recovered-mixed") _files["0001/m4/study/stf-B.xml"] = Encoding.UTF8.GetBytes(stf);
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }
         private static string Leaf(string id, string href) => "<leaf ID='" + id + "' operation='new' checksum='" + new string('0', 32) + "' checksum-type='md5' xlink:href='" + href + "'><title>" + id + "</title></leaf>";

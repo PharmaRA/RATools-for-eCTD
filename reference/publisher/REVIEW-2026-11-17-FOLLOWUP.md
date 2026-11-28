@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2002第二轮：恢复STF身份的独立schema诊断（仍Partial，主代理限定只读自审及终态核对通过）。** 1969已提交`95ff33a`。1981/1985/1990缺依据边界保留，2001实际提交历史见证仍缺；2002历史引用归责亦不强行推定。本项依据固定criteria第43页接入当前RegionalMisclassificationCandidates：须唯一恢复观察、唯一无根且失败的US区域观察、当前捕获SHA与固定STF DTD匹配，再消费STF自身精确DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED诊断。合法STF仅被误作区域骨架不新增2002 Fail；不改普通STF集合或历史适用性。
+
+red四项2过2败，DTD缺陷/尾部损坏均在真实恢复根及确定诊断前提通过后复现NE；合法STF/仅声明对照正确。candidate七类 **377/377、0失败/跳过**（2002为72含新增23、1901为134、1969为60、发现55、中断16、文件28、交付12），覆盖SHA/根/资源、重复观察、区域配置/完成状态、诊断归属、I/O/限额分类、独立普通STF已知错误保留、finding额度/取消/报告精确定位。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda2002-recovered-stf-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`419fa1e7062a2ec4fb410d07b3eeabb33478a2f9cc03ad96abe1100059ccd79d`、TRX SHA`8f6850a0a38b1af9ac2dcb408e0b2d3f52cefa9a2d05e6d24baa50c6538affa3`；目录167条canonical SHA`5e210fecd5e4b939697ba17d318e56ff486e23196b59c83f2cc4622ea54afeab`。两轮证据及校验副本位于`.artifacts/local-check/fda2002-recovered-stf-*-20261128`和`backups/fda2002-recovered-stf-20261128/evidence/`，bin/obj仅回收。file-v110，XML-stf-v6/lifecycle-v3不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一2003尾部损坏时已观察stylesheet PI的保留与确定位置违规，再按序后续项，不把resolver拒绝当监管违规。
+
 **FDA1969第二轮：XML局部超时后保留已完成STF观察（仍Partial，主代理限定只读自审及终态核对通过）。** 1901已提交`89e3c73`。1918祖先content-block标签继承仍缺规范依据，保留依赖不改判；1935/1953已Implemented不重开。本项复现后一个文件触发XML局部超时，前一个已完成STF及其确定DTD错误随未返回的调用结果丢失。STF读取器在每个文档完成后发布不可变进度快照，XML入口局部超时后保留快照、强制范围未完成并以外部令牌再次VerifyUnchanged；外部取消、复核I/O/完整性失败继续传播，不发布正在读取文档的半成品，不把超时转换成1969违规。
 
 red三项1过2败，外部取消对照通过，前一有效/无效STF均在真实超时与打开顺序前提后复现集合为空。candidate九类444/445唯一失败是测试`OnVerify?.Invoke(++Verifications)`在无回调时不递增计数；修为无条件计数，生产逻辑与应核验两次的断言不变。final九类 **445/445、0失败/跳过**（1969为60含新增9、2002为49、1901为134、发现55、XML42、生命周期49、中断16、文件28、交付12）。覆盖首文件超时无事实、后续超时保留、全有效前缀仍NE、最终核验超时后稳定复核、复核失败/取消竞态与真实生命周期消费。主代理限定只读自审通过，无子代理。

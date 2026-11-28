@@ -1821,7 +1821,7 @@
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs",
           "tests/RATools.Tests/PackageValidation/PackageXmlInspectorTests.cs"
         ],
-        "note": "Maps exact current-file Fail DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED diagnostics after capture/profile/asset/limit/root binding. Missing regional observations remain unknown and do not erase independent failures. Quota/offline/I/O/profile selection failures do not establish schema invalidity. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted STF retention remain unqualified. Final selected Windows regression 208/208, including 49 FDA2002 cases, and bounded code/evidence review passed."
+        "note": "Maps exact current-file Fail DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED diagnostics after capture/profile/asset/limit/root binding. Separately recovered actual STF roots now qualify their own schema errors through unique failed rootless US regional observations, capture SHA and fixed STF DTD evidence; regional profile mismatch alone does not establish schema invalidity. Conflicting or unavailable observations cannot erase independent failures. Attribute-file semantics, historical references, declaration-only identity, discovery classification and in-flight STF retention remain unqualified. Latest seven-class Windows regression 377/377 including 72 FDA2002 cases (23 new recovery cases) and bounded main-agent read-only review passed without subagents."
       }
     },
     {

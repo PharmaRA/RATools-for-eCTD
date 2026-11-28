@@ -89,6 +89,23 @@ internal static class FdaSchemaValidityRule
                 Evaluate(document.LogicalPath, document.Elements, document.ResolvedAssets, "stf-dtd", "ectd:study", "study", "http://www.ich.org/ectd", "2.2",
                     "STF-DTD", document.ReadComplete, document.DtdStatus, xml.StudyTaggingFiles.Findings);
             }
+            foreach (var document in xml.StudyTaggingFiles.RegionalMisclassificationCandidates)
+            {
+                Tick();
+                var recoveredCount = 0;
+                foreach (var candidate in xml.StudyTaggingFiles.RegionalMisclassificationCandidates)
+                { Tick(); if (candidate.LogicalPath == document.LogicalPath) recoveredCount++; }
+                var regional = new List<ParsedBackbone>();
+                foreach (var backbone in xml.Backbones) { Tick(); if (backbone.LogicalPath == document.LogicalPath) regional.Add(backbone); }
+                if (recoveredCount != 1 || counts.GetValueOrDefault(document.LogicalPath) != 1 || regional.Count != 1 ||
+                    regional[0].Kind != BackboneKind.UsRegional || regional[0].ProfileSnapshotId != xml.ProfileSnapshotId ||
+                    regional[0].ReadComplete || regional[0].DtdStatus == CheckStatus.Pass || regional[0].Elements.Count != 0 ||
+                    !files.TryGetValue(document.LogicalPath, out var file) || document.CapturedSha256 != file.Sha256 ||
+                    !context.Assets.Assets.TryGetValue("stf-dtd", out var asset) || asset.Sha256 != "e6d47695501e263534a89a2b7bf7018c92e12a11c3dd82fc1d0c462bfa52c81f")
+                { incomplete = true; continue; }
+                Evaluate(document.LogicalPath, document.Elements, document.ResolvedAssets, "stf-dtd", "ectd:study", "study", "http://www.ich.org/ectd", "2.2",
+                    "STF-DTD", document.ReadComplete, document.DtdStatus, xml.StudyTaggingFiles.Findings);
+            }
 
             void Evaluate(string path, IReadOnlyList<ParsedXmlElement> elements, IReadOnlyList<string> assets, string mainAsset,
                 string rootName, string rootLocal, string rootNamespace, string version, string diagnosticRule, bool complete, CheckStatus status, IEnumerable<ValidationFinding> observations)
@@ -124,7 +141,7 @@ internal static class FdaSchemaValidityRule
         catch (SchemaWorkLimitException) { incomplete = true; }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : CheckStatus.Pass,
-            "Checked bound current XML/DTD diagnostic categories only. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted STF observation retention remain unqualified.", findings);
+            "Checked bound current XML/DTD diagnostic categories, including separately recovered actual STF roots after failed regional reads. Regional profile mismatch alone is not a schema violation. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted in-flight STF observations remain unqualified.", findings);
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new SchemaWorkLimitException(); }
     }
     private static RuleCheckResult Unknown(string message) => new(RuleId, CheckStatus.NotEvaluated, message);

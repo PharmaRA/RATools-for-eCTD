@@ -3829,10 +3829,10 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Maps exact-file Fail DTD_VALIDATION_ERROR and XML_NOT_WELL_FORMED diagnostics only after capture/profile/asset/limit and actual root identity checks. Quota, offline, I/O and profile selection failures are not schema violations. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted STF observation retention remain unqualified; component Pass does not establish complete FDA2002 conformance.",
+      "implementationNote": "Maps exact-file Fail DTD_VALIDATION_ERROR and XML_NOT_WELL_FORMED diagnostics only after capture/profile/asset/limit and actual root identity checks. Separately recovered STF roots can establish their own schema error when bound to a unique failed rootless US regional observation and exact capture hash; regional profile mismatch alone is not a schema violation. Quota, offline, I/O and conflicting recovery evidence remain unknown without hiding independent failures. Attribute-file semantics, historical references, declaration-only identity, discovery classification and interrupted in-flight STF observations remain unqualified; component Pass does not establish complete FDA2002 conformance.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaSchemaValidityRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaSchemaValidityRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaSchemaValidityRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaSchemaValidityRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs", "src/RATools.Application/PackageValidation/PackageStfInspection.cs"],
       "externalComparisonEvidence": []
     },
     {
