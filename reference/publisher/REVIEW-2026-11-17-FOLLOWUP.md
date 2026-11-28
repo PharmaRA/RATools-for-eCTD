@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5101第二轮：源书签目标冲突隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 5100已提交`ccca63a`。本项为冻结源书签增加完整有界路径唯一性扫描，重复/冲突和空定位均不进入立即发布或等待目标关联队列，其他独立书签仍可关联。源/目标观察先后顺序、当前/历史目标捕获、字面路径与确定InvalidContent分类不变。
+
+red四项全败，冲突误Fail或多报一条finding；candidate七类 **342/342、0失败/跳过**（5101为58含新增15、5100为111、5102为78、5115为43、PDF管线23、解析器17、交付12），覆盖两种观察顺序、当前/历史目标、独立书签保留、同值重复、null/空串/空白定位、零/一条finding额度与预扫描工作不足，限额夹具明确核对复用事实与当前捕获SHA。既有取消/日期/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5101-target-conflict-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6交付/直接依赖输入SHA绑定；manifest SHA`9843eafe06b402c964795ca0b9596c2c607e26219bde59cacdb4c826623c5141`、TRX SHA`a9f3c8047f4f727eeb642f7ff89c78da7ecdcd495eabd4ce2269ea737e5b43e2`；目录167条canonical SHA`20d1098fb1a21c0b19d130ba907d8cf13b66802153d4fc4e5a08970bb6891db9`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5101-target-conflict-*-20261128`和`backups/fda5101-target-conflict-20261128/evidence/`，bin/obj仅回收。PDF-validator-v37、PdfPig适配器v41、file-v116，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。其他动作/格式、历史源PDF与解析器完整资格继续留队；下一按序5102及后续项。
+
 **FDA5100第三轮：书签目标观察冲突隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 5057已提交`80390f1`。本项为冻结书签目标观察增加有界完整路径唯一性预扫描，同一路径的重复/矛盾目标保持未知，不授权缺失文件finding，也不隐藏其他独立书签。空定位不入计数，扫描不完整不提前认定唯一性；字面filespec、显式当前/历史清单和存在但不可读文件政策不变。
 
 red四项全败，冲突目标误Fail或多出一条finding；candidate七类 **327/327、0失败/跳过**（5100为111含新增11、5101为43、5102为78、5115为43、PDF管线23、解析器17、交付12），覆盖冲突前后、同值重复、null/空串/空白定位、两个独立同目标书签、零/一条finding额度及预扫描工作不足，既有取消/日期/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。

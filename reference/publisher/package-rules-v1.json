@@ -4247,7 +4247,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires independent bookmark file identity, literal path resolution and exact source/target capture binding. Incremental association supports either observation order and retains known failure under later limits. Missing files, unselected history, generic parse messages, encryption, unsupported content, I/O and limits do not prove corrupt targets. Other actions/formats, historical source PDFs and complete parser qualification remain unqualified; no Pass is emitted.",
+      "implementationNote": "Requires independent bookmark file identity, literal path resolution and exact source/target capture binding. A complete bounded source object-path uniqueness scan excludes duplicate/conflicting and unlocated targets before either immediate publication or deferred association, retaining independent unique bookmarks. Incremental association supports either observation order and retains known failure under later limits. Missing files, unselected history, generic parse messages, encryption, unsupported content, I/O and limits do not prove corrupt targets. Other actions/formats, historical source PDFs and complete parser qualification remain unqualified; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfCorruptBookmarkRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfCorruptBookmarkRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfCorruptBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],
