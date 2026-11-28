@@ -4357,7 +4357,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Requires independent bookmark/file identity, exact capture and consistent successful parsing. Checks raw slash-rooted file specifications without URI decoding, trimming, OS path resolution or target access. Findings retain classification rather than the original path. URI actions, platform/drive variants, other encodings/actions, historical sources and complete referenced-guidance qualification remain unqualified; no Pass is emitted.",
+      "implementationNote": "Requires independent bookmark/file identity, exact capture and consistent successful parsing. Complete bounded object-path uniqueness scanning excludes duplicate/conflicting and unlocated frozen targets while preserving independent unique bookmarks. Checks raw slash-rooted file specifications without URI decoding, trimming, OS path resolution or target access. Findings retain classification rather than the original path. URI actions, platform/drive variants, other encodings/actions, historical sources and complete referenced-guidance qualification remain unqualified; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeBookmarkRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeBookmarkRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaPdfNonRelativeBookmarkRule.cs", "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs"],

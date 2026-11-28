@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5115第二轮：非相对书签目标冲突隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 5110已提交`942507f`。本项对冻结目标观察执行完整有界对象路径唯一性扫描，重复/冲突和空定位不授权非相对路径finding，独立书签继续保留。斜杠根路径、字面filespec、不访问目标及不输出原路径政策不变；平台/驱动器和其他编码资格继续留队。
+
+red四项全败，绝对/相对目标冲突误Fail或多报一条finding；candidate七类 **358/358、0失败/跳过**（5115为54含新增11、非相对超链接47、5100为111、5105为94、PDF管线23、解析器17、交付12），覆盖冲突前后、独立书签、同值重复、null/空串/空白定位、零/一条finding额度和预扫描工作不足，既有取消/日期/隐私/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5115-target-conflict-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6交付/直接依赖输入SHA绑定；manifest SHA`a30e6f15f7a13fc6f515420b86409b08d37a685d558a39a43510a2a54822dffb`、TRX SHA`6e3aaf3e19f924d16032209c891f55f1682eecb71bf93854b4164e191f61fd82`；目录167条canonical SHA`c843d1d86f4b97a7d6b268c61bd496aaf138733494842ffb2456af16a21e38b7`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5115-target-conflict-*-20261128`和`backups/fda5115-target-conflict-20261128/evidence/`，bin/obj仅回收。PDF-validator-v41、PdfPig适配器v42、file-v116，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一按序5117及后续项。
+
 **FDA5110第三轮：共享书签读取器取消边界（仍Partial，主代理限定只读自审及终态核对通过）。** 5105已提交`2aabe87`。本项修复无Outlines入口及普通解析异常捕获时遗漏取消检查；预取消不进入解析，回调取消后抛I/O/普通异常仍传播取消。未取消的普通失败/局部限额不产生书签证据，输入变化和直接取消继续传播。Count零、动作/目标/子项缺省等失效书签判据及其他共享分类不变。
 
 red三项全败，均未抛出应传播的取消；candidate七类 **480/480、0失败/跳过**（5110为70含新增8、5100为111、5103为89、5105为94、5117为87、解析器17、交付12），覆盖无Outlines预取消、两类回调取消竞态、五类异常对照及所有共享输出为空的要求，既有真实书签/Count/预算/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。

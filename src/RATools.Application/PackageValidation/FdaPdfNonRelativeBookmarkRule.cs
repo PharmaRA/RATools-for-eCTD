@@ -50,12 +50,19 @@ internal static class FdaPdfNonRelativeBookmarkRule
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || !facts.Basics.HasBookmarks) return;
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var bookmark in facts.BookmarkFiles)
+            {
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath)) continue;
+                paths[bookmark.ObjectPath] = paths.GetValueOrDefault(bookmark.ObjectPath) + 1;
+            }
             foreach (var bookmark in facts.BookmarkFiles)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
                 var file = bookmark.FileSpecification;
                 // PDF file specifications are literal: do not URI-decode, trim, or use OS path rules.
-                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath) || string.IsNullOrEmpty(file) || !file.StartsWith('/') ||
+                if (string.IsNullOrWhiteSpace(bookmark.ObjectPath) || paths[bookmark.ObjectPath] != 1 || string.IsNullOrEmpty(file) || !file.StartsWith('/') ||
                     file.Length == 1 || file.EndsWith('/') || file.Contains('\\') || file.Contains(':') ||
                     file.Any(character => character is < ' ' or > '~')) continue;
                 _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,

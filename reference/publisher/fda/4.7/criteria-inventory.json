@@ -2991,7 +2991,7 @@
           "src/RATools.Infrastructure/PackageValidation/PdfPigPackageBookmarkReader.cs",
           "tests/RATools.Tests/PackageValidation/FdaPdfNonRelativeBookmarkRuleTests.cs"
         ],
-        "note": "Checks independently qualified current GoToR bookmarks with literal slash-rooted absolute file specifications, exact capture and consistent successful parsing. Does not URI-decode, trim, use OS path rules or access the target. Findings retain classification rather than the original path. URI actions, platform/drive variants, other encodings/actions, historical sources and complete referenced-guidance qualification remain unqualified; no Pass is emitted. Final eighteen-class Windows regression 827/827, including 43 FDA5115 cases, and main-agent bounded read-only review passed without subagents."
+        "note": "Checks independently qualified current GoToR bookmarks with literal slash-rooted absolute file specifications, exact capture and consistent successful parsing. Complete bounded object-path uniqueness scanning excludes duplicate/conflicting and unlocated frozen targets while preserving independent unique bookmarks. Does not URI-decode, trim, use OS path rules or access the target. Findings retain classification rather than the original path. URI actions, platform/drive variants, other encodings/actions, historical sources and complete referenced-guidance qualification remain unqualified; no Pass is emitted. Final seven-class Windows regression 358/358, including 54 FDA5115 cases with 11 new conflict/budget/location cases, and main-agent bounded read-only review passed without subagents."
       }
     },
     {

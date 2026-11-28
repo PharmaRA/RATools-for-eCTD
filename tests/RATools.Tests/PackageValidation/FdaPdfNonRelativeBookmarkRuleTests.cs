@@ -157,6 +157,77 @@ public sealed class FdaPdfNonRelativeBookmarkRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingFileSpecificationsCannotAuthorizeAbsolutePath(bool absoluteFirst, bool independent)
+    {
+        var fixture = await Fixture(Build("/target.pdf"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var absolute = new PdfBookmarkFileTarget("outline[1]/A/F", "/target.pdf");
+        var relative = absolute with { FileSpecification = "target.pdf" };
+        var bookmarks = absoluteFirst ? new List<PdfBookmarkFileTarget> { absolute, relative } : [relative, absolute];
+        if (independent) bookmarks.Add(new("outline[2]/A/F", "/other.pdf"));
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed, bookmarkFiles: bookmarks);
+        var run = new FdaPdfNonRelativeBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("outline[2]/A/F", finding.Location.FieldPath);
+            Assert.Equal("AbsoluteFileSpecification", finding.Actual);
+        }
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfNonRelativeBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("outline[1]/A/F", 0)]
+    [InlineData("outline[2]/A/F", 2)]
+    public async Task DuplicateOrUnlocatedAbsoluteTargetsDoNotAuthorizeExtraFindings(string? otherPath, int expected)
+    {
+        var fixture = await Fixture(Build("/target.pdf"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [new(otherPath!, "/target.pdf"), new("outline[1]/A/F", "/target.pdf")]);
+        var run = new FdaPdfNonRelativeBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(expected, run.FindingCount);
+        Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteAbsoluteTargetScanCannotPublish(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("/target.pdf"));
+        var fixture = await Fixture(Build("/target.pdf"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            bookmarkFiles: [new("outline[1]/A/F", "/target.pdf"), new("outline[2]/A/F", "/other.pdf"),
+                new(conflictLast ? "outline[1]/A/F" : "outline[3]/A/F", "target.pdf")]);
+        var run = new FdaPdfNonRelativeBookmarkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, string? date = "2026-11-26", PackageReadLimits? limits = null, bool missingSource = false)
     {
