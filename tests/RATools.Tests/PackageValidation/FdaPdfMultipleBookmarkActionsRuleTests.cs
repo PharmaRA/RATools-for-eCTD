@@ -267,6 +267,77 @@ public sealed class FdaPdfMultipleBookmarkActionsRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingActionCountsCannotAuthorizeMultipleActions(bool multipleFirst, bool independent)
+    {
+        var fixture = await Fixture(Build("dictionary"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var multiple = new PdfBookmarkActionCount("outline[1]/A", 2);
+        var single = multiple with { Count = 1 };
+        var actions = multipleFirst ? new List<PdfBookmarkActionCount> { multiple, single } : [single, multiple];
+        if (independent) actions.Add(new("outline[2]/A", 3));
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            multipleBookmarkActions: actions);
+        var run = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("outline[2]/A", finding.Location.FieldPath);
+            Assert.Equal("3", finding.Actual);
+        }
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("outline[1]/A", 0)]
+    [InlineData("outline[2]/A", 2)]
+    public async Task DuplicateOrUnlocatedActionCountsDoNotAuthorizeExtraFindings(string? otherPath, int expected)
+    {
+        var fixture = await Fixture(Build("dictionary"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            multipleBookmarkActions: [new(otherPath!, 2), new("outline[1]/A", 2)]);
+        var run = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(expected, run.FindingCount);
+        Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteActionUniquenessScanCannotPublish(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("dictionary"));
+        var fixture = await Fixture(Build("dictionary"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            multipleBookmarkActions: [new("outline[1]/A", 2), new("outline[2]/A", 3), new(conflictLast ? "outline[1]/A" : "outline[3]/A", 1)]);
+        var run = new FdaPdfMultipleBookmarkActionsRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, string? date = "2026-11-25", PackageReadLimits? limits = null, bool missingSource = false)
     {

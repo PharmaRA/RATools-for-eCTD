@@ -51,10 +51,18 @@ internal static class FdaPdfMultipleBookmarkActionsRule
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || !facts.Basics.HasBookmarks) return;
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var actions in facts.MultipleBookmarkActions)
+            {
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(actions.ObjectPath)) continue;
+                paths[actions.ObjectPath] = paths.GetValueOrDefault(actions.ObjectPath) + 1;
+            }
             foreach (var actions in facts.MultipleBookmarkActions)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
-                if (actions.Count < 2 || actions.Count > _input.Packages.Target.Limits.MaxPdfLinks || string.IsNullOrWhiteSpace(actions.ObjectPath)) continue;
+                if (actions.Count < 2 || actions.Count > _input.Packages.Target.Limits.MaxPdfLinks ||
+                    string.IsNullOrWhiteSpace(actions.ObjectPath) || paths[actions.ObjectPath] != 1) continue;
                 _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
                     "A qualified bookmark contains a complete chain triggering multiple supported actions.",
                     new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: actions.ObjectPath,
