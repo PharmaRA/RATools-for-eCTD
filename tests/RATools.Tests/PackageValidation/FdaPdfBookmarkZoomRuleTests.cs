@@ -274,6 +274,77 @@ public sealed class FdaPdfBookmarkZoomRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingZoomKindsCannotAuthorizeFinding(bool fitFirst, bool independent)
+    {
+        var fixture = await Fixture(Build("[0 /Fit]"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var fit = new PdfBookmarkZoom("outline[1]/A/D", PdfBookmarkZoomKind.FitPage);
+        var unknown = fit with { Kind = PdfBookmarkZoomKind.Unknown };
+        var zooms = fitFirst ? new List<PdfBookmarkZoom> { fit, unknown } : [unknown, fit];
+        if (independent) zooms.Add(new("outline[2]/A/D", PdfBookmarkZoomKind.FixedFactor));
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed, nonInheritingBookmarkZooms: zooms);
+        var run = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent)
+        {
+            var finding = Assert.Single(check.Findings);
+            Assert.Equal("outline[2]/A/D", finding.Location.FieldPath);
+            Assert.Equal("FixedFactor", finding.Actual);
+        }
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("outline[1]/A/D", 0)]
+    [InlineData("outline[2]/A/D", 2)]
+    public async Task DuplicateOrUnlocatedZoomsDoNotAuthorizeExtraFindings(string? otherPath, int expected)
+    {
+        var fixture = await Fixture(Build("[0 /Fit]"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            nonInheritingBookmarkZooms: [new(otherPath!, PdfBookmarkZoomKind.FitPage), new("outline[1]/A/D", PdfBookmarkZoomKind.FitPage)]);
+        var run = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(expected, run.FindingCount);
+        Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteZoomUniquenessScanCannotPublish(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("[0 /Fit]"));
+        var fixture = await Fixture(Build("[0 /Fit]"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], true, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            nonInheritingBookmarkZooms: [new("outline[1]/A/D", PdfBookmarkZoomKind.FitPage), new("outline[2]/A/D", PdfBookmarkZoomKind.FixedFactor),
+                new(conflictLast ? "outline[1]/A/D" : "outline[3]/A/D", PdfBookmarkZoomKind.Unknown)]);
+        var run = new FdaPdfBookmarkZoomRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, string? date = "2026-11-26", PackageReadLimits? limits = null, string? missingHash = null)
     {

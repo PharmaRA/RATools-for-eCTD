@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5117第三轮：书签缩放类别冲突隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 5115已提交`1b3ba7a`。本项为冻结缩放观察增加完整有界对象路径唯一性扫描，重复/冲突和空定位不授权finding，独立书签继续保留。Fit/正值XYZ、零/null保留缩放、Filespec与日期资格不变。
+
+red四项全败，冲突缩放误Fail或多报一条finding；candidate七类 **456/456、0失败/跳过**（5117为98含新增11、超链接缩放93、打开视图102、5100为111、PDF管线23、解析器17、交付12），覆盖冲突前后、独立书签、同值重复、null/空串/空白定位、零/一条finding额度与预扫描工作不足，既有取消/日期/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5117-zoom-conflict-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6交付/直接依赖输入SHA绑定；manifest SHA`e306dfe8005b29fe6be559b77e24b0072de52da7aa76a27fdcf3849fc2dbe36c`、TRX SHA`d06070be2b734c3296c54c4af779ae3dc22e35ae5e4eee41ca2f357859a56321`；目录167条canonical SHA`cab698731bf9a5f866c3ef8763e3908be6bed598b518b03700534f90ae40c6d0`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5117-zoom-conflict-*-20261128`和`backups/fda5117-zoom-conflict-20261128/evidence/`，bin/obj仅回收。PDF-validator-v42、PdfPig适配器v42、file-v116，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。内部/命名目标、其他模式/编码和历史源资格继续留队；下一按序5200及后续超链接项。
+
 **FDA5115第二轮：非相对书签目标冲突隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 5110已提交`942507f`。本项对冻结目标观察执行完整有界对象路径唯一性扫描，重复/冲突和空定位不授权非相对路径finding，独立书签继续保留。斜杠根路径、字面filespec、不访问目标及不输出原路径政策不变；平台/驱动器和其他编码资格继续留队。
 
 red四项全败，绝对/相对目标冲突误Fail或多报一条finding；candidate七类 **358/358、0失败/跳过**（5115为54含新增11、非相对超链接47、5100为111、5105为94、PDF管线23、解析器17、交付12），覆盖冲突前后、独立书签、同值重复、null/空串/空白定位、零/一条finding额度和预扫描工作不足，既有取消/日期/隐私/Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据。

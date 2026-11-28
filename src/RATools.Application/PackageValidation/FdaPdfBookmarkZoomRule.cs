@@ -54,10 +54,18 @@ internal static class FdaPdfBookmarkZoomRule
                 document.CapturedSha256 != captured.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted || !facts.Basics.HasBookmarks) return;
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var zoom in facts.NonInheritingBookmarkZooms)
+            {
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(zoom.ObjectPath)) continue;
+                paths[zoom.ObjectPath] = paths.GetValueOrDefault(zoom.ObjectPath) + 1;
+            }
             foreach (var zoom in facts.NonInheritingBookmarkZooms)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
-                if (string.IsNullOrWhiteSpace(zoom.ObjectPath) || zoom.Kind is not (PdfBookmarkZoomKind.FitPage or PdfBookmarkZoomKind.FixedFactor)) continue;
+                if (string.IsNullOrWhiteSpace(zoom.ObjectPath) || paths[zoom.ObjectPath] != 1 ||
+                    zoom.Kind is not (PdfBookmarkZoomKind.FitPage or PdfBookmarkZoomKind.FixedFactor)) continue;
                 _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
                     "A qualified bookmark explicitly selects a fit-page or fixed magnification instead of inheriting zoom.",
                     new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: zoom.ObjectPath,
