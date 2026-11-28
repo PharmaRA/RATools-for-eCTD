@@ -75,6 +75,7 @@ internal sealed class PdfPigPackageImageOnlyReader(PdfDocument document, Func<IT
         catch (Exception exception) when (exception is not (OperationCanceledException or PackageInputChangedException))
         {
             // Bounded supplementary failures are unknown, never text absence or 3102 corruption.
+            token.ThrowIfCancellationRequested();
             return PdfImageOnlyStatus.Unknown;
         }
     }

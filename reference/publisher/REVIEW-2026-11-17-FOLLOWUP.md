@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5057第三轮：补充读取失败的取消竞态（仍Partial，主代理限定只读自审及终态核对通过）。** 5055已提交`3306cf6`。本项修复图像页补充解析回调取消后抛出普通I/O/异常仍返回Unknown的路径，在失败分类前复核令牌；普通I/O、普通异常和局部工作限额仍未知，输入变化及直接取消继续传播。图像/文本资格、内容流连接、字节/工作预算及OCR政策不变。
+
+red两项全败，实际进入回调且取消后未抛异常；candidate七类 **313/313、0失败/跳过**（5057为99含新增7、5040为80、当前3102为52、历史30、PDF管线23、解析器17、交付12），覆盖两类取消竞态和五类失败分类对照，保留既有真实图像/文本、流数组、精确字节限额、进度/取消及Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5057-cancel-race-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。6交付/直接依赖输入SHA绑定；manifest SHA`ae9fa63daba0a30c16593a79afb88ec2ea5851f06ced24ed6844d91f21b62724`、TRX SHA`ac2a7daf18b35a2b8791dfa2d3485540c41da1287c0fb04d52149b7087c29ea5`；目录167条canonical SHA`e273c9568863f65ebf7365d75d18308003a8e290631c9778dd115b1a804480ce`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5057-cancel-race-*-20261128`和`backups/fda5057-cancel-race-20261128/evidence/`，bin/obj仅回收。PdfPig适配器v41、PDF-validator-v35、file-v116，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。其他编码/OCR/嵌套内容及历史范围继续留队；下一按序5100及后续书签/超链接项。
+
 **FDA5055第三轮：批注归属叶的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 5040已提交`7f276a3`。5045布局/其他打开动作缺独立已资格事实、5050缺打开密码证据及FDA表单例外身份，继续保留依赖。本项要求区域/ICH活动归属叶ID、operation、href具有唯一非默认原始值且与派生值一致；属性枚举计入位置工作预算。未知引用不授权归属，也不隐藏其他合格外部引用；删除叶不参与活动内容归属。章节1.15例外、物理路径不决定归属、批注分类和每文件一条finding政策不变。
 
 red七项1过6败，完整原文对照通过，区域/ICH三类缺原文均误Fail；candidate七类 **296/296、0失败/跳过**（5055为134含新增27、当前3102为52、历史30、PDF管线23、解析器17、文件28、交付12），覆盖三属性缺原文/默认/冲突、重复href、未知引用前后独立归属、未知推广引用与另一外部归属、零/一条finding额度及既有取消/日期/Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。

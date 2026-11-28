@@ -16,6 +16,50 @@ public sealed class FdaPdfImageOnlyRuleTests
     private const string RuleId = "FDA47-5057";
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CancellationDuringSupplementalFailurePropagates(bool io)
+    {
+        using var stream = new MemoryStream(Build("image"));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+        using var cancellation = new CancellationTokenSource();
+        var called = false;
+        var reader = new PdfPigPackageImageOnlyReader(document, _ =>
+        {
+            called = true;
+            cancellation.Cancel();
+            throw io ? new IOException("Injected image evidence failure.") : new InvalidOperationException("Injected image evidence failure.");
+        }, new(), cancellation.Token);
+        Assert.ThrowsAny<OperationCanceledException>(() => reader.Read());
+        Assert.True(called);
+    }
+
+    [Theory]
+    [InlineData("io")]
+    [InlineData("ordinary")]
+    [InlineData("limit")]
+    [InlineData("changed")]
+    [InlineData("cancelled")]
+    public void SupplementalFailureCategoriesRemainDistinct(string category)
+    {
+        using var stream = new MemoryStream(Build("image"));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+        Exception failure = category switch
+        {
+            "io" => new IOException("Injected unavailable image evidence."),
+            "limit" => new PdfInspectionLimitException("Injected supplemental work limit."),
+            "changed" => new PackageInputChangedException("image-only-fixture"),
+            "cancelled" => new OperationCanceledException("Injected cancellation."),
+            _ => new InvalidOperationException("Injected unavailable image evidence.")
+        };
+        var calls = 0;
+        var reader = new PdfPigPackageImageOnlyReader(document, _ => { calls++; throw failure; }, new(), CancellationToken.None);
+        if (category is "changed" or "cancelled") Assert.Same(failure, Record.Exception(() => reader.Read()));
+        else Assert.Equal(PdfImageOnlyStatus.Unknown, reader.Read());
+        Assert.Equal(1, calls);
+    }
+
+    [Theory]
     [InlineData("single")]
     [InlineData("multiple")]
     [InlineData("state")]
