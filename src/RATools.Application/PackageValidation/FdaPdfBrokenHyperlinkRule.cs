@@ -54,10 +54,17 @@ internal static class FdaPdfBrokenHyperlinkRule
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted ||
                 facts.QualifiedPageCount != facts.Basics.PageCount) return;
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var link in facts.HyperlinkFiles)
+            {
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(link.ObjectPath)) continue;
+                paths[link.ObjectPath] = paths.GetValueOrDefault(link.ObjectPath) + 1;
+            }
             foreach (var link in facts.HyperlinkFiles)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
-                if (string.IsNullOrWhiteSpace(link.ObjectPath) || string.IsNullOrWhiteSpace(link.FileSpecification) ||
+                if (string.IsNullOrWhiteSpace(link.ObjectPath) || paths[link.ObjectPath] != 1 || string.IsNullOrWhiteSpace(link.FileSpecification) ||
                     link.PageNumber < 1 || link.PageNumber > facts.QualifiedPageCount) continue;
                 var file = link.FileSpecification;
                 if (file.Contains('\\') || file.StartsWith('/') || file.Contains(':')) continue;

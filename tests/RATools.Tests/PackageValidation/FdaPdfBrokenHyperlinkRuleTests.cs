@@ -292,6 +292,76 @@ public sealed class FdaPdfBrokenHyperlinkRuleTests
     }
 
     private static Task<PackagePdfInspection> Run(FixtureData fixture) => new PackagePdfValidator(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, fixture.Files);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingLinkIdentityCannotAuthorizeMissingTarget(bool pageConflict, bool independent)
+    {
+        var fixture = await Fixture(Build("missing.pdf"), existing: "present.pdf");
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var original = new PdfHyperlinkFileTarget("page[1]/annotation[1]/A/F", 1, "missing.pdf");
+        var conflicting = pageConflict ? original with { PageNumber = 2 } : original with { FileSpecification = "present.pdf" };
+        var links = new List<PdfHyperlinkFileTarget> { original, conflicting };
+        if (independent) links.Add(new("page[1]/annotation[2]/A/F", 1, "other-missing.pdf"));
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            qualifiedPageCount: 1, hyperlinkFiles: links);
+        var run = new FdaPdfBrokenHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(independent ? CheckStatus.Fail : CheckStatus.NotEvaluated, check.Status);
+        Assert.Equal(independent ? 1 : 0, check.Findings.Count);
+        if (independent) Assert.Equal("page[1]/annotation[2]/A/F", Assert.Single(check.Findings).Location.FieldPath);
+        links.Reverse();
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var reversed = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+                qualifiedPageCount: 1, hyperlinkFiles: links);
+            var bounded = new FdaPdfBrokenHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, reversed, file.Sha256), remaining);
+            Assert.Equal(independent ? remaining : 0, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData("", 1)]
+    [InlineData(" ", 1)]
+    [InlineData("page[1]/annotation[1]/A/F", 0)]
+    [InlineData("page[1]/annotation[2]/A/F", 2)]
+    public async Task DuplicateOrUnlocatedTargetsDoNotAuthorizeExtraFindings(string? otherPath, int expected)
+    {
+        var fixture = await Fixture(Build("missing.pdf"));
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            qualifiedPageCount: 1, hyperlinkFiles: [new(otherPath!, 1, "missing.pdf"), new("page[1]/annotation[1]/A/F", 1, "missing.pdf")]);
+        var run = new FdaPdfBrokenHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(expected, run.FindingCount);
+        Assert.Equal(expected > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteLinkUniquenessScanCannotPublish(bool conflictLast)
+    {
+        var baseline = await Fixture(Build("missing.pdf"));
+        var fixture = await Fixture(Build("missing.pdf"), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath == "0001/report.pdf");
+        var basics = new PdfInspectionResult("1.4", false, false, true, true, [], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            qualifiedPageCount: 1, hyperlinkFiles: [new("page[1]/annotation[1]/A/F", 1, "missing.pdf"), new("page[1]/annotation[2]/A/F", 1, "other.pdf"),
+                new(conflictLast ? "page[1]/annotation[1]/A/F" : "page[1]/annotation[3]/A/F", 2, "missing.pdf")]);
+        var run = new FdaPdfBrokenHyperlinkRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        Assert.Equal(CheckStatus.NotEvaluated, run.Finish(false)!.Status);
+        Assert.Equal(0, run.FindingCount);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(byte[]? pdf, bool history = false, string? existing = null, string? date = "2026-11-26", PackageReadLimits? limits = null, bool missingSource = false)
     {
