@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5055第三轮：批注归属叶的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 5040已提交`7f276a3`。5045布局/其他打开动作缺独立已资格事实、5050缺打开密码证据及FDA表单例外身份，继续保留依赖。本项要求区域/ICH活动归属叶ID、operation、href具有唯一非默认原始值且与派生值一致；属性枚举计入位置工作预算。未知引用不授权归属，也不隐藏其他合格外部引用；删除叶不参与活动内容归属。章节1.15例外、物理路径不决定归属、批注分类和每文件一条finding政策不变。
+
+red七项1过6败，完整原文对照通过，区域/ICH三类缺原文均误Fail；candidate七类 **296/296、0失败/跳过**（5055为134含新增27、当前3102为52、历史30、PDF管线23、解析器17、文件28、交付12），覆盖三属性缺原文/默认/冲突、重复href、未知引用前后独立归属、未知推广引用与另一外部归属、零/一条finding额度及既有取消/日期/Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5055-raw-owner-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。7交付/直接依赖输入SHA绑定；manifest SHA`198eb5d4ac14eabe9ab517481edefa1cbd628655dd7bd67674cff0d8258ebd52`、TRX SHA`4f5223567867209c34ceb323242de60e424bcb05c0e90e0a3e59088e37302056`；目录167条canonical SHA`5e808c8c58284241920de7e2022a4d178e91110c316c85cf4f6aa269fe5b7974`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5055-raw-owner-*-20261128`和`backups/fda5055-raw-owner-20261128/evidence/`，bin/obj仅回收。PDF-validator-v35、PdfPig适配器v40、file-v116，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。历史/未引用内容与其他批注语义仍留队；下一按序5057等后续项。
+
 **FDA5040第三轮：补充读取终止异常保留（仍Partial，主代理限定只读自审及终态核对通过）。** 5038已提交`45b947f`。本项不改变首对象1024字节必要条件或新增线性化Pass；修复读取时取消/输入变化被恢复流位置失败覆盖为Unknown。普通I/O及仅恢复失败继续未知，取消伴随I/O优先传播。外层PDF适配器同时从受保护流留存输入变化原异常，在发布事实或转换普通解析异常前重新抛出，覆盖Read/ReadByte、Position和Seek的实际解析路径，不依赖解析库直接透传。
 
 red三项全败，取消/输入变化均被吞掉；仅调整外层catch的candidate七类350/351，适配器原异常仍被解析库转换。补流边界ExceptionDispatchInfo留存，不降低原断言，并增加Position/Seek触发测试后final七类 **353/353、0失败/跳过**（5040为80含新增9、5035为78、3102为52、5005为91、PDF管线23、解析器17、交付12）。覆盖原终止异常实例、恢复位置失败、普通I/O、恢复成功位置、取消竞态及既有1024字节/预算/Partial报告。主代理限定只读自审通过，无子代理，final是最终证据；其他补充读取器的细分行为未作全面资格声明。

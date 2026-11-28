@@ -108,13 +108,13 @@ internal static class FdaPdfAnnotationRule
                 {
                     Tick();
                     if (!elements.TryGetValue(leaf.NodePath, out var element) || element is not { Name: "leaf", LocalName: "leaf", NamespaceUri: "" } ||
-                        element.Attribute("operation") != leaf.Operation ||
+                        leaf.Operation is null || !ExplicitMatches(element, "operation", "", leaf.Operation) ||
                         leaf.Location.LogicalPath != regional.LogicalPath || leaf.Location.SequenceNumber != sequence || leaf.Location.NodePath != leaf.NodePath)
                     { complete = false; continue; }
                     if (leaf.Operation == "delete") continue;
                     if (leaf.Operation is not ("new" or "replace" or "append") ||
-                        leaf.Href is null || element.Attribute("href", "http://www.w3c.org/1999/xlink") != leaf.Href ||
-                        leaf.Id != element.Attribute("ID") || leaf.Location.LeafId != leaf.Id)
+                        leaf.Href is null || !ExplicitMatches(element, "href", "http://www.w3c.org/1999/xlink", leaf.Href) ||
+                        leaf.Id is null || !ExplicitMatches(element, "ID", "", leaf.Id) || leaf.Location.LeafId != leaf.Id)
                     { complete = false; continue; }
                     PackageReference reference;
                     try { reference = PackageLogicalPath.ResolveReference(regional.LogicalPath, leaf.Href); }
@@ -181,6 +181,18 @@ internal static class FdaPdfAnnotationRule
                 "Identified markup in current PDFs with qualified regional M1 references outside section 1.15 or actual ICH module 2-5 references is checked. Physical folders do not determine the exception, and an allowed reference does not exempt another outside reference. Links/widgets are not markup; other annotation semantics, historical/unreferenced contents and unknown ownership remain unqualified; no Pass is emitted.", _findings.ToArray());
         }
         private void Tick() { _token.ThrowIfCancellationRequested(); if (_work-- <= 0) throw new LocationLimitException(); }
+        private bool ExplicitMatches(ParsedXmlElement element, string name, string namespaceUri, string expected)
+        {
+            ParsedXmlAttributeValue? selected = null;
+            foreach (var attribute in element.Attributes.Values)
+            {
+                Tick();
+                if (attribute.LocalName != name || attribute.NamespaceUri != namespaceUri) continue;
+                if (selected is not null) return false;
+                selected = attribute;
+            }
+            return selected is { IsDefault: false, ExplicitValue: not null } && selected.Value == expected && selected.ExplicitValue == expected;
+        }
         private bool Contains(IEnumerable<string> values, string expected) { foreach (var value in values) { Tick(); if (value == expected) return true; } return false; }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

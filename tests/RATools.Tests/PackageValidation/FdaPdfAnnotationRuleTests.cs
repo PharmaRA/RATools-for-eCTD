@@ -422,6 +422,91 @@ public sealed class FdaPdfAnnotationRuleTests
 
     private static Task<PackageDeliveryInspection> Run(FixtureData fixture) =>
         new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context).InspectAsync(fixture.Input, PackageValidationCatalog.UsProfile);
+
+    [Theory]
+    [InlineData("cover", "ID", "valid", CheckStatus.Fail)]
+    [InlineData("cover", "ID", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "operation", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "href", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "ID", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "operation", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "href", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "ID", "default", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "operation", "default", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "href", "default", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "ID", "default", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "operation", "default", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "href", "default", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "ID", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "operation", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "href", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "ID", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "operation", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "href", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("cover", "href", "duplicate", CheckStatus.NotEvaluated)]
+    [InlineData("ich-2", "href", "duplicate", CheckStatus.NotEvaluated)]
+    public async Task OutsideOwnerRequiresOriginalLeafEvidence(string scenario, string attribute, string mutation, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario);
+        var delivery = await Run(fixture);
+        var lifecycle = ChangeOwnerAttribute(fixture, delivery, scenario.StartsWith("ich-", StringComparison.Ordinal) ? "ich-outside" : "outside", attribute, mutation);
+        var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, lifecycle, fixture.Context, CancellationToken.None);
+        run.Observe(Assert.Single(delivery.Pdf.Documents, document => document.LogicalPath == "0001/m1/us/report.pdf"), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("same-file", "outside", "alias")]
+    [InlineData("same-file", "alias", "outside")]
+    [InlineData("ich-2-same", "ich-outside", "ich-alias")]
+    [InlineData("ich-2-same", "ich-alias", "ich-outside")]
+    [InlineData("both", "inside", "outside")]
+    [InlineData("ich-2-both", "inside", "ich-outside")]
+    public async Task QualifiedOutsideOwnerSurvivesAnotherUnknownReference(string scenario, string unknownId, string expectedId)
+    {
+        var fixture = await Fixture(scenario);
+        var delivery = await Run(fixture);
+        var lifecycle = ChangeOwnerAttribute(fixture, delivery, unknownId, "href", "missing");
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var run = new FdaPdfAnnotationRule.Inspection(fixture.Input, delivery.Files, lifecycle, fixture.Context, CancellationToken.None);
+            run.Observe(Assert.Single(delivery.Pdf.Documents, document => document.LogicalPath == "0001/m1/us/report.pdf"), remaining);
+            var check = run.Finish(true)!;
+            Assert.Equal(remaining == 0 ? CheckStatus.NotEvaluated : CheckStatus.Fail, check.Status);
+            Assert.Equal(remaining, check.Findings.Count);
+            if (remaining == 1) Assert.Equal(expectedId, Assert.Single(check.Findings).Location.LeafId);
+        }
+    }
+
+    private static PackageLifecycleInspection ChangeOwnerAttribute(FixtureData fixture, PackageDeliveryInspection delivery, string leafId, string name, string mutation)
+    {
+        var xml = Assert.Single(delivery.Lifecycle.XmlInspections);
+        var document = Assert.Single(xml.Backbones, item => item.Leaves.Any(leaf => leaf.Id == leafId));
+        Assert.True(document.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, document.DtdStatus);
+        var leaf = Assert.Single(document.Leaves, item => item.Id == leafId);
+        var selected = Assert.Single(document.Elements, item => item.NodePath == leaf.NodePath);
+        var original = Assert.Single(selected.Attributes.Values, attribute => attribute.LocalName == name);
+        Assert.False(original.IsDefault);
+        Assert.Equal(original.Value, original.ExplicitValue);
+        var elements = document.Elements.Select(element => element != selected ? element : new ParsedXmlElement(
+            element.NodePath, element.ParentPath, element.Name, element.LocalName, element.NamespaceUri,
+            element.Attributes.Values.Select(attribute => attribute != original ? attribute : mutation switch
+            {
+                "missing" => attribute with { ExplicitValue = null },
+                "default" => attribute with { IsDefault = true },
+                "conflict" => attribute with { ExplicitValue = "conflicting-original" },
+                _ => attribute
+            }).Concat(mutation == "duplicate" ? [original with { Name = "duplicate:" + original.LocalName }] : []), element.Children, element.Text, element.Location)).ToArray();
+        var changed = new ParsedBackbone(document.LogicalPath, document.ProfileSnapshotId, document.Kind,
+            document.ReadComplete, document.DtdStatus, document.DocumentTypeName, document.SystemIdentifier, document.PublicIdentifier,
+            elements, document.Nodes, document.Leaves, document.IdIndex.Values.SelectMany(value => value), document.ResolvedAssets);
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Select(item => item == document ? changed : item), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        return new(fixture.Input.Packages, delivery.Lifecycle.ProfileSnapshotId, [modified], [], [], [], fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+    }
     private sealed record FixtureData(PackageDeliveryInput Input, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(string scenario, string subtype = "Text", string? date = "2026-11-25", bool missingSource = false, PackageReadLimits? limits = null,
         string? annotation = null, bool secondPdf = false)
