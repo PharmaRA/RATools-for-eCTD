@@ -77,13 +77,15 @@ internal static class FdaWrongApplicationFormRule
                 if (application.Numbers.Count != 1) continue;
                 var number = application.Numbers[0]; var type = number.Type;
                 if (number.Number.Length != 6 || number.Number.Any(c => c is < '0' or > '9') || type is not { IsDefault: false, NamespaceUri: "" } ||
+                    !elements.TryGetValue(number.NodePath, out var numberElement) || Explicit(numberElement, "application-type") != type.Value ||
                     !Contains(policy.InputValues("application-type"), type.Value)) continue;
                 var nonannualStart = false;
                 if (elements.TryGetValue(application.NodePath, out var app))
                 {
                     var submission = Child(app, "submission-information");
                     var id = Child(submission, "submission-id"); var order = Child(submission, "sequence-number");
-                    var submissionType = id?.Attribute("submission-type", ""); var subtype = order?.Attribute("submission-sub-type", "");
+                    var submissionType = id is null ? null : Explicit(id, "submission-type");
+                    var subtype = order is null ? null : Explicit(order, "submission-sub-type");
                     // The explicit original-application sequence is independently not
                     // an annual report. Unknown/follow-up activity is not its negation.
                     nonannualStart = id is { Children.Count: 0 } && order is { Children.Count: 0 } && id.Text == sequence && order.Text == sequence &&
@@ -91,22 +93,21 @@ internal static class FdaWrongApplicationFormRule
                     if (!nonannualStart && expandedNonannualScope && id is { Children.Count: 0 } && order is { Children.Count: 0 } &&
                         id.Text == sequence && order.Text == sequence)
                     {
-                        var explicitType = Explicit(id, "submission-type"); var explicitSubtype = Explicit(order, "submission-sub-type");
                         // Captured M1 Tables 2/4 and III.B.3 independently identify
                         // these starts. Annual reports and follow-ups are not negated.
-                        nonannualStart = explicitType is not null && explicitSubtype is not null &&
-                            policy.AllowsCombination(type.Value, explicitType, explicitSubtype) &&
-                            ((explicitType is "fdast9" or "fdast10") && explicitSubtype == "fdasst6" ||
-                             (explicitType is "fdast7" or "fdast8") && explicitSubtype == "fdasst1" ||
-                             explicitType == "fdast6" && explicitSubtype == "fdasst7" || explicitType == "fdast11" && explicitSubtype == "fdasst3");
+                        nonannualStart = submissionType is not null && subtype is not null &&
+                            policy.AllowsCombination(type.Value, submissionType, subtype) &&
+                            ((submissionType is "fdast9" or "fdast10") && subtype == "fdasst6" ||
+                             (submissionType is "fdast7" or "fdast8") && subtype == "fdasst1" ||
+                             submissionType == "fdast6" && subtype == "fdasst7" || submissionType == "fdast11" && subtype == "fdasst3");
                     }
                 }
                 foreach (var leaf in group.Leaves)
                 {
                     Tick();
                     if (!elements.TryGetValue(leaf.NodePath, out var element) || element is not { Name: "leaf", LocalName: "leaf", NamespaceUri: "" } ||
-                        leaf.Operation is not ("new" or "replace" or "append") || element.Attribute("operation") != leaf.Operation ||
-                        leaf.Href is null || element.Attribute("href", "http://www.w3c.org/1999/xlink") != leaf.Href ||
+                        leaf.Operation is not ("new" or "replace" or "append") || Explicit(element, "operation") != leaf.Operation ||
+                        leaf.Href is null || Explicit(element, "href", "http://www.w3c.org/1999/xlink") != leaf.Href ||
                         leaf.Location.LogicalPath != regional.LogicalPath || leaf.Location.SequenceNumber != sequence) continue;
                     PackageReference reference;
                     try { reference = PackageLogicalPath.ResolveReference(regional.LogicalPath, leaf.Href); }
@@ -127,10 +128,17 @@ internal static class FdaWrongApplicationFormRule
                 }
             }
 
-            string? Explicit(ParsedXmlElement element, string name)
+            string? Explicit(ParsedXmlElement element, string name, string namespaceUri = "")
             {
-                Tick();
-                return element.Attributes.GetValueOrDefault(name) is { NamespaceUri: "", IsDefault: false } attribute && attribute.LocalName == name ? attribute.Value : null;
+                ParsedXmlAttributeValue? selected = null;
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri != namespaceUri) continue;
+                    if (selected is not null) return null;
+                    selected = attribute;
+                }
+                return selected is { IsDefault: false, ExplicitValue: not null } && selected.ExplicitValue == selected.Value ? selected.Value : null;
             }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)

@@ -291,6 +291,84 @@ public sealed class FdaWrongApplicationFormRuleTests
         Action<RuleCheckResult>? progress = null, CancellationToken token = default) =>
         FdaWrongApplicationFormRule.Inspect(fixture.Input.Packages, lifecycle ?? fixture.Lifecycle, fixture.Context, remaining, token, progress);
 
+    [Theory]
+    [InlineData("nda1571", "application-type", false, "valid", CheckStatus.Fail)]
+    [InlineData("nda1571", "application-type", false, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-type", false, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-sub-type", false, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-type", true, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "operation", false, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "href", false, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "application-type", false, "default", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "application-type", false, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-type", false, "default", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-type", false, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-sub-type", false, "default", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-sub-type", false, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-sub-type", true, "missing", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-type", true, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("original2252", "submission-sub-type", true, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "operation", false, "default", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "operation", false, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "href", false, "default", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "href", false, "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "href", false, "duplicate", CheckStatus.NotEvaluated)]
+    [InlineData("nda1571", "submission-type", false, "missing", CheckStatus.Fail)]
+    [InlineData("nda1571", "submission-sub-type", false, "missing", CheckStatus.Fail)]
+    public async Task WrongFormRequiresOriginalQualificationEvidence(string scenario, string attribute, bool expanded, string mutation, CheckStatus expected)
+    {
+        var fixture = await Fixture(scenario, activity: expanded ? ("fdaat1", "fdast10", "fdasst6") : null);
+        var lifecycle = ChangeOriginalAttribute(fixture, attribute, mutation);
+        var check = Direct(fixture, lifecycle)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("main", "operation")]
+    [InlineData("main", "href")]
+    [InlineData("alias", "operation")]
+    [InlineData("alias", "href")]
+    public async Task QualifiedReferenceStillAuthorizesFailureWhenAnotherReferenceIsUnknown(string unknownId, string attribute)
+    {
+        var fixture = await Fixture("same-file");
+        var lifecycle = ChangeOriginalAttribute(fixture, attribute, "missing", unknownId);
+        var check = Direct(fixture, lifecycle)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        var finding = Assert.Single(check.Findings);
+        Assert.Equal(unknownId == "main" ? "alias" : "main", finding.Location.LeafId);
+        Assert.Equal(CheckStatus.NotEvaluated, Direct(fixture, lifecycle, remaining: 0)!.Status);
+        Assert.Single(Direct(fixture, lifecycle, remaining: 1)!.Findings);
+    }
+
+    private static PackageLifecycleInspection ChangeOriginalAttribute(FixtureData fixture, string name, string mutation, string leafId = "main")
+    {
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var regional = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        var selected = regional.Elements.First(element => element.Attributes.Values.Any(attribute => attribute.LocalName == name) &&
+            (name is not ("operation" or "href") || element.Attribute("ID") == leafId));
+        var original = Assert.Single(selected.Attributes.Values, attribute => attribute.LocalName == name);
+        Assert.False(original.IsDefault);
+        Assert.Equal(original.Value, original.ExplicitValue);
+        var elements = regional.Elements.Select(element => element != selected ? element : new ParsedXmlElement(
+            element.NodePath, element.ParentPath, element.Name, element.LocalName, element.NamespaceUri,
+            element.Attributes.Values.Select(attribute => attribute != original ? attribute : mutation switch
+            {
+                "missing" => attribute with { ExplicitValue = null },
+                "default" => attribute with { IsDefault = true },
+                "conflict" => attribute with { ExplicitValue = "conflicting-original" },
+                _ => attribute
+            }).Concat(mutation == "duplicate" ? [original with { Name = "duplicate:" + original.LocalName }] : []), element.Children, element.Text, element.Location)).ToArray();
+        var changed = new ParsedBackbone(regional.LogicalPath, regional.ProfileSnapshotId, regional.Kind,
+            regional.ReadComplete, regional.DtdStatus, regional.DocumentTypeName, regional.SystemIdentifier, regional.PublicIdentifier,
+            elements, regional.Nodes, regional.Leaves, regional.IdIndex.Values.SelectMany(value => value), regional.ResolvedAssets);
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Select(item => item == regional ? changed : item), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        return new(fixture.Input.Packages, fixture.Lifecycle.ProfileSnapshotId, [modified], [], [], [], fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+    }
+
     private sealed record FixtureData(PackageDeliveryInput Input, PackageLifecycleInspection Lifecycle, PackageFileInspection Files, PackageStandardsContext Context);
     private static async Task<FixtureData> Fixture(string scenario, string? date = "2026-11-25", PackageReadLimits? limits = null,
         (string Application, string Submission, string Subtype)? activity = null)
