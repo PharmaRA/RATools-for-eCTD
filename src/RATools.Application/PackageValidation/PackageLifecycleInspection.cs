@@ -35,7 +35,7 @@ public sealed class PackageLifecycleInspection
     }
 
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-lifecycle-inspector-v2";
+    public string EngineVersion { get; } = "package-lifecycle-inspector-v3";
     public string RulesDigest { get; }
     public string AssetManifestDigest { get; }
     public string InputDigest { get; }

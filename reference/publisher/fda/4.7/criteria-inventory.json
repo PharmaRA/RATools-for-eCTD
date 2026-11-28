@@ -1709,7 +1709,7 @@
           "tests/RATools.Tests/PackageValidation/FdaStfXmlValidityRuleTests.cs",
           "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"
         ],
-        "note": "Checks identified STF roots with exact-file definite XML/DTD failure categories or complete missing Study ID/root-child structure. Frozen trees must be unique, bidirectionally consistent and entirely reachable from the root. Limits, offline, I/O and unknown identities do not automatically become invalid XML. Declaration-only identity, discovery failure classification, empty-ID semantics and interrupted observation retention remain unqualified. Final selected Windows regression 985/985 and bounded code/evidence review passed."
+        "note": "Checks identified STF roots with exact-file definite XML/DTD failure categories or complete missing Study ID/root-child structure. Frozen trees must be unique, bidirectionally consistent and entirely reachable from the root. Completed STF observations now survive a later XML-stage timeout through immutable per-document snapshots and a stable input recheck; scope remains incomplete, external cancellation and verification failures propagate. Limits, offline, I/O and unknown identities do not automatically become invalid XML. Declaration-only identity, discovery classification, empty-ID semantics and in-flight document retention remain unqualified. Latest nine-class Windows regression 445/445 including 60 validity cases (9 new timeout cases) and bounded main-agent read-only review passed without subagents."
       }
     },
     {

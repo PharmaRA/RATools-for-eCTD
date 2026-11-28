@@ -106,7 +106,7 @@ public sealed class PackageXmlInspection
 
     public string InputDigest { get; }
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-xml-inspector-stf-v5";
+    public string EngineVersion { get; } = "package-xml-inspector-stf-v6";
     public string RulesDigest { get; }
     public string ProfileSnapshotId { get; }
     public string AssetManifestDigest { get; }

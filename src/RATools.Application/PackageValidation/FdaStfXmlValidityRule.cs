@@ -135,7 +135,7 @@ internal static class FdaStfXmlValidityRule
         catch (ValidityWorkLimitException) { incomplete = true; }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
-            "Checked identified STF roots against exact-file error categories and complete structure. Declaration-only identity, discovery failure classification, empty-ID semantics and interrupted observation retention remain unqualified; environment/limit failures are not automatically invalid XML.", findings);
+            "Checked identified STF roots against exact-file error categories and complete structure, including completed observations retained after a later XML-stage timeout and stable capture recheck. Declaration-only identity, discovery failure classification, empty-ID semantics and interrupted in-flight documents remain unqualified; environment/limit failures are not automatically invalid XML.", findings);
 
         PackageXmlInspection? Xml(string sequence)
         {

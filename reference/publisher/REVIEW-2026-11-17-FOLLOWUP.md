@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1969第二轮：XML局部超时后保留已完成STF观察（仍Partial，主代理限定只读自审及终态核对通过）。** 1901已提交`89e3c73`。1918祖先content-block标签继承仍缺规范依据，保留依赖不改判；1935/1953已Implemented不重开。本项复现后一个文件触发XML局部超时，前一个已完成STF及其确定DTD错误随未返回的调用结果丢失。STF读取器在每个文档完成后发布不可变进度快照，XML入口局部超时后保留快照、强制范围未完成并以外部令牌再次VerifyUnchanged；外部取消、复核I/O/完整性失败继续传播，不发布正在读取文档的半成品，不把超时转换成1969违规。
+
+red三项1过2败，外部取消对照通过，前一有效/无效STF均在真实超时与打开顺序前提后复现集合为空。candidate九类444/445唯一失败是测试`OnVerify?.Invoke(++Verifications)`在无回调时不递增计数；修为无条件计数，生产逻辑与应核验两次的断言不变。final九类 **445/445、0失败/跳过**（1969为60含新增9、2002为49、1901为134、发现55、XML42、生命周期49、中断16、文件28、交付12）。覆盖首文件超时无事实、后续超时保留、全有效前缀仍NE、最终核验超时后稳定复核、复核失败/取消竞态与真实生命周期消费。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1969-timeout-retention-final-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。12交付/直接依赖输入SHA绑定；manifest SHA`09f6a4efc77b68fb6d1a4c8fbc21175501cc47d8934a02a5ea0fcafc22013ae8`、TRX SHA`3155136c8776f4c5ddb1f31b1a9ab031bfee08d1667566e1ab6de1233b4cf71a`；目录167条canonical SHA`26efe9ce4374b35a1c4dc82d54b2b1e266bd6d87da9f403ee8309ff318067dc9`。三轮证据及校验副本位于`.artifacts/local-check/fda1969-timeout-retention-*-20261128`和`backups/fda1969-timeout-retention-20261128/evidence/`，bin/obj仅回收。XML-stf-v6、lifecycle-v3、file-v109；库存67/56/24、待完整覆盖80、原107完整27不变。下一1981角色事实、1985空标题、1990同章节分支语义保留依赖：Q&A1.33 Q60（sheet3第26行）不推荐多叶复用但未明确FDA1990不同章节与实例的对应，不强行扩大Fail；继续后续可执行项。
+
 **FDA1901第四轮：ICH模块1误作区域骨架的实际STF身份（仍Partial，主代理限定只读自审及终态核对通过）。** 最低研究报告章节已提交`172fc6c`。固定criteria第39页明确模块限制。本项修复区域读取先占用路径、STF发现排除已知骨架导致的身份缺口：对当前ICH模块1非delete叶指向、唯一US区域读取失败且无根元素的同捕获文件，按固定STF配置建立独立RegionalMisclassificationCandidates观察；普通STF Documents集合不变、原区域失败不擦除、不将候选提升为合法骨架。共享节点/字符/文档预算及离线资源解析器；1901再核对实际study根、捕获SHA、固定DTD资源、唯一失败区域观察、原始显式ICH叶及唯一连根位置。仅声明/错误根/根前截断或冲突保持NE，已确认根后的尾部损坏保留位置Fail。
 
 red五项3过2败，完整STF/尾部损坏均在完整ICH及区域失败前提通过后复现NE。candidate九类445/445；自审补外部/内部DTD拒绝、错误命名空间、根前截断、同路径多owner去重、未知owner前后已知违规保留及工作预算相邻边界，生产不追加修改。final九类 **452/452、0失败/跳过**（1901为134含新增26、发现55、XML42、生命周期49、区域50、1884为66、中断16、文件28、交付12），文档预算3/4、finding额度、取消、原区域失败和普通STF集合隔离均有回归。主代理限定只读自审通过，无子代理。

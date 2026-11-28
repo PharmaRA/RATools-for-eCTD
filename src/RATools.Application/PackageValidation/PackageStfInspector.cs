@@ -10,7 +10,8 @@ internal static class PackageStfInspector
         "http://www.ich.org/ectd", "2.2", "stf-dtd", ["stf-dtd"], "", "STF-DTD", ["stf-style"]);
 
     internal static async Task<PackageStfInspection> InspectAsync(ICapturedPackageInput input, PackageXmlAssets assets,
-        IReadOnlyList<ParsedBackbone> backbones, XmlInspectionFindings findings, CancellationToken cancellationToken)
+        IReadOnlyList<ParsedBackbone> backbones, XmlInspectionFindings findings, CancellationToken cancellationToken,
+        Action<PackageStfInspection>? retainProgress = null)
     {
         var start = findings.Items.Count;
         var documents = new List<ParsedStudyTaggingFile>();
@@ -77,6 +78,7 @@ internal static class PackageStfInspector
                     !read.Complete || observations.Any(item => item.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : CheckStatus.Pass;
                 complete &= read.Complete && status == CheckStatus.Pass;
                 documents.Add(new(path, file.Sha256, read.Complete, status, read.SystemId, read.Elements, read.ProcessingInstructions, read.ResolvedAssets));
+                Retain();
                 if (findings.StructureLimitReached || findings.Truncated) { complete = false; break; }
             }
             // A module-one reference may have sent a real STF through the regional reader,
@@ -117,6 +119,7 @@ internal static class PackageStfInspector
                     !read.Complete || observations.Any(item => item.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : CheckStatus.Pass;
                 regionalCandidates.Add(new(path, files[path].Sha256, read.Complete, status, read.SystemId,
                     read.Elements, read.ProcessingInstructions, read.ResolvedAssets));
+                Retain();
             }
         }
         catch (XmlInspectionLimitException) { complete = false; }
@@ -131,6 +134,7 @@ internal static class PackageStfInspector
         }
         PackageStfInspection Finish() => new(complete && !findings.Truncated && !findings.StructureLimitReached,
             documents, findings.Items.Skip(start), regionalCandidates);
+        void Retain() => retainProgress?.Invoke(new(false, documents, findings.Items.Skip(start), regionalCandidates));
         void SpendPrefixWork()
         {
             cancellationToken.ThrowIfCancellationRequested();

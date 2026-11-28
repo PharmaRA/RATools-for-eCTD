@@ -65,17 +65,22 @@ public sealed class PackageXmlInspector(TimeProvider? timeProvider = null, Packa
                 }
             }
             if (profileSnapshotId == PackageValidationCatalog.UsProfile)
-                stf = await PackageStfInspector.InspectAsync(input, assets, documents, findings, linked.Token).ConfigureAwait(false);
+                stf = await PackageStfInspector.InspectAsync(input, assets, documents, findings, linked.Token, progress => stf = progress).ConfigureAwait(false);
             await input.VerifyUnchangedAsync(linked.Token).ConfigureAwait(false);
         }
         catch (XmlInspectionLimitException) { interrupted = true; }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             interrupted = true;
+            // A local deadline must not discard completed STF observations, but an input
+            // change or external cancellation still prevents publishing them as bound facts.
+            stf = new(false, stf.Documents, stf.Findings, stf.RegionalMisclassificationCandidates);
+            await input.VerifyUnchangedAsync(cancellationToken).ConfigureAwait(false);
             try { findings.Add(new("XML-LIMITS", CheckStatus.Fail, ValidationSeverity.Error, "XML_READ_TIMEOUT", "XML inspection exceeded its configured deadline.", new(input.Manifest.SequenceNumber))); }
             catch (XmlInspectionLimitException) { }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var complete = !interrupted && !findings.Truncated && documents.Count > 0 && documents.All(document => document.ReadComplete);
         var results = new List<RuleCheckResult>();
         foreach (var ruleId in CommonRuleIds.Concat(profiles.Select(profile => profile.RuleId)))

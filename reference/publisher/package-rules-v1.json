@@ -3763,10 +3763,10 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Consumes exact-file definite XML/DTD failure categories or complete missing Study ID/root-child structure only after captured identity and bidirectional tree checks. Limits, offline, I/O and unknown identities do not automatically become invalid XML. Declaration-only identity, discovery failure classification, empty-ID semantics and interrupted observation retention remain unqualified.",
+      "implementationNote": "Consumes exact-file definite XML/DTD failure categories or complete missing Study ID/root-child structure only after captured identity and bidirectional tree checks. Completed STF observations survive a later XML-stage timeout through immutable progress snapshots and a stable capture recheck; scope remains incomplete, external cancellation and verification failures propagate. Limits, offline, I/O and unknown identities do not automatically become invalid XML. Declaration-only identity, discovery failure classification, empty-ID semantics and interrupted in-flight document retention remain unqualified.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfXmlValidityRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaStfXmlValidityRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfXmlValidityRule.cs", "src/RATools.Application/PackageValidation/PackageStfInspection.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaStfXmlValidityRule.cs", "src/RATools.Application/PackageValidation/PackageStfInspection.cs", "src/RATools.Application/PackageValidation/PackageStfInspector.cs", "src/RATools.Application/PackageValidation/PackageXmlInspector.cs"],
       "externalComparisonEvidence": []
     },
     {

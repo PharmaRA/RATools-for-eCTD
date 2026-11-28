@@ -15,6 +15,117 @@ public sealed class FdaStfXmlValidityRuleTests
     private const string RuleId = "FDA47-1969";
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task XmlTimeoutOnLaterFileRetainsEarlierStfFacts(bool invalid)
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", invalid ? "timeout-invalid" : "timeout-valid");
+        var clock = new ControlledClock();
+        var opened = new List<string>();
+        input.OnOpen = path =>
+        {
+            opened.Add(path);
+            if (path.EndsWith("stf-B.xml", StringComparison.Ordinal)) clock.Expire();
+        };
+        var xml = await new PackageXmlInspector(clock, seed.Context).InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.True(clock.Expired);
+        Assert.Contains(xml.Checks.SelectMany(c => c.Findings), f => f.Code == "XML_READ_TIMEOUT");
+        Assert.True(opened.FindIndex(p => p.EndsWith("stf-A.xml", StringComparison.Ordinal)) < opened.FindIndex(p => p.EndsWith("stf-B.xml", StringComparison.Ordinal)));
+        var document = Assert.Single(xml.StudyTaggingFiles.Documents);
+        Assert.Equal("0001/m4/study/stf-A.xml", document.LogicalPath);
+        Assert.True(document.ReadComplete);
+        Assert.False(xml.StudyTaggingFiles.InventoryComplete);
+        Assert.Equal(invalid ? CheckStatus.Fail : CheckStatus.Pass, document.DtdStatus);
+        var packages = new PackageInputSet(input, new(input.Manifest.ApplicationId, "0001", []), []);
+        var lifecycle = new PackageLifecycleInspection(packages, PackageValidationCatalog.UsProfile, [xml], [], [], [], seed.Context.Catalog.Digest, seed.Context.Assets.Digest);
+        var result = FdaStfXmlValidityRule.Inspect(packages, lifecycle, seed.Context, 10, default)!;
+        Assert.Equal(invalid ? CheckStatus.Fail : CheckStatus.NotEvaluated, result.Status);
+        Assert.Equal(invalid ? 1 : 0, result.Findings.Count);
+    }
+
+    [Fact]
+    public async Task ExternalCancellationOnLaterFileStillPropagates()
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", "timeout-invalid");
+        using var cancel = new CancellationTokenSource();
+        input.OnOpen = path => { if (path.EndsWith("stf-B.xml", StringComparison.Ordinal)) cancel.Cancel(); };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new PackageXmlInspector(standards: seed.Context)
+            .InspectAsync(input, PackageValidationCatalog.UsProfile, cancel.Token));
+    }
+
+    [Fact]
+    public async Task TimeoutBeforeFirstStfCannotInventRetainedFacts()
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", "timeout-invalid");
+        var clock = new ControlledClock();
+        input.OnOpen = path => { if (path.EndsWith("stf-A.xml", StringComparison.Ordinal)) clock.Expire(); };
+        var xml = await new PackageXmlInspector(clock, seed.Context).InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.True(clock.Expired);
+        Assert.Empty(xml.StudyTaggingFiles.Documents);
+        Assert.False(xml.StudyTaggingFiles.InventoryComplete);
+        Assert.Equal(2, input.Verifications);
+    }
+
+    [Fact]
+    public async Task DeadlineDuringFinalVerificationRequiresASeparateStableRecheck()
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", "valid");
+        var clock = new ControlledClock();
+        input.OnVerify = count => { if (count == 2) clock.Expire(); };
+        var xml = await new PackageXmlInspector(clock, seed.Context).InspectAsync(input, PackageValidationCatalog.UsProfile);
+        Assert.True(clock.Expired);
+        Assert.Equal(3, input.Verifications);
+        Assert.Single(xml.StudyTaggingFiles.Documents);
+        Assert.False(xml.StudyTaggingFiles.InventoryComplete);
+        Assert.Contains(xml.Checks.SelectMany(c => c.Findings), f => f.Code == "XML_READ_TIMEOUT");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedOrCancelledPostDeadlineVerificationCannotPublishFacts(bool cancelRecheck)
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", "timeout-invalid");
+        var clock = new ControlledClock();
+        using var cancel = new CancellationTokenSource();
+        input.OnOpen = path => { if (path.EndsWith("stf-B.xml", StringComparison.Ordinal)) clock.Expire(); };
+        input.OnVerify = count =>
+        {
+            if (count != 2) return;
+            if (cancelRecheck) cancel.Cancel();
+            else throw new IOException("Captured input cannot be verified after deadline.");
+        };
+        var inspector = new PackageXmlInspector(clock, seed.Context);
+        if (cancelRecheck) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => inspector.InspectAsync(input, PackageValidationCatalog.UsProfile, cancel.Token));
+        else await Assert.ThrowsAsync<IOException>(() => inspector.InspectAsync(input, PackageValidationCatalog.UsProfile, cancel.Token));
+        Assert.Equal(2, input.Verifications);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LifecycleKeepsBoundCompletedStfsAfterItsXmlStageTimeout(bool invalid)
+    {
+        var seed = await Fixture("valid");
+        var input = new Capture(Guid.NewGuid(), "0001", invalid ? "timeout-invalid" : "timeout-valid");
+        var packages = new PackageInputSet(input, new(input.Manifest.ApplicationId, "0001", []), []);
+        var clock = new ControlledClock();
+        input.OnOpen = path => { if (path.EndsWith("stf-B.xml", StringComparison.Ordinal)) clock.Expire(); };
+        var lifecycle = await new PackageLifecycleInspector(clock, seed.Context).InspectAsync(packages, PackageValidationCatalog.UsProfile);
+        var xml = Assert.Single(lifecycle.XmlInspections);
+        Assert.Single(xml.StudyTaggingFiles.Documents);
+        Assert.False(xml.StudyTaggingFiles.InventoryComplete);
+        var result = FdaStfXmlValidityRule.Inspect(packages, lifecycle, seed.Context, 10, default)!;
+        Assert.Equal(invalid ? CheckStatus.Fail : CheckStatus.NotEvaluated, result.Status);
+        if (invalid) Assert.Equal("0001/m4/study/stf-A.xml", Assert.Single(result.Findings).Location.LogicalPath);
+    }
+
+    [Theory]
     [InlineData("valid", CheckStatus.Pass)]
     [InlineData("missing-id", CheckStatus.Fail)]
     [InlineData("empty-root", CheckStatus.Fail)]
@@ -287,7 +398,7 @@ public sealed class FdaStfXmlValidityRuleTests
                 new XElement("m1-administrative-information-and-prescribing-information", Leaf("regional", "m1/us/us-regional.xml")), new XElement("m4-nonclinical-study-reports", section));
             _files[sequence + "/index.xml"] = Encoding.UTF8.GetBytes(new XDocument(new XDocumentType("ectd:ectd", null, "util/dtd/ich-ectd-3-2.dtd", null), root).ToString());
             const string declaration = "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd'>";
-            var id = scenario is "missing-id" or "unreferenced" or "two" ? "" : scenario == "empty-id" ? "<study-id/>" : scenario == "space-id" ? "<study-id> </study-id>" : "<study-id>A</study-id>";
+            var id = scenario is "missing-id" or "unreferenced" or "two" or "timeout-invalid" ? "" : scenario == "empty-id" ? "<study-id/>" : scenario == "space-id" ? "<study-id> </study-id>" : "<study-id>A</study-id>";
             var body = "<study-identifier><title>A</title>" + id + "</study-identifier><study-document/>";
             if (scenario == "empty-root") body = "";
             if (scenario == "wrong-order") body = "<study-document/><study-identifier><title>A</title><study-id>A</study-id></study-identifier>";
@@ -300,18 +411,54 @@ public sealed class FdaStfXmlValidityRuleTests
             if (scenario == "ordinary") stf = "<ordinary/>";
             if (!scenario.StartsWith("history", StringComparison.Ordinal) && scenario != "missing") _files[sequence + "/m4/study/" + name] = Encoding.UTF8.GetBytes(stf);
             if (scenario == "two") _files[sequence + "/m4/study/stf-B.xml"] = Encoding.UTF8.GetBytes(stf);
+            if (scenario is "timeout-invalid" or "timeout-valid") _files[sequence + "/m4/study/stf-B.xml"] = Encoding.UTF8.GetBytes(stf);
             Manifest = new(app, sequence, _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }
         private static XElement Leaf(string id, string href) => new("leaf", new XAttribute("ID", id), new XAttribute("operation", "new"), new XAttribute("checksum", new string('0', 32)), new XAttribute("checksum-type", "md5"), new XAttribute(XName.Get("href", "http://www.w3c.org/1999/xlink"), href), new XElement("title", id));
         public bool Armed { get; set; }
+        public Action<string>? OnOpen { get; set; }
+        public Action<int>? OnVerify { get; set; }
+        public int Verifications { get; private set; }
         public string SourceId => "fda1969-" + Manifest.SequenceNumber;
         public PackageSourceKind SourceKind => PackageSourceKind.Directory;
         public PackageInputManifest Manifest { get; }
         public string? ArchiveSha256 => null;
         public string InputDigest => Manifest.Digest;
         public PackageReadLimits Limits { get; set; } = new();
-        public Stream OpenRead(string path) => Armed ? throw new InvalidOperationException("Use frozen XML only.") : new MemoryStream(_files[path], false);
-        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default) => Armed ? throw new InvalidOperationException("Use frozen identity only.") : Task.CompletedTask;
+        public Stream OpenRead(string path)
+        {
+            if (Armed) throw new InvalidOperationException("Use frozen XML only.");
+            OnOpen?.Invoke(path);
+            return new MemoryStream(_files[path], false);
+        }
+        public Task VerifyUnchangedAsync(CancellationToken cancellationToken = default)
+        {
+            if (Armed) throw new InvalidOperationException("Use frozen identity only.");
+            Verifications++;
+            OnVerify?.Invoke(Verifications);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class ControlledClock : TimeProvider
+    {
+        private readonly List<(TimerCallback Callback, object? State)> _timers = [];
+        public bool Expired { get; private set; }
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        { _timers.Add((callback, state)); return new InertTimer(); }
+        public void Expire()
+        {
+            if (Expired) return;
+            Expired = true;
+            _timers[^1].Callback(_timers[^1].State); // XML timer only, not an enclosing lifecycle timer.
+        }
+        private sealed class InertTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 }
