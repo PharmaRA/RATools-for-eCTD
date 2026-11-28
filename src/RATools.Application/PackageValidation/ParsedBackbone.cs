@@ -54,7 +54,8 @@ public sealed class ParsedBackbone
     internal ParsedBackbone(string logicalPath, string profileSnapshotId, BackboneKind kind, bool readComplete, CheckStatus dtdStatus,
         string? documentTypeName, string? systemIdentifier, string? publicIdentifier,
         IEnumerable<ParsedXmlElement> elements, IEnumerable<ParsedCtdNode> nodes, IEnumerable<ParsedPackageLeaf> leaves,
-        IEnumerable<ParsedXmlId> ids, IEnumerable<string> resolvedAssets, IEnumerable<ParsedXmlProcessingInstruction>? processingInstructions = null)
+        IEnumerable<ParsedXmlId> ids, IEnumerable<string> resolvedAssets, IEnumerable<ParsedXmlProcessingInstruction>? processingInstructions = null,
+        IEnumerable<ParsedXmlProcessingInstruction>? partialProcessingInstructions = null)
     {
         LogicalPath = logicalPath;
         ProfileSnapshotId = profileSnapshotId;
@@ -71,6 +72,7 @@ public sealed class ParsedBackbone
             group => (IReadOnlyList<ParsedXmlId>)Array.AsReadOnly(group.ToArray()), StringComparer.Ordinal);
         ResolvedAssets = Array.AsReadOnly(resolvedAssets.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray());
         ProcessingInstructions = Array.AsReadOnly((processingInstructions ?? []).ToArray());
+        PartialProcessingInstructions = Array.AsReadOnly((partialProcessingInstructions ?? []).ToArray());
     }
 
     public string LogicalPath { get; }
@@ -87,6 +89,8 @@ public sealed class ParsedBackbone
     public IReadOnlyDictionary<string, IReadOnlyList<ParsedXmlId>> IdIndex { get; }
     public IReadOnlyList<string> ResolvedAssets { get; }
     public IReadOnlyList<ParsedXmlProcessingInstruction> ProcessingInstructions { get; }
+    // Fully observed PI events before a later parse failure; never proof of complete PI inventory.
+    public IReadOnlyList<ParsedXmlProcessingInstruction> PartialProcessingInstructions { get; }
 }
 
 public sealed class PackageXmlInspection
@@ -106,7 +110,7 @@ public sealed class PackageXmlInspection
 
     public string InputDigest { get; }
     public int SchemaVersion { get; } = 1;
-    public string EngineVersion { get; } = "package-xml-inspector-stf-v6";
+    public string EngineVersion { get; } = "package-xml-inspector-stf-v7";
     public string RulesDigest { get; }
     public string ProfileSnapshotId { get; }
     public string AssetManifestDigest { get; }

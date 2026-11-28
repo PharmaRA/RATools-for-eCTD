@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2003第三轮：尾部损坏前已观察stylesheet PI的保留（仍Partial，主代理限定只读自审及终态核对通过）。** 2002已提交`6206d12`。固定M1 v2.6物理第4/47页仍要求网站地址代替本地路径，不改变既有日期、URI或历史政策。本项修低层已保留PI事件却在未完整XML身份组装时被清空的证据丢失：新增独立不可变PartialProcessingInstructions，仅保存已完整读取的PI事件；既有完整PI集合语义不变。2003仍须实际区域根、捕获/配置/定位绑定后才消费部分PI，不以根前失败、未观察PI或resolver拒绝证明违规，不输出整条Pass。
+
+red两项均在真实区域根和XML尾部错误前提后复现预期2条实际1条，丢失本地相对/file:///样式违规。candidate八类 **339/339、0失败/跳过**（2003为70含新增14、XML42、生命周期49、区域50、2002为72、中断16、文件28、交付12），覆盖无PI/损坏后才出现PI、官网DTD在根前受阻、部分PI路径/序列/目标/语法/href冲突、finding额度及交付报告。旧未提供部分PI证据的NE用例保持；旧尾部真实证据改为保留DTD与样式两条，不放宽URI判据。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda2003-partial-pi-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。9交付/直接依赖输入SHA绑定；manifest SHA`1cecf0673db245f433fa41364507adc4da1b4af1f790d2785bf6a6ecf73f0495`、TRX SHA`8871fad938e628b689448e2df7994aa4e296ed7fea517d1085b5dddef46f8a24`；目录167条canonical SHA`6dc1add2c9d6cc8fb99bb7cddf43750d967aa82f793d97f8a5fd17a4f4a46cab`。两轮证据及校验副本位于`.artifacts/local-check/fda2003-partial-pi-*-20261128`和`backups/fda2003-partial-pi-20261128/evidence/`，bin/obj仅回收。XML-stf-v7、lifecycle-v4、file-v111；库存67/56/24、待完整覆盖80、原107完整27不变。2021实际提交见证继续保留依赖；下一2024当前/父申请原始属性证据，不改变非主成员历史范围，再2025/2026等后续项。
+
 **FDA2002第二轮：恢复STF身份的独立schema诊断（仍Partial，主代理限定只读自审及终态核对通过）。** 1969已提交`95ff33a`。1981/1985/1990缺依据边界保留，2001实际提交历史见证仍缺；2002历史引用归责亦不强行推定。本项依据固定criteria第43页接入当前RegionalMisclassificationCandidates：须唯一恢复观察、唯一无根且失败的US区域观察、当前捕获SHA与固定STF DTD匹配，再消费STF自身精确DTD_VALIDATION_ERROR/XML_NOT_WELL_FORMED诊断。合法STF仅被误作区域骨架不新增2002 Fail；不改普通STF集合或历史适用性。
 
 red四项2过2败，DTD缺陷/尾部损坏均在真实恢复根及确定诊断前提通过后复现NE；合法STF/仅声明对照正确。candidate七类 **377/377、0失败/跳过**（2002为72含新增23、1901为134、1969为60、发现55、中断16、文件28、交付12），覆盖SHA/根/资源、重复观察、区域配置/完成状态、诊断归属、I/O/限额分类、独立普通STF已知错误保留、finding额度/取消/报告精确定位。主代理限定只读自审通过，无子代理，candidate即最终证据。

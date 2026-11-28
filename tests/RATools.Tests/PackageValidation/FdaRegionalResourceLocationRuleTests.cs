@@ -16,6 +16,74 @@ public sealed class FdaRegionalResourceLocationRuleTests
     private const string OfficialStyle = "https://www.accessdata.fda.gov/static/eCTD/us-regional.xsl";
 
     [Theory]
+    [InlineData("tail", "../../util/style/us-regional.xsl")]
+    [InlineData("file-style-tail", "file:///resources/us-regional.xsl")]
+    public async Task ObservedStylesheetViolationSurvivesLaterXmlTailDamage(string scenario, string expectedHref)
+    {
+        var fixture = await Fixture(scenario);
+        var regional = Assert.Single(fixture.Xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.False(regional.ReadComplete);
+        Assert.Empty(regional.ProcessingInstructions);
+        Assert.Single(regional.PartialProcessingInstructions);
+        Assert.Single(regional.Elements, e => e.ParentPath is null && e.LocalName == "fda-regional");
+        Assert.Contains(fixture.Xml.Checks.SelectMany(c => c.Findings), f => f.Code == "XML_NOT_WELL_FORMED" && f.Location.LogicalPath == regional.LogicalPath);
+        var result = Direct(fixture)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.Equal(2, result.Findings.Count);
+        Assert.Equal(expectedHref, Assert.Single(result.Findings, f => f.Location.FieldPath == "xml-stylesheet/@href").Actual);
+    }
+
+    [Theory]
+    [InlineData("no-pi-tail")]
+    [InlineData("late-pi-tail")]
+    public async Task UnobservedPiAfterDamageDoesNotBecomeAStylesheetFinding(string scenario)
+    {
+        var fixture = await Fixture(scenario);
+        var regional = Assert.Single(fixture.Xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.False(regional.ReadComplete);
+        Assert.Empty(regional.ProcessingInstructions);
+        Assert.Empty(regional.PartialProcessingInstructions);
+        var result = Direct(fixture)!;
+        Assert.Equal("doctype/system", Assert.Single(result.Findings).Location.FieldPath);
+    }
+
+    [Theory]
+    [InlineData("official")]
+    [InlineData("http")]
+    public async Task PartialPiWithoutActualRegionalRootCannotEstablishViolation(string scenario)
+    {
+        var fixture = await Fixture(scenario);
+        var regional = Assert.Single(fixture.Xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.Empty(regional.Elements);
+        Assert.Single(regional.PartialProcessingInstructions);
+        var result = Direct(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("valid", CheckStatus.Fail)]
+    [InlineData("wrong-path", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-sequence", CheckStatus.NotEvaluated)]
+    [InlineData("wrong-target", CheckStatus.NotEvaluated)]
+    [InlineData("malformed", CheckStatus.NotEvaluated)]
+    [InlineData("official", CheckStatus.NotEvaluated)]
+    [InlineData("missing-href", CheckStatus.NotEvaluated)]
+    public async Task PartialPiRequiresBoundActualInstruction(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture("tail");
+        fixture = WithRegional(fixture, document => Copy(document, system: OfficialDtd, partialInstructions:
+        [new(scenario == "wrong-target" ? "other" : "xml-stylesheet",
+            scenario == "malformed" ? "href='unterminated" : scenario == "missing-href" ? "type='text/xsl'" :
+                "type='text/xsl' href='" + (scenario == "official" ? OfficialStyle : "../../util/style/us-regional.xsl") + "'",
+            new(scenario == "wrong-sequence" ? "0000" : "0001", scenario == "wrong-path" ? "0001/other.xml" : document.LogicalPath))]));
+        var result = Direct(fixture)!;
+        Assert.Equal(expected, result.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, result.Findings.Count);
+        Assert.Equal(CheckStatus.NotEvaluated, Direct(fixture, 0)!.Status);
+    }
+
+    [Theory]
     [InlineData("local", CheckStatus.Fail)]
     [InlineData("official", CheckStatus.NotEvaluated)]
     [InlineData("http", CheckStatus.NotEvaluated)]
@@ -36,7 +104,12 @@ public sealed class FdaRegionalResourceLocationRuleTests
         Assert.Equal(expected, check.Status);
         if (expected == CheckStatus.Fail) { Assert.NotEmpty(check.Findings); Assert.All(check.Findings, finding => Assert.Equal(ValidationSeverity.Error, finding.Severity)); }
         else Assert.Empty(check.Findings);
-        if (scenario == "tail") Assert.Equal("doctype/system", Assert.Single(check.Findings).Location.FieldPath);
+        if (scenario == "tail")
+        {
+            Assert.Equal(2, check.Findings.Count);
+            Assert.Contains(check.Findings, f => f.Location.FieldPath == "doctype/system");
+            Assert.Contains(check.Findings, f => f.Location.FieldPath == "xml-stylesheet/@href");
+        }
     }
 
     [Theory]
@@ -194,6 +267,7 @@ public sealed class FdaRegionalResourceLocationRuleTests
 
     [Theory]
     [InlineData("local", CheckStatus.Fail)]
+    [InlineData("tail", CheckStatus.Fail)]
     [InlineData("official", CheckStatus.NotEvaluated)]
     public async Task PartialReportDoesNotClaimApprovedUrlOrVersionQualification(string scenario, CheckStatus expected)
     {
@@ -222,8 +296,9 @@ public sealed class FdaRegionalResourceLocationRuleTests
         var xml = fixture.Xml;
         return WithXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest, xml.Backbones.Select(document => document.Kind == BackboneKind.UsRegional ? change(document) : document), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
     }
-    private static ParsedBackbone Copy(ParsedBackbone document, string? system = null, bool? complete = null, IEnumerable<ParsedXmlProcessingInstruction>? instructions = null, IEnumerable<ParsedXmlElement>? elements = null)
-        => new(document.LogicalPath, document.ProfileSnapshotId, document.Kind, complete ?? document.ReadComplete, document.DtdStatus, document.DocumentTypeName, system ?? document.SystemIdentifier, document.PublicIdentifier, elements ?? document.Elements, document.Nodes, document.Leaves, document.IdIndex.Values.SelectMany(ids => ids), document.ResolvedAssets, instructions ?? document.ProcessingInstructions);
+    private static ParsedBackbone Copy(ParsedBackbone document, string? system = null, bool? complete = null, IEnumerable<ParsedXmlProcessingInstruction>? instructions = null, IEnumerable<ParsedXmlElement>? elements = null,
+        IEnumerable<ParsedXmlProcessingInstruction>? partialInstructions = null)
+        => new(document.LogicalPath, document.ProfileSnapshotId, document.Kind, complete ?? document.ReadComplete, document.DtdStatus, document.DocumentTypeName, system ?? document.SystemIdentifier, document.PublicIdentifier, elements ?? document.Elements, document.Nodes, document.Leaves, document.IdIndex.Values.SelectMany(ids => ids), document.ResolvedAssets, instructions ?? document.ProcessingInstructions, partialInstructions ?? document.PartialProcessingInstructions);
 
     private static async Task<FixtureData> Fixture(string scenario, string? date = "2026-11-23", string variant = "valid")
     {
@@ -251,9 +326,11 @@ public sealed class FdaRegionalResourceLocationRuleTests
             var regional = Encoding.UTF8.GetString(_files["0001/m1/us/us-regional.xml"]);
             Assert.Contains("../../util/dtd/us-regional-v3-3.dtd", regional, StringComparison.Ordinal);
             if (scenario is "official" or "http") regional = regional.Replace("../../util/dtd/us-regional-v3-3.dtd", scenario == "http" ? OfficialDtd.Replace("https:", "http:", StringComparison.Ordinal) : OfficialDtd, StringComparison.Ordinal);
-            regional = regional.Insert(regional.IndexOf("<!DOCTYPE", StringComparison.Ordinal), "<?xml-stylesheet type='text/xsl' href='../../util/style/us-regional.xsl'?>");
-            if (scenario == "file-style") regional = regional.Replace("../../util/style/us-regional.xsl", "file:///resources/us-regional.xsl", StringComparison.Ordinal);
-            if (scenario == "tail") regional = regional[..^8];
+            const string stylePi = "<?xml-stylesheet type='text/xsl' href='../../util/style/us-regional.xsl'?>";
+            if (scenario is not ("no-pi-tail" or "late-pi-tail")) regional = regional.Insert(regional.IndexOf("<!DOCTYPE", StringComparison.Ordinal), stylePi);
+            if (scenario is "file-style" or "file-style-tail") regional = regional.Replace("../../util/style/us-regional.xsl", "file:///resources/us-regional.xsl", StringComparison.Ordinal);
+            if (scenario is "tail" or "file-style-tail") regional = regional[..^8];
+            if (scenario is "no-pi-tail" or "late-pi-tail") regional = regional[..^8] + (scenario == "late-pi-tail" ? stylePi : "");
             _files["0001/m1/us/us-regional.xml"] = Encoding.UTF8.GetBytes(regional);
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }

@@ -3851,10 +3851,10 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Detects source-prohibited local relative DTD/stylesheet locations and well-formed explicit file:/// URIs with empty host and no query/fragment. Does not open URI resources or use resolver rejection as regulatory evidence. Malformed escapes, network hosts and other URI forms remain unqualified. Current v2.6 interpretation is not backdated; historical applicability, unavailable declarations/PI, approved-URL parsing and stylesheet version identity remain incomplete. No whole-rule Pass is emitted.",
+      "implementationNote": "Detects source-prohibited local relative DTD/stylesheet locations and well-formed explicit file:/// URIs with empty host and no query/fragment. Fully observed stylesheet PI events are retained separately after later XML damage and can establish violations only with bound actual regional root identity. The complete PI collection remains unchanged; missing partial observations never prove absence. Does not open URI resources or use resolver rejection as regulatory evidence. Malformed escapes, network hosts and other URI forms remain unqualified. Current v2.6 interpretation is not backdated; historical applicability, unavailable declarations/PI, approved-URL parsing and stylesheet version identity remain incomplete. No whole-rule Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaRegionalResourceLocationRuleTests.cs", "tests/RATools.Tests/PackageValidation/FdaChecksumAttributeInterruptionTests.cs"],
-      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegionalResourceLocationRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs"],
+      "componentEvidence": ["src/RATools.Application/PackageValidation/FdaRegionalResourceLocationRule.cs", "src/RATools.Application/PackageValidation/PackageXmlDocumentReader.cs", "src/RATools.Application/PackageValidation/PackageXmlIdentityInspector.cs", "src/RATools.Application/PackageValidation/ParsedBackbone.cs"],
       "externalComparisonEvidence": []
     },
     {

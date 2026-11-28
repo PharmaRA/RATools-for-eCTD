@@ -54,9 +54,10 @@ internal static class FdaRegionalResourceLocationRule
                     roots[0].Attribute("dtd-version") != "3.3" || roots[0].Location.LogicalPath != document.LogicalPath || roots[0].Location.SequenceNumber != target.Manifest.SequenceNumber) continue;
                 if (ProhibitedLocal(document.LogicalPath, document.SystemIdentifier))
                     Fail(document.SystemIdentifier!, roots[0].Location with { FieldPath = "doctype/system" });
-                // The existing reader only retains PI observations after complete parsing.
-                if (!document.ReadComplete) continue;
-                foreach (var instruction in document.ProcessingInstructions)
+                // A fully observed PI may establish a local violation even when later XML
+                // fails. Partial observations never establish absence or a whole-rule Pass.
+                var instructions = document.ReadComplete ? document.ProcessingInstructions : document.PartialProcessingInstructions;
+                foreach (var instruction in instructions)
                 {
                     Tick();
                     if (instruction.Target != "xml-stylesheet" || instruction.Location.LogicalPath != document.LogicalPath || instruction.Location.SequenceNumber != target.Manifest.SequenceNumber) continue;
@@ -68,7 +69,7 @@ internal static class FdaRegionalResourceLocationRule
         catch (LocationWorkLimitException) { }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated,
-            "Detected source-prohibited local relative and qualified local file-URI DTD/stylesheet locations. Historical applicability, other URI forms, missing or unavailable declarations, approved-URL parsing and stylesheet version identity remain unqualified.", findings);
+            "Detected source-prohibited local relative and qualified local file-URI DTD/stylesheet locations, including fully observed PI events before later XML damage after regional root binding. Partial PI inventory cannot establish absence. Historical applicability, other URI forms, missing or unavailable declarations, approved-URL parsing and stylesheet version identity remain unqualified.", findings);
 
         void Tick() { cancellationToken.ThrowIfCancellationRequested(); if (work-- <= 0) throw new LocationWorkLimitException(); }
         bool ProhibitedLocal(string owner, string? value)

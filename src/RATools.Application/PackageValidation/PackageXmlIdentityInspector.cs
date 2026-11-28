@@ -129,7 +129,7 @@ internal static class PackageXmlIdentityInspector
             findings.Items.Any(finding => finding.RuleId == dtdRuleId && finding.Location.LogicalPath == logicalPath && finding.CheckStatus == CheckStatus.Fail)
                 ? CheckStatus.Fail : document.Complete ? CheckStatus.Pass : CheckStatus.NotEvaluated, document.DocumentTypeName,
             document.SystemId, document.PublicId, elements, nodes, leaves, ids, document.ResolvedAssets,
-            document.Complete ? document.ProcessingInstructions : []);
+            document.Complete ? document.ProcessingInstructions : [], document.Complete ? [] : document.ProcessingInstructions);
     }
 
     private static string? Title(ParsedXmlElement element, Dictionary<string, ParsedXmlElement> byPath) => element.Children.Select(path => byPath[path])
