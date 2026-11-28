@@ -6,7 +6,7 @@ public sealed class PackageDeliveryInspector(IPackagePdfInspector pdfInspector, 
 {
     public const string DeliveryEngineVersion = "package-delivery-v6";
     public string EngineVersion => VersionFor(pdfInspector.EngineVersion);
-    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v4;package-file-inspector-v114;package-pdf-validator-v34;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
+    public static string VersionFor(string pdfInspectorVersion) => DeliveryEngineVersion + ";package-lifecycle-inspector-v4;package-file-inspector-v115;package-pdf-validator-v34;" + pdfInspectorVersion + ";" + PackageRegionalInspector.RegionalEngineVersion;
     public PackageDeliveryInspector WithStandards(PackageStandardsContext context) => new(pdfInspector, timeProvider, context);
     public async Task<PackageDeliveryInspection> InspectAsync(PackageDeliveryInput input, string profileSnapshotId,
         CancellationToken cancellationToken = default)

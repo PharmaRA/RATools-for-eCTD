@@ -80,8 +80,8 @@ internal static class FdaDuplicateFormFileNameRule
                 {
                     Tick();
                     if (!elements.TryGetValue(leaf.NodePath, out var element) || element is not { Name: "leaf", LocalName: "leaf", NamespaceUri: "" } ||
-                        leaf.Operation is not ("new" or "replace" or "append") || element.Attribute("operation") != leaf.Operation ||
-                        leaf.Href is null || element.Attribute("href", "http://www.w3c.org/1999/xlink") != leaf.Href ||
+                        leaf.Operation is not ("new" or "replace" or "append") || !ExplicitMatches(element, "operation", "", leaf.Operation) ||
+                        leaf.Href is null || !ExplicitMatches(element, "href", "http://www.w3c.org/1999/xlink", leaf.Href) ||
                         leaf.Location.LogicalPath != regional.LogicalPath || leaf.Location.SequenceNumber != sequence) continue;
                     PackageReference reference;
                     try { reference = PackageLogicalPath.ResolveReference(regional.LogicalPath, leaf.Href); }
@@ -113,6 +113,18 @@ internal static class FdaDuplicateFormFileNameRule
         RuleCheckResult Result() => new(RuleId, findings.Count > 0 ? CheckStatus.Fail : CheckStatus.NotEvaluated,
             "Only exact current form-group filenames with a unique application association are counted. Actual form identity, other locations/numbers, unreferenced files, historical lifecycle and shared multi-application scope remain unqualified; absence of a duplicate is not Pass.", findings.ToArray());
         void Tick() { token.ThrowIfCancellationRequested(); if (work-- <= 0) throw new WorkLimitException(); }
+        bool ExplicitMatches(ParsedXmlElement element, string name, string namespaceUri, string expected)
+        {
+            ParsedXmlAttributeValue? selected = null;
+            foreach (var attribute in element.Attributes.Values)
+            {
+                Tick();
+                if (attribute.LocalName != name || attribute.NamespaceUri != namespaceUri) continue;
+                if (selected is not null) return false;
+                selected = attribute;
+            }
+            return selected is { IsDefault: false, ExplicitValue: not null } && selected.Value == expected && selected.ExplicitValue == expected;
+        }
         bool Contains(IEnumerable<string> values, string expected) { foreach (var value in values) { Tick(); if (value == expected) return true; } return false; }
     }
     private static RuleCheckResult Unknown(string reason) => new(RuleId, CheckStatus.NotEvaluated, reason);

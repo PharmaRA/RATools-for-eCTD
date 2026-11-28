@@ -4071,7 +4071,7 @@
       "requiredForReadiness": true,
       "allowsManualClosure": false,
       "implementationStatus": "Partial",
-      "implementationNote": "Groups distinct current referenced files by exact application type, six-digit number and filename marker 1571 or 356h. Repeated references to one file, including URI-encoded or fragment aliases, do not count twice. Different applications or types do not mix. Complete fixed-DTD regional facts, connected structure and raw leaf agreement are required. Actual form content identity, other numbers/locations, unreferenced files, historical lifecycle and shared multi-application groups remain unqualified; no Pass is emitted.",
+      "implementationNote": "Groups distinct current referenced files by exact application type, six-digit number and filename marker 1571 or 356h. Repeated references to one file, including URI-encoded or fragment aliases, do not count twice. Different applications or types do not mix. Complete fixed-DTD regional facts, connected structure and unique non-default explicit operation/href values matching each counted leaf are required. Unqualified leaves do not hide other independently known duplicate files. Actual form content identity, other numbers/locations, unreferenced files, historical lifecycle and shared multi-application groups remain unqualified; no Pass is emitted.",
       "positiveFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateFormFileNameRuleTests.cs"],
       "negativeFixtures": ["tests/RATools.Tests/PackageValidation/FdaDuplicateFormFileNameRuleTests.cs"],
       "componentEvidence": ["src/RATools.Application/PackageValidation/FdaDuplicateFormFileNameRule.cs", "src/RATools.Application/PackageValidation/PackageFormBindingReader.cs"],

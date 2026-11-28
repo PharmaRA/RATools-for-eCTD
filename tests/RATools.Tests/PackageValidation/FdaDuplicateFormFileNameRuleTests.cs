@@ -139,6 +139,75 @@ public sealed class FdaDuplicateFormFileNameRuleTests
         Assert.Equal(CheckStatus.NotEvaluated, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, item => item.RuleId == RuleId).CheckStatus);
     }
 
+    [Theory]
+    [InlineData("href", "valid", CheckStatus.Fail)]
+    [InlineData("href", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("href", "default", CheckStatus.NotEvaluated)]
+    [InlineData("href", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("operation", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("operation", "default", CheckStatus.NotEvaluated)]
+    [InlineData("operation", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("operation", "duplicate", CheckStatus.NotEvaluated)]
+    [InlineData("href", "duplicate", CheckStatus.NotEvaluated)]
+    [InlineData("operation", "normalized", CheckStatus.NotEvaluated)]
+    [InlineData("href", "normalized", CheckStatus.NotEvaluated)]
+    public async Task CountedLeafRequiresOriginalExplicitAttribute(string name, string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture("duplicate");
+        var lifecycle = ChangeLeafAttribute(fixture, "two", name, scenario);
+        var check = Direct(fixture, lifecycle)!;
+        Assert.Equal(expected, check.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, check.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData("one", "href")]
+    [InlineData("three", "href")]
+    [InlineData("one", "operation")]
+    [InlineData("three", "operation")]
+    public async Task UnqualifiedLeafDoesNotHideOtherKnownDuplicateFiles(string unknownId, string attribute)
+    {
+        var fixture = await Fixture("three-files");
+        var lifecycle = ChangeLeafAttribute(fixture, unknownId, attribute, "missing");
+        var check = Direct(fixture, lifecycle)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        var finding = Assert.Single(check.Findings);
+        var unknownPath = "0001/m1/us/" + (unknownId == "one" ? "1571.pdf" : "extra1571.pdf");
+        Assert.Equal(2, finding.Location.Files!.Count);
+        Assert.DoesNotContain(finding.Location.Files, file => file.LogicalPath == unknownPath);
+        Assert.Equal(CheckStatus.NotEvaluated, Direct(fixture, lifecycle, remaining: 0)!.Status);
+        Assert.Single(Direct(fixture, lifecycle, remaining: 1)!.Findings);
+    }
+
+    private static PackageLifecycleInspection ChangeLeafAttribute(FixtureData fixture, string leafId, string name, string scenario)
+    {
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var regional = Assert.Single(xml.Backbones, item => item.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        var leaf = Assert.Single(regional.Leaves, item => item.Id == leafId);
+        var selected = Assert.Single(regional.Elements, item => item.NodePath == leaf.NodePath);
+        var original = Assert.Single(selected.Attributes.Values, item => item.LocalName == name);
+        Assert.False(original.IsDefault);
+        Assert.Equal(original.Value, original.ExplicitValue);
+        var elements = regional.Elements.Select(element => element != selected ? element : new ParsedXmlElement(
+            element.NodePath, element.ParentPath, element.Name, element.LocalName, element.NamespaceUri,
+            element.Attributes.Values.Select(attribute => attribute != original ? attribute : scenario switch
+            {
+                "missing" => attribute with { ExplicitValue = null },
+                "default" => attribute with { IsDefault = true },
+                "conflict" => attribute with { ExplicitValue = "conflicting-original" },
+                "normalized" => attribute with { ExplicitValue = " " + attribute.Value + " " },
+                _ => attribute
+            }).Concat(scenario == "duplicate" ? [original with { Name = "duplicate:" + original.LocalName }] : []), element.Children, element.Text, element.Location)).ToArray();
+        var changed = new ParsedBackbone(regional.LogicalPath, regional.ProfileSnapshotId, regional.Kind,
+            regional.ReadComplete, regional.DtdStatus, regional.DocumentTypeName, regional.SystemIdentifier, regional.PublicIdentifier,
+            elements, regional.Nodes, regional.Leaves, regional.IdIndex.Values.SelectMany(value => value), regional.ResolvedAssets);
+        var modified = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Select(item => item == regional ? changed : item), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        return new(fixture.Input.Packages, fixture.Lifecycle.ProfileSnapshotId, [modified], [], [], [], fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest);
+    }
+
     [Fact]
     public async Task PreCancelledCallPropagates()
     {
@@ -231,6 +300,7 @@ public sealed class FdaDuplicateFormFileNameRuleTests
             }
             else if (scenario == "different-form-type") xml.Descendants("m1-1-forms").Single().Add(secondForm);
             else if (scenario != "shared-single-app") firstForm.Add(secondForm.Elements("leaf"));
+            if (scenario == "three-files") firstForm.Add(Form("three", "extra1571.pdf").Elements("leaf"));
             if (scenario == "later-unknown")
             {
                 var other = new XElement(application);
@@ -249,6 +319,7 @@ public sealed class FdaDuplicateFormFileNameRuleTests
             _files = original.Manifest.Files.ToDictionary(file => file.LogicalPath, file => { using var stream = original.OpenRead(file.LogicalPath); using var output = new MemoryStream(); stream.CopyTo(output); return output.ToArray(); }, StringComparer.Ordinal);
             foreach (var path in new[] { "1571.pdf", "other1571.pdf", "attachment.pdf", "356h.pdf", "1571/attachment.pdf" })
                 if (scenario != "missing-file" || path != "other1571.pdf") _files["0001/m1/us/" + path] = "fixture"u8.ToArray();
+            if (scenario == "three-files") _files["0001/m1/us/extra1571.pdf"] = "fixture"u8.ToArray();
             Manifest = new(app, "0001", _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }
         private static XElement Form(string id, string href) => new("form", new XAttribute("form-type", "fdaft1"),

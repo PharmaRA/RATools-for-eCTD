@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5032第二轮：计数叶的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 5005已提交`3e00e67`。本项要求计数叶operation与xlink:href具有唯一、非默认且与派生值一致的原始显式属性，枚举纳入工作预算；不以规范化值补造原文。未知叶只排除自身，不遮蔽其他两个确定重复文件；既有申请分组、文件去重、marker与Info严重级别不变。不改共享PackageFormBindingReader，不将文件名组件当实际表单身份。
+
+red五项1过4败，正常原文对照通过，缺失/默认/冲突原文均误Fail；candidate七类 **216/216、0失败/跳过**（5032为59含新增15、绑定读取8、绑定9、表单操作12、表单类型88、文件28、交付12），覆盖两属性缺原文/默认/冲突/重复/规范化不一致、未知叶在前后且另一重复保留、零/一条finding额度及既有取消/日期/Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5032-raw-leaf-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。7交付/直接依赖输入SHA绑定；manifest SHA`1b5a8a3cb821d90476b3c87219bc7a80e4bff24299a12fd7067cf7f55b24fbe4`、TRX SHA`42b591ea48c7c617bd0dae2ccfa4307175bfaf6eb0aac15001adb9297af97214`；目录167条canonical SHA`ee485aeb34b05c2ae458fe78dc6e630d6676597b967e0f30801099c538b94d88`独立合同通过。两轮证据及校验副本位于`.artifacts/local-check/fda5032-raw-leaf-*-20261128`和`backups/fda5032-raw-leaf-20261128/evidence/`，bin/obj仅回收。file-v115、PDF-validator-v34，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一按序5035及后续未闭合项，缺规范依据继续保留依赖，不重开已Implemented项。
+
 **FDA5005第三轮：字体观察冲突局部隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 3102已提交`cc47401`。本项只改变冻结字体观察的重复路径归责：先完成有界唯一性扫描，重复路径自身保持未知，但不隐藏另一唯一路径的确定未嵌入字体；同值重复同样不授权。空定位不能产生finding，工作与finding预算保持。字体白名单、真实读取器、继承及嵌入状态政策不变，任意字体身份、完整/子集程序、嵌套资源和历史适用性继续留队。
 
 red四项全败复现另一唯一路径被重复观察提前退出隐藏；candidate七类247/247通过。主代理只读自审发现HashSet改Dictionary可能引入null定位异常，review-red六项4过2败明确复现ArgumentNullException；加入空定位先排除门槛后final七类 **253/253、0失败/跳过**（5005为91含新增12、当前3102为52、历史30、PDF管线23、解析器17、文件28、交付12）。覆盖冲突前后、同值/矛盾重复、零/一条finding额度、完整预扫描工作不足、null/空串/空白定位及既有取消/Partial报告。主代理限定只读自审闭合，无子代理，final是最终证据。
