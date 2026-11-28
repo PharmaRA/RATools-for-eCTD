@@ -18,10 +18,14 @@ public sealed class ParsedStudyTaggingFile(string logicalPath, string? capturedS
 
 // Discovery/DTD facts, not STF business-rule acceptance or evidence that all studies have STFs.
 public sealed class PackageStfInspection(bool inventoryComplete, IEnumerable<ParsedStudyTaggingFile> documents,
-    IEnumerable<ValidationFinding>? findings = null)
+    IEnumerable<ValidationFinding>? findings = null, IEnumerable<ParsedStudyTaggingFile>? regionalMisclassificationCandidates = null)
 {
     public bool InventoryComplete { get; } = inventoryComplete;
     public IReadOnlyList<ParsedStudyTaggingFile> Documents { get; } = Array.AsReadOnly(documents.ToArray());
     public IReadOnlyList<ValidationFinding> Findings { get; } = Array.AsReadOnly((findings ?? []).ToArray());
+    // Separate observations only: a failed regional read is never reclassified as a valid backbone
+    // or silently introduced into the ordinary STF business-rule scope.
+    public IReadOnlyList<ParsedStudyTaggingFile> RegionalMisclassificationCandidates { get; } =
+        Array.AsReadOnly((regionalMisclassificationCandidates ?? []).ToArray());
     public static PackageStfInspection Unknown { get; } = new(false, []);
 }

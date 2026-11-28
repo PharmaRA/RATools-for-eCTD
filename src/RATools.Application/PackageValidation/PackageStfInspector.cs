@@ -14,6 +14,7 @@ internal static class PackageStfInspector
     {
         var start = findings.Items.Count;
         var documents = new List<ParsedStudyTaggingFile>();
+        var regionalCandidates = new List<ParsedStudyTaggingFile>();
         var complete = backbones.Count > 0 && backbones.All(document => document.ReadComplete);
         var prefixWork = input.Limits.MaxXmlNodes;
         try
@@ -78,6 +79,45 @@ internal static class PackageStfInspector
                 documents.Add(new(path, file.Sha256, read.Complete, status, read.SystemId, read.Elements, read.ProcessingInstructions, read.ResolvedAssets));
                 if (findings.StructureLimitReached || findings.Truncated) { complete = false; break; }
             }
+            // A module-one reference may have sent a real STF through the regional reader,
+            // which stops before publishing its root. Recover a separate, pinned-profile
+            // observation without erasing the regional failure or changing ordinary STF scope.
+            var recoveryPaths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var backbone in backbones)
+            {
+                SpendPrefixWork();
+                if (backbone.Kind != BackboneKind.Ich || backbone.LogicalPath != prefix + "index.xml" ||
+                    !backbone.ReadComplete || backbone.DtdStatus != CheckStatus.Pass) continue;
+                foreach (var leaf in backbone.Leaves)
+                {
+                    SpendPrefixWork();
+                    if (!leaf.IsRegionalReference || leaf.Operation is not ("new" or "append" or "replace") || leaf.Href is null) continue;
+                    PackageReference reference;
+                    try { reference = PackageLogicalPath.ResolveReference(backbone.LogicalPath, leaf.Href); }
+                    catch (ArgumentException) { continue; }
+                    if (reference.LogicalPath is not { } path || !path.StartsWith(prefix, StringComparison.Ordinal) ||
+                        reference.Query is not null || reference.Fragment is not null || !files.ContainsKey(path)) continue;
+                    var matches = new List<ParsedBackbone>();
+                    foreach (var observed in backbones) { SpendPrefixWork(); if (observed.LogicalPath == path) matches.Add(observed); }
+                    if (matches.Count == 1 && matches[0].Kind == BackboneKind.UsRegional && !matches[0].ReadComplete &&
+                        matches[0].DtdStatus != CheckStatus.Pass && matches[0].Elements.Count == 0) recoveryPaths.Add(path);
+                }
+            }
+            foreach (var path in recoveryPaths.Order(StringComparer.Ordinal))
+            {
+                SpendPrefixWork();
+                if (findings.StructureLimitReached || findings.Truncated) break;
+                if (backbones.Count + documents.Count + regionalCandidates.Count >= input.Limits.MaxBackbones)
+                { Issue("STF_DOCUMENT_LIMIT", "STF recovery exceeds the selected document budget.", path); break; }
+                if (await ProbeAsync(input, path, findings, cancellationToken).ConfigureAwait(false) != true) continue;
+                var before = findings.Items.Count;
+                var read = await PackageXmlDocumentReader.ReadAsync(input, path, assets, Profile, findings, cancellationToken).ConfigureAwait(false);
+                var observations = findings.Items.Skip(before).ToArray();
+                var status = observations.Any(item => item.CheckStatus == CheckStatus.Fail) ? CheckStatus.Fail :
+                    !read.Complete || observations.Any(item => item.CheckStatus == CheckStatus.NotEvaluated) ? CheckStatus.NotEvaluated : CheckStatus.Pass;
+                regionalCandidates.Add(new(path, files[path].Sha256, read.Complete, status, read.SystemId,
+                    read.Elements, read.ProcessingInstructions, read.ResolvedAssets));
+            }
         }
         catch (XmlInspectionLimitException) { complete = false; }
         cancellationToken.ThrowIfCancellationRequested();
@@ -90,7 +130,7 @@ internal static class PackageStfInspector
                 new(input.Manifest.SequenceNumber, path)));
         }
         PackageStfInspection Finish() => new(complete && !findings.Truncated && !findings.StructureLimitReached,
-            documents, findings.Items.Skip(start));
+            documents, findings.Items.Skip(start), regionalCandidates);
         void SpendPrefixWork()
         {
             cancellationToken.ThrowIfCancellationRequested();

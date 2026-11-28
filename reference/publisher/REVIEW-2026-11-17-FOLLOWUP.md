@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA1901第四轮：ICH模块1误作区域骨架的实际STF身份（仍Partial，主代理限定只读自审及终态核对通过）。** 最低研究报告章节已提交`172fc6c`。固定criteria第39页明确模块限制。本项修复区域读取先占用路径、STF发现排除已知骨架导致的身份缺口：对当前ICH模块1非delete叶指向、唯一US区域读取失败且无根元素的同捕获文件，按固定STF配置建立独立RegionalMisclassificationCandidates观察；普通STF Documents集合不变、原区域失败不擦除、不将候选提升为合法骨架。共享节点/字符/文档预算及离线资源解析器；1901再核对实际study根、捕获SHA、固定DTD资源、唯一失败区域观察、原始显式ICH叶及唯一连根位置。仅声明/错误根/根前截断或冲突保持NE，已确认根后的尾部损坏保留位置Fail。
+
+red五项3过2败，完整STF/尾部损坏均在完整ICH及区域失败前提通过后复现NE。candidate九类445/445；自审补外部/内部DTD拒绝、错误命名空间、根前截断、同路径多owner去重、未知owner前后已知违规保留及工作预算相邻边界，生产不追加修改。final九类 **452/452、0失败/跳过**（1901为134含新增26、发现55、XML42、生命周期49、区域50、1884为66、中断16、文件28、交付12），文档预算3/4、finding额度、取消、原区域失败和普通STF集合隔离均有回归。主代理限定只读自审通过，无子代理。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda1901-misclassified-stf-final-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。13交付/直接依赖输入SHA绑定；manifest SHA`71d4b5896b0263d381d93c03b96f5574a2a1a0fbad31b51349f3ce877ebd1690`、TRX SHA`0cd595ef3232fdce0a601132578eeb2bcdbd358a5128e8c484a5a24f82f177f6`；目录167条canonical SHA`3222a47bd5f999c8e94e678dd3aca37421d54c12162b28dd465e1d2a4b21ed07`。三轮证据及校验副本位于`.artifacts/local-check/fda1901-misclassified-stf-*-20261128`和`backups/fda1901-misclassified-stf-20261128/evidence/`，bin/obj仅回收。XML-stf-v5、lifecycle-v2、file-v108，PDF/交付版本不变；库存67/56/24、待完整覆盖80、原107完整27不变。1901其余聚合/扩展/其他章节仍留队，恢复观察未自动扩展其他STF规则范围。下一按序1918祖先content-block file-tag继承语义及后续未闭合项，已Implemented项不重开。
+
 **FDA1901第三轮：最低标准研究报告章节的位置正向资格（仍Partial，主代理限定只读自审及终态核对通过）。** 区域STF分支已提交`769df8a`。固定FDA eCTD技术指南1.9物理第12/20/21页（正文6/14/15页）明确4.2及5.3.1–5.3.5的STF供应与最低层级研究报告放置；来源SHA`d39c23c6934146d1de687a095fdd5d2f900350b8a53856260b32690f333c8c5c`与快照绑定一致。本项仅在归档指南存在、选择日期不早于2024-09-09、无标准子章节的研究报告节点、完整owner上下文、原始显式叶属性/定位和唯一连根父链一致时给位置组件Pass。聚合父节点、node-extension、4.3/5.2/5.3.6/5.4及其他未资格章节仍NE，不以非必需推定禁止；不判断研究内容与章节的专业适配性，不影响独立模块外Fail。
 
 red四项2过2败，两类最低研究报告节点在完整真实ICH/STF前提后复现NE，缺指南/扩展节点对照正确。candidate八类 **386/386、0失败/跳过**（1901为108含新增30、1789为51、发现55、区域50、1884为66、中断16、文件28、交付12）。覆盖4.2两类及5.3.1–5.3.5代表节点、聚合及非必需章节、历史内容、多个owner、指南缺失/日期边界、原始属性/位置/重复归属/多根/上下文冲突、零finding额度Pass、Partial报告仍NE，以及有/无指南时独立区域Fail保留。主代理限定只读自审通过，无子代理，candidate即最终证据。

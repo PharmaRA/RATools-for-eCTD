@@ -15,6 +15,168 @@ public sealed class FdaStfTocLocationRuleTests
     private const string RuleId = "FDA47-1901";
 
     [Theory]
+    [InlineData("valid", CheckStatus.Fail)]
+    [InlineData("tail", CheckStatus.Fail)]
+    [InlineData("wrong-root", CheckStatus.NotEvaluated)]
+    [InlineData("missing-root", CheckStatus.NotEvaluated)]
+    [InlineData("ordinary", CheckStatus.NotEvaluated)]
+    public async Task MisclassifiedRegionalReferenceRequiresActualStudyRoot(string scenario, CheckStatus expected)
+    {
+        var fixture = await Fixture("m1", scenario);
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var index = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.Ich);
+        Assert.Equal(CheckStatus.Pass, index.DtdStatus);
+        var owner = Assert.Single(index.Leaves, l => l.Id == "owner");
+        Assert.True(owner.IsRegionalReference);
+        var path = "0001/" + owner.Href;
+        var mistaken = Assert.Single(xml.Backbones, b => b.LogicalPath == path);
+        Assert.Equal(BackboneKind.UsRegional, mistaken.Kind);
+        Assert.False(mistaken.ReadComplete);
+        Assert.NotEqual(CheckStatus.Pass, mistaken.DtdStatus);
+        Assert.Empty(mistaken.Elements);
+        Assert.Empty(xml.StudyTaggingFiles.Documents);
+        if (scenario is "valid" or "tail")
+        {
+            var recovered = Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+            Assert.Equal(path, recovered.LogicalPath);
+            Assert.Equal(scenario == "valid", recovered.ReadComplete);
+            Assert.Equal(fixture.Packages.Target.Manifest.Files.Single(f => f.LogicalPath == path).Sha256, recovered.CapturedSha256);
+            Assert.Equal("study", Assert.Single(recovered.Elements, e => e.ParentPath is null).LocalName);
+        }
+        else Assert.DoesNotContain(xml.StudyTaggingFiles.RegionalMisclassificationCandidates.SelectMany(c => c.Elements),
+            e => e.ParentPath is null && e.LocalName == "study");
+        var result = Inspect(fixture)!;
+        Assert.Equal(expected, result.Status);
+        if (expected == CheckStatus.Fail)
+        {
+            var finding = Assert.Single(result.Findings);
+            Assert.Equal("0001/index.xml", finding.Location.LogicalPath);
+            Assert.Equal("m1", finding.Actual);
+            Assert.Contains(finding.Location.Files!, f => f.LogicalPath == path);
+        }
+        else Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData("hash")]
+    [InlineData("duplicate-candidate")]
+    [InlineData("missing-root")]
+    [InlineData("root-location")]
+    [InlineData("missing-dtd")]
+    [InlineData("duplicate-regional")]
+    [InlineData("regional-profile")]
+    [InlineData("missing-raw-href")]
+    [InlineData("conflicting-operation")]
+    [InlineData("leaf-location")]
+    [InlineData("second-parent")]
+    public async Task RecoveredIdentityAndItsCurrentOwnerMustAgree(string scenario)
+    {
+        var fixture = await Fixture("m1");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var candidate = Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        var changed = new ParsedStudyTaggingFile(candidate.LogicalPath, scenario == "hash" ? new string('f', 64) : candidate.CapturedSha256,
+            candidate.ReadComplete, candidate.DtdStatus, candidate.SystemIdentifier,
+            scenario == "missing-root" ? [] : candidate.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+                e.Attributes.Values, e.Children, e.Text, scenario == "root-location" && e.ParentPath is null ? e.Location with { LogicalPath = "0000/wrong.xml" } : e.Location)),
+            candidate.ProcessingInstructions, scenario == "missing-dtd" ? [] : candidate.ResolvedAssets);
+        var backbones = xml.Backbones.Select(b =>
+        {
+            var owner = b.Leaves.SingleOrDefault(l => l.Id == "owner");
+            return new ParsedBackbone(b.LogicalPath, scenario == "regional-profile" && b.LogicalPath == candidate.LogicalPath ? PackageValidationCatalog.EuProfile : b.ProfileSnapshotId,
+                b.Kind, b.ReadComplete, b.DtdStatus, b.DocumentTypeName, b.SystemIdentifier, b.PublicIdentifier,
+                b.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+                    e.Attributes.Values.Select(a => e.NodePath != owner?.NodePath ? a : (scenario, a.LocalName) switch
+                    {
+                        ("missing-raw-href", "href") => a with { ExplicitValue = null },
+                        ("conflicting-operation", "operation") => a with { ExplicitValue = "delete" }, _ => a
+                    }), scenario == "second-parent" && owner is not null && e.ParentPath is null ? e.Children.Append(owner.NodePath) : e.Children,
+                    e.Text, e.Location)), b.Nodes,
+                b.Leaves.Select(l => scenario == "leaf-location" && l == owner ? l with { Location = l.Location with { LogicalPath = "0000/index.xml" } } : l),
+                b.IdIndex.Values.SelectMany(ids => ids), b.ResolvedAssets);
+        }).ToList();
+        if (scenario == "duplicate-regional") backbones.Add(backbones.Single(b => b.LogicalPath == candidate.LogicalPath));
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest, backbones, xml.Checks, xml.RulesDigest,
+            new(xml.StudyTaggingFiles.InventoryComplete, xml.StudyTaggingFiles.Documents, xml.StudyTaggingFiles.Findings,
+                scenario == "duplicate-candidate" ? [changed, changed] : [changed])));
+        var result = Inspect(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData(3, CheckStatus.NotEvaluated)]
+    [InlineData(4, CheckStatus.Fail)]
+    public async Task RecoverySharesTheDocumentBudget(int documents, CheckStatus expected)
+    {
+        var fixture = await Fixture("m1", limits: new() { MaxBackbones = documents });
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        Assert.Equal(documents == 4 ? 1 : 0, xml.StudyTaggingFiles.RegionalMisclassificationCandidates.Count);
+        Assert.Equal(expected, Inspect(fixture)!.Status);
+    }
+
+    [Fact]
+    public async Task RecoveryKeepsRegionalFailureAndOrdinaryStfScopeUnchanged()
+    {
+        var fixture = await Fixture("m1");
+        Assert.Equal(CheckStatus.NotEvaluated, Inspect(fixture, 0)!.Status);
+        using var cancel = new CancellationTokenSource();
+        RuleCheckResult? retained = null;
+        Assert.ThrowsAny<OperationCanceledException>(() => Inspect(fixture, 1, check =>
+        { retained = check; if (check.Status == CheckStatus.Fail) cancel.Cancel(); }, cancel.Token));
+        Assert.Equal(CheckStatus.Fail, retained!.Status);
+        foreach (var input in fixture.Packages.Sequences.Values.Cast<Capture>()) input.Armed = false;
+        var delivery = await new PackageDeliveryInspector(new PdfPigPackageInspector(), standards: fixture.Context)
+            .InspectAsync(new(fixture.Packages), PackageValidationCatalog.UsProfile);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.Files.Checks, c => c.RuleId == RuleId).Status);
+        Assert.Equal(CheckStatus.Fail, Assert.Single(delivery.CreateReport(PackageValidationMode.Development).Coverage, c => c.RuleId == RuleId).CheckStatus);
+        var xml = Assert.Single(delivery.Lifecycle.XmlInspections);
+        Assert.Empty(xml.StudyTaggingFiles.Documents);
+        Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        Assert.Contains(xml.Checks, c => c.Status == CheckStatus.Fail);
+    }
+
+    [Theory]
+    [InlineData("external-dtd")]
+    [InlineData("internal-dtd")]
+    [InlineData("wrong-namespace")]
+    [InlineData("before-root")]
+    public async Task RecoveryCannotTurnUnsafeOrAbsentRootIntoStfIdentity(string scenario)
+    {
+        var fixture = await Fixture("m1", scenario);
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        Assert.Empty(xml.StudyTaggingFiles.Documents);
+        Assert.DoesNotContain(xml.StudyTaggingFiles.RegionalMisclassificationCandidates.SelectMany(c => c.Elements),
+            e => e.ParentPath is null && e.LocalName == "study");
+        var result = Inspect(fixture)!;
+        Assert.Equal(CheckStatus.NotEvaluated, result.Status);
+        Assert.Empty(result.Findings);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RecoveryDeduplicatesContentButRetainsIndependentKnownOwners(bool reverse)
+    {
+        var fixture = await Fixture("m1", "two");
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        Assert.Single(xml.StudyTaggingFiles.RegionalMisclassificationCandidates);
+        Assert.Equal(2, Inspect(fixture)!.Findings.Count);
+        var index = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.Ich);
+        var elements = index.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => e.Attribute("ID") == "owner" && a.LocalName == "href" ? a with { ExplicitValue = null } : a),
+            e.Children, e.Text, e.Location));
+        if (reverse) elements = elements.Reverse();
+        var changed = new ParsedBackbone(index.LogicalPath, index.ProfileSnapshotId, index.Kind, index.ReadComplete, index.DtdStatus,
+            index.DocumentTypeName, index.SystemIdentifier, index.PublicIdentifier, elements, index.Nodes, index.Leaves,
+            index.IdIndex.Values.SelectMany(ids => ids), index.ResolvedAssets);
+        fixture = ReplaceXml(fixture, new(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b != index).Prepend(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles));
+        var result = Inspect(fixture, 1)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.Equal("owner2", Assert.Single(result.Findings).Location.LeafId);
+    }
+
+    [Theory]
     [InlineData("m4-study", "valid", "valid", CheckStatus.Pass)]
     [InlineData("m5-study", "valid", "valid", CheckStatus.Pass)]
     [InlineData("m4-study", "valid", "missing-guide", CheckStatus.NotEvaluated)]
@@ -256,7 +418,7 @@ public sealed class FdaStfTocLocationRuleTests
     [InlineData("m2", "history-only", CheckStatus.NotApplicable)]
     [InlineData("m2", "history-missing", CheckStatus.NotEvaluated)]
     [InlineData("m2", "history-fragment", CheckStatus.NotEvaluated)]
-    [InlineData("m1", "valid", CheckStatus.NotEvaluated)]
+    [InlineData("m1", "valid", CheckStatus.Fail)]
     [InlineData("m2", "index-tail", CheckStatus.NotEvaluated)]
     public async Task RealOwnerLocationDoesNotBorrowPhysicalFolderOrHistoricalPlacement(string module, string scenario, CheckStatus expected)
     {
@@ -430,10 +592,12 @@ public sealed class FdaStfTocLocationRuleTests
         Assert.Equal(expected, Assert.Single(result.CreateReport(PackageValidationMode.Development).Coverage, check => check.RuleId == RuleId).CheckStatus);
     }
 
-    [Fact]
-    public async Task RegionalWorkLimitHasAnExactEvidenceBoundary()
+    [Theory]
+    [InlineData("regional")]
+    [InlineData("m1")]
+    public async Task RegionalWorkLimitHasAnExactEvidenceBoundary(string module)
     {
-        var fixture = await Fixture("regional");
+        var fixture = await Fixture(module);
         var capture = Assert.IsType<Capture>(fixture.Packages.Target);
         var original = Assert.Single(fixture.Lifecycle.XmlInspections);
         var low = 1;
@@ -477,7 +641,7 @@ public sealed class FdaStfTocLocationRuleTests
     { Lifecycle = new(fixture.Packages, fixture.Lifecycle.ProfileSnapshotId, fixture.Lifecycle.XmlInspections.Where(xml => xml.InputDigest != changed.InputDigest).Append(changed),
         fixture.Lifecycle.Events, fixture.Lifecycle.States, fixture.Lifecycle.Checks, fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest) };
 
-    private static async Task<FixtureData> Fixture(string module, string scenario = "valid", string variant = "valid", string? date = "2026-11-23")
+    private static async Task<FixtureData> Fixture(string module, string scenario = "valid", string variant = "valid", string? date = "2026-11-23", PackageReadLimits? limits = null)
     {
         var snapshot = await new StandardsSnapshotService(new InMemoryStandardsSnapshotStore(), new FdaEctd322StandardsProfileProvider()).CaptureAsync("us-fda-ectd-3.2.2");
         if (variant is "missing-source" or "missing-spec" or "missing-guide")
@@ -489,6 +653,7 @@ public sealed class FdaStfTocLocationRuleTests
         var context = PackageStandardsContext.FromSnapshot(snapshot, selectionDate: date is null ? null : DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture));
         var app = Guid.NewGuid();
         var target = new Capture(app, "0001", module, scenario);
+        if (limits is not null) target.Limits = limits;
         var history = scenario is "history" or "history-only" or "history-fragment" or "history-tail" ? new Capture(app, "0000", "m4", scenario == "history-tail" ? "tail" : "valid") : null;
         var packages = new PackageInputSet(target, new(app, "0001", history is null ? [] : [new("0000", HistorySourceKind.ImportedExternal, history.SourceId, history.InputDigest, PackageValidationCatalog.UsProfile, HistoryTrustStatus.Unverified)]), history is null ? [] : [history]);
         var lifecycle = await new PackageLifecycleInspector(standards: context).InspectAsync(packages, PackageValidationCatalog.UsProfile);
@@ -590,6 +755,10 @@ public sealed class FdaStfTocLocationRuleTests
             if (scenario == "wrong-root") stf = declaration + "<other/>";
             if (scenario == "missing-root") stf = declaration;
             if (scenario == "ordinary") stf = "<ordinary/>";
+            if (scenario == "external-dtd") stf = stf.Replace("../../util/dtd/ich-stf-v2-2.dtd", "https://invalid.example/untrusted.dtd", StringComparison.Ordinal);
+            if (scenario == "internal-dtd") stf = stf.Replace(declaration, "<!DOCTYPE ectd:study SYSTEM '../../util/dtd/ich-stf-v2-2.dtd' [<!ENTITY unsafe 'value'>]>", StringComparison.Ordinal);
+            if (scenario == "wrong-namespace") stf = stf.Replace("xmlns:ectd='http://www.ich.org/ectd'", "xmlns:ectd='urn:wrong'", StringComparison.Ordinal);
+            if (scenario == "before-root") stf = declaration + "<ectd:stu";
             if (!scenario.StartsWith("history", StringComparison.Ordinal) && scenario != "missing") _files[sequence + "/m4/study/" + (scenario == "ordinary" ? "metadata.xml" : "stf-A.xml")] = Encoding.UTF8.GetBytes(stf);
             Manifest = new(app, sequence, _files.Select(file => new PackageInputFile(file.Key, file.Value.Length, Convert.ToHexString(SHA256.HashData(file.Value)).ToLowerInvariant(), Convert.ToHexString(MD5.HashData(file.Value)).ToLowerInvariant())), [], [], []);
         }

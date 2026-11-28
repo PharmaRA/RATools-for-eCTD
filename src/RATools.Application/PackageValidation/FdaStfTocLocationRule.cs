@@ -93,6 +93,8 @@ internal static class FdaStfTocLocationRule
                     var section = backbone.Kind == BackboneKind.Ich ? Section(element, elements) :
                         RegionalModule(backbone, element, leaf, elements);
                     if (section is null) { incomplete = true; continue; }
+                    if (identity.Value.Recovered && (section != "m1" || !RecoveredOwner(backbone, element, leaf, elements)))
+                    { incomplete = true; continue; }
                     if (Within(section, "m4") || Within(section, "m5"))
                     { if (!PermittedStudyHeading(backbone, element, leaf, elements, section)) incomplete = true; continue; }
                     if (remaining <= 0) { incomplete = true; continue; }
@@ -108,7 +110,54 @@ internal static class FdaStfTocLocationRule
         catch (LocationWorkLimitException) { incomplete = true; }
         cancellationToken.ThrowIfCancellationRequested();
         return new(RuleId, findings.Count > 0 ? CheckStatus.Fail : incomplete ? CheckStatus.NotEvaluated : applicable ? CheckStatus.Pass : CheckStatus.NotApplicable,
-            "Checked exact current STF owners for module-external placement and qualified lowest standard study-report headings under m4.2 and m5.3.1 through m5.3.5. Aggregate, extension and other module-four/five headings, and STF content misread as a regional backbone remain unqualified. Local location passes do not establish full rule coverage or study-content suitability.", findings);
+            "Checked exact current STF owners for module-external placement and qualified lowest standard study-report headings under m4.2 and m5.3.1 through m5.3.5. A separately captured actual STF root can establish a current module-one violation despite an unsuccessful regional read; that regional failure remains. Aggregate, extension and other module-four/five headings remain unqualified. Local location passes do not establish full rule coverage or study-content suitability.", findings);
+
+        bool RecoveredOwner(ParsedBackbone backbone, ParsedXmlElement element, ParsedPackageLeaf leaf,
+            IReadOnlyDictionary<string, ParsedXmlElement> elements)
+        {
+            Tick();
+            if (backbone.Kind != BackboneKind.Ich || backbone.LogicalPath != targetNumber + "/index.xml" || !leaf.IsRegionalReference ||
+                !leaf.ContextComplete || leaf.Location.LogicalPath != backbone.LogicalPath || leaf.Location.NodePath != element.NodePath ||
+                Raw("ID", "") != leaf.Id || Raw("operation", "") != leaf.Operation ||
+                Raw("href", "http://www.w3c.org/1999/xlink") is not { } href || href != leaf.Href) return false;
+            var roots = new List<ParsedXmlElement>();
+            var parents = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var node in elements.Values)
+            {
+                Tick();
+                if (node.ParentPath is null) roots.Add(node);
+                foreach (var child in node.Children)
+                {
+                    Tick();
+                    if (!parents.TryGetValue(child, out var owners)) parents.Add(child, owners = []);
+                    owners.Add(node.NodePath);
+                }
+            }
+            if (roots.Count != 1 || roots[0] is not { LocalName: "ectd", NamespaceUri: "http://www.ich.org/ectd" }) return false;
+            var current = element;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            while (true)
+            {
+                Tick();
+                if (!seen.Add(current.NodePath) || current.Location.LogicalPath != backbone.LogicalPath || current.Location.NodePath != current.NodePath) return false;
+                if (current.ParentPath is not { } path) return current == roots[0] && !parents.ContainsKey(current.NodePath);
+                if (!elements.TryGetValue(path, out var parent) || !parents.TryGetValue(current.NodePath, out var owners) ||
+                    owners.Count != 1 || owners[0] != parent.NodePath) return false;
+                current = parent;
+            }
+            string? Raw(string name, string ns)
+            {
+                var count = 0; string? value = null;
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri != ns) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.Value == attribute.ExplicitValue) value = attribute.ExplicitValue;
+                }
+                return count == 1 ? value : null;
+            }
+        }
 
         bool PermittedStudyHeading(ParsedBackbone backbone, ParsedXmlElement element, ParsedPackageLeaf leaf,
             IReadOnlyDictionary<string, ParsedXmlElement> elements, string section)
@@ -243,7 +292,7 @@ internal static class FdaStfTocLocationRule
             }
             return matches.Count == 1 ? matches[0] : null;
         }
-        (bool Stf, string SourceId)? Identity(string path)
+        (bool Stf, string SourceId, bool Recovered)? Identity(string path)
         {
             Tick();
             var sequence = path.Split('/')[0];
@@ -259,14 +308,31 @@ internal static class FdaStfTocLocationRule
             foreach (var backbone in xml.Backbones) { Tick(); if (backbone.LogicalPath == path) backbones.Add(backbone); }
             if (stfs.Count == 0)
             {
-                if (backbones.Count == 1 && backbones[0].ProfileSnapshotId == xml.ProfileSnapshotId && backbones[0].ReadComplete && backbones[0].DtdStatus == CheckStatus.Pass) return (false, capture.SourceId);
+                if (sequence == targetNumber && backbones.Count == 1 && backbones[0].Kind == BackboneKind.UsRegional &&
+                    backbones[0].ProfileSnapshotId == xml.ProfileSnapshotId && !backbones[0].ReadComplete &&
+                    backbones[0].DtdStatus != CheckStatus.Pass && backbones[0].Elements.Count == 0)
+                {
+                    var candidates = new List<ParsedStudyTaggingFile>();
+                    foreach (var candidate in xml.StudyTaggingFiles.RegionalMisclassificationCandidates)
+                    { Tick(); if (candidate.LogicalPath == path) candidates.Add(candidate); }
+                    if (candidates.Count != 1 || candidates[0].CapturedSha256 != files[0].Sha256) return null;
+                    var recovered = candidates[0];
+                    var recoveredRoots = new List<ParsedXmlElement>();
+                    foreach (var element in recovered.Elements) { Tick(); if (element.ParentPath is null) recoveredRoots.Add(element); }
+                    var pinned = false;
+                    foreach (var asset in recovered.ResolvedAssets) { Tick(); if (asset == "stf-dtd") pinned = true; }
+                    if (!pinned || recoveredRoots.Count != 1 || recoveredRoots[0] is not { Name: "ectd:study", LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" } ||
+                        recoveredRoots[0].Location.LogicalPath != path || recoveredRoots[0].Location.NodePath != recoveredRoots[0].NodePath) return null;
+                    return (true, capture.SourceId, true);
+                }
+                if (backbones.Count == 1 && backbones[0].ProfileSnapshotId == xml.ProfileSnapshotId && backbones[0].ReadComplete && backbones[0].DtdStatus == CheckStatus.Pass) return (false, capture.SourceId, false);
                 if (backbones.Count > 0 || path.StartsWith(sequence + "/util/", StringComparison.Ordinal) || !xml.StudyTaggingFiles.InventoryComplete) return null;
-                return (false, capture.SourceId);
+                return (false, capture.SourceId, false);
             }
             if (stfs.Count != 1 || backbones.Count > 0 || stfs[0].CapturedSha256 != files[0].Sha256) return null;
             var roots = new List<ParsedXmlElement>();
             foreach (var element in stfs[0].Elements) { Tick(); if (element.ParentPath is null) roots.Add(element); }
-            return roots.Count == 1 && roots[0] is { Name: "ectd:study", LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" } ? (true, capture.SourceId) : null;
+            return roots.Count == 1 && roots[0] is { Name: "ectd:study", LocalName: "study", NamespaceUri: "http://www.ich.org/ectd" } ? (true, capture.SourceId, false) : null;
         }
         string? Section(ParsedXmlElement leaf, IReadOnlyDictionary<string, ParsedXmlElement> elements)
         {
