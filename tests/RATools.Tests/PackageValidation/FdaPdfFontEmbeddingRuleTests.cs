@@ -148,6 +148,80 @@ public sealed class FdaPdfFontEmbeddingRuleTests
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConflictingFontPathDoesNotHideAnotherUniqueFailure(bool knownFirst, bool identicalDuplicate)
+    {
+        var fixture = await Fixture(Build());
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath.EndsWith("report.pdf", StringComparison.Ordinal));
+        var ambiguous = new PdfFontObservation("page[1]/Resources/Font/F1", "Helvetica", "Type1", PdfFontEmbeddingStatus.Missing);
+        var duplicate = identicalDuplicate ? ambiguous : ambiguous with { Embedding = PdfFontEmbeddingStatus.Unknown };
+        var known = new PdfFontObservation("page[1]/Resources/Font/F2", "Courier", "Type1", PdfFontEmbeddingStatus.Missing);
+        var basics = new PdfInspectionResult("1.4", false, false, true, false, ["Helvetica", "Courier"], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            fonts: knownFirst ? [known, ambiguous, duplicate] : [ambiguous, duplicate, known]);
+        var run = new FdaPdfFontEmbeddingRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        var finding = Assert.Single(check.Findings);
+        Assert.Equal(known.ObjectPath, finding.Location.FieldPath);
+        Assert.Equal("Courier", finding.Actual);
+        foreach (var remaining in new[] { 0, 1 })
+        {
+            var bounded = new FdaPdfFontEmbeddingRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+            bounded.Observe(new(file.LogicalPath, facts, file.Sha256), remaining);
+            Assert.Equal(remaining == 0 ? CheckStatus.NotEvaluated : CheckStatus.Fail, bounded.Finish(true)!.Status);
+            Assert.Equal(remaining, bounded.FindingCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteFontUniquenessScanCannotAuthorizeFailure(bool duplicateLast)
+    {
+        var baseline = await Fixture(Build());
+        var fixture = await Fixture(Build(), limits: new PackageReadLimits { MaxPdfObjects = baseline.Input.Packages.Target.Manifest.Files.Count + 3 });
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath.EndsWith("report.pdf", StringComparison.Ordinal));
+        var first = new PdfFontObservation("page[1]/Resources/Font/F1", "Helvetica", "Type1", PdfFontEmbeddingStatus.Missing);
+        var second = new PdfFontObservation("page[1]/Resources/Font/F2", "Courier", "Type1", PdfFontEmbeddingStatus.Missing);
+        var last = duplicateLast ? first with { Embedding = PdfFontEmbeddingStatus.Unknown } : second with { ObjectPath = "page[1]/Resources/Font/F3" };
+        var basics = new PdfInspectionResult("1.4", false, false, true, false, ["Helvetica"], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed, fonts: [first, second, last]);
+        var run = new FdaPdfFontEmbeddingRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(CheckStatus.NotEvaluated, check.Status);
+        Assert.Empty(check.Findings);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(null, true)]
+    [InlineData("", false)]
+    [InlineData("", true)]
+    [InlineData(" ", false)]
+    [InlineData(" ", true)]
+    public async Task UnlocatedFontDoesNotHideUniqueLocatedFailure(string? unlocatedPath, bool knownFirst)
+    {
+        var fixture = await Fixture(Build());
+        var file = fixture.Input.Packages.Target.Manifest.Files.Single(item => item.LogicalPath.EndsWith("report.pdf", StringComparison.Ordinal));
+        var unknown = new PdfFontObservation(unlocatedPath!, "Helvetica", "Type1", PdfFontEmbeddingStatus.Missing);
+        var known = new PdfFontObservation("page[1]/Resources/Font/F2", "Courier", "Type1", PdfFontEmbeddingStatus.Missing);
+        var basics = new PdfInspectionResult("1.4", false, false, true, false, ["Courier"], false, [], PageCount: 1);
+        var facts = new PackagePdfFacts(basics, [], [], true, true, contentProcessing: PdfContentProcessingStatus.Processed,
+            fonts: knownFirst ? [known, unknown] : [unknown, known]);
+        var run = new FdaPdfFontEmbeddingRule.Inspection(fixture.Input, fixture.Files, fixture.Context, CancellationToken.None);
+        run.Observe(new(file.LogicalPath, facts, file.Sha256), 10);
+        var check = run.Finish(false)!;
+        Assert.Equal(CheckStatus.Fail, check.Status);
+        Assert.Equal(known.ObjectPath, Assert.Single(check.Findings).Location.FieldPath);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CancellationRetainsUnknownOrEstablishedFailure(bool afterFailure)

@@ -63,17 +63,19 @@ internal static class FdaPdfFontEmbeddingRule
                 document.CapturedSha256 != file.Sha256 || document.Facts is not { } facts ||
                 facts.ContentProcessing != PdfContentProcessingStatus.Processed || facts.Basics.ParseError is not null ||
                 facts.Basics.PageCount is null or < 1 || facts.Basics.IsEncrypted) return;
-            var paths = new HashSet<string>(StringComparer.Ordinal);
+            var paths = new Dictionary<string, int>(StringComparer.Ordinal);
             // Conflicting duplicate observations must not authorize a failure.
             foreach (var font in facts.Fonts)
             {
-                _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || !paths.Add(font.ObjectPath)) return;
+                _token.ThrowIfCancellationRequested(); if (_work-- <= 0) return;
+                if (string.IsNullOrWhiteSpace(font.ObjectPath)) continue;
+                paths[font.ObjectPath] = paths.GetValueOrDefault(font.ObjectPath) + 1;
             }
             foreach (var font in facts.Fonts)
             {
                 _token.ThrowIfCancellationRequested(); if (_work-- <= 0 || remaining <= 0) return;
-                if (font.Subtype != "Type1" || font.BaseFont is null || !KnownNonStandard.Contains(font.BaseFont) ||
-                    font.Embedding != PdfFontEmbeddingStatus.Missing || string.IsNullOrWhiteSpace(font.ObjectPath)) continue;
+                if (string.IsNullOrWhiteSpace(font.ObjectPath) || paths[font.ObjectPath] != 1 || font.Subtype != "Type1" ||
+                    font.BaseFont is null || !KnownNonStandard.Contains(font.BaseFont) || font.Embedding != PdfFontEmbeddingStatus.Missing) continue;
                 _findings.Add(new(RuleId, CheckStatus.Fail, _rule.Severity, RuleId,
                     "A used non-standard PDF built-in font is definitely not embedded.",
                     new(_input.Packages.Target.Manifest.SequenceNumber, document.LogicalPath, FieldPath: font.ObjectPath, Files: [new(_input.Packages.Target.SourceId, document.LogicalPath)]),

@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA5005第三轮：字体观察冲突局部隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 3102已提交`cc47401`。本项只改变冻结字体观察的重复路径归责：先完成有界唯一性扫描，重复路径自身保持未知，但不隐藏另一唯一路径的确定未嵌入字体；同值重复同样不授权。空定位不能产生finding，工作与finding预算保持。字体白名单、真实读取器、继承及嵌入状态政策不变，任意字体身份、完整/子集程序、嵌套资源和历史适用性继续留队。
+
+red四项全败复现另一唯一路径被重复观察提前退出隐藏；candidate七类247/247通过。主代理只读自审发现HashSet改Dictionary可能引入null定位异常，review-red六项4过2败明确复现ArgumentNullException；加入空定位先排除门槛后final七类 **253/253、0失败/跳过**（5005为91含新增12、当前3102为52、历史30、PDF管线23、解析器17、文件28、交付12）。覆盖冲突前后、同值/矛盾重复、零/一条finding额度、完整预扫描工作不足、null/空串/空白定位及既有取消/Partial报告。主代理限定只读自审闭合，无子代理，final是最终证据。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda5005-font-conflict-final-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。8交付/直接依赖输入SHA绑定；manifest SHA`3d5cecd741a53b8d085a85accf8073a5706f1baf2b1dba55b245d82a43a3d661`、TRX SHA`695358a9f6cb050d88419aa8d4b2752c17654e3a74d22b1f829cefd3fb4e7124`；目录167条canonical SHA`6ddc3c7cc3241eacc579e8e2a3a9c8e4506a1a5587f7a7ef1a22ae199d09da2f`独立合同通过。四轮证据及校验副本位于`.artifacts/local-check/fda5005-font-conflict-*-20261128`和`backups/fda5005-font-conflict-20261128/evidence/`，bin/obj仅回收。PDF-validator-v34，file-v114及XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。下一按序5032及后续PDF未闭合项，已Implemented项不重开。
+
 **FDA3102第三轮：单文件打开失败隔离（仍Partial，主代理限定只读自审及终态核对通过）。** 2026已提交`f03b7f6`。2043实际提交/所有权例外、3078最低层级定义及3102非.pdf内容身份缺依据继续留队；已Implemented项不重开。本项将普通OpenRead失败纳入已有空事实/未知诊断路径，损坏PDF前后出现不可读文件均不隐藏其他确定错误。输入变化继续传播、外部取消优先，限额/局部取消保持终止和已知结果保留；最终捕获复核仍执行。不改变流释放异常的原有传播边界，不新增内容扫描。
 
 red因新测试常量数组触发CA1861编译失败，不计业务红灯；修正断言写法后red2六项全败，明确复现IOException/UnauthorizedAccessException越过单文件边界。candidate六类 **162/162、0失败/跳过**（3102为52含新增16、历史3102为30、PDF管线23、实际解析器17、文件28、交付12），覆盖先后顺序、全不可读、输入变化、取消伴随I/O竞态、限额/局部取消、最终复核和Partial报告。主代理限定只读自审通过，无子代理，candidate即最终证据。
