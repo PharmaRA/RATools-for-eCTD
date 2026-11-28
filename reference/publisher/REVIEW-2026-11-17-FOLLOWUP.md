@@ -1,5 +1,11 @@
 # 2026-11-17 审阅后续执行账本
 
+**FDA2026第三轮：后续活动资格的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 2025已提交`32f32a7`。本项独立复现合法follow-up自引用判定使用缺失/矛盾原始属性仍误Fail；补file ownership、application-type、submission-type和subtype的唯一非默认原始值一致门槛，属性枚举纳入工作预算。身份级未知不授权整组，成员级未知不隐藏另一已知自引用；保留amendment/resubmission正向资格，不用起点白名单取反，不以较早编号证明父活动存在。
+
+red五项1过4败，正常自引用通过，其余在完整区域DTD前提后误Fail。candidate六类 **312/312、0失败/跳过**（2026为88含新增17、2025为97、2024为71、中断16、文件28、交付12），覆盖四属性缺失/默认/冲突及主/次成员未知前后另一已知自引用保留，既有精确工作预算、取消、分组、日期及Partial报告保持。主代理限定只读自审通过，无子代理，candidate即最终证据；生效日仍2027-01-16。
+
+入口`./scripts/local-check/native-no-delete/run-package-regression.ps1`，Evidence=`.artifacts/local-check/fda2026-raw-followup-candidate-20261128`、QualifiedGuard=`remaining107-qualification-20261121-v3`，精确Filter见summary.json。三Build及顶层build/test退出0；两进程树stopped=true、forcedTreeStop=true，26/26和5/5受保护，不称全部自然退出。7交付/直接依赖输入SHA绑定；manifest SHA`6a197c7b6af66f8d98ec9bcb70386809f8baa63da7d1a8a363fe6f3b2d895f89`、TRX SHA`b968abb620edfda7da6003a1059c5e507a4f681d627c39f92cee55b563a5c9ae`；目录167条canonical SHA`c9c0a5d3c00402a7d54c85fa0c9856434a950bda548e4528814bc93f300de1ad`。两轮证据及校验副本位于`.artifacts/local-check/fda2026-raw-followup-*-20261128`和`backups/fda2026-raw-followup-20261128/evidence/`，bin/obj仅回收。file-v114，XML-stf-v7/lifecycle-v4不变；库存67/56/24、待完整覆盖80、原107完整27不变。2043实际提交/所有权例外、3078区域/扩展最低层级及3102非.pdf内容身份仍留队；3001/3015/3029已Implemented不重开。下一3102单文件OpenRead失败是否中断其他已知内容错误，先红测再修复。
+
 **FDA2025第三轮：起点资格的原始属性证据（仍Partial，主代理限定只读自审及终态核对通过）。** 2024已提交`bd1eef1`。本项独立复现原始类型/子类型或主申请声明缺失/冲突仍借规范化值判起点不匹配；补file ownership、application-type、submission-type、submission-sub-type的唯一非默认原始值一致门槛。身份级未知不授权整组比较，成员类型/子类型未知只影响对应成员，不隐藏其他已知不匹配；属性枚举纳入既有工作预算。不改变七类起点、分组成员自身序列、日期或历史政策。
 
 red五项1过4败，正常不匹配对照通过，其余在完整区域DTD前提后误Fail。candidate六类 **295/295、0失败/跳过**（2025为97含新增17、2024为71、2026为71、中断16、文件28、交付12），覆盖四属性缺失/默认/冲突及主/次成员未知前后另一确定Fail保留；既有精确工作预算、取消、分组、日期及Partial报告回归通过。主代理限定只读自审通过，无子代理，candidate即最终证据。生效日仍2027-01-16，未将当期NA当完整覆盖。

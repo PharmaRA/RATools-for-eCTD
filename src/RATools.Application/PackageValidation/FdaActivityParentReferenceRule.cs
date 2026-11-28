@@ -71,8 +71,8 @@ internal static class FdaActivityParentReferenceRule
             {
                 Tick(); var application = elements[path];
                 if (application is not { Name: "application", LocalName: "application", NamespaceUri.Length: 0 }) continue;
-                var owner = application.Attributes.GetValueOrDefault("application-containing-files");
-                if (owner is not { LocalName: "application-containing-files", NamespaceUri: "", IsDefault: false, Value: "true" or "false" })
+                var owner = Explicit(application, "application-containing-files");
+                if (owner is not ("true" or "false"))
                     return Unknown("Every member requires an explicit file-ownership declaration.");
                 var number = Child(Child(application, "application-information"), "application-number");
                 if (number is null || number.Children.Count != 0 || string.IsNullOrWhiteSpace(number.Text) || number.Text != number.Text.Trim())
@@ -81,7 +81,7 @@ internal static class FdaActivityParentReferenceRule
                 if (app is null || !Contains(policy.InputValues("application-type"), app) || !identities.Add((app, number.Text)))
                     return Unknown("Member application identities must be qualified and unique.");
                 members.Add((application, app));
-                if (owner.Value != "true") continue;
+                if (owner != "true") continue;
                 if (primary is not null) return Unknown("Multiple file-owning applications do not identify one primary input.");
                 primary = application;
             }
@@ -120,8 +120,15 @@ internal static class FdaActivityParentReferenceRule
 
             string? Explicit(ParsedXmlElement element, string name)
             {
-                Tick();
-                return element.Attributes.GetValueOrDefault(name) is { NamespaceUri: "", IsDefault: false } attribute && attribute.LocalName == name ? attribute.Value : null;
+                var count = 0; string? value = null;
+                foreach (var attribute in element.Attributes.Values)
+                {
+                    Tick();
+                    if (attribute.LocalName != name || attribute.NamespaceUri.Length != 0) continue;
+                    count++;
+                    if (!attribute.IsDefault && attribute.Value == attribute.ExplicitValue) value = attribute.ExplicitValue;
+                }
+                return count == 1 ? value : null;
             }
 
             ParsedXmlElement? Child(ParsedXmlElement? parent, string name)

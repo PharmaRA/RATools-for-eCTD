@@ -13,6 +13,66 @@ public sealed class FdaActivityParentReferenceRuleTests
     private const string RuleId = "FDA47-2026";
 
     [Theory]
+    [InlineData("submission-type", "valid", CheckStatus.Fail)]
+    [InlineData("submission-type", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("submission-sub-type", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("application-containing-files", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("application-type", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("submission-type", "default", CheckStatus.NotEvaluated)]
+    [InlineData("submission-type", "conflict", CheckStatus.NotEvaluated)]
+    [InlineData("submission-sub-type", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("submission-sub-type", "default", CheckStatus.NotEvaluated)]
+    [InlineData("application-containing-files", "missing", CheckStatus.NotEvaluated)]
+    [InlineData("application-containing-files", "default", CheckStatus.NotEvaluated)]
+    [InlineData("application-type", "default", CheckStatus.NotEvaluated)]
+    [InlineData("application-type", "conflict", CheckStatus.NotEvaluated)]
+    public async Task FollowupQualificationRequiresOriginalAttributeEvidence(string attributeName, string variant, CheckStatus expected)
+    {
+        var fixture = await Fixture("fdast5", "fdasst4", "0003");
+        var result = Direct(ChangeOriginal(fixture, attributeName, variant))!;
+        Assert.Equal(expected, result.Status);
+        Assert.Equal(expected == CheckStatus.Fail ? 1 : 0, result.Findings.Count);
+    }
+
+    [Theory]
+    [InlineData(true, "submission-type")]
+    [InlineData(false, "submission-type")]
+    [InlineData(true, "submission-sub-type")]
+    [InlineData(false, "submission-sub-type")]
+    public async Task MissingMemberOriginalValueCannotHideAnotherKnownSelfReference(bool primaryUnknown, string attributeName)
+    {
+        var fixture = await Fixture("fdast8", "fdasst4", "0001", variant: "grouped-both-self");
+        var regional = Assert.Single(Assert.Single(fixture.Lifecycle.XmlInspections).Backbones, b => b.Kind == BackboneKind.UsRegional);
+        var unknown = Assert.Single(regional.Elements, e => e.Name == "application" && e.Attribute("application-containing-files") == (primaryUnknown ? "true" : "false"));
+        var known = Assert.Single(regional.Elements, e => e.Name == "application" && e != unknown);
+        var result = Direct(ChangeOriginal(fixture, attributeName, "missing", unknown.NodePath), 1)!;
+        Assert.Equal(CheckStatus.Fail, result.Status);
+        Assert.StartsWith(known.NodePath + "/", Assert.Single(result.Findings).Location.NodePath, StringComparison.Ordinal);
+    }
+
+    private static FixtureData ChangeOriginal(FixtureData fixture, string attributeName, string variant, string? memberPath = null)
+    {
+        var xml = Assert.Single(fixture.Lifecycle.XmlInspections);
+        var regional = Assert.Single(xml.Backbones, b => b.Kind == BackboneKind.UsRegional);
+        Assert.True(regional.ReadComplete);
+        Assert.Equal(CheckStatus.Pass, regional.DtdStatus);
+        var elements = regional.Elements.Select(e => new ParsedXmlElement(e.NodePath, e.ParentPath, e.Name, e.LocalName, e.NamespaceUri,
+            e.Attributes.Values.Select(a => a.LocalName != attributeName || memberPath is not null && e.NodePath != memberPath && !e.NodePath.StartsWith(memberPath + "/", StringComparison.Ordinal) ? a : variant switch
+            {
+                "missing" => a with { ExplicitValue = null },
+                "conflict" => a with { ExplicitValue = attributeName == "application-containing-files" ? "false" : "different" },
+                "default" => a with { IsDefault = true }, _ => a
+            }), e.Children, e.Text, e.Location));
+        var changed = new ParsedBackbone(regional.LogicalPath, regional.ProfileSnapshotId, regional.Kind, regional.ReadComplete, regional.DtdStatus,
+            regional.DocumentTypeName, regional.SystemIdentifier, regional.PublicIdentifier, elements, regional.Nodes, regional.Leaves,
+            regional.IdIndex.Values.SelectMany(ids => ids), regional.ResolvedAssets, regional.ProcessingInstructions);
+        var replacement = new PackageXmlInspection(xml.InputDigest, xml.ProfileSnapshotId, xml.AssetManifestDigest, xml.LimitsDigest,
+            xml.Backbones.Where(b => b != regional).Append(changed), xml.Checks, xml.RulesDigest, xml.StudyTaggingFiles);
+        return fixture with { Lifecycle = new(fixture.Packages, fixture.Lifecycle.ProfileSnapshotId, [replacement], fixture.Lifecycle.Events,
+            fixture.Lifecycle.States, fixture.Lifecycle.Checks, fixture.Context.Catalog.Digest, fixture.Context.Assets.Digest) };
+    }
+
+    [Theory]
     [InlineData("grouped-earlier", CheckStatus.Pass, 0)]
     [InlineData("grouped-primary-self", CheckStatus.Fail, 1)]
     [InlineData("grouped-member-self", CheckStatus.Fail, 1)]
